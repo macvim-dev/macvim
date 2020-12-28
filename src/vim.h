@@ -1240,6 +1240,7 @@ extern int (*dyn_libintl_wputenv)(const wchar_t *envstring);
 #define SID_ENV		-4	// for sourcing environment variable
 #define SID_ERROR	-5	// option was reset because of an error
 #define SID_NONE	-6	// don't set scriptID
+#define SID_WINLAYOUT	-7	// changing window size
 
 /*
  * Events for autocommands.

@@ -2132,6 +2132,9 @@ if test "$enable_rubyinterp" = "yes" -o "$enable_rubyinterp" = "dynamic"; then
         AC_MSG_RESULT([<none>])
       fi
 	fi
+	if test "X$CLANG_VERSION" != "X" -a "$rubyversion" -ge 30; then
+	  RUBY_CFLAGS="$RUBY_CFLAGS -fdeclspec"
+	fi
       else
 	AC_MSG_RESULT(not found; disabling Ruby)
       fi

@@ -83,9 +83,11 @@ typedef struct VimMenu vimmenu_T;
  * sc_version is also here, for convenience.
  */
 typedef struct {
+#ifdef FEAT_EVAL
     scid_T	sc_sid;		// script ID
     int		sc_seq;		// sourcing sequence number
     linenr_T	sc_lnum;	// line number
+#endif
     int		sc_version;	// :scriptversion
 } sctx_T;
 
@@ -1224,8 +1226,8 @@ struct mapblock
     char	m_silent;	// <silent> used, don't echo commands
     char	m_nowait;	// <nowait> used
 #ifdef FEAT_EVAL
-    char	m_expr;		// <expr> used, m_str is an expression
     sctx_T	m_script_ctx;	// SCTX where map was defined
+    char	m_expr;		// <expr> used, m_str is an expression
 #endif
 };
 
@@ -1563,9 +1565,12 @@ typedef void (*cfunc_free_T)(void *state);
 // type of getline() last argument
 typedef enum {
     GETLINE_NONE,	    // do not concatenate any lines
-    GETLINE_CONCAT_CONT,    // concatenate continuation lines
+    GETLINE_CONCAT_CONT,    // concatenate continuation lines in Vim9 script
+    GETLINE_CONCAT_CONTDEF, // concatenate continuation lines always
     GETLINE_CONCAT_ALL	    // concatenate continuation and Vim9 # comment lines
 } getline_opt_T;
+
+typedef struct svar_S svar_T;
 
 #if defined(FEAT_EVAL) || defined(PROTO)
 typedef struct funccall_S funccall_T;
@@ -1766,13 +1771,13 @@ struct sallvar_S {
 /*
  * Entry for "sn_var_vals".  Used for script-local variables.
  */
-typedef struct {
+struct svar_S {
     char_u	*sv_name;	// points into "sn_all_vars" di_key
     typval_T	*sv_tv;		// points into "sn_vars" or "sn_all_vars" di_tv
     type_T	*sv_type;
     int		sv_const;
     int		sv_export;	// "export let var = val"
-} svar_T;
+};
 
 typedef struct {
     char_u	*imp_name;	    // name imported as (allocated)
@@ -4183,9 +4188,7 @@ typedef struct {
     int		save_finish_op;
     int		save_opcount;
     int		save_reg_executing;
-#ifdef FEAT_EVAL
     int		save_script_version;
-#endif
     tasave_T	tabuf;
 } save_state_T;
 

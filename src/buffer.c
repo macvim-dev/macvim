@@ -5381,9 +5381,8 @@ chk_modeline(
     int		vers;
     int		end;
     int		retval = OK;
-#ifdef FEAT_EVAL
     sctx_T	save_current_sctx;
-#endif
+
     ESTACK_CHECK_DECLARATION
 
     prev = -1;
@@ -5467,22 +5466,22 @@ chk_modeline(
 	    if (*s != NUL)		// skip over an empty "::"
 	    {
 		int secure_save = secure;
-#ifdef FEAT_EVAL
+
 		save_current_sctx = current_sctx;
+		current_sctx.sc_version = 1;
+#ifdef FEAT_EVAL
 		current_sctx.sc_sid = SID_MODELINE;
 		current_sctx.sc_seq = 0;
 		current_sctx.sc_lnum = lnum;
-		current_sctx.sc_version = 1;
 #endif
+
 		// Make sure no risky things are executed as a side effect.
 		secure = 1;
 
 		retval = do_set(s, OPT_MODELINE | OPT_LOCAL | flags);
 
 		secure = secure_save;
-#ifdef FEAT_EVAL
 		current_sctx = save_current_sctx;
-#endif
 		if (retval == FAIL)		// stop if error found
 		    break;
 	    }
