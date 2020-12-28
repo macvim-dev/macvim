@@ -133,8 +133,8 @@ EXTERN char e_item_not_found_in_script_str[]
 	INIT(= N_("E1048: Item not found in script: %s"));
 EXTERN char e_item_not_exported_in_script_str[]
 	INIT(= N_("E1049: Item not exported in script: %s"));
-EXTERN char e_colon_required_before_a_range[]
-	INIT(= N_("E1050: Colon required before a range"));
+EXTERN char e_colon_required_before_range_str[]
+	INIT(= N_("E1050: Colon required before a range: %s"));
 EXTERN char e_wrong_argument_type_for_plus[]
 	INIT(= N_("E1051: Wrong argument type for +"));
 EXTERN char e_cannot_declare_an_option[]
@@ -321,3 +321,13 @@ EXTERN char e_command_not_followed_by_white_space_str[]
 	INIT(= N_("E1144: Command is not followed by white space: %s"));
 EXTERN char e_missing_heredoc_end_marker_str[]
 	INIT(= N_("E1145: Missing heredoc end marker: %s"));
+EXTERN char e_command_not_recognized_str[]
+	INIT(= N_("E1146: Command not recognized: %s"));
+EXTERN char e_list_not_set[]
+	INIT(= N_("E1147: List not set"));
+EXTERN char e_cannot_index_str[]
+	INIT(= N_("E1148: Cannot index a %s"));
+EXTERN char e_script_variable_invalid_after_reload_in_function_str[]
+	INIT(= N_("E1149: Script variable is invalid after reload in function %s"));
+EXTERN char e_script_variable_type_changed[]
+	INIT(= N_("E1150: Script variable type changed"));

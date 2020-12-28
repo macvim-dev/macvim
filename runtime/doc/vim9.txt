@@ -1,4 +1,4 @@
-*vim9.txt*	For Vim version 8.2.  Last change: 2020 Dec 05
+*vim9.txt*	For Vim version 8.2.  Last change: 2020 Dec 24
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -6,7 +6,7 @@
 
 THIS IS STILL UNDER DEVELOPMENT - ANYTHING CAN BREAK - ANYTHING CAN CHANGE
 
-Vim9 script commands and expressions.			*vim9*
+Vim9 script commands and expressions.			*Vim9*
 
 Most expression help is in |eval.txt|.  This file is about the new syntax and
 features in Vim9 script.
@@ -25,7 +25,7 @@ THIS IS STILL UNDER DEVELOPMENT - ANYTHING CAN BREAK - ANYTHING CAN CHANGE
 
 ==============================================================================
 
-1. What is Vim9 script?					*vim9-script*
+1. What is Vim9 script?					*Vim9-script*
 
 THIS IS STILL UNDER DEVELOPMENT - ANYTHING CAN BREAK - ANYTHING CAN CHANGE
 
@@ -112,7 +112,12 @@ In Vi # is a command to list text with numbers.  In Vim9 script you can use
 	101 number
 
 To improve readability there must be a space between a command and the #
-that starts a comment.
+that starts a comment: >
+	var = value # comment
+	var = value# error!
+
+In legacy script # is also used for the alternate file name.  In Vim9 script
+you need to use %% instead.  Instead of ## use %%% (stands for all arguments).
 
 
 Vim9 functions ~
@@ -134,7 +139,7 @@ Compilation is done when either of these is encountered:
 `:def` has no options like `:function` does: "range", "abort", "dict" or
 "closure".  A `:def` function always aborts on an error (unless `:silent!` was
 used for the command or inside a `:try` block), does not get a range passed
-and cannot be a "dict" function.
+cannot be a "dict" function, and can always be a closure.
 
 The argument types and return type need to be specified.  The "any" type can
 be used, type checking will then be done at runtime, like with legacy
@@ -186,6 +191,33 @@ variables could be defined anywhere (good luck finding out where!).
 Global functions can still be defined and deleted at nearly any time.  In
 Vim9 script script-local functions are defined once when the script is sourced
 and cannot be deleted or replaced.
+
+When compiling a function and a function call is encountered for a function
+that is not (yet) defined, the |FuncUndefined| autocommand is not triggered.
+You can use an autoload function if needed, or call a legacy function and have
+|FuncUndefined| triggered there.
+
+
+Reloading a Vim9 script clears functions and variables by default ~
+							*vim9-reload*
+When loading a legacy Vim script a second time nothing is removed, the
+commands will replace existing variables and functions and create new ones.
+
+When loading a Vim9 script a second time all existing script-local functions
+and variables are deleted, thus you start with a clean slate.  This is useful
+if you are developing a plugin and want to try a new version.  If you renamed
+something you don't have to worry about the old name still hanging around.
+
+If you do want to keep items, use: >
+	vimscript noclear
+
+You want to use this in scripts that use a `finish` command to bail out at
+some point when loaded again.  E.g. when a buffer local option is set: >
+	vimscript noclear
+	setlocal completefunc=SomeFunc
+	if exists('*SomeFunc') | finish | endif
+	def g:SomeFunc()
+	....
 
 
 Variable declarations with :var, :final and :const ~
@@ -335,6 +367,40 @@ When using `function()` the resulting type is "func", a function with any
 number of arguments and any return type.  The function can be defined later.
 
 
+Lambda using => instead of -> ~
+
+In legacy script there can be confusion between using "->" for a method call
+and for a lambda.  Also, when a "{" is found the parser needs to figure out if
+it is the start of a lambda or a dictionary, which is now more complicated
+because of the use of argument types.
+
+To avoid these problems Vim9 script uses a different syntax for a lambda,
+which is similar to Javascript: >
+	var Lambda = (arg) => expression
+
+No line break is allowed in the arguments of a lambda up to and including the
+"=>".  This is OK: >
+	filter(list, (k, v) =>
+			v > 0)
+This does not work: >
+	filter(list, (k, v)
+			=> v > 0)
+This also does not work:
+	filter(list, (k,
+			v) => v > 0)
+
+Additionally, a lambda can contain statements in {}: >
+	var Lambda = (arg) => {
+		g:was_called = 'yes'
+		return expression
+	    }
+NOT IMPLEMENTED YET
+
+To avoid the "{" of a dictionary literal to be recognized as a statement block
+wrap it in parenthesis: >
+	var Lambda = (arg) => ({key: 42})
+
+
 Automatic line continuation ~
 
 In many cases it is obvious that an expression continues on the next line.  In
@@ -399,6 +465,16 @@ arguments: >
 		separator = '-'
 		): string
 
+Since a continuation line cannot be easily recognized the parsing of commands
+has been made stricter.  E.g., because of the error in the first line, the
+second line is seen as a separate command: >
+	popup_create(some invalid expression, {
+	   exit_cb: Func})
+Now "exit_cb: Func})" is actually a valid command: save any changes to the
+file "_cb: Func})" and exit.  To avoid this kind of mistake in Vim9 script
+there must be white space between most command names and the argument.
+
+
 Notes:
 - "enddef" cannot be used at the start of a continuation line, it ends the
   current function.
@@ -418,14 +494,6 @@ Notes:
 <  This does not work: >
 	echo [1, 2]
 		[3, 4]
-- No line break is allowed in the arguments of a lambda, between the "{" and
-  "->".  This is OK: >
-	filter(list, {k, v ->
-			v > 0})
-<  This does not work: >
-	filter(list, {k,
-			v -> v > 0})
-
 
 No curly braces expansion ~
 
@@ -626,6 +694,13 @@ command.  This will give an error for missing `endif`: >
 	  if has('feature') | use-feature | endif
 	enddef
 
+Other differences ~
+
+Patterns are used like 'magic' is set, unless explicitly overruled.
+The 'edcompatible' option value is not used.
+The 'gdefault' option value is not used.
+
+
 ==============================================================================
 
 3. New style functions					*fast-functions*
@@ -689,18 +764,24 @@ prefix and they do not need to exist (they can be deleted any time).
 Limitations ~
 
 Local variables will not be visible to string evaluation.  For example: >
-	def EvalString(): list<string>
+	def MapList(): list<string>
 	  var list = ['aa', 'bb', 'cc', 'dd']
 	  return range(1, 2)->map('list[v:val]')
 	enddef
 
 The map argument is a string expression, which is evaluated without the
 function scope.  Instead, use a lambda: >
-	def EvalString(): list<string>
+	def MapList(): list<string>
 	  var list = ['aa', 'bb', 'cc', 'dd']
-	  return range(1, 2)->map({ _, v -> list[v] })
+	  return range(1, 2)->map(( _, v) => list[v])
 	enddef
 
+The same is true for commands that are not compiled, such as `:global`.
+For these the backtick expansion can be used.  Example: >
+	def Replace()
+	  var newText = 'blah'
+	  g/pattern/s/^/`=newText`/
+	enddef
 
 ==============================================================================
 
@@ -795,12 +876,14 @@ compiled code the "any" type is assumed.
 This can be a problem when the "any" type is undesired and the actual type is
 expected to always be the same.  For example, when declaring a list: >
 	var l: list<number> = [1, g:two]
-This will give an error, because "g:two" has type "any".  To avoid this, use a
-type cast: >
+At compile time Vim doesn't know the type of "g:two" and the expression type
+becomes list<any>.  An instruction is generated to check the list type before
+doing the assignment, which is a bit inefficient.
+							*type-casting*
+To avoid this, use a type cast: >
 	var l: list<number> = [1, <number>g:two]
-<							*type-casting*
-The compiled code will then check that "g:two" is a number at runtime and give
-an error if it isn't.  This is called type casting.
+The compiled code will then only check that "g:two" is a number and give an
+error if it isn't.  This is called type casting.
 
 The syntax of a type cast is:  "<" {type} ">".  There cannot be white space
 after the "<" or before the ">" (to avoid them being confused with

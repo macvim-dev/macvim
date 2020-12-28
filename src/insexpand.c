@@ -1020,7 +1020,7 @@ ins_compl_show_pum(void)
 
 #if defined(FEAT_EVAL)
     // Dirty hard-coded hack: remove any matchparen highlighting.
-    do_cmdline_cmd((char_u *)"if exists('g:loaded_matchparen')|3match none|endif");
+    do_cmdline_cmd((char_u *)"if exists('g:loaded_matchparen')|:3match none|endif");
 #endif
 
     // Update the screen later, before drawing the popup menu over it.
@@ -1216,7 +1216,7 @@ ins_compl_dictionaries(
     }
     else
     {
-	regmatch.regprog = vim_regcomp(pat, p_magic ? RE_MAGIC : 0);
+	regmatch.regprog = vim_regcomp(pat, magic_isset() ? RE_MAGIC : 0);
 	if (regmatch.regprog == NULL)
 	    goto theend;
     }
@@ -4180,7 +4180,7 @@ quote_meta(char_u *dest, char_u *src, int len)
 		    break;
 		// FALLTHROUGH
 	    case '~':
-		if (!p_magic)	// quote these only if magic is set
+		if (!magic_isset())	// quote these only if magic is set
 		    break;
 		// FALLTHROUGH
 	    case '\\':

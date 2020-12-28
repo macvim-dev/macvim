@@ -1363,6 +1363,7 @@ typedef struct jsonq_S jsonq_T;
 typedef struct cbq_S cbq_T;
 typedef struct channel_S channel_T;
 typedef struct cctx_S cctx_T;
+typedef struct ectx_S ectx_T;
 
 typedef enum
 {
@@ -1598,6 +1599,9 @@ typedef struct
     garray_T	uf_type_list;	// types used in arg and return types
     int		*uf_def_arg_idx; // instruction indexes for evaluating
 				// uf_def_args; length: uf_def_args.ga_len + 1
+    partial_T	*uf_partial;	// for closure created inside :def function:
+				// information about the context
+
     char_u	*uf_va_name;	// name from "...name" or NULL
     type_T	*uf_va_type;	// type from "...name: type" or NULL
     type_T	*uf_func_type;	// type of the function, &t_func_any if unknown
@@ -1774,25 +1778,26 @@ typedef struct {
     char_u	*imp_name;	    // name imported as (allocated)
     int		imp_sid;	    // script ID of "from"
 
-    // for "import * as Name", "imp_name" is "Name"
-    int		imp_all;
+    int		imp_flags;	    // IMP_FLAGS_ values
 
-    // for variable
+    // for a variable
     type_T	*imp_type;
     int		imp_var_vals_idx;   // index in sn_var_vals of "from"
 
-    // for function
+    // for a function
     char_u	*imp_funcname;	    // user func name (NOT allocated)
 } imported_T;
 
+#define IMP_FLAGS_STAR		1   // using "import * as Name"
+#define IMP_FLAGS_RELOAD	2   // script reloaded, OK to redefine
+
 /*
- * Growarray to store info about already sourced scripts.
- * For Unix also store the dev/ino, so that we don't have to stat() each
- * script when going through the list.
+ * Info about an already sourced scripts.
  */
 typedef struct
 {
     char_u	*sn_name;
+    int		sn_script_seq;	    // latest sctx_T sc_seq value
 
     // "sn_vars" stores the s: variables currently valid.  When leaving a block
     // variables local to that block are removed.
@@ -1818,7 +1823,7 @@ typedef struct
     int		sn_last_block_id;  // Unique ID for each script block
 
     int		sn_version;	// :scriptversion
-    int		sn_had_command;	// TRUE if any command was executed
+    int		sn_state;	// SN_STATE_ values
     char_u	*sn_save_cpo;	// 'cpo' value when :vim9script found
 
 # ifdef FEAT_PROFILE
@@ -1841,6 +1846,10 @@ typedef struct
     int		sn_prl_execed;	// line being timed was executed
 # endif
 } scriptitem_T;
+
+#define SN_STATE_NEW		0   // newly loaded script, nothing done
+#define SN_STATE_RELOAD		1   // script loaded before, nothing done
+#define SN_STATE_HAD_COMMAND	9   // a command was executed
 
 // Struct passed through eval() functions.
 // See EVALARG_EVALUATE for a fixed value with eval_flags set to EVAL_EVALUATE.
@@ -4325,3 +4334,9 @@ typedef struct
 // We have to guess how much a sequence of bytes may expand when converting
 // with iconv() to be able to allocate a buffer.
 #define ICONV_MULT 8
+
+typedef enum {
+    MAGIC_NOT_SET,	// p_magic not overruled
+    MAGIC_ON,		// magic on inside regexp
+    MAGIC_OFF		// magic off inside regexp
+} magic_T;

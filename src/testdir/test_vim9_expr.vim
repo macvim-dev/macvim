@@ -1863,6 +1863,10 @@ def Test_expr7_lambda()
   END
   CheckDefAndScriptSuccess(lines)
 
+  CheckDefFailure(["var Ref = {a->a + 1}"], 'E1004:')
+  CheckDefFailure(["var Ref = {a-> a + 1}"], 'E1004:')
+  CheckDefFailure(["var Ref = {a ->a + 1}"], 'E1004:')
+
   CheckDefFailure(["filter([1, 2], {k,v -> 1})"], 'E1069:', 1)
   # error is in first line of the lambda
   CheckDefFailure(["var L = {a -> a + b}"], 'E1001:', 0)
@@ -1881,6 +1885,109 @@ def Test_expr7_lambda()
 
   CheckDefSuccess(['var Fx = {a -> [0,', ' 1]}'])
   CheckDefFailure(['var Fx = {a -> [0', ' 1]}'], 'E696:', 2)
+enddef
+
+def NewLambdaWithComments(): func
+  return (x) =>
+            # some comment
+            x == 1
+            # some comment
+            ||
+            x == 2
+enddef
+
+def NewLambdaUsingArg(x: number): func
+  return () =>
+            # some comment
+            x == 1
+            # some comment
+            ||
+            x == 2
+enddef
+
+def Test_expr7_new_lambda()
+  var lines =<< trim END
+      var La = () => 'result'
+      assert_equal('result', La())
+      assert_equal([1, 3, 5], [1, 2, 3]->map((key, val) => key + val))
+
+      # line continuation inside lambda with "cond ? expr : expr" works
+      var ll = range(3)
+      map(ll, (k, v) => v % 2 ? {
+                ['111']: 111 } : {}
+            )
+      assert_equal([{}, {111: 111}, {}], ll)
+
+      ll = range(3)
+      map(ll, (k, v) => v == 8 || v
+                    == 9
+                    || v % 2 ? 111 : 222
+            )
+      assert_equal([222, 111, 222], ll)
+
+      ll = range(3)
+      map(ll, (k, v) => v != 8 && v
+                    != 9
+                    && v % 2 == 0 ? 111 : 222
+            )
+      assert_equal([111, 222, 111], ll)
+
+      var dl = [{key: 0}, {key: 22}]->filter(( _, v) => v['key'] )
+      assert_equal([{key: 22}], dl)
+
+      dl = [{key: 12}, {['foo']: 34}]
+      assert_equal([{key: 12}], filter(dl,
+            (_, v) => has_key(v, 'key') ? v['key'] == 12 : 0))
+
+      assert_equal(false, NewLambdaWithComments()(0))
+      assert_equal(true, NewLambdaWithComments()(1))
+      assert_equal(true, NewLambdaWithComments()(2))
+      assert_equal(false, NewLambdaWithComments()(3))
+
+      assert_equal(false, NewLambdaUsingArg(0)())
+      assert_equal(true, NewLambdaUsingArg(1)())
+
+      var res = map([1, 2, 3], (i: number, v: number) => i + v)
+      assert_equal([1, 3, 5], res)
+
+      # Lambda returning a dict
+      var Lmb = () => ({key: 42})
+      assert_equal({key: 42}, Lmb())
+
+      var RefOne: func(number): string = (a: number): string => 'x'
+      var RefTwo: func(number): any = (a: number): any => 'x'
+
+      var Fx = (a) => ({k1: 0,
+                         k2: 1})
+      var Fy = (a) => [0,
+                       1]
+  END
+  CheckDefAndScriptSuccess(lines)
+
+  CheckDefAndScriptFailure(["var Ref = (a)=>a + 1"], 'E1004:')
+  CheckDefAndScriptFailure(["var Ref = (a)=> a + 1"], 'E1004:')
+  CheckDefAndScriptFailure(["var Ref = (a) =>a + 1"], 'E1004:')
+
+  CheckDefFailure(["var Ref: func(number): number = (a: number): string => 'x'"], 'E1012:')
+  CheckDefFailure(["var Ref: func(number): string = (a: number): string => 99"], 'E1012:')
+
+  CheckDefFailure(["filter([1, 2], (k,v) => 1)"], 'E1069:', 1)
+  # error is in first line of the lambda
+  CheckDefFailure(["var L = (a) -> a + b"], 'E1001:', 1)
+
+# TODO: ->(lambda)() doesn't work yet
+#  assert_equal('xxxyyy', 'xxx'->((a, b) => a .. b)('yyy'))
+
+#  CheckDefExecFailure(["var s = 'asdf'->{a -> a}('x')"],
+#        'E1106: One argument too many')
+#  CheckDefExecFailure(["var s = 'asdf'->{a -> a}('x', 'y')"],
+#        'E1106: 2 arguments too many')
+#  CheckDefFailure(["echo 'asdf'->{a -> a}(x)"], 'E1001:', 1)
+
+  CheckDefFailure(['var Fx = (a) => ({k1: 0', ' k2: 1})'], 'E722:', 2)
+  CheckDefFailure(['var Fx = (a) => ({k1: 0,', ' k2 1})'], 'E720:', 2)
+
+  CheckDefFailure(['var Fx = (a) => [0', ' 1]'], 'E696:', 2)
 enddef
 
 def Test_expr7_lambda_vim9script()
@@ -2449,6 +2556,39 @@ def Test_expr7_call()
   delete('Xruntime', 'rf')
 enddef
 
+def Test_expr7_method_call()
+  new
+  setline(1, ['first', 'last'])
+  'second'->append(1)
+  "third"->append(2)
+  assert_equal(['first', 'second', 'third', 'last'], getline(1, '$'))
+  bwipe!
+
+  var bufnr = bufnr()
+  var loclist = [{bufnr: bufnr, lnum: 42, col: 17, text: 'wrong'}]
+  loclist->setloclist(0)
+  assert_equal([{bufnr: bufnr,
+  		lnum: 42,
+		col: 17,
+		text: 'wrong',
+		pattern: '',
+		valid: 1,
+		vcol: 0,
+		nr: 0,
+		type: '',
+		module: ''}
+		], getloclist(0))
+
+  var result: bool = get({n: 0}, 'n', 0)
+  assert_equal(false, result)
+
+  assert_equal('+string+', 'string'->((s) => '+' .. s .. '+')())
+  assert_equal('-text-', 'text'->((s, c) => c .. s .. c)('-'))
+
+  var Join = (l) => join(l, 'x')
+  assert_equal('axb', ['a', 'b']->(Join)())
+enddef
+
 
 def Test_expr7_not()
   var lines =<< trim END
@@ -2538,7 +2678,7 @@ func Test_expr7_fails()
   call CheckDefFailure(["'yes'->", "Echo()"], 'E488: Trailing characters: ->', 1)
 
   call CheckDefExecFailure(["[1, 2->len()"], 'E697:', 2)
-  call CheckDefExecFailure(["{a: 1->len()"], 'E451:', 1)
+  call CheckDefExecFailure(["{a: 1->len()"], 'E1004:', 1)
   call CheckDefExecFailure(["{['a']: 1->len()"], 'E723:', 2)
 endfunc
 
@@ -2739,33 +2879,6 @@ def Test_expr7_subscript_linebreak()
   var d = {one: 33}
   assert_equal(33, d.
 	one)
-enddef
-
-def Test_expr7_method_call()
-  new
-  setline(1, ['first', 'last'])
-  'second'->append(1)
-  "third"->append(2)
-  assert_equal(['first', 'second', 'third', 'last'], getline(1, '$'))
-  bwipe!
-
-  var bufnr = bufnr()
-  var loclist = [{bufnr: bufnr, lnum: 42, col: 17, text: 'wrong'}]
-  loclist->setloclist(0)
-  assert_equal([{bufnr: bufnr,
-  		lnum: 42,
-		col: 17,
-		text: 'wrong',
-		pattern: '',
-		valid: 1,
-		vcol: 0,
-		nr: 0,
-		type: '',
-		module: ''}
-		], getloclist(0))
-
-  var result: bool = get({n: 0}, 'n', 0)
-  assert_equal(false, result)
 enddef
 
 func Test_expr7_trailing_fails()

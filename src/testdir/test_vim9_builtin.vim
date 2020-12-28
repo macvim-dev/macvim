@@ -185,6 +185,20 @@ def Test_count()
   count('ABC ABC ABC', 'b', false)->assert_equal(0)
 enddef
 
+def Test_cursor()
+  new
+  setline(1, range(4))
+  cursor(2, 1)
+  assert_equal(2, getcurpos()[1])
+  cursor('$', 1)
+  assert_equal(4, getcurpos()[1])
+
+  var lines =<< trim END
+    cursor('2', 1)
+  END
+  CheckDefExecAndScriptFailure(lines, 'E475:')
+enddef
+
 def Test_executable()
   assert_false(executable(""))
   assert_false(executable(test_null_string()))
@@ -307,6 +321,11 @@ def Test_filter_return_type()
   res->assert_equal(6)
 enddef
 
+def Test_filter_missing_argument()
+  var dict = {aa: [1], ab: [2], ac: [3], de: [4]}
+  var res = dict->filter({k -> k =~ 'a' && k !~ 'b'})
+  res->assert_equal({aa: [1], ac: [3]})
+enddef
 
 def Test_garbagecollect()
   garbagecollect(true)

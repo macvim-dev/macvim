@@ -740,25 +740,27 @@ ex_let(exarg_T *eap)
     int		first = TRUE;
     int		concat;
     int		has_assign;
-    int		flags = eap->cmdidx == CMD_const ? ASSIGN_CONST : 0;
+    int		flags = 0;
     int		vim9script = in_vim9script();
 
     if (eap->cmdidx == CMD_final && !vim9script)
     {
-	    // In legacy Vim script ":final" is short for ":finally".
-	    ex_finally(eap);
-	    return;
+	// In legacy Vim script ":final" is short for ":finally".
+	ex_finally(eap);
+	return;
     }
     if (eap->cmdidx == CMD_let && vim9script)
     {
 	emsg(_(e_cannot_use_let_in_vim9_script));
 	return;
     }
-    if (eap->cmdidx == CMD_const && !vim9script && !eap->forceit)
-	// In legacy Vim script ":const" works like ":final".
-	eap->cmdidx = CMD_final;
 
-    // detect Vim9 assignment without ":let" or ":const"
+    if (eap->cmdidx == CMD_const)
+	flags |= ASSIGN_CONST;
+    else if (eap->cmdidx == CMD_final)
+	flags |= ASSIGN_FINAL;
+
+    // Vim9 assignment without ":let", ":const" or ":final"
     if (eap->arg == eap->cmd)
 	flags |= ASSIGN_NO_DECL;
 
@@ -784,7 +786,7 @@ ex_let(exarg_T *eap)
 	{
 	    if (vim9script)
 	    {
-		// Vim9 declaration ":let var: type"
+		// Vim9 declaration ":var name: type"
 		arg = vim9_declare_scriptvar(eap, arg);
 	    }
 	    else
@@ -911,7 +913,7 @@ ex_let_vars(
     int		copy,		// copy values from "tv", don't move
     int		semicolon,	// from skip_var_list()
     int		var_count,	// from skip_var_list()
-    int		flags,		// ASSIGN_CONST, ASSIGN_NO_DECL
+    int		flags,		// ASSIGN_FINAL, ASSIGN_CONST, ASSIGN_NO_DECL
     char_u	*op)
 {
     char_u	*arg = arg_start;
@@ -1266,7 +1268,7 @@ ex_let_one(
     char_u	*arg,		// points to variable name
     typval_T	*tv,		// value to assign to variable
     int		copy,		// copy value from "tv"
-    int		flags,		// ASSIGN_CONST, ASSIGN_NO_DECL
+    int		flags,		// ASSIGN_CONST, ASSIGN_FINAL, ASSIGN_NO_DECL
     char_u	*endchars,	// valid chars after variable name  or NULL
     char_u	*op)		// "+", "-", "."  or NULL
 {
@@ -1279,6 +1281,7 @@ ex_let_one(
     char_u	*tofree = NULL;
 
     if (in_vim9script() && (flags & ASSIGN_NO_DECL) == 0
+			&& (flags & (ASSIGN_CONST | ASSIGN_FINAL)) == 0
 				  && vim_strchr((char_u *)"$@&", *arg) != NULL)
     {
 	vim9_declare_error(arg);
@@ -1288,7 +1291,7 @@ ex_let_one(
     // ":let $VAR = expr": Set environment variable.
     if (*arg == '$')
     {
-	if (flags & ASSIGN_CONST)
+	if (flags & (ASSIGN_CONST | ASSIGN_FINAL))
 	{
 	    emsg(_("E996: Cannot lock an environment variable"));
 	    return NULL;
@@ -1340,7 +1343,7 @@ ex_let_one(
     // ":let &g:option = expr": Set global option value.
     else if (*arg == '&')
     {
-	if (flags & ASSIGN_CONST)
+	if (flags & (ASSIGN_CONST | ASSIGN_FINAL))
 	{
 	    emsg(_(e_const_option));
 	    return NULL;
@@ -1424,7 +1427,7 @@ ex_let_one(
     // ":let @r = expr": Set register contents.
     else if (*arg == '@')
     {
-	if (flags & ASSIGN_CONST)
+	if (flags & (ASSIGN_CONST | ASSIGN_FINAL))
 	{
 	    emsg(_("E996: Cannot lock a register"));
 	    return NULL;
@@ -1466,7 +1469,8 @@ ex_let_one(
     {
 	lval_T	lv;
 
-	p = get_lval(arg, tv, &lv, FALSE, FALSE, 0, FNE_CHECK_START);
+	p = get_lval(arg, tv, &lv, FALSE, FALSE,
+		(flags & ASSIGN_NO_DECL) ? GLV_NO_DECL : 0, FNE_CHECK_START);
 	if (p != NULL && lv.ll_name != NULL)
 	{
 	    if (endchars != NULL && vim_strchr(endchars,
@@ -2529,7 +2533,7 @@ eval_variable(
 		    rettv->vval.v_string = vim_strsave(import->imp_funcname);
 		}
 	    }
-	    else if (import->imp_all)
+	    else if (import->imp_flags & IMP_FLAGS_STAR)
 	    {
 		emsg("Sorry, 'import * as X' not implemented yet");
 		ret = FAIL;
@@ -3057,7 +3061,7 @@ set_var_const(
     type_T	*type,
     typval_T	*tv_arg,
     int		copy,	    // make copy of value in "tv"
-    int		flags)	    // ASSIGN_CONST, ASSIGN_NO_DECL
+    int		flags)	    // ASSIGN_CONST, ASSIGN_FINAL, ASSIGN_NO_DECL
 {
     typval_T	*tv = tv_arg;
     typval_T	bool_tv;
@@ -3078,6 +3082,7 @@ set_var_const(
     if (vim9script
 	    && !is_script_local
 	    && (flags & ASSIGN_NO_DECL) == 0
+	    && (flags & (ASSIGN_CONST | ASSIGN_FINAL)) == 0
 	    && name[1] == ':')
     {
 	vim9_declare_error(name);
@@ -3107,7 +3112,7 @@ set_var_const(
     {
 	if ((di->di_flags & DI_FLAGS_RELOAD) == 0)
 	{
-	    if (flags & ASSIGN_CONST)
+	    if (flags & (ASSIGN_CONST | ASSIGN_FINAL))
 	    {
 		emsg(_(e_cannot_mod));
 		goto failed;
@@ -3126,18 +3131,19 @@ set_var_const(
 		    goto failed;
 	    }
 
-	    // Check in this order for backwards compatibility:
-	    // - Whether the variable is read-only
-	    // - Whether the variable value is locked
-	    // - Whether the variable is locked
-	    if (var_check_ro(di->di_flags, name, FALSE)
-			    || value_check_lock(di->di_tv.v_lock, name, FALSE)
-			    || var_check_lock(di->di_flags, name, FALSE))
+	    if (var_check_permission(di, name) == FAIL)
 		goto failed;
 	}
 	else
+	{
 	    // can only redefine once
 	    di->di_flags &= ~DI_FLAGS_RELOAD;
+
+	    // A Vim9 script-local variable is also present in sn_all_vars and
+	    // sn_var_vals.
+	    if (is_script_local && vim9script)
+		update_vim9_script_var(FALSE, di, tv, type);
+	}
 
 	// existing variable, need to clear the value
 
@@ -3213,13 +3219,13 @@ set_var_const(
 	    goto failed;
 	}
 	di->di_flags = DI_FLAGS_ALLOC;
-	if (flags & ASSIGN_CONST)
+	if (flags & (ASSIGN_CONST | ASSIGN_FINAL))
 	    di->di_flags |= DI_FLAGS_LOCK;
 
 	// A Vim9 script-local variable is also added to sn_all_vars and
 	// sn_var_vals.
 	if (is_script_local && vim9script)
-	    add_vim9_script_var(di, tv, type);
+	    update_vim9_script_var(TRUE, di, tv, type);
     }
 
     if (copy || tv->v_type == VAR_NUMBER || tv->v_type == VAR_FLOAT)
@@ -3231,7 +3237,8 @@ set_var_const(
 	init_tv(tv);
     }
 
-    // ":const var = val" locks the value
+    // ":const var = value" locks the value
+    // ":final var = value" locks "var"
     if (flags & ASSIGN_CONST)
 	// Like :lockvar! name: lock the value and what it contains, but only
 	// if the reference count is up to one.  That locks only literal
@@ -3241,6 +3248,22 @@ set_var_const(
 failed:
     if (!copy)
 	clear_tv(tv_arg);
+}
+
+/*
+ * Check in this order for backwards compatibility:
+ * - Whether the variable is read-only
+ * - Whether the variable value is locked
+ * - Whether the variable is locked
+ */
+    int
+var_check_permission(dictitem_T *di, char_u *name)
+{
+    if (var_check_ro(di->di_flags, name, FALSE)
+		    || value_check_lock(di->di_tv.v_lock, name, FALSE)
+		    || var_check_lock(di->di_flags, name, FALSE))
+	return FAIL;
+    return OK;
 }
 
 /*

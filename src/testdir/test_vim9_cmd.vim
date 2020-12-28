@@ -25,6 +25,62 @@ def Test_edit_wildcards()
   CheckDefFailure(['edit `="foo"'], 'E1083:')
 enddef
 
+def Test_expand_alternate_file()
+  var lines =<< trim END
+    edit Xfileone
+    var bone = bufnr()
+    edit Xfiletwo
+    var btwo = bufnr()
+    edit Xfilethree
+    var bthree = bufnr()
+
+    edit #
+    assert_equal(bthree, bufnr())
+    edit %%
+    assert_equal(btwo, bufnr())
+    edit %% # comment
+    assert_equal(bthree, bufnr())
+    edit %%yy
+    assert_equal('Xfiletwoyy', bufname())
+
+    exe "edit %%" .. bone
+    assert_equal(bone, bufnr())
+    exe "edit %%" .. btwo .. "xx"
+    assert_equal('Xfiletwoxx', bufname())
+
+    next Xfileone Xfiletwo Xfilethree
+    assert_equal('Xfileone', argv(0))
+    assert_equal('Xfiletwo', argv(1))
+    assert_equal('Xfilethree', argv(2))
+    next %%%zz
+    assert_equal('Xfileone', argv(0))
+    assert_equal('Xfiletwo', argv(1))
+    assert_equal('Xfilethreezz', argv(2))
+
+    v:oldfiles = ['Xonefile', 'Xtwofile']
+    edit %%<1
+    assert_equal('Xonefile', bufname())
+    edit %%<2
+    assert_equal('Xtwofile', bufname())
+    assert_fails('edit %%<3', 'E684:')
+
+    edit Xfileone.vim
+    edit Xfiletwo
+    edit %%:r
+    assert_equal('Xfileone', bufname())
+  END
+  CheckDefAndScriptSuccess(lines)
+enddef
+
+def Test_global_backtick_expansion()
+  new
+  setline(1, 'xx')
+  var name = 'foobar'
+  g/^xx/s/.*/`=name`
+  assert_equal('foobar', getline(1))
+  bwipe!
+enddef
+
 def Test_hardcopy_wildcards()
   CheckUnix
   CheckFeature postscript
@@ -537,10 +593,17 @@ def Test_modifier_silent_unsilent()
 
   silent EchoThere()
   assert_equal("\nthere", execute(':1messages'))
+
+  try
+    silent eval [][0]
+  catch
+    echomsg "caught"
+  endtry
+  assert_equal("\ncaught", execute(':1messages'))
 enddef
 
 def Test_range_after_command_modifier()
-  CheckScriptFailure(['vim9script', 'silent keepjump 1d _'], 'E1050:', 2)
+  CheckScriptFailure(['vim9script', 'silent keepjump 1d _'], 'E1050: Colon required before a range: 1d _', 2)
   new
   setline(1, 'xxx')
   CheckScriptSuccess(['vim9script', 'silent keepjump :1d _'])
@@ -710,5 +773,66 @@ def Test_ambiguous_user_cmd()
   CheckScriptFailure(lines, 'E464:')
 enddef
 
+def Test_command_not_recognized()
+  var lines =<< trim END
+    d.key = 'asdf'
+  END
+  CheckDefFailure(lines, 'E1146:', 1)
+
+  lines =<< trim END
+    d['key'] = 'asdf'
+  END
+  CheckDefFailure(lines, 'E1146:', 1)
+enddef
+
+def Test_magic_not_used()
+  new
+  for cmd in ['set magic', 'set nomagic']
+    exe cmd
+    setline(1, 'aaa')
+    s/.../bbb/
+    assert_equal('bbb', getline(1))
+  endfor
+
+  set magic
+  setline(1, 'aaa')
+  assert_fails('s/.\M../bbb/', 'E486:')
+  assert_fails('snomagic/.../bbb/', 'E486:')
+  assert_equal('aaa', getline(1))
+
+  bwipe!
+enddef
+
+def Test_gdefault_not_used()
+  new
+  for cmd in ['set gdefault', 'set nogdefault']
+    exe cmd
+    setline(1, 'aaa')
+    s/./b/
+    assert_equal('baa', getline(1))
+  endfor
+
+  set nogdefault
+  bwipe!
+enddef
+
+def g:SomeComplFunc(findstart: number, base: string): any
+  if findstart
+    return 0
+  else
+    return ['aaa', 'bbb']
+  endif
+enddef
+
+def Test_insert_complete()
+  # this was running into an error with the matchparen hack
+  new
+  set completefunc=SomeComplFunc
+  feedkeys("i\<c-x>\<c-u>\<Esc>", 'ntx')
+  assert_equal('aaa', getline(1))
+
+  set completefunc=
+  bwipe!
+enddef
 
 " vim: ts=8 sw=2 sts=2 expandtab tw=80 fdm=marker

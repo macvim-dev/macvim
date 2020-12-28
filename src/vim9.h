@@ -55,8 +55,8 @@ typedef enum {
     // ISN_STOREOTHER, // pop into other script variable isn_arg.other.
 
     ISN_STORENR,    // store number into local variable isn_arg.storenr.stnr_idx
-    ISN_STORELIST,	// store into list, value/index/variable on stack
-    ISN_STOREDICT,	// store into dictionary, value/index/variable on stack
+    ISN_STOREINDEX,	// store into list or dictionary, type isn_arg.vartype,
+			// value/index/variable on stack
 
     ISN_UNLET,		// unlet variable isn_arg.unlet.ul_name
     ISN_UNLETENV,	// unlet environment variable isn_arg.unlet.ul_name
@@ -244,8 +244,14 @@ typedef struct {
 
 // arguments to ISN_LOADSCRIPT and ISN_STORESCRIPT
 typedef struct {
-    int		script_sid;	// script ID
-    int		script_idx;	// index in sn_var_vals
+    int		sref_sid;	// script ID
+    int		sref_idx;	// index in sn_var_vals
+    int		sref_seq;	// sn_script_seq when compiled
+    type_T	*sref_type;	// type of the variable when compiled
+} scriptref_T;
+
+typedef struct {
+    scriptref_T	*scriptref;
 } script_T;
 
 // arguments to ISN_UNLET
@@ -304,6 +310,7 @@ struct isn_S {
 	char_u		    *string;
 	varnumber_T	    number;
 	blob_T		    *blob;
+	vartype_T	    vartype;
 #ifdef FEAT_FLOAT
 	float_T		    fnumber;
 #endif
@@ -340,8 +347,12 @@ struct isn_S {
  */
 struct dfunc_S {
     ufunc_T	*df_ufunc;	    // struct containing most stuff
+    int		df_refcount;	    // how many ufunc_T point to this dfunc_T
     int		df_idx;		    // index in def_functions
     int		df_deleted;	    // if TRUE function was deleted
+    char_u	*df_name;	    // name used for error messages
+    int		df_script_seq;	    // Value of sctx_T sc_seq when the function
+				    // was compiled.
 
     garray_T	df_def_args_isn;    // default argument instructions
     isn_T	*df_instr;	    // function body to be executed

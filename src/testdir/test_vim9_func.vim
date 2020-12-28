@@ -299,6 +299,20 @@ def Test_nested_global_function()
       Outer()
   END
   CheckScriptFailure(lines, "E122:")
+  delfunc g:Inner
+
+  lines =<< trim END
+      vim9script
+      def Outer()
+        def g:Inner()
+          echo map([1, 2, 3], {_, v -> v + 1})
+        enddef
+        g:Inner()
+      enddef
+      Outer()
+  END
+  CheckScriptSuccess(lines)
+  delfunc g:Inner
 
   lines =<< trim END
       vim9script
@@ -468,6 +482,25 @@ def Test_call_wrong_args()
   assert_true(didCatch)
 
   delete('Xscript')
+enddef
+
+def Test_call_funcref_wrong_args()
+  var head =<< trim END
+      vim9script
+      def Func3(a1: string, a2: number, a3: list<number>)
+        echo a1 .. a2 .. a3[0]
+      enddef
+      def Testme()
+        var funcMap: dict<func> = {func: Func3}
+  END
+  var tail =<< trim END
+      enddef
+      Testme()
+  END
+  CheckScriptSuccess(head + ["funcMap['func']('str', 123, [1, 2, 3])"] + tail)
+
+  CheckScriptFailure(head + ["funcMap['func']('str', 123)"] + tail, 'E119:')
+  CheckScriptFailure(head + ["funcMap['func']('str', 123, [1], 4)"] + tail, 'E118:')
 enddef
 
 def Test_call_lambda_args()
@@ -989,6 +1022,17 @@ def Test_vim9script_call_fail_const()
   writefile(lines, 'Xcall_const.vim')
   assert_fails('source Xcall_const.vim', 'E46:', '', 1, 'MyFunc')
   delete('Xcall_const.vim')
+
+  lines =<< trim END
+      const g:Aconst = 77
+      def Change()
+        # comment
+        g:Aconst = 99
+      enddef
+      call Change()
+      unlet g:Aconst
+  END
+  CheckScriptFailure(lines, 'E741: Value is locked: Aconst', 2)
 enddef
 
 " Test that inside :function a Python function can be defined, :def is not
@@ -1523,6 +1567,48 @@ def Test_nested_closure_fails()
   CheckScriptFailure(lines, 'E1012:')
 enddef
 
+def Test_global_closure()
+  var lines =<< trim END
+      vim9script
+      def ReverseEveryNLines(n: number, line1: number, line2: number)
+        var mods = 'sil keepj keepp lockm '
+        var range = ':' .. line1 .. ',' .. line2
+        def g:Offset(): number
+            var offset = (line('.') - line1 + 1) % n
+            return offset != 0 ? offset : n
+        enddef
+        exe mods .. range .. 'g/^/exe "m .-" .. g:Offset()'
+      enddef
+
+      new
+      repeat(['aaa', 'bbb', 'ccc'], 3)->setline(1)
+      ReverseEveryNLines(3, 1, 9)
+  END
+  CheckScriptSuccess(lines)
+  var expected = repeat(['ccc', 'bbb', 'aaa'], 3)
+  assert_equal(expected, getline(1, 9))
+  bwipe!
+enddef
+
+def Test_global_closure_called_directly()
+  var lines =<< trim END
+      vim9script
+      def Outer()
+        var x = 1
+        def g:Inner()
+          var y = x
+          x += 1
+          assert_equal(1, y)
+        enddef
+        g:Inner()
+        assert_equal(2, x)
+      enddef
+      Outer()
+  END
+  CheckScriptSuccess(lines)
+  delfunc g:Inner
+enddef
+
 def Test_failure_in_called_function()
   # this was using the frame index as the return value
   var lines =<< trim END
@@ -1933,6 +2019,43 @@ def Test_dict_member_with_silent()
   END
   CheckScriptSuccess(lines)
 enddef
+
+def Test_opfunc()
+  nnoremap <F3> <cmd>set opfunc=Opfunc<cr>g@
+  def g:Opfunc(_: any): string
+    setline(1, 'ASDF')
+    return ''
+  enddef
+  new
+  setline(1, 'asdf')
+  feedkeys("\<F3>$", 'x')
+  assert_equal('ASDF', getline(1))
+
+  bwipe!
+  nunmap <F3>
+enddef
+
+" this was crashing on exit
+def Test_nested_lambda_in_closure()
+  var lines =<< trim END
+      vim9script
+      def Outer()
+          def g:Inner()
+              echo map([1, 2, 3], {_, v -> v + 1})
+          enddef
+          g:Inner()
+      enddef
+      defcompile
+      writefile(['Done'], 'XnestedDone')
+      quit
+  END
+  if !RunVim([], lines, '--clean')
+    return
+  endif
+  assert_equal(['Done'], readfile('XnestedDone'))
+  delete('XnestedDone')
+enddef
+
 
 
 " vim: ts=8 sw=2 sts=2 expandtab tw=80 fdm=marker

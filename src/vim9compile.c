@@ -145,7 +145,7 @@ struct cctx_S {
     int		ctx_has_cmdmod;	    // ISN_CMDMOD was generated
 };
 
-static void delete_def_function_contents(dfunc_T *dfunc);
+static void delete_def_function_contents(dfunc_T *dfunc, int mark_deleted);
 
 /*
  * Lookup variable "name" in the local scope and return it in "lvar".
@@ -931,17 +931,8 @@ generate_PUSHNR(cctx_T *cctx, varnumber_T number)
     isn->isn_arg.number = number;
 
     if (number == 0 || number == 1)
-    {
-	type_T	*type = get_type_ptr(cctx->ctx_type_list);
-
 	// A 0 or 1 number can also be used as a bool.
-	if (type != NULL)
-	{
-	    type->tt_type = VAR_NUMBER;
-	    type->tt_flags = TTFLAG_BOOL_OK;
-	    ((type_T **)stack->ga_data)[stack->ga_len - 1] = type;
-	}
-    }
+	((type_T **)stack->ga_data)[stack->ga_len - 1] = &t_number_bool;
     return OK;
 }
 
@@ -1316,6 +1307,8 @@ generate_VIM9SCRIPT(
 	type_T	    *type)
 {
     isn_T	*isn;
+    scriptref_T	*sref;
+    scriptitem_T *si = SCRIPT_ITEM(sid);
 
     RETURN_OK_IF_SKIP(cctx);
     if (isn_type == ISN_LOADSCRIPT)
@@ -1324,8 +1317,17 @@ generate_VIM9SCRIPT(
 	isn = generate_instr_drop(cctx, isn_type, 1);
     if (isn == NULL)
 	return FAIL;
-    isn->isn_arg.script.script_sid = sid;
-    isn->isn_arg.script.script_idx = idx;
+
+    // This requires three arguments, which doesn't fit in an instruction, thus
+    // we need to allocate a struct for this.
+    sref = ALLOC_ONE(scriptref_T);
+    if (sref == NULL)
+	return FAIL;
+    isn->isn_arg.script.scriptref = sref;
+    sref->sref_sid = sid;
+    sref->sref_idx = idx;
+    sref->sref_seq = si->sn_script_seq;
+    sref->sref_type = type;
     return OK;
 }
 
@@ -1428,20 +1430,27 @@ generate_FUNCREF(cctx_T *cctx, ufunc_T *ufunc)
 
 /*
  * Generate an ISN_NEWFUNC instruction.
+ * "lambda_name" and "func_name" must be in allocated memory and will be
+ * consumed.
  */
     static int
 generate_NEWFUNC(cctx_T *cctx, char_u *lambda_name, char_u *func_name)
 {
     isn_T	*isn;
-    char_u	*name;
 
-    RETURN_OK_IF_SKIP(cctx);
-    name = vim_strsave(lambda_name);
-    if (name == NULL)
-	return FAIL;
+    if (cctx->ctx_skip == SKIP_YES)
+    {
+	vim_free(lambda_name);
+	vim_free(func_name);
+	return OK;
+    }
     if ((isn = generate_instr(cctx, ISN_NEWFUNC)) == NULL)
+    {
+	vim_free(lambda_name);
+	vim_free(func_name);
 	return FAIL;
-    isn->isn_arg.newfunc.nf_lambda = name;
+    }
+    isn->isn_arg.newfunc.nf_lambda = lambda_name;
     isn->isn_arg.newfunc.nf_global = func_name;
 
     return OK;
@@ -2407,7 +2416,7 @@ compile_load_scriptvar(
     import = find_imported(name, 0, cctx);
     if (import != NULL)
     {
-	if (import->imp_all)
+	if (import->imp_flags & IMP_FLAGS_STAR)
 	{
 	    char_u	*p = skipwhite(*end);
 	    char_u	*exp_name;
@@ -2809,9 +2818,8 @@ compile_call(
 	    && compile_load(&p, namebuf + varlen, cctx, FALSE, FALSE) == OK)
     {
 	garray_T    *stack = &cctx->ctx_type_stack;
-	type_T	    *type;
+	type_T	    *type = ((type_T **)stack->ga_data)[stack->ga_len - 1];
 
-	type = ((type_T **)stack->ga_data)[stack->ga_len - 1];
 	res = generate_PCALL(cctx, argcount, namebuf, type, FALSE);
 	goto theend;
     }
@@ -2939,12 +2947,14 @@ compile_list(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 }
 
 /*
- * parse a lambda: {arg, arg -> expr}
+ * parse a lambda: "{arg, arg -> expr}" or "(arg, arg) => expr"
  * "*arg" points to the '{'.
+ * Returns OK/FAIL when a lambda is recognized, NOTDONE if it's not a lambda.
  */
     static int
 compile_lambda(char_u **arg, cctx_T *cctx)
 {
+    int		r;
     typval_T	rettv;
     ufunc_T	*ufunc;
     evalarg_T	evalarg;
@@ -2954,18 +2964,19 @@ compile_lambda(char_u **arg, cctx_T *cctx)
     evalarg.eval_cctx = cctx;
 
     // Get the funcref in "rettv".
-    if (get_lambda_tv(arg, &rettv, TRUE, &evalarg) != OK)
+    r = get_lambda_tv(arg, &rettv, TRUE, &evalarg);
+    if (r != OK)
     {
 	clear_evalarg(&evalarg, NULL);
-	return FAIL;
+	return r;
     }
 
+    // "rettv" will now be a partial referencing the function.
     ufunc = rettv.vval.v_partial->pt_func;
     ++ufunc->uf_refcount;
     clear_tv(&rettv);
 
-    // The function will have one line: "return {expr}".
-    // Compile it into instructions.
+    // Compile the function into instructions.
     compile_def_function(ufunc, TRUE, cctx);
 
     clear_evalarg(&evalarg, NULL);
@@ -3422,6 +3433,19 @@ get_compare_type(char_u *p, int *len, int *type_is)
 }
 
 /*
+ * Skip over an expression, ignoring most errors.
+ */
+    static void
+skip_expr_cctx(char_u **arg, cctx_T *cctx)
+{
+    evalarg_T	evalarg;
+
+    CLEAR_FIELD(evalarg);
+    evalarg.eval_cctx = cctx;
+    skip_expr(arg, &evalarg);
+}
+
+/*
  * Compile code to apply '-', '+' and '!'.
  * When "numeric_only" is TRUE do not apply '!'.
  */
@@ -3477,6 +3501,38 @@ compile_leader(cctx_T *cctx, int numeric_only, char_u *start, char_u **end)
     }
     *end = p;
     return OK;
+}
+
+/*
+ * Compile "(expression)": recursive!
+ * Return FAIL/OK.
+ */
+    static int
+compile_parenthesis(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
+{
+    int ret;
+
+    *arg = skipwhite(*arg + 1);
+    if (ppconst->pp_used <= PPSIZE - 10)
+    {
+	ret = compile_expr1(arg, cctx, ppconst);
+    }
+    else
+    {
+	// Not enough space in ppconst, flush constants.
+	if (generate_ppconst(cctx, ppconst) == FAIL)
+	    return FAIL;
+	ret = compile_expr0(arg, cctx);
+    }
+    *arg = skipwhite(*arg);
+    if (**arg == ')')
+	++*arg;
+    else if (ret == OK)
+    {
+	emsg(_(e_missing_close));
+	ret = FAIL;
+    }
+    return ret;
 }
 
 /*
@@ -3558,7 +3614,48 @@ compile_subscript(
 	    if (**arg == '{')
 	    {
 		// lambda call:  list->{lambda}
+		// TODO: remove this
 		if (compile_lambda_call(arg, cctx) == FAIL)
+		    return FAIL;
+	    }
+	    else if (**arg == '(')
+	    {
+		int	    argcount = 1;
+		char_u	    *expr;
+		garray_T    *stack;
+		type_T	    *type;
+
+		// Funcref call:  list->(Refs[2])(arg)
+		// or lambda:	  list->((arg) => expr)(arg)
+		// Fist compile the arguments.
+		expr = *arg;
+		*arg = skipwhite(*arg + 1);
+		skip_expr_cctx(arg, cctx);
+		*arg = skipwhite(*arg);
+		if (**arg != ')')
+		{
+		    semsg(_(e_missing_paren), *arg);
+		    return FAIL;
+		}
+		++*arg;
+		if (**arg != '(')
+		{
+		    semsg(_(e_missing_paren), *arg);
+		    return FAIL;
+		}
+
+		*arg = skipwhite(*arg + 1);
+		if (compile_arguments(arg, cctx, &argcount) == FAIL)
+		    return FAIL;
+
+		// Compile the function expression.
+		if (compile_parenthesis(&expr, cctx, ppconst) == FAIL)
+		    return FAIL;
+
+		stack = &cctx->ctx_type_stack;
+		type = ((type_T **)stack->ga_data)[stack->ga_len - 1];
+		if (generate_PCALL(cctx, argcount,
+				(char_u *)"[expression]", type, FALSE) == FAIL)
 		    return FAIL;
 	    }
 	    else
@@ -3907,19 +4004,13 @@ compile_expr7(
 	 * Lambda: {arg, arg -> expr}
 	 * Dictionary: {'key': val, 'key': val}
 	 */
-	case '{':   {
-			char_u *start = skipwhite(*arg + 1);
-			garray_T ga_arg;
-
-			// Find out what comes after the arguments.
-			ret = get_function_args(&start, '-', NULL,
-					&ga_arg, TRUE, NULL, NULL,
-							     TRUE, NULL, NULL);
-			if (ret != FAIL && *start == '>')
-			    ret = compile_lambda(arg, cctx);
-			else
-			    ret = compile_dict(arg, cctx, ppconst);
-		    }
+	case '{':   // Try parsing as a lambda, if NOTDONE is returned it
+		    // must be a dict.
+		    // TODO: if we go with the "(arg) => expr" syntax remove
+		    // this
+		    ret = compile_lambda(arg, cctx);
+		    if (ret == NOTDONE)
+			ret = compile_dict(arg, cctx, ppconst);
 		    break;
 
 	/*
@@ -3947,29 +4038,13 @@ compile_expr7(
 			break;
 	/*
 	 * nested expression: (expression).
+	 * lambda: (arg, arg) => expr
+	 * funcref: (arg, arg) => { statement }
 	 */
-	case '(':   *arg = skipwhite(*arg + 1);
-
-		    // recursive!
-		    if (ppconst->pp_used <= PPSIZE - 10)
-		    {
-			ret = compile_expr1(arg, cctx, ppconst);
-		    }
-		    else
-		    {
-			// Not enough space in ppconst, flush constants.
-			if (generate_ppconst(cctx, ppconst) == FAIL)
-			    return FAIL;
-			ret = compile_expr0(arg, cctx);
-		    }
-		    *arg = skipwhite(*arg);
-		    if (**arg == ')')
-			++*arg;
-		    else if (ret == OK)
-		    {
-			emsg(_(e_missing_close));
-			ret = FAIL;
-		    }
+	case '(':   // if compile_lambda returns NOTDONE then it must be (expr)
+		    ret = compile_lambda(arg, cctx);
+		    if (ret == NOTDONE)
+			ret = compile_parenthesis(arg, cctx, ppconst);
 		    break;
 
 	default:    ret = NOTDONE;
@@ -4058,11 +4133,9 @@ compile_expr7t(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
     // Recognize <type>
     if (**arg == '<' && eval_isnamec1((*arg)[1]))
     {
-	int		called_emsg_before = called_emsg;
-
 	++*arg;
-	want_type = parse_type(arg, cctx->ctx_type_list);
-	if (called_emsg != called_emsg_before)
+	want_type = parse_type(arg, cctx->ctx_type_list, TRUE);
+	if (want_type == NULL)
 	    return FAIL;
 
 	if (**arg != '>')
@@ -4548,7 +4621,7 @@ compile_expr2(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
  * end:
  */
     static int
-compile_expr1(char_u **arg,  cctx_T *cctx, ppconst_T *ppconst)
+compile_expr1(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 {
     char_u	*p;
     int		ppconst_used = ppconst->pp_used;
@@ -4557,11 +4630,7 @@ compile_expr1(char_u **arg,  cctx_T *cctx, ppconst_T *ppconst)
     // Ignore all kinds of errors when not producing code.
     if (cctx->ctx_skip == SKIP_YES)
     {
-	evalarg_T	evalarg;
-
-	CLEAR_FIELD(evalarg);
-	evalarg.eval_cctx = cctx;
-	skip_expr(arg, &evalarg);
+	skip_expr_cctx(arg, cctx);
 	return OK;
     }
 
@@ -4749,7 +4818,7 @@ compile_expr0(char_u **arg,  cctx_T *cctx)
  * compile "return [expr]"
  */
     static char_u *
-compile_return(char_u *arg, int set_return_type, cctx_T *cctx)
+compile_return(char_u *arg, int check_return_type, cctx_T *cctx)
 {
     char_u	*p = arg;
     garray_T	*stack = &cctx->ctx_type_stack;
@@ -4764,8 +4833,10 @@ compile_return(char_u *arg, int set_return_type, cctx_T *cctx)
 	if (cctx->ctx_skip != SKIP_YES)
 	{
 	    stack_type = ((type_T **)stack->ga_data)[stack->ga_len - 1];
-	    if (set_return_type)
+	    if (check_return_type && cctx->ctx_ufunc->uf_ret_type == NULL)
+	    {
 		cctx->ctx_ufunc->uf_ret_type = stack_type;
+	    }
 	    else
 	    {
 		if (cctx->ctx_ufunc->uf_ret_type->tt_type == VAR_VOID
@@ -4783,7 +4854,7 @@ compile_return(char_u *arg, int set_return_type, cctx_T *cctx)
     }
     else
     {
-	// "set_return_type" cannot be TRUE, only used for a lambda which
+	// "check_return_type" cannot be TRUE, only used for a lambda which
 	// always has an argument.
 	if (cctx->ctx_ufunc->uf_ret_type->tt_type != VAR_VOID
 		&& cctx->ctx_ufunc->uf_ret_type->tt_type != VAR_UNKNOWN)
@@ -4840,7 +4911,7 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx)
     char_u	*name_end = to_name_end(eap->arg, TRUE);
     char_u	*lambda_name;
     ufunc_T	*ufunc;
-    int		r;
+    int		r = FAIL;
 
     if (eap->forceit)
     {
@@ -4883,16 +4954,21 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx)
     eap->cookie = cctx;
     eap->skip = cctx->ctx_skip == SKIP_YES;
     eap->forceit = FALSE;
-    lambda_name = get_lambda_name();
+    lambda_name = vim_strsave(get_lambda_name());
+    if (lambda_name == NULL)
+	return NULL;
     ufunc = define_function(eap, lambda_name);
 
     if (ufunc == NULL)
-	return eap->skip ? (char_u *)"" : NULL;
+    {
+	r = eap->skip ? OK : FAIL;
+	goto theend;
+    }
     if (ufunc->uf_def_status == UF_TO_BE_COMPILED
 	    && compile_def_function(ufunc, TRUE, cctx) == FAIL)
     {
 	func_ptr_unref(ufunc);
-	return NULL;
+	goto theend;
     }
 
     if (is_global)
@@ -4903,7 +4979,10 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx)
 	if (func_name == NULL)
 	    r = FAIL;
 	else
+	{
 	    r = generate_NEWFUNC(cctx, lambda_name, func_name);
+	    lambda_name = NULL;
+	}
     }
     else
     {
@@ -4913,9 +4992,9 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx)
 	int block_depth = cctx->ctx_ufunc->uf_block_depth;
 
 	if (lvar == NULL)
-	    return NULL;
+	    goto theend;
 	if (generate_FUNCREF(cctx, ufunc) == FAIL)
-	    return NULL;
+	    goto theend;
 	r = generate_STORE(cctx, ISN_STORE, lvar->lv_idx, NULL);
 
 	// copy over the block scope IDs
@@ -4930,8 +5009,11 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx)
 	    }
 	}
     }
-
     // TODO: warning for trailing text?
+    r = OK;
+
+theend:
+    vim_free(lambda_name);
     return r == FAIL ? NULL : (char_u *)"";
 }
 
@@ -5565,7 +5647,9 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		    goto theend;
 		}
 		p = skipwhite(var_end + 1);
-		type = parse_type(&p, cctx->ctx_type_list);
+		type = parse_type(&p, cctx->ctx_type_list, TRUE);
+		if (type == NULL)
+		    goto theend;
 		has_type = TRUE;
 	    }
 	    else if (lvar != NULL)
@@ -5876,7 +5960,8 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 
 	if (has_index)
 	{
-	    int r;
+	    int		r;
+	    vartype_T	dest_type;
 
 	    // Compile the "idx" in "var[idx]" or "key" in "var.key".
 	    p = var_start + varlen;
@@ -5903,25 +5988,22 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 
 	    if (type == &t_any)
 	    {
-		type_T	    *idx_type = ((type_T **)stack->ga_data)[
-							    stack->ga_len - 1];
-		// Index on variable of unknown type: guess the type from the
-		// index type: number is dict, otherwise dict.
-		// TODO: should do the assignment at runtime
-		if (idx_type->tt_type == VAR_NUMBER)
-		    type = &t_list_any;
-		else
-		    type = &t_dict_any;
+		// Index on variable of unknown type: check at runtime.
+		dest_type = VAR_ANY;
 	    }
-	    if (type->tt_type == VAR_DICT
-		    && may_generate_2STRING(-1, cctx) == FAIL)
-		goto theend;
-	    if (type->tt_type == VAR_LIST
-		    && ((type_T **)stack->ga_data)[stack->ga_len - 1]->tt_type
-								 != VAR_NUMBER)
+	    else
 	    {
-		emsg(_(e_number_exp));
-		goto theend;
+		dest_type = type->tt_type;
+		if (dest_type == VAR_DICT
+			&& may_generate_2STRING(-1, cctx) == FAIL)
+		    goto theend;
+		if (dest_type == VAR_LIST
+		     && ((type_T **)stack->ga_data)[stack->ga_len - 1]->tt_type
+								 != VAR_NUMBER)
+		{
+		    emsg(_(e_number_exp));
+		    goto theend;
+		}
 	    }
 
 	    // Load the dict or list.  On the stack we then have:
@@ -5954,15 +6036,14 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	    else
 		generate_loadvar(cctx, dest, name, lvar, type);
 
-	    if (type->tt_type == VAR_LIST)
+	    if (dest_type == VAR_LIST || dest_type == VAR_DICT
+						       || dest_type == VAR_ANY)
 	    {
-		if (generate_instr_drop(cctx, ISN_STORELIST, 3) == FAIL)
+		isn_T	*isn = generate_instr_drop(cctx, ISN_STOREINDEX, 3);
+
+		if (isn == NULL)
 		    goto theend;
-	    }
-	    else if (type->tt_type == VAR_DICT)
-	    {
-		if (generate_instr_drop(cctx, ISN_STOREDICT, 3) == FAIL)
-		    goto theend;
+		isn->isn_arg.vartype = dest_type;
 	    }
 	    else
 	    {
@@ -7254,6 +7335,19 @@ compile_exec(char_u *line, exarg_T *eap, cctx_T *cctx)
 	    eap->arg = skiptowhite(eap->arg);
     }
 
+    if ((eap->cmdidx == CMD_global || eap->cmdidx == CMD_vglobal)
+						       && STRLEN(eap->arg) > 4)
+    {
+	int delim = *eap->arg;
+
+	p = skip_regexp_ex(eap->arg + 1, delim, TRUE, NULL, NULL);
+	if (*p == delim)
+	{
+	    eap->arg = p + 1;
+	    has_expr = TRUE;
+	}
+    }
+
     if (has_expr && (p = (char_u *)strstr((char *)eap->arg, "`=")) != NULL)
     {
 	int	count = 0;
@@ -7339,6 +7433,8 @@ add_def_function(ufunc_T *ufunc)
     dfunc->df_idx = def_functions.ga_len;
     ufunc->uf_dfunc_idx = dfunc->df_idx;
     dfunc->df_ufunc = ufunc;
+    dfunc->df_name = vim_strsave(ufunc->uf_name);
+    ++dfunc->df_refcount;
     ++def_functions.ga_len;
     return OK;
 }
@@ -7347,15 +7443,16 @@ add_def_function(ufunc_T *ufunc)
  * After ex_function() has collected all the function lines: parse and compile
  * the lines into instructions.
  * Adds the function to "def_functions".
- * When "set_return_type" is set then set ufunc->uf_ret_type to the type of the
- * return statement (used for lambda).
+ * When "check_return_type" is set then set ufunc->uf_ret_type to the type of
+ * the return statement (used for lambda).  When uf_ret_type is already set
+ * then check that it matches.
  * "outer_cctx" is set for a nested function.
  * This can be used recursively through compile_lambda(), which may reallocate
  * "def_functions".
  * Returns OK or FAIL.
  */
     int
-compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
+compile_def_function(ufunc_T *ufunc, int check_return_type, cctx_T *outer_cctx)
 {
     char_u	*line = NULL;
     char_u	*p;
@@ -7370,12 +7467,12 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
     int		new_def_function = FALSE;
 
     // When using a function that was compiled before: Free old instructions.
-    // Otherwise add a new entry in "def_functions".
+    // The index is reused.  Otherwise add a new entry in "def_functions".
     if (ufunc->uf_dfunc_idx > 0)
     {
 	dfunc_T *dfunc = ((dfunc_T *)def_functions.ga_data)
 							 + ufunc->uf_dfunc_idx;
-	delete_def_function_contents(dfunc);
+	delete_def_function_contents(dfunc, FALSE);
     }
     else
     {
@@ -7650,7 +7747,7 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 	    {
 		if (!starts_with_colon)
 		{
-		    emsg(_(e_colon_required_before_a_range));
+		    semsg(_(e_colon_required_before_range_str), cmd);
 		    goto erret;
 		}
 		if (ends_excmd2(line, ea.cmd))
@@ -7679,8 +7776,9 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 	    // Expression or function call.
 	    if (ea.cmdidx != CMD_eval)
 	    {
-		// CMD_var cannot happen, compile_assignment() above is used
-		iemsg("Command from find_ex_command() not handled");
+		// CMD_var cannot happen, compile_assignment() above would be
+		// used.  Most likely an assignment to a non-existing variable.
+		semsg(_(e_command_not_recognized_str), ea.cmd);
 		goto erret;
 	    }
 	}
@@ -7726,7 +7824,7 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 		    goto erret;
 
 	    case CMD_return:
-		    line = compile_return(p, set_return_type, &cctx);
+		    line = compile_return(p, check_return_type, &cctx);
 		    cctx.ctx_had_return = TRUE;
 		    break;
 
@@ -7909,6 +8007,7 @@ nextline:
 	dfunc_T	*dfunc = ((dfunc_T *)def_functions.ga_data)
 							 + ufunc->uf_dfunc_idx;
 	dfunc->df_deleted = FALSE;
+	dfunc->df_script_seq = current_sctx.sc_seq;
 	dfunc->df_instr = instr->ga_data;
 	dfunc->df_instr_count = instr->ga_len;
 	dfunc->df_varcount = cctx.ctx_locals_count;
@@ -7930,6 +8029,7 @@ erret:
 	for (idx = 0; idx < instr->ga_len; ++idx)
 	    delete_instr(((isn_T *)instr->ga_data) + idx);
 	ga_clear(instr);
+	VIM_CLEAR(dfunc->df_name);
 
 	// If using the last entry in the table and it was added above, we
 	// might as well remove it.
@@ -8080,9 +8180,10 @@ delete_instr(isn_T *isn)
 	    {
 		dfunc_T *dfunc = ((dfunc_T *)def_functions.ga_data)
 					       + isn->isn_arg.funcref.fr_func;
+		ufunc_T *ufunc = dfunc->df_ufunc;
 
-		if (func_name_refcount(dfunc->df_ufunc->uf_name))
-		    func_ptr_unref(dfunc->df_ufunc);
+		if (ufunc != NULL && func_name_refcount(ufunc->uf_name))
+		    func_ptr_unref(ufunc);
 	    }
 	    break;
 
@@ -8104,9 +8205,7 @@ delete_instr(isn_T *isn)
 
 		if (ufunc != NULL)
 		{
-		    // Clear uf_dfunc_idx so that the function is deleted.
-		    clear_def_function(ufunc);
-		    ufunc->uf_dfunc_idx = 0;
+		    unlink_def_function(ufunc);
 		    func_ptr_unref(ufunc);
 		}
 
@@ -8123,6 +8222,11 @@ delete_instr(isn_T *isn)
 	    vim_regfree(isn->isn_arg.cmdmod.cf_cmdmod
 					       ->cmod_filter_regmatch.regprog);
 	    vim_free(isn->isn_arg.cmdmod.cf_cmdmod);
+	    break;
+
+	case ISN_LOADSCRIPT:
+	case ISN_STORESCRIPT:
+	    vim_free(isn->isn_arg.script.scriptref);
 	    break;
 
 	case ISN_2BOOL:
@@ -8168,7 +8272,6 @@ delete_instr(isn_T *isn)
 	case ISN_LOADGDICT:
 	case ISN_LOADOUTER:
 	case ISN_LOADREG:
-	case ISN_LOADSCRIPT:
 	case ISN_LOADTDICT:
 	case ISN_LOADV:
 	case ISN_LOADWDICT:
@@ -8191,12 +8294,10 @@ delete_instr(isn_T *isn)
 	case ISN_SHUFFLE:
 	case ISN_SLICE:
 	case ISN_STORE:
-	case ISN_STOREDICT:
-	case ISN_STORELIST:
+	case ISN_STOREINDEX:
 	case ISN_STORENR:
 	case ISN_STOREOUTER:
 	case ISN_STOREREG:
-	case ISN_STORESCRIPT:
 	case ISN_STOREV:
 	case ISN_STRINDEX:
 	case ISN_STRSLICE:
@@ -8209,10 +8310,10 @@ delete_instr(isn_T *isn)
 }
 
 /*
- * Free all instructions for "dfunc".
+ * Free all instructions for "dfunc" except df_name.
  */
     static void
-delete_def_function_contents(dfunc_T *dfunc)
+delete_def_function_contents(dfunc_T *dfunc, int mark_deleted)
 {
     int idx;
 
@@ -8223,38 +8324,50 @@ delete_def_function_contents(dfunc_T *dfunc)
 	for (idx = 0; idx < dfunc->df_instr_count; ++idx)
 	    delete_instr(dfunc->df_instr + idx);
 	VIM_CLEAR(dfunc->df_instr);
+	dfunc->df_instr = NULL;
     }
 
-    dfunc->df_deleted = TRUE;
+    if (mark_deleted)
+	dfunc->df_deleted = TRUE;
+    if (dfunc->df_ufunc != NULL)
+	dfunc->df_ufunc->uf_def_status = UF_NOT_COMPILED;
 }
 
 /*
  * When a user function is deleted, clear the contents of any associated def
- * function.  The position in def_functions can be re-used.
+ * function, unless another user function still uses it.
+ * The position in def_functions can be re-used.
  */
     void
-clear_def_function(ufunc_T *ufunc)
+unlink_def_function(ufunc_T *ufunc)
 {
     if (ufunc->uf_dfunc_idx > 0)
     {
 	dfunc_T *dfunc = ((dfunc_T *)def_functions.ga_data)
 							 + ufunc->uf_dfunc_idx;
 
-	delete_def_function_contents(dfunc);
+	if (--dfunc->df_refcount <= 0)
+	    delete_def_function_contents(dfunc, TRUE);
 	ufunc->uf_def_status = UF_NOT_COMPILED;
+	ufunc->uf_dfunc_idx = 0;
+	if (dfunc->df_ufunc == ufunc)
+	    dfunc->df_ufunc = NULL;
     }
 }
 
 /*
- * Used when a user function is about to be deleted: remove the pointer to it.
- * The entry in def_functions is then unused.
+ * Used when a user function refers to an existing dfunc.
  */
     void
-unlink_def_function(ufunc_T *ufunc)
+link_def_function(ufunc_T *ufunc)
 {
-    dfunc_T *dfunc = ((dfunc_T *)def_functions.ga_data) + ufunc->uf_dfunc_idx;
+    if (ufunc->uf_dfunc_idx > 0)
+    {
+	dfunc_T *dfunc = ((dfunc_T *)def_functions.ga_data)
+							 + ufunc->uf_dfunc_idx;
 
-    dfunc->df_ufunc = NULL;
+	++dfunc->df_refcount;
+    }
 }
 
 #if defined(EXITFREE) || defined(PROTO)
@@ -8270,7 +8383,8 @@ free_def_functions(void)
     {
 	dfunc_T *dfunc = ((dfunc_T *)def_functions.ga_data) + idx;
 
-	delete_def_function_contents(dfunc);
+	delete_def_function_contents(dfunc, TRUE);
+	vim_free(dfunc->df_name);
     }
 
     ga_clear(&def_functions);
