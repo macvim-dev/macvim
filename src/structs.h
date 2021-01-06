@@ -1481,6 +1481,7 @@ struct listvar_S
 	    int		lv_idx;		// cached index of an item
 	} mat;
     } lv_u;
+    type_T	*lv_type;	// allocated by alloc_type()
     list_T	*lv_copylist;	// copied list used by deepcopy()
     list_T	*lv_used_next;	// next list in used lists list
     list_T	*lv_used_prev;	// previous list in used lists list
@@ -1544,6 +1545,7 @@ struct dictvar_S
     int		dv_refcount;	// reference count
     int		dv_copyID;	// ID used by deepcopy()
     hashtab_T	dv_hashtab;	// hashtab that refers to the items
+    type_T	*dv_type;	// allocated by alloc_type()
     dict_T	*dv_copydict;	// copied dict used by deepcopy()
     dict_T	*dv_used_next;	// next dict in used dicts list
     dict_T	*dv_used_prev;	// previous dict in used dicts list
@@ -1565,8 +1567,8 @@ typedef void (*cfunc_free_T)(void *state);
 // type of getline() last argument
 typedef enum {
     GETLINE_NONE,	    // do not concatenate any lines
-    GETLINE_CONCAT_CONT,    // concatenate continuation lines in Vim9 script
-    GETLINE_CONCAT_CONTDEF, // concatenate continuation lines always
+    GETLINE_CONCAT_CONT,    // concatenate continuation lines with backslash
+    GETLINE_CONCAT_CONTBAR, // concatenate continuation lines with \ and |
     GETLINE_CONCAT_ALL	    // concatenate continuation and Vim9 # comment lines
 } getline_opt_T;
 
@@ -4338,8 +4340,20 @@ typedef struct
 // with iconv() to be able to allocate a buffer.
 #define ICONV_MULT 8
 
+// Used for "magic_overruled".
 typedef enum {
-    MAGIC_NOT_SET,	// p_magic not overruled
-    MAGIC_ON,		// magic on inside regexp
-    MAGIC_OFF		// magic off inside regexp
+    OPTION_MAGIC_NOT_SET,	// p_magic not overruled
+    OPTION_MAGIC_ON,		// magic on inside regexp
+    OPTION_MAGIC_OFF		// magic off inside regexp
+} optmagic_T;
+
+// Magicness of a pattern, used by regexp code.
+// The order and values matter:
+//  magic <= MAGIC_OFF includes MAGIC_NONE
+//  magic >= MAGIC_ON  includes MAGIC_ALL
+typedef enum {
+    MAGIC_NONE = 1,		// "\V" very unmagic
+    MAGIC_OFF = 2,		// "\M" or 'magic' off
+    MAGIC_ON = 3,		// "\m" or 'magic'
+    MAGIC_ALL = 4		// "\v" very magic
 } magic_T;

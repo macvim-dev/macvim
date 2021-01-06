@@ -813,9 +813,9 @@ get_lval(
     // Clear everything in "lp".
     CLEAR_POINTER(lp);
 
-    if (skip)
+    if (skip || (flags & GLV_COMPILING))
     {
-	// When skipping just find the end of the name.
+	// When skipping or compiling just find the end of the name.
 	lp->ll_name = name;
 	lp->ll_name_end = find_name_end(name, NULL, NULL,
 						      FNE_INCL_BR | fne_flags);
@@ -1748,7 +1748,7 @@ next_for_item(void *fi_void, char_u *arg)
 {
     forinfo_T	*fi = (forinfo_T *)fi_void;
     int		result;
-    int		flag = in_vim9script() ?  ASSIGN_NO_DECL : 0;
+    int		flag = in_vim9script() ? ASSIGN_DECL : 0;
     listitem_T	*item;
 
     if (fi->fi_blob != NULL)
@@ -1940,7 +1940,7 @@ pattern_match(char_u *pat, char_u *text, int ic)
 
     // avoid 'l' flag in 'cpoptions'
     save_cpo = p_cpo;
-    p_cpo = (char_u *)"";
+    p_cpo = empty_option;
     regmatch.regprog = vim_regcomp(pat, RE_MAGIC + RE_STRING);
     if (regmatch.regprog != NULL)
     {
@@ -3188,6 +3188,28 @@ eval6(
     return OK;
 }
 
+    int
+eval_leader(char_u **arg, int vim9)
+{
+    char_u	*s = *arg;
+    char_u	*p = *arg;
+
+    while (*p == '!' || *p == '-' || *p == '+')
+    {
+	char_u *n = skipwhite(p + 1);
+
+	// ++, --, -+ and +- are not accepted in Vim9 script
+	if (vim9 && (*p == '-' || *p == '+') && (*n == '-' || *n == '+'))
+	{
+	    semsg(_(e_invexpr2), s);
+	    return FAIL;
+	}
+	p = n;
+    }
+    *arg = p;
+    return OK;
+}
+
 /*
  * Handle sixth level expression:
  *  number		number constant
@@ -3243,8 +3265,8 @@ eval7(
      * Skip '!', '-' and '+' characters.  They are handled later.
      */
     start_leader = *arg;
-    while (**arg == '!' || **arg == '-' || **arg == '+')
-	*arg = skipwhite(*arg + 1);
+    if (eval_leader(arg, in_vim9script()) == FAIL)
+	return FAIL;
     end_leader = *arg;
 
     if (**arg == '.' && (!isdigit(*(*arg + 1))
@@ -3316,7 +3338,10 @@ eval7(
      * Lambda: {arg, arg -> expr}
      * Dictionary: {'key': val, 'key': val}
      */
-    case '{':	ret = get_lambda_tv(arg, rettv, in_vim9script(), evalarg);
+    case '{':	if (in_vim9script())
+		    ret = NOTDONE;
+		else
+		    ret = get_lambda_tv(arg, rettv, in_vim9script(), evalarg);
 		if (ret == NOTDONE)
 		    ret = eval_dict(arg, rettv, evalarg, FALSE);
 		break;
@@ -3410,10 +3435,17 @@ eval7(
 		    ret = OK;
 		}
 		else if (len == 5 && in_vim9script()
-						&& STRNCMP(s, "false", 4) == 0)
+						&& STRNCMP(s, "false", 5) == 0)
 		{
 		    rettv->v_type = VAR_BOOL;
 		    rettv->vval.v_number = VVAL_FALSE;
+		    ret = OK;
+		}
+		else if (len == 4 && in_vim9script()
+						&& STRNCMP(s, "null", 4) == 0)
+		{
+		    rettv->v_type = VAR_SPECIAL;
+		    rettv->vval.v_number = VVAL_NULL;
 		    ret = OK;
 		}
 		else
@@ -3617,7 +3649,24 @@ eval_lambda(
     *arg += 2;
     rettv->v_type = VAR_UNKNOWN;
 
-    ret = get_lambda_tv(arg, rettv, FALSE, evalarg);
+    if (**arg == '{')
+    {
+	// ->{lambda}()
+	ret = get_lambda_tv(arg, rettv, FALSE, evalarg);
+    }
+    else
+    {
+	// ->(lambda)()
+	++*arg;
+	ret = eval1(arg, rettv, evalarg);
+	*arg = skipwhite_and_linebreak(*arg, evalarg);
+	if (**arg != ')')
+	{
+	    emsg(_(e_missing_close));
+	    ret = FAIL;
+	}
+	++*arg;
+    }
     if (ret != OK)
 	return FAIL;
     else if (**arg != '(')
@@ -3725,6 +3774,7 @@ eval_index(
     int		range = FALSE;
     char_u	*key = NULL;
     int		keylen = -1;
+    int		vim9 = in_vim9script();
 
     if (check_can_index(rettv, evaluate, verbose) == FAIL)
 	return FAIL;
@@ -3755,6 +3805,13 @@ eval_index(
 	    empty1 = TRUE;
 	else if (eval1(arg, &var1, evalarg) == FAIL)	// recursive!
 	    return FAIL;
+	else if (vim9 && **arg == ':')
+	{
+	    semsg(_(e_white_space_required_before_and_after_str_at_str),
+								    ":", *arg);
+	    clear_tv(&var1);
+	    return FAIL;
+	}
 	else if (evaluate && tv_get_string_chk(&var1) == NULL)
 	{
 	    // not a number or string
@@ -3769,7 +3826,16 @@ eval_index(
 	if (**arg == ':')
 	{
 	    range = TRUE;
-	    *arg = skipwhite_and_linebreak(*arg + 1, evalarg);
+	    ++*arg;
+	    if (vim9 && !IS_WHITE_OR_NUL(**arg) && **arg != ']')
+	    {
+		semsg(_(e_white_space_required_before_and_after_str_at_str),
+								":", *arg - 1);
+		if (!empty1)
+		    clear_tv(&var1);
+		return FAIL;
+	    }
+	    *arg = skipwhite_and_linebreak(*arg, evalarg);
 	    if (**arg == ']')
 		empty2 = TRUE;
 	    else if (eval1(arg, &var2, evalarg) == FAIL)	// recursive!
@@ -5630,8 +5696,8 @@ handle_subscript(
 	    *arg = p;
 	    if (ret == OK)
 	    {
-		if ((*arg)[2] == '{')
-		    // expr->{lambda}()
+		if (((*arg)[2] == '{' && !in_vim9script()) || (*arg)[2] == '(')
+		    // expr->{lambda}() or expr->(lambda)()
 		    ret = eval_lambda(arg, rettv, evalarg, verbose);
 		else
 		    // expr->name()
@@ -6163,8 +6229,14 @@ do_string_sub(
     if (p_cpo == empty_option)
 	p_cpo = save_cpo;
     else
+    {
 	// Darn, evaluating {sub} expression or {expr} changed the value.
+	// If it's still empty it was changed and restored, need to restore in
+	// the complicated way.
+	if (*p_cpo == NUL)
+	    set_option_value((char_u *)"cpo", 0L, save_cpo, 0);
 	free_string_option(save_cpo);
+    }
 
     return ret;
 }

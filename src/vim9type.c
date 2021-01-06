@@ -480,15 +480,19 @@ check_type(type_T *expected, type_T *actual, int give_msg, int argidx)
 	}
 	else if (expected->tt_type == VAR_FUNC)
 	{
-	    if (expected->tt_member != &t_unknown)
+	    // If the return type is unknown it can be anything, including
+	    // nothing, thus there is no point in checking.
+	    if (expected->tt_member != &t_unknown
+					    && actual->tt_member != &t_unknown)
 		ret = check_type(expected->tt_member, actual->tt_member,
 								     FALSE, 0);
 	    if (ret == OK && expected->tt_argcount != -1
 		    && actual->tt_argcount != -1
 		    && (actual->tt_argcount < expected->tt_min_argcount
 			|| actual->tt_argcount > expected->tt_argcount))
-		    ret = FAIL;
-	    if (expected->tt_args != NULL && actual->tt_args != NULL)
+		ret = FAIL;
+	    if (ret == OK && expected->tt_args != NULL
+						    && actual->tt_args != NULL)
 	    {
 		int i;
 

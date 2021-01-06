@@ -806,7 +806,7 @@ store_var(char_u *name, typval_T *tv)
     funccal_entry_T entry;
 
     save_funccal(&entry);
-    set_var_const(name, NULL, tv, FALSE, ASSIGN_NO_DECL);
+    set_var_const(name, NULL, tv, FALSE, ASSIGN_DECL);
     restore_funccal();
 }
 
@@ -1526,7 +1526,7 @@ call_def_function(
 		    if (GA_GROW(&ectx.ec_stack, 1) == FAIL)
 			goto failed;
 		    SOURCING_LNUM = iptr->isn_lnum;
-		    if (eval_variable(name, STRLEN(name),
+		    if (eval_variable(name, (int)STRLEN(name),
 				  STACK_TV_BOT(0), NULL, TRUE, FALSE) == FAIL)
 			goto on_error;
 		    ++ectx.ec_stack.ga_len;
@@ -1783,6 +1783,10 @@ call_def_function(
 		    typval_T	*tv_dest = STACK_TV_BOT(-1);
 		    int		status = OK;
 
+		    // Stack contains:
+		    // -3 value to be stored
+		    // -2 index
+		    // -1 dict or list
 		    tv = STACK_TV_BOT(-3);
 		    SOURCING_LNUM = iptr->isn_lnum;
 		    if (dest_type == VAR_ANY)
@@ -1895,6 +1899,95 @@ call_def_function(
 			clear_tv(tv);
 			goto on_error;
 		    }
+		}
+		break;
+
+	    // unlet item in list or dict variable
+	    case ISN_UNLETINDEX:
+		{
+		    typval_T	*tv_idx = STACK_TV_BOT(-2);
+		    typval_T	*tv_dest = STACK_TV_BOT(-1);
+		    int		status = OK;
+
+		    // Stack contains:
+		    // -2 index
+		    // -1 dict or list
+		    if (tv_dest->v_type == VAR_DICT)
+		    {
+			// unlet a dict item, index must be a string
+			if (tv_idx->v_type != VAR_STRING)
+			{
+			    SOURCING_LNUM = iptr->isn_lnum;
+			    semsg(_(e_expected_str_but_got_str),
+					vartype_name(VAR_STRING),
+					vartype_name(tv_idx->v_type));
+			    status = FAIL;
+			}
+			else
+			{
+			    dict_T	*d = tv_dest->vval.v_dict;
+			    char_u	*key = tv_idx->vval.v_string;
+			    dictitem_T  *di = NULL;
+
+			    if (key == NULL)
+				key = (char_u *)"";
+			    if (d != NULL)
+				di = dict_find(d, key, (int)STRLEN(key));
+			    if (di == NULL)
+			    {
+				// NULL dict is equivalent to empty dict
+				SOURCING_LNUM = iptr->isn_lnum;
+				semsg(_(e_dictkey), key);
+				status = FAIL;
+			    }
+			    else
+			    {
+				// TODO: check for dict or item locked
+				dictitem_remove(d, di);
+			    }
+			}
+		    }
+		    else if (tv_dest->v_type == VAR_LIST)
+		    {
+			// unlet a List item, index must be a number
+			if (tv_idx->v_type != VAR_NUMBER)
+			{
+			    SOURCING_LNUM = iptr->isn_lnum;
+			    semsg(_(e_expected_str_but_got_str),
+					vartype_name(VAR_NUMBER),
+					vartype_name(tv_idx->v_type));
+			    status = FAIL;
+			}
+			else
+			{
+			    list_T	*l = tv_dest->vval.v_list;
+			    varnumber_T	n = tv_idx->vval.v_number;
+			    listitem_T	*li = NULL;
+
+			    li = list_find(l, n);
+			    if (li == NULL)
+			    {
+				SOURCING_LNUM = iptr->isn_lnum;
+				semsg(_(e_listidx), n);
+				status = FAIL;
+			    }
+			    else
+				// TODO: check for list or item locked
+				listitem_remove(l, li);
+			}
+		    }
+		    else
+		    {
+			status = FAIL;
+			semsg(_(e_cannot_index_str),
+						vartype_name(tv_dest->v_type));
+		    }
+
+		    clear_tv(tv_idx);
+		    clear_tv(tv_dest);
+		    ectx.ec_stack.ga_len -= 2;
+		    if (status == FAIL)
+			goto on_error;
 		}
 		break;
 
@@ -2994,6 +3087,24 @@ call_def_function(
 		}
 		break;
 
+	    case ISN_SETTYPE:
+		{
+		    checktype_T *ct = &iptr->isn_arg.type;
+
+		    tv = STACK_TV_BOT(-1);
+		    if (tv->v_type == VAR_DICT && tv->vval.v_dict != NULL)
+		    {
+			free_type(tv->vval.v_dict->dv_type);
+			tv->vval.v_dict->dv_type = alloc_type(ct->ct_type);
+		    }
+		    else if (tv->v_type == VAR_LIST && tv->vval.v_list != NULL)
+		    {
+			free_type(tv->vval.v_list->lv_type);
+			tv->vval.v_list->lv_type = alloc_type(ct->ct_type);
+		    }
+		}
+		break;
+
 	    case ISN_2BOOL:
 	    case ISN_COND2BOOL:
 		{
@@ -3022,6 +3133,7 @@ call_def_function(
 
 	    case ISN_2STRING:
 	    case ISN_2STRING_ANY:
+		SOURCING_LNUM = iptr->isn_lnum;
 		if (do_2string(STACK_TV_BOT(iptr->isn_arg.number),
 			iptr->isn_type == ISN_2STRING_ANY) == FAIL)
 			    goto on_error;
@@ -3036,6 +3148,7 @@ call_def_function(
 			goto failed;
 		    ++ectx.ec_stack.ga_len;
 		    tv = STACK_TV_BOT(-1);
+		    ea.addr_count = 0;
 		    ea.addr_type = ADDR_LINES;
 		    ea.cmd = iptr->isn_arg.string;
 		    if (parse_cmd_address(&ea, &errormsg, FALSE) == FAIL)
@@ -3371,7 +3484,7 @@ ex_disassemble(exarg_T *eap)
 		break;
 	    case ISN_EXECCONCAT:
 		smsg("%4d EXECCONCAT %lld", current,
-					      (long long)iptr->isn_arg.number);
+					      (varnumber_T)iptr->isn_arg.number);
 		break;
 	    case ISN_ECHO:
 		{
@@ -3384,15 +3497,15 @@ ex_disassemble(exarg_T *eap)
 		break;
 	    case ISN_EXECUTE:
 		smsg("%4d EXECUTE %lld", current,
-					    (long long)(iptr->isn_arg.number));
+					    (varnumber_T)(iptr->isn_arg.number));
 		break;
 	    case ISN_ECHOMSG:
 		smsg("%4d ECHOMSG %lld", current,
-					    (long long)(iptr->isn_arg.number));
+					    (varnumber_T)(iptr->isn_arg.number));
 		break;
 	    case ISN_ECHOERR:
 		smsg("%4d ECHOERR %lld", current,
-					    (long long)(iptr->isn_arg.number));
+					    (varnumber_T)(iptr->isn_arg.number));
 		break;
 	    case ISN_LOAD:
 	    case ISN_LOADOUTER:
@@ -3401,11 +3514,11 @@ ex_disassemble(exarg_T *eap)
 
 		    if (iptr->isn_arg.number < 0)
 			smsg("%4d LOAD%s arg[%lld]", current, add,
-				(long long)(iptr->isn_arg.number
+				(varnumber_T)(iptr->isn_arg.number
 							  + STACK_FRAME_SIZE));
 		    else
 			smsg("%4d LOAD%s $%lld", current, add,
-					    (long long)(iptr->isn_arg.number));
+					    (varnumber_T)(iptr->isn_arg.number));
 		}
 		break;
 	    case ISN_LOADV:
@@ -3478,10 +3591,10 @@ ex_disassemble(exarg_T *eap)
 
 		if (iptr->isn_arg.number < 0)
 		    smsg("%4d STORE%s arg[%lld]", current, add,
-			 (long long)(iptr->isn_arg.number + STACK_FRAME_SIZE));
+			 (varnumber_T)(iptr->isn_arg.number + STACK_FRAME_SIZE));
 		else
 		    smsg("%4d STORE%s $%lld", current, add,
-					    (long long)(iptr->isn_arg.number));
+					    (varnumber_T)(iptr->isn_arg.number));
 		}
 		break;
 	    case ISN_STOREV:
@@ -3560,7 +3673,7 @@ ex_disassemble(exarg_T *eap)
 	    // constants
 	    case ISN_PUSHNR:
 		smsg("%4d PUSHNR %lld", current,
-					    (long long)(iptr->isn_arg.number));
+					    (varnumber_T)(iptr->isn_arg.number));
 		break;
 	    case ISN_PUSHBOOL:
 	    case ISN_PUSHSPEC:
@@ -3630,16 +3743,19 @@ ex_disassemble(exarg_T *eap)
 			iptr->isn_arg.unlet.ul_forceit ? "!" : "",
 			iptr->isn_arg.unlet.ul_name);
 		break;
+	    case ISN_UNLETINDEX:
+		smsg("%4d UNLETINDEX", current);
+		break;
 	    case ISN_LOCKCONST:
 		smsg("%4d LOCKCONST", current);
 		break;
 	    case ISN_NEWLIST:
 		smsg("%4d NEWLIST size %lld", current,
-					    (long long)(iptr->isn_arg.number));
+					    (varnumber_T)(iptr->isn_arg.number));
 		break;
 	    case ISN_NEWDICT:
 		smsg("%4d NEWDICT size %lld", current,
-					    (long long)(iptr->isn_arg.number));
+					    (varnumber_T)(iptr->isn_arg.number));
 		break;
 
 	    // function call
@@ -3890,6 +4006,15 @@ ex_disassemble(exarg_T *eap)
 				iptr->isn_arg.checklen.cl_more_OK ? ">= " : "",
 				iptr->isn_arg.checklen.cl_min_len);
 			       break;
+	    case ISN_SETTYPE:
+		  {
+		      char *tofree;
+
+		      smsg("%4d SETTYPE %s", current,
+			      type_name(iptr->isn_arg.type.ct_type, &tofree));
+		      vim_free(tofree);
+		      break;
+		  }
 	    case ISN_COND2BOOL: smsg("%4d COND2BOOL", current); break;
 	    case ISN_2BOOL: if (iptr->isn_arg.number)
 				smsg("%4d INVERT (!val)", current);
@@ -3897,10 +4022,10 @@ ex_disassemble(exarg_T *eap)
 				smsg("%4d 2BOOL (!!val)", current);
 			    break;
 	    case ISN_2STRING: smsg("%4d 2STRING stack[%lld]", current,
-					 (long long)(iptr->isn_arg.number));
+					 (varnumber_T)(iptr->isn_arg.number));
 			      break;
 	    case ISN_2STRING_ANY: smsg("%4d 2STRING_ANY stack[%lld]", current,
-					 (long long)(iptr->isn_arg.number));
+					 (varnumber_T)(iptr->isn_arg.number));
 			      break;
 	    case ISN_RANGE: smsg("%4d RANGE %s", current, iptr->isn_arg.string);
 			    break;

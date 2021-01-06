@@ -154,9 +154,10 @@ one_function_arg(
 
 /*
  * Get function arguments.
+ * "argp" should point to just after the "(", possibly to white space.
  * "argp" is advanced just after "endchar".
  */
-    int
+    static int
 get_function_args(
     char_u	**argp,
     char_u	endchar,
@@ -170,12 +171,12 @@ get_function_args(
     char_u	**line_to_free)
 {
     int		mustend = FALSE;
-    char_u	*arg = *argp;
-    char_u	*p = arg;
+    char_u	*arg;
+    char_u	*p;
     int		c;
     int		any_default = FALSE;
     char_u	*expr;
-    char_u	*whitep = arg;
+    char_u	*whitep = *argp;
 
     if (newargs != NULL)
 	ga_init2(newargs, (int)sizeof(char_u *), 3);
@@ -190,6 +191,8 @@ get_function_args(
     /*
      * Isolate the arguments: "arg1, arg2, ...)"
      */
+    arg = skipwhite(*argp);
+    p = arg;
     while (*p != endchar)
     {
 	while (eap != NULL && eap->getline != NULL
@@ -501,8 +504,8 @@ skip_arrow(
 		|| !IS_WHITE_OR_NUL(s[1])))
     {
 	*white_error = TRUE;
-	semsg(_(e_white_space_required_before_and_after_str),
-						    equal_arrow ? "=>" : "->");
+	semsg(_(e_white_space_required_before_and_after_str_at_str),
+					       equal_arrow ? "=>" : "->", bef);
 	return NULL;
     }
     return skipwhite(s + 1);
@@ -548,7 +551,7 @@ get_lambda_tv(
 
     // First, check if this is really a lambda expression. "->" or "=>" must
     // be found after the arguments.
-    s = skipwhite(*arg + 1);
+    s = *arg + 1;
     ret = get_function_args(&s, equal_arrow ? ')' : '-', NULL,
 	    types_optional ? &argtypes : NULL, types_optional,
 						 NULL, NULL, TRUE, NULL, NULL);
@@ -564,7 +567,7 @@ get_lambda_tv(
 	pnewargs = &newargs;
     else
 	pnewargs = NULL;
-    *arg = skipwhite(*arg + 1);
+    *arg += 1;
     ret = get_function_args(arg, equal_arrow ? ')' : '-', pnewargs,
 	    types_optional ? &argtypes : NULL, types_optional,
 					    &varargs, NULL, FALSE, NULL, NULL);
@@ -664,6 +667,8 @@ get_lambda_tv(
 		if (fp->uf_ret_type == NULL)
 		    goto errret;
 	    }
+	    else
+		fp->uf_ret_type = &t_unknown;
 	}
 
 	fp->uf_lines = newlines;
@@ -2923,6 +2928,27 @@ list_functions(regmatch_T *regmatch)
 }
 
 /*
+ * Check if "*cmd" points to a function command and if so advance "*cmd" and
+ * return TRUE.
+ * Otherwise return FALSE;
+ * Do not consider "function(" to be a command.
+ */
+    static int
+is_function_cmd(char_u **cmd)
+{
+    char_u *p = *cmd;
+
+    if (checkforcmd(&p, "function", 2))
+    {
+	if (*p == '(')
+	    return FALSE;
+	*cmd = p;
+	return TRUE;
+    }
+    return FALSE;
+}
+
+/*
  * ":function" also supporting nested ":def".
  * When "name_arg" is not NULL this is a nested function, using "name_arg" for
  * the function name.
@@ -2941,6 +2967,7 @@ define_function(exarg_T *eap, char_u *name_arg)
     int		is_global = FALSE;
     char_u	*p;
     char_u	*arg;
+    char_u	*whitep;
     char_u	*line_arg = NULL;
     garray_T	newargs;
     garray_T	argtypes;
@@ -3136,7 +3163,6 @@ define_function(exarg_T *eap, char_u *name_arg)
 	if (vim_strchr(p, '(') != NULL)
 	    p = vim_strchr(p, '(');
     }
-    p = skipwhite(p + 1);
 
     // In Vim9 script only global functions can be redefined.
     if (vim9script && eap->forceit && !is_global)
@@ -3176,11 +3202,13 @@ define_function(exarg_T *eap, char_u *name_arg)
 
     // This may get more lines and make the pointers into the first line
     // invalid.
+    ++p;
     if (get_function_args(&p, ')', &newargs,
 			eap->cmdidx == CMD_def ? &argtypes : NULL, FALSE,
 			 &varargs, &default_args, eap->skip,
 			 eap, &line_to_free) == FAIL)
 	goto errret_2;
+    whitep = p;
 
     if (eap->cmdidx == CMD_def)
     {
@@ -3192,6 +3220,7 @@ define_function(exarg_T *eap, char_u *name_arg)
 	    if (p > ret_type)
 	    {
 		ret_type = vim_strnsave(ret_type, p - ret_type);
+		whitep = p;
 		p = skipwhite(p);
 	    }
 	    else
@@ -3206,6 +3235,7 @@ define_function(exarg_T *eap, char_u *name_arg)
 	// find extra arguments "range", "dict", "abort" and "closure"
 	for (;;)
 	{
+	    whitep = p;
 	    p = skipwhite(p);
 	    if (STRNCMP(p, "range", 5) == 0)
 	    {
@@ -3244,7 +3274,8 @@ define_function(exarg_T *eap, char_u *name_arg)
     else if (*p != NUL
 	    && !(*p == '"' && (!vim9script || eap->cmdidx == CMD_function)
 						     && eap->cmdidx != CMD_def)
-	    && !(*p == '#' && (vim9script || eap->cmdidx == CMD_def))
+	    && !(VIM_ISWHITE(*whitep) && *p == '#'
+				     && (vim9script || eap->cmdidx == CMD_def))
 	    && !eap->skip
 	    && !did_emsg)
 	semsg(_(e_trailing_arg), p);
@@ -3292,7 +3323,7 @@ define_function(exarg_T *eap, char_u *name_arg)
     nesting = 0;
     nesting_def[nesting] = (eap->cmdidx == CMD_def);
     getline_options = eap->cmdidx == CMD_def
-				? GETLINE_CONCAT_CONTDEF : GETLINE_CONCAT_CONT;
+				? GETLINE_CONCAT_CONTBAR : GETLINE_CONCAT_CONT;
     for (;;)
     {
 	if (KeyTyped)
@@ -3329,6 +3360,8 @@ define_function(exarg_T *eap, char_u *name_arg)
 	    lines_left = Rows - 1;
 	if (theline == NULL)
 	{
+	    // Use the start of the function for the line number.
+	    SOURCING_LNUM = sourcing_lnum_top;
 	    if (skip_until != NULL)
 		semsg(_(e_missing_heredoc_end_marker_str), skip_until);
 	    else if (eap->cmdidx == CMD_def)
@@ -3368,7 +3401,7 @@ define_function(exarg_T *eap, char_u *name_arg)
 		    VIM_CLEAR(skip_until);
 		    VIM_CLEAR(heredoc_trimmed);
 		    getline_options = eap->cmdidx == CMD_def
-				? GETLINE_CONCAT_CONTDEF : GETLINE_CONCAT_CONT;
+				? GETLINE_CONCAT_CONTBAR : GETLINE_CONCAT_CONT;
 		    is_heredoc = FALSE;
 		}
 	    }
@@ -3381,34 +3414,50 @@ define_function(exarg_T *eap, char_u *name_arg)
 
 	    // Check for "endfunction" or "enddef".
 	    if (checkforcmd(&p, nesting_def[nesting]
-			     ? "enddef" : "endfunction", 4) && nesting-- == 0)
+						? "enddef" : "endfunction", 4))
 	    {
-		char_u *nextcmd = NULL;
-
-		if (*p == '|')
-		    nextcmd = p + 1;
-		else if (line_arg != NULL && *skipwhite(line_arg) != NUL)
-		    nextcmd = line_arg;
-		else if (*p != NUL && *p != '"' && p_verbose > 0)
-		    give_warning2(eap->cmdidx == CMD_def
-			? (char_u *)_("W1001: Text found after :enddef: %s")
-			: (char_u *)_("W22: Text found after :endfunction: %s"),
-			 p, TRUE);
-		if (nextcmd != NULL)
+		if (nesting-- == 0)
 		{
-		    // Another command follows. If the line came from "eap" we
-		    // can simply point into it, otherwise we need to change
-		    // "eap->cmdlinep".
-		    eap->nextcmd = nextcmd;
-		    if (line_to_free != NULL)
+		    char_u *nextcmd = NULL;
+
+		    if (*p == '|')
+			nextcmd = p + 1;
+		    else if (line_arg != NULL && *skipwhite(line_arg) != NUL)
+			nextcmd = line_arg;
+		    else if (*p != NUL && *p != '"' && p_verbose > 0)
+			give_warning2(eap->cmdidx == CMD_def
+			    ? (char_u *)_("W1001: Text found after :enddef: %s")
+			    : (char_u *)_("W22: Text found after :endfunction: %s"),
+			     p, TRUE);
+		    if (nextcmd != NULL)
 		    {
-			vim_free(*eap->cmdlinep);
-			*eap->cmdlinep = line_to_free;
-			line_to_free = NULL;
+			// Another command follows. If the line came from "eap"
+			// we can simply point into it, otherwise we need to
+			// change "eap->cmdlinep".
+			eap->nextcmd = nextcmd;
+			if (line_to_free != NULL)
+			{
+			    vim_free(*eap->cmdlinep);
+			    *eap->cmdlinep = line_to_free;
+			    line_to_free = NULL;
+			}
 		    }
+		    break;
 		}
-		break;
 	    }
+
+	    // Check for mismatched "endfunc" or "enddef".
+	    // We don't check for "def" inside "func" thus we also can't check
+	    // for "enddef".
+	    // We continue to find the end of the function, although we might
+	    // not find it.
+	    else if (nesting_def[nesting])
+	    {
+		if (checkforcmd(&p, "endfunction", 4))
+		    emsg(_(e_mismatched_endfunction));
+	    }
+	    else if (eap->cmdidx == CMD_def && checkforcmd(&p, "enddef", 4))
+		emsg(_(e_mismatched_enddef));
 
 	    // Increase indent inside "if", "while", "for" and "try", decrease
 	    // at "end".
@@ -3424,7 +3473,7 @@ define_function(exarg_T *eap, char_u *name_arg)
 	    // Only recognize "def" inside "def", not inside "function",
 	    // For backwards compatibility, see Test_function_python().
 	    c = *p;
-	    if (checkforcmd(&p, "function", 2)
+	    if (is_function_cmd(&p)
 		    || (eap->cmdidx == CMD_def && checkforcmd(&p, "def", 3)))
 	    {
 		if (*p == '!')

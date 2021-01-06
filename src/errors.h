@@ -16,6 +16,8 @@ EXTERN char e_undefined_variable_str[]
 EXTERN char e_undefined_variable_char_str[]
 	INIT(= N_("E121: Undefined variable: %c:%s"));
 #endif
+EXTERN char e_ambiguous_use_of_user_defined_command[]
+	INIT(= N_("E464: Ambiguous use of user-defined command"));
 EXTERN char e_invalid_command[]
 	INIT(= N_("E476: Invalid command"));
 #ifdef FEAT_EVAL
@@ -41,8 +43,8 @@ EXTERN char e_syntax_error_at_str[]
 	INIT(= N_("E1002: Syntax error at %s"));
 EXTERN char e_missing_return_value[]
 	INIT(= N_("E1003: Missing return value"));
-EXTERN char e_white_space_required_before_and_after_str[]
-	INIT(= N_("E1004: White space required before and after '%s'"));
+EXTERN char e_white_space_required_before_and_after_str_at_str[]
+	INIT(= N_("E1004: White space required before and after '%s' at \"%s\""));
 EXTERN char e_too_many_argument_types[]
 	INIT(= N_("E1005: Too many argument types"));
 EXTERN char e_str_is_used_as_argument[]
@@ -335,3 +337,7 @@ EXTERN char e_script_variable_invalid_after_reload_in_function_str[]
 	INIT(= N_("E1149: Script variable is invalid after reload in function %s"));
 EXTERN char e_script_variable_type_changed[]
 	INIT(= N_("E1150: Script variable type changed"));
+EXTERN char e_mismatched_endfunction[]
+	INIT(= N_("E1151: Mismatched endfunction"));
+EXTERN char e_mismatched_enddef[]
+	INIT(= N_("E1152: Mismatched enddef"));

@@ -60,6 +60,7 @@ typedef enum {
 
     ISN_UNLET,		// unlet variable isn_arg.unlet.ul_name
     ISN_UNLETENV,	// unlet environment variable isn_arg.unlet.ul_name
+    ISN_UNLETINDEX,	// unlet item of list or dict
 
     ISN_LOCKCONST,	// lock constant value
 
@@ -141,8 +142,9 @@ typedef enum {
     ISN_NEGATENR,   // apply "-" to number
 
     ISN_CHECKNR,    // check value can be used as a number
-    ISN_CHECKTYPE,  // check value type is isn_arg.type.tc_type
+    ISN_CHECKTYPE,  // check value type is isn_arg.type.ct_type
     ISN_CHECKLEN,   // check list length is isn_arg.checklen.cl_min_len
+    ISN_SETTYPE,    // set dict type to isn_arg.type.ct_type
 
     ISN_PUT,	    // ":put", uses isn_arg.put
 

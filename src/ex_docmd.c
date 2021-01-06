@@ -895,7 +895,8 @@ do_cmdline(
 #else
 		    0
 #endif
-		    , TRUE)) == NULL)
+		    , in_vim9script() ? GETLINE_CONCAT_CONTBAR
+					       : GETLINE_CONCAT_CONT)) == NULL)
 	    {
 		// Don't call wait_return for aborted command line.  The NULL
 		// returned for the end of a sourced file or executed function
@@ -2030,7 +2031,7 @@ do_one_cmd(
     if (p == NULL)
     {
 	if (!ea.skip)
-	    errormsg = _("E464: Ambiguous use of user-defined command");
+	    errormsg = _(e_ambiguous_use_of_user_defined_command);
 	goto doend;
     }
     // Check for wrong commands.
@@ -3536,9 +3537,11 @@ find_ex_command(
 	eap->cmdidx = CMD_finally;
 
 #ifdef FEAT_EVAL
-    if (eap->cmdidx != CMD_SIZE && in_vim9script()
+    if (eap->cmdidx < CMD_SIZE
+	    && in_vim9script()
 	    && !IS_WHITE_OR_NUL(*p) && *p != '\n' && *p != '!'
-	    && (cmdnames[eap->cmdidx].cmd_argt & EX_NONWHITE_OK) == 0)
+	    && (eap->cmdidx < 0 ||
+		(cmdnames[eap->cmdidx].cmd_argt & EX_NONWHITE_OK) == 0))
     {
 	semsg(_(e_command_not_followed_by_white_space_str), eap->cmd);
 	eap->cmdidx = CMD_SIZE;
@@ -7536,9 +7539,10 @@ ex_may_print(exarg_T *eap)
     static void
 ex_submagic(exarg_T *eap)
 {
-    magic_T saved = magic_overruled;
+    optmagic_T saved = magic_overruled;
 
-    magic_overruled = eap->cmdidx == CMD_smagic ? MAGIC_ON : MAGIC_OFF;
+    magic_overruled = eap->cmdidx == CMD_smagic
+					  ? OPTION_MAGIC_ON : OPTION_MAGIC_OFF;
     ex_substitute(eap);
     magic_overruled = saved;
 }
