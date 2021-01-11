@@ -1091,6 +1091,13 @@ def Test_assign_lambda()
       assert_equal(123, FuncRef_Any())
   END
   CheckScriptSuccess(lines)
+
+  lines =<< trim END
+      var Ref: func(number)
+      Ref = (j) => !j
+  END
+  CheckDefFailure(lines, 'E1012: Type mismatch; expected func(number) but got func(any): bool')
+  CheckScriptFailure(['vim9script'] + lines, 'E1012: Type mismatch; expected func(number) but got func(any): any')
 enddef
 
 def Test_heredoc()
@@ -1455,6 +1462,33 @@ def Test_unlet()
   assert_equal('foobar', $ENVVAR)
   unlet $ENVVAR
   assert_equal('', $ENVVAR)
+enddef
+
+def Test_assign_command_modifier()
+  var lines =<< trim END
+      var verbose = 0
+      verbose = 1
+      assert_equal(1, verbose)
+      silent verbose = 2
+      assert_equal(2, verbose)
+      silent verbose += 2
+      assert_equal(4, verbose)
+      silent verbose -= 1
+      assert_equal(3, verbose)
+
+      var topleft = {one: 1}
+      sandbox topleft.one = 3
+      assert_equal({one: 3}, topleft)
+      leftabove topleft[' '] = 4
+      assert_equal({one: 3, ' ': 4}, topleft)
+
+      var x: number
+      var y: number
+      silent [x, y] = [1, 2]
+      assert_equal(1, x)
+      assert_equal(2, y)
+  END
+  CheckDefAndScriptSuccess(lines)
 enddef
 
 

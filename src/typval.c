@@ -649,7 +649,7 @@ copy_tv(typval_T *from, typval_T *to)
 typval_compare(
     typval_T	*typ1,   // first operand
     typval_T	*typ2,   // second operand
-    exptype_T	type,    // operator
+    exprtype_T	type,    // operator
     int		ic)      // ignore case
 {
     int		i;
@@ -832,6 +832,30 @@ typval_compare(
 	    case EXPR_UNKNOWN:
 	    case EXPR_MATCH:
 	    default:  break;  // avoid gcc warning
+	}
+    }
+    else if (in_vim9script() && (typ1->v_type == VAR_BOOL
+						 || typ2->v_type == VAR_BOOL))
+    {
+	if (typ1->v_type != typ2->v_type)
+	{
+	    semsg(_(e_cannot_compare_str_with_str),
+		       vartype_name(typ1->v_type), vartype_name(typ2->v_type));
+	    clear_tv(typ1);
+	    return FAIL;
+	}
+	n1 = typ1->vval.v_number;
+	n2 = typ2->vval.v_number;
+	switch (type)
+	{
+	    case EXPR_IS:
+	    case EXPR_EQUAL:    n1 = (n1 == n2); break;
+	    case EXPR_ISNOT:
+	    case EXPR_NEQUAL:   n1 = (n1 != n2); break;
+	    default:
+		emsg(_(e_invalid_operation_for_bool));
+		clear_tv(typ1);
+		return FAIL;
 	}
     }
     else
@@ -1555,7 +1579,7 @@ tv_get_lnum(typval_T *argvars)
     if (lnum <= 0)  // no valid number, try using arg like line()
     {
 	int	fnum;
-	pos_T	*fp = var2fpos(&argvars[0], TRUE, &fnum);
+	pos_T	*fp = var2fpos(&argvars[0], TRUE, &fnum, FALSE);
 
 	if (fp != NULL)
 	    lnum = fp->lnum;

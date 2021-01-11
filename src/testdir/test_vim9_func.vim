@@ -116,6 +116,14 @@ def Test_missing_endfunc_enddef()
   CheckScriptFailure(lines, 'E126:', 2)
 enddef
 
+def Test_enddef_dict_key()
+  var d = {
+    enddef: 'x',
+    endfunc: 'y',
+  }
+  assert_equal({enddef: 'x', endfunc: 'y'}, d)
+enddef
+
 def ReturnString(): string
   return 'string'
 enddef
@@ -579,6 +587,22 @@ def Test_call_funcref_wrong_args()
 
   CheckScriptFailure(head + ["funcMap['func']('str', 123)"] + tail, 'E119:')
   CheckScriptFailure(head + ["funcMap['func']('str', 123, [1], 4)"] + tail, 'E118:')
+
+  var lines =<< trim END
+      vim9script
+      var Ref: func(number): any
+      Ref = (j) => !j
+      echo Ref(false)
+  END
+  CheckScriptFailure(lines, 'E1013: Argument 1: type mismatch, expected number but got bool', 4)
+
+  lines =<< trim END
+      vim9script
+      var Ref: func(number): any
+      Ref = (j) => !j
+      call Ref(false)
+  END
+  CheckScriptFailure(lines, 'E1013: Argument 1: type mismatch, expected number but got bool', 4)
 enddef
 
 def Test_call_lambda_args()
@@ -1492,7 +1516,7 @@ def Test_unknown_function()
       'delfunc g:NotExist'], 'E700:')
 enddef
 
-def RefFunc(Ref: func(string): string): string
+def RefFunc(Ref: func(any): any): string
   return Ref('more')
 enddef
 
@@ -1739,7 +1763,7 @@ enddef
 
 def Shadowed(): list<number>
   var FuncList: list<func: number> = [() => 42]
-  return FuncList->map((_, Shadowed) => Shadowed())
+  return FuncList->mapnew((_, Shadowed) => Shadowed())
 enddef
 
 def Test_lambda_arg_shadows_func()
@@ -1768,7 +1792,7 @@ enddef
 
 def Line_continuation_in_lambda(): list<string>
   var x = range(97, 100)
-      ->map((_, v) => nr2char(v)
+      ->mapnew((_, v) => nr2char(v)
           ->toupper())
       ->reverse()
   return x
@@ -1776,6 +1800,33 @@ enddef
 
 def Test_line_continuation_in_lambda()
   Line_continuation_in_lambda()->assert_equal(['D', 'C', 'B', 'A'])
+enddef
+
+def Test_list_lambda()
+  timer_start(1000, (_) => 0)
+  var body = execute(timer_info()[0].callback
+         ->string()
+         ->substitute("('", ' ', '')
+         ->substitute("')", '', '')
+         ->substitute('function\zs', ' ', ''))
+  assert_match('def <lambda>\d\+(_: any, ...): number\n1  return 0\n   enddef', body)
+enddef
+
+def DoFilterThis(a: string): list<string>
+  # closure nested inside another closure using argument
+  var Filter = (l) => filter(l, (_, v) => stridx(v, a) == 0)
+  return ['x', 'y', 'a', 'x2', 'c']->Filter()
+enddef
+
+def Test_nested_closure_using_argument()
+  assert_equal(['x', 'x2'], DoFilterThis('x'))
+enddef
+
+def Test_triple_nested_closure()
+  var what = 'x'
+  var Match = (val: string, cmp: string): bool => stridx(val, cmp) == 0
+  var Filter = (l) => filter(l, (_, v) => Match(v, what))
+  assert_equal(['x', 'x2'], ['x', 'y', 'a', 'x2', 'c']->Filter())
 enddef
 
 func Test_silent_echo()
@@ -1857,7 +1908,7 @@ def Test_recursive_call()
 enddef
 
 def TreeWalk(dir: string): list<any>
-  return readdir(dir)->map((_, val) =>
+  return readdir(dir)->mapnew((_, val) =>
             fnamemodify(dir .. '/' .. val, ':p')->isdirectory()
                ? {[val]: TreeWalk(dir .. '/' .. val)}
                : val

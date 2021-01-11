@@ -108,7 +108,7 @@ typedef struct {
     char_u	*lv_name;
     type_T	*lv_type;
     int		lv_idx;		// index of the variable on the stack
-    int		lv_from_outer;	// when TRUE using ctx_outer scope
+    int		lv_from_outer;	// nesting level, using ctx_outer scope
     int		lv_const;	// when TRUE cannot be assigned to
     int		lv_arg;		// when TRUE this is an argument
 } lvar_T;
@@ -149,7 +149,7 @@ static void delete_def_function_contents(dfunc_T *dfunc, int mark_deleted);
 
 /*
  * Lookup variable "name" in the local scope and return it in "lvar".
- * "lvar->lv_from_outer" is set accordingly.
+ * "lvar->lv_from_outer" is incremented accordingly.
  * If "lvar" is NULL only check if the variable can be found.
  * Return FAIL if not found.
  */
@@ -172,7 +172,7 @@ lookup_local(char_u *name, size_t len, lvar_T *lvar, cctx_T *cctx)
 	    if (lvar != NULL)
 	    {
 		*lvar = *lvp;
-		lvar->lv_from_outer = FALSE;
+		lvar->lv_from_outer = 0;
 	    }
 	    return OK;
 	}
@@ -186,7 +186,7 @@ lookup_local(char_u *name, size_t len, lvar_T *lvar, cctx_T *cctx)
 	    if (lvar != NULL)
 	    {
 		cctx->ctx_outer_used = TRUE;
-		lvar->lv_from_outer = TRUE;
+		++lvar->lv_from_outer;
 	    }
 	    return OK;
 	}
@@ -258,7 +258,7 @@ arg_exists(
 	if (arg_exists(name, len, idxp, type, gen_load_outer, cctx->ctx_outer)
 									 == OK)
 	{
-	    *gen_load_outer = TRUE;
+	    ++*gen_load_outer;
 	    return OK;
 	}
     }
@@ -669,7 +669,7 @@ generate_two_op(cctx_T *cctx, char_u *op)
  * Return ISN_DROP when failed.
  */
     static isntype_T
-get_compare_isn(exptype_T exptype, vartype_T type1, vartype_T type2)
+get_compare_isn(exprtype_T exprtype, vartype_T type1, vartype_T type2)
 {
     isntype_T	isntype = ISN_DROP;
 
@@ -699,22 +699,22 @@ get_compare_isn(exptype_T exptype, vartype_T type1, vartype_T type2)
 	      && (type2 == VAR_NUMBER || type2 ==VAR_FLOAT)))
 	isntype = ISN_COMPAREANY;
 
-    if ((exptype == EXPR_IS || exptype == EXPR_ISNOT)
+    if ((exprtype == EXPR_IS || exprtype == EXPR_ISNOT)
 	    && (isntype == ISN_COMPAREBOOL
 	    || isntype == ISN_COMPARESPECIAL
 	    || isntype == ISN_COMPARENR
 	    || isntype == ISN_COMPAREFLOAT))
     {
 	semsg(_(e_cannot_use_str_with_str),
-		exptype == EXPR_IS ? "is" : "isnot" , vartype_name(type1));
+		exprtype == EXPR_IS ? "is" : "isnot" , vartype_name(type1));
 	return ISN_DROP;
     }
     if (isntype == ISN_DROP
-	    || ((exptype != EXPR_EQUAL && exptype != EXPR_NEQUAL
+	    || ((exprtype != EXPR_EQUAL && exprtype != EXPR_NEQUAL
 		    && (type1 == VAR_BOOL || type1 == VAR_SPECIAL
 		       || type2 == VAR_BOOL || type2 == VAR_SPECIAL)))
-	    || ((exptype != EXPR_EQUAL && exptype != EXPR_NEQUAL
-				 && exptype != EXPR_IS && exptype != EXPR_ISNOT
+	    || ((exprtype != EXPR_EQUAL && exprtype != EXPR_NEQUAL
+				 && exprtype != EXPR_IS && exprtype != EXPR_ISNOT
 		    && (type1 == VAR_BLOB || type2 == VAR_BLOB
 			|| type1 == VAR_LIST || type2 == VAR_LIST))))
     {
@@ -726,7 +726,7 @@ get_compare_isn(exptype_T exptype, vartype_T type1, vartype_T type2)
 }
 
     int
-check_compare_types(exptype_T type, typval_T *tv1, typval_T *tv2)
+check_compare_types(exprtype_T type, typval_T *tv1, typval_T *tv2)
 {
     if (get_compare_isn(type, tv1->v_type, tv2->v_type) == ISN_DROP)
 	return FAIL;
@@ -737,7 +737,7 @@ check_compare_types(exptype_T type, typval_T *tv1, typval_T *tv2)
  * Generate an ISN_COMPARE* instruction with a boolean result.
  */
     static int
-generate_COMPARE(cctx_T *cctx, exptype_T exptype, int ic)
+generate_COMPARE(cctx_T *cctx, exprtype_T exprtype, int ic)
 {
     isntype_T	isntype;
     isn_T	*isn;
@@ -752,13 +752,13 @@ generate_COMPARE(cctx_T *cctx, exptype_T exptype, int ic)
     // checking.
     type1 = ((type_T **)stack->ga_data)[stack->ga_len - 2]->tt_type;
     type2 = ((type_T **)stack->ga_data)[stack->ga_len - 1]->tt_type;
-    isntype = get_compare_isn(exptype, type1, type2);
+    isntype = get_compare_isn(exprtype, type1, type2);
     if (isntype == ISN_DROP)
 	return FAIL;
 
     if ((isn = generate_instr(cctx, isntype)) == NULL)
 	return FAIL;
-    isn->isn_arg.op.op_type = exptype;
+    isn->isn_arg.op.op_type = exprtype;
     isn->isn_arg.op.op_ic = ic;
 
     // takes two arguments, puts one bool back
@@ -857,7 +857,9 @@ use_typecheck(type_T *actual, type_T *expected)
 	    || (actual->tt_type == VAR_FUNC
 		&& (expected->tt_type == VAR_FUNC
 					   || expected->tt_type == VAR_PARTIAL)
-		&& (actual->tt_member == &t_any || actual->tt_argcount < 0)))
+		&& (actual->tt_member == &t_any || actual->tt_argcount < 0)
+		&& ((actual->tt_member == &t_void)
+					 == (expected->tt_member == &t_void))))
 	return TRUE;
     if ((actual->tt_type == VAR_LIST || actual->tt_type == VAR_DICT)
 				       && actual->tt_type == expected->tt_type)
@@ -1174,6 +1176,23 @@ generate_STORE(cctx_T *cctx, isntype_T isn_type, int idx, char_u *name)
 }
 
 /*
+ * Generate an ISN_STOREOUTER instruction.
+ */
+    static int
+generate_STOREOUTER(cctx_T *cctx, int idx, int level)
+{
+    isn_T	*isn;
+
+    RETURN_OK_IF_SKIP(cctx);
+    if ((isn = generate_instr_drop(cctx, ISN_STOREOUTER, 1)) == NULL)
+	return FAIL;
+    isn->isn_arg.outer.outer_idx = idx;
+    isn->isn_arg.outer.outer_depth = level;
+
+    return OK;
+}
+
+/*
  * Generate an ISN_STORENR instruction (short for ISN_PUSHNR + ISN_STORE)
  */
     static int
@@ -1227,6 +1246,27 @@ generate_LOAD(
 	isn->isn_arg.string = vim_strsave(name);
     else
 	isn->isn_arg.number = idx;
+
+    return OK;
+}
+
+/*
+ * Generate an ISN_LOADOUTER instruction
+ */
+    static int
+generate_LOADOUTER(
+	cctx_T	    *cctx,
+	int	    idx,
+	int	    nesting,
+	type_T	    *type)
+{
+    isn_T	*isn;
+
+    RETURN_OK_IF_SKIP(cctx);
+    if ((isn = generate_instr_type(cctx, ISN_LOADOUTER, type)) == NULL)
+	return FAIL;
+    isn->isn_arg.outer.outer_idx = idx;
+    isn->isn_arg.outer.outer_depth = nesting;
 
     return OK;
 }
@@ -1437,6 +1477,11 @@ generate_FUNCREF(cctx_T *cctx, ufunc_T *ufunc)
     isn->isn_arg.funcref.fr_func = ufunc->uf_dfunc_idx;
     cctx->ctx_has_closure = 1;
 
+    // if the referenced function is a closure, it may use items further up in
+    // the nested context, including this one.
+    if (ufunc->uf_flags & FC_CLOSURE)
+	cctx->ctx_ufunc->uf_flags |= FC_CLOSURE;
+
     if (ga_grow(stack, 1) == FAIL)
 	return FAIL;
     ((type_T **)stack->ga_data)[stack->ga_len] =
@@ -1547,6 +1592,7 @@ generate_BCALL(cctx_T *cctx, int func_idx, int argcount, int method_call)
     garray_T	*stack = &cctx->ctx_type_stack;
     int		argoff;
     type_T	**argtypes = NULL;
+    type_T	*maptype = NULL;
 
     RETURN_OK_IF_SKIP(cctx);
     argoff = check_internal_func(func_idx, argcount);
@@ -1567,6 +1613,8 @@ generate_BCALL(cctx_T *cctx, int func_idx, int argcount, int method_call)
 	argtypes = ((type_T **)stack->ga_data) + stack->ga_len - argcount;
 	if (internal_func_check_arg_types(argtypes, func_idx, argcount) == FAIL)
 	    return FAIL;
+	if (internal_func_is_map(func_idx))
+	    maptype = *argtypes;
     }
 
     if ((isn = generate_instr(cctx, ISN_BCALL)) == NULL)
@@ -1581,6 +1629,11 @@ generate_BCALL(cctx_T *cctx, int func_idx, int argcount, int method_call)
     ((type_T **)stack->ga_data)[stack->ga_len] =
 			  internal_func_ret_type(func_idx, argcount, argtypes);
     ++stack->ga_len;
+
+    if (maptype != NULL && maptype->tt_member != NULL
+					       && maptype->tt_member != &t_any)
+	// Check that map() didn't change the item types.
+	generate_TYPECHECK(cctx, maptype, -1);
 
     return OK;
 }
@@ -1790,9 +1843,9 @@ generate_PCALL(
 						       stack->ga_len + offset];
 		    type_T *expected;
 
-		    if (varargs && i >= type->tt_min_argcount - 1)
+		    if (varargs && i >= type->tt_argcount - 1)
 			expected = type->tt_args[
-					 type->tt_min_argcount - 1]->tt_member;
+					     type->tt_argcount - 1]->tt_member;
 		    else
 			expected = type->tt_args[i];
 		    if (need_type(actual, expected, offset,
@@ -1854,7 +1907,10 @@ generate_STRINGMEMBER(cctx_T *cctx, char_u *name, size_t len)
     }
     // change dict type to dict member type
     if (type->tt_type == VAR_DICT)
-	((type_T **)stack->ga_data)[stack->ga_len - 1] = type->tt_member;
+    {
+	((type_T **)stack->ga_data)[stack->ga_len - 1] =
+		      type->tt_member == &t_unknown ? &t_any : type->tt_member;
+    }
 
     return OK;
 }
@@ -2587,7 +2643,7 @@ compile_load(
 	size_t	    len = end - *arg;
 	int	    idx;
 	int	    gen_load = FALSE;
-	int	    gen_load_outer = FALSE;
+	int	    gen_load_outer = 0;
 
 	name = vim_strnsave(*arg, end - *arg);
 	if (name == NULL)
@@ -2595,7 +2651,7 @@ compile_load(
 
 	if (arg_exists(*arg, len, &idx, &type, &gen_load_outer, cctx) == OK)
 	{
-	    if (!gen_load_outer)
+	    if (gen_load_outer == 0)
 		gen_load = TRUE;
 	}
 	else
@@ -2606,8 +2662,8 @@ compile_load(
 	    {
 		type = lvar.lv_type;
 		idx = lvar.lv_idx;
-		if (lvar.lv_from_outer)
-		    gen_load_outer = TRUE;
+		if (lvar.lv_from_outer != 0)
+		    gen_load_outer = lvar.lv_from_outer;
 		else
 		    gen_load = TRUE;
 	    }
@@ -2629,9 +2685,9 @@ compile_load(
 	}
 	if (gen_load)
 	    res = generate_LOAD(cctx, ISN_LOAD, idx, NULL, type);
-	if (gen_load_outer)
+	if (gen_load_outer > 0)
 	{
-	    res = generate_LOAD(cctx, ISN_LOADOUTER, idx, NULL, type);
+	    res = generate_LOADOUTER(cctx, idx, gen_load_outer, type);
 	    cctx->ctx_outer_used = TRUE;
 	}
     }
@@ -3346,10 +3402,10 @@ get_vim_constant(char_u **arg, typval_T *rettv)
     }
 }
 
-    exptype_T
+    exprtype_T
 get_compare_type(char_u *p, int *len, int *type_is)
 {
-    exptype_T	type = EXPR_UNKNOWN;
+    exprtype_T	type = EXPR_UNKNOWN;
     int		i;
 
     switch (p[0])
@@ -3748,7 +3804,12 @@ compile_subscript(
 		    return FAIL;
 		}
 		if ((*typep)->tt_type == VAR_DICT)
+		{
 		    *typep = (*typep)->tt_member;
+		    if (*typep == &t_unknown)
+			// empty dict was used
+			*typep = &t_any;
+		}
 		else
 		{
 		    if (need_type(*typep, &t_dict_any, -2, cctx,
@@ -3786,7 +3847,12 @@ compile_subscript(
 		else
 		{
 		    if ((*typep)->tt_type == VAR_LIST)
+		    {
 			*typep = (*typep)->tt_member;
+			if (*typep == &t_unknown)
+			    // empty list was used
+			    *typep = &t_any;
+		    }
 		    if (generate_instr_drop(cctx,
 			     vtype == VAR_LIST ?  ISN_LISTINDEX : ISN_ANYINDEX,
 								    1) == FAIL)
@@ -4344,7 +4410,7 @@ compile_expr5(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
     static int
 compile_expr4(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 {
-    exptype_T	type = EXPR_UNKNOWN;
+    exprtype_T	type = EXPR_UNKNOWN;
     char_u	*p;
     char_u	*next;
     int		len = 2;
@@ -4812,7 +4878,8 @@ compile_return(char_u *arg, int check_return_type, cctx_T *cctx)
 	{
 	    stack_type = ((type_T **)stack->ga_data)[stack->ga_len - 1];
 	    if (check_return_type && (cctx->ctx_ufunc->uf_ret_type == NULL
-				|| cctx->ctx_ufunc->uf_ret_type == &t_unknown))
+				|| cctx->ctx_ufunc->uf_ret_type == &t_unknown
+				|| cctx->ctx_ufunc->uf_ret_type == &t_any))
 	    {
 		cctx->ctx_ufunc->uf_ret_type = stack_type;
 	    }
@@ -5117,9 +5184,9 @@ generate_loadvar(
 	    generate_LOADV(cctx, name + 2, TRUE);
 	    break;
 	case dest_local:
-	    if (lvar->lv_from_outer)
-		generate_LOAD(cctx, ISN_LOADOUTER, lvar->lv_idx,
-							   NULL, type);
+	    if (lvar->lv_from_outer > 0)
+		generate_LOADOUTER(cctx, lvar->lv_idx, lvar->lv_from_outer,
+									 type);
 	    else
 		generate_LOAD(cctx, ISN_LOAD, lvar->lv_idx, NULL, type);
 	    break;
@@ -6175,7 +6242,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 
 		// optimization: turn "var = 123" from ISN_PUSHNR +
 		// ISN_STORE into ISN_STORENR
-		if (!lhs.lhs_lvar->lv_from_outer
+		if (lhs.lhs_lvar->lv_from_outer == 0
 				&& instr->ga_len == instr_count + 1
 				&& isn->isn_type == ISN_PUSHNR)
 		{
@@ -6187,9 +6254,9 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		    if (stack->ga_len > 0)
 			--stack->ga_len;
 		}
-		else if (lhs.lhs_lvar->lv_from_outer)
-		    generate_STORE(cctx, ISN_STOREOUTER,
-						   lhs.lhs_lvar->lv_idx, NULL);
+		else if (lhs.lhs_lvar->lv_from_outer > 0)
+		    generate_STOREOUTER(cctx, lhs.lhs_lvar->lv_idx,
+						  lhs.lhs_lvar->lv_from_outer);
 		else
 		    generate_STORE(cctx, ISN_STORE, lhs.lhs_lvar->lv_idx, NULL);
 	    }
@@ -6211,6 +6278,77 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 theend:
     vim_free(lhs.lhs_name);
     return ret;
+}
+
+/*
+ * Check for an assignment at "eap->cmd", compile it if found.
+ * Return NOTDONE if there is none, FAIL for failure, OK if done.
+ */
+    static int
+may_compile_assignment(exarg_T *eap, char_u **line, cctx_T *cctx)
+{
+    char_u  *pskip;
+    char_u  *p;
+
+    // Assuming the command starts with a variable or function name,
+    // find what follows.
+    // Skip over "var.member", "var[idx]" and the like.
+    // Also "&opt = val", "$ENV = val" and "@r = val".
+    pskip = (*eap->cmd == '&' || *eap->cmd == '$' || *eap->cmd == '@')
+						 ? eap->cmd + 1 : eap->cmd;
+    p = to_name_end(pskip, TRUE);
+    if (p > eap->cmd && *p != NUL)
+    {
+	char_u *var_end;
+	int	oplen;
+	int	heredoc;
+
+	if (eap->cmd[0] == '@')
+	    var_end = eap->cmd + 2;
+	else
+	    var_end = find_name_end(pskip, NULL, NULL,
+					FNE_CHECK_START | FNE_INCL_BR);
+	oplen = assignment_len(skipwhite(var_end), &heredoc);
+	if (oplen > 0)
+	{
+	    size_t len = p - eap->cmd;
+
+	    // Recognize an assignment if we recognize the variable
+	    // name:
+	    // "g:var = expr"
+	    // "local = expr"  where "local" is a local var.
+	    // "script = expr"  where "script" is a script-local var.
+	    // "import = expr"  where "import" is an imported var
+	    // "&opt = expr"
+	    // "$ENV = expr"
+	    // "@r = expr"
+	    if (*eap->cmd == '&'
+		    || *eap->cmd == '$'
+		    || *eap->cmd == '@'
+		    || ((len) > 2 && eap->cmd[1] == ':')
+		    || lookup_local(eap->cmd, len, NULL, cctx) == OK
+		    || arg_exists(eap->cmd, len, NULL, NULL, NULL, cctx) == OK
+		    || script_var_exists(eap->cmd, len, FALSE, cctx) == OK
+		    || find_imported(eap->cmd, len, cctx) != NULL)
+	    {
+		*line = compile_assignment(eap->cmd, eap, CMD_SIZE, cctx);
+		if (*line == NULL || *line == eap->cmd)
+		    return FAIL;
+		return OK;
+	    }
+	}
+    }
+
+    if (*eap->cmd == '[')
+    {
+	// [var, var] = expr
+	*line = compile_assignment(eap->cmd, eap, CMD_SIZE, cctx);
+	if (*line == NULL)
+	    return FAIL;
+	if (*line != eap->cmd)
+	    return OK;
+    }
+    return NOTDONE;
 }
 
 /*
@@ -7835,68 +7973,14 @@ compile_def_function(ufunc_T *ufunc, int check_return_type, cctx_T *outer_cctx)
 
 	if (!starts_with_colon)
 	{
-	    char_u *pskip;
+	    int	    assign;
 
-	    // Assuming the command starts with a variable or function name,
-	    // find what follows.
-	    // Skip over "var.member", "var[idx]" and the like.
-	    // Also "&opt = val", "$ENV = val" and "@r = val".
-	    pskip = (*ea.cmd == '&' || *ea.cmd == '$' || *ea.cmd == '@')
-							 ? ea.cmd + 1 : ea.cmd;
-	    p = to_name_end(pskip, TRUE);
-	    if (p > ea.cmd && *p != NUL)
-	    {
-		char_u *var_end;
-		int	oplen;
-		int	heredoc;
-
-		if (ea.cmd[0] == '@')
-		    var_end = ea.cmd + 2;
-		else
-		    var_end = find_name_end(pskip, NULL, NULL,
-						FNE_CHECK_START | FNE_INCL_BR);
-		oplen = assignment_len(skipwhite(var_end), &heredoc);
-		if (oplen > 0)
-		{
-		    size_t len = p - ea.cmd;
-
-		    // Recognize an assignment if we recognize the variable
-		    // name:
-		    // "g:var = expr"
-		    // "local = expr"  where "local" is a local var.
-		    // "script = expr"  where "script" is a script-local var.
-		    // "import = expr"  where "import" is an imported var
-		    // "&opt = expr"
-		    // "$ENV = expr"
-		    // "@r = expr"
-		    if (*ea.cmd == '&'
-			    || *ea.cmd == '$'
-			    || *ea.cmd == '@'
-			    || ((len) > 2 && ea.cmd[1] == ':')
-			    || lookup_local(ea.cmd, len, NULL, &cctx) == OK
-			    || arg_exists(ea.cmd, len, NULL, NULL,
-							     NULL, &cctx) == OK
-			    || script_var_exists(ea.cmd, len,
-							    FALSE, &cctx) == OK
-			    || find_imported(ea.cmd, len, &cctx) != NULL)
-		    {
-			line = compile_assignment(ea.cmd, &ea, CMD_SIZE, &cctx);
-			if (line == NULL || line == ea.cmd)
-			    goto erret;
-			goto nextline;
-		    }
-		}
-	    }
-
-	    if (*ea.cmd == '[')
-	    {
-		// [var, var] = expr
-		line = compile_assignment(ea.cmd, &ea, CMD_SIZE, &cctx);
-		if (line == NULL)
-		    goto erret;
-		if (line != ea.cmd)
-		    goto nextline;
-	    }
+	    // Check for assignment after command modifiers.
+	    assign = may_compile_assignment(&ea, &line, &cctx);
+	    if (assign == OK)
+		goto nextline;
+	    if (assign == FAIL)
+		goto erret;
 	}
 
 	/*
@@ -8170,8 +8254,7 @@ nextline:
 	}
 
 	// Return zero if there is no return at the end.
-	generate_PUSHNR(&cctx, 0);
-	generate_instr(&cctx, ISN_RETURN);
+	generate_instr(&cctx, ISN_RETURN_ZERO);
     }
 
     {
@@ -8463,6 +8546,7 @@ delete_instr(isn_T *isn)
 	case ISN_PUSHSPEC:
 	case ISN_PUT:
 	case ISN_RETURN:
+	case ISN_RETURN_ZERO:
 	case ISN_SHUFFLE:
 	case ISN_SLICE:
 	case ISN_STORE:

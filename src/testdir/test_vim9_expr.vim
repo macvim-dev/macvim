@@ -597,6 +597,18 @@ def Test_expr4_equal()
   CheckDefFailure(["var x = 'a' == "], 'E1097:', 3)
 
   CheckDefExecFailure(['var items: any', 'eval 1', 'eval 2', 'if items == []', 'endif'], 'E691:', 4)
+
+  CheckDefExecFailure(['var x: any = "a"', 'echo x == true'], 'E1072: Cannot compare string with bool', 2)
+  CheckDefExecFailure(["var x: any = true", 'echo x == ""'], 'E1072: Cannot compare bool with string', 2)
+  CheckDefExecFailure(["var x: any = 99", 'echo x == true'], 'E1138', 2)
+  CheckDefExecFailure(["var x: any = 'a'", 'echo x == 99'], 'E1030:', 2)
+
+  for op in ['>', '>=', '<', '<=', '=~', '!~']
+    CheckDefExecFailure([
+        "var a: any = 'a'",
+        'var b: any = true',
+        'echo a ' .. op .. ' b'], 'E1072:', 3)
+  endfor
 enddef
 
 " test != comperator
@@ -1847,10 +1859,10 @@ def Test_expr7_lambda()
 
       # line continuation inside lambda with "cond ? expr : expr" works
       var ll = range(3)
-      map(ll, (k, v) => v % 2 ? {
+      var dll = mapnew(ll, (k, v) => v % 2 ? {
                 ['111']: 111 } : {}
             )
-      assert_equal([{}, {111: 111}, {}], ll)
+      assert_equal([{}, {111: 111}, {}], dll)
 
       ll = range(3)
       map(ll, (k, v) => v == 8 || v
@@ -1934,10 +1946,10 @@ def Test_expr7_new_lambda()
 
       # line continuation inside lambda with "cond ? expr : expr" works
       var ll = range(3)
-      map(ll, (k, v) => v % 2 ? {
+      var dll = mapnew(ll, (k, v) => v % 2 ? {
                 ['111']: 111 } : {}
             )
-      assert_equal([{}, {111: 111}, {}], ll)
+      assert_equal([{}, {111: 111}, {}], dll)
 
       ll = range(3)
       map(ll, (k, v) => v == 8 || v
@@ -2304,7 +2316,7 @@ def Test_expr7_any_index_slice()
     # string is permissive, index out of range accepted
     g:teststring = 'abcdef'
     assert_equal('b', g:teststring[1])
-    assert_equal('', g:teststring[-1])
+    assert_equal('f', g:teststring[-1])
     assert_equal('', g:teststring[99])
 
     assert_equal('b', g:teststring[1 : 1])
@@ -2368,10 +2380,10 @@ def Test_expr7_any_index_slice()
   CheckDefExecFailure(['echo g:testblob[-3]'], 'E979:', 1)
   CheckScriptFailure(['vim9script', 'echo g:testblob[-3]'], 'E979:', 2)
 
-  CheckDefExecFailure(['echo g:testlist[4]'], 'E684:', 1)
+  CheckDefExecFailure(['echo g:testlist[4]'], 'E684: list index out of range: 4', 1)
   CheckScriptFailure(['vim9script', 'echo g:testlist[4]'], 'E684:', 2)
   CheckDefExecFailure(['echo g:testlist[-5]'], 'E684:', 1)
-  CheckScriptFailure(['vim9script', 'echo g:testlist[-5]'], 'E684:', 2)
+  CheckScriptFailure(['vim9script', 'echo g:testlist[-5]'], 'E684: list index out of range: -5', 2)
 
   CheckDefExecFailure(['echo g:testdict["a" : "b"]'], 'E719:', 1)
   CheckScriptFailure(['vim9script', 'echo g:testdict["a" : "b"]'], 'E719:', 2)
@@ -2802,15 +2814,23 @@ enddef
 def Test_expr7_string_subscript()
   var lines =<< trim END
     var text = 'abcdef'
-    assert_equal('', text[-1])
+    assert_equal('f', text[-1])
     assert_equal('a', text[0])
     assert_equal('e', text[4])
     assert_equal('f', text[5])
     assert_equal('', text[6])
 
+    text = 'ábçdë'
+    assert_equal('ë', text[-1])
+    assert_equal('d', text[-2])
+    assert_equal('ç', text[-3])
+    assert_equal('b', text[-4])
+    assert_equal('á', text[-5])
+    assert_equal('', text[-6])
+
     text = 'ábçdëf'
     assert_equal('', text[-999])
-    assert_equal('', text[-1])
+    assert_equal('f', text[-1])
     assert_equal('á', text[0])
     assert_equal('b', text[1])
     assert_equal('ç', text[2])
@@ -2904,12 +2924,21 @@ def Test_expr7_list_subscript()
     assert_equal([], list[0 : -6])
     assert_equal([], list[0 : -99])
   END
-  CheckDefSuccess(lines)
-  CheckScriptSuccess(['vim9script'] + lines)
+  CheckDefAndScriptSuccess(lines)
 
   lines = ['var l = [0, 1, 2]', 'echo l[g:astring : g:theone]']
   CheckDefExecFailure(lines, 'E1012:')
   CheckScriptFailure(['vim9script'] + lines, 'E1030:', 3)
+
+  lines =<< trim END
+      vim9script
+      var ld = []
+      def Func()
+        eval ld[0].key
+      enddef
+      defcompile
+  END
+  CheckScriptSuccess(lines)
 enddef
 
 def Test_expr7_dict_subscript()
@@ -2918,6 +2947,15 @@ def Test_expr7_dict_subscript()
       var l = [{lnum: 2}, {lnum: 1}]
       var res = l[0].lnum > l[1].lnum
       assert_true(res)
+
+      var dd = {}
+      def Func1()
+        eval dd.key1.key2
+      enddef
+      def Func2()
+        eval dd['key1'].key2
+      enddef
+      defcompile
   END
   CheckScriptSuccess(lines)
 enddef
@@ -2926,25 +2964,25 @@ def Test_expr7_subscript_linebreak()
   var range = range(
   		3)
   var l = range
-	->map('string(v:key)')
+	->mapnew('string(v:key)')
   assert_equal(['0', '1', '2'], l)
 
   l = range
-  	->map('string(v:key)')
+  	->mapnew('string(v:key)')
   assert_equal(['0', '1', '2'], l)
 
   l = range # comment
-  	->map('string(v:key)')
+  	->mapnew('string(v:key)')
   assert_equal(['0', '1', '2'], l)
 
   l = range
 
-  	->map('string(v:key)')
+  	->mapnew('string(v:key)')
   assert_equal(['0', '1', '2'], l)
 
   l = range
 	# comment
-  	->map('string(v:key)')
+  	->mapnew('string(v:key)')
   assert_equal(['0', '1', '2'], l)
 
   assert_equal('1', l[

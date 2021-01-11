@@ -721,8 +721,10 @@ call_func_retlist(
 
 #ifdef FEAT_FOLDING
 /*
- * Evaluate 'foldexpr'.  Returns the foldlevel, and any character preceding
- * it in "*cp".  Doesn't give error messages.
+ * Evaluate "arg", which is 'foldexpr'.
+ * Note: caller must set "curwin" to match "arg".
+ * Returns the foldlevel, and any character preceding it in "*cp".  Doesn't
+ * give error messages.
  */
     int
 eval_foldexpr(char_u *arg, int *cp)
@@ -809,6 +811,7 @@ get_lval(
     int		len;
     hashtab_T	*ht = NULL;
     int		quiet = flags & GLV_QUIET;
+    int		writing;
 
     // Clear everything in "lp".
     CLEAR_POINTER(lp);
@@ -882,10 +885,10 @@ get_lval(
 
     cc = *p;
     *p = NUL;
-    // Only pass &ht when we would write to the variable, it prevents autoload
-    // as well.
-    v = find_var(lp->ll_name, (flags & GLV_READ_ONLY) ? NULL : &ht,
-						      flags & GLV_NO_AUTOLOAD);
+    // When we would write to the variable pass &ht and prevent autoload.
+    writing = !(flags & GLV_READ_ONLY);
+    v = find_var(lp->ll_name, writing ? &ht : NULL,
+					 (flags & GLV_NO_AUTOLOAD) || writing);
     if (v == NULL && !quiet)
 	semsg(_(e_undefined_variable_str), lp->ll_name);
     *p = cc;
@@ -1972,13 +1975,15 @@ eval_func(
     int		len = name_len;
     partial_T	*partial;
     int		ret = OK;
+    type_T	*type = NULL;
 
     if (!evaluate)
 	check_vars(s, len);
 
     // If "s" is the name of a variable of type VAR_FUNC
     // use its contents.
-    s = deref_func_name(s, &len, &partial, !evaluate);
+    s = deref_func_name(s, &len, &partial,
+				    in_vim9script() ? &type : NULL, !evaluate);
 
     // Need to make a copy, in case evaluating the arguments makes
     // the name invalid.
@@ -1996,6 +2001,7 @@ eval_func(
 	funcexe.evaluate = evaluate;
 	funcexe.partial = partial;
 	funcexe.basetv = basetv;
+	funcexe.check_type = type;
 	ret = get_func_tv(s, len, rettv, arg, evalarg, &funcexe);
     }
     vim_free(s);
@@ -2649,7 +2655,7 @@ eval4(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 {
     char_u	*p;
     int		getnext;
-    exptype_T	type = EXPR_UNKNOWN;
+    exprtype_T	type = EXPR_UNKNOWN;
     int		len = 2;
     int		type_is = FALSE;
 
@@ -5048,6 +5054,61 @@ string2float(
 #endif
 
 /*
+ * Convert the specified byte index of line 'lnum' in buffer 'buf' to a
+ * character index.  Works only for loaded buffers. Returns -1 on failure.
+ * The index of the first character is one.
+ */
+    int
+buf_byteidx_to_charidx(buf_T *buf, int lnum, int byteidx)
+{
+    char_u	*str;
+
+    if (buf == NULL || buf->b_ml.ml_mfp == NULL)
+	return -1;
+
+    if (lnum > buf->b_ml.ml_line_count)
+	lnum = buf->b_ml.ml_line_count;
+
+    str = ml_get_buf(buf, lnum, FALSE);
+    if (str == NULL)
+	return -1;
+
+    if (*str == NUL)
+	return 1;
+
+    return mb_charlen_len(str, byteidx + 1);
+}
+
+/*
+ * Convert the specified character index of line 'lnum' in buffer 'buf' to a
+ * byte index.  Works only for loaded buffers. Returns -1 on failure. The index
+ * of the first byte and the first character is one.
+ */
+    int
+buf_charidx_to_byteidx(buf_T *buf, int lnum, int charidx)
+{
+    char_u	*str;
+    char_u	*t;
+
+    if (buf == NULL || buf->b_ml.ml_mfp == NULL)
+	return -1;
+
+    if (lnum > buf->b_ml.ml_line_count)
+	lnum = buf->b_ml.ml_line_count;
+
+    str = ml_get_buf(buf, lnum, FALSE);
+    if (str == NULL)
+	return -1;
+
+    // Convert the character offset to a byte offset
+    t = str;
+    while (*t != NUL && --charidx > 0)
+	t += mb_ptr2len(t);
+
+    return t - str + 1;
+}
+
+/*
  * Translate a String variable into a position.
  * Returns NULL when there is an error.
  */
@@ -5055,7 +5116,8 @@ string2float(
 var2fpos(
     typval_T	*varp,
     int		dollar_lnum,	// TRUE when $ is last line
-    int		*fnum)		// set to fnum for '0, 'A, etc.
+    int		*fnum,		// set to fnum for '0, 'A, etc.
+    int		charcol)	// return character column
 {
     char_u		*name;
     static pos_T	pos;
@@ -5077,7 +5139,10 @@ var2fpos(
 	pos.lnum = list_find_nr(l, 0L, &error);
 	if (error || pos.lnum <= 0 || pos.lnum > curbuf->b_ml.ml_line_count)
 	    return NULL;	// invalid line number
-	len = (long)STRLEN(ml_get(pos.lnum));
+	if (charcol)
+	    len = (long)mb_charlen(ml_get(pos.lnum));
+	else
+	    len = (long)STRLEN(ml_get(pos.lnum));
 
 	// Get the column number
 	// We accept "$" for the column number: last column.
@@ -5112,18 +5177,29 @@ var2fpos(
     if (name == NULL)
 	return NULL;
     if (name[0] == '.')				// cursor
-	return &curwin->w_cursor;
+    {
+	pos = curwin->w_cursor;
+	if (charcol)
+	    pos.col = buf_byteidx_to_charidx(curbuf, pos.lnum, pos.col) - 1;
+	return &pos;
+    }
     if (name[0] == 'v' && name[1] == NUL)	// Visual start
     {
 	if (VIsual_active)
-	    return &VIsual;
-	return &curwin->w_cursor;
+	    pos = VIsual;
+	else
+	    pos = curwin->w_cursor;
+	if (charcol)
+	    pos.col = buf_byteidx_to_charidx(curbuf, pos.lnum, pos.col) - 1;
+	return &pos;
     }
     if (name[0] == '\'')			// mark
     {
 	pp = getmark_buf_fnum(curbuf, name[1], FALSE, fnum);
 	if (pp == NULL || pp == (pos_T *)-1 || pp->lnum <= 0)
 	    return NULL;
+	if (charcol)
+	    pp->col = buf_byteidx_to_charidx(curbuf, pp->lnum, pp->col) - 1;
 	return pp;
     }
 
@@ -5158,7 +5234,10 @@ var2fpos(
 	else
 	{
 	    pos.lnum = curwin->w_cursor.lnum;
-	    pos.col = (colnr_T)STRLEN(ml_get_curline());
+	    if (charcol)
+		pos.col = (colnr_T)mb_charlen(ml_get_curline());
+	    else
+		pos.col = (colnr_T)STRLEN(ml_get_curline());
 	}
 	return &pos;
     }
@@ -5178,7 +5257,8 @@ list2fpos(
     typval_T	*arg,
     pos_T	*posp,
     int		*fnump,
-    colnr_T	*curswantp)
+    colnr_T	*curswantp,
+    int		charcol)
 {
     list_T	*l = arg->vval.v_list;
     long	i = 0;
@@ -5210,6 +5290,18 @@ list2fpos(
     n = list_find_nr(l, i++, NULL);	// col
     if (n < 0)
 	return FAIL;
+    // If character position is specified, then convert to byte position
+    if (charcol)
+    {
+	buf_T	*buf;
+
+	// Get the text for the specified line in a loaded buffer
+	buf = buflist_findnr(fnump == NULL ? curbuf->b_fnum : *fnump);
+	if (buf == NULL || buf->b_ml.ml_mfp == NULL)
+	    return FAIL;
+
+	n = buf_charidx_to_byteidx(buf, posp->lnum, n);
+    }
     posp->col = n;
 
     n = list_find_nr(l, i, NULL);	// off
@@ -5540,97 +5632,6 @@ eval_isnamec1(int c)
 eval_isdictc(int c)
 {
     return ASCII_ISALNUM(c) || c == '_';
-}
-
-/*
- * Return the character "str[index]" where "index" is the character index.  If
- * "index" is out of range NULL is returned.
- */
-    char_u *
-char_from_string(char_u *str, varnumber_T index)
-{
-    size_t	    nbyte = 0;
-    varnumber_T	    nchar = index;
-    size_t	    slen;
-
-    if (str == NULL || index < 0)
-	return NULL;
-    slen = STRLEN(str);
-    while (nchar > 0 && nbyte < slen)
-    {
-	nbyte += MB_CPTR2LEN(str + nbyte);
-	--nchar;
-    }
-    if (nbyte >= slen)
-	return NULL;
-    return vim_strnsave(str + nbyte, MB_CPTR2LEN(str + nbyte));
-}
-
-/*
- * Get the byte index for character index "idx" in string "str" with length
- * "str_len".
- * If going over the end return "str_len".
- * If "idx" is negative count from the end, -1 is the last character.
- * When going over the start return -1.
- */
-    static long
-char_idx2byte(char_u *str, size_t str_len, varnumber_T idx)
-{
-    varnumber_T nchar = idx;
-    size_t	nbyte = 0;
-
-    if (nchar >= 0)
-    {
-	while (nchar > 0 && nbyte < str_len)
-	{
-	    nbyte += MB_CPTR2LEN(str + nbyte);
-	    --nchar;
-	}
-    }
-    else
-    {
-	nbyte = str_len;
-	while (nchar < 0 && nbyte > 0)
-	{
-	    --nbyte;
-	    nbyte -= mb_head_off(str, str + nbyte);
-	    ++nchar;
-	}
-	if (nchar < 0)
-	    return -1;
-    }
-    return (long)nbyte;
-}
-
-/*
- * Return the slice "str[first:last]" using character indexes.
- * Return NULL when the result is empty.
- */
-    char_u *
-string_slice(char_u *str, varnumber_T first, varnumber_T last)
-{
-    long	start_byte, end_byte;
-    size_t	slen;
-
-    if (str == NULL)
-	return NULL;
-    slen = STRLEN(str);
-    start_byte = char_idx2byte(str, slen, first);
-    if (start_byte < 0)
-	start_byte = 0; // first index very negative: use zero
-    if (last == -1)
-	end_byte = (long)slen;
-    else
-    {
-	end_byte = char_idx2byte(str, slen, last);
-	if (end_byte >= 0 && end_byte < (long)slen)
-	    // end index is inclusive
-	    end_byte += MB_CPTR2LEN(str + end_byte);
-    }
-
-    if (start_byte >= (long)slen || end_byte <= start_byte)
-	return NULL;
-    return vim_strnsave(str + start_byte, end_byte - start_byte);
 }
 
 /*

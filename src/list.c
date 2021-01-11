@@ -924,7 +924,7 @@ list_slice_or_index(
 	if (!range)
 	{
 	    if (verbose)
-		semsg(_(e_listidx), n1);
+		semsg(_(e_listidx), n1_arg);
 	    return FAIL;
 	}
 	n1 = n1 < 0 ? 0 : len;
@@ -2188,10 +2188,13 @@ filter_map(typval_T *argvars, typval_T *rettv, filtermap_T filtermap)
 		int		stride = l->lv_u.nonmat.lv_stride;
 
 		// List from range(): loop over the numbers
-		l->lv_first = NULL;
-		l->lv_u.mat.lv_last = NULL;
-		l->lv_len = 0;
-		l->lv_u.mat.lv_idx_item = NULL;
+		if (filtermap != FILTERMAP_MAPNEW)
+		{
+		    l->lv_first = NULL;
+		    l->lv_u.mat.lv_last = NULL;
+		    l->lv_len = 0;
+		    l->lv_u.mat.lv_idx_item = NULL;
+		}
 
 		for (idx = 0; idx < len; ++idx)
 		{
