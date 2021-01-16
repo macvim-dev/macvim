@@ -196,6 +196,11 @@ static char_u *vim_tgetstr(char *s, char_u **pp);
 
 static int  detected_8bit = FALSE;	// detected 8-bit terminal
 
+#if (defined(UNIX) || defined(VMS))
+static int focus_mode = FALSE; // xterm's "focus reporting" availability
+static int focus_state = FALSE; // TRUE if the terminal window gains focus
+#endif
+
 #ifdef FEAT_TERMRESPONSE
 // When the cursor shape was detected these values are used:
 // 1: block, 2: underline, 3: vertical bar
@@ -908,6 +913,10 @@ static struct builtin_term builtin_termcaps[] =
     {(int)KS_CRT,	IF_EB("\033[23;2t", ESC_STR "[23;2t")},
     {(int)KS_SSI,	IF_EB("\033[22;1t", ESC_STR "[22;1t")},
     {(int)KS_SRI,	IF_EB("\033[23;1t", ESC_STR "[23;1t")},
+#  if (defined(UNIX) || defined(VMS))
+    {(int)KS_FD,	IF_EB("\033[?1004l", ESC_STR "[?1004l")},
+    {(int)KS_FE,	IF_EB("\033[?1004h", ESC_STR "[?1004h")},
+#  endif
 
     {K_UP,		IF_EB("\033O*A", ESC_STR "O*A")},
     {K_DOWN,		IF_EB("\033O*B", ESC_STR "O*B")},
@@ -2050,6 +2059,27 @@ set_termname(char_u *term)
     set_mouse_termcode(KS_MOUSE, (char_u *)"\233M");
 #endif
 
+#ifdef FEAT_MOUSE_XTERM
+    // focus reporting is supported by xterm compatible terminals and tmux.
+    if (use_xterm_like_mouse(term))
+    {
+	char_u name[3];
+
+	// handle focus in event
+	name[0] = KS_EXTRA;
+	name[1] = KE_FOCUSGAINED;
+	name[2] = NUL;
+	add_termcode(name, (char_u *)"\033[I", FALSE);
+
+	// handle focus out event
+	name[1] = KE_FOCUSLOST;
+	add_termcode(name, (char_u *)"\033[O", FALSE);
+
+	focus_mode = TRUE;
+	focus_state = TRUE;
+    }
+#endif
+
 #ifdef USE_TERM_CONSOLE
     // DEFAULT_TERM indicates that it is the machine console.
     if (STRCMP(term, DEFAULT_TERM) != 0)
@@ -2525,7 +2555,12 @@ out_flush(void)
 	if (ch_log_output)
 	{
 	    out_buf[len] = NUL;
-	    ch_log(NULL, "raw terminal output: \"%s\"", out_buf);
+	    ch_log(NULL, "raw %s output: \"%s\"",
+# ifdef FEAT_GUI
+			(gui.in_use && !gui.dying && !gui.starting) ? "GUI" :
+# endif
+			"terminal",
+			out_buf);
 	    ch_log_output = FALSE;
 	}
 #endif
@@ -2684,7 +2719,7 @@ out_str_cf(char_u *s)
 		else
 		{
 		    ++p;
-		    do_sleep(duration);
+		    do_sleep(duration, FALSE);
 		}
 # else
 		// Rely on the terminal library to sleep.
@@ -3588,6 +3623,13 @@ starttermcap(void)
 	out_str(T_CTI);			// start "raw" mode
 	out_str(T_KS);			// start "keypad transmit" mode
 	out_str(T_BE);			// enable bracketed paste mode
+
+#if (defined(UNIX) || defined(VMS))
+	// enable xterm's focus reporting mode
+	if (focus_mode && *T_FE != NUL)
+	    out_str(T_FE);
+#endif
+
 	out_flush();
 	termcap_active = TRUE;
 	screen_start();			// don't know where cursor is now
@@ -3639,6 +3681,13 @@ stoptermcap(void)
 #ifdef FEAT_JOB_CHANNEL
 	ch_log_output = TRUE;
 #endif
+
+#if (defined(UNIX) || defined(VMS))
+	// disable xterm's focus reporting mode
+	if (focus_mode && *T_FD != NUL)
+	    out_str(T_FD);
+#endif
+
 	out_str(T_BD);			// disable bracketed paste mode
 	out_str(T_KE);			// stop "keypad transmit" mode
 	out_flush();
@@ -5652,6 +5701,41 @@ check_termcode(
 	}
 # endif // !USE_ON_FLY_SCROLL
 #endif // FEAT_GUI
+
+#if (defined(UNIX) || defined(VMS))
+	/*
+	 * Handle FocusIn/FocusOut event sequences reported by XTerm.
+	 * (CSI I/CSI O)
+	 */
+	if (focus_mode
+# ifdef FEAT_GUI
+		&& !gui.in_use
+# endif
+		&& key_name[0] == KS_EXTRA
+	    )
+	{
+	    if (key_name[1] == KE_FOCUSGAINED)
+	    {
+		if (!focus_state)
+		{
+		    ui_focus_change(TRUE);
+		    did_cursorhold = TRUE;
+		    focus_state = TRUE;
+		}
+		key_name[1] = (int)KE_IGNORE;
+	    }
+	    else if (key_name[1] == KE_FOCUSLOST)
+	    {
+		if (focus_state)
+		{
+		    ui_focus_change(FALSE);
+		    did_cursorhold = TRUE;
+		    focus_state = FALSE;
+		}
+		key_name[1] = (int)KE_IGNORE;
+	    }
+	}
+#endif
 
 	/*
 	 * Change <xHome> to <Home>, <xUp> to <Up>, etc.

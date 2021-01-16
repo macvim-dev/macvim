@@ -241,6 +241,19 @@ def Test_extend_arg_types()
   CheckDefFailure(['extend({a: 1}, 42)'], 'E1013: Argument 2: type mismatch, expected dict<number> but got number')
   CheckDefFailure(['extend({a: 1}, {b: "x"})'], 'E1013: Argument 2: type mismatch, expected dict<number> but got dict<string>')
   CheckDefFailure(['extend({a: 1}, {b: 2}, 1)'], 'E1013: Argument 3: type mismatch, expected string but got number')
+
+  CheckDefFailure(['extend([1], ["b"])'], 'E1013: Argument 2: type mismatch, expected list<number> but got list<string>')
+  CheckDefExecFailure(['extend([1], ["b", 1])'], 'E1012: Type mismatch; expected list<number> but got list<any>')
+enddef
+
+def Test_extendnew()
+  assert_equal([1, 2, 'a'], extendnew([1, 2], ['a']))
+  assert_equal({one: 1, two: 'a'}, extendnew({one: 1}, {two: 'a'}))
+
+  CheckDefFailure(['extendnew({a: 1}, 42)'], 'E1013: Argument 2: type mismatch, expected dict<number> but got number')
+  CheckDefFailure(['extendnew({a: 1}, [42])'], 'E1013: Argument 2: type mismatch, expected dict<number> but got list<number>')
+  CheckDefFailure(['extendnew([1, 2], "x")'], 'E1013: Argument 2: type mismatch, expected list<number> but got string')
+  CheckDefFailure(['extendnew([1, 2], {x: 1})'], 'E1013: Argument 2: type mismatch, expected list<number> but got dict<number>')
 enddef
 
 def Test_extend_return_type()
@@ -304,29 +317,18 @@ def Test_extend_list_item_type()
   CheckScriptFailure(['vim9script'] + lines, 'E1012:', 1)
 enddef
 
+def Test_job_info_return_type()
+  if has('job')
+    job_start(&shell)
+    var jobs = job_info()
+    assert_equal('list<job>', typename(jobs))
+    assert_equal('dict<any>', typename(job_info(jobs[0])))
+    job_stop(jobs[0])
+  endif
+enddef
+
 def Wrong_dict_key_type(items: list<number>): list<number>
   return filter(items, (_, val) => get({[val]: 1}, 'x'))
-enddef
-
-def Test_map_function_arg()
-  var lines =<< trim END
-      def MapOne(i: number, v: string): string
-        return i .. ':' .. v
-      enddef
-      var l = ['a', 'b', 'c']
-      map(l, MapOne)
-      assert_equal(['0:a', '1:b', '2:c'], l)
-  END
-  CheckDefAndScriptSuccess(lines)
-enddef
-
-def Test_map_item_type()
-  var lines =<< trim END
-      var l = ['a', 'b', 'c']
-      map(l, (k, v) => k .. '/' .. v )
-      assert_equal(['0/a', '1/b', '2/c'], l)
-  END
-  CheckDefAndScriptSuccess(lines)
 enddef
 
 def Test_filereadable()
@@ -561,6 +563,45 @@ def SID(): number
           ->str2nr()
 enddef
 
+def Test_map_function_arg()
+  var lines =<< trim END
+      def MapOne(i: number, v: string): string
+        return i .. ':' .. v
+      enddef
+      var l = ['a', 'b', 'c']
+      map(l, MapOne)
+      assert_equal(['0:a', '1:b', '2:c'], l)
+  END
+  CheckDefAndScriptSuccess(lines)
+enddef
+
+def Test_map_item_type()
+  var lines =<< trim END
+      var l = ['a', 'b', 'c']
+      map(l, (k, v) => k .. '/' .. v )
+      assert_equal(['0/a', '1/b', '2/c'], l)
+  END
+  CheckDefAndScriptSuccess(lines)
+
+  lines =<< trim END
+    var l: list<number> = [0]
+    echo map(l, (_, v) => [])
+  END
+  CheckDefExecAndScriptFailure(lines, 'E1012: Type mismatch; expected number but got list<unknown>', 2)
+
+  lines =<< trim END
+    var l: list<number> = range(2)
+    echo map(l, (_, v) => [])
+  END
+  CheckDefExecAndScriptFailure(lines, 'E1012: Type mismatch; expected number but got list<unknown>', 2)
+
+  lines =<< trim END
+    var d: dict<number> = {key: 0}
+    echo map(d, (_, v) => [])
+  END
+  CheckDefExecAndScriptFailure(lines, 'E1012: Type mismatch; expected number but got list<unknown>', 2)
+enddef
+
 def Test_maparg()
   var lnum = str2nr(expand('<sflnum>'))
   map foo bar
@@ -601,6 +642,32 @@ enddef
 def Test_readdir()
    eval expand('sautest')->readdir((e) => e[0] !=# '.')
    eval expand('sautest')->readdirex((e) => e.name[0] !=# '.')
+enddef
+
+def Test_readblob()
+  var blob = 0z12341234
+  writefile(blob, 'Xreadblob')
+  var read: blob = readblob('Xreadblob')
+  assert_equal(blob, read)
+
+  var lines =<< trim END
+      var read: list<string> = readblob('Xreadblob')
+  END
+  CheckDefAndScriptFailure(lines, 'E1012: Type mismatch; expected list<string> but got blob', 1)
+  delete('Xreadblob')
+enddef
+
+def Test_readfile()
+  var text = ['aaa', 'bbb', 'ccc']
+  writefile(text, 'Xreadfile')
+  var read: list<string> = readfile('Xreadfile')
+  assert_equal(text, read)
+
+  var lines =<< trim END
+      var read: dict<string> = readfile('Xreadfile')
+  END
+  CheckDefAndScriptFailure(lines, 'E1012: Type mismatch; expected dict<string> but got list<string>', 1)
+  delete('Xreadfile')
 enddef
 
 def Test_remove_return_type()
@@ -695,6 +762,29 @@ def Test_setreg()
   getreginfo('a')->assert_equal(reginfo)
 enddef 
 
+def Test_slice()
+  assert_equal('12345', slice('012345', 1))
+  assert_equal('123', slice('012345', 1, 4))
+  assert_equal('1234', slice('012345', 1, -1))
+  assert_equal('1', slice('012345', 1, -4))
+  assert_equal('', slice('012345', 1, -5))
+  assert_equal('', slice('012345', 1, -6))
+
+  assert_equal([1, 2, 3, 4, 5], slice(range(6), 1))
+  assert_equal([1, 2, 3], slice(range(6), 1, 4))
+  assert_equal([1, 2, 3, 4], slice(range(6), 1, -1))
+  assert_equal([1], slice(range(6), 1, -4))
+  assert_equal([], slice(range(6), 1, -5))
+  assert_equal([], slice(range(6), 1, -6))
+
+  assert_equal(0z1122334455, slice(0z001122334455, 1))
+  assert_equal(0z112233, slice(0z001122334455, 1, 4))
+  assert_equal(0z11223344, slice(0z001122334455, 1, -1))
+  assert_equal(0z11, slice(0z001122334455, 1, -4))
+  assert_equal(0z, slice(0z001122334455, 1, -5))
+  assert_equal(0z, slice(0z001122334455, 1, -6))
+enddef
+
 def Test_spellsuggest()
   if !has('spell')
     MissingFeature 'spell'
@@ -778,6 +868,11 @@ def Test_timer_paused()
   var info = timer_info(id)
   info[0]['paused']->assert_equal(1)
   timer_stop(id)
+enddef
+
+def Test_win_execute()
+  assert_equal("\n" .. winnr(), win_execute(win_getid(), 'echo winnr()'))
+  assert_equal('', win_execute(342343, 'echo winnr()'))
 enddef
 
 def Test_win_splitmove()

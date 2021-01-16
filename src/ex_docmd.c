@@ -1274,7 +1274,7 @@ do_cmdline(
 	 */
 	if (did_throw)
 	{
-	    void	*p = NULL;
+	    char	*p = NULL;
 	    msglist_T	*messages = NULL, *next;
 
 	    /*
@@ -1289,7 +1289,7 @@ do_cmdline(
 		    vim_snprintf((char *)IObuff, IOSIZE,
 			    _("E605: Exception not caught: %s"),
 			    current_exception->value);
-		    p = vim_strsave(IObuff);
+		    p = (char *)vim_strsave(IObuff);
 		    break;
 		case ET_ERROR:
 		    messages = current_exception->messages;
@@ -7233,14 +7233,17 @@ ex_sleep(exarg_T *eap)
 	case NUL: len *= 1000L; break;
 	default: semsg(_(e_invarg2), eap->arg); return;
     }
-    do_sleep(len);
+
+    // Hide the cursor if invoked with !
+    do_sleep(len, eap->forceit);
 }
 
 /*
  * Sleep for "msec" milliseconds, but keep checking for a CTRL-C every second.
+ * Hide the cursor if "hide_cursor" is TRUE.
  */
     void
-do_sleep(long msec)
+do_sleep(long msec, int hide_cursor)
 {
     long	done = 0;
     long	wait_now;
@@ -7252,7 +7255,11 @@ do_sleep(long msec)
     ELAPSED_INIT(start_tv);
 # endif
 
-    cursor_on();
+    if (hide_cursor)
+        cursor_off();
+    else
+        cursor_on();
+
     out_flush_cursor(FALSE, FALSE);
     while (!got_int && done < msec)
     {

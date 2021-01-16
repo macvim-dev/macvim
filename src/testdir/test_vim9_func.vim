@@ -197,6 +197,17 @@ def Test_return_nothing()
   s:nothing->assert_equal(1)
 enddef
 
+def Test_return_invalid()
+  var lines =<< trim END
+    vim9script
+    def Func(): invalid
+      return xxx
+    enddef
+    defcompile
+  END
+  CheckScriptFailure(lines, 'E1010:', 2)
+enddef
+
 func Increment()
   let g:counter += 1
 endfunc
@@ -1800,6 +1811,18 @@ enddef
 
 def Test_line_continuation_in_lambda()
   Line_continuation_in_lambda()->assert_equal(['D', 'C', 'B', 'A'])
+
+  var lines =<< trim END
+      vim9script
+      var res = [{n: 1, m: 2, s: 'xxx'}]
+                ->mapnew((_, v: dict<any>): string => printf('%d:%d:%s',
+                    v.n,
+                    v.m,
+                    substitute(v.s, '.*', 'yyy', '')
+                    ))
+      assert_equal(['1:2:yyy'], res)
+  END
+  CheckScriptSuccess(lines)
 enddef
 
 def Test_list_lambda()

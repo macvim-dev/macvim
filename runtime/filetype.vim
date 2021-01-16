@@ -1174,7 +1174,9 @@ au BufNewFile,BufRead *.papp,*.pxml,*.pxsl	setf papp
 au BufNewFile,BufRead */etc/passwd,*/etc/passwd-,*/etc/passwd.edit,*/etc/shadow,*/etc/shadow-,*/etc/shadow.edit,*/var/backups/passwd.bak,*/var/backups/shadow.bak setf passwd
 
 " Pascal (also *.p)
-au BufNewFile,BufRead *.pas,*.pp		setf pascal
+au BufNewFile,BufRead *.pas			setf pascal
+
+au BufNewFile,BufRead *.pp			call dist#ft#FTpp()
 
 " Delphi or Lazarus program file
 au BufNewFile,BufRead *.dpr,*.lpr		setf pascal
@@ -1615,6 +1617,9 @@ au BufNewFile,BufRead *.mib,*.my		setf mib
 " Snort Configuration
 au BufNewFile,BufRead *.hog,snort.conf,vision.conf	setf hog
 au BufNewFile,BufRead *.rules			call dist#ft#FTRules()
+
+" SPARQL queries
+au BufNewFile,BufRead *.rq,*.sparql		setf sparql
 
 " Spec (Linux RPM)
 au BufNewFile,BufRead *.spec			setf spec

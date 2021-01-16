@@ -514,25 +514,15 @@ check_type(type_T *expected, type_T *actual, int give_msg, int argidx)
 }
 
 /*
- * Like check_type() but also allow for a runtime type check. E.g. "any" can be
- * used for "number".
- */
-    int
-check_arg_type(type_T *expected, type_T *actual, int argidx)
-{
-    if (check_type(expected, actual, FALSE, 0) == OK
-					    || use_typecheck(actual, expected))
-	return OK;
-    // TODO: should generate a TYPECHECK instruction.
-    return check_type(expected, actual, TRUE, argidx);
-}
-
-/*
  * Check that the arguments of "type" match "argvars[argcount]".
  * Return OK/FAIL.
  */
     int
-check_argument_types(type_T *type, typval_T *argvars, int argcount, char_u *name)
+check_argument_types(
+	type_T	    *type,
+	typval_T    *argvars,
+	int	    argcount,
+	char_u	    *name)
 {
     int	    varargs = (type->tt_flags & TTFLAG_VARARGS) ? 1 : 0;
     int	    i;
@@ -1168,6 +1158,31 @@ type_name(type_T *type, char **tofree)
     }
 
     return name;
+}
+
+/*
+ * "typename(expr)" function
+ */
+    void
+f_typename(typval_T *argvars, typval_T *rettv)
+{
+    garray_T	type_list;
+    type_T	*type;
+    char	*tofree;
+    char	*name;
+
+    rettv->v_type = VAR_STRING;
+    ga_init2(&type_list, sizeof(type_T *), 10);
+    type = typval2type(argvars, &type_list);
+    name = type_name(type, &tofree);
+    if (tofree != NULL)
+	rettv->vval.v_string = (char_u *)tofree;
+    else
+    {
+	rettv->vval.v_string = vim_strsave((char_u *)name);
+	vim_free(tofree);
+    }
+    clear_type_list(&type_list);
 }
 
 #endif // FEAT_EVAL

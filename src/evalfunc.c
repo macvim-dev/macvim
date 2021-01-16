@@ -275,12 +275,29 @@ typedef struct {
     int		arg_count;	// actual argument count
     type_T	**arg_types;	// list of argument types
     int		arg_idx;	// current argument index (first arg is zero)
+    cctx_T	*arg_cctx;
 } argcontext_T;
 
 // A function to check one argument type.  The first argument is the type to
 // check.  If needed, other argument types can be obtained with the context.
 // E.g. if "arg_idx" is 1, then (type - 1) is the first argument type.
 typedef int (*argcheck_T)(type_T *, argcontext_T *);
+
+/*
+ * Call need_type() to check an argument type.
+ */
+    static int
+check_arg_type(
+	type_T		*expected,
+	type_T		*actual,
+	argcontext_T	*context)
+{
+    // TODO: would be useful to know if "actual" is a constant and pass it to
+    // need_type() to get a compile time error if possible.
+    return need_type(actual, expected,
+	    context->arg_idx - context->arg_count, context->arg_idx + 1,
+	    context->arg_cctx, FALSE, FALSE);
+}
 
 /*
  * Check "type" is a float or a number.
@@ -301,7 +318,7 @@ arg_float_or_nr(type_T *type, argcontext_T *context)
     static int
 arg_number(type_T *type, argcontext_T *context)
 {
-    return check_arg_type(&t_number, type, context->arg_idx + 1);
+    return check_arg_type(&t_number, type, context);
 }
 
 /*
@@ -310,7 +327,7 @@ arg_number(type_T *type, argcontext_T *context)
     static int
 arg_string(type_T *type, argcontext_T *context)
 {
-    return check_arg_type(&t_string, type, context->arg_idx + 1);
+    return check_arg_type(&t_string, type, context);
 }
 
 /*
@@ -340,7 +357,7 @@ arg_list_or_dict(type_T *type, argcontext_T *context)
 }
 
 /*
- * Check "type" is the same type as the previous argument
+ * Check "type" is the same type as the previous argument.
  * Must not be used for the first argcheck_T entry.
  */
     static int
@@ -348,7 +365,22 @@ arg_same_as_prev(type_T *type, argcontext_T *context)
 {
     type_T *prev_type = context->arg_types[context->arg_idx - 1];
 
-    return check_arg_type(prev_type, type, context->arg_idx + 1);
+    return check_arg_type(prev_type, type, context);
+}
+
+/*
+ * Check "type" is the same basic type as the previous argument, checks list or
+ * dict vs other type, but not member type.
+ * Must not be used for the first argcheck_T entry.
+ */
+    static int
+arg_same_struct_as_prev(type_T *type, argcontext_T *context)
+{
+    type_T *prev_type = context->arg_types[context->arg_idx - 1];
+
+    if (prev_type->tt_type != context->arg_types[context->arg_idx]->tt_type)
+	return check_arg_type(prev_type, type, context);
+    return OK;
 }
 
 /*
@@ -369,7 +401,7 @@ arg_item_of_prev(type_T *type, argcontext_T *context)
 	// probably VAR_ANY, can't check
 	return OK;
 
-    return check_arg_type(expected, type, context->arg_idx + 1);
+    return check_arg_type(expected, type, context);
 }
 
 /*
@@ -394,6 +426,7 @@ arg_extend3(type_T *type, argcontext_T *context)
 argcheck_T arg1_float_or_nr[] = {arg_float_or_nr};
 argcheck_T arg2_listblob_item[] = {arg_list_or_blob, arg_item_of_prev};
 argcheck_T arg23_extend[] = {arg_list_or_dict, arg_same_as_prev, arg_extend3};
+argcheck_T arg23_extendnew[] = {arg_list_or_dict, arg_same_struct_as_prev, arg_extend3};
 argcheck_T arg3_insert[] = {arg_list_or_blob, arg_item_of_prev, arg_number};
 
 /*
@@ -453,6 +486,13 @@ ret_list_dict_any(int argcount UNUSED, type_T **argtypes UNUSED)
     static type_T *
 ret_dict_any(int argcount UNUSED, type_T **argtypes UNUSED)
 {
+    return &t_dict_any;
+}
+    static type_T *
+ret_job_info(int argcount, type_T **argtypes UNUSED)
+{
+    if (argcount == 0)
+	return &t_list_job;
     return &t_dict_any;
 }
     static type_T *
@@ -877,6 +917,8 @@ static funcentry_T global_functions[] =
 			ret_string,	    f_expandcmd},
     {"extend",		2, 3, FEARG_1,	    arg23_extend,
 			ret_first_arg,	    f_extend},
+    {"extendnew",	2, 3, FEARG_1,	    arg23_extendnew,
+			ret_first_cont,	    f_extendnew},
     {"feedkeys",	1, 2, FEARG_1,	    NULL,
 			ret_void,	    f_feedkeys},
     {"file_readable",	1, 1, FEARG_1,	    NULL,	// obsolete
@@ -1082,7 +1124,7 @@ static funcentry_T global_functions[] =
     {"job_getchannel",	1, 1, FEARG_1,	    NULL,
 			ret_channel,	    JOB_FUNC(f_job_getchannel)},
     {"job_info",	0, 1, FEARG_1,	    NULL,
-			ret_dict_any,	    JOB_FUNC(f_job_info)},
+			ret_job_info,	    JOB_FUNC(f_job_info)},
     {"job_setoptions",	2, 2, FEARG_1,	    NULL,
 			ret_void,	    JOB_FUNC(f_job_setoptions)},
     {"job_start",	1, 2, FEARG_1,	    NULL,
@@ -1319,12 +1361,14 @@ static funcentry_T global_functions[] =
 			ret_number,	    f_rand},
     {"range",		1, 3, FEARG_1,	    NULL,
 			ret_list_number,    f_range},
+    {"readblob",	1, 1, FEARG_1,	    NULL,
+			ret_blob,	    f_readblob},
     {"readdir",		1, 3, FEARG_1,	    NULL,
 			ret_list_string,    f_readdir},
     {"readdirex",	1, 3, FEARG_1,	    NULL,
 			ret_list_dict_any,  f_readdirex},
     {"readfile",	1, 3, FEARG_1,	    NULL,
-			ret_any,	    f_readfile},
+			ret_list_string,    f_readfile},
     {"reduce",		2, 3, FEARG_1,	    NULL,
 			ret_any,	    f_reduce},
     {"reg_executing",	0, 0, 0,	    NULL,
@@ -1473,6 +1517,8 @@ static funcentry_T global_functions[] =
 			ret_float,	    FLOAT_FUNC(f_sin)},
     {"sinh",		1, 1, FEARG_1,	    NULL,
 			ret_float,	    FLOAT_FUNC(f_sinh)},
+    {"slice",		2, 3, FEARG_1,	    NULL,
+			ret_first_arg,	    f_slice},
     {"sort",		1, 3, FEARG_1,	    NULL,
 			ret_first_arg,	    f_sort},
     {"sound_clear",	0, 0, 0,	    NULL,
@@ -1717,6 +1763,8 @@ static funcentry_T global_functions[] =
 			ret_float,	    FLOAT_FUNC(f_trunc)},
     {"type",		1, 1, FEARG_1,	    NULL,
 			ret_number,	    f_type},
+    {"typename",	1, 1, FEARG_1,	    NULL,
+			ret_string,	    f_typename},
     {"undofile",	1, 1, FEARG_1,	    NULL,
 			ret_string,	    f_undofile},
     {"undotree",	0, 0, 0,	    NULL,
@@ -1795,7 +1843,11 @@ get_function_name(expand_T *xp, int idx)
     {
 	name = get_user_func_name(xp, idx);
 	if (name != NULL)
+	{
+	    if (*name != '<' && STRNCMP("g:", xp->xp_pattern, 2) == 0)
+		return cat_prefix_varname('g', name);
 	    return name;
+	}
     }
     if (++intidx < (int)(sizeof(global_functions) / sizeof(funcentry_T)))
     {
@@ -1896,7 +1948,11 @@ internal_func_name(int idx)
  * Return FAIL and gives an error message when a type is wrong.
  */
     int
-internal_func_check_arg_types(type_T **types, int idx, int argcount)
+internal_func_check_arg_types(
+	type_T	**types,
+	int	idx,
+	int	argcount,
+	cctx_T	*cctx)
 {
     argcheck_T	*argchecks = global_functions[idx].f_argcheck;
     int		i;
@@ -1907,6 +1963,7 @@ internal_func_check_arg_types(type_T **types, int idx, int argcount)
 
 	context.arg_count = argcount;
 	context.arg_types = types;
+	context.arg_cctx = cctx;
 	for (i = 0; i < argcount; ++i)
 	    if (argchecks[i] != NULL)
 	    {
@@ -2710,14 +2767,15 @@ set_cursorpos(typval_T *argvars, typval_T *rettv, int charcol)
     }
     else if ((argvars[0].v_type == VAR_NUMBER ||
 					argvars[0].v_type == VAR_STRING)
-	    && argvars[1].v_type == VAR_NUMBER)
+	    && (argvars[1].v_type == VAR_NUMBER ||
+					argvars[1].v_type == VAR_STRING))
     {
 	line = tv_get_lnum(argvars);
 	if (line < 0)
 	    semsg(_(e_invarg2), tv_get_string(&argvars[0]));
 	col = (long)tv_get_number_chk(&argvars[1], NULL);
 	if (charcol)
-	    col = buf_charidx_to_byteidx(curbuf, line, col);
+	    col = buf_charidx_to_byteidx(curbuf, line, col) + 1;
 	if (argvars[2].v_type != VAR_UNKNOWN)
 	    coladd = (long)tv_get_number_chk(&argvars[2], NULL);
     }
@@ -3980,8 +4038,8 @@ getpos_both(
 	    if (fp != NULL && charcol)
 	    {
 		pos = *fp;
-		pos.col = buf_byteidx_to_charidx(wp->w_buffer, pos.lnum,
-								pos.col) - 1;
+		pos.col =
+		    buf_byteidx_to_charidx(wp->w_buffer, pos.lnum, pos.col);
 		fp = &pos;
 	    }
 	}
