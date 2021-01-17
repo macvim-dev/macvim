@@ -38,11 +38,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - os: macos-10.15
-          xcode: 11.7
-        - os: macos-10.15
-        - os: macos-11.0
-          publish: true
+          - os: macos-10.15
+            xcode: 11.7
+          - os: macos-10.15
+          - os: macos-11.0
+            publish: true
 
     runs-on: ${{ matrix.os }}
 
@@ -137,7 +137,10 @@ jobs:
           brew install python
           brew install ruby
           brew install lua
-          brew unlink perl # We just use system perl to reduce dependencies
+          if [[ -d /usr/local/Cellar/perl ]]; then
+            # We just use system perl to reduce dependencies
+            brew unlink perl
+          fi
 
       - name: Set up Xcode
         if: matrix.xcode != ''
