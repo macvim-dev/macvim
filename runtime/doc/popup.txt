@@ -1,4 +1,4 @@
-*popup.txt*  For Vim version 8.2.  Last change: 2020 Nov 07
+*popup.txt*  For Vim version 8.2.  Last change: 2021 Jan 21
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -588,8 +588,6 @@ properties.  It is in one of four forms:
 
 If you want to create a new buffer yourself use |bufadd()| and pass the buffer
 number to popup_create().
-It is not possible to use the buffer of a terminal window. *E278*  You CAN
-create a hidden terminal buffer and use that one in a popup window.
 
 The second argument of |popup_create()| is a dictionary with options:
 	line		Screen line where to position the popup.  Can use a

@@ -84,7 +84,7 @@ EXTERN char e_const_requires_a_value[]
 EXTERN char e_type_or_initialization_required[]
 	INIT(= N_("E1022: Type or initialization required"));
 EXTERN char e_using_number_as_bool_nr[]
-	INIT(= N_("E1023: Using a Number as a Bool: %d"));
+	INIT(= N_("E1023: Using a Number as a Bool: %lld"));
 EXTERN char e_using_number_as_string[]
 	INIT(= N_("E1024: Using a Number as a String"));
 EXTERN char e_using_rcurly_outside_if_block_scope[]
@@ -343,3 +343,5 @@ EXTERN char e_mismatched_enddef[]
 	INIT(= N_("E1152: Mismatched enddef"));
 EXTERN char e_invalid_operation_for_bool[]
 	INIT(= N_("E1153: Invalid operation for bool"));
+EXTERN char e_divide_by_zero[]
+	INIT(= N_("E1154: Divide by zero"));

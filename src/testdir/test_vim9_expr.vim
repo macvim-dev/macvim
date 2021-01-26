@@ -1403,6 +1403,9 @@ def Test_expr6()
 
   CheckDefFailure(["var x = 6 * xxx"], 'E1001:', 1)
   CheckDefFailure(["var d = 6 * "], 'E1097:', 3)
+
+  CheckDefExecAndScriptFailure(['echo 1 / 0'], 'E1154', 1)
+  CheckDefExecAndScriptFailure(['echo 1 % 0'], 'E1154', 1)
 enddef
 
 def Test_expr6_vim9script()

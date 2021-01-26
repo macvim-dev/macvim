@@ -68,6 +68,17 @@ def Test_expand_alternate_file()
     edit Xfiletwo
     edit %%:r
     assert_equal('Xfileone', bufname())
+
+    assert_false(bufexists('altfoo'))
+    edit altfoo
+    edit bar
+    assert_true(bufexists('altfoo'))
+    assert_true(buflisted('altfoo'))
+    bdel %%
+    assert_true(bufexists('altfoo'))
+    assert_false(buflisted('altfoo'))
+    bwipe! altfoo
+    bwipe! bar
   END
   CheckDefAndScriptSuccess(lines)
 enddef
@@ -317,6 +328,20 @@ def Test_method_call_linebreak()
       assert_equal([1, 2, 3], res)
   END
   CheckScriptSuccess(lines)
+enddef
+
+def Test_method_call_whitespace()
+  var lines =<< trim END
+    new
+    var yank = 'text'
+    yank->setline(1)
+    yank  ->setline(2)
+    yank->  setline(3)
+    yank  ->  setline(4)
+    assert_equal(['text', 'text', 'text', 'text'], getline(1, 4))
+    bwipe!
+  END
+  CheckDefAndScriptSuccess(lines)
 enddef
 
 def Test_skipped_expr_linebreak()
@@ -749,6 +774,10 @@ def Test_put_command()
   :2
   :+2put! a
   assert_equal('aaa', getline(4))
+
+  []->mapnew(() => 0)
+  :$put ='end'
+  assert_equal('end', getline('$'))
 
   bwipe!
 

@@ -558,6 +558,43 @@ def Test_try_catch_throw()
   assert_equal(411, n)
 enddef
 
+def Test_cnext_works_in_catch()
+  var lines =<< trim END
+      vim9script
+      au BufEnter * eval 0
+      writefile(['text'], 'Xfile1')
+      writefile(['text'], 'Xfile2')
+      var items = [
+          {lnum: 1, filename: 'Xfile1', valid: true},
+          {lnum: 1, filename: 'Xfile2', valid: true}
+        ]
+      setqflist([], ' ', {items: items})
+      cwindow
+
+      def CnextOrCfirst()
+        # if cnext fails, cfirst is used
+        try
+          cnext
+        catch
+          cfirst
+        endtry
+      enddef
+
+      CnextOrCfirst()
+      CnextOrCfirst()
+      writefile([getqflist({idx: 0}).idx], 'Xresult')
+      qall
+  END
+  writefile(lines, 'XCatchCnext')
+  RunVim([], [], '--clean -S XCatchCnext')
+  assert_equal(['1'], readfile('Xresult'))
+
+  delete('Xfile1')
+  delete('Xfile2')
+  delete('XCatchCnext')
+  delete('Xresult')
+enddef
+
 def Test_throw_skipped()
   if 0
     throw dontgethere
@@ -778,6 +815,12 @@ def Test_list_vimscript()
       # comment 6
   END
   assert_equal(['# comment 1', 'two', '# comment 3', '', 'five', '# comment 6'], lines)
+
+  lines =<< trim END
+    [{
+      a: 0}]->string()->assert_equal("[{'a': 0}]")
+  END
+  CheckDefAndScriptSuccess(lines)
 enddef
 
 if has('channel')
@@ -1698,7 +1741,7 @@ def Test_if_elseif_else_fails()
   CheckDefFailure(['elseif true'], 'E582:')
   CheckDefFailure(['else'], 'E581:')
   CheckDefFailure(['endif'], 'E580:')
-  CheckDefFailure(['if true', 'elseif xxx'], 'E1001:')
+  CheckDefFailure(['if g:abool', 'elseif xxx'], 'E1001:')
   CheckDefFailure(['if true', 'echo 1'], 'E171:')
 enddef
 
@@ -2023,6 +2066,12 @@ def Test_for_loop()
     total += nr
   endfor
   assert_equal(6, total)
+
+  var res = ""
+  for [n: number, s: string] in [[1, 'a'], [2, 'b']]
+    res ..= n .. s
+  endfor
+  assert_equal('1a2b', res)
 enddef
 
 def Test_for_loop_fails()

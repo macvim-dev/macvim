@@ -115,6 +115,21 @@ def Test_add_blob()
   CheckDefExecFailure(lines, 'E1131:', 2)
 enddef
 
+def Test_append()
+  new
+  setline(1, range(3))
+  var res1: number = append(1, 'one')
+  assert_equal(0, res1)
+  var res2: bool = append(3, 'two')
+  assert_equal(false, res2)
+  assert_equal(['0', 'one', '1', 'two', '2'], getline(1, 6))
+enddef
+
+def Test_buflisted()
+  var res: bool = buflisted('asdf')
+  assert_equal(false, res)
+enddef
+
 def Test_bufname()
   split SomeFile
   bufname('%')->assert_equal('SomeFile')
@@ -199,6 +214,11 @@ def Test_cursor()
   CheckDefExecAndScriptFailure(lines, 'E475:')
 enddef
 
+def Test_delete()
+  var res: bool = delete('doesnotexist')
+  assert_equal(true, res)
+enddef
+
 def Test_executable()
   assert_false(executable(""))
   assert_false(executable(test_null_string()))
@@ -243,7 +263,7 @@ def Test_extend_arg_types()
   CheckDefFailure(['extend({a: 1}, {b: 2}, 1)'], 'E1013: Argument 3: type mismatch, expected string but got number')
 
   CheckDefFailure(['extend([1], ["b"])'], 'E1013: Argument 2: type mismatch, expected list<number> but got list<string>')
-  CheckDefExecFailure(['extend([1], ["b", 1])'], 'E1012: Type mismatch; expected list<number> but got list<any>')
+  CheckDefExecFailure(['extend([1], ["b", 1])'], 'E1013: Argument 2: type mismatch, expected list<number> but got list<any>')
 enddef
 
 def Test_extendnew()
@@ -633,6 +653,34 @@ def Test_maparg_mapset()
   mapset('n', false, mapsave)
 
   nunmap <F3>
+enddef
+
+def Test_max()
+  g:flag = true
+  var l1: list<number> = g:flag
+          ? [1, max([2, 3])]
+          : [4, 5]
+  assert_equal([1, 3], l1)
+
+  g:flag = false
+  var l2: list<number> = g:flag
+          ? [1, max([2, 3])]
+          : [4, 5]
+  assert_equal([4, 5], l2)
+enddef
+
+def Test_min()
+  g:flag = true
+  var l1: list<number> = g:flag
+          ? [1, min([2, 3])]
+          : [4, 5]
+  assert_equal([1, 2], l1)
+
+  g:flag = false
+  var l2: list<number> = g:flag
+          ? [1, min([2, 3])]
+          : [4, 5]
+  assert_equal([4, 5], l2)
 enddef
 
 def Test_nr2char()

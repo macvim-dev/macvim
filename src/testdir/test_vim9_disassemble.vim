@@ -762,7 +762,7 @@ def Test_disassemble_const_expr()
             'if has("gui_running")\_s*' ..
             '\d PUSHS "gui_running"\_s*' ..
             '\d BCALL has(argc 1)\_s*' ..
-            '\d COND2BOOL\_s*' ..
+            '\d 2BOOL (!!val)\_s*' ..
             '\d JUMP_IF_FALSE -> \d\_s*' ..
             '  echo "yes"\_s*' ..
             '\d PUSHS "yes"\_s*' ..
@@ -934,7 +934,7 @@ def Test_disassemble_lambda_with_type()
         'return Ref(g:value)\_s*' ..
         '\d LOADG g:value\_s*' ..
         '\d LOAD $0\_s*' ..
-        '\d CHECKTYPE number stack\[-2\]\_s*' ..
+        '\d CHECKTYPE number stack\[-2\] arg 1\_s*' ..
         '\d PCALL (argc 1)\_s*' ..
         '\d RETURN',
         instr)
@@ -1839,6 +1839,30 @@ def Test_silent()
         '\d ECHOERR 1\_s*' ..
         '\d CMDMOD_REV\_s*' ..
         '\d RETURN 0',
+        res)
+enddef
+
+def s:Profiled(): string
+  echo "profiled"
+  return "done"
+enddef
+
+def Test_profiled()
+  if !has('profile')
+    MissingFeature 'profile'
+  endif
+  var res = execute('disass! s:Profiled')
+  assert_match('<SNR>\d*_Profiled\_s*' ..
+        'echo "profiled"\_s*' ..
+        '\d PROFILE START line 1\_s*' ..
+        '\d PUSHS "profiled"\_s*' ..
+        '\d ECHO 1\_s*' ..
+        'return "done"\_s*' ..
+        '\d PROFILE END\_s*' ..
+        '\d PROFILE START line 2\_s*' ..
+        '\d PUSHS "done"\_s*' ..
+        '\d RETURN\_s*' ..
+        '\d PROFILE END',
         res)
 enddef
 

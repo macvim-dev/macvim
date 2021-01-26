@@ -152,6 +152,9 @@ typedef enum {
     ISN_CMDMOD,	    // set cmdmod
     ISN_CMDMOD_REV, // undo ISN_CMDMOD
 
+    ISN_PROF_START, // start a line for profiling
+    ISN_PROF_END,   // end a line for profiling
+
     ISN_UNPACK,	    // unpack list into items, uses isn_arg.unpack
     ISN_SHUFFLE,    // move item on stack up or down
     ISN_DROP	    // pop stack and discard value
@@ -224,7 +227,8 @@ typedef struct {
 // arguments to ISN_CHECKTYPE
 typedef struct {
     type_T	*ct_type;
-    int		ct_off;	    // offset in stack, -1 is bottom
+    int8_T	ct_off;		// offset in stack, -1 is bottom
+    int8_T	ct_arg_idx;	// argument index or zero
 } checktype_T;
 
 // arguments to ISN_STORENR
@@ -365,8 +369,14 @@ struct dfunc_S {
 				    // was compiled.
 
     garray_T	df_def_args_isn;    // default argument instructions
+
+    // After compiling "df_instr" and/or "df_instr_prof" is not NULL.
     isn_T	*df_instr;	    // function body to be executed
-    int		df_instr_count;
+    int		df_instr_count;	    // size of "df_instr"
+#ifdef FEAT_PROFILE
+    isn_T	*df_instr_prof;	     // like "df_instr" with profiling
+    int		df_instr_prof_count; // size of "df_instr_prof"
+#endif
 
     int		df_varcount;	    // number of local variables
     int		df_has_closure;	    // one if a closure was created
@@ -398,3 +408,13 @@ extern garray_T def_functions;
 
 // Used for "lnum" when a range is to be taken from the stack and "!" is used.
 #define LNUM_VARIABLE_RANGE_ABOVE -888
+
+#ifdef FEAT_PROFILE
+# define PROFILING(ufunc) (do_profiling == PROF_YES && (ufunc)->uf_profiling)
+# define INSTRUCTIONS(dfunc) \
+	((do_profiling == PROF_YES && (dfunc->df_ufunc)->uf_profiling) \
+	? (dfunc)->df_instr_prof : (dfunc)->df_instr)
+#else
+# define PROFILING(ufunc) FALSE
+# define INSTRUCTIONS(dfunc) ((dfunc)->df_instr)
+#endif

@@ -122,6 +122,8 @@ static struct vimvar
     {VV_NAME("true",		 VAR_BOOL), VV_RO},
     {VV_NAME("none",		 VAR_SPECIAL), VV_RO},
     {VV_NAME("null",		 VAR_SPECIAL), VV_RO},
+    {VV_NAME("numbermax",	 VAR_NUMBER), VV_RO},
+    {VV_NAME("numbermin",	 VAR_NUMBER), VV_RO},
     {VV_NAME("numbersize",	 VAR_NUMBER), VV_RO},
     {VV_NAME("vim_did_enter",	 VAR_NUMBER), VV_RO},
     {VV_NAME("testing",		 VAR_NUMBER), 0},
@@ -230,6 +232,8 @@ evalvars_init(void)
     set_vim_var_nr(VV_TRUE, VVAL_TRUE);
     set_vim_var_nr(VV_NONE, VVAL_NONE);
     set_vim_var_nr(VV_NULL, VVAL_NULL);
+    set_vim_var_nr(VV_NUMBERMAX, VARNUM_MAX);
+    set_vim_var_nr(VV_NUMBERMIN, VARNUM_MIN);
     set_vim_var_nr(VV_NUMBERSIZE, sizeof(varnumber_T) * 8);
 
     set_vim_var_nr(VV_TYPE_NUMBER,  VAR_TYPE_NUMBER);
@@ -836,6 +840,8 @@ ex_let(exarg_T *eap)
 	i = FAIL;
 	if (has_assign || concat)
 	{
+	    int cur_lnum;
+
 	    op[0] = '=';
 	    op[1] = NUL;
 	    if (*expr != '=')
@@ -880,10 +886,15 @@ ex_let(exarg_T *eap)
 		evalarg.eval_cookie = eap->cookie;
 	    }
 	    expr = skipwhite_and_linebreak(expr, &evalarg);
+	    cur_lnum = SOURCING_LNUM;
 	    i = eval0(expr, &rettv, eap, &evalarg);
 	    if (eap->skip)
 		--emsg_skip;
 	    clear_evalarg(&evalarg, eap);
+
+	    // Restore the line number so that any type error is given for the
+	    // declaration, not the expression.
+	    SOURCING_LNUM = cur_lnum;
 	}
 	if (eap->skip)
 	{
@@ -1021,7 +1032,7 @@ skip_var_list(
 	for (;;)
 	{
 	    p = skipwhite(p + 1);	// skip whites after '[', ';' or ','
-	    s = skip_var_one(p, FALSE);
+	    s = skip_var_one(p, include_type);
 	    if (s == p)
 	    {
 		if (!silent)
@@ -1063,17 +1074,21 @@ skip_var_list(
     char_u *
 skip_var_one(char_u *arg, int include_type)
 {
-    char_u *end;
+    char_u	*end;
+    int		vim9 = in_vim9script();
 
     if (*arg == '@' && arg[1] != NUL)
 	return arg + 2;
     end = find_name_end(*arg == '$' || *arg == '&' ? arg + 1 : arg,
 				   NULL, NULL, FNE_INCL_BR | FNE_CHECK_START);
-    if (include_type && in_vim9script())
+
+    // "a: type" is declaring variable "a" with a type, not "a:".
+    // Same for "s: type".
+    if (vim9 && end == arg + 2 && end[-1] == ':')
+	--end;
+
+    if (include_type && vim9)
     {
-	// "a: type" is declaring variable "a" with a type, not "a:".
-	if (end == arg + 2 && end[-1] == ':')
-	    --end;
 	if (*end == ':')
 	    end = skip_type(skipwhite(end + 1), FALSE);
     }
@@ -1408,8 +1423,10 @@ ex_let_one(
 			    case '+': n = numval + n; break;
 			    case '-': n = numval - n; break;
 			    case '*': n = numval * n; break;
-			    case '/': n = (long)num_divide(numval, n); break;
-			    case '%': n = (long)num_modulus(numval, n); break;
+			    case '/': n = (long)num_divide(numval, n,
+							       &failed); break;
+			    case '%': n = (long)num_modulus(numval, n,
+							       &failed); break;
 			}
 		    }
 		    else if (opt_type == gov_string

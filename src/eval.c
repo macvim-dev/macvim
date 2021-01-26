@@ -57,14 +57,21 @@ static char_u *make_expanded_name(char_u *in_start, char_u *expr_start, char_u *
 
 /*
  * Return "n1" divided by "n2", taking care of dividing by zero.
+ * If "failed" is not NULL set it to TRUE when dividing by zero fails.
  */
 	varnumber_T
-num_divide(varnumber_T n1, varnumber_T n2)
+num_divide(varnumber_T n1, varnumber_T n2, int *failed)
 {
     varnumber_T	result;
 
-    if (n2 == 0)	// give an error message?
+    if (n2 == 0)
     {
+	if (in_vim9script())
+	{
+	    emsg(_(e_divide_by_zero));
+	    if (failed != NULL)
+		*failed = TRUE;
+	}
 	if (n1 == 0)
 	    result = VARNUM_MIN; // similar to NaN
 	else if (n1 < 0)
@@ -80,11 +87,17 @@ num_divide(varnumber_T n1, varnumber_T n2)
 
 /*
  * Return "n1" modulus "n2", taking care of dividing by zero.
+ * If "failed" is not NULL set it to TRUE when dividing by zero fails.
  */
 	varnumber_T
-num_modulus(varnumber_T n1, varnumber_T n2)
+num_modulus(varnumber_T n1, varnumber_T n2, int *failed)
 {
-    // Give an error when n2 is 0?
+    if (n2 == 0 && in_vim9script())
+    {
+	emsg(_(e_divide_by_zero));
+	if (failed != NULL)
+	    *failed = TRUE;
+    }
     return (n2 == 0) ? 0 : (n1 % n2);
 }
 
@@ -1513,6 +1526,7 @@ tv_op(typval_T *tv1, typval_T *tv2, char_u *op)
     varnumber_T	n;
     char_u	numbuf[NUMBUFLEN];
     char_u	*s;
+    int		failed = FALSE;
 
     // Can't do anything with a Funcref, Dict, v:true on the right.
     if (tv2->v_type != VAR_FUNC && tv2->v_type != VAR_DICT
@@ -1596,8 +1610,10 @@ tv_op(typval_T *tv1, typval_T *tv2, char_u *op)
 			    case '+': n += tv_get_number(tv2); break;
 			    case '-': n -= tv_get_number(tv2); break;
 			    case '*': n *= tv_get_number(tv2); break;
-			    case '/': n = num_divide(n, tv_get_number(tv2)); break;
-			    case '%': n = num_modulus(n, tv_get_number(tv2)); break;
+			    case '/': n = num_divide(n, tv_get_number(tv2),
+							       &failed); break;
+			    case '%': n = num_modulus(n, tv_get_number(tv2),
+							       &failed); break;
 			}
 			clear_tv(tv1);
 			tv1->v_type = VAR_NUMBER;
@@ -1616,7 +1632,7 @@ tv_op(typval_T *tv1, typval_T *tv2, char_u *op)
 		    tv1->v_type = VAR_STRING;
 		    tv1->vval.v_string = s;
 		}
-		return OK;
+		return failed ? FAIL : OK;
 
 	    case VAR_FLOAT:
 #ifdef FEAT_FLOAT
@@ -3193,12 +3209,16 @@ eval6(
 	    else
 #endif
 	    {
+		int	    failed = FALSE;
+
 		if (op == '*')
 		    n1 = n1 * n2;
 		else if (op == '/')
-		    n1 = num_divide(n1, n2);
+		    n1 = num_divide(n1, n2, &failed);
 		else
-		    n1 = num_modulus(n1, n2);
+		    n1 = num_modulus(n1, n2, &failed);
+		if (failed)
+		    return FAIL;
 
 		rettv->v_type = VAR_NUMBER;
 		rettv->vval.v_number = n1;
@@ -3651,7 +3671,7 @@ call_func_rettv(
 
 /*
  * Evaluate "->method()".
- * "*arg" points to the '-'.
+ * "*arg" points to "method".
  * Returns FAIL or OK. "*arg" is advanced to after the ')'.
  */
     static int
@@ -3666,8 +3686,6 @@ eval_lambda(
     typval_T	base = *rettv;
     int		ret;
 
-    // Skip over the ->.
-    *arg += 2;
     rettv->v_type = VAR_UNKNOWN;
 
     if (**arg == '{')
@@ -3715,7 +3733,7 @@ eval_lambda(
 
 /*
  * Evaluate "->method()".
- * "*arg" points to the '-'.
+ * "*arg" points to "method".
  * Returns FAIL or OK. "*arg" is advanced to after the ')'.
  */
     static int
@@ -3733,8 +3751,6 @@ eval_method(
     int		evaluate = evalarg != NULL
 				      && (evalarg->eval_flags & EVAL_EVALUATE);
 
-    // Skip over the ->.
-    *arg += 2;
     rettv->v_type = VAR_UNKNOWN;
 
     name = *arg;
@@ -5745,10 +5761,10 @@ handle_subscript(
 	}
 	else if (p[0] == '-' && p[1] == '>')
 	{
-	    *arg = p;
+	    *arg = skipwhite(p + 2);
 	    if (ret == OK)
 	    {
-		if (((*arg)[2] == '{' && !in_vim9script()) || (*arg)[2] == '(')
+		if ((**arg == '{' && !in_vim9script()) || **arg == '(')
 		    // expr->{lambda}() or expr->(lambda)()
 		    ret = eval_lambda(arg, rettv, evalarg, verbose);
 		else

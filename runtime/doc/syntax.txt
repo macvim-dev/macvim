@@ -1,4 +1,4 @@
-*syntax.txt*	For Vim version 8.2.  Last change: 2020 Dec 17
+*syntax.txt*	For Vim version 8.2.  Last change: 2021 Jan 21
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -2335,11 +2335,12 @@ http://papp.plan9.de.
 
 PASCAL						*pascal.vim* *ft-pascal-syntax*
 
-Files matching "*.p" could be Progress or Pascal.  If the automatic detection
-doesn't work for you, or you don't edit Progress at all, use this in your
-startup vimrc: >
+Files matching "*.p" could be Progress or Pascal and those matching "*.pp"
+could be Puppet or Pascal.  If the automatic detection doesn't work for you,
+or you only edit Pascal files, use this in your startup vimrc: >
 
-   :let filetype_p = "pascal"
+   :let filetype_p  = "pascal"
+   :let filetype_pp = "pascal"
 
 The Pascal syntax file has been extended to take into account some extensions
 provided by Turbo Pascal, Free Pascal Compiler and GNU Pascal Compiler.
