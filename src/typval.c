@@ -388,6 +388,19 @@ tv_get_string(typval_T *varp)
     return tv_get_string_buf(varp, mybuf);
 }
 
+/*
+ * Like tv_get_string() but don't allow number to string conversion for Vim9.
+ */
+    char_u *
+tv_get_string_strict(typval_T *varp)
+{
+    static char_u   mybuf[NUMBUFLEN];
+    char_u	    *res =  tv_get_string_buf_chk_strict(
+						 varp, mybuf, in_vim9script());
+
+    return res != NULL ? res : (char_u *)"";
+}
+
     char_u *
 tv_get_string_buf(typval_T *varp, char_u *buf)
 {
@@ -410,9 +423,20 @@ tv_get_string_chk(typval_T *varp)
     char_u *
 tv_get_string_buf_chk(typval_T *varp, char_u *buf)
 {
+    return tv_get_string_buf_chk_strict(varp, buf, FALSE);
+}
+
+    char_u *
+tv_get_string_buf_chk_strict(typval_T *varp, char_u *buf, int strict)
+{
     switch (varp->v_type)
     {
 	case VAR_NUMBER:
+	    if (strict)
+	    {
+		emsg(_(e_using_number_as_string));
+		break;
+	    }
 	    vim_snprintf((char *)buf, NUMBUFLEN, "%lld",
 					    (varnumber_T)varp->vval.v_number);
 	    return buf;
@@ -903,8 +927,13 @@ typval_compare(
     return OK;
 }
 
+/*
+ * Convert any type to a string, never give an error.
+ * When "quotes" is TRUE add quotes to a string.
+ * Returns an allocated string.
+ */
     char_u *
-typval_tostring(typval_T *arg)
+typval_tostring(typval_T *arg, int quotes)
 {
     char_u	*tofree;
     char_u	numbuf[NUMBUFLEN];
@@ -912,10 +941,18 @@ typval_tostring(typval_T *arg)
 
     if (arg == NULL)
 	return vim_strsave((char_u *)"(does not exist)");
-    ret = tv2string(arg, &tofree, numbuf, 0);
-    // Make a copy if we have a value but it's not in allocated memory.
-    if (ret != NULL && tofree == NULL)
-	ret = vim_strsave(ret);
+    if (!quotes && arg->v_type == VAR_STRING)
+    {
+	ret = vim_strsave(arg->vval.v_string == NULL ? (char_u *)""
+							 : arg->vval.v_string);
+    }
+    else
+    {
+	ret = tv2string(arg, &tofree, numbuf, 0);
+	// Make a copy if we have a value but it's not in allocated memory.
+	if (ret != NULL && tofree == NULL)
+	    ret = vim_strsave(ret);
+    }
     return ret;
 }
 

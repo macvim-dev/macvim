@@ -342,7 +342,7 @@ func Test_completefunc_opens_new_window_one()
   setlocal completefunc=DummyCompleteOne
   call setline(1, 'one')
   /^one
-  call assert_fails('call feedkeys("A\<C-X>\<C-U>\<C-N>\<Esc>", "x")', 'E578:')
+  call assert_fails('call feedkeys("A\<C-X>\<C-U>\<C-N>\<Esc>", "x")', 'E565:')
   call assert_equal(winid, win_getid())
   call assert_equal('onedef', getline(1))
   q!
@@ -367,11 +367,9 @@ func Test_completefunc_opens_new_window_two()
   setlocal completefunc=DummyCompleteTwo
   call setline(1, 'two')
   /^two
-  call assert_fails('call feedkeys("A\<C-X>\<C-U>\<C-N>\<Esc>", "x")', 'E839:')
-  call assert_notequal(winid, win_getid())
-  q!
+  call assert_fails('call feedkeys("A\<C-X>\<C-U>\<C-N>\<Esc>", "x")', 'E565:')
   call assert_equal(winid, win_getid())
-  call assert_equal('two', getline(1))
+  call assert_equal('twodef', getline(1))
   q!
 endfunc
 
@@ -642,8 +640,8 @@ func Test_complete_func_mess()
   set completefunc=MessComplete
   new
   call setline(1, 'Ju')
-  call feedkeys("A\<c-x>\<c-u>/\<esc>", 'tx')
-  call assert_equal('Oct/Oct', getline(1))
+  call assert_fails('call feedkeys("A\<c-x>\<c-u>/\<esc>", "tx")', 'E578:')
+  call assert_equal('Jan/', getline(1))
   bwipe!
   set completefunc=
 endfunc

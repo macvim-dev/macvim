@@ -173,6 +173,12 @@ func Test_autocmd_bufunload_with_tabnext()
   quit
 endfunc
 
+func Test_argdelete_in_next()
+  au BufNew,BufEnter,BufLeave,BufWinEnter * argdel
+  call assert_fails('next a b', 'E1156:')
+  au! BufNew,BufEnter,BufLeave,BufWinEnter *
+endfunc
+
 func Test_autocmd_bufwinleave_with_tabfirst()
   tabedit
   augroup sample
@@ -214,7 +220,6 @@ func Test_autocmd_bufunload_avoiding_SEGV_02()
 
   normal! i1
   call assert_fails('edit a.txt', 'E517:')
-  call feedkeys("\<CR>")
 
   autocmd! test_autocmd_bufunload
   augroup! test_autocmd_bufunload
@@ -503,14 +508,6 @@ endfunc
 " Using :blast and :ball for many events caused a crash, because b_nwindows was
 " not incremented correctly.
 func Test_autocmd_blast_badd()
-  " The system() here causes SetChangeMarks() to fail, when run in the GUI
-  " under Windows.  No idea why.  Happens with any external command, not
-  " related to the actual test.
-  " TODO: find the cause
-  if has('win32')
-    throw 'Skipped: calling system() causes problems'
-  endif
-
   let content =<< trim [CODE]
       au BufNew,BufAdd,BufWinEnter,BufEnter,BufLeave,BufWinLeave,BufUnload,VimEnter foo* blast
       edit foo1
@@ -1836,20 +1833,9 @@ func Test_TextYankPost()
   bwipe!
 endfunc
 
-func Test_nocatch_wipe_all_buffers()
-  " Real nasty autocommand: wipe all buffers on any event.
-  au * * bwipe *
-  call assert_fails('next x', ['E94:', 'E937:'])
-  bwipe
-  au!
-endfunc
-
-func Test_nocatch_wipe_dummy_buffer()
-  CheckFeature quickfix
-  " Nasty autocommand: wipe buffer on any event.
-  au * x bwipe
-  call assert_fails('lv½ /x', 'E937:')
-  au!
+func Test_autocommand_all_events()
+  call assert_fails('au * * bwipe', 'E1155:')
+  call assert_fails('au * x bwipe', 'E1155:')
 endfunc
 
 function s:Before_test_dirchanged()
@@ -2397,10 +2383,8 @@ endfunc
 
 func Test_autocmd_CmdWinEnter()
   CheckRunVimInTerminal
-  " There is not cmdwin switch, so
-  " test for cmdline_hist
-  " (both are available with small builds)
-  CheckFeature cmdline_hist
+  CheckFeature cmdwin
+
   let lines =<< trim END
     let b:dummy_var = 'This is a dummy'
     autocmd CmdWinEnter * quit

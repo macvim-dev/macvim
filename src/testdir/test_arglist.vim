@@ -527,6 +527,7 @@ endfunc
 " Test for quitting Vim with unedited files in the argument list
 func Test_quit_with_arglist()
   CheckRunVimInTerminal
+
   let buf = RunVimInTerminal('', {'rows': 6})
   call term_sendkeys(buf, ":set nomore\n")
   call term_sendkeys(buf, ":args a b c\n")
@@ -557,6 +558,24 @@ func Test_quit_with_arglist()
   call delete('.a.swp')
   call delete('.b.swp')
   call delete('.c.swp')
+endfunc
+
+" Test for ":all" not working when in the cmdline window
+func Test_all_not_allowed_from_cmdwin()
+  CheckFeature cmdwin
+
+  au BufEnter * all
+  next x
+  " Use try/catch here, somehow assert_fails() doesn't work on MS-Windows
+  " console.
+  let caught = 'no'
+  try
+    exe ":norm! 7q?apat\<CR>"
+  catch /E11:/
+    let caught = 'yes'
+  endtry
+  call assert_equal('yes', caught)
+  au! BufEnter
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab
