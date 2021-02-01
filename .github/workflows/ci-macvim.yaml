@@ -205,6 +205,8 @@ jobs:
           cat src/auto/config.h
 
       - name: Build
+        env:
+          LC_ALL: C
         run: |
           set -o verbose
 
