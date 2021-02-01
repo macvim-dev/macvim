@@ -108,7 +108,7 @@
 #define PV_MOD		OPT_BUF(BV_MOD)
 #define PV_MPS		OPT_BUF(BV_MPS)
 #ifdef FEAT_GUI_MACVIM
-#define PV_MMTA		OPT_BUF(BV_MMTA)
+# define PV_MMTA	OPT_BUF(BV_MMTA)
 #endif
 #define PV_NF		OPT_BUF(BV_NF)
 #ifdef FEAT_COMPL_FUNC
@@ -1715,7 +1715,7 @@ static struct vimoption options[] =
 			    (char_u *)&p_mmta, PV_MMTA,
 			    {(char_u *)FALSE, (char_u *)0L}
 #else
-			    (char_u *)NULL, PV_MMTA,
+			    (char_u *)NULL, PV_NONE,
 			    {(char_u *)NULL, (char_u *)0L}
 #endif
 			    SCTX_INIT},
