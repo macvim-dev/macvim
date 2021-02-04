@@ -785,7 +785,18 @@
                                       keepOnScreen:keepOnScreen];
             }
             else {
-                NSSize frameSize = fullScreenWindow ? [fullScreenWindow frame].size : (fullScreenEnabled ? desiredWindowSize : originalSize);
+                NSSize frameSize;
+                if (fullScreenWindow) {
+                    // Non-native full screen mode.
+                    NSRect desiredFrame = [fullScreenWindow getDesiredFrame];
+                    frameSize = desiredFrame.size;
+                    [vimView setFrameOrigin:desiredFrame.origin]; // This will get set back to normal in MMFullScreenWindow::leaveFullScreen.
+                } else if (fullScreenEnabled) {
+                    // Native full screen mode.
+                    frameSize = desiredWindowSize;
+                } else {
+                    frameSize = originalSize;
+                }
                 [vimView setFrameSizeKeepGUISize:frameSize];
             }
         }

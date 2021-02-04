@@ -5030,6 +5030,7 @@ MMLoginShellCommand	gui_mac.txt	/*MMLoginShellCommand*
 MMNativeFullScreen	gui_mac.txt	/*MMNativeFullScreen*
 MMNoFontSubstitution	gui_mac.txt	/*MMNoFontSubstitution*
 MMNoTitleBarWindow	gui_mac.txt	/*MMNoTitleBarWindow*
+MMNonNativeFullScreenShowMenu	gui_mac.txt	/*MMNonNativeFullScreenShowMenu*
 MMShareFindPboard	gui_mac.txt	/*MMShareFindPboard*
 MMShowAddTabButton	gui_mac.txt	/*MMShowAddTabButton*
 MMTabMaxWidth	gui_mac.txt	/*MMTabMaxWidth*
