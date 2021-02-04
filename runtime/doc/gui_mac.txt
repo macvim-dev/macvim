@@ -263,6 +263,7 @@ KEY				VALUE ~
 *MMLoginShellArgument*		login shell parameter [string]
 *MMLoginShellCommand*		which shell to use to launch Vim [string]
 *MMNativeFullScreen*		use native full screen mode [bool]
+*MMNonNativeFullScreenShowMenu*	show menus when in non-native full screen [bool]
 *MMNoFontSubstitution*		disable automatic font substitution [bool]
 				(Deprecated: Non-CoreText renderer only)
 *MMFontPreserveLineSpacing*	use the line-spacing as specified by font [bool]

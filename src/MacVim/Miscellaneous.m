@@ -52,6 +52,7 @@ NSString *MMSuppressTerminationAlertKey   = @"MMSuppressTerminationAlert";
 NSString *MMNativeFullScreenKey           = @"MMNativeFullScreen";
 NSString *MMUseMouseTimeKey               = @"MMUseMouseTime";
 NSString *MMFullScreenFadeTimeKey         = @"MMFullScreenFadeTime";
+NSString *MMNonNativeFullScreenShowMenuKey  = @"MMNonNativeFullScreenShowMenu";
 
 
 

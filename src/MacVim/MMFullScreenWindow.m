@@ -50,7 +50,6 @@ enum {
 - (void)windowDidBecomeMain:(NSNotification *)notification;
 - (void)windowDidResignMain:(NSNotification *)notification;
 - (void)windowDidMove:(NSNotification *)notification;
-- (void)resizeVimView;
 @end
 
 @implementation MMFullScreenWindow
@@ -140,7 +139,11 @@ enum {
     // Hide Dock and menu bar when going to full screen. Only do so if the current screen
     // has a menu bar and dock.
     if ([self screenHasDockAndMenu]) {
-        [NSApplication sharedApplication].presentationOptions =
+        const bool showMenu = [[NSUserDefaults standardUserDefaults]
+                               boolForKey:MMNonNativeFullScreenShowMenuKey];
+
+        [NSApplication sharedApplication].presentationOptions = showMenu ?
+            NSApplicationPresentationAutoHideDock :
             NSApplicationPresentationAutoHideDock | NSApplicationPresentationAutoHideMenuBar;
     }
 
@@ -198,7 +201,7 @@ enum {
     // Store view dimension used before entering full-screen, then resize the
     // view to match 'fuopt'.
     [[view textView] getMaxRows:&nonFuRows columns:&nonFuColumns];
-    [self resizeVimView];
+    nonFuVimViewSize = view.frame.size;
 
     // Store options used when entering full-screen so that we can restore
     // dimensions when exiting full-screen.
@@ -244,19 +247,7 @@ enum {
     // restore old vim view size
     int currRows, currColumns;
     [[view textView] getMaxRows:&currRows columns:&currColumns];
-    int newRows = currRows, newColumns = currColumns;
-
-    // Compute desired non-fu size.
-    //
-    // If current fu size is almost equal to fu size at fu enter time,
-    // restore the old size.  Don't check for sizes to match exactly since then
-    // the non-fu size will not be restored if e.g. the tabline or scrollbars
-    // were toggled while in fu-mode.
-    if (startFuFlags & FUOPT_MAXVERT && abs(startFuRows-currRows)<5)
-        newRows = nonFuRows;
-
-    if (startFuFlags & FUOPT_MAXHORZ && abs(startFuColumns-currColumns)<5)
-        newColumns = nonFuColumns;
+    int newRows = nonFuRows, newColumns = nonFuColumns;
 
     // resize vim if necessary
     if (currRows != newRows || currColumns != newColumns) {
@@ -379,29 +370,39 @@ enum {
     // Ensure the full-screen window is still covering the entire screen and
     // then resize view according to 'fuopt'.
     [self setFrame:[screen frame] display:NO];
-    [self resizeVimView];
 }
 
+/// Get the view vertical offset to allow us space to show the menu bar and what not.
 - (CGFloat) viewOffset {
-    CGFloat menuBarHeight = 0;
-    if([self screen] != [[NSScreen screens] objectAtIndex:0]) {
-        // Screens other than the primary screen will not hide their menu bar, adjust the visible view down by the menu height
-        menuBarHeight = [[[NSApplication sharedApplication] mainMenu] menuBarHeight]-1;
+    if ([[NSUserDefaults standardUserDefaults]
+          boolForKey:MMNonNativeFullScreenShowMenuKey]) {
+        return [[[NSApplication sharedApplication] mainMenu] menuBarHeight]-1;
+    } else {
+        return 0;
     }
-    return menuBarHeight;
 }
 
-- (void)centerView
+/// Returns the desired frame of the Vim view, which takes fuopts into account
+/// by centering the view in the middle of the full-screen frame. If using the
+/// default of having both maxvert/maxhorz set, this will simply return
+/// desiredFrameSize back.
+///
+/// @return Desired frame, including size and offset.
+- (NSRect)getDesiredFrame;
 {
-    NSRect outer = [self frame], inner = [view frame];
+    NSRect windowFrame = [self frame];
+    NSSize desiredFrameSize = windowFrame.size;
+    desiredFrameSize.height -= [self viewOffset];
 
-    // NOTE!  Make sure the origin coordinates are integral or very strange
-    // rendering issues may arise (screen looks blurry, each redraw clears the
-    // entire window, etc.).
-    NSPoint origin = { floor((outer.size.width - inner.size.width)/2),
-                       floor((outer.size.height - inner.size.height)/2 - [self viewOffset]/2) };
+    if (!(options & FUOPT_MAXVERT))
+        desiredFrameSize.height = MIN(desiredFrameSize.height, nonFuVimViewSize.height);
+    if (!(options & FUOPT_MAXHORZ))
+        desiredFrameSize.width = MIN(desiredFrameSize.width, nonFuVimViewSize.width);
 
-    [view setFrameOrigin:origin];
+    NSPoint origin = { floor((windowFrame.size.width - desiredFrameSize.width)/2),
+                       floor((windowFrame.size.height - desiredFrameSize.height)/2 - [self viewOffset] / 2) };
+
+    return NSMakeRect(origin.x, origin.y, desiredFrameSize.width, desiredFrameSize.height);
 }
 
 - (void)scrollWheel:(NSEvent *)theEvent
@@ -462,7 +463,11 @@ enum {
 {
     // Hide menu and dock when this window gets focus.
     if ([self screenHasDockAndMenu]) {
-        [NSApplication sharedApplication].presentationOptions =
+        const bool showMenu = [[NSUserDefaults standardUserDefaults]
+                               boolForKey:MMNonNativeFullScreenShowMenuKey];
+
+        [NSApplication sharedApplication].presentationOptions = showMenu ?
+            NSApplicationPresentationAutoHideDock :
             NSApplicationPresentationAutoHideDock | NSApplicationPresentationAutoHideMenuBar;
     }
 }
@@ -489,66 +494,6 @@ enum {
     // Ensure the full-screen window is still covering the entire screen and
     // then resize view according to 'fuopt'.
     [self setFrame:[[self screen] frame] display:NO];
-    [self resizeVimView];
-}
-
-- (void)resizeVimView
-{
-    // Resize vim view according to options
-    int currRows, currColumns;
-    [[view textView] getMaxRows:&currRows columns:&currColumns];
-
-    int fuRows = currRows, fuColumns = currColumns;
-
-    // NOTE: Do not use [NSScreen visibleFrame] when determining the screen
-    // size since it compensates for menu and dock.
-    int maxRows, maxColumns;
-    NSSize size = [[self screen] frame].size;
-    size.height -= [self viewOffset];
-    
-    [view constrainRows:&maxRows columns:&maxColumns toSize:size];
-
-    // Compute current fu size
-    if (options & FUOPT_MAXVERT)
-        fuRows = maxRows;
-    if (options & FUOPT_MAXHORZ)
-        fuColumns = maxColumns;
-
-    // if necessary, resize vim to target fu size
-    if (currRows != fuRows || currColumns != fuColumns) {
-        // The size sent here is queued and sent to vim when it's in
-        // event processing mode again. Make sure to only send the values we
-        // care about, as they override any changes that were made to 'lines'
-        // and 'columns' after 'fu' was set but before the event loop is run.
-        NSData *data = nil;
-        int msgid = 0;
-        if (currRows != fuRows && currColumns != fuColumns) {
-            int newSize[2] = { fuRows, fuColumns };
-            data = [NSData dataWithBytes:newSize length:2*sizeof(int)];
-            msgid = SetTextDimensionsMsgID;
-        } else if (currRows != fuRows) {
-            data = [NSData dataWithBytes:&fuRows length:sizeof(int)];
-            msgid = SetTextRowsMsgID;
-        } else if (currColumns != fuColumns) {
-            data = [NSData dataWithBytes:&fuColumns length:sizeof(int)];
-            msgid = SetTextColumnsMsgID;
-        }
-        NSParameterAssert(data != nil && msgid != 0);
-
-        MMVimController *vc = [[self windowController] vimController];
-        [vc sendMessage:msgid data:data];
-        [[view textView] setMaxRows:fuRows columns:fuColumns];
-    }
-
-    // The new view dimensions are stored and then consulted when attempting to
-    // restore the windowed view dimensions when leaving full-screen.
-    // NOTE: Store them here and not only in enterFullScreen, otherwise the
-    // windowed view dimensions will not be restored if the full-screen was on
-    // a screen that later was unplugged.
-    startFuRows = fuRows;
-    startFuColumns = fuColumns;
-
-    [self centerView];
 }
 
 @end // MMFullScreenWindow (Private)

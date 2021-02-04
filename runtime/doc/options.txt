@@ -3607,23 +3607,19 @@ A jump table for the options with a short description can be found at |Q_op|.
 			global
 			{not in Vi}
 			{only in MacVim GUI}
-	In fullscreen mode, most of the screen is black, only a part of the
-	screen is covered by the actual Vim control.  The control is centered.
-	This option controls the size of the Vim control as well as the color
-	of the unused screen area. 
+			{not supported in native full screen mode}
+	In non-native fullscreen mode, MacVim can be configured to either show
+	all the content filling up the whole screen, or only use part of the
+	screen to show the content, centered.  This option controls the size
+	of the Vim control as well as the color of the unused screen area. 
 	value	effect	~
         maxvert	When entering fullscreen, 'lines' is set to the maximum number
-		of lines fitting on the screen in fullscreen mode. When
-		leaving fullscreen, if 'lines' is still equal to the maximized
-		number of lines, it is restored to the value it had before
-		entering fullscreen.
+		of lines fitting on the screen in fullscreen mode. If unset, 
+		'lines' will be unchanged when entering fullscreen mode.
         maxhorz	When entering fullscreen, 'columns' is set to the maximum number
-		of columns fitting on the screen in fullscreen mode. When
-		leaving fullscreen, if 'columns' is still equal to the maximized
-		number of columns, it is restored to the value it had before
-		entering fullscreen.
+		of columns fitting on the screen in fullscreen mode. If unset,
+		'columns' will be unchanged when entering fullscreen mode.
 	background:color
-		{not supported in Mac OS X native full screen}
 		When entering fullscreen, 'color' defines the color of the part
 		of the screen that is not occupied by the Vim control. If
 		'color' is an 8-digit hexadecimal number preceded by '#',
@@ -3645,13 +3641,6 @@ A jump table for the options with a short description can be found at |Q_op|.
 <	Don't change size when entering fullscreen, and color the background
 	like the current text background: >
 	  :set fuoptions=background:Normal
-<
-	XXX: what if the font size is changed? you probably never want to
-	restore the old 'lines' or 'columns' in that case.
-	XXX: Each time the Vim window resizes (for example due to font size
-	changes, re-maximize Vim to fullscreen?)
-	XXX: The approach doesn't restore vertical Vim size if fu is entered
-	without tabs and leaves with tabs (or the other way round).
 
 
 
