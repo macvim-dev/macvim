@@ -350,10 +350,6 @@ def Test_job_info_return_type()
   endif
 enddef
 
-def Wrong_dict_key_type(items: list<number>): list<number>
-  return filter(items, (_, val) => get({[val]: 1}, 'x'))
-enddef
-
 def Test_filereadable()
   assert_false(filereadable(""))
   assert_false(filereadable(test_null_string()))
@@ -382,6 +378,23 @@ def Test_findfile()
   CheckDefExecFailure(['echo findfile("")'], 'E1142:')
 enddef
 
+def Test_flattennew()
+  var lines =<< trim END
+      var l = [1, [2, [3, 4]], 5]
+      call assert_equal([1, 2, 3, 4, 5], flattennew(l))
+      call assert_equal([1, [2, [3, 4]], 5], l)
+
+      call assert_equal([1, 2, [3, 4], 5], flattennew(l, 1))
+      call assert_equal([1, [2, [3, 4]], 5], l)
+  END
+  CheckDefAndScriptSuccess(lines)
+
+  lines =<< trim END
+      echo flatten([1, 2, 3])
+  END
+  CheckDefAndScriptFailure(lines, 'E1158:')
+enddef
+
 def Test_fnamemodify()
   CheckDefSuccess(['echo fnamemodify(test_null_string(), ":p")'])
   CheckDefSuccess(['echo fnamemodify("", ":p")'])
@@ -393,8 +406,12 @@ def Test_fnamemodify()
   CheckDefExecFailure(['echo fnamemodify("file", true)'], 'E928:')
 enddef
 
+def Wrong_dict_key_type(items: list<number>): list<number>
+  return filter(items, (_, val) => get({[val]: 1}, 'x'))
+enddef
+
 def Test_filter_wrong_dict_key_type()
-  assert_fails('Wrong_dict_key_type([1, 2, 3])', 'E1012:')
+  assert_fails('Wrong_dict_key_type([1, v:null, 3])', 'E1013:')
 enddef
 
 def Test_filter_return_type()

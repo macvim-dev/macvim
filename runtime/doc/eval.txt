@@ -2561,6 +2561,8 @@ finddir({name} [, {path} [, {count}]])
 findfile({name} [, {path} [, {count}]])
 				String	find file {name} in {path}
 flatten({list} [, {maxdepth}])	List	flatten {list} up to {maxdepth} levels
+flattennew({list} [, {maxdepth}])
+				List	flatten a copy of {list}
 float2nr({expr})		Number	convert Float {expr} to a Number
 floor({expr})			Float	round {expr} down
 fmod({expr1}, {expr2})		Float	remainder of {expr1} / {expr2}
@@ -2572,6 +2574,7 @@ foldlevel({lnum})		Number	fold level at {lnum}
 foldtext()			String	line displayed for closed fold
 foldtextresult({lnum})		String	text for closed fold at {lnum}
 foreground()			Number	bring the Vim window to the foreground
+fullcommand({name})		String	get full command from {name}
 funcref({name} [, {arglist}] [, {dict}])
 				Funcref	reference to function {name}
 function({name} [, {arglist}] [, {dict}])
@@ -4724,8 +4727,10 @@ flatten({list} [, {maxdepth}])					*flatten()*
 		Flatten {list} up to {maxdepth} levels.  Without {maxdepth}
 		the result is a |List| without nesting, as if {maxdepth} is
 		a very large number.
-		The {list} is changed in place, make a copy first if you do
+		The {list} is changed in place, use |flattennew()| if you do
 		not want that.
+		In Vim9 script flatten() cannot be used, you must always use
+		|flattennew()|.
 								*E900*
 		{maxdepth} means how deep in nested lists changes are made.
 		{list} is not modified when {maxdepth} is 0.
@@ -4738,6 +4743,10 @@ flatten({list} [, {maxdepth}])					*flatten()*
 <			[1, 2, 3, 4, 5] >
 			:echo flatten([1, [2, [3, 4]], 5], 1)
 <			[1, 2, [3, 4], 5]
+
+flattennew({list} [, {maxdepth}])			*flattennew()*
+		Like |flatten()| but first make a copy of {list}.
+
 
 float2nr({expr})					*float2nr()*
 		Convert {expr} to a Number by omitting the part after the
@@ -4906,6 +4915,21 @@ foreground()	Move the Vim window to the foreground.  Useful when sent from
 		{only in the Win32, Athena, Motif and GTK GUI versions and the
 		Win32 console version}
 
+fullcommand({name})						*fullcommand()*
+		Get the full command name from a short abbreviated command
+		name; see |20.2| for details on command abbreviations.
+
+		{name} may start with a `:` and can include a [range], these
+		are skipped and not returned.
+		Returns an empty string if a command doesn't exist or if it's
+		ambiguous (for user-defined functions).
+
+		For example `fullcommand('s')`, `fullcommand('sub')`,
+		`fullcommand(':%substitute')` all return "substitute".
+
+		Can also be used as a |method|: >
+			GetName()->fullcommand()
+<
 						*funcref()*
 funcref({name} [, {arglist}] [, {dict}])
 		Just like |function()|, but the returned Funcref will lookup

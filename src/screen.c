@@ -4816,6 +4816,7 @@ set_chars_option(char_u **varp)
 	{&lcs_space,	"space"},
 	{&lcs_tab2,	"tab"},
 	{&lcs_trail,	"trail"},
+	{&lcs_lead,	"lead"},
 #ifdef FEAT_CONCEAL
 	{&lcs_conceal,	"conceal"},
 #else

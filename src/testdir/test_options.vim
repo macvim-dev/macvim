@@ -332,6 +332,12 @@ func Test_set_completion()
   call feedkeys(":set key=\<Tab>\<C-B>\"\<CR>", 'xt')
   call assert_equal('"set key=*****', @:)
   set key=
+
+  " Expand values for 'filetype'
+  call feedkeys(":set filetype=sshdconfi\<Tab>\<C-B>\"\<CR>", 'xt')
+  call assert_equal('"set filetype=sshdconfig', @:)
+  call feedkeys(":set filetype=a\<C-A>\<C-B>\"\<CR>", 'xt')
+  call assert_equal('"set filetype=' .. getcompletion('a*', 'filetype')->join(), @:)
 endfunc
 
 func Test_set_errors()
@@ -484,12 +490,10 @@ func Test_set_ttytype()
   set ttytype=xterm
   call assert_equal('xterm', &ttytype)
   call assert_equal(&ttytype, &term)
-  " "set ttytype=" gives E522 instead of E529
-  " in travis on some builds. Why?  Catch both for now
   try
     set ttytype=
     call assert_report('set ttytype= did not fail')
-  catch /E529\|E522/
+  catch /E529/
   endtry
 
   " Some systems accept any terminal name and return dumb settings,

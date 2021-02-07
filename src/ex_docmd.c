@@ -3430,6 +3430,16 @@ find_ex_command(
 		return eap->cmd;
 	    }
 	}
+
+	// If it is an ID it might be a variable with an operator on the next
+	// line, if the variable exists it can't be an Ex command.
+	if (p > eap->cmd && ends_excmd(*skipwhite(p))
+		&& (lookup(eap->cmd, p - eap->cmd, NULL, cctx) == OK
+		    || (ASCII_ISALPHA(eap->cmd[0]) && eap->cmd[1] == ':')))
+	{
+	    eap->cmdidx = CMD_eval;
+	    return eap->cmd;
+	}
     }
 #endif
 
@@ -3663,6 +3673,33 @@ cmd_exists(char_u *name)
     if (*skipwhite(p) != NUL)
 	return 0;	// trailing garbage
     return (ea.cmdidx == CMD_SIZE ? 0 : (full ? 2 : 1));
+}
+
+/*
+ * "fullcommand" function
+ */
+    void
+f_fullcommand(typval_T *argvars, typval_T *rettv)
+{
+    exarg_T  ea;
+    char_u   *name = argvars[0].vval.v_string;
+    char_u   *p;
+
+    while (name[0] != NUL && name[0] == ':')
+	name++;
+    name = skip_range(name, TRUE, NULL);
+
+    rettv->v_type = VAR_STRING;
+
+    ea.cmd = (*name == '2' || *name == '3') ? name + 1 : name;
+    ea.cmdidx = (cmdidx_T)0;
+    p = find_ex_command(&ea, NULL, NULL, NULL);
+    if (p == NULL || ea.cmdidx == CMD_SIZE)
+	return;
+
+    rettv->vval.v_string = vim_strsave(IS_USER_CMDIDX(ea.cmdidx)
+				    ? get_user_commands(NULL, ea.useridx)
+				    : cmdnames[ea.cmdidx].cmd_name);
 }
 #endif
 
@@ -7318,6 +7355,11 @@ ex_winsize(exarg_T *eap)
     char_u	*arg = eap->arg;
     char_u	*p;
 
+    if (!isdigit(*arg))
+    {
+	semsg(_(e_invarg2), arg);
+	return;
+    }
     w = getdigits(&arg);
     arg = skipwhite(arg);
     p = arg;

@@ -461,7 +461,7 @@ apply_move_options(win_T *wp, dict_T *d)
 	    if (di != NULL)
 	    {
 		wp->w_popup_prop_win = find_win_by_nr_or_id(&di->di_tv);
-		if (!win_valid(wp->w_popup_prop_win))
+		if (!win_valid_any_tab(wp->w_popup_prop_win))
 		    wp->w_popup_prop_win = curwin;
 	    }
 
@@ -2983,7 +2983,7 @@ f_popup_getoptions(typval_T *argvars, typval_T *rettv)
 	dict_add_number(dict, "scrollbar", wp->w_want_scrollbar);
 	dict_add_number(dict, "zindex", wp->w_zindex);
 	dict_add_number(dict, "fixed", wp->w_popup_fixed);
-	if (wp->w_popup_prop_type && win_valid(wp->w_popup_prop_win))
+	if (wp->w_popup_prop_type && win_valid_any_tab(wp->w_popup_prop_win))
 	{
 	    proptype_T *pt = text_prop_type_by_id(
 				 wp->w_popup_prop_win->w_buffer,

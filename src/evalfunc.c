@@ -954,6 +954,8 @@ static funcentry_T global_functions[] =
 			ret_string,	    f_findfile},
     {"flatten",		1, 2, FEARG_1,	    NULL,
 			ret_list_any,	    f_flatten},
+    {"flattennew",	1, 2, FEARG_1,	    NULL,
+			ret_list_any,	    f_flattennew},
     {"float2nr",	1, 1, FEARG_1,	    NULL,
 			ret_number,	    FLOAT_FUNC(f_float2nr)},
     {"floor",		1, 1, FEARG_1,	    NULL,
@@ -976,6 +978,8 @@ static funcentry_T global_functions[] =
 			ret_string,	    f_foldtextresult},
     {"foreground",	0, 0, 0,	    NULL,
 			ret_void,	    f_foreground},
+    {"fullcommand",	1, 1, FEARG_1,	    arg1_string,
+			ret_string,	    f_fullcommand},
     {"funcref",		1, 3, FEARG_1,	    NULL,
 			ret_func_any,	    f_funcref},
     {"function",	1, 3, FEARG_1,	    NULL,
@@ -6802,12 +6806,16 @@ max_min(typval_T *argvars, typval_T *rettv, int domax)
 		if (li != NULL)
 		{
 		    n = tv_get_number_chk(&li->li_tv, &error);
+		    if (error)
+			return; // type error; errmsg already given
 		    for (;;)
 		    {
 			li = li->li_next;
 			if (li == NULL)
 			    break;
 			i = tv_get_number_chk(&li->li_tv, &error);
+			if (error)
+			    return; // type error; errmsg already given
 			if (domax ? i > n : i < n)
 			    n = i;
 		    }
@@ -6832,6 +6840,8 @@ max_min(typval_T *argvars, typval_T *rettv, int domax)
 		{
 		    --todo;
 		    i = tv_get_number_chk(&HI2DI(hi)->di_tv, &error);
+		    if (error)
+			return; // type error; errmsg already given
 		    if (first)
 		    {
 			n = i;
@@ -6845,7 +6855,8 @@ max_min(typval_T *argvars, typval_T *rettv, int domax)
     }
     else
 	semsg(_(e_listdictarg), domax ? "max()" : "min()");
-    rettv->vval.v_number = error ? 0 : n;
+
+    rettv->vval.v_number = n;
 }
 
 /*

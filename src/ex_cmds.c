@@ -2710,8 +2710,9 @@ do_ecmd(
 	 */
 	if (buf != curbuf)
 	{
+	    bufref_T	save_au_new_curbuf;
 #ifdef FEAT_CMDWIN
-	    int save_cmdwin_type = cmdwin_type;
+	    int		save_cmdwin_type = cmdwin_type;
 
 	    // BufLeave applies to the old buffer.
 	    cmdwin_type = 0;
@@ -2728,6 +2729,7 @@ do_ecmd(
 	     */
 	    if (buf->b_fname != NULL)
 		new_name = vim_strsave(buf->b_fname);
+	    save_au_new_curbuf = au_new_curbuf;
 	    set_bufref(&au_new_curbuf, buf);
 	    apply_autocmds(EVENT_BUFLEAVE, NULL, NULL, FALSE, curbuf);
 #ifdef FEAT_CMDWIN
@@ -2737,12 +2739,14 @@ do_ecmd(
 	    {
 		// new buffer has been deleted
 		delbuf_msg(new_name);	// frees new_name
+		au_new_curbuf = save_au_new_curbuf;
 		goto theend;
 	    }
 #ifdef FEAT_EVAL
 	    if (aborting())	    // autocmds may abort script processing
 	    {
 		vim_free(new_name);
+		au_new_curbuf = save_au_new_curbuf;
 		goto theend;
 	    }
 #endif
@@ -2768,7 +2772,9 @@ do_ecmd(
 		did_decrement = close_buffer(oldwin, curbuf,
 			 (flags & ECMD_HIDE) ? 0 : DOBUF_UNLOAD, FALSE, FALSE);
 
-		the_curwin->w_closing = FALSE;
+		// Autocommands may have closed the window.
+		if (win_valid(the_curwin))
+		    the_curwin->w_closing = FALSE;
 		--buf->b_locked;
 
 #ifdef FEAT_EVAL
@@ -2776,6 +2782,7 @@ do_ecmd(
 		if (aborting() && curwin->w_buffer != NULL)
 		{
 		    vim_free(new_name);
+		    au_new_curbuf = save_au_new_curbuf;
 		    goto theend;
 		}
 #endif
@@ -2784,6 +2791,7 @@ do_ecmd(
 		{
 		    // new buffer has been deleted
 		    delbuf_msg(new_name);	// frees new_name
+		    au_new_curbuf = save_au_new_curbuf;
 		    goto theend;
 		}
 		if (buf == curbuf)		// already in new buffer
@@ -2829,8 +2837,7 @@ do_ecmd(
 #endif
 	    }
 	    vim_free(new_name);
-	    au_new_curbuf.br_buf = NULL;
-	    au_new_curbuf.br_buf_free_count = 0;
+	    au_new_curbuf = save_au_new_curbuf;
 	}
 
 	curwin->w_pcmark.lnum = 1;

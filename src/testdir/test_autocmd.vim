@@ -2413,9 +2413,18 @@ func Test_autocmd_was_using_freed_memory()
 
   pedit xx
   n x
-  au WinEnter * quit
+  augroup winenter
+    au WinEnter * if winnr('$') > 2 | quit | endif
+  augroup END
   split
-  au! WinEnter
+
+  augroup winenter
+    au! WinEnter
+  augroup END
+
+  bwipe xx
+  bwipe x
+  pclose
 endfunc
 
 func Test_BufWrite_lockmarks()
@@ -2716,5 +2725,79 @@ func Test_close_autocmd_tab()
   augroup! aucmd_win_test
   %bwipe!
 endfunc
+
+" This was using freed memory.
+func Test_BufNew_arglocal()
+  arglocal
+  au BufNew * arglocal
+  call assert_fails('drop xx', 'E1156:')
+
+  au! BufNew
+endfunc
+
+func Test_autocmd_closes_window()
+  au BufNew,BufWinLeave * e %e
+  file yyy
+  au BufNew,BufWinLeave * ball
+  n xxx
+
+  %bwipe
+  au! BufNew
+  au! BufWinLeave
+endfunc
+
+func Test_autocmd_quit_psearch()
+  sn aa bb
+  augroup aucmd_win_test
+    au!
+    au BufEnter,BufLeave,BufNew,WinEnter,WinLeave,WinNew * if winnr('$') > 1 | q | endif
+  augroup END
+  ps /
+
+  augroup aucmd_win_test
+    au!
+  augroup END
+endfunc
+
+" Fuzzer found some strange combination that caused a crash.
+func Test_autocmd_normal_mess()
+  " TODO: why does this hang on Windows?
+  CheckNotMSWindows
+
+  augroup aucmd_normal_test
+    au BufLeave,BufWinLeave,BufHidden,BufUnload,BufDelete,BufWipeout * norm 7q/qc
+  augroup END
+  o4
+  silent! H
+  e xx
+  normal G
+
+  augroup aucmd_normal_test
+    au!
+  augroup END
+endfunc
+
+func Test_autocmd_closing_cmdwin()
+  au BufWinLeave * nested q
+  call assert_fails("norm 7q?\n", 'E855:')
+
+  au! BufWinLeave
+  new
+  only
+endfunc
+
+func Test_autocmd_vimgrep()
+  augroup aucmd_vimgrep
+    au QuickfixCmdPre,BufNew,BufDelete,BufReadCmd * sb
+    au QuickfixCmdPre,BufNew,BufDelete,BufReadCmd * q9 
+  augroup END
+  " TODO: if this is executed directly valgrind reports errors
+  call assert_fails('lv?a?', 'E926:')
+
+  augroup aucmd_vimgrep
+    au!
+  augroup END
+endfunc
+
 
 " vim: shiftwidth=2 sts=2 expandtab
