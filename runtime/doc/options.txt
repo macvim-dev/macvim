@@ -3580,27 +3580,30 @@ A jump table for the options with a short description can be found at |Q_op|.
 	(e.g. toolbar, title bar).  The tab bar and scroll bars remain visible.
 	Updates to the window position are ignored in fullscreen mode.
 
+	By default, this will use macOS's native full screen feature, which
+	will put the MacVim window into another Space under Mission Control.
+	MacVim also provides a custom full screen solution which you can
+	select by setting |MMNativeFullScreen| to NO, or toggle it under
+	Preferences → Appearance. Under custom full-screen, the window will
+	not be put in another space, which makes it easier to Cmd-Tab to other
+	windows.
+
+	Custom / non-native full screen configuration:~
+
 	See 'fuoptions' for how Vim resizes and colors the background when 
 	entering and leaving fullscreen mode.
 
-	You can use the hidden preference MMFullScreenFadeTime to adjust how
-	long the animation takes to fade in and out.  The default is 0.25
-	seconds.  See |macvim-preferences|for how to set hidden preferences.
+	There is an optional fade-to-black effect while transitioning that
+	could be turned on by using the hidden preference
+	|MMFullScreenFadeTime| (specified in seconds). It defaults to 0,
+	meaning this effect is turned off.  Setting it to a positive value
+	(e.g. 0.25) will create an effect that fades to black during the full
+	screen transition to make it less jarring.
 
-	Note: Setting 'fullscreen' usually changes the size of the Vim
-	control. However, for technical reasons, 'lines' and 'columns' will
-	currently only be updated when Vim runs its event loop. As a
-	consequence, if you set 'fullscreen' and 'lines' or 'columns' in a
-	Vim script file, you should always set 'fullscreen' after setting
-	'lines' and 'columns', else 'lines' and 'columns' will be overwritten
-	with the values 'fullscreen' sets after the script has been executed
-	and the event loop is ran again.
+	Note: While in 'fullscreen', you cannot set 'lines' or 'columns', as
+	they are determined by the size of the window.  'fuoptions' allows you
+	to override part of that behavior if using custom full screen.
 
-	XXX: Add fuenter/fuleave autocommands? You might want to display
-	a NERDTree or a Tlist only in fullscreen for example. Then again, this
-	could probably be in a sizechanged autocommand that triggers if the
-	size is above a certain threshold.
-	XXX: Think about how 'fullscreen' and 'transparency' should interact. 
 
 						*'fuoptions'* *'fuopt'*
 'fuoptions' 'fuopt'	string (default "maxvert,maxhorz")

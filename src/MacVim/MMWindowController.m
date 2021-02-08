@@ -292,13 +292,6 @@
 
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 
-    if (fullScreenEnabled) {
-        // If we are closed while still in full-screen, end full-screen mode,
-        // release ourselves (because this won't happen in MMWindowController)
-        // and perform close operation on the original window.
-        [self leaveFullScreen];
-    }
-
     vimController = nil;
 
     [vimView removeFromSuperviewWithoutNeedingDisplay];
@@ -309,7 +302,7 @@
     // dialog is displayed.
     [decoratedWindow setDocumentEdited:NO];
 
-    [[self window] orderOut:self];
+    [[self window] close];
 }
 
 - (void)openWindow
@@ -344,14 +337,6 @@
 
     [decoratedWindow makeKeyAndOrderFront:self];
 
-    // HACK! Calling makeKeyAndOrderFront: may cause Cocoa to force the window
-    // into native full-screen mode (this happens e.g. if a new window is
-    // opened when MacVim is already in full-screen).  In this case we don't
-    // want the decorated window to pop up before the animation into
-    // full-screen, so set its alpha to 0.
-    if (fullScreenEnabled && !fullScreenWindow)
-        [decoratedWindow setAlphaValue:0];
-
     [decoratedWindow setBlurRadius:blurRadius];
 
     // Flag that the window is now placed on screen.  From now on it is OK for
@@ -368,9 +353,6 @@
         fullScreenEnabled = YES;
         shouldResizeVimView = YES;
     } else if (delayEnterFullScreen) {
-        // Set alpha to zero so that the decorated window doesn't pop up
-        // before we enter full-screen.
-        [decoratedWindow setAlphaValue:0];
         [self enterNativeFullScreen];
     }
 
@@ -932,14 +914,14 @@
 
     fullScreenOptions = fuoptions;
     if (useNativeFullScreen) {
-        // Enter native full-screen mode.  Only supported on Mac OS X 10.7+.
+        // Enter native full-screen mode.
         if (windowPresented) {
             [self enterNativeFullScreen];
         } else {
             delayEnterFullScreen = YES;
         }
     } else {
-        // Enter custom full-screen mode.  Always supported.
+        // Enter custom full-screen mode.
         ASLogInfo(@"Enter custom full-screen");
 
         // fullScreenWindow could be non-nil here if this is called multiple
@@ -1380,46 +1362,6 @@
     return opt | NSApplicationPresentationAutoHideToolbar;
 }
 
-- (NSArray *)customWindowsToEnterFullScreenForWindow:(NSWindow *)window
-{
-    return [NSArray arrayWithObject:decoratedWindow];
-}
-
-- (void)window:(NSWindow *)window
-    startCustomAnimationToEnterFullScreenWithDuration:(NSTimeInterval)duration
-{
-    // Fade out window, remove title bar and maximize, then fade back in.
-    // (There is a small delay before window is maximized but usually this is
-    // not noticeable on a relatively modern Mac.)
-
-    // Fade out
-    [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
-        [context setDuration:0.5*duration];
-        [[window animator] setAlphaValue:0];
-    } completionHandler:^{
-        [window setStyleMask:([window styleMask] | NSWindowStyleMaskFullScreen)];
-        NSString *tabBarStyle = [[self class] tabBarStyleForUnified];
-        [[vimView tabBarControl] setStyleNamed:tabBarStyle];
-        [self updateTablineSeparator];
-
-        // Stay dark for some time to wait for things to sync, then do the full screen operation
-        [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
-            [context setDuration:0.5*duration];
-            [[window animator] setAlphaValue:0];
-        } completionHandler:^{
-            [self maximizeWindow:fullScreenOptions];
-
-            // Fade in
-            [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
-                [context setDuration:0.5*duration];
-                [[window animator] setAlphaValue:1];
-            } completionHandler:^{
-                // Do nothing
-            }];
-        }];
-    }];
-}
-
 - (void)windowWillEnterFullScreen:(NSNotification *)notification
 {
     // Store window frame and use it when exiting full-screen.
@@ -1455,67 +1397,32 @@
     // when titlebar is configured as hidden. Simply re-assert it to make sure
     // text is still focused.
     [decoratedWindow makeFirstResponder:[vimView textView]];
+
+    if (!fullScreenEnabled) {
+        // In case for some odd sequence of events (e.g. getting a
+        // windowDidFailToEnterFullScreen, then this call), if we have
+        // mismatched state, just reset it back to the correct one.
+        fullScreenEnabled = YES;
+        [vimController addVimInput:@"<C-\\><C-N>:set fu<CR>"];
+    }
 }
 
 - (void)windowDidFailToEnterFullScreen:(NSWindow *)window
 {
-    // NOTE: This message can be called without
-    // window:startCustomAnimationToEnterFullScreenWithDuration: ever having
-    // been called so any state to store before entering full-screen must be
-    // stored in windowWillEnterFullScreen: which always gets called.
     ASLogNotice(@"Failed to ENTER full-screen, restoring window frame...");
 
     fullScreenEnabled = NO;
-    [window setAlphaValue:1];
-    [window setStyleMask:([window styleMask] & ~NSWindowStyleMaskFullScreen)];
-    NSString *tabBarStyle = [[self class] tabBarStyleForMetal];
-    [[vimView tabBarControl] setStyleNamed:tabBarStyle];
-    [self updateTablineSeparator];
     [window setFrame:preFullScreenFrame display:YES];
 
     // Sometimes full screen will de-focus the text view. This seems to happen
     // when titlebar is configured as hidden. Simply re-assert it to make sure
     // text is still focused.
     [decoratedWindow makeFirstResponder:[vimView textView]];
-}
 
-- (NSArray *)customWindowsToExitFullScreenForWindow:(NSWindow *)window
-{
-    return [NSArray arrayWithObject:decoratedWindow];
-}
-
-- (void)window:(NSWindow *)window
-    startCustomAnimationToExitFullScreenWithDuration:(NSTimeInterval)duration
-{
-    if (!setupDone) {
-        // HACK! The window has closed but Cocoa still brings it back to life
-        // and shows a grey box the size of the window unless we explicitly
-        // hide it by setting its alpha to 0 here.
-        [window setAlphaValue:0];
-        return;
-    }
-
-    // Fade out window, add back title bar and restore window frame, then fade
-    // back in.  (There is a small delay before window contents is drawn after
-    // the window frame is set but usually this is not noticeable on a
-    // relatively modern Mac.)
-    [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
-        [context setDuration:0.5*duration];
-        [[window animator] setAlphaValue:0];
-    } completionHandler:^{
-        [window setStyleMask:([window styleMask] & ~NSWindowStyleMaskFullScreen)];
-        NSString *tabBarStyle = [[self class] tabBarStyleForMetal];
-        [[vimView tabBarControl] setStyleNamed:tabBarStyle];
-        [self updateTablineSeparator];
-        [window setFrame:preFullScreenFrame display:YES];
-
-        [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
-            [context setDuration:0.5*duration];
-            [[window animator] setAlphaValue:1];
-        } completionHandler:^{
-            // Do nothing
-        }];
-    }];
+    // Vim needs to be told that it's no longer in full screen. Because we
+    // already set fullScreenEnabled=NO, this won't do anything other than
+    // updating Vim's state.
+    [vimController addVimInput:@"<C-\\><C-N>:set nofu<CR>"];
 }
 
 - (void)windowWillExitFullScreen:(NSNotification *)notification
@@ -1546,26 +1453,33 @@
     // when titlebar is configured as hidden. Simply re-assert it to make sure
     // text is still focused.
     [decoratedWindow makeFirstResponder:[vimView textView]];
+
+    if (fullScreenEnabled) {
+        // Sometimes macOS will first send a windowDidFailToExitFullScreen
+        // notification (e.g. if user is in the middle of switching spaces)
+        // before actually sending windowDidExitFullScreen. Just to be safe, if
+        // we are actually confused here, simply reset the state back.
+        fullScreenEnabled = NO;
+        [vimController addVimInput:@"<C-\\><C-N>:set nofu<CR>"];
+    }
 }
 
 - (void)windowDidFailToExitFullScreen:(NSWindow *)window
 {
-    // TODO: Is this the correct way to deal with this message?  Are we still
-    // in full-screen at this point?
     ASLogNotice(@"Failed to EXIT full-screen, maximizing window...");
 
     fullScreenEnabled = YES;
-    [window setAlphaValue:1];
-    [window setStyleMask:([window styleMask] | NSWindowStyleMaskFullScreen)];
-    NSString *tabBarStyle = [[self class] tabBarStyleForUnified];
-    [[vimView tabBarControl] setStyleNamed:tabBarStyle];
-    [self updateTablineSeparator];
     [self maximizeWindow:fullScreenOptions];
 
     // Sometimes full screen will de-focus the text view. This seems to happen
     // when titlebar is configured as hidden. Simply re-assert it to make sure
     // text is still focused.
     [decoratedWindow makeFirstResponder:[vimView textView]];
+
+    // Vim needs to be told that it's still in full screen. Because we already
+    // set fullScreenEnabled=YES, this won't do anything other than updating
+    // Vim's state.
+    [vimController addVimInput:@"<C-\\><C-N>:set fu<CR>"];
 }
 
 #endif // (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7)
@@ -1868,6 +1782,10 @@
 
 - (BOOL)maximizeWindow:(int)options
 {
+    // Note:
+    // This is deprecated code and will be removed later. 'fuopt' should be
+    // handled in processInputQueueDidFinish instead.
+
     if (floor(NSAppKitVersionNumber) > NSAppKitVersionNumber10_10_Max) {
         // NOTE: Prevent to resize the window in Split View on El Capitan or
         // later.
