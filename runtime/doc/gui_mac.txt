@@ -314,6 +314,8 @@ this behaviour set MMLoginShellArgument to "--".
 ==============================================================================
 4. MacVim appearance					*macvim-appearance*
 
+MacVim can be used in full screen mode, see 'fullscreen'.
+
 				*macvim-appearance-mode* *macvim-dark-mode*
 MacVim will by default use the system apperance mode (light or dark). However,
 you can manually force MacVim to use either light or dark mode in the

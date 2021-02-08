@@ -342,11 +342,10 @@
                                 <font key="font" metaFont="system"/>
                             </buttonCell>
                             <connections>
-                                <action selector="fontPropertiesChanged:" target="-2" id="uaN-zX-Lvq"/>
                                 <binding destination="58" name="value" keyPath="values.MMNativeFullScreen" id="Y8t-au-n4b"/>
                             </connections>
                         </button>
-                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="VAj-Yx-2uZ" userLabel="Full Sc">
+                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="VAj-Yx-2uZ">
                             <rect key="frame" x="-2" y="20" width="187" height="17"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Full Screen:" id="bMQ-uG-iDR">
@@ -362,7 +361,7 @@
                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                 <font key="font" metaFont="system"/>
                                 <connections>
-                                    <binding destination="58" name="enabled" keyPath="values.MMNativeFullScreen" id="Uw8-jM-9g1">
+                                    <binding destination="58" name="enabled" keyPath="values.MMNativeFullScreen" id="YVo-6f-uND">
                                         <dictionary key="options">
                                             <string key="NSValueTransformerName">NSNegateBoolean</string>
                                         </dictionary>
@@ -370,7 +369,6 @@
                                 </connections>
                             </buttonCell>
                             <connections>
-                                <action selector="fontPropertiesChanged:" target="-2" id="1RM-UT-GNp"/>
                                 <binding destination="58" name="value" keyPath="values.MMNonNativeFullScreenShowMenu" id="5wX-jg-QPo"/>
                             </connections>
                         </button>

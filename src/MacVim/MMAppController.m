@@ -248,7 +248,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 #endif // INCLUDE_OLD_IM_CODE
         [NSNumber numberWithBool:NO],     MMSuppressTerminationAlertKey,
         [NSNumber numberWithBool:YES],    MMNativeFullScreenKey,
-        [NSNumber numberWithDouble:0.25], MMFullScreenFadeTimeKey,
+        [NSNumber numberWithDouble:0.0],  MMFullScreenFadeTimeKey,
         [NSNumber numberWithBool:NO],     MMNonNativeFullScreenShowMenuKey,
         [NSNumber numberWithBool:YES],    MMShareFindPboardKey,
         nil];

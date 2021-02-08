@@ -1383,7 +1383,8 @@ if has("touchbar")
   endfunc
   aug FullScreenTouchBar
     au!
-    au VimEnter,VimResized * call <SID>SetupFullScreenTouchBar()
+    au VimEnter * call <SID>SetupFullScreenTouchBar()
+    au OptionSet fullscreen call <SID>SetupFullScreenTouchBar()
   aug END
 
   " 2. Character (i.e. emojis) picker. Only in modes where user is actively

@@ -150,10 +150,12 @@ enum {
     // fade to black
     Boolean didBlend = NO;
     CGDisplayFadeReservationToken token;
-    if (CGAcquireDisplayFadeReservation(fadeReservationTime, &token) == kCGErrorSuccess) {
-        CGDisplayFade(token, fadeTime, kCGDisplayBlendNormal,
-            kCGDisplayBlendSolidColor, .0, .0, .0, true);
-        didBlend = YES;
+    if (fadeTime > 0) {
+        if (CGAcquireDisplayFadeReservation(fadeReservationTime, &token) == kCGErrorSuccess) {
+            CGDisplayFade(token, fadeTime, kCGDisplayBlendNormal,
+                kCGDisplayBlendSolidColor, .0, .0, .0, true);
+            didBlend = YES;
+        }
     }
 
     // NOTE: The window may have moved to another screen in between init.. and
@@ -238,10 +240,12 @@ enum {
     // fade to black
     Boolean didBlend = NO;
     CGDisplayFadeReservationToken token;
-    if (CGAcquireDisplayFadeReservation(fadeReservationTime, &token) == kCGErrorSuccess) {
-        CGDisplayFade(token, fadeTime, kCGDisplayBlendNormal,
-            kCGDisplayBlendSolidColor, .0, .0, .0, true);
-        didBlend = YES;
+    if (fadeTime > 0) {
+        if (CGAcquireDisplayFadeReservation(fadeReservationTime, &token) == kCGErrorSuccess) {
+            CGDisplayFade(token, fadeTime, kCGDisplayBlendNormal,
+                kCGDisplayBlendSolidColor, .0, .0, .0, true);
+            didBlend = YES;
+        }
     }
 
     // restore old vim view size
