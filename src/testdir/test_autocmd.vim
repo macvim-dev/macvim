@@ -2761,15 +2761,15 @@ endfunc
 
 " Fuzzer found some strange combination that caused a crash.
 func Test_autocmd_normal_mess()
-  " TODO: why does this hang on Windows?
+  " For unknown reason this hangs on MS-Windows
   CheckNotMSWindows
 
   augroup aucmd_normal_test
     au BufLeave,BufWinLeave,BufHidden,BufUnload,BufDelete,BufWipeout * norm 7q/qc
   augroup END
-  o4
+  call assert_fails('o4', 'E1159')
   silent! H
-  e xx
+  call assert_fails('e xx', 'E1159')
   normal G
 
   augroup aucmd_normal_test
@@ -2778,6 +2778,9 @@ func Test_autocmd_normal_mess()
 endfunc
 
 func Test_autocmd_closing_cmdwin()
+  " For unknown reason this hangs on MS-Windows
+  CheckNotMSWindows
+
   au BufWinLeave * nested q
   call assert_fails("norm 7q?\n", 'E855:')
 
@@ -2791,8 +2794,8 @@ func Test_autocmd_vimgrep()
     au QuickfixCmdPre,BufNew,BufDelete,BufReadCmd * sb
     au QuickfixCmdPre,BufNew,BufDelete,BufReadCmd * q9 
   augroup END
-  " TODO: if this is executed directly valgrind reports errors
-  call assert_fails('lv?a?', 'E926:')
+  %bwipe!
+  call assert_fails('lv ?a? foo', 'E926:')
 
   augroup aucmd_vimgrep
     au!

@@ -173,10 +173,10 @@ EXTERN char e_cannot_declare_a_register_str[]
 	INIT(= N_("E1066: Cannot declare a register: %s"));
 EXTERN char e_separator_mismatch_str[]
 	INIT(= N_("E1067: Separator mismatch: %s"));
-EXTERN char e_no_white_space_allowed_before_str[]
-	INIT(= N_("E1068: No white space allowed before '%s'"));
-EXTERN char e_white_space_required_after_str[]
-	INIT(= N_("E1069: White space required after '%s'"));
+EXTERN char e_no_white_space_allowed_before_str_str[]
+	INIT(= N_("E1068: No white space allowed before '%s': %s"));
+EXTERN char e_white_space_required_after_str_str[]
+	INIT(= N_("E1069: White space required after '%s': %s"));
 EXTERN char e_missing_from[]
 	INIT(= N_("E1070: Missing \"from\""));
 EXTERN char e_invalid_string_after_from[]
@@ -353,3 +353,7 @@ EXTERN char e_missing_return_type[]
 	INIT(= N_("E1157: Missing return type"));
 EXTERN char e_cannot_use_flatten_in_vim9_script[]
 	INIT(= N_("E1158: Cannot use flatten() in Vim9 script"));
+EXTERN char e_cannot_split_window_when_closing_buffer[]
+	INIT(= N_("E1159: Cannot split a window when closing the buffer"));
+EXTERN char e_cannot_use_default_for_variable_arguments[]
+	INIT(= N_("E1160: Cannot use a default for variable arguments"));

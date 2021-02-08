@@ -1743,6 +1743,21 @@ def Test_if_elseif_else_fails()
   CheckDefFailure(['endif'], 'E580:')
   CheckDefFailure(['if g:abool', 'elseif xxx'], 'E1001:')
   CheckDefFailure(['if true', 'echo 1'], 'E171:')
+
+  var lines =<< trim END
+      var s = ''
+      if s = ''
+      endif
+  END
+  CheckDefFailure(lines, 'E488:')
+
+  lines =<< trim END
+      var s = ''
+      if s == ''
+      elseif s = ''
+      endif
+  END
+  CheckDefFailure(lines, 'E488:')
 enddef
 
 let g:bool_true = v:true
@@ -2190,6 +2205,10 @@ def Test_while_loop()
     result ..= cnt .. '_'
   endwhile
   assert_equal('1_3_', result)
+
+  var s = ''
+  while s == 'x' #{comment}
+  endwhile
 enddef
 
 def Test_while_loop_fails()
@@ -2200,6 +2219,13 @@ def Test_while_loop_fails()
   CheckDefFailure(['break'], 'E587:')
   CheckDefFailure(['if true', 'break'], 'E587:')
   CheckDefFailure(['while 1', 'echo 3'], 'E170:')
+
+  var lines =<< trim END
+      var s = ''
+      while s = ''
+      endwhile
+  END
+  CheckDefFailure(lines, 'E488:')
 enddef
 
 def Test_interrupt_loop()
@@ -3129,6 +3155,19 @@ def Test_restoring_cpo()
   delete('Xsourced')
   delete('Xclose')
   delete('Xdone')
+
+  writefile(['vim9script'], 'XanotherScript')
+  set cpo=aABceFsMny>
+  edit XanotherScript
+  so %
+  assert_equal('aABceFsMny>', &cpo)
+  :1del
+  w
+  so %
+  assert_equal('aABceFsMny>', &cpo)
+
+  delete('XanotherScript')
+  set cpo&vim
 enddef
 
 

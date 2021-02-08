@@ -2800,14 +2800,14 @@ compile_arguments(char_u **arg, cctx_T *cctx, int *argcount)
 
 	if (*p != ',' && *skipwhite(p) == ',')
 	{
-	    semsg(_(e_no_white_space_allowed_before_str), ",");
+	    semsg(_(e_no_white_space_allowed_before_str_str), ",", p);
 	    p = skipwhite(p);
 	}
 	if (*p == ',')
 	{
 	    ++p;
 	    if (*p != NUL && !VIM_ISWHITE(*p))
-		semsg(_(e_white_space_required_after_str), ",");
+		semsg(_(e_white_space_required_after_str_str), ",", p - 1);
 	}
 	else
 	    must_end = TRUE;
@@ -3055,7 +3055,7 @@ compile_list(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 	}
 	if (*p == ',')
 	{
-	    semsg(_(e_no_white_space_allowed_before_str), ",");
+	    semsg(_(e_no_white_space_allowed_before_str_str), ",", p);
 	    return FAIL;
 	}
 	if (*p == ']')
@@ -3073,7 +3073,7 @@ compile_list(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 	    ++p;
 	    if (*p != ']' && !IS_WHITE_OR_NUL(*p))
 	    {
-		semsg(_(e_white_space_required_after_str), ",");
+		semsg(_(e_white_space_required_after_str_str), ",", p - 1);
 		return FAIL;
 	    }
 	}
@@ -3234,7 +3234,7 @@ compile_dict(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 	if (**arg != ':')
 	{
 	    if (*skipwhite(*arg) == ':')
-		semsg(_(e_no_white_space_allowed_before_str), ":");
+		semsg(_(e_no_white_space_allowed_before_str_str), ":", *arg);
 	    else
 		semsg(_(e_missing_dict_colon), *arg);
 	    return FAIL;
@@ -3242,7 +3242,7 @@ compile_dict(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 	whitep = *arg + 1;
 	if (!IS_WHITE_OR_NUL(*whitep))
 	{
-	    semsg(_(e_white_space_required_after_str), ":");
+	    semsg(_(e_white_space_required_after_str_str), ":", *arg);
 	    return FAIL;
 	}
 
@@ -3273,16 +3273,16 @@ compile_dict(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 	}
 	if (IS_WHITE_OR_NUL(*whitep))
 	{
-	    semsg(_(e_no_white_space_allowed_before_str), ",");
+	    semsg(_(e_no_white_space_allowed_before_str_str), ",", whitep);
 	    return FAIL;
 	}
 	whitep = *arg + 1;
 	if (!IS_WHITE_OR_NUL(*whitep))
 	{
-	    semsg(_(e_white_space_required_after_str), ",");
+	    semsg(_(e_white_space_required_after_str_str), ",", *arg);
 	    return FAIL;
 	}
-	*arg = skipwhite(*arg + 1);
+	*arg = skipwhite(whitep);
     }
 
     *arg = *arg + 1;
@@ -4270,7 +4270,7 @@ compile_expr7t(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 	if (**arg != '>')
 	{
 	    if (*skipwhite(*arg) == '>')
-		semsg(_(e_no_white_space_allowed_before_str), ">");
+		semsg(_(e_no_white_space_allowed_before_str_str), ">", *arg);
 	    else
 		emsg(_(e_missing_gt));
 	    return FAIL;
@@ -5711,7 +5711,7 @@ compile_lhs(
 	    // parse optional type: "let var: type = expr"
 	    if (!VIM_ISWHITE(var_end[1]))
 	    {
-		semsg(_(e_white_space_required_after_str), ":");
+		semsg(_(e_white_space_required_after_str_str), ":", var_end);
 		return FAIL;
 	    }
 	    p = skipwhite(var_end + 1);
@@ -6701,6 +6701,11 @@ compile_if(char_u *arg, cctx_T *cctx)
 	clear_ppconst(&ppconst);
 	return NULL;
     }
+    if (!ends_excmd2(arg, skipwhite(p)))
+    {
+	semsg(_(e_trailing_arg), p);
+	return NULL;
+    }
     if (cctx->ctx_skip == SKIP_YES)
 	clear_ppconst(&ppconst);
     else if (instr->ga_len == instr_count && ppconst.pp_used == 1)
@@ -6825,6 +6830,11 @@ compile_elseif(char_u *arg, cctx_T *cctx)
 	return NULL;
     }
     cctx->ctx_skip = save_skip;
+    if (!ends_excmd2(arg, skipwhite(p)))
+    {
+	semsg(_(e_trailing_arg), p);
+	return NULL;
+    }
     if (scope->se_skip_save == SKIP_YES)
 	clear_ppconst(&ppconst);
     else if (instr->ga_len == instr_count && ppconst.pp_used == 1)
@@ -7237,6 +7247,11 @@ compile_while(char_u *arg, cctx_T *cctx)
     // compile "expr"
     if (compile_expr0(&p, cctx) == FAIL)
 	return NULL;
+    if (!ends_excmd2(arg, skipwhite(p)))
+    {
+	semsg(_(e_trailing_arg), p);
+	return NULL;
+    }
 
     if (bool_on_stack(cctx) == FAIL)
 	return FAIL;
