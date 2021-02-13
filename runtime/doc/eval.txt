@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 8.2.  Last change: 2021 Jan 31
+*eval.txt*	For Vim version 8.2.  Last change: 2021 Feb 10
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -5915,6 +5915,7 @@ getreg([{regname} [, 1 [, {list}]]])			*getreg()*
 		When the register was not set an empty list is returned.
 
 		If {regname} is not specified, |v:register| is used.
+		In |Vim9-script| {regname} must be one character.
 
 		Can also be used as a |method|: >
 			GetRegname()->getreg()
@@ -5942,6 +5943,7 @@ getreginfo([{regname}])					*getreginfo()*
 		will be returned.
 		If {regname} is not specified, |v:register| is used.
 		The returned Dictionary can be passed to |setreg()|.
+		In |Vim9-script| {regname} must be one character.
 
 		Can also be used as a |method|: >
 			GetRegname()->getreginfo()
@@ -5955,6 +5957,7 @@ getregtype([{regname}])					*getregtype()*
 		    ""			for an empty or unknown register
 		<CTRL-V> is one character with value 0x16.
 		If {regname} is not specified, |v:register| is used.
+		In |Vim9-script| {regname} must be one character.
 
 		Can also be used as a |method|: >
 			GetRegname()->getregtype()
@@ -9670,6 +9673,7 @@ setqflist({list} [, {action} [, {what}]])		*setqflist()*
 setreg({regname}, {value} [, {options}])
 		Set the register {regname} to {value}.
 		If {regname} is "" or "@", the unnamed register '"' is used.
+		In |Vim9-script| {regname} must be one character.
 
 		{value} may be any value returned by |getreg()| or
 		|getreginfo()|, including a |List| or |Dict|.

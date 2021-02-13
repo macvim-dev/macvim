@@ -4806,6 +4806,7 @@ set_chars_option(char_u **varp)
 	{&fill_vert,	"vert"},
 	{&fill_fold,	"fold"},
 	{&fill_diff,	"diff"},
+	{&fill_eob,	"eob"},
     };
     static struct charstab lcstab[] =
     {
@@ -4853,7 +4854,10 @@ set_chars_option(char_u **varp)
 		lcs_tab3 = NUL;
 	    }
 	    else
+	    {
 		fill_diff = '-';
+		fill_eob = '~';
+	    }
 	}
 	p = *varp;
 	while (*p)
