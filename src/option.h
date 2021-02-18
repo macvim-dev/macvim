@@ -1260,6 +1260,7 @@ enum
 enum
 {
     WV_LIST = 0
+    , WV_LCS
 #ifdef FEAT_ARABIC
     , WV_ARAB
 #endif

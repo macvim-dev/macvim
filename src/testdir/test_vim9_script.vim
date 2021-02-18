@@ -22,6 +22,17 @@ def Test_range_only()
   :3
   list
   assert_equal('three$', Screenline(&lines))
+
+  # missing command does not print the line
+  var lines =<< trim END
+    vim9script
+    :1|
+    assert_equal('three$', Screenline(&lines))
+    :|
+    assert_equal('three$', Screenline(&lines))
+  END
+  CheckScriptSuccess(lines)
+
   bwipe!
 
   # won't generate anything
@@ -724,6 +735,27 @@ def Test_try_catch_fails()
   CheckDefFailure(['throw xxx'], 'E1001:')
 enddef
 
+def Try_catch_skipped()
+  var l = []
+  try
+  finally
+  endtry
+
+  if 1
+  else
+    try
+    endtry
+  endif
+enddef
+
+" The skipped try/endtry was updating the wrong instruction.
+def Test_try_catch_skipped()
+  var instr = execute('disassemble Try_catch_skipped')
+  assert_match("NEWLIST size 0\n", instr)
+enddef
+
+
+
 def Test_throw_vimscript()
   # only checks line continuation
   var lines =<< trim END
@@ -755,7 +787,7 @@ def Test_throw_vimscript()
 enddef
 
 def Test_error_in_nested_function()
-  # an error in a nested :function aborts executin in the calling :def function
+  # an error in a nested :function aborts executing in the calling :def function
   var lines =<< trim END
       vim9script
       def Func()
@@ -1228,6 +1260,27 @@ def Test_use_import_in_mapping()
   delete('XsomeExport.vim')
   delete('Xmapscript.vim')
   nunmap <F3>
+enddef
+
+def Test_vim9script_mix()
+  var lines =<< trim END
+    if has(g:feature)
+      " legacy script
+      let g:legacy = 1
+      finish
+    endif
+    vim9script
+    g:legacy = 0
+  END
+  g:feature = 'eval'
+  g:legacy = -1
+  CheckScriptSuccess(lines)
+  assert_equal(1, g:legacy)
+
+  g:feature = 'noteval'
+  g:legacy = -1
+  CheckScriptSuccess(lines)
+  assert_equal(0, g:legacy)
 enddef
 
 def Test_vim9script_fails()

@@ -373,6 +373,19 @@ script_var_exists(char_u *name, size_t len, int vim9script, cctx_T *cctx)
 }
 
 /*
+ * Return TRUE if "name" is a local variable, argument, script variable or
+ * imported.
+ */
+    static int
+variable_exists(char_u *name, size_t len, cctx_T *cctx)
+{
+    return lookup_local(name, len, NULL, cctx) == OK
+	    || arg_exists(name, len, NULL, NULL, NULL, cctx) == OK
+	    || script_var_exists(name, len, FALSE, cctx) == OK
+	    || find_imported(name, len, cctx) != NULL;
+}
+
+/*
  * Check if "p[len]" is already defined, either in script "import_sid" or in
  * compilation context "cctx".  "cctx" is NULL at the script level.
  * Does not check the global namespace.
@@ -6444,10 +6457,7 @@ may_compile_assignment(exarg_T *eap, char_u **line, cctx_T *cctx)
 		    || *eap->cmd == '$'
 		    || *eap->cmd == '@'
 		    || ((len) > 2 && eap->cmd[1] == ':')
-		    || lookup_local(eap->cmd, len, NULL, cctx) == OK
-		    || arg_exists(eap->cmd, len, NULL, NULL, NULL, cctx) == OK
-		    || script_var_exists(eap->cmd, len, FALSE, cctx) == OK
-		    || find_imported(eap->cmd, len, cctx) != NULL)
+		    || variable_exists(eap->cmd, len, cctx))
 	    {
 		*line = compile_assignment(eap->cmd, eap, CMD_SIZE, cctx);
 		if (*line == NULL || *line == eap->cmd)
@@ -7719,17 +7729,21 @@ compile_endtry(char_u *arg, cctx_T *cctx)
 
     compile_endblock(cctx);
 
-    if (try_isn->isn_arg.try.try_finally == 0)
-	// No :finally encountered, use the try_finaly field to point to
-	// ENDTRY, so that TRYCONT can jump there.
-	try_isn->isn_arg.try.try_finally = cctx->ctx_instr.ga_len;
+    if (cctx->ctx_skip != SKIP_YES)
+    {
+	if (try_isn->isn_arg.try.try_finally == 0)
+	    // No :finally encountered, use the try_finaly field to point to
+	    // ENDTRY, so that TRYCONT can jump there.
+	    try_isn->isn_arg.try.try_finally = instr->ga_len;
 
-    if (cctx->ctx_skip != SKIP_YES && generate_instr(cctx, ISN_ENDTRY) == NULL)
-	return NULL;
+	if (cctx->ctx_skip != SKIP_YES
+				   && generate_instr(cctx, ISN_ENDTRY) == NULL)
+	    return NULL;
 #ifdef FEAT_PROFILE
 	if (cctx->ctx_profiling)
 	    generate_instr(cctx, ISN_PROF_START);
 #endif
+    }
     return arg;
 }
 
@@ -8328,7 +8342,7 @@ compile_def_function(
 	    }
 	}
 	p = find_ex_command(&ea, NULL, starts_with_colon ? NULL
-		   : (int (*)(char_u *, size_t, void *, cctx_T *))lookup_local,
+		   : (int (*)(char_u *, size_t, cctx_T *))variable_exists,
 									&cctx);
 
 	if (p == NULL)
