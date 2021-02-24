@@ -577,6 +577,28 @@ def Test_try_catch_throw()
     counter += 1
   endfor
   assert_equal(4, counter)
+
+  # return in finally after empty catch
+  def ReturnInFinally(): number
+    try
+    finally
+      return 4
+    endtry
+    return 2
+  enddef
+  assert_equal(4, ReturnInFinally())
+enddef
+
+def Test_nocatch_return_in_try()
+  # return in try block returns normally
+  def ReturnInTry(): string
+    try
+      return '"some message"'
+    catch
+    endtry
+    return 'not reached'
+  enddef
+  exe 'echoerr ' .. ReturnInTry()
 enddef
 
 def Test_cnext_works_in_catch()
@@ -3489,6 +3511,36 @@ def Test_import_gone_when_sourced_twice()
   delete('XexportScript.vim')
   delete('XscriptImport.vim')
   unlet g:guard
+enddef
+
+def Test_unsupported_commands()
+  var lines =<< trim END
+      ka
+  END
+  CheckDefAndScriptFailure(lines, 'E1100:')
+
+  lines =<< trim END
+      :1ka
+  END
+  CheckDefAndScriptFailure(lines, 'E481:')
+
+  lines =<< trim END
+    t
+  END
+  CheckDefFailure(lines, 'E1100:')
+  CheckScriptFailure(['vim9script'] + lines, 'E1100:')
+
+  lines =<< trim END
+    x
+  END
+  CheckDefFailure(lines, 'E1100:')
+  CheckScriptFailure(['vim9script'] + lines, 'E1100:')
+
+  lines =<< trim END
+    xit
+  END
+  CheckDefFailure(lines, 'E1100:')
+  CheckScriptFailure(['vim9script'] + lines, 'E1100:')
 enddef
 
 " Keep this last, it messes up highlighting.
