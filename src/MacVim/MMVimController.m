@@ -88,8 +88,6 @@ static BOOL isUnsafeMessage(int msgid);
 @property (readonly) NSMutableDictionary *itemDict;
 @property (readonly) NSMutableArray *itemOrder;
 
-- (id)initWithVimController:(MMVimController *)controller;
-
 @end
 
 @interface MMTouchBarItemInfo : NSObject;
@@ -828,6 +826,7 @@ static BOOL isUnsafeMessage(int msgid);
             // This should only happen if the system default font has changed
             // name since MacVim was compiled in which case we fall back on
             // using the user fixed width font.
+            ASLogInfo(@"Failed to load font '%@' / %f", name, size);
             font = [NSFont userFixedPitchFontOfSize:size];
         }
 
@@ -1634,7 +1633,7 @@ static BOOL isUnsafeMessage(int msgid);
         touchbarItem = item;
     }
     
-    MMTouchBarItemInfo *touchbarItemInfo = [[MMTouchBarItemInfo alloc] initWithItem:touchbarItem label:touchbarLabel];
+    MMTouchBarItemInfo *touchbarItemInfo = [[[MMTouchBarItemInfo alloc] initWithItem:touchbarItem label:touchbarLabel] autorelease];
     if (submenu) {
         [touchbarItemInfo makeChildTouchBar];
     }
@@ -2009,6 +2008,10 @@ static BOOL isUnsafeMessage(int msgid);
     
 - (id)init
 {
+    if (!(self = [super init])) {
+        return nil;
+    }
+
     _touchbar = [[NSTouchBar alloc] init];
     
     _itemDict = [[NSMutableDictionary alloc] init];

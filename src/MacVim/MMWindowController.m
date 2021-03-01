@@ -692,7 +692,13 @@
 
 - (void)setFont:(NSFont *)font
 {
-    [[NSFontManager sharedFontManager] setSelectedFont:font isMultiple:NO];
+    const NSWindow* mainWindow = [NSApp mainWindow];
+    if (mainWindow && (mainWindow == decoratedWindow || mainWindow == fullScreenWindow)) {
+        // Update the shared font manager with the new font, but only if this is the main window,
+        // as the font manager is shared among all the windows.
+        [[NSFontManager sharedFontManager] setSelectedFont:font isMultiple:NO];
+    }
+
     [[vimView textView] setFont:font];
     [self updateResizeConstraints];
     shouldMaximizeWindow = YES;
@@ -1159,6 +1165,7 @@
     [[MMAppController sharedInstance] setMainMenu:[vimController mainMenu]];
 
     if ([vimView textView]) {
+        // Update the shared font manager to always be set to the font of the main window.
         NSFontManager *fm = [NSFontManager sharedFontManager];
         [fm setSelectedFont:[[vimView textView] font] isMultiple:NO];
     }
@@ -1247,6 +1254,7 @@
 
 - (void)windowDidChangeBackingProperties:(NSNotification *)notification
 {
+    ASLogDebug(@"");
     [vimController sendMessage:BackingPropertiesChangedMsgID data:nil];
 }
 
