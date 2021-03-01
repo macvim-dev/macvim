@@ -176,7 +176,7 @@ static GridCell* grid_cell(Grid *grid, int row, int col) {
 // with `:set nofu`. If that gets fixed, then delete this workaround.
 static GridCell* grid_cell_safe(Grid *grid, int row, int col) {
     if (row >= grid->rows || col >= grid->cols) {
-        static GridCell scratch_cell;
+        static GridCell scratch_cell = {};
         return &scratch_cell;
     }
     return grid_cell(grid, row, col);
@@ -377,6 +377,7 @@ static void grid_free(Grid *grid) {
 - (void)setFont:(NSFont *)newFont
 {
     if (!newFont) {
+        ASLogInfo(@"Trying to set null font");
         return;
     }
     if (!forceRefreshFont) {
@@ -414,7 +415,9 @@ static void grid_free(Grid *grid) {
         CTFontDescriptorRef desc = CTFontDescriptorCreateWithNameAndSize((CFStringRef)[newFont fontName], pt);
         CTFontRef fontRef = CTFontCreateWithFontDescriptor(desc, pt, NULL);
         CFRelease(desc);
-
+        if (!fontRef) {
+            ASLogInfo(@"CTFontCreateWithFontDescriptor failed (preserveLineHeight == false, fontName: %@), pt: %f", [newFont fontName], pt);
+        }
         font = (NSFont*)fontRef;
     } else {
         font = [newFont retain];
@@ -439,7 +442,10 @@ static void grid_free(Grid *grid) {
     if (!newFont) {
         // Use the normal font as the wide font (note that the normal font may
         // very well include wide characters.)
-        if (font) [self setWideFont:font];
+        if (font) {
+            [self setWideFont:font];
+            return;
+        }
     } else if (newFont != fontWide) {
         [fontWide release];
         fontWide = [newFont retain];
@@ -730,14 +736,22 @@ static void grid_free(Grid *grid) {
     NSGraphicsContext *context = [NSGraphicsContext currentContext];
     CGContextRef ctx = context.CGContext;
     [context setShouldAntialias:antialias];
-    CGContextSetFillColorSpace(ctx, CGColorSpaceCreateWithName(kCGColorSpaceSRGB));
+    {
+        CGColorSpaceRef colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceSRGB);
+        if (colorSpace) {
+            CGContextSetFillColorSpace(ctx, colorSpace);
+            CGColorSpaceRelease(colorSpace);
+        } else {
+            ASLogInfo(@"Could not create sRGB color space");
+        }
+    }
     CGContextSetTextMatrix(ctx, CGAffineTransformIdentity);
     CGContextSetTextDrawingMode(ctx, kCGTextFill);
     CGContextSetFontSize(ctx, [font pointSize]);
     CGContextSetShouldSmoothFonts(ctx, YES);
     CGContextSetBlendMode(ctx, kCGBlendModeCopy);
 
-    int originalSmoothingStyle;
+    int originalSmoothingStyle = 0;
     if (thinStrokes) {
         originalSmoothingStyle = CGContextGetFontSmoothingStyle(ctx);
         CGContextSetFontSmoothingStyle(ctx, fontSmoothingStyleLight);
@@ -757,8 +771,8 @@ static void grid_free(Grid *grid) {
         
         __block NSMutableString *lineString = nil;
         __block CGFloat lineStringStart = 0;
-        __block CFRange lineStringRange;
-        __block GridCell lastStringCell;
+        __block CFRange lineStringRange = {};
+        __block GridCell lastStringCell = {};
         void (^flushLineString)() = ^{
             if (!lineString.length)
                 return;
@@ -774,8 +788,14 @@ static void grid_free(Grid *grid) {
             CGContextSetFillColor(ctx, COMPONENTS(lastStringCell.fg));
             CGContextSetTextPosition(ctx, lineStringStart, rowRect.origin.y + fontDescent);
             CGContextSetBlendMode(ctx, kCGBlendModeNormal);
+
+            const NSUInteger lineStringLength = lineString.length;
             CTLineRef line = [self lineForCharacterString:lineString textFlags:lastStringCell.textFlags];
-            for (id obj in (NSArray*)CTLineGetGlyphRuns(line)) {
+            NSArray* glyphRuns = (NSArray*)CTLineGetGlyphRuns(line);
+            if ([glyphRuns count] == 0) {
+                ASLogDebug(@"CTLineGetGlyphRuns no glyphs for: %@", lineString);
+            }
+            for (id obj in glyphRuns) {
                 CTRunRef run = (CTRunRef)obj;
                 CFIndex glyphCount = CTRunGetGlyphCount(run);
                 CFIndex indices[glyphCount];
@@ -783,11 +803,20 @@ static void grid_free(Grid *grid) {
                 CGGlyph glyphs[glyphCount];
                 CTRunGetStringIndices(run, CFRangeMake(0, 0), indices);
                 CTRunGetGlyphs(run, CFRangeMake(0, 0), glyphs);
-                for (CFIndex i = 0; i < glyphCount; i++)
+                for (CFIndex i = 0; i < glyphCount; i++) {
+                    if (indices[i] >= lineStringLength) {
+                        ASLogDebug(@"Invalid glyph pos index: %ld, len: %lu", (long)indices[i], (unsigned long)lineStringLength);
+                        continue;
+                    }
                     positions[i] = positionsByIndex[indices[i]];
+                }
                 CTFontRef font = CFDictionaryGetValue(CTRunGetAttributes(run), kCTFontAttributeName);
+                if (!font) {
+                    ASLogDebug(@"Null font for rendering. glyphCount: %ld", (long)glyphCount);
+                }
                 CTFontDrawGlyphs(font, glyphs, positions, glyphCount, ctx);
             }
+
             CGContextSetBlendMode(ctx, kCGBlendModeCopy);
             [lineString deleteCharactersInRange:NSMakeRange(0, lineString.length)];
         };
@@ -867,8 +896,9 @@ static void grid_free(Grid *grid) {
         [lineString release];
         CGContextRestoreGState(ctx);
     }
-    if (thinStrokes)
+    if (thinStrokes) {
         CGContextSetFontSmoothingStyle(ctx, originalSmoothingStyle);
+    }
 }
 
 - (void)performBatchDrawWithData:(NSData *)data
@@ -1094,6 +1124,7 @@ static void grid_free(Grid *grid) {
             fontRef = [NSFontManager.sharedFontManager convertFont:fontRef toHaveTrait:NSFontItalicTrait];
         if (textFlags & DRAW_BOLD)
             fontRef = [NSFontManager.sharedFontManager convertFont:fontRef toHaveTrait:NSFontBoldTrait];
+
         fontVariants[cacheFlags] = fontRef;
     }
     return fontRef;
@@ -1104,8 +1135,9 @@ static void grid_free(Grid *grid) {
     int cacheFlags = flags & (DRAW_WIDE | DRAW_ITALIC | DRAW_BOLD);
     NSNumber *key = @(cacheFlags);
     NSCache<NSString *,id> *strCache = characterLines[key];
-    if (!strCache)
+    if (!strCache){
         strCache = characterLines[key] = [[[NSCache alloc] init] autorelease];
+    }
     CTLineRef line = (CTLineRef)[strCache objectForKey:string];
     if (!line) {
         NSAttributedString *attrString = [[NSAttributedString alloc]
@@ -1476,12 +1508,13 @@ static int ReadDrawCmd(const void **bytesRef, struct DrawCmd *drawCmd)
         withFlags:(int)flags foregroundColor:(int)fg
   backgroundColor:(int)bg specialColor:(int)sp
 {
-    BOOL wide = flags & DRAW_WIDE ? YES : NO;
+    const BOOL wide = flags & DRAW_WIDE ? YES : NO;
     __block size_t cells_filled = 0;
     [string enumerateSubstringsInRange:NSMakeRange(0, string.length)
                                options:NSStringEnumerationByComposedCharacterSequences
                             usingBlock:^(NSString *substring, NSRange substringRange, NSRange enclosingRange, BOOL *stop) {
-        GridCell *cell = grid_cell_safe(&grid, row, col + cells_filled++ * (wide ? 2 : 1));
+        const int curCol = col + cells_filled++ * (wide ? 2 : 1);
+        GridCell *cell = grid_cell_safe(&grid, row, curCol);
         GridCellInsertionPoint insertionPoint = {0};
         if (flags & DRAW_TRANSP)
             insertionPoint = cell->insertionPoint;
@@ -1502,6 +1535,13 @@ static int ReadDrawCmd(const void **bytesRef, struct DrawCmd *drawCmd)
             .insertionPoint = insertionPoint,
             .string = characterString,
         };
+
+        if (wide) {
+            // Also clear the next cell just to be tidy (even though this cell would be skipped during rendering)
+            const GridCell clearCell = { .bg = defaultBackgroundColor.argbInt };
+            GridCell *nextCell = grid_cell_safe(&grid, row, curCol + 1);
+            *nextCell = clearCell;
+        }
     }];
     [self setNeedsDisplayFromRow:row
                           column:col

@@ -1775,9 +1775,9 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
             [alert setMessageText:NSLocalizedString(@"Multiple files not found",
                     @"File not found dialog, title")];
             text = [NSString stringWithFormat:NSLocalizedString(
-                    @"Could not open file with name %@, and %d other files.",
+                    @"Could not open file with name %@, and %u other files.",
                     @"File not found dialog, text"),
-                firstMissingFile, count-[files count]-1];
+                firstMissingFile, (unsigned int)(count-[files count]-1)];
         }
 
         [alert setInformativeText:text];
