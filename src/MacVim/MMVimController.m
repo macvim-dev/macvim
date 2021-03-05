@@ -162,6 +162,8 @@ static BOOL isUnsafeMessage(int msgid);
 - (void)handleShowDialog:(NSDictionary *)attr;
 - (void)handleDeleteSign:(NSDictionary *)attr;
 - (void)setToolTipDelay:(NSTimeInterval)seconds;
+- (void)themeChanged:(NSNotification *)notification;
+- (void)themeChangedOnMainThread;
 @end
 
 
@@ -200,6 +202,10 @@ static BOOL isUnsafeMessage(int msgid);
             selector:@selector(connectionDidDie:)
                 name:NSConnectionDidDieNotification object:connection];
 
+    [NSDistributedNotificationCenter.defaultCenter addObserver:self
+            selector:@selector(themeChanged:)
+                name:@"AppleInterfaceThemeChangedNotification" object:nil];
+
     // Set up a main menu with only a "MacVim" menu (copied from a template
     // which itself is set up in MainMenu.nib).  The main menu is populated
     // by Vim later on.
@@ -223,7 +229,7 @@ static BOOL isUnsafeMessage(int msgid);
 
     // After MMVimController's initialization is completed,
     // set up the variable `v:os_appearance`.
-    [self appearanceChanged:getCurrentAppearance([windowController vimView].effectiveAppearance)];
+    [self appearanceChanged:getCurrentAppearance(NSApp.effectiveAppearance)];
     
     return self;
 }
@@ -1921,6 +1927,14 @@ static BOOL isUnsafeMessage(int msgid);
     } else {
         ASLogNotice(@"Failed to get NSToolTipManager");
     }
+}
+
+- (void)themeChanged:(NSNotification *)notification {
+    [self performSelectorOnMainThread:@selector(themeChangedOnMainThread) withObject:nil waitUntilDone:false];
+}
+
+- (void)themeChangedOnMainThread {
+    [self appearanceChanged:getCurrentAppearance(NSApp.effectiveAppearance)];
 }
 
 @end // MMVimController (Private)
