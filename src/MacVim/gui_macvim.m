@@ -2494,12 +2494,7 @@ gui_mch_create_beval_area(
     void
 gui_mch_enable_beval_area(BalloonEval *beval UNUSED)
 {
-    // Set the balloon delay when enabling balloon eval.
-    float delay = p_bdlay/1000.0f - MMBalloonEvalInternalDelay;
-    if (delay < 0) delay = 0;
-    [[MMBackend sharedInstance] queueMessage:SetTooltipDelayMsgID properties:
-        [NSDictionary dictionaryWithObject:[NSNumber numberWithFloat:delay]
-                                    forKey:@"delay"]];
+    // NOP
 }
 
     void
@@ -2514,8 +2509,11 @@ gui_mch_disable_beval_area(BalloonEval *beval UNUSED)
  * Show a balloon with "mesg".
  */
     void
-gui_mch_post_balloon(BalloonEval *beval UNUSED, char_u *mesg)
+gui_mch_post_balloon(BalloonEval *beval, char_u *mesg)
 {
+    vim_free(beval->msg);
+    beval->msg = mesg == NULL ? NULL : vim_strsave(mesg);
+
     NSString *toolTip = [NSString stringWithVimString:mesg];
     [[MMBackend sharedInstance] setLastToolTip:toolTip];
 }

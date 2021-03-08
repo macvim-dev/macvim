@@ -46,12 +46,6 @@
 
 static unsigned MMServerMax = 1000;
 
-#ifdef FEAT_BEVAL
-// Seconds to delay balloon evaluation after mouse event (subtracted from
-// p_bdlay so that this effectively becomes the smallest possible delay).
-NSTimeInterval MMBalloonEvalInternalDelay = 0.1;
-#endif
-
 // TODO: Move to separate file.
 static int eventModifierFlagsToVimModMask(int modifierFlags);
 static int eventModifierFlagsToVimMouseModMask(int modifierFlags);
@@ -1919,7 +1913,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
                                                object:nil];
             [self performSelector:@selector(bevalCallback:)
                        withObject:nil
-                       afterDelay:MMBalloonEvalInternalDelay];
+                       afterDelay:p_bdlay/1000.0];
         }
 #endif
     } else if (MouseDownMsgID == msgid) {
@@ -1978,7 +1972,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
                                                object:nil];
             [self performSelector:@selector(bevalCallback:)
                        withObject:nil
-                       afterDelay:MMBalloonEvalInternalDelay];
+                       afterDelay:p_bdlay/1000.0];
         }
 #endif
     } else if (AddInputMsgID == msgid) {
@@ -3359,14 +3353,14 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         // variable.  (The reason we need to know is due to how the Cocoa tool
         // tips work: if there is no tool tip we must set it to nil explicitly
         // or it might never go away.)
-        [self setLastToolTip:nil];
-
         (*balloonEval->msgCB)(balloonEval, 0);
 
         [self queueMessage:SetTooltipMsgID properties:
             [NSDictionary dictionaryWithObject:(lastToolTip ? lastToolTip : @"")
                                         forKey:@"toolTip"]];
         [self flushQueue:YES];
+
+        [self setLastToolTip:nil];
     }
 }
 #endif
