@@ -274,7 +274,7 @@ arg_exists(
  * Lookup a script-local variable in the current script, possibly defined in a
  * block that contains the function "cctx->ctx_ufunc".
  * "cctx" is NULL at the script level.
- * if "len" is <= 0 "name" must be NUL terminated.
+ * If "len" is <= 0 "name" must be NUL terminated.
  * Return NULL when not found.
  */
     static sallvar_T *
@@ -384,6 +384,26 @@ variable_exists(char_u *name, size_t len, cctx_T *cctx)
 		    || arg_exists(name, len, NULL, NULL, NULL, cctx) == OK))
 	    || script_var_exists(name, len, FALSE, cctx) == OK
 	    || find_imported(name, len, cctx) != NULL;
+}
+
+/*
+ * Return TRUE if "name" is a local variable, argument, script variable,
+ * imported or function.
+ */
+    static int
+item_exists(char_u *name, size_t len, cctx_T *cctx)
+{
+    int	    is_global;
+
+    if (variable_exists(name, len, cctx))
+	return TRUE;
+
+    // Find a function, so that a following "->" works.  Skip "g:" before a
+    // function name.
+    // Do not check for an internal function, since it might also be a
+    // valid command, such as ":split" versuse "split()".
+    is_global = (name[0] == 'g' && name[1] == ':');
+    return find_func(is_global ? name + 2 : name, is_global, cctx) != NULL;
 }
 
 /*
@@ -728,7 +748,7 @@ get_compare_isn(exprtype_T exprtype, vartype_T type1, vartype_T type2)
     }
     else if (type1 == VAR_ANY || type2 == VAR_ANY
 	    || ((type1 == VAR_NUMBER || type1 == VAR_FLOAT)
-	      && (type2 == VAR_NUMBER || type2 ==VAR_FLOAT)))
+	      && (type2 == VAR_NUMBER || type2 == VAR_FLOAT)))
 	isntype = ISN_COMPAREANY;
 
     if ((exprtype == EXPR_IS || exprtype == EXPR_ISNOT)
@@ -8399,8 +8419,7 @@ compile_def_function(
 	    }
 	}
 	p = find_ex_command(&ea, NULL, starts_with_colon ? NULL
-		   : (int (*)(char_u *, size_t, cctx_T *))variable_exists,
-									&cctx);
+		    : (int (*)(char_u *, size_t, cctx_T *))item_exists, &cctx);
 
 	if (p == NULL)
 	{
@@ -8730,6 +8749,8 @@ set_function_type(ufunc_T *ufunc)
     // The type is included in "tt_args".
     if (argcount > 0 || varargs)
     {
+	if (ufunc->uf_type_list.ga_itemsize == 0)
+	    ga_init2(&ufunc->uf_type_list, sizeof(type_T *), 10);
 	ufunc->uf_func_type = alloc_func_type(ufunc->uf_ret_type,
 					   argcount, &ufunc->uf_type_list);
 	// Add argument types to the function type.

@@ -739,6 +739,19 @@ def Test_lambda_uses_assigned_var()
         'x = filter(["bbb"], (_, v) => v =~ x)'])
 enddef
 
+def Test_pass_legacy_lambda_to_def_func()
+  var lines =<< trim END
+      vim9script
+      func Foo()
+        eval s:Bar({x -> 0})
+      endfunc
+      def Bar(y: any)
+      enddef
+      Foo()
+  END
+  CheckScriptSuccess(lines)
+enddef
+
 " Default arg and varargs
 def MyDefVarargs(one: string, two = 'foo', ...rest: list<string>): string
   var res = one .. ',' .. two
@@ -1121,6 +1134,23 @@ def Test_arg_type_wrong()
   CheckScriptFailure(['def Func4(...)', 'echo "a"', 'enddef'], 'E1055: Missing name after ...')
   CheckScriptFailure(['def Func5(items:string)', 'echo "a"'], 'E1069:')
   CheckScriptFailure(['def Func5(items)', 'echo "a"'], 'E1077:')
+enddef
+
+def Test_white_space_after_comma()
+  var lines =<< trim END
+    vim9script
+    def Func(a: number,b: number)
+    enddef
+  END
+  CheckScriptFailure(lines, 'E1069:')
+
+  # OK in legacy function
+  lines =<< trim END
+    vim9script
+    func Func(a,b)
+    endfunc
+  END
+  CheckScriptSuccess(lines)
 enddef
 
 def Test_vim9script_call()
@@ -2352,6 +2382,30 @@ def Test_nested_lambda_in_closure()
   endif
   assert_equal(['Done'], readfile('XnestedDone'))
   delete('XnestedDone')
+enddef
+
+def Test_check_func_arg_types()
+  var lines =<< trim END
+      vim9script
+      def F1(x: string): string
+        return x
+      enddef
+
+      def F2(x: number): number
+        return x + 1
+      enddef
+
+      def G(g: func): dict<func>
+        return {f: g}
+      enddef
+
+      def H(d: dict<func>): string
+        return d.f('a')
+      enddef
+  END
+
+  CheckScriptSuccess(lines + ['echo H(G(F1))'])
+  CheckScriptFailure(lines + ['echo H(G(F2))'], 'E1013:')
 enddef
 
 
