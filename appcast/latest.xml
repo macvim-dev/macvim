@@ -6,76 +6,55 @@
     <description>MacVim</description>
 
     <item>
-      <title>MacVim snapshot-169</title>
+      <title>MacVim snapshot-170</title>
       <description><![CDATA[
 <style>
 :root { supported-color-schemes: light dark; color-scheme: light dark; }
 </style>
-<p>Updated to Vim 8.2.2164.</p>
+<p>Updated to Vim 8.2.2576.</p>
 
-<p>This release (r169) is a minor update to fix the issue that r168 would
-not launch on macOS 10.13 (High Sierra) or below. <a href="https://github.com/macvim-dev/macvim/issues/1138">#1138</a></p>
-
-<details>
-
-<summary>Release notes for r168</summary>
-
-<p><em>Note</em>: This release doesn’t natively support Apple Silicon / M1 yet, but does work under Rosetta. See below.</p>
+<p>This was a somewhat delayed release. My apologies! Next few releases should be more frequent.</p>
 
 <h1 id="features">Features</h1>
 
-<h2 id="big-sur--macos-11">Big Sur / macOS 11</h2>
+<h2 id="apple-silicon-support">Apple Silicon Support</h2>
+
+<p>MacVim’s binary release now fully supports Apple Silicon! If you have an M1 Mac you should notice MacVim being more snappy and smoother. <a href="https://github.com/macvim-dev/macvim/issues/1150">#1150</a></p>
+
+<p>If you would like to (e.g. if you only installed Python 3 in Rosetta and use plugins that use Python), you could run MacVim under Rosetta. You could use <code>:version</code> while in MacVim to tell whether you are running in Rosetta / Intel or Apple Silicon by seeing whether it says x86_64 or arm64. (Vim 8.2.2174)</p>
+
+<p>If you rely on Python/Ruby/Lua integration, note that previously MacVim by default searches the <code>/usr/local/</code> path for installed language runtimes. With this release, MacVim will still search those folders under Intel / x86-64 builds, but under Apple Silicon / M1, MacVim will search under <code>/opt/homebrew/</code> instead, which is the default folder for Homebrew under Apple Silicon. If you don’t use Homebrew, or installed language runtimes under other folders, you would need to set <code>python3dll</code>/<code>luadll</code>/<code>rubydll</code> in your vimrc.</p>
+
+<h2 id="full-screen-fixes-and-improvements">Full Screen Fixes and Improvements</h2>
+
+<p>Removed the fade-to-black animation when transition to full screen, as they were distracting and looked jarring. For non-native full screen, you could set <code>MMFullScreenFadeTime</code> to a non-zero value to still get the animation back. <a href="https://github.com/macvim-dev/macvim/issues/1171">#1171</a></p>
+
+<p>Non-native full screen:</p>
 
 <ul>
-  <li>MacVim now has an updated app icon (<a href="https://github.com/macvim-dev/macvim/issues/1054">#1054</a>), and preference pane / toolbars have been updated to match Big Sur’s interface guidelines. (<a href="https://github.com/macvim-dev/macvim/issues/1128">#1128</a>)</li>
-  <li>Fixed Touch Bar warnings when launching MacVim from the terminal.  <a href="https://github.com/macvim-dev/macvim/issues/1114">#1114</a></li>
-  <li>SF Symbol characters will show up properly as double-width as most of these icons would take up more than one column. Note that these characters are specific to macOS and would not work in other platforms. <a href="https://github.com/macvim-dev/macvim/issues/1129">#1129</a></li>
+  <li>Non-native full screen now has an option to show menu bar when it’s active (under Appearance preference pane). <a href="https://github.com/macvim-dev/macvim/issues/1170">#1170</a></li>
+  <li>Fixed non-native full screen to properly hide the menu / dock when used on a secondary screen. Also, fixed misc issues with non-native full screen not drawing at the right offset. <a href="https://github.com/macvim-dev/macvim/issues/7">#7</a> <a href="https://github.com/macvim-dev/macvim/issues/1155">#1155</a> <a href="https://github.com/macvim-dev/macvim/issues/1170">#1170</a></li>
+  <li>Fixed non-native full screen’s <code>fuopt</code> setting. It now works again.  This feature allows you to limit only expand horizontally or vertically when using non-native full screen to help focus on the content, see <code>:help fuopt</code>. <a href="https://github.com/macvim-dev/macvim/issues/509">#509</a></li>
 </ul>
 
-<h2 id="renderer--scrolling-performance-improvements">Renderer / scrolling performance improvements</h2>
+<p>Fixed small bug in Touch Bar’s full screen button sometimes not being updated correctly. <a href="https://github.com/macvim-dev/macvim/issues/1171">#1171</a></p>
 
-<p>The Core Text renderer has been rewritten and is now much faster!  Scrolling should not stutter and lag like before and generally it should feel a lot smoother now. Thanks to Sidney San Martín (<a href="https://github.com/s4y">@s4y</a>) for the contribution. <a href="https://github.com/macvim-dev/macvim/issues/858">#858</a></p>
+<h1 id="known-issues">Known Issues</h1>
 
-<p>With this change, the non-Core-Text renderer is now considered deprecated. The old renderer is accessible either through the Preference Pane (under Advanced) or by setting the defaults “MMRenderer” to 0. It works for now, but it will be removed in a future update as it has known bugs.</p>
+<h2 id="text-invisible-after-plugging-in-monitor-or-waking-from-sleep">Text invisible after plugging in monitor or waking from sleep</h2>
 
-<h2 id="menu-localization">Menu Localization</h2>
-
-<p>Menus are now localized, see <code>:h langmenu</code> for how Vim menu localization works. You can use <code>set langmenu=none</code> to turn it off if you would like. <a href="https://github.com/macvim-dev/macvim/issues/1099">#1099</a></p>
-
-<p><img width="500" alt="localized menus" src="https://user-images.githubusercontent.com/1217449/101893005-f942d680-3b58-11eb-9cf3-96d117c5a370.png" /></p>
-
-<p>There still exists a few menu items that are not localized, and the general MacVim GUI is not localized as well. If you would like to help, please use <a href="https://github.com/macvim-dev/macvim/issues/1102">#1102</a> to coordinate with MacVim dev team.</p>
-
-<h2 id="getting-help--help-menu">Getting help / Help menu</h2>
-
-<ul>
-  <li>
-    <p>Help menu’s search bar now searches Vim documentation as well! See <a href="https://github.com/macvim-dev/macvim/issues/1095">#1095</a>.</p>
-
-    <p><img width="400" alt="help menu search" src="https://user-images.githubusercontent.com/1217449/101957566-86684880-3bb6-11eb-8466-2bf73b3585bd.png" /></p>
-  </li>
-  <li>Vimtutor is now bundled with MacVim, and you can access vimtutor from the Help menu (<a href="https://github.com/macvim-dev/macvim/issues/1096">#1096</a>).</li>
-  <li>There is also a link to the latest release notes as well (<a href="https://github.com/macvim-dev/macvim/issues/1131">#1131</a>).</li>
-</ul>
+<p>There is currently a known issue in rendering where after plugging/unplugging an external monitor, or waking from sleep when connected to a monitor, there is a small chance MacVim will stop drawing text. If you see that, please report that to <a href="https://github.com/macvim-dev/macvim/issues/1164">#1164</a>. This release contains some additional logging to help dignose the issue and we are still looking to root cause it.</p>
 
 <h1 id="general">General</h1>
 
-<h2 id="apple-silicon">Apple Silicon</h2>
-
-<p>This release does not contain a native universal app for Apple Silicon / M1 Macs yet. The release binary will still work under Rosetta, which should provide enough performance, but if you use Python/etc plugins, you need to make sure you have x86 versions of Python/etc installed (which is still the default for Homebrew as of this release).</p>
-
-<p>MacVim is buildable under Apple Silicon, so if you need a native binary, you could build it yourself by downloading the source from the Github repository. See <a href="https://github.com/macvim-dev/macvim/issues/1136">#1136</a> for progress on releasing a universal app for Apple Silicon.</p>
-
-<h2 id="github-discusisons">Github Discusisons</h2>
-
-<p>MacVim has enabled the Github Discussions feature, which serves as a good spot for general discussions and questions. See <a href="https://github.com/macvim-dev/macvim/discussions/">https://github.com/macvim-dev/macvim/discussions/</a> and check it out!</p>
+<ul>
+  <li>Added an option to ignore font’s line height. r168 introduced a new renderer which changed the behavior for how font’s line height works – instead of ignoring it, the new renderer respects the line height of the font. This new setting allows MacVim to behave in the old way, since some fonts have large line height that the user may not want to use. <a href="https://github.com/macvim-dev/macvim/issues/1152">#1152</a></li>
+</ul>
 
 <h1 id="fixes">Fixes</h1>
 
 <ul>
-  <li>Launching MacVim from the Dock with locales that use “,” for decimal separators now works correctly. <a href="https://github.com/macvim-dev/macvim/issues/11">#11</a> (Vim 8.2.1738)</li>
-  <li><code>WinBar</code> menus (which are used by plugins like vimspector) now work properly and don’t create dummy menu items. <a href="https://github.com/macvim-dev/macvim/issues/918">#918</a></li>
-  <li>Using <code>:browse tabnew</code> no longer crashes MacVim in terminal mode.  <a href="https://github.com/macvim-dev/macvim/issues/1107">#1107</a> (Vim 8.2.1842)</li>
+  <li>Fixed balloon APIs (<code>balloon_show()</code> / <code>balloon_gettext()</code>) so plugins relying on them should now work. <a href="https://github.com/macvim-dev/macvim/issues/902">#902</a> <a href="https://github.com/macvim-dev/macvim/issues/1064">#1064</a></li>
 </ul>
 
 <h1 id="misc">Misc</h1>
@@ -83,13 +62,10 @@ not launch on macOS 10.13 (High Sierra) or below. <a href="https://github.com/ma
 <ul>
   <li>Scripting languages versions:
     <ul>
-      <li>Python is now built against 3.9, up from 3.8.</li>
-      <li>Lua is now built against 5.4, up from 5.3.</li>
+      <li>Ruby is now built against 3.0, up from 2.7.</li>
     </ul>
   </li>
 </ul>
-
-</details>
 
 <h1 id="compatibility">Compatibility</h1>
 
@@ -102,29 +78,28 @@ not launch on macOS 10.13 (High Sierra) or below. <a href="https://github.com/ma
   <li>Perl 5.18</li>
   <li>Python2 2.7</li>
   <li>Python3 3.9</li>
-  <li>Ruby 2.7</li>
+  <li>Ruby 3.0</li>
 </ul>
 
 <p><br /><small>Read the latest release notes <a href="https://github.com/macvim-dev/macvim/releases/latest">here</a>.</small></p>
 
-
       ]]></description>
-      <pubDate>Sat, 19 Dec 2020 14:00:00 -0800</pubDate>
+      <pubDate>Mon, 08 Mar 2021 00:00:00 -0800</pubDate>
       <sparkle:minimumSystemVersion>10.9</sparkle:minimumSystemVersion>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-169/MacVim.dmg"
-        sparkle:version="169"
-        sparkle:shortVersionString="8.2.2164"
-        sparkle:dsaSignature="MC4CFQCpl741xu6y+lFdHZIXQcsapY+3PAIVALRdwaB7bFSwYvutwWbOH8sfuYsr"
-        length="21657330"
+        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-170/MacVim.dmg"
+        sparkle:version="170"
+        sparkle:shortVersionString="8.2.2576"
+        sparkle:dsaSignature="MC0CFFkrOg9wim+wZaYXcXzxSTc4FzXLAhUAveo8Ur2QlO1z+XyjTY9AuXihve8="
+        length="23687922"
         />
       <sparkle:deltas>
         <enclosure type="application/octet-stream"
-          url="https://github.com/macvim-dev/macvim/releases/download/snapshot-169/168_to_169.delta"
-          sparkle:version="169"
-          sparkle:deltaFrom="168"
-          sparkle:dsaSignature="MC0CFHPy4XXLn+SCwHQK90NDP5K3roiKAhUAtDGuWTecxGdH25u3YzeCw7osDlo="
-          length="306744"
+          url="https://github.com/macvim-dev/macvim/releases/download/snapshot-170/169_to_170.delta"
+          sparkle:version="170"
+          sparkle:deltaFrom="169"
+          sparkle:dsaSignature="MCwCFBARd5SJLgPEXi7mzHSR3MhZj/HfAhQLrOg8852MggMZsWlIIPSKTVhBIQ=="
+          length="2459716"
           />
       </sparkle:deltas>
     </item>
