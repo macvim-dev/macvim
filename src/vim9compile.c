@@ -391,19 +391,29 @@ variable_exists(char_u *name, size_t len, cctx_T *cctx)
  * imported or function.
  */
     static int
-item_exists(char_u *name, size_t len, cctx_T *cctx)
+item_exists(char_u *name, size_t len, int cmd UNUSED, cctx_T *cctx)
 {
     int	    is_global;
+    char_u  *p;
 
     if (variable_exists(name, len, cctx))
 	return TRUE;
 
-    // Find a function, so that a following "->" works.  Skip "g:" before a
-    // function name.
-    // Do not check for an internal function, since it might also be a
-    // valid command, such as ":split" versuse "split()".
-    is_global = (name[0] == 'g' && name[1] == ':');
-    return find_func(is_global ? name + 2 : name, is_global, cctx) != NULL;
+    // This is similar to what is in lookup_scriptitem():
+    // Find a function, so that a following "->" works.
+    // Require "(" or "->" to follow, "Cmd" is a user command while "Cmd()" is
+    // a function call.
+    p = skipwhite(name + len);
+
+    if (name[len] == '(' || (p[0] == '-' && p[1] == '>'))
+    {
+	// Do not check for an internal function, since it might also be a
+	// valid command, such as ":split" versuse "split()".
+	// Skip "g:" before a function name.
+	is_global = (name[0] == 'g' && name[1] == ':');
+	return find_func(is_global ? name + 2 : name, is_global, cctx) != NULL;
+    }
+    return FALSE;
 }
 
 /*
@@ -2645,7 +2655,8 @@ compile_load_scriptvar(
 	    cc = *p;
 	    *p = NUL;
 
-	    idx = find_exported(import->imp_sid, exp_name, &ufunc, &type, cctx);
+	    idx = find_exported(import->imp_sid, exp_name, &ufunc, &type,
+								   cctx, TRUE);
 	    *p = cc;
 	    p = skipwhite(p);
 
@@ -4184,7 +4195,7 @@ compile_expr7(
 	 * "null" constant
 	 */
 	case 'n':   if (STRNCMP(*arg, "null", 4) == 0
-						   && !eval_isnamec((*arg)[5]))
+						   && !eval_isnamec((*arg)[4]))
 		    {
 			*arg += 4;
 			rettv->v_type = VAR_SPECIAL;
@@ -4450,7 +4461,7 @@ compile_expr6(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 }
 
 /*
- *      +	number addition
+ *      +	number addition or list/blobl concatenation
  *      -	number subtraction
  *      ..	string concatenation
  */
@@ -4532,6 +4543,7 @@ compile_expr5(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 	else
 	{
 	    generate_ppconst(cctx, ppconst);
+	    ppconst->pp_is_const = FALSE;
 	    if (*op == '.')
 	    {
 		if (may_generate_2STRING(-2, cctx) == FAIL
@@ -5171,6 +5183,21 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx)
 	r = eap->skip ? OK : FAIL;
 	goto theend;
     }
+
+    // copy over the block scope IDs before compiling
+    if (!is_global && cctx->ctx_ufunc->uf_block_depth > 0)
+    {
+	int block_depth = cctx->ctx_ufunc->uf_block_depth;
+
+	ufunc->uf_block_ids = ALLOC_MULT(int, block_depth);
+	if (ufunc->uf_block_ids != NULL)
+	{
+	    mch_memmove(ufunc->uf_block_ids, cctx->ctx_ufunc->uf_block_ids,
+						    sizeof(int) * block_depth);
+	    ufunc->uf_block_depth = block_depth;
+	}
+    }
+
     if (func_needs_compiling(ufunc, PROFILING(ufunc))
 	    && compile_def_function(ufunc, TRUE, PROFILING(ufunc), cctx)
 								       == FAIL)
@@ -5197,25 +5224,12 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx)
 	// Define a local variable for the function reference.
 	lvar_T	*lvar = reserve_local(cctx, name_start, name_end - name_start,
 						    TRUE, ufunc->uf_func_type);
-	int block_depth = cctx->ctx_ufunc->uf_block_depth;
 
 	if (lvar == NULL)
 	    goto theend;
 	if (generate_FUNCREF(cctx, ufunc) == FAIL)
 	    goto theend;
 	r = generate_STORE(cctx, ISN_STORE, lvar->lv_idx, NULL);
-
-	// copy over the block scope IDs
-	if (block_depth > 0)
-	{
-	    ufunc->uf_block_ids = ALLOC_MULT(int, block_depth);
-	    if (ufunc->uf_block_ids != NULL)
-	    {
-		mch_memmove(ufunc->uf_block_ids, cctx->ctx_ufunc->uf_block_ids,
-						    sizeof(int) * block_depth);
-		ufunc->uf_block_depth = block_depth;
-	    }
-	}
     }
     // TODO: warning for trailing text?
 
@@ -5818,11 +5832,13 @@ compile_lhs(
 	    return FAIL;
 	}
 
-	// new local variable
+	// Check the name is valid for a funcref.
 	if ((lhs->lhs_type->tt_type == VAR_FUNC
 				      || lhs->lhs_type->tt_type == VAR_PARTIAL)
-				   && var_wrong_func_name(lhs->lhs_name, TRUE))
+		&& var_wrong_func_name(lhs->lhs_name, TRUE))
 	    return FAIL;
+
+	// New local variable.
 	lhs->lhs_lvar = reserve_local(cctx, var_start, lhs->lhs_varlen,
 		    cmdidx == CMD_final || cmdidx == CMD_const, lhs->lhs_type);
 	if (lhs->lhs_lvar == NULL)
@@ -6261,6 +6277,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		{
 		    if ((rhs_type->tt_type == VAR_FUNC
 				|| rhs_type->tt_type == VAR_PARTIAL)
+			    && !lhs.lhs_has_index
 			    && var_wrong_func_name(lhs.lhs_name, TRUE))
 			goto theend;
 
@@ -8198,6 +8215,7 @@ compile_def_function(
     {
 	int	count = ufunc->uf_def_args.ga_len;
 	int	first_def_arg = ufunc->uf_args.ga_len - count;
+	int	uf_args_len = ufunc->uf_args.ga_len;
 	int	i;
 	char_u	*arg;
 	int	off = STACK_FRAME_SIZE + (ufunc->uf_va_name != NULL ? 1 : 0);
@@ -8210,16 +8228,24 @@ compile_def_function(
 	ufunc->uf_def_arg_idx = ALLOC_CLEAR_MULT(int, count + 1);
 	if (ufunc->uf_def_arg_idx == NULL)
 	    goto erret;
+	SOURCING_LNUM = 0;  // line number unknown
 	for (i = 0; i < count; ++i)
 	{
 	    garray_T	*stack = &cctx.ctx_type_stack;
 	    type_T	*val_type;
 	    int		arg_idx = first_def_arg + i;
 	    where_T	where;
+	    int		r;
+
+	    // Make sure later arguments are not found.
+	    ufunc->uf_args.ga_len = i;
 
 	    ufunc->uf_def_arg_idx[i] = instr->ga_len;
 	    arg = ((char_u **)(ufunc->uf_def_args.ga_data))[i];
-	    if (compile_expr0(&arg, &cctx) == FAIL)
+	    r = compile_expr0(&arg, &cctx);
+
+	    ufunc->uf_args.ga_len = uf_args_len;
+	    if (r == FAIL)
 		goto erret;
 
 	    // If no type specified use the type of the default value.
@@ -8418,8 +8444,8 @@ compile_def_function(
 		}
 	    }
 	}
-	p = find_ex_command(&ea, NULL, starts_with_colon ? NULL
-		    : (int (*)(char_u *, size_t, cctx_T *))item_exists, &cctx);
+	p = find_ex_command(&ea, NULL, starts_with_colon
+						  ? NULL : item_exists, &cctx);
 
 	if (p == NULL)
 	{

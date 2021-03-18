@@ -223,6 +223,7 @@ static void f_str2float(typval_T *argvars, typval_T *rettv);
 #endif
 static void f_str2list(typval_T *argvars, typval_T *rettv);
 static void f_str2nr(typval_T *argvars, typval_T *rettv);
+static void f_strcharlen(typval_T *argvars, typval_T *rettv);
 static void f_strchars(typval_T *argvars, typval_T *rettv);
 static void f_strgetchar(typval_T *argvars, typval_T *rettv);
 static void f_stridx(typval_T *argvars, typval_T *rettv);
@@ -1021,7 +1022,7 @@ static funcentry_T global_functions[] =
     {"getcwd",		0, 2, FEARG_1,	    NULL,
 			ret_string,	    f_getcwd},
     {"getenv",		1, 1, FEARG_1,	    NULL,
-			ret_string,	    f_getenv},
+			ret_any,	    f_getenv},
     {"getfontname",	0, 1, 0,	    NULL,
 			ret_string,	    f_getfontname},
     {"getfperm",	1, 1, FEARG_1,	    NULL,
@@ -1572,7 +1573,9 @@ static funcentry_T global_functions[] =
 			ret_list_number,    f_str2list},
     {"str2nr",		1, 3, FEARG_1,	    arg3_string_nr_bool,
 			ret_number,	    f_str2nr},
-    {"strcharpart",	2, 3, FEARG_1,	    NULL,
+    {"strcharlen",	1, 1, FEARG_1,	    NULL,
+			ret_number,	    f_strcharlen},
+    {"strcharpart",	2, 4, FEARG_1,	    NULL,
 			ret_string,	    f_strcharpart},
     {"strchars",	1, 2, FEARG_1,	    NULL,
 			ret_number,	    f_strchars},
@@ -9271,31 +9274,45 @@ f_strlen(typval_T *argvars, typval_T *rettv)
 					      tv_get_string(&argvars[0])));
 }
 
+    static void
+strchar_common(typval_T *argvars, typval_T *rettv, int skipcc)
+{
+    char_u		*s = tv_get_string(&argvars[0]);
+    varnumber_T		len = 0;
+    int			(*func_mb_ptr2char_adv)(char_u **pp);
+
+    func_mb_ptr2char_adv = skipcc ? mb_ptr2char_adv : mb_cptr2char_adv;
+    while (*s != NUL)
+    {
+	func_mb_ptr2char_adv(&s);
+	++len;
+    }
+    rettv->vval.v_number = len;
+}
+
+/*
+ * "strcharlen()" function
+ */
+    static void
+f_strcharlen(typval_T *argvars, typval_T *rettv)
+{
+    strchar_common(argvars, rettv, TRUE);
+}
+
 /*
  * "strchars()" function
  */
     static void
 f_strchars(typval_T *argvars, typval_T *rettv)
 {
-    char_u		*s = tv_get_string(&argvars[0]);
     varnumber_T		skipcc = FALSE;
-    varnumber_T		len = 0;
-    int			(*func_mb_ptr2char_adv)(char_u **pp);
 
     if (argvars[1].v_type != VAR_UNKNOWN)
 	skipcc = tv_get_bool(&argvars[1]);
     if (skipcc < 0 || skipcc > 1)
 	semsg(_(e_using_number_as_bool_nr), skipcc);
     else
-    {
-	func_mb_ptr2char_adv = skipcc ? mb_ptr2char_adv : mb_cptr2char_adv;
-	while (*s != NUL)
-	{
-	    func_mb_ptr2char_adv(&s);
-	    ++len;
-	}
-	rettv->vval.v_number = len;
-    }
+	strchar_common(argvars, rettv, skipcc);
 }
 
 /*
@@ -9334,6 +9351,7 @@ f_strcharpart(typval_T *argvars, typval_T *rettv)
     int		nchar;
     int		nbyte = 0;
     int		charlen;
+    int		skipcc = FALSE;
     int		len = 0;
     int		slen;
     int		error = FALSE;
@@ -9344,10 +9362,24 @@ f_strcharpart(typval_T *argvars, typval_T *rettv)
     nchar = (int)tv_get_number_chk(&argvars[1], &error);
     if (!error)
     {
+	if (argvars[2].v_type != VAR_UNKNOWN
+					   && argvars[3].v_type != VAR_UNKNOWN)
+	{
+	    skipcc = tv_get_bool(&argvars[3]);
+	    if (skipcc < 0 || skipcc > 1)
+	    {
+		semsg(_(e_using_number_as_bool_nr), skipcc);
+		return;
+	    }
+	}
+
 	if (nchar > 0)
 	    while (nchar > 0 && nbyte < slen)
 	    {
-		nbyte += MB_CPTR2LEN(p + nbyte);
+		if (skipcc)
+		    nbyte += mb_ptr2len(p + nbyte);
+		else
+		    nbyte += MB_CPTR2LEN(p + nbyte);
 		--nchar;
 	    }
 	else
@@ -9362,7 +9394,12 @@ f_strcharpart(typval_T *argvars, typval_T *rettv)
 		if (off < 0)
 		    len += 1;
 		else
-		    len += MB_CPTR2LEN(p + off);
+		{
+		    if (skipcc)
+			len += mb_ptr2len(p + off);
+		    else
+			len += MB_CPTR2LEN(p + off);
+		}
 		--charlen;
 	    }
 	}

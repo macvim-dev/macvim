@@ -1,7 +1,7 @@
 " Vim support file to detect file types
 "
 " Maintainer:	Bram Moolenaar <Bram@vim.org>
-" Last Change:	2021 Jan 21
+" Last Change:	2021 Mar 12
 
 " Listen very carefully, I will say this only once
 if exists("did_load_filetypes")
@@ -1333,6 +1333,9 @@ au BufNewFile,BufRead *.pml			setf promela
 " Google protocol buffers
 au BufNewFile,BufRead *.proto			setf proto
 au BufNewFile,BufRead *.pbtxt			setf pbtxt
+
+" Poke
+au BufNewFile,BufRead *.pk      		setf poke
 
 " Protocols
 au BufNewFile,BufRead */etc/protocols		setf protocols

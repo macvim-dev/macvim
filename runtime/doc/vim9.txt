@@ -1,4 +1,4 @@
-*vim9.txt*	For Vim version 8.2.  Last change: 2021 Feb 23
+*vim9.txt*	For Vim version 8.2.  Last change: 2021 Mar 03
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -96,8 +96,8 @@ script and `:def` functions; details are below:
 	def CallMe(count: number, message: string): bool
 - Call functions without `:call`: >
 	writefile(['done'], 'file.txt')
-- You cannot use `:xit`, `:t`, `:k`, `:append`, `:change`, `:insert` or
-  curly-braces names.
+- You cannot use `:xit`, `:t`, `:k`, `:append`, `:change`, `:insert`, `:open`
+  or curly-braces names.
 - A range before a command must be prefixed with a colon: >
 	:%s/this/that
 - Unless mentioned specifically, the highest |scriptversion| is used.
@@ -341,7 +341,8 @@ Functions can be called without `:call`: >
 Using `:call` is still possible, but this is discouraged.
 
 A method call without `eval` is possible, so long as the start is an
-identifier or can't be an Ex command.  Examples: >
+identifier or can't be an Ex command.  For a function either "(" or "->" must
+be following, without a line break.  Examples: >
 	myList->add(123)
 	g:myList->add(123)
 	[1, 2, 3]->Process()
@@ -696,8 +697,9 @@ for v:null.  When converting a boolean to a string "false" and "true" are
 used, not "v:false" and "v:true" like in legacy script.  "v:none" is not
 changed, it is only used in JSON and has no equivalent in other languages.
 
-Indexing a string with [idx] or [idx : idx] uses character indexes instead of
-byte indexes. Example: >
+Indexing a string with [idx] or taking a slice with [idx : idx] uses character
+indexes instead of byte indexes.  Composing characters are included.
+Example: >
 	echo 'bár'[1]
 In legacy script this results in the character 0xc3 (an illegal byte), in Vim9
 script this results in the string 'á'.
@@ -800,6 +802,8 @@ Patterns are used like 'magic' is set, unless explicitly overruled.
 The 'edcompatible' option value is not used.
 The 'gdefault' option value is not used.
 
+You may also find this wiki useful.  It was written by an early adoptor of
+Vim9 script: https://github.com/lacygoill/wiki/blob/master/vim/vim9.md
 
 ==============================================================================
 
@@ -843,6 +847,8 @@ THIS IS STILL UNDER DEVELOPMENT - ANYTHING CAN BREAK - ANYTHING CAN CHANGE
 :enddef			End of a function defined with `:def`. It should be on
 			a line by its own.
 
+You may also find this wiki useful.  It was written by an early adoptor of
+Vim9 script: https://github.com/lacygoill/wiki/blob/master/vim/vim9.md
 
 If the script the function is defined in is Vim9 script, then script-local
 variables can be accessed without the "s:" prefix.  They must be defined
@@ -1076,7 +1082,9 @@ A side effect of `:vim9script` is that the 'cpoptions' option is set to the
 Vim default value, like with: >
 	:set cpo&vim
 One of the effects is that |line-continuation| is always enabled.
-The original value of 'cpoptions' is restored at the end of the script.
+The original value of 'cpoptions' is restored at the end of the script, while
+flags added or removed in the script are also added to or removed from the
+original value to get the same effect.  The order of flags may change.
 
 							*vim9-mix*
 There is one way to use both legacy and Vim9 syntax in one script file: >
@@ -1111,7 +1119,7 @@ Exporting an item can be written as: >
 	export class MyClass ...
 
 As this suggests, only constants, variables, `:def` functions and classes can
-be exported. {classes are not implemented yet}
+be exported. {not implemented yet: export class}
 
 							*E1042*
 `:export` can only be used in Vim9 script, at the script level.

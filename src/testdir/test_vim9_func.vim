@@ -311,6 +311,14 @@ def Test_call_default_args()
   delfunc g:Func
   CheckScriptFailure(['def Func(arg: number = "text")', 'enddef', 'defcompile'], 'E1013: Argument 1: type mismatch, expected number but got string')
   delfunc g:Func
+
+  var lines =<< trim END
+      vim9script
+      def Func(a = b == 0 ? 1 : 2, b = 0)
+      enddef
+      defcompile
+  END
+  CheckScriptFailure(lines, 'E1001: Variable not found: b')
 enddef
 
 def FuncWithComment(  # comment
@@ -385,11 +393,29 @@ def Test_nested_function()
   CheckDefFailure(lines, 'E1117:')
 
   # nested function inside conditional
-  # TODO: should it work when "thecount" is inside the "if"?
   lines =<< trim END
       vim9script
       var thecount = 0
       if true
+        def Test(): number
+          def TheFunc(): number
+            thecount += 1
+            return thecount
+          enddef
+          return TheFunc()
+        enddef
+      endif
+      defcompile
+      assert_equal(1, Test())
+      assert_equal(2, Test())
+  END
+  CheckScriptSuccess(lines)
+
+  # also works when "thecount" is inside the "if" block
+  lines =<< trim END
+      vim9script
+      if true
+        var thecount = 0
         def Test(): number
           def TheFunc(): number
             thecount += 1
@@ -726,11 +752,26 @@ def Test_call_lambda_args()
   CheckDefFailure(lines, 'E1167:')
 enddef
 
+def FilterWithCond(x: string, Cond: func(string): bool): bool
+  return Cond(x)
+enddef
+
 def Test_lambda_return_type()
   var lines =<< trim END
     var Ref = (): => 123
   END
   CheckDefAndScriptFailure(lines, 'E1157:', 1)
+
+  # this works
+  for x in ['foo', 'boo']
+    echo FilterWithCond(x, (v) => v =~ '^b')
+  endfor
+
+  # this fails
+  lines =<< trim END
+      echo FilterWithCond('foo', (v) => v .. '^b')
+  END
+  CheckDefAndScriptFailure(lines, 'E1013: Argument 2: type mismatch, expected func(string): bool but got func(any): string', 1)
 enddef
 
 def Test_lambda_uses_assigned_var()

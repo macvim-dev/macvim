@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 8.2.  Last change: 2021 Feb 10
+*eval.txt*	For Vim version 8.2.  Last change: 2021 Mar 10
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -1187,7 +1187,8 @@ byte under the cursor: >
 
 In Vim9 script:
 If expr8 is a String this results in a String that contains the expr1'th
-single character from expr8.  To use byte indexes use |strpart()|.
+single character (including any composing characters) from expr8.  To use byte
+indexes use |strpart()|.
 
 Index zero gives the first byte or character.  Careful: text column numbers
 start with one!
@@ -1217,8 +1218,9 @@ In legacy Vim script the indexes are byte indexes.  This doesn't recognize
 multibyte encodings, see |byteidx()| for computing the indexes.  If expr8 is
 a Number it is first converted to a String.
 
-In Vim9 script the indexes are character indexes.  To use byte indexes use
-|strpart()|.
+In Vim9 script the indexes are character indexes and include composing
+characters.  To use byte indexes use |strpart()|.  To use character indexes
+without including composing characters use |strcharpart()|.
 
 The item at index expr1b is included, it is inclusive.  For an exclusive index
 use the |slice()| function.
@@ -2935,10 +2937,11 @@ str2list({expr} [, {utf8}])	List	convert each character of {expr} to
 					ASCII/UTF8 value
 str2nr({expr} [, {base} [, {quoted}]])
 				Number	convert String to Number
-strcharpart({str}, {start} [, {len}])
+strcharlen({expr})		Number	character length of the String {expr}
+strcharpart({str}, {start} [, {len} [, {skipcc}]])
 				String	{len} characters of {str} at
 					character {start}
-strchars({expr} [, {skipcc}])	Number	character length of the String {expr}
+strchars({expr} [, {skipcc}])	Number	character count of the String {expr}
 strdisplaywidth({expr} [, {col}]) Number display length of the String {expr}
 strftime({format} [, {time}])	String	format time with a specified format
 strgetchar({str}, {index})	Number	get char {index} from {str}
@@ -5312,6 +5315,9 @@ getcharpos({expr})
 		Get the position for {expr}. Same as |getpos()| but the column
 		number in the returned List is a character index instead of
 		a byte index.
+		If |getpos()| returns a very large column number, such as
+		2147483647, then getcharpos() will return the character index
+		of the last character.
 
 		Example:
 		With the cursor on '세' in line 5 with text "여보세요": >
@@ -5791,6 +5797,8 @@ getpos({expr})	Get the position for {expr}.  For possible values of {expr}
 		The column number in the returned List is the byte position
 		within the line. To get the character position in the line,
 		use |getcharpos()|
+		The column number can be very large, e.g. 2147483647, in which
+		case it means "after the end of the line".
 		This can be used to save and restore the position of a mark: >
 			let save_a_mark = getpos("'a")
 			...
@@ -7462,7 +7470,8 @@ matchaddpos({group}, {pos} [, {priority} [, {id} [, {dict}]]])
 		to be used when fast match additions and deletions are
 		required, for example to highlight matching parentheses.
 
-		The list {pos} can contain one of these items:
+		{pos} is a list of positions.  Each position can be one of
+		these:
 		- A number.  This whole line will be highlighted.  The first
 		  line has number 1.
 		- A list with one number, e.g., [23]. The whole line with this
@@ -7475,7 +7484,7 @@ matchaddpos({group}, {pos} [, {priority} [, {id} [, {dict}]]])
 		- A list with three numbers, e.g., [23, 11, 3]. As above, but
 		  the third number gives the length of the highlight in bytes.
 
-		The maximum number of positions is 8.
+		The maximum number of positions in {pos} is 8.
 
 		Example: >
 			:highlight MyGroup ctermbg=green guibg=green
@@ -7484,8 +7493,7 @@ matchaddpos({group}, {pos} [, {priority} [, {id} [, {dict}]]])
 			:call matchdelete(m)
 
 <		Matches added by |matchaddpos()| are returned by
-		|getmatches()| with an entry "pos1", "pos2", etc., with the
-		value a list like the {pos} item.
+		|getmatches()|.
 
 		Can also be used as a |method|: >
 			GetGroup()->matchaddpos([23, 11])
@@ -9925,7 +9933,7 @@ slice({expr}, {start} [, {end}])			*slice()*
 		Similar to using a |slice| "expr[start : end]", but "end" is
 		used exclusive.  And for a string the indexes are used as
 		character indexes instead of byte indexes, like in
-		|vim9script|.
+		|vim9script|.  Also, composing characters are not counted.
 		When {end} is omitted the slice continues to the last item.
 		When {end} is -1 the last item is omitted.
 
@@ -10283,16 +10291,35 @@ str2nr({expr} [, {base} [, {quoted}]])				*str2nr()*
 		Can also be used as a |method|: >
 			GetText()->str2nr()
 
-strcharpart({src}, {start} [, {len}])			*strcharpart()*
+
+strcharlen({expr})					*strcharlen()*
+		The result is a Number, which is the number of characters
+		in String {expr}.  Composing characters are ignored.
+		|strchars()| can count the number of characters, counting
+		composing characters separately.
+
+		Also see |strlen()|, |strdisplaywidth()| and |strwidth()|.
+
+		Can also be used as a |method|: >
+			GetText()->strcharlen()
+
+
+strcharpart({src}, {start} [, {len} [, {skipcc}]])		*strcharpart()*
 		Like |strpart()| but using character index and length instead
 		of byte index and length.
+		When {skipcc} is omitted or zero, composing characters are
+		counted separately.
+		When {skipcc} set to 1, Composing characters are ignored,
+		similar to  |slice()|.
 		When a character index is used where a character does not
-		exist it is assumed to be one character.  For example: >
+		exist it is omitted and counted as one character.  For
+		example: >
 			strcharpart('abc', -1, 2)
 <		results in 'a'.
 
 		Can also be used as a |method|: >
 			GetText()->strcharpart(5)
+
 
 strchars({expr} [, {skipcc}])					*strchars()*
 		The result is a Number, which is the number of characters
@@ -10300,6 +10327,8 @@ strchars({expr} [, {skipcc}])					*strchars()*
 		When {skipcc} is omitted or zero, composing characters are
 		counted separately.
 		When {skipcc} set to 1, Composing characters are ignored.
+		|strcharlen()| always does this.
+
 		Also see |strlen()|, |strdisplaywidth()| and |strwidth()|.
 
 		{skipcc} is only available after 7.4.755.  For backward
@@ -13159,7 +13188,7 @@ text...
 			Cannot be followed by a comment.
 			Examples: >
 		:execute "buffer" nextbuf
-		:execute "normal" count . "w"
+		:execute "normal" count .. "w"
 <
 			":execute" can be used to append a command to commands
 			that don't accept a '|'.  Example: >
@@ -13175,8 +13204,8 @@ text...
 			file names.  The |fnameescape()| function can be used
 			for Vim commands, |shellescape()| for |:!| commands.
 			Examples: >
-		:execute "e " . fnameescape(filename)
-		:execute "!ls " . shellescape(filename, 1)
+		:execute "e " .. fnameescape(filename)
+		:execute "!ls " .. shellescape(filename, 1)
 <
 			Note: The executed string may be any command-line, but
 			starting or ending "if", "while" and "for" does not

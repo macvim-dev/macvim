@@ -340,6 +340,26 @@ def Test_extend_list_item_type()
   CheckScriptFailure(['vim9script'] + lines, 'E1012:', 1)
 enddef
 
+def Test_extend_with_error_function()
+  var lines =<< trim END
+      vim9script
+      def F()
+        {
+          var m = 10
+        }
+        echo m
+      enddef
+
+      def Test()
+        var d: dict<any> = {}
+        d->extend({A: 10, Func: function('F', [])})
+      enddef
+
+      Test()
+  END
+  CheckScriptFailure(lines, 'E1001: Variable not found: m')
+enddef
+
 def Test_job_info_return_type()
   if has('job')
     job_start(&shell)
@@ -470,6 +490,19 @@ def Test_getchar()
   while getchar(0)
   endwhile
   getchar(true)->assert_equal(0)
+enddef
+
+def Test_getenv()
+  if getenv('does-not_exist') == ''
+    assert_report('getenv() should return null')
+  endif
+  if getenv('does-not_exist') == null
+  else
+    assert_report('getenv() should return null')
+  endif
+  $SOMEENVVAR = 'some'
+  assert_equal('some', getenv('SOMEENVVAR'))
+  unlet $SOMEENVVAR
 enddef
 
 def Test_getcompletion()
