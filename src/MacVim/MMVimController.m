@@ -1533,6 +1533,7 @@ static BOOL isUnsafeMessage(int msgid);
         img = [NSImage imageNamed:MMDefaultToolbarImageName];
     }
 
+    [img setTemplate:YES];
     [item setImage:img];
 
     [toolbarItemDict setObject:item forKey:title];
