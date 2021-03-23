@@ -1946,6 +1946,63 @@ def Test_expr7_lambda()
   CheckScriptSuccess(lines)
 enddef
 
+def Test_expr7_lambda_block()
+  var lines =<< trim END
+      var Func = (s: string): string => {
+                      return 'hello ' .. s
+                    }
+      assert_equal('hello there', Func('there'))
+
+      var ll = range(3)
+      var dll = mapnew(ll, (k, v): string => {
+          if v % 2
+            return 'yes'
+          endif
+          return 'no'
+        })
+      assert_equal(['no', 'yes', 'no'], dll)
+
+      sandbox var Safe = (nr: number): number => {
+          return nr + 7
+        }
+      assert_equal(10, Safe(3))
+  END
+  CheckDefAndScriptSuccess(lines)
+
+  lines =<< trim END
+      map([1, 2], (k, v) => { redrawt })
+  END
+  CheckDefAndScriptFailure(lines, 'E488')
+
+  lines =<< trim END
+      var Func = (nr: int) => {
+              echo nr
+            }
+  END
+  CheckDefAndScriptFailure(lines, 'E1010', 1)
+
+  lines =<< trim END
+      var Func = (nr: number): int => {
+              return nr
+            }
+  END
+  CheckDefAndScriptFailure(lines, 'E1010', 1)
+
+  lines =<< trim END
+      var Func = (nr: number): int => {
+              return nr
+  END
+  CheckDefAndScriptFailure(lines, 'E1171', 1)  # line nr is function start
+
+  lines =<< trim END
+      vim9script
+      var Func = (nr: number): int => {
+          var ll =<< ENDIT
+             nothing
+  END
+  CheckScriptFailure(lines, 'E1145: Missing heredoc end marker: ENDIT', 2)
+enddef
+
 def NewLambdaWithComments(): func
   return (x) =>
             # some comment
@@ -2155,12 +2212,18 @@ def Test_expr7_dict()
       # automatic conversion from number to string
       var n = 123
       var dictnr = {[n]: 1}
+
+      # comment to start fold is OK
+      var x1: number #{{ fold
+      var x2 = 9 #{{ fold
   END
   CheckDefAndScriptSuccess(lines)
  
   # legacy syntax doesn't work
-  CheckDefFailure(["var x = #{key: 8}"], 'E1097:', 3)
-  CheckDefFailure(["var x = 'a' .. #{a: 1}"], 'E1097:', 3)
+  CheckDefAndScriptFailure(["var x = #{key: 8}"], 'E1170:', 1)
+  CheckDefAndScriptFailure(["var x = 'a' #{a: 1}"], 'E1170:', 1)
+  CheckDefAndScriptFailure(["var x = 'a' .. #{a: 1}"], 'E1170:', 1)
+  CheckDefAndScriptFailure(["var x = true ? #{a: 1}"], 'E1170:', 1)
 
   CheckDefFailure(["var x = {a:8}"], 'E1069:', 1)
   CheckDefFailure(["var x = {a : 8}"], 'E1068:', 1)

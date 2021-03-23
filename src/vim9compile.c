@@ -1546,7 +1546,7 @@ generate_FUNCREF(cctx_T *cctx, ufunc_T *ufunc)
     isn->isn_arg.funcref.fr_func = ufunc->uf_dfunc_idx;
     cctx->ctx_has_closure = 1;
 
-    // if the referenced function is a closure, it may use items further up in
+    // If the referenced function is a closure, it may use items further up in
     // the nested context, including this one.
     if (ufunc->uf_flags & FC_CLOSURE)
 	cctx->ctx_ufunc->uf_flags |= FC_CLOSURE;
@@ -2401,6 +2401,8 @@ peek_next_line_from_context(cctx_T *cctx)
 	if (line != NULL)
 	{
 	    p = skipwhite(line);
+	    if (vim9_bad_comment(p))
+		return NULL;
 	    if (*p != NUL && !vim9_comment_start(p))
 		return p;
 	}
@@ -2465,6 +2467,8 @@ next_line_from_context(cctx_T *cctx, int skip_comment)
 may_get_next_line(char_u *whitep, char_u **arg, cctx_T *cctx)
 {
     *arg = skipwhite(whitep);
+    if (vim9_bad_comment(*arg))
+	return FAIL;
     if (**arg == NUL || (VIM_ISWHITE(*whitep) && vim9_comment_start(*arg)))
     {
 	char_u *next = next_line_from_context(cctx, TRUE);
@@ -3167,7 +3171,7 @@ compile_list(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 
 /*
  * Parse a lambda: "(arg, arg) => expr"
- * "*arg" points to the '{'.
+ * "*arg" points to the '('.
  * Returns OK/FAIL when a lambda is recognized, NOTDONE if it's not a lambda.
  */
     static int
@@ -3197,6 +3201,16 @@ compile_lambda(char_u **arg, cctx_T *cctx)
 
     // Compile the function into instructions.
     compile_def_function(ufunc, TRUE, PROFILING(ufunc), cctx);
+
+    // evalarg.eval_tofree_cmdline may have a copy of the last line and "*arg"
+    // points into it.  Point to the original line to avoid a dangling pointer.
+    if (evalarg.eval_tofree_cmdline != NULL)
+    {
+	size_t	off = *arg - evalarg.eval_tofree_cmdline;
+
+	*arg = ((char_u **)cctx->ctx_ufunc->uf_lines.ga_data)[cctx->ctx_lnum]
+									 + off;
+    }
 
     clear_evalarg(&evalarg, NULL);
 
@@ -4277,10 +4291,13 @@ compile_expr7(
 
 	if (!eval_isnamec1(**arg))
 	{
-	    if (ends_excmd(*skipwhite(*arg)))
-		semsg(_(e_empty_expression_str), *arg);
-	    else
-		semsg(_(e_name_expected_str), *arg);
+	    if (!vim9_bad_comment(*arg))
+	    {
+		if (ends_excmd(*skipwhite(*arg)))
+		    semsg(_(e_empty_expression_str), *arg);
+		else
+		    semsg(_(e_name_expected_str), *arg);
+	    }
 	    return FAIL;
 	}
 
@@ -5119,6 +5136,13 @@ exarg_getline(
     }
 }
 
+    void
+fill_exarg_from_cctx(exarg_T *eap, cctx_T *cctx)
+{
+    eap->getline = exarg_getline;
+    eap->cookie = cctx;
+}
+
 /*
  * Compile a nested :def command.
  */
@@ -5169,9 +5193,8 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx)
 	return NULL;
 
     eap->arg = name_end;
-    eap->getline = exarg_getline;
-    eap->cookie = cctx;
-    eap->skip = cctx->ctx_skip == SKIP_YES;
+    fill_exarg_from_cctx(eap, cctx);
+
     eap->forceit = FALSE;
     lambda_name = vim_strsave(get_lambda_name());
     if (lambda_name == NULL)
@@ -8297,6 +8320,8 @@ compile_def_function(
 	    semsg(_(e_trailing_arg), line);
 	    goto erret;
 	}
+	else if (line != NULL && vim9_bad_comment(skipwhite(line)))
+	    goto erret;
 	else
 	{
 	    line = next_line_from_context(&cctx, FALSE);
