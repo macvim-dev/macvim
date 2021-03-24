@@ -1138,7 +1138,7 @@ static void grid_free(Grid *grid) {
     if (!strCache){
         strCache = characterLines[key] = [[[NSCache alloc] init] autorelease];
     }
-    CTLineRef line = (CTLineRef)[strCache objectForKey:string];
+    CTLineRef line = (CTLineRef)[[strCache objectForKey:string] retain];
     if (!line) {
         NSAttributedString *attrString = [[NSAttributedString alloc]
             initWithString:string
@@ -1150,9 +1150,8 @@ static void grid_free(Grid *grid) {
         line = CTLineCreateWithAttributedString((CFAttributedStringRef)attrString);
         [attrString release];
         [strCache setObject:(id)line forKey:[[string copy] autorelease]];
-        CFRelease(line);
     }
-    return line;
+    return (CTLineRef)[(id)line autorelease];
 }
 
 @end // MMCoreTextView (Private)
