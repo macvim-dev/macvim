@@ -125,26 +125,44 @@ def Test_append()
   assert_equal(['0', 'one', '1', 'two', '2'], getline(1, 6))
 enddef
 
+def Test_balloon_show()
+  CheckGui
+  CheckFeature balloon_eval
+
+  assert_fails('balloon_show(true)', 'E1174:')
+enddef
+
+def Test_balloon_split()
+  CheckFeature balloon_eval_term
+
+  assert_fails('balloon_split(true)', 'E1174:')
+enddef
+
 def Test_browse()
   CheckFeature browse
 
   var lines =<< trim END
-      call browse(1, 2, 3, 4)
+      browse(1, 2, 3, 4)
   END
   CheckDefExecAndScriptFailure(lines, 'E1174: String required for argument 2')
   lines =<< trim END
-      call browse(1, 'title', 3, 4)
+      browse(1, 'title', 3, 4)
   END
   CheckDefExecAndScriptFailure(lines, 'E1174: String required for argument 3')
   lines =<< trim END
-      call browse(1, 'title', 'dir', 4)
+      browse(1, 'title', 'dir', 4)
   END
   CheckDefExecAndScriptFailure(lines, 'E1174: String required for argument 4')
+enddef
+
+def Test_bufexists()
+  assert_fails('bufexists(true)', 'E1174')
 enddef
 
 def Test_buflisted()
   var res: bool = buflisted('asdf')
   assert_equal(false, res)
+  assert_fails('buflisted(true)', 'E1174')
 enddef
 
 def Test_bufname()
@@ -176,6 +194,8 @@ def Test_bufwinid()
   only
   bwipe SomeFile
   bwipe OtherFile
+
+  assert_fails('bufwinid(true)', 'E1138')
 enddef
 
 def Test_call_call()
@@ -184,14 +204,41 @@ def Test_call_call()
   l->assert_equal([1, 2, 3])
 enddef
 
+def Test_ch_logfile()
+  assert_fails('ch_logfile(true)', 'E1174')
+  assert_fails('ch_logfile("foo", true)', 'E1174')
+enddef
+
 def Test_char2nr()
   char2nr('あ', true)->assert_equal(12354)
+
+  assert_fails('char2nr(true)', 'E1174')
+enddef
+
+def Test_charclass()
+  assert_fails('charclass(true)', 'E1174')
+enddef
+
+def Test_chdir()
+  assert_fails('chdir(true)', 'E1174')
 enddef
 
 def Test_col()
   new
   setline(1, 'asdf')
   col([1, '$'])->assert_equal(5)
+
+  assert_fails('col(true)', 'E1174')
+enddef
+
+def Test_confirm()
+  if !has('dialog_con') && !has('dialog_gui')
+    CheckFeature dialog_con
+  endif
+
+  assert_fails('confirm(true)', 'E1174')
+  assert_fails('confirm("yes", true)', 'E1174')
+  assert_fails('confirm("yes", "maybe", 2, true)', 'E1174')
 enddef
 
 def Test_copy_return_type()
@@ -247,7 +294,7 @@ enddef
 def Test_exepath()
   CheckDefExecFailure(['echo exepath(true)'], 'E1174:')
   CheckDefExecFailure(['echo exepath(v:null)'], 'E1174:')
-  CheckDefExecFailure(['echo exepath("")'], 'E1142:')
+  CheckDefExecFailure(['echo exepath("")'], 'E1175:')
 enddef
 
 def Test_expand()
@@ -406,13 +453,13 @@ enddef
 def Test_finddir()
   CheckDefExecFailure(['echo finddir(true)'], 'E1174:')
   CheckDefExecFailure(['echo finddir(v:null)'], 'E1174:')
-  CheckDefExecFailure(['echo finddir("")'], 'E1142:')
+  CheckDefExecFailure(['echo finddir("")'], 'E1175:')
 enddef
 
 def Test_findfile()
   CheckDefExecFailure(['echo findfile(true)'], 'E1174:')
   CheckDefExecFailure(['echo findfile(v:null)'], 'E1174:')
-  CheckDefExecFailure(['echo findfile("")'], 'E1142:')
+  CheckDefExecFailure(['echo findfile("")'], 'E1175:')
 enddef
 
 def Test_flattennew()
@@ -653,6 +700,10 @@ enddef
 def Test_keys_return_type()
   const var: list<string> = {a: 1, b: 2}->keys()
   var->assert_equal(['a', 'b'])
+enddef
+
+def Test_line()
+  assert_fails('line(true)', 'E1174')
 enddef
 
 def Test_list2str_str2list_utf8()

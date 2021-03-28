@@ -1061,7 +1061,6 @@ def Test_disassemble_for_loop_eval()
         '\d STORE -1 in $1\_s*' ..
         '\d PUSHS "\["one", "two"\]"\_s*' ..
         '\d BCALL eval(argc 1)\_s*' ..
-        '\d CHECKTYPE list<any> stack\[-1\]\_s*' ..
         '\d FOR $1 -> \d\+\_s*' ..
         '\d STORE $2\_s*' ..
         'res ..= str\_s*' ..
@@ -1071,7 +1070,7 @@ def Test_disassemble_for_loop_eval()
         '\d\+ CONCAT\_s*' ..
         '\d\+ STORE $0\_s*' ..
         'endfor\_s*' ..
-        '\d\+ JUMP -> 6\_s*' ..
+        '\d\+ JUMP -> 5\_s*' ..
         '\d\+ DROP\_s*' ..
         'return res\_s*' ..
         '\d\+ LOAD $0\_s*' ..
@@ -1896,7 +1895,95 @@ def Test_silent()
         '\d PUSHS "error"\_s*' ..
         '\d ECHOERR 1\_s*' ..
         '\d CMDMOD_REV\_s*' ..
-        '\d RETURN 0',
+        '\d\+ RETURN 0',
+        res)
+enddef
+
+def s:SilentIf()
+  silent if 4 == g:five
+  silent elseif 4 == g:five
+  endif
+enddef
+
+def Test_silent_if()
+  var res = execute('disass s:SilentIf')
+  assert_match('<SNR>\d*_SilentIf\_s*' ..
+        'silent if 4 == g:five\_s*' ..
+        '\d\+ CMDMOD silent\_s*' ..
+        '\d\+ PUSHNR 4\_s*' ..
+        '\d\+ LOADG g:five\_s*' ..
+        '\d\+ COMPAREANY ==\_s*' ..
+        '\d\+ CMDMOD_REV\_s*' ..
+        '\d\+ JUMP_IF_FALSE -> \d\+\_s*' ..
+        'silent elseif 4 == g:five\_s*' ..
+        '\d\+ JUMP -> \d\+\_s*' ..
+        '\d\+ CMDMOD silent\_s*' ..
+        '\d\+ PUSHNR 4\_s*' ..
+        '\d\+ LOADG g:five\_s*' ..
+        '\d\+ COMPAREANY ==\_s*' ..
+        '\d\+ CMDMOD_REV\_s*' ..
+        '\d\+ JUMP_IF_FALSE -> \d\+\_s*' ..
+        'endif\_s*' ..
+        '\d\+ RETURN 0',
+        res)
+enddef
+
+def s:SilentFor()
+  silent for i in [0]
+  endfor
+enddef
+
+def Test_silent_for()
+  var res = execute('disass s:SilentFor')
+  assert_match('<SNR>\d*_SilentFor\_s*' ..
+        'silent for i in \[0\]\_s*' ..
+        '\d CMDMOD silent\_s*' ..
+        '\d STORE -1 in $0\_s*' ..
+        '\d PUSHNR 0\_s*' ..
+        '\d NEWLIST size 1\_s*' ..
+        '\d CMDMOD_REV\_s*' ..
+        '5 FOR $0 -> 8\_s*' ..
+        '\d STORE $1\_s*' ..
+        'endfor\_s*' ..
+        '\d JUMP -> 5\_s*' ..
+        '8 DROP\_s*' ..
+        '\d RETURN 0\_s*',
+        res)
+enddef
+
+def s:SilentWhile()
+  silent while g:not
+  endwhile
+enddef
+
+def Test_silent_while()
+  var res = execute('disass s:SilentWhile')
+  assert_match('<SNR>\d*_SilentWhile\_s*' ..
+        'silent while g:not\_s*' ..
+        '0 CMDMOD silent\_s*' ..
+        '\d LOADG g:not\_s*' ..
+        '\d COND2BOOL\_s*' ..
+        '\d CMDMOD_REV\_s*' ..
+        '\d JUMP_IF_FALSE -> 6\_s*' ..
+
+        'endwhile\_s*' ..
+        '\d JUMP -> 0\_s*' ..
+        '6 RETURN 0\_s*',
+         res)
+enddef
+
+def s:SilentReturn(): string
+  silent return "done"
+enddef
+
+def Test_silent_return()
+  var res = execute('disass s:SilentReturn')
+  assert_match('<SNR>\d*_SilentReturn\_s*' ..
+        'silent return "done"\_s*' ..
+        '\d CMDMOD silent\_s*' ..
+        '\d PUSHS "done"\_s*' ..
+        '\d CMDMOD_REV\_s*' ..
+        '\d RETURN',
         res)
 enddef
 
@@ -1924,19 +2011,5 @@ def Test_profiled()
         res)
 enddef
 
-def s:SilentReturn(): string
-  silent return "done"
-enddef
-
-def Test_silent_return()
-  var res = execute('disass s:SilentReturn')
-  assert_match('<SNR>\d*_SilentReturn\_s*' ..
-        'silent return "done"\_s*' ..
-        '\d CMDMOD silent\_s*' ..
-        '\d PUSHS "done"\_s*' ..
-        '\d CMDMOD_REV\_s*' ..
-        '\d RETURN',
-        res)
-enddef
 
 " vim: ts=8 sw=2 sts=2 expandtab tw=80 fdm=marker

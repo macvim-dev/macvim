@@ -2323,8 +2323,12 @@ f_balloon_show(typval_T *argvars, typval_T *rettv UNUSED)
 	}
 	else
 	{
-	    char_u *mesg = tv_get_string_chk(&argvars[0]);
+	    char_u *mesg;
 
+	    if (in_vim9script() && check_for_string_arg(argvars, 0) == FAIL)
+		return;
+
+	    mesg = tv_get_string_chk(&argvars[0]);
 	    if (mesg != NULL)
 		// empty string removes the balloon
 		post_balloon(balloonEval, *mesg == NUL ? NULL : mesg, NULL);
@@ -2338,8 +2342,11 @@ f_balloon_split(typval_T *argvars, typval_T *rettv UNUSED)
 {
     if (rettv_list_alloc(rettv) == OK)
     {
-	char_u *msg = tv_get_string_chk(&argvars[0]);
+	char_u *msg;
 
+	if (in_vim9script() && check_for_string_arg(argvars, 0) == FAIL)
+	    return;
+	msg = tv_get_string_chk(&argvars[0]);
 	if (msg != NULL)
 	{
 	    pumitem_T	*array;
@@ -2514,6 +2521,8 @@ f_changenr(typval_T *argvars UNUSED, typval_T *rettv)
     static void
 f_char2nr(typval_T *argvars, typval_T *rettv)
 {
+    if (in_vim9script() && check_for_string_arg(argvars, 0) == FAIL)
+	return;
     if (has_mbyte)
     {
 	int	utf8 = 0;
@@ -2678,11 +2687,16 @@ f_confirm(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
     char_u	*typestr;
     int		error = FALSE;
 
+    if (in_vim9script() && check_for_string_arg(argvars, 0) == FAIL)
+	return;
+
     message = tv_get_string_chk(&argvars[0]);
     if (message == NULL)
 	error = TRUE;
     if (argvars[1].v_type != VAR_UNKNOWN)
     {
+	if (in_vim9script() && check_for_string_arg(argvars, 1) == FAIL)
+	    return;
 	buttons = tv_get_string_buf_chk(&argvars[1], buf);
 	if (buttons == NULL)
 	    error = TRUE;
@@ -2691,6 +2705,8 @@ f_confirm(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
 	    def = (int)tv_get_number_chk(&argvars[2], &error);
 	    if (argvars[3].v_type != VAR_UNKNOWN)
 	    {
+		if (in_vim9script() && check_for_string_arg(argvars, 3) == FAIL)
+		    return;
 		typestr = tv_get_string_buf_chk(&argvars[3], buf2);
 		if (typestr == NULL)
 		    error = TRUE;
