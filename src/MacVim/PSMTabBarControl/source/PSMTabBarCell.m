@@ -67,12 +67,6 @@
     return self;
 }
 
-- (void)dealloc
-{
-    [_indicator release];
-    [_toolTip release];
-    [super dealloc];
-}
 
 #pragma mark -
 #pragma mark Accessors
@@ -251,7 +245,6 @@
 - (void)setToolTip:(NSString *)tip
 {
     if (tip != _toolTip) {
-        [_toolTip release];
         _toolTip = [tip copy];
     }
 }
@@ -333,9 +326,9 @@
     [[self controlView] cacheDisplayInRect:cellFrame toBitmapImageRep:rep];
 
     [self.controlView unlockFocus];
-    NSImage *image = [[[NSImage alloc] initWithSize:[rep size]] autorelease];
+    NSImage *image = [[NSImage alloc] initWithSize:[rep size]];
     [image addRepresentation:rep];
-    NSImage *returnImage = [[[NSImage alloc] initWithSize:[rep size]] autorelease];
+    NSImage *returnImage = [[NSImage alloc] initWithSize:[rep size]];
     [returnImage lockFocus];
     [image drawAtPoint:NSMakePoint(0.0, 0.0) fromRect:NSZeroRect operation:NSCompositingOperationSourceOver fraction:0.7];
     [returnImage unlockFocus];
@@ -347,7 +340,6 @@
             indicatorPoint.y += 1.0;
         [pi drawAtPoint:indicatorPoint fromRect:NSZeroRect operation:NSCompositingOperationSourceOver fraction:0.7];
         [returnImage unlockFocus];
-        [pi release];
     }
     return returnImage;
 }
@@ -390,7 +382,7 @@
             _cellTrackingTag = [aDecoder decodeIntForKey:@"cellTrackingTag"];
             _closeButtonOver = [aDecoder decodeBoolForKey:@"closeButtonOver"];
             _closeButtonPressed = [aDecoder decodeBoolForKey:@"closeButtonPressed"];
-            _indicator = [[aDecoder decodeObjectForKey:@"indicator"] retain];
+            _indicator = [aDecoder decodeObjectForKey:@"indicator"];
             _isInOverflowMenu = [aDecoder decodeBoolForKey:@"isInOverflowMenu"];
             _hasCloseButton = [aDecoder decodeBoolForKey:@"hasCloseButton"];
             _isCloseButtonSuppressed = [aDecoder decodeBoolForKey:@"isCloseButtonSuppressed"];

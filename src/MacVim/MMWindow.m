@@ -98,8 +98,6 @@ static CGSSetWindowBackgroundBlurRadiusFunction* GetCGSSetWindowBackgroundBlurRa
 
     // TODO: Is there any reason why we would want the following call?
     //[tablineSeparator removeFromSuperviewWithoutNeedingDisplay];
-    [tablineSeparator release];  tablineSeparator = nil;
-    [super dealloc];
 }
 
 - (BOOL) canBecomeMainWindow {

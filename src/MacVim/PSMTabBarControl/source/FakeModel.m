@@ -42,8 +42,6 @@
 
 - (void)setIcon:(NSImage *)icon
 {
-    [icon retain];
-    [_icon release];
     _icon = icon;
 }
 
@@ -54,8 +52,6 @@
 
 - (void)setIconName:(NSString *)iconName
 {
-    [iconName retain];
-    [_iconName release];
     _iconName = iconName;
 }
 

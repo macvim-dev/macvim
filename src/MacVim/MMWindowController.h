@@ -11,7 +11,6 @@
 #import "MacVim.h"
 
 
-
 @class MMWindow;
 @class MMFullScreenWindow;
 @class MMVimController;

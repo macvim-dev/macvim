@@ -14,7 +14,14 @@
 @class MMWindowController;
 @class MMTouchBarInfo;
 
-
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12_2
+@interface MMTouchBarButton : NSButton {
+    NSArray *_desc;
+}
+- (NSArray *)desc;
+- (void)setDesc:(NSArray *)desc;
+@end
+#endif
 
 @interface MMVimController : NSObject<
     NSToolbarDelegate

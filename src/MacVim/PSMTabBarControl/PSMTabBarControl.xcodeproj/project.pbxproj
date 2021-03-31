@@ -58,7 +58,7 @@
 		A268E80709A9822A00E082AA /* TabNewMetal.png in Resources */ = {isa = PBXBuildFile; fileRef = A268E7FB09A9822900E082AA /* TabNewMetal.png */; };
 		A268E80809A9822A00E082AA /* TabNewMetalPressed.png in Resources */ = {isa = PBXBuildFile; fileRef = A268E7FC09A9822900E082AA /* TabNewMetalPressed.png */; };
 		A268E80909A9822A00E082AA /* TabNewMetalRollover.png in Resources */ = {isa = PBXBuildFile; fileRef = A268E7FD09A9822900E082AA /* TabNewMetalRollover.png */; };
-		A268EA6209A9831800E082AA /* PSMRolloverButton.h in Headers */ = {isa = PBXBuildFile; fileRef = A268EA5F09A9831800E082AA /* PSMRolloverButton.h */; };
+		A268EA6209A9831800E082AA /* PSMRolloverButton.h in Headers */ = {isa = PBXBuildFile; fileRef = A268EA5F09A9831800E082AA /* PSMRolloverButton.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		A268EA6309A9831800E082AA /* PSMRolloverButton.m in Sources */ = {isa = PBXBuildFile; fileRef = A268EA6009A9831800E082AA /* PSMRolloverButton.m */; };
 		A27E47850A28EE76007BA395 /* TabIcon.tif in Resources */ = {isa = PBXBuildFile; fileRef = A20822F00959F6AA00C5F5A4 /* TabIcon.tif */; };
 		A27E47880A28EE7C007BA395 /* TabControlRep.tif in Resources */ = {isa = PBXBuildFile; fileRef = A20822EF0959F6AA00C5F5A4 /* TabControlRep.tif */; };
@@ -415,12 +415,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				546DEAF2067F630E0098DCC4 /* PSMTabBarControl.h in Headers */,
+				A268EA6209A9831800E082AA /* PSMRolloverButton.h in Headers */,
 				A251BE850959A1B90058BC7F /* PSMOverflowPopUpButton.h in Headers */,
 				A251BE870959A1B90058BC7F /* PSMTabBarCell.h in Headers */,
 				52FAFCD31C30F4DF00C6E613 /* PSMYosemiteTabStyle.h in Headers */,
 				A2D32EDC09A634C900EC8662 /* PSMTabStyle.h in Headers */,
 				A2D32F0009A63D7A00EC8662 /* PSMMetalTabStyle.h in Headers */,
-				A268EA6209A9831800E082AA /* PSMRolloverButton.h in Headers */,
 				A2129BB209AEB58F00724E6C /* PSMProgressIndicator.h in Headers */,
 				A2082A9009EAEB34009AC8BE /* PSMTabDragAssistant.h in Headers */,
 				A2D98B0A0A2B432C0064C6F8 /* PSMUnifiedTabStyle.h in Headers */,
@@ -463,6 +463,7 @@
 			developmentRegion = English;
 			hasScannedForEncodings = 1;
 			knownRegions = (
+				English,
 				en,
 			);
 			mainGroup = 0259C574FE90428111CA0C5A /* PSMTabBarControl */;
@@ -595,6 +596,7 @@
 		C056398008A954F8003078D8 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_ENABLE_OBJC_ARC = YES;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				DYLIB_COMPATIBILITY_VERSION = 1;
@@ -621,6 +623,7 @@
 		C056398108A954F8003078D8 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_ENABLE_OBJC_ARC = YES;
 				COMBINE_HIDPI_IMAGES = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;

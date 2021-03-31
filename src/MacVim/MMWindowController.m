@@ -149,7 +149,6 @@
                       styleMask:styleMask
                         backing:NSBackingStoreBuffered
                           defer:YES];
-    [win autorelease];
 
     self = [super initWithWindow:win];
     if (!self) return nil;
@@ -157,7 +156,7 @@
     resizingDueToMove = NO;
 
     vimController = controller;
-    decoratedWindow = [win retain];
+    decoratedWindow = win;
     
     [self refreshApperanceMode];
 
@@ -243,15 +242,6 @@
 - (void)dealloc
 {
     ASLogDebug(@"");
-
-    [decoratedWindow release];  decoratedWindow = nil;
-    [windowAutosaveKey release];  windowAutosaveKey = nil;
-    [vimView release];  vimView = nil;
-    [toolbar release];  toolbar = nil;
-    // in case processAfterWindowPresentedQueue wasn't called
-    [afterWindowPresentedQueue release];  afterWindowPresentedQueue = nil;
-
-    [super dealloc];
 }
 
 - (NSString *)description
@@ -279,7 +269,6 @@
 
 - (void)setWindowAutosaveKey:(NSString *)key
 {
-    [windowAutosaveKey autorelease];
     windowAutosaveKey = [key copy];
 }
 
@@ -461,8 +450,7 @@
 - (void)setTitle:(NSString *)title
 {
     // Save the original title, if we haven't already.
-    [lastSetTitle release];
-    lastSetTitle = [title retain];
+    lastSetTitle = title;
     
     // While in live resize the window title displays the dimensions of the
     // window so don't clobber this with the new title. We have already set
@@ -508,8 +496,7 @@
 - (void)setToolbar:(NSToolbar *)theToolbar
 {
     if (theToolbar != toolbar) {
-        [toolbar release];
-        toolbar = [theToolbar retain];
+        toolbar = theToolbar;
     }
 
     // NOTE: Toolbar must be set here or it won't work to show it later.
@@ -930,10 +917,6 @@
         // Enter custom full-screen mode.
         ASLogInfo(@"Enter custom full-screen");
 
-        // fullScreenWindow could be non-nil here if this is called multiple
-        // times during startup.
-        [fullScreenWindow release];
-
         NSColor *fullscreenBg = back;
 
         // See setDefaultColorsBackground: for why set a transparent
@@ -973,7 +956,6 @@
     if (fullScreenWindow) {
         // Using custom full-screen
         [fullScreenWindow leaveFullScreen];
-        [fullScreenWindow release];
         fullScreenWindow = nil;
 
         // The vim view may be too large to fit the screen, so update it.
@@ -1100,7 +1082,7 @@
 }
 
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12_2
-- (IBAction)vimTouchbarItemAction:(id)sender
+- (IBAction)vimTouchbarItemAction:(MMTouchBarButton *)sender
 {
     NSArray *desc = [sender desc];
     NSDictionary *attrs = [NSDictionary dictionaryWithObject:desc
@@ -1888,7 +1870,7 @@
     for (void (^block)(void) in afterWindowPresentedQueue)
         block();
 
-    [afterWindowPresentedQueue release]; afterWindowPresentedQueue = nil;
+     afterWindowPresentedQueue = nil;
 }
 
 + (NSString *)tabBarStyleForUnified

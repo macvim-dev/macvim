@@ -102,13 +102,6 @@ static BOOL isUnsafeMessage(int msgid);
 - (void)setTouchBarItem:(NSTouchBarItem *)item;
 - (void)makeChildTouchBar;
 @end
-
-@interface MMTouchBarButton : NSButton {
-    NSArray *_desc;
-}
-- (NSArray *)desc;
-- (void)setDesc:(NSArray *)desc;
-@end
 #endif
 
 @interface MMVimController (Private)
@@ -179,7 +172,7 @@ static BOOL isUnsafeMessage(int msgid);
 
     windowController =
         [[MMWindowController alloc] initWithVimController:self];
-    backendProxy = [backend retain];
+    backendProxy = backend;
     popupMenuItems = [[NSMutableArray alloc] init];
     toolbarItemDict = [[NSMutableDictionary alloc] init];
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12_2
@@ -206,7 +199,7 @@ static BOOL isUnsafeMessage(int msgid);
     mainMenu = [[NSMenu alloc] initWithTitle:@"MainMenu"];
     NSMenuItem *appMenuItem = [[MMAppController sharedInstance]
                                         appMenuItemTemplate];
-    appMenuItem = [[appMenuItem copy] autorelease];
+    appMenuItem = [appMenuItem copy];
 
     // Note: If the title of the application menu is anything but what
     // CFBundleName says then the application menu will not be typeset in
@@ -233,25 +226,7 @@ static BOOL isUnsafeMessage(int msgid);
 - (void)dealloc
 {
     ASLogDebug(@"");
-
     isInitialized = NO;
-
-    [serverName release];  serverName = nil;
-    [backendProxy release];  backendProxy = nil;
-
-    [toolbarItemDict release];  toolbarItemDict = nil;
-    [toolbar release];  toolbar = nil;
-#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12_2
-    [touchbarInfo release]; touchbarInfo = nil;
-#endif
-    [popupMenuItems release];  popupMenuItems = nil;
-    [windowController release];  windowController = nil;
-
-    [vimState release];  vimState = nil;
-    [mainMenu release];  mainMenu = nil;
-    [creationDate release];  creationDate = nil;
-
-    [super dealloc];
 }
 
 - (unsigned)vimControllerId
@@ -302,7 +277,6 @@ static BOOL isUnsafeMessage(int msgid);
 - (void)setServerName:(NSString *)name
 {
     if (name != serverName) {
-        [serverName release];
         serverName = [name copy];
     }
 }
@@ -725,8 +699,6 @@ static BOOL isUnsafeMessage(int msgid);
                 length:len encoding:NSUTF8StringEncoding];
 
         [windowController setTitle:string];
-
-        [string release];
     } else if (SetDocumentFilenameMsgID == msgid) {
         const void *bytes = [data bytes];
         int len = *((int*)bytes);  bytes += sizeof(int);
@@ -736,8 +708,6 @@ static BOOL isUnsafeMessage(int msgid);
                     length:len encoding:NSUTF8StringEncoding];
 
             [windowController setDocumentFilename:filename];
-
-            [filename release];
         } else {
             [windowController setDocumentFilename:@""];
         }
@@ -833,7 +803,6 @@ static BOOL isUnsafeMessage(int msgid);
         }
 
         [windowController setFont:font];
-        [name release];
     } else if (SetWideFontMsgID == msgid) {
         const void *bytes = [data bytes];
         float size = *((float*)bytes);  bytes += sizeof(float);
@@ -844,8 +813,6 @@ static BOOL isUnsafeMessage(int msgid);
                          encoding:NSUTF8StringEncoding];
             NSFont *font = [NSFont fontWithName:name size:size];
             [windowController setWideFont:font];
-
-            [name release];
         } else {
             [windowController setWideFont:nil];
         }
@@ -867,7 +834,6 @@ static BOOL isUnsafeMessage(int msgid);
         SEL sel = NSSelectorFromString(actionName);
         [NSApp sendAction:sel to:nil from:self];
 
-        [actionName release];
     } else if (ShowPopupMenuMsgID == msgid) {
         NSDictionary *attrs = [NSDictionary dictionaryWithData:data];
 
@@ -898,7 +864,6 @@ static BOOL isUnsafeMessage(int msgid);
         NSString *name = [[NSString alloc] initWithData:data
                                                encoding:NSUTF8StringEncoding];
         [self setServerName:name];
-        [name release];
     } else if (EnterFullScreenMsgID == msgid) {
         const void *bytes = [data bytes];
         int fuoptions = *((int*)bytes); bytes += sizeof(int);
@@ -942,8 +907,7 @@ static BOOL isUnsafeMessage(int msgid);
     } else if (SetVimStateMsgID == msgid) {
         NSDictionary *dict = [NSDictionary dictionaryWithData:data];
         if (dict) {
-            [vimState release];
-            vimState = [dict retain];
+            vimState = dict;
         }
     } else if (CloseWindowMsgID == msgid) {
         [self scheduleClose];
@@ -1275,8 +1239,6 @@ static BOOL isUnsafeMessage(int msgid);
         }
     }
 
-    [item release];
-    [menu release];
     if (!isPopup)
         [[MMAppController sharedInstance] markMainMenuDirty:mainMenu];
 }
@@ -1334,7 +1296,7 @@ static BOOL isUnsafeMessage(int msgid);
         item = [NSMenuItem separatorItem];
         [item setTitle:title];
     } else {
-        item = [[[NSMenuItem alloc] init] autorelease];
+        item = [[NSMenuItem alloc] init];
         [item setTitle:title];
 
         // Note: It is possible to set the action to a message that "doesn't
@@ -1408,8 +1370,6 @@ static BOOL isUnsafeMessage(int msgid);
         return;
     }
 
-    [item retain];
-
     if ([item menu] == [NSApp mainMenu] || ![item menu]) {
         // NOTE: To be on the safe side we try to remove the item from
         // both arrays (it is ok to call removeObject: even if an array
@@ -1419,8 +1379,6 @@ static BOOL isUnsafeMessage(int msgid);
 
     if ([item menu])
         [[item menu] removeItem:item];
-
-    [item release];
 
     const BOOL isPopup = [MMVimController hasPopupPrefix:rootName];
     if (!isPopup)
@@ -1520,7 +1478,7 @@ static BOOL isUnsafeMessage(int msgid);
 
     NSImage *img = [NSImage imageNamed:icon];
     if (!img) {
-        img = [[[NSImage alloc] initByReferencingFile:icon] autorelease];
+        img = [[NSImage alloc] initByReferencingFile:icon];
         if (!(img && [img isValid]))
             img = nil;
     }
@@ -1536,8 +1494,6 @@ static BOOL isUnsafeMessage(int msgid);
     [item setImage:img];
 
     [toolbarItemDict setObject:item forKey:title];
-
-    [item release];
 }
 
 - (void)addToolbarItemWithLabel:(NSString *)label
@@ -1598,7 +1554,7 @@ static BOOL isUnsafeMessage(int msgid);
             touchbarLabel = NSTouchBarItemIdentifierFixedSpaceLarge;
         }
     } else if (submenu) {
-        NSPopoverTouchBarItem *item = [[[NSPopoverTouchBarItem alloc] initWithIdentifier:label] autorelease];
+        NSPopoverTouchBarItem *item = [[NSPopoverTouchBarItem alloc] initWithIdentifier:label];
         // Icons not supported for now until we find a way to send the information in from Vim
         [item setCollapsedRepresentationLabel:label];
         touchbarItem = item;
@@ -1608,11 +1564,11 @@ static BOOL isUnsafeMessage(int msgid);
         MMTouchBarButton* button = [MMTouchBarButton buttonWithTitle:buttonTitle target:windowController action:@selector(vimTouchbarItemAction:)];
         [button setDesc:desc];
         NSCustomTouchBarItem *item =
-            [[[NSCustomTouchBarItem alloc] initWithIdentifier:label] autorelease];
+            [[NSCustomTouchBarItem alloc] initWithIdentifier:label];
         NSImage *img = [NSImage imageNamed:icon];
 
         if (!img) {
-            img = [[[NSImage alloc] initByReferencingFile:icon] autorelease];
+            img = [[NSImage alloc] initByReferencingFile:icon];
             if (!(img && [img isValid]))
                 img = nil;
         }
@@ -1630,7 +1586,7 @@ static BOOL isUnsafeMessage(int msgid);
         touchbarItem = item;
     }
     
-    MMTouchBarItemInfo *touchbarItemInfo = [[[MMTouchBarItemInfo alloc] initWithItem:touchbarItem label:touchbarLabel] autorelease];
+    MMTouchBarItemInfo *touchbarItemInfo = [[MMTouchBarItemInfo alloc] initWithItem:touchbarItem label:touchbarLabel];
     if (submenu) {
         [touchbarItemInfo makeChildTouchBar];
     }
@@ -1893,8 +1849,6 @@ static BOOL isUnsafeMessage(int msgid);
 
     [alert beginSheetModalForWindow:[windowController window]
                       modalDelegate:self];
-
-    [alert release];
 }
 
 - (void)handleDeleteSign:(NSDictionary *)attr
@@ -1927,14 +1881,10 @@ static BOOL isUnsafeMessage(int msgid);
 - (void)dealloc
 {
     ASLogDebug(@"");
-
-    [textField release];  textField = nil;
-    [super dealloc];
 }
 
 - (void)setTextFieldString:(NSString *)textFieldString
 {
-    [textField release];
     textField = [[NSTextField alloc] init];
     [textField setStringValue:textFieldString];
 }
@@ -2013,32 +1963,17 @@ static BOOL isUnsafeMessage(int msgid);
     return self;
 }
     
-- (void)dealloc
-{
-    [_touchbar release];  _touchbar = nil;
-
-    [_itemDict release];  _itemDict = nil;
-    [_itemOrder release];  _itemOrder = nil;
-    [super dealloc];
-}
     
 @end // MMTouchBarInfo
 
 @implementation MMTouchBarItemInfo
 
-- (void)dealloc
-{
-    [_touchbarItem release];  _touchbarItem = nil;
-    [_label release];  _label = nil;
-    [_childTouchbar release];  _childTouchbar = nil;
-    [super dealloc];
-}
     
 - (id)initWithItem:(NSTouchBarItem *)item label:(NSString *)label
 {
-    _touchbarItem = [item retain];
+    _touchbarItem = item;
     _enabled = YES;
-    _label = [label retain];
+    _label = label;
     return self;
 }
     
@@ -2056,12 +1991,6 @@ static BOOL isUnsafeMessage(int msgid);
     
 @implementation MMTouchBarButton
     
-- (void)dealloc
-{
-    [_desc release];  _desc = nil;
-    [super dealloc];
-}
-    
 - (NSArray *)desc
 {
     return _desc;
@@ -2069,7 +1998,7 @@ static BOOL isUnsafeMessage(int msgid);
     
 - (void)setDesc:(NSArray *)desc
 {
-    _desc = [desc retain];
+    _desc = desc;
 }
     
 @end // MMTouchBarButton

@@ -19,20 +19,6 @@ void YosemiteNSDrawWindowBackground(NSRect rect, NSColor *color)
 
 @implementation PSMYosemiteTabStyle
 
-- (void)dealloc
-{
-    [closeButton release];
-    [closeButtonDown release];
-    [closeButtonOver release];
-    [_addTabButtonImage release];
-    [_addTabButtonPressedImage release];
-    [_addTabButtonRolloverImage release];
-
-    [truncatingTailParagraphStyle release];
-    [centeredParagraphStyle release];
-
-    [super dealloc];
-}
 
 #pragma mark -
 #pragma mark Initializers
@@ -266,12 +252,12 @@ void YosemiteNSDrawWindowBackground(NSRect rect, NSColor *color)
 {
     NSMutableAttributedString *attrStr;
     NSFontManager *fm = [NSFontManager sharedFontManager];
-    NSNumberFormatter *nf = [[[NSNumberFormatter alloc] init] autorelease];
+    NSNumberFormatter *nf = [[NSNumberFormatter alloc] init];
     [nf setLocalizesFormat:YES];
     [nf setFormat:@"0"];
     [nf setHasThousandSeparators:YES];
     NSString *contents = [nf stringFromNumber:[NSNumber numberWithInt:[cell count]]];
-    attrStr = [[[NSMutableAttributedString alloc] initWithString:contents] autorelease];
+    attrStr = [[NSMutableAttributedString alloc] initWithString:contents];
     NSRange range = NSMakeRange(0, [contents length]);
 
     // Add font attribute
@@ -285,7 +271,7 @@ void YosemiteNSDrawWindowBackground(NSRect rect, NSColor *color)
 {
     NSMutableAttributedString *attrStr;
     NSString *contents = [cell stringValue];
-    attrStr = [[[NSMutableAttributedString alloc] initWithString:contents] autorelease];
+    attrStr = [[NSMutableAttributedString alloc] initWithString:contents];
     NSRange range = NSMakeRange(0, [contents length]);
 
     // Add font attribute
@@ -306,7 +292,7 @@ void YosemiteNSDrawWindowBackground(NSRect rect, NSColor *color)
 
     // Paragraph Style for Truncating Long Text
     if (!truncatingTailParagraphStyle) {
-        truncatingTailParagraphStyle = [[[NSParagraphStyle defaultParagraphStyle] mutableCopy] retain];
+        truncatingTailParagraphStyle = [[NSParagraphStyle defaultParagraphStyle] mutableCopy];
         [truncatingTailParagraphStyle setLineBreakMode:NSLineBreakByTruncatingHead];
         [truncatingTailParagraphStyle setAlignment:NSTextAlignmentCenter];
     }
@@ -445,11 +431,11 @@ void YosemiteNSDrawWindowBackground(NSRect rect, NSColor *color)
         labelRect.origin.y += 4.0;
         NSMutableAttributedString *attrStr;
         NSString *contents = @"PSMTabBarControl";
-        attrStr = [[[NSMutableAttributedString alloc] initWithString:contents] autorelease];
+        attrStr = [[NSMutableAttributedString alloc] initWithString:contents];
         NSRange range = NSMakeRange(0, [contents length]);
         [attrStr addAttribute:NSFontAttributeName value:[NSFont systemFontOfSize:11.0] range:range];
         if (!centeredParagraphStyle) {
-            centeredParagraphStyle = [[[NSParagraphStyle defaultParagraphStyle] mutableCopy] retain];
+            centeredParagraphStyle = [[NSParagraphStyle defaultParagraphStyle] mutableCopy];
             [centeredParagraphStyle setAlignment:NSTextAlignmentCenter];
         }
         [attrStr addAttribute:NSParagraphStyleAttributeName value:centeredParagraphStyle range:range];
@@ -485,12 +471,12 @@ void YosemiteNSDrawWindowBackground(NSRect rect, NSColor *color)
 - (id)initWithCoder:(NSCoder *)aDecoder
 {
     if ([aDecoder allowsKeyedCoding]) {
-        closeButton = [[aDecoder decodeObjectForKey:@"metalCloseButton"] retain];
-        closeButtonDown = [[aDecoder decodeObjectForKey:@"metalCloseButtonDown"] retain];
-        closeButtonOver = [[aDecoder decodeObjectForKey:@"metalCloseButtonOver"] retain];
-        _addTabButtonImage = [[aDecoder decodeObjectForKey:@"addTabButtonImage"] retain];
-        _addTabButtonPressedImage = [[aDecoder decodeObjectForKey:@"addTabButtonPressedImage"] retain];
-        _addTabButtonRolloverImage = [[aDecoder decodeObjectForKey:@"addTabButtonRolloverImage"] retain];
+        closeButton = [aDecoder decodeObjectForKey:@"metalCloseButton"];
+        closeButtonDown = [aDecoder decodeObjectForKey:@"metalCloseButtonDown"];
+        closeButtonOver = [aDecoder decodeObjectForKey:@"metalCloseButtonOver"];
+        _addTabButtonImage = [aDecoder decodeObjectForKey:@"addTabButtonImage"];
+        _addTabButtonPressedImage = [aDecoder decodeObjectForKey:@"addTabButtonPressedImage"];
+        _addTabButtonRolloverImage = [aDecoder decodeObjectForKey:@"addTabButtonRolloverImage"];
     }
 
     return self;
