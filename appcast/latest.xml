@@ -6,65 +6,19 @@
     <description>MacVim</description>
 
     <item>
-      <title>MacVim snapshot-170</title>
+      <title>MacVim snapshot-171</title>
       <description><![CDATA[
 <style>
 :root { supported-color-schemes: light dark; color-scheme: light dark; }
 </style>
-<p>Updated to Vim 8.2.2576.</p>
+<p>Updated to Vim 8.2.2681.</p>
 
-<p>This was a somewhat delayed release. My apologies! Next few releases should be more frequent.</p>
-
-<h1 id="features">Features</h1>
-
-<h2 id="apple-silicon-support">Apple Silicon Support</h2>
-
-<p>MacVim’s binary release now fully supports Apple Silicon! If you have an M1 Mac you should notice MacVim being more snappy and smoother. <a href="https://github.com/macvim-dev/macvim/issues/1150">#1150</a></p>
-
-<p>If you would like to (e.g. if you only installed Python 3 in Rosetta and use plugins that use Python), you could run MacVim under Rosetta. You could use <code>:version</code> while in MacVim to tell whether you are running in Rosetta / Intel or Apple Silicon by seeing whether it says x86_64 or arm64. (Vim 8.2.2174)</p>
-
-<p>If you rely on Python/Ruby/Lua integration, note that previously MacVim by default searches the <code>/usr/local/</code> path for installed language runtimes. With this release, MacVim will still search those folders under Intel / x86-64 builds, but under Apple Silicon / M1, MacVim will search under <code>/opt/homebrew/</code> instead, which is the default folder for Homebrew under Apple Silicon. If you don’t use Homebrew, or installed language runtimes under other folders, you would need to set <code>python3dll</code>/<code>luadll</code>/<code>rubydll</code> in your vimrc.</p>
-
-<h2 id="full-screen-fixes-and-improvements">Full Screen Fixes and Improvements</h2>
-
-<p>Removed the fade-to-black animation when transition to full screen, as they were distracting and looked jarring. For non-native full screen, you could set <code>MMFullScreenFadeTime</code> to a non-zero value to still get the animation back. <a href="https://github.com/macvim-dev/macvim/issues/1171">#1171</a></p>
-
-<p>Non-native full screen:</p>
-
-<ul>
-  <li>Non-native full screen now has an option to show menu bar when it’s active (under Appearance preference pane). <a href="https://github.com/macvim-dev/macvim/issues/1170">#1170</a></li>
-  <li>Fixed non-native full screen to properly hide the menu / dock when used on a secondary screen. Also, fixed misc issues with non-native full screen not drawing at the right offset. <a href="https://github.com/macvim-dev/macvim/issues/7">#7</a> <a href="https://github.com/macvim-dev/macvim/issues/1155">#1155</a> <a href="https://github.com/macvim-dev/macvim/issues/1170">#1170</a></li>
-  <li>Fixed non-native full screen’s <code>fuopt</code> setting. It now works again.  This feature allows you to limit only expand horizontally or vertically when using non-native full screen to help focus on the content, see <code>:help fuopt</code>. <a href="https://github.com/macvim-dev/macvim/issues/509">#509</a></li>
-</ul>
-
-<p>Fixed small bug in Touch Bar’s full screen button sometimes not being updated correctly. <a href="https://github.com/macvim-dev/macvim/issues/1171">#1171</a></p>
-
-<h1 id="known-issues">Known Issues</h1>
-
-<h2 id="text-invisible-after-plugging-in-monitor-or-waking-from-sleep">Text invisible after plugging in monitor or waking from sleep</h2>
-
-<p>There is currently a known issue in rendering where after plugging/unplugging an external monitor, or waking from sleep when connected to a monitor, there is a small chance MacVim will stop drawing text. If you see that, please report that to <a href="https://github.com/macvim-dev/macvim/issues/1164">#1164</a>. This release contains some additional logging to help dignose the issue and we are still looking to root cause it.</p>
-
-<h1 id="general">General</h1>
-
-<ul>
-  <li>Added an option to ignore font’s line height. r168 introduced a new renderer which changed the behavior for how font’s line height works – instead of ignoring it, the new renderer respects the line height of the font. This new setting allows MacVim to behave in the old way, since some fonts have large line height that the user may not want to use. <a href="https://github.com/macvim-dev/macvim/issues/1152">#1152</a></li>
-</ul>
+<p>This is a small update mostly containing a fix to a rendering bug in Core Text renderer.</p>
 
 <h1 id="fixes">Fixes</h1>
 
 <ul>
-  <li>Fixed balloon APIs (<code>balloon_show()</code> / <code>balloon_gettext()</code>) so plugins relying on them should now work. <a href="https://github.com/macvim-dev/macvim/issues/902">#902</a> <a href="https://github.com/macvim-dev/macvim/issues/1064">#1064</a></li>
-</ul>
-
-<h1 id="misc">Misc</h1>
-
-<ul>
-  <li>Scripting languages versions:
-    <ul>
-      <li>Ruby is now built against 3.0, up from 2.7.</li>
-    </ul>
-  </li>
+  <li>Fixed a rendering issue where MacVim would stop drawing text when the computer is running low on memory. Previously the user would have to restart MacVim in order to get the rendering back. <a href="https://github.com/macvim-dev/macvim/issues/1164">#1164</a></li>
 </ul>
 
 <h1 id="compatibility">Compatibility</h1>
@@ -84,22 +38,22 @@
 <p><br /><small>Read the latest release notes <a href="https://github.com/macvim-dev/macvim/releases/latest">here</a>.</small></p>
 
       ]]></description>
-      <pubDate>Mon, 08 Mar 2021 00:00:00 -0800</pubDate>
+      <pubDate>Thu, 01 Apr 2021 02:00:00 -0700</pubDate>
       <sparkle:minimumSystemVersion>10.9</sparkle:minimumSystemVersion>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-170/MacVim.dmg"
-        sparkle:version="170"
-        sparkle:shortVersionString="8.2.2576"
-        sparkle:dsaSignature="MC0CFFkrOg9wim+wZaYXcXzxSTc4FzXLAhUAveo8Ur2QlO1z+XyjTY9AuXihve8="
-        length="23687922"
+        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-171/MacVim.dmg"
+        sparkle:version="171"
+        sparkle:shortVersionString="8.2.2681"
+        sparkle:dsaSignature="MC4CFQCZ9ihexyGUMlRyY3TO4YCAH9MhGgIVALv1TJTPr5kZ2VeaJnxrvNsYiJMk"
+        length="23692879"
         />
       <sparkle:deltas>
         <enclosure type="application/octet-stream"
-          url="https://github.com/macvim-dev/macvim/releases/download/snapshot-170/169_to_170.delta"
-          sparkle:version="170"
-          sparkle:deltaFrom="169"
-          sparkle:dsaSignature="MCwCFBARd5SJLgPEXi7mzHSR3MhZj/HfAhQLrOg8852MggMZsWlIIPSKTVhBIQ=="
-          length="2459716"
+          url="https://github.com/macvim-dev/macvim/releases/download/snapshot-171/170_to_171.delta"
+          sparkle:version="171"
+          sparkle:deltaFrom="170"
+          sparkle:dsaSignature="MCwCFCLcFRvrC5EGY1T4zR6dI6rGBrp/AhRH7mtRbSIMF5fAM+u/owVKEVfeZA=="
+          length="808944"
           />
       </sparkle:deltas>
     </item>
