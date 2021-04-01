@@ -3170,6 +3170,7 @@ set_var_const(
     hashtab_T	*ht;
     int		is_script_local;
     int		vim9script = in_vim9script();
+    int		var_in_vim9script;
 
     ht = find_var_ht(name, &varname);
     if (ht == NULL || *varname == NUL)
@@ -3188,6 +3189,7 @@ set_var_const(
 	vim9_declare_error(name);
 	goto failed;
     }
+    var_in_vim9script = is_script_local && current_script_is_vim9();
 
     di = find_var_in_ht(ht, 0, varname, TRUE);
 
@@ -3219,15 +3221,16 @@ set_var_const(
 		goto failed;
 	    }
 
-	    if (is_script_local && vim9script)
+	    if (is_script_local && vim9script
+			      && (flags & (ASSIGN_NO_DECL | ASSIGN_DECL)) == 0)
+	    {
+		semsg(_(e_redefining_script_item_str), name);
+		goto failed;
+	    }
+
+	    if (var_in_vim9script)
 	    {
 		where_T where;
-
-		if ((flags & (ASSIGN_NO_DECL | ASSIGN_DECL)) == 0)
-		{
-		    semsg(_(e_redefining_script_item_str), name);
-		    goto failed;
-		}
 
 		// check the type and adjust to bool if needed
 		where.wt_index = var_idx;
@@ -3246,7 +3249,7 @@ set_var_const(
 
 	    // A Vim9 script-local variable is also present in sn_all_vars and
 	    // sn_var_vals.  It may set "type" from "tv".
-	    if (is_script_local && vim9script)
+	    if (var_in_vim9script)
 		update_vim9_script_var(FALSE, di, flags, tv, &type);
 	}
 
@@ -3310,7 +3313,7 @@ set_var_const(
 	}
 
 	// add a new variable
-	if (vim9script && is_script_local && (flags & ASSIGN_NO_DECL))
+	if (var_in_vim9script && (flags & ASSIGN_NO_DECL))
 	{
 	    semsg(_(e_unknown_variable_str), name);
 	    goto failed;
@@ -3344,7 +3347,7 @@ set_var_const(
 
 	// A Vim9 script-local variable is also added to sn_all_vars and
 	// sn_var_vals. It may set "type" from "tv".
-	if (is_script_local && vim9script)
+	if (var_in_vim9script)
 	    update_vim9_script_var(TRUE, di, flags, tv, &type);
     }
 
@@ -3455,8 +3458,10 @@ var_wrong_func_name(
     char_u *name,    // points to start of variable name
     int    new_var)  // TRUE when creating the variable
 {
-    // Allow for w: b: s: and t:.
-    if (!(vim_strchr((char_u *)"wbst", name[0]) != NULL && name[1] == ':')
+    // Allow for w: b: s: and t:.  In Vim9 script s: is not allowed, because
+    // the name can be used without the s: prefix.
+    if (!((vim_strchr((char_u *)"wbt", name[0]) != NULL
+		    || (!in_vim9script() && name[0] == 's')) && name[1] == ':')
 	    && !ASCII_ISUPPER((name[0] != NUL && name[1] == ':')
 						     ? name[2] : name[0]))
     {
