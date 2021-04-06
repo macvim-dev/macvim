@@ -2650,6 +2650,112 @@ clear_ppconst(ppconst_T *ppconst)
 }
 
 /*
+ * Compile getting a member from a list/dict/string/blob.  Stack has the
+ * indexable value and the index.
+ */
+    static int
+compile_member(int is_slice, cctx_T *cctx)
+{
+    type_T	**typep;
+    garray_T	*stack = &cctx->ctx_type_stack;
+    vartype_T	vtype;
+    type_T	*valtype;
+
+    // We can index a list and a dict.  If we don't know the type
+    // we can use the index value type.
+    // TODO: If we don't know use an instruction to figure it out at
+    // runtime.
+    typep = ((type_T **)stack->ga_data) + stack->ga_len
+						  - (is_slice ? 3 : 2);
+    vtype = (*typep)->tt_type;
+    valtype = ((type_T **)stack->ga_data)[stack->ga_len - 1];
+    // If the index is a string, the variable must be a Dict.
+    if (*typep == &t_any && valtype == &t_string)
+	vtype = VAR_DICT;
+    if (vtype == VAR_STRING || vtype == VAR_LIST || vtype == VAR_BLOB)
+    {
+	if (need_type(valtype, &t_number, -1, 0, cctx, FALSE, FALSE) == FAIL)
+	    return FAIL;
+	if (is_slice)
+	{
+	    valtype = ((type_T **)stack->ga_data)[stack->ga_len - 2];
+	    if (need_type(valtype, &t_number, -2, 0, cctx,
+							 FALSE, FALSE) == FAIL)
+		return FAIL;
+	}
+    }
+
+    if (vtype == VAR_DICT)
+    {
+	if (is_slice)
+	{
+	    emsg(_(e_cannot_slice_dictionary));
+	    return FAIL;
+	}
+	if ((*typep)->tt_type == VAR_DICT)
+	{
+	    *typep = (*typep)->tt_member;
+	    if (*typep == &t_unknown)
+		// empty dict was used
+		*typep = &t_any;
+	}
+	else
+	{
+	    if (need_type(*typep, &t_dict_any, -2, 0, cctx,
+							 FALSE, FALSE) == FAIL)
+		return FAIL;
+	    *typep = &t_any;
+	}
+	if (may_generate_2STRING(-1, cctx) == FAIL)
+	    return FAIL;
+	if (generate_instr_drop(cctx, ISN_MEMBER, 1) == FAIL)
+	    return FAIL;
+    }
+    else if (vtype == VAR_STRING)
+    {
+	*typep = &t_string;
+	if ((is_slice
+		? generate_instr_drop(cctx, ISN_STRSLICE, 2)
+		: generate_instr_drop(cctx, ISN_STRINDEX, 1)) == FAIL)
+	    return FAIL;
+    }
+    else if (vtype == VAR_BLOB)
+    {
+	emsg("Sorry, blob index and slice not implemented yet");
+	return FAIL;
+    }
+    else if (vtype == VAR_LIST || *typep == &t_any)
+    {
+	if (is_slice)
+	{
+	    if (generate_instr_drop(cctx,
+		     vtype == VAR_LIST ?  ISN_LISTSLICE : ISN_ANYSLICE,
+							    2) == FAIL)
+		return FAIL;
+	}
+	else
+	{
+	    if ((*typep)->tt_type == VAR_LIST)
+	    {
+		*typep = (*typep)->tt_member;
+		if (*typep == &t_unknown)
+		    // empty list was used
+		    *typep = &t_any;
+	    }
+	    if (generate_instr_drop(cctx,
+		 vtype == VAR_LIST ?  ISN_LISTINDEX : ISN_ANYINDEX, 1) == FAIL)
+		return FAIL;
+	}
+    }
+    else
+    {
+	emsg(_(e_string_list_dict_or_blob_required));
+	return FAIL;
+    }
+    return OK;
+}
+
+/*
  * Generate an instruction to load script-local variable "name", without the
  * leading "s:".
  * Also finds imported variables.
@@ -2720,11 +2826,17 @@ compile_load_scriptvar(
 								   cctx, TRUE);
 	    *p = cc;
 	    p = skipwhite(p);
-
-	    // TODO: what if it is a function?
-	    if (idx < 0)
-		return FAIL;
 	    *end = p;
+
+	    if (idx < 0)
+	    {
+		if (*p == '(' && ufunc != NULL)
+		{
+		    generate_PUSHFUNC(cctx, ufunc->uf_name, import->imp_type);
+		    return OK;
+		}
+		return FAIL;
+	    }
 
 	    generate_VIM9SCRIPT(cctx, ISN_LOADSCRIPT,
 		    import->imp_sid,
@@ -2816,7 +2928,7 @@ compile_load(
 		case 'v': res = generate_LOADV(cctx, name, error);
 			  break;
 		case 's': res = compile_load_scriptvar(cctx, name,
-							    NULL, NULL, error);
+							    NULL, &end, error);
 			  break;
 		case 'g': if (vim_strchr(name, AUTOLOAD_CHAR) == NULL)
 			      isn_type = ISN_LOADG;
@@ -3863,23 +3975,25 @@ compile_subscript(
 	    if (**arg == '(')
 	    {
 		int	    argcount = 1;
-		char_u	    *expr;
-		garray_T    *stack;
+		garray_T    *stack = &cctx->ctx_type_stack;
+		int	    type_idx_start = stack->ga_len;
 		type_T	    *type;
+		int	    expr_isn_start = cctx->ctx_instr.ga_len;
+		int	    expr_isn_end;
+		int	    arg_isn_count;
 
 		// Funcref call:  list->(Refs[2])(arg)
 		// or lambda:	  list->((arg) => expr)(arg)
-		// Fist compile the arguments.
-		expr = *arg;
-		*arg = skipwhite(*arg + 1);
-		skip_expr_cctx(arg, cctx);
-		*arg = skipwhite(*arg);
-		if (**arg != ')')
-		{
-		    semsg(_(e_missing_paren), *arg);
+		//
+		// Fist compile the function expression.
+		if (compile_parenthesis(arg, cctx, ppconst) == FAIL)
 		    return FAIL;
-		}
-		++*arg;
+
+		// Remember the next instruction index, where the instructions
+		// for arguments are being written.
+		expr_isn_end = cctx->ctx_instr.ga_len;
+
+		// Compile the arguments.
 		if (**arg != '(')
 		{
 		    if (*skipwhite(*arg) == '(')
@@ -3888,16 +4002,43 @@ compile_subscript(
 			semsg(_(e_missing_paren), *arg);
 		    return FAIL;
 		}
-
 		*arg = skipwhite(*arg + 1);
 		if (compile_arguments(arg, cctx, &argcount) == FAIL)
 		    return FAIL;
 
-		// Compile the function expression.
-		if (compile_parenthesis(&expr, cctx, ppconst) == FAIL)
-		    return FAIL;
-
+		// Move the instructions for the arguments to before the
+		// instructions of the expression and move the type of the
+		// expression after the argument types.  This is what ISN_PCALL
+		// expects.
 		stack = &cctx->ctx_type_stack;
+		arg_isn_count = cctx->ctx_instr.ga_len - expr_isn_end;
+		if (arg_isn_count > 0)
+		{
+		    int	    expr_isn_count = expr_isn_end - expr_isn_start;
+		    isn_T   *isn = ALLOC_MULT(isn_T, expr_isn_count);
+
+		    if (isn == NULL)
+			return FAIL;
+		    mch_memmove(isn, ((isn_T *)cctx->ctx_instr.ga_data)
+							      + expr_isn_start,
+					       sizeof(isn_T) * expr_isn_count);
+		    mch_memmove(((isn_T *)cctx->ctx_instr.ga_data)
+							      + expr_isn_start,
+			     ((isn_T *)cctx->ctx_instr.ga_data) + expr_isn_end,
+						sizeof(isn_T) * arg_isn_count);
+		    mch_memmove(((isn_T *)cctx->ctx_instr.ga_data)
+					      + expr_isn_start + arg_isn_count,
+					  isn, sizeof(isn_T) * expr_isn_count);
+		    vim_free(isn);
+
+		    type = ((type_T **)stack->ga_data)[type_idx_start];
+		    mch_memmove(((type_T **)stack->ga_data) + type_idx_start,
+			      ((type_T **)stack->ga_data) + type_idx_start + 1,
+			      sizeof(type_T *)
+				       * (stack->ga_len - type_idx_start - 1));
+		    ((type_T **)stack->ga_data)[stack->ga_len - 1] = type;
+		}
+
 		type = ((type_T **)stack->ga_data)[stack->ga_len - 1];
 		if (generate_PCALL(cctx, argcount,
 				(char_u *)"[expression]", type, FALSE) == FAIL)
@@ -3928,10 +4069,6 @@ compile_subscript(
 	}
 	else if (**arg == '[')
 	{
-	    garray_T	*stack = &cctx->ctx_type_stack;
-	    type_T	**typep;
-	    type_T	*valtype;
-	    vartype_T	vtype;
 	    int		is_slice = FALSE;
 
 	    // list index: list[123]
@@ -3998,99 +4135,8 @@ compile_subscript(
 	    }
 	    *arg = *arg + 1;
 
-	    // We can index a list and a dict.  If we don't know the type
-	    // we can use the index value type.
-	    // TODO: If we don't know use an instruction to figure it out at
-	    // runtime.
-	    typep = ((type_T **)stack->ga_data) + stack->ga_len
-							  - (is_slice ? 3 : 2);
-	    vtype = (*typep)->tt_type;
-	    valtype = ((type_T **)stack->ga_data)[stack->ga_len - 1];
-	    // If the index is a string, the variable must be a Dict.
-	    if (*typep == &t_any && valtype == &t_string)
-		vtype = VAR_DICT;
-	    if (vtype == VAR_STRING || vtype == VAR_LIST || vtype == VAR_BLOB)
-	    {
-		if (need_type(valtype, &t_number, -1, 0, cctx,
-							 FALSE, FALSE) == FAIL)
-		    return FAIL;
-		if (is_slice)
-		{
-		    valtype = ((type_T **)stack->ga_data)[stack->ga_len - 2];
-		    if (need_type(valtype, &t_number, -2, 0, cctx,
-							 FALSE, FALSE) == FAIL)
-			return FAIL;
-		}
-	    }
-
-	    if (vtype == VAR_DICT)
-	    {
-		if (is_slice)
-		{
-		    emsg(_(e_cannot_slice_dictionary));
-		    return FAIL;
-		}
-		if ((*typep)->tt_type == VAR_DICT)
-		{
-		    *typep = (*typep)->tt_member;
-		    if (*typep == &t_unknown)
-			// empty dict was used
-			*typep = &t_any;
-		}
-		else
-		{
-		    if (need_type(*typep, &t_dict_any, -2, 0, cctx,
-							 FALSE, FALSE) == FAIL)
-			return FAIL;
-		    *typep = &t_any;
-		}
-		if (may_generate_2STRING(-1, cctx) == FAIL)
-		    return FAIL;
-		if (generate_instr_drop(cctx, ISN_MEMBER, 1) == FAIL)
-		    return FAIL;
-	    }
-	    else if (vtype == VAR_STRING)
-	    {
-		*typep = &t_string;
-		if ((is_slice
-			? generate_instr_drop(cctx, ISN_STRSLICE, 2)
-			: generate_instr_drop(cctx, ISN_STRINDEX, 1)) == FAIL)
-		    return FAIL;
-	    }
-	    else if (vtype == VAR_BLOB)
-	    {
-		emsg("Sorry, blob index and slice not implemented yet");
+	    if (compile_member(is_slice, cctx) == FAIL)
 		return FAIL;
-	    }
-	    else if (vtype == VAR_LIST || *typep == &t_any)
-	    {
-		if (is_slice)
-		{
-		    if (generate_instr_drop(cctx,
-			     vtype == VAR_LIST ?  ISN_LISTSLICE : ISN_ANYSLICE,
-								    2) == FAIL)
-			return FAIL;
-		}
-		else
-		{
-		    if ((*typep)->tt_type == VAR_LIST)
-		    {
-			*typep = (*typep)->tt_member;
-			if (*typep == &t_unknown)
-			    // empty list was used
-			    *typep = &t_any;
-		    }
-		    if (generate_instr_drop(cctx,
-			     vtype == VAR_LIST ?  ISN_LISTINDEX : ISN_ANYINDEX,
-								    1) == FAIL)
-			return FAIL;
-		}
-	    }
-	    else
-	    {
-		emsg(_(e_string_list_dict_or_blob_required));
-		return FAIL;
-	    }
 	}
 	else if (*p == '.' && p[1] != '.')
 	{
@@ -4100,7 +4146,7 @@ compile_subscript(
 	    ppconst->pp_is_const = FALSE;
 
 	    *arg = p + 1;
-	    if (may_get_next_line(*arg, arg, cctx) == FAIL)
+	    if (IS_WHITE_OR_NUL(**arg))
 	    {
 		emsg(_(e_missing_name_after_dot));
 		return FAIL;
@@ -4766,6 +4812,10 @@ compile_and_or(
 	ga_init2(&end_ga, sizeof(int), 10);
 	while (p[0] == opchar && p[1] == opchar)
 	{
+	    long	start_lnum = SOURCING_LNUM;
+	    int		start_ctx_lnum = cctx->ctx_lnum;
+	    int		save_lnum;
+
 	    if (next != NULL)
 	    {
 		*arg = next_line_from_context(cctx, TRUE);
@@ -4775,7 +4825,7 @@ compile_and_or(
 	    if (!IS_WHITE_OR_NUL(**arg) || !IS_WHITE_OR_NUL(p[2]))
 	    {
 		semsg(_(e_white_space_required_before_and_after_str_at_str),
-								     op, *arg);
+									op, p);
 		return FAIL;
 	    }
 
@@ -4784,11 +4834,16 @@ compile_and_or(
 	    generate_ppconst(cctx, ppconst);
 
 	    // Every part must evaluate to a bool.
+	    SOURCING_LNUM = start_lnum;
+	    save_lnum = cctx->ctx_lnum;
+	    cctx->ctx_lnum = start_ctx_lnum;
 	    if (bool_on_stack(cctx) == FAIL)
 	    {
+		cctx->ctx_lnum = save_lnum;
 		ga_clear(&end_ga);
 		return FAIL;
 	    }
+	    cctx->ctx_lnum = save_lnum;
 
 	    if (ga_grow(&end_ga, 1) == FAIL)
 	    {
@@ -5746,7 +5801,8 @@ compile_lhs(
 				      &lhs->lhs_opt_flags, &lhs->lhs_vimvaridx,
 						 &lhs->lhs_type, cctx) == FAIL)
 	    return FAIL;
-	if (lhs->lhs_dest != dest_local)
+	if (lhs->lhs_dest != dest_local
+				 && cmdidx != CMD_const && cmdidx != CMD_final)
 	{
 	    // Specific kind of variable recognized.
 	    declare_error = is_decl;
@@ -5889,9 +5945,11 @@ compile_lhs(
 	    lhs->lhs_type = lhs->lhs_lvar->lv_type;
     }
 
-    if (oplen == 3 && !heredoc && lhs->lhs_dest != dest_global
-		    && lhs->lhs_type->tt_type != VAR_STRING
-		    && lhs->lhs_type->tt_type != VAR_ANY)
+    if (oplen == 3 && !heredoc
+		   && lhs->lhs_dest != dest_global
+		   && !lhs->lhs_has_index
+		   && lhs->lhs_type->tt_type != VAR_STRING
+		   && lhs->lhs_type->tt_type != VAR_ANY)
     {
 	emsg(_(e_can_only_concatenate_to_string));
 	return FAIL;
@@ -5977,26 +6035,21 @@ compile_lhs(
 }
 
 /*
- * Assignment to a list or dict member, or ":unlet" for the item, using the
- * information in "lhs".
- * Returns OK or FAIL.
+ * For an assignment with an index, compile the "idx" in "var[idx]" or "key" in
+ * "var.key".
  */
     static int
-compile_assign_unlet(
+compile_assign_index(
 	char_u	*var_start,
 	lhs_T	*lhs,
 	int	is_assign,
-	type_T	*rhs_type,
+	int	*range,
 	cctx_T	*cctx)
 {
-    char_u	*p;
-    int		r;
-    vartype_T	dest_type;
     size_t	varlen = lhs->lhs_varlen;
-    garray_T    *stack = &cctx->ctx_type_stack;
-    int		range = FALSE;
+    char_u	*p;
+    int		r = OK;
 
-    // Compile the "idx" in "var[idx]" or "key" in "var.key".
     p = var_start + varlen;
     if (*p == '[')
     {
@@ -6011,7 +6064,7 @@ compile_assign_unlet(
 		semsg(_(e_cannot_use_range_with_assignment_str), p);
 		return FAIL;
 	    }
-	    range = TRUE;
+	    *range = TRUE;
 	    p = skipwhite(p);
 	    if (!IS_WHITE_OR_NUL(p[-1]) || !IS_WHITE_OR_NUL(p[1]))
 	    {
@@ -6037,7 +6090,69 @@ compile_assign_unlet(
 
 	r = generate_PUSHS(cctx, key);
     }
-    if (r == FAIL)
+    return r;
+}
+
+/*
+ * For a LHS with an index, load the variable to be indexed.
+ */
+    static int
+compile_load_lhs(
+	lhs_T	*lhs,
+	char_u	*var_start,
+	type_T	*rhs_type,
+	cctx_T	*cctx)
+{
+    if (lhs->lhs_dest == dest_expr)
+    {
+	size_t	    varlen = lhs->lhs_varlen;
+	int	    c = var_start[varlen];
+	char_u	    *p = var_start;
+	garray_T    *stack = &cctx->ctx_type_stack;
+
+	// Evaluate "ll[expr]" of "ll[expr][idx]"
+	var_start[varlen] = NUL;
+	if (compile_expr0(&p, cctx) == OK && p != var_start + varlen)
+	{
+	    // this should not happen
+	    emsg(_(e_missbrac));
+	    return FAIL;
+	}
+	var_start[varlen] = c;
+
+	lhs->lhs_type = stack->ga_len == 0 ? &t_void
+			      : ((type_T **)stack->ga_data)[stack->ga_len - 1];
+	// now we can properly check the type
+	if (rhs_type != NULL && lhs->lhs_type->tt_member != NULL
+		&& rhs_type != &t_void
+		&& need_type(rhs_type, lhs->lhs_type->tt_member, -2, 0, cctx,
+							 FALSE, FALSE) == FAIL)
+	    return FAIL;
+    }
+    else
+	generate_loadvar(cctx, lhs->lhs_dest, lhs->lhs_name,
+						 lhs->lhs_lvar, lhs->lhs_type);
+    return OK;
+}
+
+/*
+ * Assignment to a list or dict member, or ":unlet" for the item, using the
+ * information in "lhs".
+ * Returns OK or FAIL.
+ */
+    static int
+compile_assign_unlet(
+	char_u	*var_start,
+	lhs_T	*lhs,
+	int	is_assign,
+	type_T	*rhs_type,
+	cctx_T	*cctx)
+{
+    vartype_T	dest_type;
+    garray_T    *stack = &cctx->ctx_type_stack;
+    int		range = FALSE;
+
+    if (compile_assign_index(var_start, lhs, is_assign, &range, cctx) == FAIL)
 	return FAIL;
 
     if (lhs->lhs_type == &t_any)
@@ -6072,32 +6187,8 @@ compile_assign_unlet(
     // - index
     // - for [a : b] second index
     // - variable
-    if (lhs->lhs_dest == dest_expr)
-    {
-	int	    c = var_start[varlen];
-
-	// Evaluate "ll[expr]" of "ll[expr][idx]"
-	p = var_start;
-	var_start[varlen] = NUL;
-	if (compile_expr0(&p, cctx) == OK && p != var_start + varlen)
-	{
-	    // this should not happen
-	    emsg(_(e_missbrac));
-	    return FAIL;
-	}
-	var_start[varlen] = c;
-
-	lhs->lhs_type = stack->ga_len == 0 ? &t_void
-		  : ((type_T **)stack->ga_data)[stack->ga_len - 1];
-	// now we can properly check the type
-	if (lhs->lhs_type->tt_member != NULL && rhs_type != &t_void
-		&& need_type(rhs_type, lhs->lhs_type->tt_member, -2, 0, cctx,
-							 FALSE, FALSE) == FAIL)
-	    return FAIL;
-    }
-    else
-	generate_loadvar(cctx, lhs->lhs_dest, lhs->lhs_name,
-						 lhs->lhs_lvar, lhs->lhs_type);
+    if (compile_load_lhs(lhs, var_start, rhs_type, cctx) == FAIL)
+	return FAIL;
 
     if (dest_type == VAR_LIST || dest_type == VAR_DICT || dest_type == VAR_ANY)
     {
@@ -6159,6 +6250,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
     char_u	*sp;
     int		is_decl = is_decl_command(cmdidx);
     lhs_T	lhs;
+    long	start_lnum = SOURCING_LNUM;
 
     // Skip over the "var" or "[var, var]" to get to any "=".
     p = skip_var_list(arg, TRUE, &var_count, &semicolon, TRUE);
@@ -6308,14 +6400,21 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		    // for "+=", "*=", "..=" etc. first load the current value
 		    if (*op != '=')
 		    {
-			generate_loadvar(cctx, lhs.lhs_dest, lhs.lhs_name,
-						   lhs.lhs_lvar, lhs.lhs_type);
+			compile_load_lhs(&lhs, var_start, NULL, cctx);
 
 			if (lhs.lhs_has_index)
 			{
-			    // TODO: get member from list or dict
-			    emsg("Index with operation not supported yet");
-			    goto theend;
+			    int range = FALSE;
+
+			    // Get member from list or dict.  First compile the
+			    // index value.
+			    if (compile_assign_index(var_start, &lhs,
+						   TRUE, &range, cctx) == FAIL)
+				goto theend;
+
+			    // Get the member.
+			    if (compile_member(FALSE, cctx) == FAIL)
+				goto theend;
 			}
 		    }
 
@@ -6386,7 +6485,9 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		    {
 			type_T *use_type = lhs.lhs_lvar->lv_type;
 
-			// without operator check type here, otherwise below
+			// Without operator check type here, otherwise below.
+			// Use the line number of the assignment.
+			SOURCING_LNUM = start_lnum;
 			if (lhs.lhs_has_index)
 			    use_type = lhs.lhs_member_type;
 			if (need_type(rhs_type, use_type, -1, 0, cctx,
@@ -6513,6 +6614,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	else
 	{
 	    if (is_decl && cmdidx == CMD_const && (lhs.lhs_dest == dest_script
+						|| lhs.lhs_dest == dest_global
 						|| lhs.lhs_dest == dest_local))
 		// ":const var": lock the value, but not referenced variables
 		generate_LOCKCONST(cctx);

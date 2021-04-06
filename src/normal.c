@@ -2567,7 +2567,11 @@ nv_screengo(oparg_T *oap, int dir, long dist)
       {
 	if (dir == BACKWARD)
 	{
-	    if ((long)curwin->w_curswant >= width1)
+	    if ((long)curwin->w_curswant >= width1
+#ifdef FEAT_FOLDING
+		    && !hasFolding(curwin->w_cursor.lnum, NULL, NULL)
+#endif
+	       )
 		// Move back within the line. This can give a negative value
 		// for w_curswant if width1 < width2 (with cpoptions+=n),
 		// which will get clipped to column 0.
@@ -2601,7 +2605,11 @@ nv_screengo(oparg_T *oap, int dir, long dist)
 		n = ((linelen - width1 - 1) / width2 + 1) * width2 + width1;
 	    else
 		n = width1;
-	    if (curwin->w_curswant + width2 < (colnr_T)n)
+	    if (curwin->w_curswant + width2 < (colnr_T)n
+#ifdef FEAT_FOLDING
+		    && !hasFolding(curwin->w_cursor.lnum, NULL, NULL)
+#endif
+		    )
 		// move forward within line
 		curwin->w_curswant += width2;
 	    else

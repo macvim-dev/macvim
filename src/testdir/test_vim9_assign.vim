@@ -315,6 +315,14 @@ def Test_assign_linebreak()
   assert_equal(34, n2)
 
   CheckDefFailure(["var x = #"], 'E1097:', 3)
+
+  var lines =<< trim END
+      var x: list<string> = ['a']
+      var y: list<number> = x
+          ->copy()
+          ->copy()
+  END
+  CheckDefFailure(lines, 'E1012:', 2)
 enddef
 
 def Test_assign_index()
@@ -1108,7 +1116,6 @@ enddef
 
 def Test_assign_dict_with_op()
   var lines =<< trim END
-    vim9script
     var ds: dict<string> = {a: 'x'}
     ds['a'] ..= 'y'
     ds.a ..= 'z'
@@ -1139,9 +1146,64 @@ def Test_assign_dict_with_op()
     assert_equal(2, dn.a)
     dn.a %= 6
     assert_equal(2, dn.a)
+
+    var dd: dict<dict<list<any>>>
+    dd.a = {}
+    dd.a.b = [0]
+    dd.a.b += [1]
+    assert_equal({a: {b: [0, 1]}}, dd)
+
+    var dab = {a: ['b']}
+    dab.a[0] ..= 'c'
+    assert_equal({a: ['bc']}, dab)
   END
-  # TODO: this should also work with a :def function
-  CheckScriptSuccess(lines)
+  CheckDefAndScriptSuccess(lines)
+enddef
+
+def Test_assign_list_with_op()
+  var lines =<< trim END
+    var ls: list<string> = ['x']
+    ls[0] ..= 'y'
+    assert_equal('xy', ls[0])
+
+    var ln: list<number> = [9]
+    ln[0] += 2
+    assert_equal(11, ln[0])
+
+    ln[0] -= 3
+    assert_equal(8, ln[0])
+
+    ln[0] *= 2
+    assert_equal(16, ln[0])
+
+    ln[0] /= 3
+    assert_equal(5, ln[0])
+
+    ln[0] %= 3
+    assert_equal(2, ln[0])
+  END
+  CheckDefAndScriptSuccess(lines)
+enddef
+
+def Test_assign_with_op_fails()
+  var lines =<< trim END
+      var s = 'abc'
+      s[1] += 'x'
+  END
+  CheckDefAndScriptFailure2(lines, 'E1141:', 'E689:', 2)
+
+  lines =<< trim END
+      var s = 'abc'
+      s[1] ..= 'x'
+  END
+  CheckDefAndScriptFailure2(lines, 'E1141:', 'E689:', 2)
+
+  lines =<< trim END
+      var dd: dict<dict<list<any>>>
+      dd.a = {}
+      dd.a.b += [1]
+  END
+  CheckDefExecAndScriptFailure(lines, 'E716:', 3)
 enddef
 
 def Test_assign_lambda()
@@ -1277,6 +1339,13 @@ def Test_var_declaration()
     g:FLIST[0] = 22
     assert_equal([22], g:FLIST)
 
+    def SetGlobalConst()
+      const g:globConst = 123
+    enddef
+    SetGlobalConst()
+    assert_equal(123, g:globConst)
+    assert_true(islocked('g:globConst'))
+
     const w:FOO: number = 46
     assert_equal(46, w:FOO)
     const w:FOOS = 'wfoos'
@@ -1316,6 +1385,7 @@ def Test_var_declaration()
   unlet g:var_test
   unlet g:var_prefixed
   unlet g:other_var
+  unlet g:globConst
   unlet g:FOO
   unlet g:FOOS
   unlet g:FLIST
@@ -1338,6 +1408,38 @@ def Test_var_declaration_fails()
   END
   CheckScriptFailure(lines, 'E741:')
   unlet g:constvar
+
+  lines =<< trim END
+    vim9script
+    var name = 'one'
+    lockvar name
+    def SetLocked()
+      name = 'two'
+    enddef
+    SetLocked()
+  END
+  CheckScriptFailure(lines, 'E741: Value is locked: name', 1)
+
+  lines =<< trim END
+    let s:legacy = 'one'
+    lockvar s:legacy
+    def SetLocked()
+      s:legacy = 'two'
+    enddef
+    call SetLocked()
+  END
+  CheckScriptFailure(lines, 'E741: Value is locked: s:legacy', 1)
+
+  lines =<< trim END
+    vim9script
+    def SetGlobalConst()
+      const g:globConst = 123
+    enddef
+    SetGlobalConst()
+    g:globConst = 234
+  END
+  CheckScriptFailure(lines, 'E741: Value is locked: g:globConst', 6)
+  unlet g:globConst
 
   lines =<< trim END
     vim9script

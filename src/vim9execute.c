@@ -963,9 +963,12 @@ check_for_number(typval_T *tv)
 store_var(char_u *name, typval_T *tv)
 {
     funccal_entry_T entry;
+    int		    flags = ASSIGN_DECL;
 
+    if (tv->v_lock)
+	flags |= ASSIGN_CONST;
     save_funccal(&entry);
-    set_var_const(name, NULL, tv, FALSE, ASSIGN_DECL, 0);
+    set_var_const(name, NULL, tv, FALSE, flags, 0);
     restore_funccal();
 }
 
@@ -1939,6 +1942,12 @@ call_def_function(
 			store_var(name, STACK_TV_BOT(0));
 		    else
 		    {
+			SOURCING_LNUM = iptr->isn_lnum;
+			if (var_check_permission(di, name) == FAIL)
+			{
+			    clear_tv(STACK_TV_BOT(0));
+			    goto on_error;
+			}
 			clear_tv(&di->di_tv);
 			di->di_tv = *STACK_TV_BOT(0);
 		    }
@@ -1955,6 +1964,16 @@ call_def_function(
 		    if (sv == NULL)
 			goto failed;
 		    --ectx.ec_stack.ga_len;
+
+		    // "const" and "final" are checked at compile time, locking
+		    // the value needs to be checked here.
+		    SOURCING_LNUM = iptr->isn_lnum;
+		    if (value_check_lock(sv->sv_tv->v_lock, sv->sv_name, FALSE))
+		    {
+			clear_tv(STACK_TV_BOT(0));
+			goto on_error;
+		    }
+
 		    clear_tv(sv->sv_tv);
 		    *sv->sv_tv = *STACK_TV_BOT(0);
 		}
@@ -3943,9 +3962,16 @@ on_fatal_error:
 
 done:
     // function finished, get result from the stack.
-    tv = STACK_TV_BOT(-1);
-    *rettv = *tv;
-    tv->v_type = VAR_UNKNOWN;
+    if (ufunc->uf_ret_type == &t_void)
+    {
+	rettv->v_type = VAR_VOID;
+    }
+    else
+    {
+	tv = STACK_TV_BOT(-1);
+	*rettv = *tv;
+	tv->v_type = VAR_UNKNOWN;
+    }
     ret = OK;
 
 failed:

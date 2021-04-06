@@ -1474,7 +1474,7 @@ set_var_lval(
 	{
 	    if (op != NULL && *op != '=')
 	    {
-		semsg(_(e_letwrong), op);
+		semsg(_(e_dictkey), lp->ll_newkey);
 		return;
 	    }
 
@@ -2330,7 +2330,7 @@ eval1(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	{
 	    if (evaluate && vim9script && !VIM_ISWHITE(p[-1]))
 	    {
-		error_white_both(p, 1);
+		error_white_both(p, op_falsy ? 2 : 1);
 		clear_tv(rettv);
 		return FAIL;
 	    }
@@ -2361,7 +2361,7 @@ eval1(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	    ++*arg;
 	if (evaluate && vim9script && !IS_WHITE_OR_NUL((*arg)[1]))
 	{
-	    error_white_both(p, 1);
+	    error_white_both(p, op_falsy ? 2 : 1);
 	    clear_tv(rettv);
 	    return FAIL;
 	}
@@ -2774,7 +2774,7 @@ eval4(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	 */
 	if (evaluate && vim9script && !IS_WHITE_OR_NUL(p[len]))
 	{
-	    error_white_both(p, 1);
+	    error_white_both(p, len);
 	    clear_tv(rettv);
 	    return FAIL;
 	}
@@ -3008,10 +3008,12 @@ eval5(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 		    n1 = tv_get_number_chk(rettv, &error);
 		    if (error)
 		    {
-			// This can only happen for "list + non-list".  For
-			// "non-list + ..." or "something - ...", we returned
-			// before evaluating the 2nd operand.
+			// This can only happen for "list + non-list" or
+			// "blob + non-blob".  For "non-list + ..." or
+			// "something - ...", we returned before evaluating the
+			// 2nd operand.
 			clear_tv(rettv);
+			clear_tv(&var2);
 			return FAIL;
 		    }
 #ifdef FEAT_FLOAT
@@ -3438,9 +3440,16 @@ eval7(
     case '@':	++*arg;
 		if (evaluate)
 		{
-		    rettv->v_type = VAR_STRING;
-		    rettv->vval.v_string = get_reg_contents(**arg,
-							    GREG_EXPR_SRC);
+		    if (in_vim9script() && IS_WHITE_OR_NUL(**arg))
+			semsg(_(e_syntax_error_at_str), *arg);
+		    else if (in_vim9script() && !valid_yank_reg(**arg, FALSE))
+			emsg_invreg(**arg);
+		    else
+		    {
+			rettv->v_type = VAR_STRING;
+			rettv->vval.v_string = get_reg_contents(**arg,
+								GREG_EXPR_SRC);
+		    }
 		}
 		if (**arg != NUL)
 		    ++*arg;
