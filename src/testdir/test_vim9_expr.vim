@@ -2102,6 +2102,29 @@ def Test_expr7_funcref()
       assert_equal(123, FuncRef())
   END
   CheckDefAndScriptSuccess(lines)
+
+  lines =<< trim END
+      vim9script
+      func g:GlobalFunc()
+        return 'global'
+      endfunc
+      func s:ScriptFunc()
+        return 'script'
+      endfunc
+      def Test()
+        var Ref = g:GlobalFunc
+        assert_equal('global', Ref())
+        Ref = GlobalFunc
+        assert_equal('global', Ref())
+
+        Ref = s:ScriptFunc
+        assert_equal('script', Ref())
+        Ref = ScriptFunc
+        assert_equal('script', Ref())
+      enddef
+      Test()
+  END
+  CheckScriptSuccess(lines)
 enddef
 
 let g:test_space_dict = {'': 'empty', ' ': 'space'}
@@ -2712,6 +2735,21 @@ def Test_expr7_negate_add()
     --n
   END
   CheckDefAndScriptFailure(lines, 'E1050:')
+enddef
+
+def Test_expr7_legacy_script()
+  var lines =<< trim END
+      let s:legacy = 'legacy'
+      def GetLocal(): string
+        return legacy
+      enddef
+      def GetLocalPrefix(): string
+        return s:legacy
+      enddef
+      call assert_equal('legacy', GetLocal())
+      call assert_equal('legacy', GetLocalPrefix())
+  END
+  CheckScriptSuccess(lines)
 enddef
 
 def Echo(arg: any): string

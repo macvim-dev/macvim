@@ -332,22 +332,15 @@ script_is_vim9()
 
 /*
  * Lookup a variable (without s: prefix) in the current script.
- * If "vim9script" is TRUE the script must be Vim9 script.  Used for "var"
- * without "s:".
  * "cctx" is NULL at the script level.
  * Returns OK or FAIL.
  */
-    int
-script_var_exists(char_u *name, size_t len, int vim9script, cctx_T *cctx)
+    static int
+script_var_exists(char_u *name, size_t len, cctx_T *cctx)
 {
-    int		    is_vim9_script;
-
     if (current_sctx.sc_sid <= 0)
 	return FAIL;
-    is_vim9_script = script_is_vim9();
-    if (vim9script && !is_vim9_script)
-	return FAIL;
-    if (is_vim9_script)
+    if (script_is_vim9())
     {
 	// Check script variables that were visible where the function was
 	// defined.
@@ -382,7 +375,7 @@ variable_exists(char_u *name, size_t len, cctx_T *cctx)
     return (cctx != NULL
 		&& (lookup_local(name, len, NULL, cctx) == OK
 		    || arg_exists(name, len, NULL, NULL, NULL, cctx) == OK))
-	    || script_var_exists(name, len, FALSE, cctx) == OK
+	    || script_var_exists(name, len, cctx) == OK
 	    || find_imported(name, len, cctx) != NULL;
 }
 
@@ -429,7 +422,7 @@ check_defined(char_u *p, size_t len, cctx_T *cctx, int is_arg)
     int		c = p[len];
     ufunc_T	*ufunc = NULL;
 
-    if (script_var_exists(p, len, FALSE, cctx) == OK)
+    if (script_var_exists(p, len, cctx) == OK)
     {
 	if (is_arg)
 	    semsg(_(e_argument_already_declared_in_script_str), p);
@@ -2896,11 +2889,11 @@ compile_load(
 
     if (*(*arg + 1) == ':')
     {
-	// load namespaced variable
 	if (end <= *arg + 2)
 	{
 	    isntype_T  isn_type;
 
+	    // load dictionary of namespace
 	    switch (**arg)
 	    {
 		case 'g': isn_type = ISN_LOADGDICT; break;
@@ -2919,6 +2912,7 @@ compile_load(
 	{
 	    isntype_T  isn_type = ISN_DROP;
 
+	    // load namespaced variable
 	    name = vim_strnsave(*arg + 2, end - (*arg + 2));
 	    if (name == NULL)
 		return FAIL;
@@ -2927,11 +2921,21 @@ compile_load(
 	    {
 		case 'v': res = generate_LOADV(cctx, name, error);
 			  break;
-		case 's': res = compile_load_scriptvar(cctx, name,
+		case 's': if (is_expr && ASCII_ISUPPER(*name)
+				       && find_func(name, FALSE, cctx) != NULL)
+			      res = generate_funcref(cctx, name);
+			  else
+			      res = compile_load_scriptvar(cctx, name,
 							    NULL, &end, error);
 			  break;
 		case 'g': if (vim_strchr(name, AUTOLOAD_CHAR) == NULL)
-			      isn_type = ISN_LOADG;
+			  {
+			      if (is_expr && ASCII_ISUPPER(*name)
+				       && find_func(name, FALSE, cctx) != NULL)
+				  res = generate_funcref(cctx, name);
+			      else
+				  isn_type = ISN_LOADG;
+			  }
 			  else
 			  {
 			      isn_type = ISN_LOADAUTO;
@@ -2952,7 +2956,7 @@ compile_load(
 	    {
 		// Global, Buffer-local, Window-local and Tabpage-local
 		// variables can be defined later, thus we don't check if it
-		// exists, give error at runtime.
+		// exists, give an error at runtime.
 		res = generate_LOAD(cctx, isn_type, 0, name, &t_any);
 	    }
 	}
@@ -2990,15 +2994,14 @@ compile_load(
 	    {
 		// "var" can be script-local even without using "s:" if it
 		// already exists in a Vim9 script or when it's imported.
-		if (script_var_exists(*arg, len, TRUE, cctx) == OK
+		if (script_var_exists(*arg, len, cctx) == OK
 			|| find_imported(name, 0, cctx) != NULL)
 		   res = compile_load_scriptvar(cctx, name, *arg, &end, FALSE);
 
 		// When evaluating an expression and the name starts with an
-		// uppercase letter or "x:" it can be a user defined function.
-		// TODO: this is just guessing
-		if (res == FAIL && is_expr
-				   && (ASCII_ISUPPER(*name) || name[1] == ':'))
+		// uppercase letter it can be a user defined function.
+		// generate_funcref() will fail if the function can't be found.
+		if (res == FAIL && is_expr && ASCII_ISUPPER(*name))
 		    res = generate_funcref(cctx, name);
 	    }
 	}
@@ -5708,17 +5711,9 @@ generate_store_var(
 	    return generate_STORE(cctx, ISN_STOREV, vimvaridx, NULL);
 	case dest_script:
 	    if (scriptvar_idx < 0)
-	    {
-		char_u  *name_s = name;
-		int	r;
-
-		// "s:" is included in the name.
-		r = generate_OLDSCRIPT(cctx, ISN_STORES, name_s,
+		// "s:" may be included in the name.
+		return generate_OLDSCRIPT(cctx, ISN_STORES, name,
 							  scriptvar_sid, type);
-		if (name_s != name)
-		    vim_free(name_s);
-		return r;
-	    }
 	    return generate_VIM9SCRIPT(cctx, ISN_STORESCRIPT,
 					   scriptvar_sid, scriptvar_idx, type);
 	case dest_local:
@@ -5852,9 +5847,9 @@ compile_lhs(
 				       && STRNCMP(var_start, "s:", 2) == 0;
 		int script_var = (script_namespace
 			? script_var_exists(var_start + 2, lhs->lhs_varlen - 2,
-							       FALSE, cctx)
+									  cctx)
 			  : script_var_exists(var_start, lhs->lhs_varlen,
-							    TRUE, cctx)) == OK;
+								  cctx)) == OK;
 		imported_T  *import =
 			       find_imported(var_start, lhs->lhs_varlen, cctx);
 
@@ -6116,6 +6111,7 @@ compile_load_lhs(
 	{
 	    // this should not happen
 	    emsg(_(e_missbrac));
+	    var_start[varlen] = c;
 	    return FAIL;
 	}
 	var_start[varlen] = c;
