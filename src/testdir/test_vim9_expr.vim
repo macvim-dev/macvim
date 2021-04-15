@@ -282,6 +282,20 @@ def Test_expr2()
       g:vals = []
       assert_equal(false, Record(0) || Record(false) || Record(0))
       assert_equal([0, false, 0], g:vals)
+
+      g:vals = []
+      var x = 1
+      if x || true
+        g:vals = [1]
+      endif
+      assert_equal([1], g:vals)
+
+      g:vals = []
+      x = 3
+      if true || x
+        g:vals = [1]
+      endif
+      assert_equal([1], g:vals)
   END
   CheckDefAndScriptSuccess(lines)
 enddef
@@ -356,6 +370,9 @@ def Test_expr2_fails()
 
   # TODO: should fail at compile time
   call CheckDefExecAndScriptFailure(["var x = 3 || 7"], 'E1023:', 1)
+
+  call CheckDefAndScriptFailure(["if 3"], 'E1023:', 1)
+  call CheckDefExecAndScriptFailure(['var x = 3', 'if x', 'endif'], 'E1023:', 2)
 
   call CheckDefAndScriptFailure2(["var x = [] || false"], 'E1012: Type mismatch; expected bool but got list<unknown>', 'E745:', 1)
 
@@ -1605,6 +1622,26 @@ def Test_expr7_blob()
       assert_equal(g:blob_empty, 0z)
       assert_equal(g:blob_one, 0z01)
       assert_equal(g:blob_long, 0z0102.0304)
+
+      var testblob = 0z010203
+      assert_equal(0x01, testblob[0])
+      assert_equal(0x02, testblob[1])
+      assert_equal(0x03, testblob[-1])
+      assert_equal(0x02, testblob[-2])
+
+      assert_equal(0z01, testblob[0 : 0])
+      assert_equal(0z0102, testblob[0 : 1])
+      assert_equal(0z010203, testblob[0 : 2])
+      assert_equal(0z010203, testblob[0 : ])
+      assert_equal(0z0203, testblob[1 : ])
+      assert_equal(0z0203, testblob[1 : 2])
+      assert_equal(0z0203, testblob[1 : -1])
+      assert_equal(0z03, testblob[-1 : -1])
+      assert_equal(0z02, testblob[-2 : -2])
+
+      # blob slice accepts out of range
+      assert_equal(0z, testblob[3 : 3])
+      assert_equal(0z, testblob[0 : -4])
   END
   CheckDefAndScriptSuccess(lines)
 

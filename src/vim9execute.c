@@ -1297,6 +1297,7 @@ call_def_function(
 #define STACK_TV_VAR(idx) (((typval_T *)ectx.ec_stack.ga_data) + ectx.ec_frame_idx + STACK_FRAME_SIZE + idx)
 
     if (ufunc->uf_def_status == UF_NOT_COMPILED
+	    || ufunc->uf_def_status == UF_COMPILE_ERROR
 	    || (func_needs_compiling(ufunc, PROFILING(ufunc))
 		&& compile_def_function(ufunc, FALSE, PROFILING(ufunc), NULL)
 								      == FAIL))
@@ -1334,6 +1335,16 @@ call_def_function(
     }
     ga_init2(&ectx.ec_trystack, sizeof(trycmd_T), 10);
     ga_init2(&ectx.ec_funcrefs, sizeof(partial_T *), 10);
+
+    idx = argc - ufunc->uf_args.ga_len;
+    if (idx > 0 && ufunc->uf_va_name == NULL)
+    {
+	if (idx == 1)
+	    emsg(_(e_one_argument_too_many));
+	else
+	    semsg(_(e_nr_arguments_too_many), idx);
+	goto failed_early;
+    }
 
     // Put arguments on the stack, but no more than what the function expects.
     // A lambda can be called with more arguments than it uses.
@@ -1374,7 +1385,7 @@ call_def_function(
 	// Check the type of the list items.
 	tv = STACK_TV_BOT(-1);
 	if (ufunc->uf_va_type != NULL
-		&& ufunc->uf_va_type != &t_any
+		&& ufunc->uf_va_type != &t_list_any
 		&& ufunc->uf_va_type->tt_member != &t_any
 		&& tv->vval.v_list != NULL)
 	{
@@ -2208,6 +2219,10 @@ call_def_function(
 			    clear_tv(tv);
 			}
 		    }
+		    else if (status == OK && dest_type == VAR_BLOB)
+		    {
+			// TODO
+		    }
 		    else
 		    {
 			status = FAIL;
@@ -2222,6 +2237,70 @@ call_def_function(
 			clear_tv(tv);
 			goto on_error;
 		    }
+		}
+		break;
+
+	    // store value in blob range
+	    case ISN_STORERANGE:
+		{
+		    typval_T	*tv_idx1 = STACK_TV_BOT(-3);
+		    typval_T	*tv_idx2 = STACK_TV_BOT(-2);
+		    typval_T	*tv_dest = STACK_TV_BOT(-1);
+		    int		status = OK;
+
+		    // Stack contains:
+		    // -4 value to be stored
+		    // -3 first index or "none"
+		    // -2 second index or "none"
+		    // -1 destination blob
+		    tv = STACK_TV_BOT(-4);
+		    if (tv_dest->v_type != VAR_BLOB)
+		    {
+			status = FAIL;
+			emsg(_(e_blob_required));
+		    }
+		    else
+		    {
+			varnumber_T n1;
+			varnumber_T n2;
+			int	    error = FALSE;
+
+			n1 = tv_get_number_chk(tv_idx1, &error);
+			if (error)
+			    status = FAIL;
+			else
+			{
+			    if (tv_idx2->v_type == VAR_SPECIAL
+					&& tv_idx2->vval.v_number == VVAL_NONE)
+				n2 = blob_len(tv_dest->vval.v_blob) - 1;
+			    else
+				n2 = tv_get_number_chk(tv_idx2, &error);
+			    if (error)
+				status = FAIL;
+			    else
+			    {
+				long	bloblen = blob_len(tv_dest->vval.v_blob);
+
+				if (check_blob_index(bloblen,
+							     n1, FALSE) == FAIL
+					|| check_blob_range(bloblen,
+							n1, n2, FALSE) == FAIL)
+				    status = FAIL;
+				else
+				    status = blob_set_range(
+					     tv_dest->vval.v_blob, n1, n2, tv);
+			    }
+			}
+		    }
+
+		    clear_tv(tv_idx1);
+		    clear_tv(tv_idx2);
+		    clear_tv(tv_dest);
+		    ectx.ec_stack.ga_len -= 4;
+		    clear_tv(tv);
+
+		    if (status == FAIL)
+			goto on_error;
 		}
 		break;
 
@@ -3404,16 +3483,21 @@ call_def_function(
 
 	    case ISN_LISTINDEX:
 	    case ISN_LISTSLICE:
+	    case ISN_BLOBINDEX:
+	    case ISN_BLOBSLICE:
 		{
-		    int		is_slice = iptr->isn_type == ISN_LISTSLICE;
-		    list_T	*list;
+		    int		is_slice = iptr->isn_type == ISN_LISTSLICE
+					    || iptr->isn_type == ISN_BLOBSLICE;
+		    int		is_blob = iptr->isn_type == ISN_BLOBINDEX
+					    || iptr->isn_type == ISN_BLOBSLICE;
 		    varnumber_T	n1, n2;
+		    typval_T	*val_tv;
 
 		    // list index: list is at stack-2, index at stack-1
 		    // list slice: list is at stack-3, indexes at stack-2 and
 		    // stack-1
-		    tv = is_slice ? STACK_TV_BOT(-3) : STACK_TV_BOT(-2);
-		    list = tv->vval.v_list;
+		    // Same for blob.
+		    val_tv = is_slice ? STACK_TV_BOT(-3) : STACK_TV_BOT(-2);
 
 		    tv = STACK_TV_BOT(-1);
 		    n1 = n2 = tv->vval.v_number;
@@ -3429,9 +3513,18 @@ call_def_function(
 		    ectx.ec_stack.ga_len -= is_slice ? 2 : 1;
 		    tv = STACK_TV_BOT(-1);
 		    SOURCING_LNUM = iptr->isn_lnum;
-		    if (list_slice_or_index(list, is_slice, n1, n2, FALSE,
-							     tv, TRUE) == FAIL)
-			goto on_error;
+		    if (is_blob)
+		    {
+			if (blob_slice_or_index(val_tv->vval.v_blob, is_slice,
+						    n1, n2, FALSE, tv) == FAIL)
+			    goto on_error;
+		    }
+		    else
+		    {
+			if (list_slice_or_index(val_tv->vval.v_list, is_slice,
+					      n1, n2, FALSE, tv, TRUE) == FAIL)
+			    goto on_error;
+		    }
 		}
 		break;
 
@@ -4337,6 +4430,10 @@ ex_disassemble(exarg_T *eap)
 		}
 		break;
 
+	    case ISN_STORERANGE:
+		smsg("%4d STORERANGE", current);
+		break;
+
 	    // constants
 	    case ISN_PUSHNR:
 		smsg("%4d PUSHNR %lld", current,
@@ -4677,6 +4774,8 @@ ex_disassemble(exarg_T *eap)
 	    case ISN_CONCAT: smsg("%4d CONCAT", current); break;
 	    case ISN_STRINDEX: smsg("%4d STRINDEX", current); break;
 	    case ISN_STRSLICE: smsg("%4d STRSLICE", current); break;
+	    case ISN_BLOBINDEX: smsg("%4d BLOBINDEX", current); break;
+	    case ISN_BLOBSLICE: smsg("%4d BLOBSLICE", current); break;
 	    case ISN_LISTAPPEND: smsg("%4d LISTAPPEND", current); break;
 	    case ISN_BLOBAPPEND: smsg("%4d BLOBAPPEND", current); break;
 	    case ISN_LISTINDEX: smsg("%4d LISTINDEX", current); break;

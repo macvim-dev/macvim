@@ -1175,12 +1175,8 @@ get_lval(
 		lp->ll_n1 = (long)tv_get_number(&var1);
 	    clear_tv(&var1);
 
-	    if (lp->ll_n1 < 0
-		    || lp->ll_n1 > bloblen
-		    || (lp->ll_range && lp->ll_n1 == bloblen))
+	    if (check_blob_index(bloblen, lp->ll_n1, quiet) == FAIL)
 	    {
-		if (!quiet)
-		    semsg(_(e_blobidx), lp->ll_n1);
 		clear_tv(&var2);
 		return NULL;
 	    }
@@ -1188,14 +1184,9 @@ get_lval(
 	    {
 		lp->ll_n2 = (long)tv_get_number(&var2);
 		clear_tv(&var2);
-		if (lp->ll_n2 < 0
-			|| lp->ll_n2 >= bloblen
-			|| lp->ll_n2 < lp->ll_n1)
-		{
-		    if (!quiet)
-			semsg(_(e_blobidx), lp->ll_n2);
+		if (check_blob_range(bloblen, lp->ll_n1, lp->ll_n2, quiet)
+								       == FAIL)
 		    return NULL;
-		}
 	    }
 	    lp->ll_blob = lp->ll_tv->vval.v_blob;
 	    lp->ll_tv = NULL;
@@ -1319,23 +1310,12 @@ set_var_lval(
 
 	    if (lp->ll_range && rettv->v_type == VAR_BLOB)
 	    {
-		int	il, ir;
-
 		if (lp->ll_empty2)
 		    lp->ll_n2 = blob_len(lp->ll_blob) - 1;
 
-		if (lp->ll_n2 - lp->ll_n1 + 1 != blob_len(rettv->vval.v_blob))
-		{
-		    emsg(_("E972: Blob value does not have the right number of bytes"));
+		if (blob_set_range(lp->ll_blob, lp->ll_n1, lp->ll_n2,
+								rettv) == FAIL)
 		    return;
-		}
-		if (lp->ll_empty2)
-		    lp->ll_n2 = blob_len(lp->ll_blob);
-
-		ir = 0;
-		for (il = lp->ll_n1; il <= lp->ll_n2; il++)
-		    blob_set(lp->ll_blob, il,
-			    blob_get(rettv->vval.v_blob, ir++));
 	    }
 	    else
 	    {
@@ -1362,7 +1342,8 @@ set_var_lval(
 	{
 	    typval_T tv;
 
-	    if (flags & (ASSIGN_CONST | ASSIGN_FINAL))
+	    if ((flags & (ASSIGN_CONST | ASSIGN_FINAL))
+					     && (flags & ASSIGN_FOR_LOOP) == 0)
 	    {
 		emsg(_(e_cannot_mod));
 		*endp = cc;
@@ -1401,7 +1382,8 @@ set_var_lval(
 	listitem_T *ll_li = lp->ll_li;
 	int	    ll_n1 = lp->ll_n1;
 
-	if (flags & (ASSIGN_CONST | ASSIGN_FINAL))
+	if ((flags & (ASSIGN_CONST | ASSIGN_FINAL))
+					     && (flags & ASSIGN_FOR_LOOP) == 0)
 	{
 	    emsg(_("E996: Cannot lock a range"));
 	    return;
@@ -1460,7 +1442,8 @@ set_var_lval(
 	/*
 	 * Assign to a List or Dictionary item.
 	 */
-	if (flags & (ASSIGN_CONST | ASSIGN_FINAL))
+	if ((flags & (ASSIGN_CONST | ASSIGN_FINAL))
+					     && (flags & ASSIGN_FOR_LOOP) == 0)
 	{
 	    emsg(_("E996: Cannot lock a list or dict"));
 	    return;
@@ -1786,7 +1769,9 @@ next_for_item(void *fi_void, char_u *arg)
 {
     forinfo_T	*fi = (forinfo_T *)fi_void;
     int		result;
-    int		flag = in_vim9script() ? ASSIGN_DECL : 0;
+    int		flag = ASSIGN_FOR_LOOP | (in_vim9script()
+			 ? (ASSIGN_FINAL | ASSIGN_DECL | ASSIGN_NO_MEMBER_TYPE)
+			 : 0);
     listitem_T	*item;
 
     if (fi->fi_blob != NULL)
@@ -3514,7 +3499,12 @@ eval7(
 	{
 	    int	    flags = evalarg == NULL ? 0 : evalarg->eval_flags;
 
-	    if ((in_vim9script() ? **arg : *skipwhite(*arg)) == '(')
+	    if (evaluate && in_vim9script() && len == 1 && *s == '_')
+	    {
+		emsg(_(e_cannot_use_underscore_here));
+		ret = FAIL;
+	    }
+	    else if ((in_vim9script() ? **arg : *skipwhite(*arg)) == '(')
 	    {
 		// "name(..."  recursive!
 		*arg = skipwhite(*arg);
@@ -4156,68 +4146,8 @@ eval_index_inner(
 	    break;
 
 	case VAR_BLOB:
-	    len = blob_len(rettv->vval.v_blob);
-	    if (is_range)
-	    {
-		// The resulting variable is a sub-blob.  If the indexes
-		// are out of range the result is empty.
-		if (n1 < 0)
-		{
-		    n1 = len + n1;
-		    if (n1 < 0)
-			n1 = 0;
-		}
-		if (n2 < 0)
-		    n2 = len + n2;
-		else if (n2 >= len)
-		    n2 = len - (exclusive ? 0 : 1);
-		if (exclusive)
-		    --n2;
-		if (n1 >= len || n2 < 0 || n1 > n2)
-		{
-		    clear_tv(rettv);
-		    rettv->v_type = VAR_BLOB;
-		    rettv->vval.v_blob = NULL;
-		}
-		else
-		{
-		    blob_T  *blob = blob_alloc();
-		    long    i;
-
-		    if (blob != NULL)
-		    {
-			if (ga_grow(&blob->bv_ga, n2 - n1 + 1) == FAIL)
-			{
-			    blob_free(blob);
-			    return FAIL;
-			}
-			blob->bv_ga.ga_len = n2 - n1 + 1;
-			for (i = n1; i <= n2; i++)
-			    blob_set(blob, i - n1,
-					  blob_get(rettv->vval.v_blob, i));
-
-			clear_tv(rettv);
-			rettv_blob_set(rettv, blob);
-		    }
-		}
-	    }
-	    else
-	    {
-		// The resulting variable is a byte value.
-		// If the index is too big or negative that is an error.
-		if (n1 < 0)
-		    n1 = len + n1;
-		if (n1 < len && n1 >= 0)
-		{
-		    int v = blob_get(rettv->vval.v_blob, n1);
-
-		    clear_tv(rettv);
-		    rettv->v_type = VAR_NUMBER;
-		    rettv->vval.v_number = v;
-		}
-		else
-		    semsg(_(e_blobidx), n1);
-	    }
+	    blob_slice_or_index(rettv->vval.v_blob, is_range, n1, n2,
+							     exclusive, rettv);
 	    break;
 
 	case VAR_LIST:

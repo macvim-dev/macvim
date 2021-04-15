@@ -2295,70 +2295,89 @@ def Test_for_outside_of_function()
 enddef
 
 def Test_for_loop()
-  var result = ''
-  for cnt in range(7)
-    if cnt == 4
-      break
-    endif
-    if cnt == 2
-      continue
-    endif
-    result ..= cnt .. '_'
-  endfor
-  assert_equal('0_1_3_', result)
+  var lines =<< trim END
+      var result = ''
+      for cnt in range(7)
+        if cnt == 4
+          break
+        endif
+        if cnt == 2
+          continue
+        endif
+        result ..= cnt .. '_'
+      endfor
+      assert_equal('0_1_3_', result)
 
-  var concat = ''
-  for str in eval('["one", "two"]')
-    concat ..= str
-  endfor
-  assert_equal('onetwo', concat)
+      var concat = ''
+      for str in eval('["one", "two"]')
+        concat ..= str
+      endfor
+      assert_equal('onetwo', concat)
 
-  var total = 0
-  for nr in
-      [1, 2, 3]
-    total += nr
-  endfor
-  assert_equal(6, total)
+      var total = 0
+      for nr in
+          [1, 2, 3]
+        total += nr
+      endfor
+      assert_equal(6, total)
 
-  total = 0
-  for nr
-    in [1, 2, 3]
-    total += nr
-  endfor
-  assert_equal(6, total)
+      total = 0
+      for nr
+        in [1, 2, 3]
+        total += nr
+      endfor
+      assert_equal(6, total)
 
-  total = 0
-  for nr
-    in
-    [1, 2, 3]
-    total += nr
-  endfor
-  assert_equal(6, total)
+      total = 0
+      for nr
+        in
+        [1, 2, 3]
+        total += nr
+      endfor
+      assert_equal(6, total)
 
-  var res = ""
-  for [n: number, s: string] in [[1, 'a'], [2, 'b']]
-    res ..= n .. s
-  endfor
-  assert_equal('1a2b', res)
+      # with type
+      total = 0
+      for n: number in [1, 2, 3]
+        total += n
+      endfor
+      assert_equal(6, total)
 
-  # loop over string
-  res = ''
-  for c in 'aéc̀d'
-    res ..= c .. '-'
-  endfor
-  assert_equal('a-é-c̀-d-', res)
+      # unpack with type
+      var res = ''
+      for [n: number, s: string] in [[1, 'a'], [2, 'b']]
+        res ..= n .. s
+      endfor
+      assert_equal('1a2b', res)
 
-  res = ''
-  for c in ''
-    res ..= c .. '-'
-  endfor
-  assert_equal('', res)
+      # loop over string
+      res = ''
+      for c in 'aéc̀d'
+        res ..= c .. '-'
+      endfor
+      assert_equal('a-é-c̀-d-', res)
 
-  res = ''
-  for c in test_null_string()
-    res ..= c .. '-'
-  endfor
-  assert_equal('', res)
+      res = ''
+      for c in ''
+        res ..= c .. '-'
+      endfor
+      assert_equal('', res)
+
+      res = ''
+      for c in test_null_string()
+        res ..= c .. '-'
+      endfor
+      assert_equal('', res)
+
+      var foo: list<dict<any>> = [
+              {a: 'Cat'}
+            ]
+      for dd in foo
+        dd.counter = 12
+      endfor
+      assert_equal([{a: 'Cat', counter: 12}], foo)
+  END
+  CheckDefAndScriptSuccess(lines)
 enddef
 
 def Test_for_loop_fails()
@@ -2381,6 +2400,14 @@ def Test_for_loop_fails()
   g:adict = {a: 1}
   CheckDefExecFailure(['for i in g:adict', 'echo 3', 'endfor'], 'E1177: For loop on dict not supported')
   unlet g:adict
+
+  var lines =<< trim END
+      var d: list<dict<any>> = [{a: 0}]
+      for e in d
+        e = {a: 0, b: ''}
+      endfor
+  END
+  CheckDefAndScriptFailure2(lines, 'E1018:', 'E46:', 3)
 enddef
 
 def Test_for_loop_script_var()
@@ -2471,20 +2498,23 @@ def Test_for_loop_unpack()
 enddef
 
 def Test_for_loop_with_try_continue()
-  var looped = 0
-  var cleanup = 0
-  for i in range(3)
-    looped += 1
-    try
-      eval [][0]
-    catch
-      continue
-    finally
-      cleanup += 1
-    endtry
-  endfor
-  assert_equal(3, looped)
-  assert_equal(3, cleanup)
+  var lines =<< trim END
+      var looped = 0
+      var cleanup = 0
+      for i in range(3)
+        looped += 1
+        try
+          eval [][0]
+        catch
+          continue
+        finally
+          cleanup += 1
+        endtry
+      endfor
+      assert_equal(3, looped)
+      assert_equal(3, cleanup)
+  END
+  CheckDefAndScriptSuccess(lines)
 enddef
 
 def Test_while_loop()
@@ -3518,7 +3548,7 @@ func Test_no_redraw_when_restoring_cpo()
       vim9script
       set cpo+=M
       exe 'set rtp^=' .. getcwd() .. '/Xdir'
-      au CmdlineEnter : ++once timer_start(0, () => script#func())
+      au CmdlineEnter : ++once timer_start(0, (_) => script#func())
       setline(1, 'some text')
   END
   call writefile(lines, 'XTest_redraw_cpo')
@@ -3644,7 +3674,7 @@ enddef
 def Test_catch_exception_in_callback()
   var lines =<< trim END
     vim9script
-    def Callback(...l: any)
+    def Callback(...l: list<any>)
       try
         var x: string
         var y: string
@@ -3669,10 +3699,10 @@ def Test_no_unknown_error_after_error()
   var lines =<< trim END
       vim9script
       var source: list<number>
-      def Out_cb(...l: any)
+      def Out_cb(...l: list<any>)
           eval [][0]
       enddef
-      def Exit_cb(...l: any)
+      def Exit_cb(...l: list<any>)
           sleep 1m
           source += l
       enddef
@@ -3681,7 +3711,7 @@ def Test_no_unknown_error_after_error()
         sleep 10m
       endwhile
       # wait for Exit_cb() to be called
-      sleep 100m
+      sleep 200m
   END
   writefile(lines, 'Xdef')
   assert_fails('so Xdef', ['E684:', 'E1012:'])
