@@ -1280,6 +1280,8 @@ def Test_import_as()
 
   var import_lines =<< trim END
     vim9script
+    var one = 'notused'
+    var yes = 777
     import one as thatOne from './XexportAs'
     assert_equal(1, thatOne)
     import yes as yesYes from './XexportAs'
@@ -2343,6 +2345,12 @@ def Test_for_loop()
       endfor
       assert_equal(6, total)
 
+      var chars = ''
+      for s: string in 'foobar'
+        chars ..= s
+      endfor
+      assert_equal('foobar', chars)
+
       # unpack with type
       var res = ''
       for [n: number, s: string] in [[1, 'a'], [2, 'b']]
@@ -2408,6 +2416,12 @@ def Test_for_loop_fails()
       endfor
   END
   CheckDefAndScriptFailure2(lines, 'E1018:', 'E46:', 3)
+
+  lines =<< trim END
+      for nr: number in ['foo']
+      endfor
+  END
+  CheckDefAndScriptFailure(lines, 'E1012: Type mismatch; expected number but got string', 1)
 enddef
 
 def Test_for_loop_script_var()
@@ -3832,6 +3846,37 @@ def Test_unsupported_commands()
   END
   CheckDefFailure(lines, 'E1100:')
   CheckScriptFailure(['vim9script'] + lines, 'E1100:')
+enddef
+
+def Test_mapping_line_number()
+  var lines =<< trim END
+      vim9script
+      def g:FuncA()
+          # Some comment
+          FuncB(0)
+      enddef
+          # Some comment
+      def FuncB(
+          # Some comment
+          n: number
+      )
+          exe 'nno '
+              # Some comment
+              .. '<F3> a'
+              .. 'b'
+              .. 'c'
+      enddef
+  END
+  CheckScriptSuccess(lines)
+  var res = execute('verbose nmap <F3>')
+  assert_match('No mapping found', res)
+
+  g:FuncA()
+  res = execute('verbose nmap <F3>')
+  assert_match(' <F3> .* abc.*Last set from .*XScriptSuccess\d\+ line 11', res)
+
+  nunmap <F3>
+  delfunc g:FuncA
 enddef
 
 " Keep this last, it messes up highlighting.

@@ -121,6 +121,52 @@ def Test_disassemble_exec_expr()
         res)
 enddef
 
+def s:Substitute()
+  var expr = "abc"
+  :%s/a/\=expr/&g#c
+enddef
+
+def Test_disassemble_substitute()
+  var res = execute('disass s:Substitute')
+  assert_match('<SNR>\d*_Substitute.*' ..
+        ' var expr = "abc"\_s*' ..
+        '\d PUSHS "abc"\_s*' ..
+        '\d STORE $0\_s*' ..
+        ' :%s/a/\\=expr/&g#c\_s*' ..
+        '\d SUBSTITUTE   :%s/a/\\=expr/&g#c\_s*' ..
+        '    0 LOAD $0\_s*' ..
+        '    -------------\_s*' ..
+        '\d RETURN 0',
+        res)
+enddef
+
+def s:RedirVar()
+  var result: string
+  redir =>> result
+    echo "text"
+  redir END
+enddef
+
+def Test_disassemble_redir_var()
+  var res = execute('disass s:RedirVar')
+  assert_match('<SNR>\d*_RedirVar.*' ..
+        ' var result: string\_s*' ..
+        '\d PUSHS "\[NULL\]"\_s*' ..
+        '\d STORE $0\_s*' ..
+        ' redir =>> result\_s*' ..
+        '\d REDIR\_s*' ..
+        ' echo "text"\_s*' ..
+        '\d PUSHS "text"\_s*' ..
+        '\d ECHO 1\_s*' ..
+        ' redir END\_s*' ..
+        '\d LOAD $0\_s*' ..
+        '\d REDIR END\_s*' ..
+        '\d CONCAT\_s*' ..
+        '\d STORE $0\_s*' ..
+        '\d RETURN 0',
+        res)
+enddef
+
 def s:YankRange()
   norm! m[jjm]
   :'[,']yank
@@ -246,6 +292,8 @@ def s:ScriptFuncStoreMember()
   locallist[0] = 123
   var localdict: dict<number> = {}
   localdict["a"] = 456
+  var localblob: blob = 0z1122
+  localblob[1] = 33
 enddef
 
 def Test_disassemble_store_member()
@@ -259,7 +307,7 @@ def Test_disassemble_store_member()
         '\d PUSHNR 123\_s*' ..
         '\d PUSHNR 0\_s*' ..
         '\d LOAD $0\_s*' ..
-        '\d STORELIST\_s*' ..
+        '\d STOREINDEX list\_s*' ..
         'var localdict: dict<number> = {}\_s*' ..
         '\d NEWDICT size 0\_s*' ..
         '\d SETTYPE dict<number>\_s*' ..
@@ -268,7 +316,15 @@ def Test_disassemble_store_member()
         '\d\+ PUSHNR 456\_s*' ..
         '\d\+ PUSHS "a"\_s*' ..
         '\d\+ LOAD $1\_s*' ..
-        '\d\+ STOREDICT\_s*' ..
+        '\d\+ STOREINDEX dict\_s*' ..
+        'var localblob: blob = 0z1122\_s*' ..
+        '\d\+ PUSHBLOB 0z1122\_s*' ..
+        '\d\+ STORE $2\_s*' ..
+        'localblob\[1\] = 33\_s*' ..
+        '\d\+ PUSHNR 33\_s*' ..
+        '\d\+ PUSHNR 1\_s*' ..
+        '\d\+ LOAD $2\_s*' ..
+        '\d\+ STOREINDEX blob\_s*' ..
         '\d\+ RETURN 0',
         res)
 enddef
@@ -291,7 +347,7 @@ def Test_disassemble_store_index()
         '\d PUSHNR 0\_s*' ..
         '\d LOAD $0\_s*' ..
         '\d MEMBER dd\_s*' ..
-        '\d STOREINDEX\_s*' ..
+        '\d STOREINDEX any\_s*' ..
         '\d\+ RETURN 0',
         res)
 enddef
@@ -668,20 +724,22 @@ def Test_disassemble_update_instr()
 enddef
 
 
-def FuncWithDefault(arg: string = 'default', nr = 77): string
+def FuncWithDefault(l: number, arg: string = "default", nr = 77): string
   return arg .. nr
 enddef
 
 def Test_disassemble_call_default()
   var res = execute('disass FuncWithDefault')
   assert_match('FuncWithDefault\_s*' ..
+        '  arg = "default"\_s*' ..
         '\d JUMP_IF_ARG_SET arg\[-2\] -> 3\_s*' ..
         '\d PUSHS "default"\_s*' ..
         '\d STORE arg\[-2]\_s*' ..
+        '  nr = 77\_s*' ..
         '3 JUMP_IF_ARG_SET arg\[-1\] -> 6\_s*' ..
         '\d PUSHNR 77\_s*' ..
         '\d STORE arg\[-1]\_s*' ..
-        'return arg .. nr\_s*' ..
+        '  return arg .. nr\_s*' ..
         '6 LOAD arg\[-2]\_s*' ..
         '\d LOAD arg\[-1]\_s*' ..
         '\d 2STRING stack\[-1]\_s*' ..

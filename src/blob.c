@@ -125,13 +125,33 @@ blob_get(blob_T *b, int idx)
 }
 
 /*
- * Store one byte "c" in blob "b" at "idx".
+ * Store one byte "byte" in blob "blob" at "idx".
  * Caller must make sure that "idx" is valid.
  */
     void
-blob_set(blob_T *b, int idx, char_u c)
+blob_set(blob_T *blob, int idx, int byte)
 {
-    ((char_u*)b->bv_ga.ga_data)[idx] = c;
+    ((char_u*)blob->bv_ga.ga_data)[idx] = byte;
+}
+
+/*
+ * Store one byte "byte" in blob "blob" at "idx".
+ * Append one byte if needed.
+ */
+    void
+blob_set_append(blob_T *blob, int idx, int byte)
+{
+    garray_T *gap = &blob->bv_ga;
+
+    // Allow for appending a byte.  Setting a byte beyond
+    // the end is an error otherwise.
+    if (idx < gap->ga_len
+	    || (idx == gap->ga_len && ga_grow(gap, 1) == OK))
+    {
+	blob_set(blob, idx, byte);
+	if (idx == gap->ga_len)
+	    ++gap->ga_len;
+    }
 }
 
 /*
@@ -424,7 +444,7 @@ blob_remove(typval_T *argvars, typval_T *rettv)
 	{
 	    blob_T  *blob;
 
-	    // Remove range of items, return list with values.
+	    // Remove range of items, return blob with values.
 	    end = (long)tv_get_number_chk(&argvars[2], &error);
 	    if (error)
 		return;
@@ -452,7 +472,8 @@ blob_remove(typval_T *argvars, typval_T *rettv)
 	    rettv->v_type = VAR_BLOB;
 	    rettv->vval.v_blob = blob;
 
-	    mch_memmove(p + idx, p + end + 1, (size_t)(len - end));
+	    if (len - end - 1 > 0)
+		mch_memmove(p + idx, p + end + 1, (size_t)(len - end - 1));
 	    b->bv_ga.ga_len -= end - idx + 1;
 	}
     }
