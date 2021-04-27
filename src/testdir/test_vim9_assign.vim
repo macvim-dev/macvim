@@ -1500,33 +1500,33 @@ def Test_script_local_in_legacy()
   # OK to define script-local later when prefixed with s:
   var lines =<< trim END
     def SetLater()
-      s:legacy = 'two'
+      s:legvar = 'two'
     enddef
     defcompile
-    let s:legacy = 'one'
+    let s:legvar = 'one'
     call SetLater()
-    call assert_equal('two', s:legacy)
+    call assert_equal('two', s:legvar)
   END
   CheckScriptSuccess(lines)
 
   # OK to leave out s: prefix when script-local already defined
   lines =<< trim END
-    let s:legacy = 'one'
+    let s:legvar = 'one'
     def SetNoPrefix()
-      legacy = 'two'
+      legvar = 'two'
     enddef
     call SetNoPrefix()
-    call assert_equal('two', s:legacy)
+    call assert_equal('two', s:legvar)
   END
   CheckScriptSuccess(lines)
 
   # Not OK to leave out s: prefix when script-local defined later
   lines =<< trim END
     def SetLaterNoPrefix()
-      legacy = 'two'
+      legvar = 'two'
     enddef
     defcompile
-    let s:legacy = 'one'
+    let s:legvar = 'one'
   END
   CheckScriptFailure(lines, 'E476:', 1)
 enddef
@@ -1835,6 +1835,28 @@ def Test_script_funcref_case()
       var s:len = (s: string): number => len(s) + 1
   END
   CheckScriptFailure(lines, 'E704:')
+enddef
+
+def Test_inc_dec()
+  var lines =<< trim END
+      var nr = 7
+      ++nr
+      assert_equal(8, nr)
+      --nr
+      assert_equal(7, nr)
+
+      var ll = [1, 2]
+      --ll[0]
+      ++ll[1]
+      assert_equal([0, 3], ll)
+
+      g:count = 1
+      ++g:count
+      --g:count
+      assert_equal(1, g:count)
+      unlet g:count
+  END
+  CheckDefAndScriptSuccess(lines)
 enddef
 
 

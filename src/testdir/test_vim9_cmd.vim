@@ -984,18 +984,26 @@ def Test_user_command_comment()
   command -nargs=1 Comd echom <q-args>
 
   var lines =<< trim END
-    vim9script
-    Comd # comment
+      vim9script
+      Comd # comment
   END
   CheckScriptSuccess(lines)
 
   lines =<< trim END
-    vim9script
-    Comd# comment
+      vim9script
+      Comd# comment
   END
   CheckScriptFailure(lines, 'E1144:')
-
   delcommand Comd
+
+  lines =<< trim END
+      vim9script
+      command Foo echo 'Foo'
+      Foo3Bar
+  END
+  CheckScriptFailure(lines, 'E1144: Command "Foo" is not followed by white space: Foo3Bar')
+
+  delcommand Foo
 enddef
 
 def Test_star_command()
@@ -1194,10 +1202,35 @@ def Test_substitute_expr()
   endfor
   assert_equal('yes no abc', getline(1))
 
+  bwipe!
+
   CheckDefFailure(['s/from/\="x")/'], 'E488:')
   CheckDefFailure(['s/from/\="x"/9'], 'E488:')
 
-  bwipe!
+  # When calling a function the right instruction list needs to be restored.
+  g:cond = true
+  var lines =<< trim END
+      vim9script
+      def Foo()
+          Bar([])
+      enddef
+      def Bar(l: list<number>)
+        if g:cond
+          s/^/\=Rep()/
+          for n in l[:]
+          endfor
+        endif
+      enddef
+      def Rep(): string
+          return 'rep'
+      enddef
+      new
+      Foo()
+      assert_equal('rep', getline(1))
+      bwipe!
+  END
+  CheckScriptSuccess(lines)
+  unlet g:cond
 enddef
 
 def Test_redir_to_var()

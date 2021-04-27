@@ -2165,6 +2165,24 @@ def Test_list_lambda()
   assert_match('def <lambda>\d\+(_: any): number\n1  return 0\n   enddef', body)
 enddef
 
+def Test_legacy_lambda()
+  legacy echo {x -> 'hello ' .. x}('foo')
+
+  var lines =<< trim END
+      echo {x -> 'hello ' .. x}('foo')
+  END
+  CheckDefAndScriptFailure(lines, 'E720:')
+
+  lines =<< trim END
+      vim9script
+      def Func()
+        echo (() => 'no error')()
+      enddef
+      legacy call s:Func()
+  END
+  CheckScriptSuccess(lines)
+enddef
+
 def DoFilterThis(a: string): list<string>
   # closure nested inside another closure using argument
   var Filter = (l) => filter(l, (_, v) => stridx(v, a) == 0)
@@ -2690,6 +2708,16 @@ def Test_too_many_arguments()
     echo [0, 1, 2]->map((_) => 123)
   END
   CheckDefExecAndScriptFailure(lines, 'E1106: One argument too many', 1)
+enddef
+
+def Test_closing_brace_at_start_of_line()
+  var lines =<< trim END
+      def Func()
+      enddef
+      Func(
+      )
+  END
+  call CheckDefAndScriptSuccess(lines)
 enddef
 
 

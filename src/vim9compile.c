@@ -4688,6 +4688,10 @@ compile_expr5(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 	op = may_peek_next_line(cctx, *arg, &next);
 	if (*op != '+' && *op != '-' && !(*op == '.' && *(op + 1) == '.'))
 	    break;
+	if (op[0] == op[1] && *op != '.' && next)
+	    // Finding "++" or "--" on the next line is a separate command.
+	    // But ".." is concatenation.
+	    break;
 	oplen = (*op == '.' ? 2 : 1);
 	if (next != NULL)
 	{
@@ -6395,6 +6399,7 @@ compile_assign_unlet(
  * "const name = expr"
  * "name = expr"
  * "arg" points to "name".
+ * "++arg" and "--arg"
  * Return NULL for an error.
  * Return "arg" if it does not look like a variable list.
  */
@@ -6413,6 +6418,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
     char_u	*op;
     int		oplen = 0;
     int		heredoc = FALSE;
+    int		incdec = FALSE;
     type_T	*rhs_type = &t_any;
     char_u	*sp;
     int		is_decl = is_decl_command(cmdidx);
@@ -6446,6 +6452,12 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
     {
 	error_white_both(op, oplen);
 	return NULL;
+    }
+    if (eap->cmdidx == CMD_increment || eap->cmdidx == CMD_decrement)
+    {
+	op = (char_u *)(eap->cmdidx == CMD_increment ? "+=" : "-=");
+	oplen = 2;
+	incdec = TRUE;
     }
 
     if (heredoc)
@@ -6571,23 +6583,31 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 			    goto theend;
 		    }
 
-		    // Compile the expression.  Temporarily hide the new local
-		    // variable here, it is not available to this expression.
-		    if (lhs.lhs_new_local)
-			--cctx->ctx_locals.ga_len;
+		    // Compile the expression.
 		    instr_count = instr->ga_len;
-		    wp = op + oplen;
-		    if (may_get_next_line_error(wp, &p, cctx) == FAIL)
+		    if (incdec)
 		    {
+			r = generate_PUSHNR(cctx, 1);
+		    }
+		    else
+		    {
+			// Temporarily hide the new local variable here, it is
+			// not available to this expression.
+			if (lhs.lhs_new_local)
+			    --cctx->ctx_locals.ga_len;
+			wp = op + oplen;
+			if (may_get_next_line_error(wp, &p, cctx) == FAIL)
+			{
+			    if (lhs.lhs_new_local)
+				++cctx->ctx_locals.ga_len;
+			    goto theend;
+			}
+			r = compile_expr0_ext(&p, cctx, &is_const);
 			if (lhs.lhs_new_local)
 			    ++cctx->ctx_locals.ga_len;
-			goto theend;
+			if (r == FAIL)
+			    goto theend;
 		    }
-		    r = compile_expr0_ext(&p, cctx, &is_const);
-		    if (lhs.lhs_new_local)
-			++cctx->ctx_locals.ga_len;
-		    if (r == FAIL)
-			goto theend;
 		}
 		else if (semicolon && var_idx == var_count - 1)
 		{
@@ -8747,6 +8767,7 @@ compile_def_function(
     int		ret = FAIL;
     sctx_T	save_current_sctx = current_sctx;
     int		save_estack_compiling = estack_compiling;
+    int		save_cmod_flags = cmdmod.cmod_flags;
     int		do_estack_push;
     int		new_def_function = FALSE;
 #ifdef FEAT_PROFILE
@@ -8790,6 +8811,9 @@ compile_def_function(
     // The line number will be set in next_line_from_context().
     current_sctx = ufunc->uf_script_ctx;
     current_sctx.sc_version = SCRIPT_VERSION_VIM9;
+
+    // Don't use the flag from ":legacy" here.
+    cmdmod.cmod_flags &= ~CMOD_LEGACY;
 
     // Make sure error messages are OK.
     do_estack_push = !estack_top_is_ufunc(ufunc, 1);
@@ -9018,9 +9042,11 @@ compile_def_function(
 	/*
 	 * COMMAND after range
 	 * 'text'->func() should not be confused with 'a mark
+	 * "++nr" and "--nr" are eval commands
 	 */
 	cmd = ea.cmd;
-	if (*cmd != '\'' || starts_with_colon)
+	if (starts_with_colon || !(*cmd == '\''
+			|| (cmd[0] == cmd[1] && (*cmd == '+' || *cmd == '-'))))
 	{
 	    ea.cmd = skip_range(ea.cmd, TRUE, NULL);
 	    if (ea.cmd > cmd)
@@ -9051,6 +9077,10 @@ compile_def_function(
 		emsg(_(e_ambiguous_use_of_user_defined_command));
 	    goto erret;
 	}
+
+	// When using ":legacy cmd" always use compile_exec().
+	if (local_cmdmod.cmod_flags & CMOD_LEGACY)
+	    ea.cmdidx = CMD_legacy;
 
 	if (p == ea.cmd && ea.cmdidx != CMD_SIZE)
 	{
@@ -9121,6 +9151,8 @@ compile_def_function(
 	    case CMD_var:
 	    case CMD_final:
 	    case CMD_const:
+	    case CMD_increment:
+	    case CMD_decrement:
 		    line = compile_assignment(p, &ea, ea.cmdidx, &cctx);
 		    if (line == p)
 			line = NULL;
@@ -9375,6 +9407,7 @@ erret:
 
     current_sctx = save_current_sctx;
     estack_compiling = save_estack_compiling;
+    cmdmod.cmod_flags =	save_cmod_flags;
     if (do_estack_push)
 	estack_pop();
 
