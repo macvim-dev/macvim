@@ -1887,6 +1887,7 @@ enddef
 def Test_expr7_lambda()
   var lines =<< trim END
       var La = () => 'result'
+      # comment
       assert_equal('result', La())
       assert_equal([1, 3, 5], [1, 2, 3]->map((key, val) => key + val))
 
@@ -1896,6 +1897,12 @@ def Test_expr7_lambda()
                 ['111']: 111 } : {}
             )
       assert_equal([{}, {111: 111}, {}], dll)
+
+      # comment halfway an expression
+      var Ref = () => 4
+      # comment
+      + 6
+      assert_equal(10, Ref())
 
       ll = range(3)
       map(ll, (k, v) => v == 8 || v
@@ -3059,6 +3066,10 @@ def Test_expr7_string_subscript()
     assert_equal('ábçd', text[: 3])
     assert_equal('bçdëf', text[1 :])
     assert_equal('ábçdëf', text[:])
+
+    assert_equal('a', g:astring[0])
+    assert_equal('sd', g:astring[1 : 2])
+    assert_equal('asdf', g:astring[:])
   END
   CheckDefAndScriptSuccess(lines)
 
@@ -3128,6 +3139,9 @@ def Test_expr7_list_subscript()
       assert_equal([0], list[0 : -5])
       assert_equal([], list[0 : -6])
       assert_equal([], list[0 : -99])
+
+      assert_equal(2, g:alist[0])
+      assert_equal([2, 3, 4], g:alist[:])
   END
   CheckDefAndScriptSuccess(lines)
 
@@ -3150,6 +3164,9 @@ def Test_expr7_dict_subscript()
       var res = l[0].lnum > l[1].lnum
       assert_true(res)
 
+      assert_equal(2, g:adict['aaa'])
+      assert_equal(8, g:adict.bbb)
+
       var dd = {}
       def Func1()
         eval dd.key1.key2
@@ -3158,6 +3175,18 @@ def Test_expr7_dict_subscript()
         eval dd['key1'].key2
       enddef
       defcompile
+  END
+  CheckDefAndScriptSuccess(lines)
+enddef
+
+def Test_expr7_blob_subscript()
+  var lines =<< trim END
+      var b = 0z112233
+      assert_equal(0x11, b[0])
+      assert_equal(0z112233, b[:])
+
+      assert_equal(0x01, g:ablob[0])
+      assert_equal(0z01ab, g:ablob[:])
   END
   CheckDefAndScriptSuccess(lines)
 enddef

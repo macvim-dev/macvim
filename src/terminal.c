@@ -473,6 +473,7 @@ term_start(
     ga_init2(&term->tl_scrollback_postponed, sizeof(sb_line_T), 300);
     ga_init2(&term->tl_osc_buf, sizeof(char), 300);
 
+    setpcmark();
     CLEAR_FIELD(split_ea);
     if (opt->jo_curwin)
     {
@@ -4594,9 +4595,9 @@ create_vterm(term_T *term, int rows, int cols)
  * Called when 'wincolor' was set.
  */
     void
-term_update_colors(void)
+term_update_colors(term_T *term)
 {
-    term_T *term = curwin->w_buffer->b_term;
+    win_T *wp;
 
     if (term->tl_vterm == NULL)
 	return;
@@ -4606,7 +4607,21 @@ term_update_colors(void)
 	    &term->tl_default_color.fg,
 	    &term->tl_default_color.bg);
 
-    redraw_later(NOT_VALID);
+    FOR_ALL_WINDOWS(wp)
+	if (wp->w_buffer == term->tl_buffer)
+	    redraw_win_later(wp, NOT_VALID);
+}
+
+/*
+ * Called when 'background' was set.
+ */
+    void
+term_update_colors_all(void)
+{
+    term_T *tp;
+
+    FOR_ALL_TERMS(tp)
+	term_update_colors(tp);
 }
 
 /*
@@ -5943,7 +5958,7 @@ f_term_list(typval_T *argvars UNUSED, typval_T *rettv)
 
     l = rettv->vval.v_list;
     FOR_ALL_TERMS(tp)
-	if (tp != NULL && tp->tl_buffer != NULL)
+	if (tp->tl_buffer != NULL)
 	    if (list_append_number(l,
 				   (varnumber_T)tp->tl_buffer->b_fnum) == FAIL)
 		return;

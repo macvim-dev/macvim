@@ -3734,7 +3734,7 @@ vim_rename(char_u *from, char_u *to)
 			return 0;
 		    // Strange, the second step failed.  Try moving the
 		    // file back and return failure.
-		    mch_rename(tempname, (char *)from);
+		    (void)mch_rename(tempname, (char *)from);
 		    return -1;
 		}
 		// If it fails for one temp name it will most likely fail
