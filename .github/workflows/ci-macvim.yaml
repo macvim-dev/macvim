@@ -106,13 +106,12 @@ jobs:
           set -o verbose
 
           # Manually download and extract gettext bottle for arm64
-          gettext_url=$(brew info --json gettext | ruby -rjson -e 'j = JSON.parse(STDIN.read); puts j[0]["bottle"]["stable"]["files"]["arm64_big_sur"]["url"]')
-          gettext_ver=$(brew info --json gettext | ruby -rjson -e 'j = JSON.parse(STDIN.read); puts j[0]["versions"]["stable"]')
+          source /dev/stdin <<<"$(brew info --json gettext | jq -r '"gettext_url=\(.[0].bottle.stable.files.arm64_big_sur.url)", "gettext_ver=\(.[0].versions.stable)"')"
 
           mkdir gettext_download
           cd gettext_download
-          wget --no-verbose ${gettext_url}
-          tar xf gettext*.tar.gz
+          wget --no-verbose --header 'Authorization: Bearer QQ==' -O gettext.tar.gz ${gettext_url}
+          tar xf gettext.tar.gz
 
           # Just for diagnostics, print out the old archs. This should be a thin binary (x86_64)
           lipo -info /usr/local/lib/libintl.a
