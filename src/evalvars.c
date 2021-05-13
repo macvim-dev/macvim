@@ -1914,6 +1914,7 @@ item_lock(typval_T *tv, int deep, int lock, int check_refcount)
 	case VAR_SPECIAL:
 	case VAR_JOB:
 	case VAR_CHANNEL:
+	case VAR_INSTR:
 	    break;
 
 	case VAR_BLOB:

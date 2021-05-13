@@ -2989,6 +2989,7 @@ f_empty(typval_T *argvars, typval_T *rettv)
 	case VAR_UNKNOWN:
 	case VAR_ANY:
 	case VAR_VOID:
+	case VAR_INSTR:
 	    internal_error_no_abort("f_empty(UNKNOWN)");
 	    n = TRUE;
 	    break;
@@ -3174,7 +3175,8 @@ execute_common(typval_T *argvars, typval_T *rettv, int arg_off)
     else if (argvars[arg_off].v_type == VAR_JOB
 	    || argvars[arg_off].v_type == VAR_CHANNEL)
     {
-	emsg(_(e_inval_string));
+	semsg(_(e_using_invalid_value_as_string_str),
+				       vartype_name(argvars[arg_off].v_type));
 	return;
     }
     else
@@ -6338,6 +6340,7 @@ f_len(typval_T *argvars, typval_T *rettv)
 	case VAR_PARTIAL:
 	case VAR_JOB:
 	case VAR_CHANNEL:
+	case VAR_INSTR:
 	    emsg(_("E701: Invalid type for len()"));
 	    break;
     }
@@ -10250,6 +10253,7 @@ f_type(typval_T *argvars, typval_T *rettv)
 	case VAR_JOB:     n = VAR_TYPE_JOB; break;
 	case VAR_CHANNEL: n = VAR_TYPE_CHANNEL; break;
 	case VAR_BLOB:    n = VAR_TYPE_BLOB; break;
+	case VAR_INSTR:   n = VAR_TYPE_INSTR; break;
 	case VAR_UNKNOWN:
 	case VAR_ANY:
 	case VAR_VOID:
