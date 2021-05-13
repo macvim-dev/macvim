@@ -95,8 +95,10 @@ jobs:
         env:
           HOMEBREW_NO_AUTO_UPDATE: 1
         run: |
-          brew install -s gettext.rb  # This will be a no-op if gettext was cached
-          brew link gettext           # If gettext was cached, this step is necessary to relink it to /usr/local/
+          # This will be a no-op if gettext was cached
+          brew install --formula -s ./gettext.rb
+          # If gettext was cached, this step is necessary to relink it to /usr/local/
+          brew link gettext
 
       - name: Create universal gettext with arm64 bottle
         if: matrix.publish && steps.cache-gettext.outputs.cache-hit != 'true'
