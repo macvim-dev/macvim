@@ -423,7 +423,21 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
             return NO;
         }
 
-        [NSTask launchedTaskWithLaunchPath:path arguments:args];
+        NSTask *task = [[[NSTask alloc] init] autorelease];
+        task.arguments = args;
+        task.standardInput = NSFileHandle.fileHandleWithNullDevice;
+        task.standardOutput = NSFileHandle.fileHandleWithNullDevice;
+        task.standardError = NSFileHandle.fileHandleWithNullDevice;
+# if MAC_OS_X_VERSION_MAX_ALLOWED >= 101300
+        if (@available(macos 10.13, *)) {
+            task.executableURL = [NSURL fileURLWithPath:path];
+            [task launchAndReturnError:nil];
+        } else
+# endif
+        {
+            task.launchPath = path;
+            [task launch];
+        }
 #endif
 
         // HACK!  Poll the mach bootstrap server until it returns a valid
