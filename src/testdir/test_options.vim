@@ -779,6 +779,11 @@ func Test_local_scrolloff()
 endfunc
 
 func Test_writedelay()
+  " Workaround for MacVim GUI: This test fails sometimes after Test_VIM_POSIX.
+  " Because, 'writedelay' makes no effect while its GUI window focus is lost,
+  " and Test_VIM_POSIX opens the own new GUI window so the main window loses
+  " focus once.
+  CheckNotGui
   CheckFunction reltimefloat
 
   new
