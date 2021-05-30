@@ -3398,8 +3398,11 @@ find_ex_command(
     int		len;
     char_u	*p;
     int		i;
+#ifndef FEAT_EVAL
+    int		vim9 = FALSE;
+#else
+    int		vim9 = in_vim9script();
 
-#ifdef FEAT_EVAL
     /*
      * Recognize a Vim9 script function/method call and assignment:
      * "lvar = value", "lvar(arg)", "[1, 2 3]->Func()"
@@ -3562,12 +3565,13 @@ find_ex_command(
      * - the "d" command can directly be followed by 'l' or 'p' flag.
      */
     p = eap->cmd;
-    if (*p == 'k')
+    if (!vim9 && *p == 'k')
     {
 	eap->cmdidx = CMD_k;
 	++p;
     }
-    else if (p[0] == 's'
+    else if (!vim9
+	    && p[0] == 's'
 	    && ((p[1] == 'c' && (p[2] == NUL || (p[2] != 's' && p[2] != 'r'
 			&& (p[3] == NUL || (p[3] != 'i' && p[4] != 'p')))))
 		|| p[1] == 'g'
@@ -3600,7 +3604,7 @@ find_ex_command(
 	if (p == eap->cmd && vim_strchr((char_u *)"@*!=><&~#}", *p) != NULL)
 	    ++p;
 	len = (int)(p - eap->cmd);
-	if (*eap->cmd == 'd' && (p[-1] == 'l' || p[-1] == 'p'))
+	if (!vim9 && *eap->cmd == 'd' && (p[-1] == 'l' || p[-1] == 'p'))
 	{
 	    // Check for ":dl", ":dell", etc. to ":deletel": that's
 	    // :delete with the 'l' flag.  Same for 'p'.
@@ -3677,7 +3681,7 @@ find_ex_command(
 
 #ifdef FEAT_EVAL
     if (eap->cmdidx < CMD_SIZE
-	    && in_vim9script()
+	    && vim9
 	    && !IS_WHITE_OR_NUL(*p) && *p != '\n' && *p != '!'
 	    && (eap->cmdidx < 0 ||
 		(cmdnames[eap->cmdidx].cmd_argt & EX_NONWHITE_OK) == 0))
@@ -3797,17 +3801,32 @@ f_fullcommand(typval_T *argvars, typval_T *rettv)
     char_u   *name = argvars[0].vval.v_string;
     char_u   *p;
 
-    while (name[0] != NUL && name[0] == ':')
+    rettv->v_type = VAR_STRING;
+    rettv->vval.v_string = NULL;
+    if (name == NULL)
+	return;
+
+    while (*name != NUL && *name == ':')
 	name++;
     name = skip_range(name, TRUE, NULL);
 
-    rettv->v_type = VAR_STRING;
-
     ea.cmd = (*name == '2' || *name == '3') ? name + 1 : name;
     ea.cmdidx = (cmdidx_T)0;
+    ea.addr_count = 0;
     p = find_ex_command(&ea, NULL, NULL, NULL);
     if (p == NULL || ea.cmdidx == CMD_SIZE)
 	return;
+    if (in_vim9script())
+    {
+	int	     res;
+
+	++emsg_silent;
+	res = not_in_vim9(&ea);
+	--emsg_silent;
+
+	if (res == FAIL)
+	    return;
+    }
 
     rettv->vval.v_string = vim_strsave(IS_USER_CMDIDX(ea.cmdidx)
 				    ? get_user_commands(NULL, ea.useridx)
@@ -5485,7 +5504,7 @@ not_exiting(void)
     settmode(TMODE_RAW);
 }
 
-    static int
+    int
 before_quit_autocmds(win_T *wp, int quit_all, int forceit)
 {
     apply_autocmds(EVENT_QUITPRE, NULL, NULL, FALSE, wp->w_buffer);
@@ -5559,7 +5578,7 @@ ex_quit(exarg_T *eap)
 #endif
 
     /*
-     * If there are more files or windows we won't exit.
+     * If there is only one relevant window we will exit.
      */
     if (check_more(FALSE, eap->forceit) == OK && only_one_window())
 	exiting = TRUE;
@@ -6076,7 +6095,7 @@ ex_stop(exarg_T *eap)
 }
 
 /*
- * ":exit", ":xit" and ":wq": Write file and quite the current window.
+ * ":exit", ":xit" and ":wq": Write file and quit the current window.
  */
     static void
 ex_exit(exarg_T *eap)
@@ -6099,17 +6118,17 @@ ex_exit(exarg_T *eap)
 	return;
     }
 
-    if (before_quit_autocmds(curwin, FALSE, eap->forceit))
-	return;
-
     /*
-     * if more files or windows we won't exit
+     * we plan to exit if there is only one relevant window
      */
     if (check_more(FALSE, eap->forceit) == OK && only_one_window())
 	exiting = TRUE;
-    if (       ((eap->cmdidx == CMD_wq
-		    || curbufIsChanged())
-		&& do_write(eap) == FAIL)
+
+    // Write the buffer for ":wq" or when it was changed.
+    // Trigger QuitPre and ExitPre.
+    // Check if we can exit now, after autocommands have changed things.
+    if (((eap->cmdidx == CMD_wq || curbufIsChanged()) && do_write(eap) == FAIL)
+	    || before_quit_autocmds(curwin, FALSE, eap->forceit)
 	    || check_more(TRUE, eap->forceit) == FAIL
 	    || (only_one_window() && check_changed_any(eap->forceit, FALSE)))
     {

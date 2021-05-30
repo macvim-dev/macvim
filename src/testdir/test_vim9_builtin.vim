@@ -363,6 +363,7 @@ def Test_extend_arg_types()
   END
   CheckDefAndScriptSuccess(lines)
 
+  CheckDefFailure(['extend("a", 1)'], 'E1013: Argument 1: type mismatch, expected list<any> but got string')
   CheckDefFailure(['extend([1, 2], 3)'], 'E1013: Argument 2: type mismatch, expected list<number> but got number')
   CheckDefFailure(['extend([1, 2], ["x"])'], 'E1013: Argument 2: type mismatch, expected list<number> but got list<string>')
   CheckDefFailure(['extend([1, 2], [3], "x")'], 'E1013: Argument 3: type mismatch, expected number but got string')
@@ -553,6 +554,29 @@ def Test_filter_missing_argument()
   res->assert_equal({aa: [1], ac: [3]})
 enddef
 
+def Test_fullcommand()
+  assert_equal('next', fullcommand('n'))
+  assert_equal('noremap', fullcommand('no'))
+  assert_equal('noremap', fullcommand('nor'))
+  assert_equal('normal', fullcommand('norm'))
+
+  assert_equal('', fullcommand('k'))
+  assert_equal('keepmarks', fullcommand('ke'))
+  assert_equal('keepmarks', fullcommand('kee'))
+  assert_equal('keepmarks', fullcommand('keep'))
+  assert_equal('keepjumps', fullcommand('keepj'))
+
+  assert_equal('dlist', fullcommand('dl'))
+  assert_equal('', fullcommand('dp'))
+  assert_equal('delete', fullcommand('del'))
+  assert_equal('', fullcommand('dell'))
+  assert_equal('', fullcommand('delp'))
+
+  assert_equal('srewind', fullcommand('sre'))
+  assert_equal('scriptnames', fullcommand('scr'))
+  assert_equal('', fullcommand('scg'))
+enddef
+
 def Test_garbagecollect()
   garbagecollect(true)
 enddef
@@ -726,6 +750,12 @@ def Test_insert()
   endfor
   res->assert_equal(6)
 
+  var m: any = []
+  insert(m, 4)
+  call assert_equal([4], m)
+  extend(m, [6], 0)
+  call assert_equal([6, 4], m)
+
   var lines =<< trim END
       insert(test_null_list(), 123)
   END
@@ -743,6 +773,7 @@ def Test_insert()
   assert_equal(['a', 'b', 'c'], insert(['b', 'c'], 'a'))
   assert_equal(0z1234, insert(0z34, 0x12))
 
+  CheckDefFailure(['insert("a", 1)'], 'E1013: Argument 1: type mismatch, expected list<any> but got string', 1)
   CheckDefFailure(['insert([2, 3], "a")'], 'E1013: Argument 2: type mismatch, expected number but got string', 1)
   CheckDefFailure(['insert([2, 3], 1, "x")'], 'E1013: Argument 3: type mismatch, expected number but got string', 1)
 enddef

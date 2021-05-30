@@ -4254,6 +4254,7 @@ add_termcode(char_u *name, char_u *string, int flags)
 	if (new_tc == NULL)
 	{
 	    tc_max_len -= 20;
+	    vim_free(s);
 	    return;
 	}
 	for (i = 0; i < tc_len; ++i)

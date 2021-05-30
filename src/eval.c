@@ -1309,6 +1309,9 @@ set_var_lval(
     {
 	cc = *endp;
 	*endp = NUL;
+	if (in_vim9script() && check_reserved_name(lp->ll_name) == FAIL)
+	    return;
+
 	if (lp->ll_blob != NULL)
 	{
 	    int	    error = FALSE, val;
@@ -2358,7 +2361,7 @@ eval1(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	    ++*arg;
 	if (evaluate && vim9script && !IS_WHITE_OR_NUL((*arg)[1]))
 	{
-	    error_white_both(p, op_falsy ? 2 : 1);
+	    error_white_both(*arg - (op_falsy ? 1 : 0), op_falsy ? 2 : 1);
 	    clear_tv(rettv);
 	    return FAIL;
 	}
@@ -2406,7 +2409,7 @@ eval1(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	     */
 	    if (evaluate && vim9script && !IS_WHITE_OR_NUL((*arg)[1]))
 	    {
-		error_white_both(p, 1);
+		error_white_both(*arg, 1);
 		clear_tv(rettv);
 		evalarg_used->eval_flags = orig_flags;
 		return FAIL;
@@ -2511,7 +2514,7 @@ eval2(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	     */
 	    if (evaluate && in_vim9script() && !IS_WHITE_OR_NUL((*arg)[2]))
 	    {
-		error_white_both(p, 2);
+		error_white_both(*arg, 2);
 		clear_tv(rettv);
 		return FAIL;
 	    }
@@ -2637,7 +2640,7 @@ eval3(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	     */
 	    if (evaluate && in_vim9script() && !IS_WHITE_OR_NUL((*arg)[2]))
 	    {
-		error_white_both(p, 2);
+		error_white_both(*arg, 2);
 		clear_tv(rettv);
 		return FAIL;
 	    }
@@ -2735,10 +2738,13 @@ eval4(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 				   ? 0 : (evalarg->eval_flags & EVAL_EVALUATE);
 
 	if (getnext)
+	{
 	    *arg = eval_next_line(evalarg);
+	    p = *arg;
+	}
 	else if (evaluate && vim9script && !VIM_ISWHITE(**arg))
 	{
-	    error_white_both(p, len);
+	    error_white_both(*arg, len);
 	    clear_tv(rettv);
 	    return FAIL;
 	}
@@ -2898,7 +2904,7 @@ eval5(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	{
 	    if (evaluate && vim9script && !VIM_ISWHITE(**arg))
 	    {
-		error_white_both(p, oplen);
+		error_white_both(*arg, oplen);
 		clear_tv(rettv);
 		return FAIL;
 	    }
@@ -2934,7 +2940,7 @@ eval5(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	 */
 	if (evaluate && vim9script && !IS_WHITE_OR_NUL((*arg)[oplen]))
 	{
-	    error_white_both(p, oplen);
+	    error_white_both(*arg, oplen);
 	    clear_tv(rettv);
 	    return FAIL;
 	}
@@ -3130,7 +3136,7 @@ eval6(
 	{
 	    if (evaluate && in_vim9script() && !VIM_ISWHITE(**arg))
 	    {
-		error_white_both(p, 1);
+		error_white_both(*arg, 1);
 		clear_tv(rettv);
 		return FAIL;
 	    }
