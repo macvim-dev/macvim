@@ -818,7 +818,99 @@ func Test_visual_block_mode()
   exe "normal ld\<C-V>j"
   call assert_equal(['13', '46', '789'], getline(1, '$'))
 
+  " Test from ':help v_b_I_example'
+  %d _
+  setlocal tabstop=8 shiftwidth=4
+  let lines =<< trim END
+    abcdefghijklmnopqrstuvwxyz
+    abc		defghijklmnopqrstuvwxyz
+    abcdef  ghi		jklmnopqrstuvwxyz
+    abcdefghijklmnopqrstuvwxyz
+  END
+  call setline(1, lines)
+  exe "normal ggfo\<C-V>3jISTRING"
+  let expected =<< trim END
+    abcdefghijklmnSTRINGopqrstuvwxyz
+    abc	      STRING  defghijklmnopqrstuvwxyz
+    abcdef  ghi   STRING  	jklmnopqrstuvwxyz
+    abcdefghijklmnSTRINGopqrstuvwxyz
+  END
+  call assert_equal(expected, getline(1, '$'))
+
+  " Test from ':help v_b_A_example'
+  %d _
+  let lines =<< trim END
+    abcdefghijklmnopqrstuvwxyz
+    abc		defghijklmnopqrstuvwxyz
+    abcdef  ghi		jklmnopqrstuvwxyz
+    abcdefghijklmnopqrstuvwxyz
+  END
+  call setline(1, lines)
+  exe "normal ggfo\<C-V>3j$ASTRING"
+  let expected =<< trim END
+    abcdefghijklmnopqrstuvwxyzSTRING
+    abc		defghijklmnopqrstuvwxyzSTRING
+    abcdef  ghi		jklmnopqrstuvwxyzSTRING
+    abcdefghijklmnopqrstuvwxyzSTRING
+  END
+  call assert_equal(expected, getline(1, '$'))
+
+  " Test from ':help v_b_<_example'
+  %d _
+  let lines =<< trim END
+    abcdefghijklmnopqrstuvwxyz
+    abc		defghijklmnopqrstuvwxyz
+    abcdef  ghi		jklmnopqrstuvwxyz
+    abcdefghijklmnopqrstuvwxyz
+  END
+  call setline(1, lines)
+  exe "normal ggfo\<C-V>3j3l<.."
+  let expected =<< trim END
+    abcdefghijklmnopqrstuvwxyz
+    abc	      defghijklmnopqrstuvwxyz
+    abcdef  ghi   jklmnopqrstuvwxyz
+    abcdefghijklmnopqrstuvwxyz
+  END
+  call assert_equal(expected, getline(1, '$'))
+
+  " Test from ':help v_b_>_example'
+  %d _
+  let lines =<< trim END
+    abcdefghijklmnopqrstuvwxyz
+    abc		defghijklmnopqrstuvwxyz
+    abcdef  ghi		jklmnopqrstuvwxyz
+    abcdefghijklmnopqrstuvwxyz
+  END
+  call setline(1, lines)
+  exe "normal ggfo\<C-V>3j>.."
+  let expected =<< trim END
+    abcdefghijklmn		  opqrstuvwxyz
+    abc			    defghijklmnopqrstuvwxyz
+    abcdef  ghi			    jklmnopqrstuvwxyz
+    abcdefghijklmn		  opqrstuvwxyz
+  END
+  call assert_equal(expected, getline(1, '$'))
+
+  " Test from ':help v_b_r_example'
+  %d _
+  let lines =<< trim END
+    abcdefghijklmnopqrstuvwxyz
+    abc		defghijklmnopqrstuvwxyz
+    abcdef  ghi		jklmnopqrstuvwxyz
+    abcdefghijklmnopqrstuvwxyz
+  END
+  call setline(1, lines)
+  exe "normal ggfo\<C-V>5l3jrX"
+  let expected =<< trim END
+    abcdefghijklmnXXXXXXuvwxyz
+    abc	      XXXXXXhijklmnopqrstuvwxyz
+    abcdef  ghi   XXXXXX    jklmnopqrstuvwxyz
+    abcdefghijklmnXXXXXXuvwxyz
+  END
+  call assert_equal(expected, getline(1, '$'))
+
   bwipe!
+  set tabstop& shiftwidth&
 endfunc
 
 " Test block-insert using cursor keys for movement
@@ -1041,6 +1133,28 @@ func Test_visual_put_in_block()
   normal 1G2yl
   exe "normal 1G2l\<C-V>jjlp"
   call assert_equal(['xxxx', 'y∞xx', 'zzxx'], getline(1, 3))
+  bwipe!
+endfunc
+
+func Test_visual_put_in_block_using_zp()
+  new
+  " paste using zP
+  call setline(1, ['/path;text', '/path;text', '/path;text', '', 
+    \ '/subdir', 
+    \ '/longsubdir',
+    \ '/longlongsubdir'])
+  exe "normal! 5G\<c-v>2j$y"
+  norm! 1Gf;zP
+  call assert_equal(['/path/subdir;text', '/path/longsubdir;text', '/path/longlongsubdir;text'], getline(1, 3))
+  %d
+  " paste using zP
+  call setline(1, ['/path;text', '/path;text', '/path;text', '', 
+    \ '/subdir', 
+    \ '/longsubdir',
+    \ '/longlongsubdir'])
+  exe "normal! 5G\<c-v>2j$y"
+  norm! 1Gf;hzp
+  call assert_equal(['/path/subdir;text', '/path/longsubdir;text', '/path/longlongsubdir;text'], getline(1, 3))
   bwipe!
 endfunc
 

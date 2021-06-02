@@ -1,4 +1,4 @@
-*options.txt*	For Vim version 8.2.  Last change: 2021 May 15
+*options.txt*	For Vim version 8.2.  Last change: 2021 May 16
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -2843,7 +2843,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 	|setcellwidths()| function to change the behavior.
 
 					*'encoding'* *'enc'* *E543*
-'encoding' 'enc'	string (default: "latin1" or value from $LANG)
+'encoding' 'enc'	string (default for MS-Windows: "utf-8",
+				otherwise: value from $LANG or "latin1")
 			global
 	Sets the character encoding used inside Vim.  It applies to text in
 	the buffers, registers, Strings in expressions, text stored in the
@@ -3130,9 +3131,10 @@ A jump table for the options with a short description can be found at |Q_op|.
 	because Vim cannot detect an error, thus the encoding is always
 	accepted.
 	The special value "default" can be used for the encoding from the
-	environment.  This is the default value for 'encoding'.  It is useful
-	when 'encoding' is set to "utf-8" and your environment uses a
-	non-latin1 encoding, such as Russian.
+	environment.  On MS-Windows this is the system encoding.  Otherwise
+	this is the default value for 'encoding'.  It is useful when
+	'encoding' is set to "utf-8" and your environment uses a non-latin1
+	encoding, such as Russian.
 	When 'encoding' is "utf-8" and a file contains an illegal byte
 	sequence it won't be recognized as UTF-8.  You can use the |8g8|
 	command to find the illegal byte sequence.
@@ -7626,6 +7628,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 'switchbuf' 'swb'	string	(default "")
 			global
 	This option controls the behavior when switching between buffers.
+	Mostly for |quickfix| commands some values are also used for other
+	commands, as mentioned below.
 	Possible values (comma separated list):
 	   useopen	If included, jump to the first open window that
 			contains the specified buffer (if there is one).

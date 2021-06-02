@@ -4793,11 +4793,6 @@ mch_call_shell_fork(
 		    // push stream discipline modules
 		    if (options & SHELL_COOKED)
 			setup_slavepty(pty_slave_fd);
-#  if defined(TIOCSCTTY) && !defined(FEAT_GUI_MACVIM)
-		    // Try to become controlling tty (probably doesn't work,
-		    // unless run by root)
-		    ioctl(pty_slave_fd, TIOCSCTTY, (char *)NULL);
-#  endif
 		}
 # endif
 		set_default_child_environment(FALSE);
