@@ -2850,7 +2850,7 @@ utf_class_buf(int c, buf_T *buf)
     };
 
     int bot = 0;
-    int top = sizeof(classes) / sizeof(struct clinterval) - 1;
+    int top = ARRAY_LENGTH(classes) - 1;
     int mid;
 
     // First quick check for Latin1 characters, use 'iskeyword'.
@@ -3948,7 +3948,7 @@ utf_allow_break_before(int cc)
     };
 
     int first = 0;
-    int last  = sizeof(BOL_prohibition_punct)/sizeof(int) - 1;
+    int last  = ARRAY_LENGTH(BOL_prohibition_punct) - 1;
     int mid   = 0;
 
     while (first < last)
@@ -3998,7 +3998,7 @@ utf_allow_break_after(int cc)
     };
 
     int first = 0;
-    int last  = sizeof(EOL_prohibition_punct)/sizeof(int) - 1;
+    int last  = ARRAY_LENGTH(EOL_prohibition_punct) - 1;
     int mid   = 0;
 
     while (first < last)
@@ -4308,7 +4308,6 @@ mb_charlen(char_u *str)
     return count;
 }
 
-#if (defined(FEAT_SPELL) || defined(FEAT_EVAL)) || defined(PROTO)
 /*
  * Like mb_charlen() but for a string with specified length.
  */
@@ -4323,7 +4322,6 @@ mb_charlen_len(char_u *str, int len)
 
     return count;
 }
-#endif
 
 /*
  * Try to un-escape a multi-byte character.

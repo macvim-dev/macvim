@@ -417,3 +417,9 @@ EXTERN char e_failed_to_source_defaults[]
 	INIT(= N_("E1187: Failed to source defaults.vim"));
 EXTERN char e_cannot_open_terminal_from_command_line_window[]
 	INIT(= N_("E1188: Cannot open a terminal from the command line window"));
+EXTERN char e_cannot_use_legacy_with_command_str[]
+	INIT(= N_("E1189: Cannot use :legacy with this command: %s"));
+EXTERN char e_one_argument_too_few[]
+	INIT(= N_("E1190: One argument too few"));
+EXTERN char e_nr_arguments_too_few[]
+	INIT(= N_("E1190: %d arguments too few"));

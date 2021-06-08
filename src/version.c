@@ -766,6 +766,88 @@ static char *(features[]) =
 static int included_patches[] =
 {   /* Add new patch number below this line */
 /**/
+    2961,
+/**/
+    2960,
+/**/
+    2959,
+/**/
+    2958,
+/**/
+    2957,
+/**/
+    2956,
+/**/
+    2955,
+/**/
+    2954,
+/**/
+    2953,
+/**/
+    2952,
+/**/
+    2951,
+/**/
+    2950,
+/**/
+    2949,
+/**/
+    2948,
+/**/
+    2947,
+/**/
+    2946,
+/**/
+    2945,
+/**/
+    2944,
+/**/
+    2943,
+/**/
+    2942,
+/**/
+    2941,
+/**/
+    2940,
+/**/
+    2939,
+/**/
+    2938,
+/**/
+    2937,
+/**/
+    2936,
+/**/
+    2935,
+/**/
+    2934,
+/**/
+    2933,
+/**/
+    2932,
+/**/
+    2931,
+/**/
+    2930,
+/**/
+    2929,
+/**/
+    2928,
+/**/
+    2927,
+/**/
+    2926,
+/**/
+    2925,
+/**/
+    2924,
+/**/
+    2923,
+/**/
+    2922,
+/**/
+    2921,
+/**/
     2920,
 /**/
     2919,
@@ -6640,7 +6722,7 @@ has_patch(int n)
 
     // Perform a binary search.
     l = 0;
-    h = (int)(sizeof(included_patches) / sizeof(included_patches[0])) - 1;
+    h = (int)ARRAY_LENGTH(included_patches) - 1;
     while (l < h)
     {
 	m = (l + h) / 2;
@@ -6867,7 +6949,7 @@ list_version(void)
     {
 	msg_puts(_("\nIncluded patches: "));
 	first = -1;
-	i = (int)(sizeof(included_patches) / sizeof(included_patches[0])) - 1;
+	i = (int)ARRAY_LENGTH(included_patches) - 1;
 	while (--i >= 0)
 	{
 	    if (first < 0)
@@ -7167,7 +7249,7 @@ intro_message(
 #endif
 
     // blanklines = screen height - # message lines
-    blanklines = (int)Rows - ((sizeof(lines) / sizeof(char *)) - 1);
+    blanklines = (int)Rows - (ARRAY_LENGTH(lines) - 1);
     if (!p_cp)
 	blanklines += 4;  // add 4 for not showing "Vi compatible" message
 
@@ -7186,7 +7268,7 @@ intro_message(
     row = blanklines / 2;
     if ((row >= 2 && Columns >= 50) || colon)
     {
-	for (i = 0; i < (int)(sizeof(lines) / sizeof(char *)); ++i)
+	for (i = 0; i < (int)ARRAY_LENGTH(lines); ++i)
 	{
 	    p = lines[i];
 #ifdef FEAT_GUI
