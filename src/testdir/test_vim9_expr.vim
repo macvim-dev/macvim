@@ -2961,8 +2961,26 @@ def Test_expr7_method_call()
 
       var Join = (l) => join(l, 'x')
       assert_equal('axb', ['a', 'b']->(Join)())
+      
+      var sorted = [3, 1, 2]
+                    -> sort()
+      assert_equal([1, 2, 3], sorted)
   END
   CheckDefAndScriptSuccess(lines)
+
+  lines =<< trim END
+    def RetVoid()
+    enddef
+    RetVoid()->byte2line()
+  END
+  CheckDefExecAndScriptFailure(lines, 'E1031:')
+
+  lines =<< trim END
+    def RetVoid()
+    enddef
+    RetVoid()->byteidx(3)
+  END
+  CheckDefExecAndScriptFailure(lines, 'E1031:')
 enddef
 
 

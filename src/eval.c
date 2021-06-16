@@ -3530,9 +3530,13 @@ eval7(
 		    {
 			ufunc_T *ufunc = rettv->vval.v_partial->pt_func;
 
-			// compile it here to get the return type
+			// Compile it here to get the return type.  The return
+			// type is optional, when it's missing use t_unknown.
+			// This is recognized in compile_return().
+			if (ufunc->uf_ret_type->tt_type == VAR_VOID)
+			    ufunc->uf_ret_type = &t_unknown;
 			if (compile_def_function(ufunc,
-					 TRUE, PROFILING(ufunc), NULL) == FAIL)
+				     FALSE, COMPILE_TYPE(ufunc), NULL) == FAIL)
 			{
 			    clear_tv(rettv);
 			    ret = FAIL;
@@ -3772,7 +3776,15 @@ call_func_rettv(
 	    s = partial_name(pt);
 	}
 	else
+	{
 	    s = functv.vval.v_string;
+	    if (s == NULL || *s == NUL)
+	    {
+		emsg(_(e_empty_function_name));
+		ret = FAIL;
+		goto theend;
+	    }
+	}
     }
     else
 	s = (char_u *)"";
@@ -3786,6 +3798,7 @@ call_func_rettv(
     funcexe.basetv = basetv;
     ret = get_func_tv(s, -1, rettv, arg, evalarg, &funcexe);
 
+theend:
     // Clear the funcref afterwards, so that deleting it while
     // evaluating the arguments is possible (see test55).
     if (evaluate)
@@ -4300,6 +4313,9 @@ partial_free(partial_T *pt)
     }
     else
 	func_ptr_unref(pt->pt_func);
+
+    // "out_up" is no longer used, decrement refcount on partial that owns it.
+    partial_unref(pt->pt_outer.out_up_partial);
 
     // Decrease the reference count for the context of a closure.  If down
     // to the minimum it may be time to free it.
@@ -5786,8 +5802,9 @@ handle_subscript(
 	p = eval_next_non_blank(*arg, evalarg, &getnext);
 	if (getnext
 	    && ((rettv->v_type == VAR_DICT && *p == '.' && eval_isdictc(p[1]))
-		|| (p[0] == '-' && p[1] == '>'
-				     && (p[2] == '{' || ASCII_ISALPHA(p[2])))))
+		|| (p[0] == '-' && p[1] == '>' && (p[2] == '{'
+			|| ASCII_ISALPHA(in_vim9script() ? *skipwhite(p + 2)
+								    : p[2])))))
 	{
 	    *arg = eval_next_line(evalarg);
 	    p = *arg;

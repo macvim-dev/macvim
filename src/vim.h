@@ -784,7 +784,8 @@ extern int (*dyn_libintl_wputenv)(const wchar_t *envstring);
 #define EXPAND_MAPCLEAR		47
 #define EXPAND_ARGLIST		48
 #define EXPAND_DIFF_BUFFERS	49
-#define EXPAND_MACACTION	50
+#define EXPAND_DISASSEMBLE	50
+#define EXPAND_MACACTION	51
 
 // Values for exmode_active (0 is no exmode)
 #define EXMODE_NORMAL		1
@@ -1001,6 +1002,10 @@ extern int (*dyn_libintl_wputenv)(const wchar_t *envstring);
 #define DOBUF_FIRST	1	// "count" buffer from first buffer
 #define DOBUF_LAST	2	// "count" buffer from last buffer
 #define DOBUF_MOD	3	// "count" mod. buffer from current buffer
+
+// Values for flags argument of do_buffer()
+#define DOBUF_FORCEIT	1	// :cmd!
+#define DOBUF_NOPOPUP	2	// skip popup window buffers
 
 // Values for sub_cmd and which_pat argument for search_regcomp()
 // Also used for which_pat argument for searchit()
@@ -1799,10 +1804,18 @@ typedef struct timeval proftime_T;
 typedef int proftime_T;	    // dummy for function prototypes
 #endif
 
+// Type of compilation passed to compile_def_function()
+typedef enum {
+    CT_NONE,	    // use df_instr
+    CT_PROFILE,	    // use df_instr_prof
+    CT_DEBUG	    // use df_instr_debug, overrules CT_PROFILE
+} compiletype_T;
+
+// Keep in sync with INSTRUCTIONS().
 #ifdef FEAT_PROFILE
-# define PROFILING(ufunc) (do_profiling == PROF_YES && (ufunc)->uf_profiling)
+# define COMPILE_TYPE(ufunc) (debug_break_level > 0 ? CT_DEBUG : do_profiling == PROF_YES && (ufunc)->uf_profiling ? CT_PROFILE : CT_NONE)
 #else
-# define PROFILING(ufunc) FALSE
+# define COMPILE_TYPE(ufunc) debug_break_level > 0 ? CT_DEBUG : CT_NONE
 #endif
 
 /*
@@ -1867,6 +1880,8 @@ typedef int sock_T;
 
 #define MOUSE_6	0x500	// scroll wheel left
 #define MOUSE_7	0x600	// scroll wheel right
+
+#define MOUSE_MOVE 0x700    // report mouse moved
 
 // 0x20 is reserved by xterm
 #define MOUSE_DRAG_XTERM   0x40

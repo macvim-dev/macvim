@@ -86,13 +86,13 @@ func Test_empty()
 endfunc
 
 func Test_test_void()
-  call assert_fails('echo 1 == test_void()', 'E685:')
+  call assert_fails('echo 1 == test_void()', 'E1031:')
   if has('float')
-    call assert_fails('echo 1.0 == test_void()', 'E685:')
+    call assert_fails('echo 1.0 == test_void()', 'E1031:')
   endif
   call assert_fails('let x = json_encode(test_void())', 'E685:')
   call assert_fails('let x = copy(test_void())', 'E685:')
-  call assert_fails('let x = copy([test_void()])', 'E685:')
+  call assert_fails('let x = copy([test_void()])', 'E1031:')
 endfunc
 
 func Test_len()
@@ -2174,9 +2174,11 @@ func Test_call()
   call assert_fails("call call('Mylen', [], 0)", 'E715:')
   call assert_fails('call foo', 'E107:')
 
-  " This once caused a crash.
+  " These once caused a crash.
   call call(test_null_function(), [])
   call call(test_null_partial(), [])
+  call assert_fails('call test_null_function()()', 'E1192:')
+  call assert_fails('call test_null_partial()()', 'E117:')
 endfunc
 
 func Test_char2nr()

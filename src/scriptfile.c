@@ -1119,6 +1119,7 @@ do_source(
     int			    save_debug_break_level = debug_break_level;
     int			    sid;
     scriptitem_T	    *si = NULL;
+    int			    save_estack_compiling = estack_compiling;
 #endif
 #ifdef STARTUPTIME
     struct timeval	    tv_rel;
@@ -1142,8 +1143,9 @@ do_source(
 	smsg(_("Cannot source a directory: \"%s\""), fname);
 	goto theend;
     }
-
 #ifdef FEAT_EVAL
+    estack_compiling = FALSE;
+
     // See if we loaded this script before.
     for (sid = script_items.ga_len; sid > 0; --sid)
     {
@@ -1508,6 +1510,9 @@ almosttheend:
 
 theend:
     vim_free(fname_exp);
+#ifdef FEAT_EVAL
+    estack_compiling = save_estack_compiling;
+#endif
     return retval;
 }
 

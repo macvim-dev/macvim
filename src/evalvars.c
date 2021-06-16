@@ -1441,6 +1441,7 @@ ex_let_one(
 			    case '%': n = (long)num_modulus(numval, n,
 							       &failed); break;
 			}
+			s = NULL;
 		    }
 		    else if (opt_type == gov_string
 					     && stringval != NULL && s != NULL)
@@ -2572,13 +2573,17 @@ eval_variable(
     cc = name[len];
     name[len] = NUL;
 
-    // Check for user-defined variables.
-    v = find_var(name, NULL, flags & EVAL_VAR_NOAUTOLOAD);
-    if (v != NULL)
+    // Check for local variable when debugging.
+    if ((tv = lookup_debug_var(name)) == NULL)
     {
-	tv = &v->di_tv;
-	if (dip != NULL)
-	    *dip = v;
+	// Check for user-defined variables.
+	v = find_var(name, NULL, flags & EVAL_VAR_NOAUTOLOAD);
+	if (v != NULL)
+	{
+	    tv = &v->di_tv;
+	    if (dip != NULL)
+		*dip = v;
+	}
     }
 
     if (tv == NULL && (in_vim9script() || STRNCMP(name, "s:", 2) == 0))
@@ -2922,8 +2927,9 @@ find_var_ht(char_u *name, char_u **varname)
 	if (ht != NULL)
 	    return ht;				// local variable
 
-	// in Vim9 script items at the script level are script-local
-	if (in_vim9script())
+	// In Vim9 script items at the script level are script-local, except
+	// for autoload names.
+	if (in_vim9script() && vim_strchr(name, AUTOLOAD_CHAR) == NULL)
 	{
 	    ht = get_script_local_ht();
 	    if (ht != NULL)

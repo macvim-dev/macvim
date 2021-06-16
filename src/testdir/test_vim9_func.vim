@@ -74,6 +74,22 @@ def TestCompilingErrorInTry()
   delete('Xdir', 'rf')
 enddef
 
+def Test_compile_error_in_called_function()
+  var lines =<< trim END
+      vim9script
+      var n: number
+      def Foo()
+        &hls = n
+      enddef
+      def Bar()
+        Foo()
+      enddef
+      silent! Foo()
+      Bar()
+  END
+  CheckScriptFailureList(lines, ['E1012:', 'E1191:'])
+enddef
+
 def Test_autoload_name_mismatch()
   var dir = 'Xdir/autoload'
   mkdir(dir, 'p')
@@ -93,6 +109,34 @@ def Test_autoload_name_mismatch()
       call script#Function()
   END
   CheckScriptFailure(lines, 'E746:', 2)
+
+  &rtp = save_rtp
+  delete(dir, 'rf')
+enddef
+
+def Test_autoload_names()
+  var dir = 'Xdir/autoload'
+  mkdir(dir, 'p')
+
+  var lines =<< trim END
+      func foobar#function()
+        return 'yes'
+      endfunc
+      let foobar#var = 'no'
+  END
+  writefile(lines, dir .. '/foobar.vim')
+
+  var save_rtp = &rtp
+  exe 'set rtp=' .. getcwd() .. '/Xdir'
+
+  lines =<< trim END
+      assert_equal('yes', foobar#function())
+      var Function = foobar#function
+      assert_equal('yes', Function())
+
+      assert_equal('no', foobar#var)
+  END
+  CheckDefAndScriptSuccess(lines)
 
   &rtp = save_rtp
   delete(dir, 'rf')
@@ -904,6 +948,26 @@ def Test_lambda_return_type()
       echo FilterWithCond('foo', (v) => v .. '^b')
   END
   CheckDefAndScriptFailure(lines, 'E1013: Argument 2: type mismatch, expected func(string): bool but got func(any): string', 1)
+
+  lines =<< trim END
+      var Lambda1 = (x) => {
+              return x
+              }
+      assert_equal('asdf', Lambda1('asdf'))
+      var Lambda2 = (x): string => {
+              return x
+              }
+      assert_equal('foo', Lambda2('foo'))
+  END
+  CheckDefAndScriptSuccess(lines)
+
+  lines =<< trim END
+      var Lambda = (x): string => {
+              return x
+              }
+      echo Lambda(['foo'])
+  END
+  CheckDefExecAndScriptFailure(lines, 'E1012:')
 enddef
 
 def Test_lambda_uses_assigned_var()
@@ -2108,6 +2172,19 @@ def Test_nested_lambda()
       assert_equal([7, 4], res)
     enddef
     Func()
+  END
+  CheckScriptSuccess(lines)
+enddef
+
+def Test_double_nested_lambda()
+  var lines =<< trim END
+      vim9script
+      def F(head: string): func(string): func(string): string
+        return (sep: string): func(string): string => ((tail: string): string => {
+            return head .. sep .. tail
+          })
+      enddef
+      assert_equal('hello-there', F('hello')('-')('there'))
   END
   CheckScriptSuccess(lines)
 enddef

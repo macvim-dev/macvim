@@ -853,6 +853,7 @@ func Test_Backtrace_DefFunction()
     enddef
 
     def g:GlobalFunction()
+      var some = "some var"
       CallAFunction()
     enddef
 
@@ -884,19 +885,22 @@ func Test_Backtrace_DefFunction()
                 \ ':debug call GlobalFunction()',
                 \ ['cmd: call GlobalFunction()'])
 
-  " FIXME: Vim9 lines are not debugged!
-  call RunDbgCmd(buf, 'step', ['line 1: source Xtest2.vim'])
+  call RunDbgCmd(buf, 'step', ['line 1:   var some = "some var"'])
+  call RunDbgCmd(buf, 'step', ['line 2:   CallAFunction()'])
+  call RunDbgCmd(buf, 'echo some', ['some var'])
 
-  " But they do appear in the backtrace
   call RunDbgCmd(buf, 'backtrace', [
         \ '\V>backtrace',
-        \ '\V  2 function GlobalFunction[1]',
-        \ '\V  1 <SNR>\.\*_CallAFunction[1]',
-        \ '\V->0 <SNR>\.\*_SourceAnotherFile',
-        \ '\Vline 1: source Xtest2.vim'],
+        \ '\V->0 function GlobalFunction',
+        \ '\Vline 2:   CallAFunction()',
+        \ ],
         \ #{match: 'pattern'})
 
-
+  call RunDbgCmd(buf, 'step', ['line 1:   SourceAnotherFile()'])
+  call RunDbgCmd(buf, 'step', ['line 1:   source Xtest2.vim'])
+  " Repeated line, because we fist are in the compiled function before the
+  " EXEC and then in do_cmdline() before the :source command.
+  call RunDbgCmd(buf, 'step', ['line 1: source Xtest2.vim'])
   call RunDbgCmd(buf, 'step', ['line 1: vim9script'])
   call RunDbgCmd(buf, 'step', ['line 3: def DoAThing(): number'])
   call RunDbgCmd(buf, 'step', ['line 9: export def File2Function()'])
@@ -905,7 +909,7 @@ func Test_Backtrace_DefFunction()
   call RunDbgCmd(buf, 'step', ['line 14: File2Function()'])
   call RunDbgCmd(buf, 'backtrace', [
         \ '\V>backtrace',
-        \ '\V  3 function GlobalFunction[1]',
+        \ '\V  3 function GlobalFunction[2]',
         \ '\V  2 <SNR>\.\*_CallAFunction[1]',
         \ '\V  1 <SNR>\.\*_SourceAnotherFile[1]',
         \ '\V->0 script ' .. getcwd() .. '/Xtest2.vim',
@@ -913,20 +917,46 @@ func Test_Backtrace_DefFunction()
         \ #{match: 'pattern'})
 
   " Don't step into compiled functions...
-  call RunDbgCmd(buf, 'step', ['line 15: End of sourced file'])
+  call RunDbgCmd(buf, 'next', ['line 15: End of sourced file'])
   call RunDbgCmd(buf, 'backtrace', [
         \ '\V>backtrace',
-        \ '\V  3 function GlobalFunction[1]',
+        \ '\V  3 function GlobalFunction[2]',
         \ '\V  2 <SNR>\.\*_CallAFunction[1]',
         \ '\V  1 <SNR>\.\*_SourceAnotherFile[1]',
         \ '\V->0 script ' .. getcwd() .. '/Xtest2.vim',
         \ '\Vline 15: End of sourced file'],
         \ #{match: 'pattern'})
 
-
   call StopVimInTerminal(buf)
   call delete('Xtest1.vim')
   call delete('Xtest2.vim')
+endfunc
+
+func Test_debug_def_function()
+  CheckCWD
+  let file =<< trim END
+    vim9script
+    def g:Func()
+        var n: number
+        def Closure(): number
+            return n + 3
+        enddef
+        n += Closure()
+        echo 'result: ' .. n
+    enddef
+  END
+  call writefile(file, 'Xtest.vim')
+
+  let buf = RunVimInTerminal('-S Xtest.vim', {})
+
+  call RunDbgCmd(buf,
+                \ ':debug call Func()',
+                \ ['cmd: call Func()'])
+  call RunDbgCmd(buf, 'next', ['result: 3'])
+  call term_sendkeys(buf, "\r")
+
+  call StopVimInTerminal(buf)
+  call delete('Xtest.vim')
 endfunc
 
 func Test_debug_backtrace_level()
@@ -1116,6 +1146,7 @@ func Test_debug_backtrace_level()
         \ [ 'E121: Undefined variable: s:file1_var' ] )
   call RunDbgCmd(buf, 'echo s:file2_var', [ 'file2' ] )
 
+  call RunDbgCmd(buf, 'cont')
   call StopVimInTerminal(buf)
   call delete('Xtest1.vim')
   call delete('Xtest2.vim')

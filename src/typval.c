@@ -238,9 +238,11 @@ tv_get_bool_or_number_chk(typval_T *varp, int *denote, int want_bool)
 	case VAR_BLOB:
 	    emsg(_("E974: Using a Blob as a Number"));
 	    break;
+	case VAR_VOID:
+	    emsg(_(e_cannot_use_void_value));
+	    break;
 	case VAR_UNKNOWN:
 	case VAR_ANY:
-	case VAR_VOID:
 	case VAR_INSTR:
 	    internal_error_no_abort("tv_get_number(UNKNOWN)");
 	    break;
@@ -294,7 +296,7 @@ tv_get_bool_chk(typval_T *varp, int *denote)
     return tv_get_bool_or_number_chk(varp, denote, TRUE);
 }
 
-#ifdef FEAT_FLOAT
+#if defined(FEAT_FLOAT) || defined(PROTO)
     float_T
 tv_get_float(typval_T *varp)
 {
@@ -336,9 +338,11 @@ tv_get_float(typval_T *varp)
 	case VAR_BLOB:
 	    emsg(_("E975: Using a Blob as a Float"));
 	    break;
+	case VAR_VOID:
+	    emsg(_(e_cannot_use_void_value));
+	    break;
 	case VAR_UNKNOWN:
 	case VAR_ANY:
-	case VAR_VOID:
 	case VAR_INSTR:
 	    internal_error_no_abort("tv_get_float(UNKNOWN)");
 	    break;
@@ -501,9 +505,11 @@ tv_get_string_buf_chk_strict(typval_T *varp, char_u *buf, int strict)
 	    return channel_to_string_buf(varp, buf);
 #endif
 	    break;
+	case VAR_VOID:
+	    emsg(_(e_cannot_use_void_value));
+	    break;
 	case VAR_UNKNOWN:
 	case VAR_ANY:
-	case VAR_VOID:
 	case VAR_INSTR:
 	    semsg(_(e_using_invalid_value_as_string_str),
 						  vartype_name(varp->v_type));
@@ -657,9 +663,11 @@ copy_tv(typval_T *from, typval_T *to)
 		++to->vval.v_dict->dv_refcount;
 	    }
 	    break;
+	case VAR_VOID:
+	    emsg(_(e_cannot_use_void_value));
+	    break;
 	case VAR_UNKNOWN:
 	case VAR_ANY:
-	case VAR_VOID:
 	    internal_error_no_abort("copy_tv(UNKNOWN)");
 	    break;
     }

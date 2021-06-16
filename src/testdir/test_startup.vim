@@ -1303,4 +1303,19 @@ func Test_write_in_vimrc()
   call delete('Xvimrc')
 endfunc
 
+func Test_echo_true_in_cmd()
+  let lines =<< trim END
+      echo v:true
+      call writefile(['done'], 'Xresult')
+      quit
+  END
+  call writefile(lines, 'Xscript')
+  if RunVim([], [], '--cmd "source Xscript"')
+    call assert_equal(['done'], readfile('Xresult'))
+  endif
+  call delete('Xscript')
+  call delete('Xresult')
+
+endfunc
+
 " vim: shiftwidth=2 sts=2 expandtab

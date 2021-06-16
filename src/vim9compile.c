@@ -174,10 +174,9 @@ struct cctx_S {
     char_u	*ctx_line_start;    // start of current line or NULL
     garray_T	ctx_instr;	    // generated instructions
 
-    int		ctx_profiling;	    // when TRUE generate ISN_PROF_START
+    compiletype_T ctx_compile_type;
 
     garray_T	ctx_locals;	    // currently visible local variables
-    int		ctx_locals_count;   // total number of local variables
 
     int		ctx_has_closure;    // set to one if a closures was created in
 				    // the function
@@ -454,7 +453,7 @@ item_exists(char_u *name, size_t len, int cmd UNUSED, cctx_T *cctx)
     if (name[len] == '(' || (p[0] == '-' && p[1] == '>'))
     {
 	// Do not check for an internal function, since it might also be a
-	// valid command, such as ":split" versuse "split()".
+	// valid command, such as ":split" versus "split()".
 	// Skip "g:" before a function name.
 	is_global = (name[0] == 'g' && name[1] == ':');
 	return find_func(is_global ? name + 2 : name, is_global, cctx) != NULL;
@@ -571,6 +570,22 @@ generate_instr_type(cctx_T *cctx, isntype_T isn_type, type_T *type)
     ((type_T **)stack->ga_data)[stack->ga_len] = type == NULL ? &t_any : type;
     ++stack->ga_len;
 
+    return isn;
+}
+
+/*
+ * Generate an ISN_DEBUG instruction.
+ */
+    static isn_T *
+generate_instr_debug(cctx_T *cctx)
+{
+    isn_T	*isn;
+    dfunc_T	*dfunc = ((dfunc_T *)def_functions.ga_data)
+					       + cctx->ctx_ufunc->uf_dfunc_idx;
+
+    if ((isn = generate_instr(cctx, ISN_DEBUG)) == NULL)
+	return NULL;
+    isn->isn_arg.number = dfunc->df_var_names.ga_len;
     return isn;
 }
 
@@ -1857,7 +1872,7 @@ generate_BLOBAPPEND(cctx_T *cctx)
  * "profile" indicates profiling is to be done.
  */
     int
-func_needs_compiling(ufunc_T *ufunc, int profile UNUSED)
+func_needs_compiling(ufunc_T *ufunc, compiletype_T compile_type)
 {
     switch (ufunc->uf_def_status)
     {
@@ -1866,15 +1881,20 @@ func_needs_compiling(ufunc_T *ufunc, int profile UNUSED)
 
 	case UF_COMPILED:
 	{
-#ifdef FEAT_PROFILE
 	    dfunc_T *dfunc = ((dfunc_T *)def_functions.ga_data)
 							 + ufunc->uf_dfunc_idx;
 
-	    return profile ? dfunc->df_instr_prof == NULL
-			   : dfunc->df_instr == NULL;
-#else
-	    break;
+	    switch (compile_type)
+	    {
+		case CT_PROFILE:
+#ifdef FEAT_PROFILE
+		    return dfunc->df_instr_prof == NULL;
 #endif
+		case CT_NONE:
+		    return dfunc->df_instr == NULL;
+		case CT_DEBUG:
+		    return dfunc->df_instr_debug == NULL;
+	    }
 	}
 
 	case UF_NOT_COMPILED:
@@ -1945,10 +1965,16 @@ generate_CALL(cctx_T *cctx, ufunc_T *ufunc, int pushed_argcount)
 		return FAIL;
 	    }
 	}
-	if (func_needs_compiling(ufunc, PROFILING(ufunc))
+	if (func_needs_compiling(ufunc, COMPILE_TYPE(ufunc))
 		&& compile_def_function(ufunc, ufunc->uf_ret_type == NULL,
-					       PROFILING(ufunc), NULL) == FAIL)
+					    COMPILE_TYPE(ufunc), NULL) == FAIL)
 	    return FAIL;
+    }
+    if (ufunc->uf_def_status == UF_COMPILE_ERROR)
+    {
+	emsg_funcname(_(e_call_to_function_that_failed_to_compile_str),
+							       ufunc->uf_name);
+	return FAIL;
     }
 
     if ((isn = generate_instr(cctx,
@@ -2307,14 +2333,28 @@ current_instr_idx(cctx_T *cctx)
     garray_T	*instr = &cctx->ctx_instr;
     int		idx = instr->ga_len;
 
-    if (cctx->ctx_has_cmdmod && ((isn_T *)instr->ga_data)[idx - 1]
+    while (idx > 0)
+    {
+	if (cctx->ctx_has_cmdmod && ((isn_T *)instr->ga_data)[idx - 1]
 						       .isn_type == ISN_CMDMOD)
-	--idx;
+	{
+	    --idx;
+	    continue;
+	}
 #ifdef FEAT_PROFILE
-    if (cctx->ctx_profiling && ((isn_T *)instr->ga_data)[idx - 1]
-						   .isn_type == ISN_PROF_START)
-	--idx;
+	if (((isn_T *)instr->ga_data)[idx - 1].isn_type == ISN_PROF_START)
+	{
+	    --idx;
+	    continue;
+	}
 #endif
+	if (((isn_T *)instr->ga_data)[idx - 1].isn_type == ISN_DEBUG)
+	{
+	    --idx;
+	    continue;
+	}
+	break;
+    }
     return idx;
 }
 
@@ -2322,7 +2362,7 @@ current_instr_idx(cctx_T *cctx)
     static void
 may_generate_prof_end(cctx_T *cctx, int prof_lnum)
 {
-    if (cctx->ctx_profiling && prof_lnum >= 0)
+    if (cctx->ctx_compile_type == CT_PROFILE && prof_lnum >= 0)
 	generate_instr(cctx, ISN_PROF_END);
 }
 #endif
@@ -2340,6 +2380,7 @@ reserve_local(
 	type_T	*type)
 {
     lvar_T  *lvar;
+    dfunc_T *dfunc;
 
     if (arg_exists(name, len, NULL, NULL, NULL, cctx) == OK)
     {
@@ -2356,11 +2397,19 @@ reserve_local(
     // the last ones when leaving a scope, but then variables used in a closure
     // might get overwritten.  To keep things simple do not re-use stack
     // entries.  This is less efficient, but memory is cheap these days.
-    lvar->lv_idx = cctx->ctx_locals_count++;
+    dfunc = ((dfunc_T *)def_functions.ga_data) + cctx->ctx_ufunc->uf_dfunc_idx;
+    lvar->lv_idx = dfunc->df_var_names.ga_len;
 
     lvar->lv_name = vim_strnsave(name, len == 0 ? STRLEN(name) : len);
     lvar->lv_const = isConst;
     lvar->lv_type = type;
+
+    // Remember the name for debugging.
+    if (ga_grow(&dfunc->df_var_names, 1) == FAIL)
+	return NULL;
+    ((char_u **)dfunc->df_var_names.ga_data)[lvar->lv_idx] =
+						    vim_strsave(lvar->lv_name);
+    ++dfunc->df_var_names.ga_len;
 
     return lvar;
 }
@@ -2966,8 +3015,8 @@ generate_funcref(cctx_T *cctx, char_u *name)
 	return FAIL;
 
     // Need to compile any default values to get the argument types.
-    if (func_needs_compiling(ufunc, PROFILING(ufunc))
-	    && compile_def_function(ufunc, TRUE, PROFILING(ufunc), NULL)
+    if (func_needs_compiling(ufunc, COMPILE_TYPE(ufunc))
+	    && compile_def_function(ufunc, TRUE, COMPILE_TYPE(ufunc), NULL)
 								       == FAIL)
 	return FAIL;
     return generate_PUSHFUNC(cctx, ufunc->uf_name, ufunc->uf_func_type);
@@ -3078,7 +3127,13 @@ compile_load(
 	if (name == NULL)
 	    return FAIL;
 
-	if (arg_exists(*arg, len, &idx, &type, &gen_load_outer, cctx) == OK)
+	if (vim_strchr(name, AUTOLOAD_CHAR) != NULL)
+	{
+	    script_autoload(name, FALSE);
+	    res = generate_LOAD(cctx, ISN_LOADAUTO, 0, name, &t_any);
+	}
+	else if (arg_exists(*arg, len, &idx, &type, &gen_load_outer, cctx)
+									 == OK)
 	{
 	    if (gen_load_outer == 0)
 		gen_load = TRUE;
@@ -3553,8 +3608,12 @@ compile_lambda(char_u **arg, cctx_T *cctx)
     ++ufunc->uf_refcount;
     clear_tv(&rettv);
 
-    // Compile the function into instructions.
-    compile_def_function(ufunc, TRUE, PROFILING(ufunc), cctx);
+    // Compile it here to get the return type.  The return type is optional,
+    // when it's missing use t_unknown.  This is recognized in
+    // compile_return().
+    if (ufunc->uf_ret_type->tt_type == VAR_VOID)
+	ufunc->uf_ret_type = &t_unknown;
+    compile_def_function(ufunc, FALSE, COMPILE_TYPE(ufunc), cctx);
 
     // evalarg.eval_tofree_cmdline may have a copy of the last line and "*arg"
     // points into it.  Point to the original line to avoid a dangling pointer.
@@ -4108,7 +4167,8 @@ compile_subscript(
 	    // Also if a following line starts with ".x".
 	    if (next != NULL &&
 		    ((next[0] == '-' && next[1] == '>'
-				 && (next[2] == '{' || ASCII_ISALPHA(next[2])))
+				 && (next[2] == '{'
+				       || ASCII_ISALPHA(*skipwhite(next + 2))))
 		    || (next[0] == '.' && eval_isdictc(next[1]))))
 	    {
 		next = next_line_from_context(cctx, TRUE);
@@ -5385,10 +5445,15 @@ compile_return(char_u *arg, int check_return_type, int legacy, cctx_T *cctx)
 
 	if (cctx->ctx_skip != SKIP_YES)
 	{
+	    // "check_return_type" with uf_ret_type set to &t_unknown is used
+	    // for an inline function without a specified return type.  Set the
+	    // return type here.
 	    stack_type = ((type_T **)stack->ga_data)[stack->ga_len - 1];
-	    if (check_return_type && (cctx->ctx_ufunc->uf_ret_type == NULL
+	    if ((check_return_type && (cctx->ctx_ufunc->uf_ret_type == NULL
 				|| cctx->ctx_ufunc->uf_ret_type == &t_unknown
 				|| cctx->ctx_ufunc->uf_ret_type == &t_any))
+		    || (!check_return_type
+				&& cctx->ctx_ufunc->uf_ret_type == &t_unknown))
 	    {
 		cctx->ctx_ufunc->uf_ret_type = stack_type;
 	    }
@@ -5544,8 +5609,8 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx)
 	}
     }
 
-    if (func_needs_compiling(ufunc, PROFILING(ufunc))
-	    && compile_def_function(ufunc, TRUE, PROFILING(ufunc), cctx)
+    if (func_needs_compiling(ufunc, COMPILE_TYPE(ufunc))
+	    && compile_def_function(ufunc, TRUE, COMPILE_TYPE(ufunc), cctx)
 								       == FAIL)
     {
 	func_ptr_unref(ufunc);
@@ -7354,7 +7419,7 @@ compile_if(char_u *arg, cctx_T *cctx)
 	scope->se_u.se_if.is_if_label = -1;
 
 #ifdef FEAT_PROFILE
-    if (cctx->ctx_profiling && cctx->ctx_skip == SKIP_YES
+    if (cctx->ctx_compile_type == CT_PROFILE && cctx->ctx_skip == SKIP_YES
 						      && skip_save != SKIP_YES)
     {
 	// generated a profile start, need to generate a profile end, since it
@@ -7435,13 +7500,19 @@ compile_elseif(char_u *arg, cctx_T *cctx)
     {
 	cctx->ctx_skip = SKIP_UNKNOWN;
 #ifdef FEAT_PROFILE
-	if (cctx->ctx_profiling)
+	if (cctx->ctx_compile_type == CT_PROFILE)
 	{
 	    // the previous block was skipped, need to profile this line
 	    generate_instr(cctx, ISN_PROF_START);
 	    instr_count = instr->ga_len;
 	}
 #endif
+	if (cctx->ctx_compile_type == CT_DEBUG)
+	{
+	    // the previous block was skipped, may want to debug this line
+	    generate_instr_debug(cctx);
+	    instr_count = instr->ga_len;
+	}
     }
     if (compile_expr1(&p, cctx, &ppconst) == FAIL)
     {
@@ -7509,12 +7580,13 @@ compile_else(char_u *arg, cctx_T *cctx)
     scope->se_u.se_if.is_seen_else = TRUE;
 
 #ifdef FEAT_PROFILE
-    if (cctx->ctx_profiling)
+    if (cctx->ctx_compile_type == CT_PROFILE)
     {
 	if (cctx->ctx_skip == SKIP_NOT
 		&& ((isn_T *)instr->ga_data)[instr->ga_len - 1]
 						   .isn_type == ISN_PROF_START)
-	    // the previous block was executed, do not count "else" for profiling
+	    // the previous block was executed, do not count "else" for
+	    // profiling
 	    --instr->ga_len;
 	if (cctx->ctx_skip == SKIP_YES && !scope->se_u.se_if.is_seen_skip_not)
 	{
@@ -7590,7 +7662,7 @@ compile_endif(char_u *arg, cctx_T *cctx)
 #ifdef FEAT_PROFILE
     // even when skipping we count the endif as executed, unless the block it's
     // in is skipped
-    if (cctx->ctx_profiling && cctx->ctx_skip == SKIP_YES
+    if (cctx->ctx_compile_type == CT_PROFILE && cctx->ctx_skip == SKIP_YES
 					    && scope->se_skip_save != SKIP_YES)
     {
 	cctx->ctx_skip = SKIP_NOT;
@@ -8161,7 +8233,8 @@ compile_catch(char_u *arg, cctx_T *cctx UNUSED)
     {
 #ifdef FEAT_PROFILE
 	// the profile-start should be after the jump
-	if (cctx->ctx_profiling && ((isn_T *)instr->ga_data)[instr->ga_len - 1]
+	if (cctx->ctx_compile_type == CT_PROFILE
+		&& ((isn_T *)instr->ga_data)[instr->ga_len - 1]
 						   .isn_type == ISN_PROF_START)
 	    --instr->ga_len;
 #endif
@@ -8181,7 +8254,7 @@ compile_catch(char_u *arg, cctx_T *cctx UNUSED)
 	    isn->isn_arg.jump.jump_where = instr->ga_len;
 	}
 #ifdef FEAT_PROFILE
-	if (cctx->ctx_profiling)
+	if (cctx->ctx_compile_type == CT_PROFILE)
 	{
 	    // a "throw" that jumps here needs to be counted
 	    generate_instr(cctx, ISN_PROF_END);
@@ -8189,6 +8262,8 @@ compile_catch(char_u *arg, cctx_T *cctx UNUSED)
 	    generate_instr(cctx, ISN_PROF_START);
 	}
 #endif
+	if (cctx->ctx_compile_type == CT_DEBUG)
+	    generate_instr_debug(cctx);
     }
 
     p = skipwhite(arg);
@@ -8276,7 +8351,8 @@ compile_finally(char_u *arg, cctx_T *cctx)
 
     this_instr = instr->ga_len;
 #ifdef FEAT_PROFILE
-    if (cctx->ctx_profiling && ((isn_T *)instr->ga_data)[instr->ga_len - 1]
+    if (cctx->ctx_compile_type == CT_PROFILE
+	    && ((isn_T *)instr->ga_data)[instr->ga_len - 1]
 						   .isn_type == ISN_PROF_START)
 	// jump to the profile start of the "finally"
 	--this_instr;
@@ -8345,7 +8421,8 @@ compile_endtry(char_u *arg, cctx_T *cctx)
 	}
 
 #ifdef FEAT_PROFILE
-	if (cctx->ctx_profiling && ((isn_T *)instr->ga_data)[instr->ga_len - 1]
+	if (cctx->ctx_compile_type == CT_PROFILE
+		&& ((isn_T *)instr->ga_data)[instr->ga_len - 1]
 						.isn_type == ISN_PROF_START)
 	    // move the profile start after "endtry" so that it's not counted when
 	    // the exception is rethrown.
@@ -8377,7 +8454,7 @@ compile_endtry(char_u *arg, cctx_T *cctx)
 				   && generate_instr(cctx, ISN_ENDTRY) == NULL)
 	    return NULL;
 #ifdef FEAT_PROFILE
-	if (cctx->ctx_profiling)
+	if (cctx->ctx_compile_type == CT_PROFILE)
 	    generate_instr(cctx, ISN_PROF_START);
 #endif
     }
@@ -8923,6 +9000,7 @@ add_def_function(ufunc_T *ufunc)
     ufunc->uf_dfunc_idx = dfunc->df_idx;
     dfunc->df_ufunc = ufunc;
     dfunc->df_name = vim_strsave(ufunc->uf_name);
+    ga_init2(&dfunc->df_var_names, sizeof(char_u *), 10);
     ++dfunc->df_refcount;
     ++def_functions.ga_len;
     return OK;
@@ -8943,10 +9021,10 @@ add_def_function(ufunc_T *ufunc)
  */
     int
 compile_def_function(
-	ufunc_T	    *ufunc,
-	int	    check_return_type,
-	int	    profiling UNUSED,
-	cctx_T	    *outer_cctx)
+	ufunc_T		*ufunc,
+	int		check_return_type,
+	compiletype_T   compile_type,
+	cctx_T		*outer_cctx)
 {
     char_u	*line = NULL;
     char_u	*line_to_free = NULL;
@@ -8965,6 +9043,7 @@ compile_def_function(
 #ifdef FEAT_PROFILE
     int		prof_lnum = -1;
 #endif
+    int		debug_lnum = -1;
 
     // When using a function that was compiled before: Free old instructions.
     // The index is reused.  Otherwise add a new entry in "def_functions".
@@ -8972,7 +9051,21 @@ compile_def_function(
     {
 	dfunc_T *dfunc = ((dfunc_T *)def_functions.ga_data)
 							 + ufunc->uf_dfunc_idx;
-	delete_def_function_contents(dfunc, FALSE);
+	isn_T	*instr_dest = NULL;
+
+	switch (compile_type)
+	{
+	    case CT_PROFILE:
+#ifdef FEAT_PROFILE
+			    instr_dest = dfunc->df_instr_prof; break;
+#endif
+	    case CT_NONE:   instr_dest = dfunc->df_instr; break;
+	    case CT_DEBUG:  instr_dest = dfunc->df_instr_debug; break;
+	}
+	if (instr_dest != NULL)
+	    // Was compiled in this mode before: Free old instructions.
+	    delete_def_function_contents(dfunc, FALSE);
+	ga_clear_strings(&dfunc->df_var_names);
     }
     else
     {
@@ -8985,9 +9078,7 @@ compile_def_function(
 
     CLEAR_FIELD(cctx);
 
-#ifdef FEAT_PROFILE
-    cctx.ctx_profiling = profiling;
-#endif
+    cctx.ctx_compile_type = compile_type;
     cctx.ctx_ufunc = ufunc;
     cctx.ctx_lnum = -1;
     cctx.ctx_outer = outer_cctx;
@@ -9137,8 +9228,8 @@ compile_def_function(
 	}
 
 #ifdef FEAT_PROFILE
-	if (cctx.ctx_profiling && cctx.ctx_lnum != prof_lnum &&
-						     cctx.ctx_skip != SKIP_YES)
+	if (cctx.ctx_compile_type == CT_PROFILE && cctx.ctx_lnum != prof_lnum
+						  && cctx.ctx_skip != SKIP_YES)
 	{
 	    may_generate_prof_end(&cctx, prof_lnum);
 
@@ -9146,6 +9237,12 @@ compile_def_function(
 	    generate_instr(&cctx, ISN_PROF_START);
 	}
 #endif
+	if (cctx.ctx_compile_type == CT_DEBUG && cctx.ctx_lnum != debug_lnum
+						  && cctx.ctx_skip != SKIP_YES)
+	{
+	    debug_lnum = cctx.ctx_lnum;
+	    generate_instr_debug(&cctx);
+	}
 
 	// Some things can be recognized by the first character.
 	switch (*ea.cmd)
@@ -9574,14 +9671,16 @@ nextline:
 
     if (!cctx.ctx_had_return)
     {
-	if (ufunc->uf_ret_type->tt_type != VAR_VOID)
+	if (ufunc->uf_ret_type->tt_type == VAR_UNKNOWN)
+	    ufunc->uf_ret_type = &t_void;
+	else if (ufunc->uf_ret_type->tt_type != VAR_VOID)
 	{
 	    emsg(_(e_missing_return_statement));
 	    goto erret;
 	}
 
-	// Return zero if there is no return at the end.
-	generate_instr(&cctx, ISN_RETURN_ZERO);
+	// Return void if there is no return at the end.
+	generate_instr(&cctx, ISN_RETURN_VOID);
     }
 
     // When compiled with ":silent!" and there was an error don't consider the
@@ -9593,18 +9692,24 @@ nextline:
 	dfunc->df_deleted = FALSE;
 	dfunc->df_script_seq = current_sctx.sc_seq;
 #ifdef FEAT_PROFILE
-	if (cctx.ctx_profiling)
+	if (cctx.ctx_compile_type == CT_PROFILE)
 	{
 	    dfunc->df_instr_prof = instr->ga_data;
 	    dfunc->df_instr_prof_count = instr->ga_len;
 	}
 	else
 #endif
+	if (cctx.ctx_compile_type == CT_DEBUG)
+	{
+	    dfunc->df_instr_debug = instr->ga_data;
+	    dfunc->df_instr_debug_count = instr->ga_len;
+	}
+	else
 	{
 	    dfunc->df_instr = instr->ga_data;
 	    dfunc->df_instr_count = instr->ga_len;
 	}
-	dfunc->df_varcount = cctx.ctx_locals_count;
+	dfunc->df_varcount = dfunc->df_var_names.ga_len;
 	dfunc->df_has_closure = cctx.ctx_has_closure;
 	if (cctx.ctx_outer_used)
 	    ufunc->uf_flags |= FC_CLOSURE;
@@ -9619,8 +9724,10 @@ erret:
 	dfunc_T	*dfunc = ((dfunc_T *)def_functions.ga_data)
 							 + ufunc->uf_dfunc_idx;
 
+	// Compiling aborted, free the generated instructions.
 	clear_instr_ga(instr);
 	VIM_CLEAR(dfunc->df_name);
+	ga_clear_strings(&dfunc->df_var_names);
 
 	// If using the last entry in the table and it was added above, we
 	// might as well remove it.
@@ -9895,6 +10002,7 @@ delete_instr(isn_T *isn)
 	case ISN_COMPARESTRING:
 	case ISN_CONCAT:
 	case ISN_COND2BOOL:
+	case ISN_DEBUG:
 	case ISN_DROP:
 	case ISN_ECHO:
 	case ISN_ECHOERR:
@@ -9903,6 +10011,7 @@ delete_instr(isn_T *isn)
 	case ISN_EXECCONCAT:
 	case ISN_EXECUTE:
 	case ISN_FINALLY:
+	case ISN_FINISH:
 	case ISN_FOR:
 	case ISN_GETITEM:
 	case ISN_JUMP:
@@ -9925,7 +10034,6 @@ delete_instr(isn_T *isn)
 	case ISN_NEWLIST:
 	case ISN_OPANY:
 	case ISN_OPFLOAT:
-	case ISN_FINISH:
 	case ISN_OPNR:
 	case ISN_PCALL:
 	case ISN_PCALL_END:
@@ -9939,7 +10047,7 @@ delete_instr(isn_T *isn)
 	case ISN_REDIREND:
 	case ISN_REDIRSTART:
 	case ISN_RETURN:
-	case ISN_RETURN_ZERO:
+	case ISN_RETURN_VOID:
 	case ISN_SHUFFLE:
 	case ISN_SLICE:
 	case ISN_STORE:
@@ -9970,6 +10078,7 @@ delete_def_function_contents(dfunc_T *dfunc, int mark_deleted)
     int idx;
 
     ga_clear(&dfunc->df_def_args_isn);
+    ga_clear_strings(&dfunc->df_var_names);
 
     if (dfunc->df_instr != NULL)
     {
@@ -9977,6 +10086,13 @@ delete_def_function_contents(dfunc_T *dfunc, int mark_deleted)
 	    delete_instr(dfunc->df_instr + idx);
 	VIM_CLEAR(dfunc->df_instr);
 	dfunc->df_instr = NULL;
+    }
+    if (dfunc->df_instr_debug != NULL)
+    {
+	for (idx = 0; idx < dfunc->df_instr_debug_count; ++idx)
+	    delete_instr(dfunc->df_instr_debug + idx);
+	VIM_CLEAR(dfunc->df_instr_debug);
+	dfunc->df_instr_debug = NULL;
     }
 #ifdef FEAT_PROFILE
     if (dfunc->df_instr_prof != NULL)

@@ -1552,6 +1552,7 @@ func Test_popup_filter()
   call assert_equal(9, getcurpos()[2])
   call feedkeys('0', 'xt')
   call assert_equal('0', g:ignored)
+  redraw
   call assert_equal(1, getcurpos()[2])
 
   " x closes the popup
@@ -3917,6 +3918,12 @@ func Test_popup_prop_not_visible()
   call StopVimInTerminal(buf)
   call delete('XtestPropNotVisble')
 endfunction
+
+func Test_bufdel_skips_popupwin_buffer()
+    let id = popup_create("Some text", {})
+    %bd
+    call popup_close(id)
+endfunc
 
 
 " vim: shiftwidth=2 sts=2

@@ -273,15 +273,16 @@ enum key_extra
     , KE_FOCUSGAINED = 98	// focus gained
     , KE_FOCUSLOST = 99		// focus lost
     , KE_MOUSEMOVE = 100	// mouse moved with no button down
-    , KE_CANCEL = 101		// return from vgetc()
-    , KE_COMMAND = 102		// <Cmd> special key
+    , KE_MOUSEMOVE_XY = 101	// KE_MOUSEMOVE with coordinates
+    , KE_CANCEL = 102		// return from vgetc()
+    , KE_COMMAND = 103		// <Cmd> special key
 
 #ifdef FEAT_GUI_MACVIM
-    , KE_SWIPELEFT = 103	// Swipe trackpad left
-    , KE_SWIPERIGHT = 104	// Swipe trackpad right
-    , KE_SWIPEUP = 105		// Swipe trackpad up
-    , KE_SWIPEDOWN = 106	// Swipe trackpad down
-    , KE_FORCECLICK = 107	// Force click on trackpad
+    , KE_SWIPELEFT = 104	// Swipe trackpad left
+    , KE_SWIPERIGHT = 105	// Swipe trackpad right
+    , KE_SWIPEUP = 106		// Swipe trackpad up
+    , KE_SWIPEDOWN = 107	// Swipe trackpad down
+    , KE_FORCECLICK = 108	// Force click on trackpad
 #endif
 };
 

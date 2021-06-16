@@ -1377,7 +1377,7 @@ get_lambda_tv(
 		    goto errret;
 	    }
 	    else
-		fp->uf_ret_type = &t_any;
+		fp->uf_ret_type = &t_unknown;
 	}
 
 	fp->uf_lines = newlines;
@@ -4395,7 +4395,7 @@ ex_defcompile(exarg_T *eap UNUSED)
 		    && ufunc->uf_def_status == UF_TO_BE_COMPILED
 		    && (ufunc->uf_flags & FC_DEAD) == 0)
 	    {
-		(void)compile_def_function(ufunc, FALSE, FALSE, NULL);
+		(void)compile_def_function(ufunc, FALSE, CT_NONE, NULL);
 
 		if (func_hashtab.ht_changed != changed)
 		{
