@@ -1240,13 +1240,16 @@ generate_PUSHFUNC(cctx_T *cctx, char_u *name, type_T *type)
 
 /*
  * Generate an ISN_GETITEM instruction with "index".
+ * "with_op" is TRUE for "+=" and other operators, the stack has the current
+ * value below the list with values.
  */
     static int
-generate_GETITEM(cctx_T *cctx, int index)
+generate_GETITEM(cctx_T *cctx, int index, int with_op)
 {
     isn_T	*isn;
     garray_T	*stack = &cctx->ctx_type_stack;
-    type_T	*type = ((type_T **)stack->ga_data)[stack->ga_len - 1];
+    type_T	*type = ((type_T **)stack->ga_data)[stack->ga_len
+							  - (with_op ? 2 : 1)];
     type_T	*item_type = &t_any;
 
     RETURN_OK_IF_SKIP(cctx);
@@ -1260,7 +1263,8 @@ generate_GETITEM(cctx_T *cctx, int index)
     item_type = type->tt_member;
     if ((isn = generate_instr(cctx, ISN_GETITEM)) == NULL)
 	return FAIL;
-    isn->isn_arg.number = index;
+    isn->isn_arg.getitem.gi_index = index;
+    isn->isn_arg.getitem.gi_with_op = with_op;
 
     // add the item type to the type stack
     if (ga_grow(stack, 1) == FAIL)
@@ -5852,7 +5856,7 @@ get_var_dest(
 	    return FAIL;
 	}
 	*dest = dest_reg;
-	*type = &t_string;
+	*type = name[1] == '#' ? &t_number_or_string : &t_string;
     }
     else if (STRNCMP(name, "g:", 2) == 0)
     {
@@ -5927,7 +5931,8 @@ generate_store_var(
 	case dest_env:
 	    return generate_STORE(cctx, ISN_STOREENV, 0, name + 1);
 	case dest_reg:
-	    return generate_STORE(cctx, ISN_STOREREG, name[1], NULL);
+	    return generate_STORE(cctx, ISN_STOREREG,
+					 name[1] == '@' ? '"' : name[1], NULL);
 	case dest_vimvar:
 	    return generate_STORE(cctx, ISN_STOREV, vimvaridx, NULL);
 	case dest_script:
@@ -6745,18 +6750,16 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		int	is_const = FALSE;
 		char_u	*wp;
 
+		// for "+=", "*=", "..=" etc. first load the current value
+		if (*op != '='
+			&& compile_load_lhs_with_index(&lhs, var_start,
+								 cctx) == FAIL)
+		    goto theend;
+
 		// For "var = expr" evaluate the expression.
 		if (var_count == 0)
 		{
 		    int	r;
-
-		    // for "+=", "*=", "..=" etc. first load the current value
-		    if (*op != '=')
-		    {
-			if (compile_load_lhs_with_index(&lhs, var_start,
-								 cctx) == FAIL)
-			    goto theend;
-		    }
 
 		    // Compile the expression.
 		    instr_count = instr->ga_len;
@@ -6794,7 +6797,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		{
 		    // For "[var, var] = expr" get the "var_idx" item from the
 		    // list.
-		    if (generate_GETITEM(cctx, var_idx) == FAIL)
+		    if (generate_GETITEM(cctx, var_idx, *op != '=') == FAIL)
 			goto theend;
 		}
 
@@ -6843,9 +6846,19 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 			    goto theend;
 		    }
 		}
-		else if (*p != '=' && need_type(rhs_type, lhs.lhs_member_type,
+		else
+		{
+		    type_T *lhs_type = lhs.lhs_member_type;
+
+		    // Special case: assigning to @# can use a number or a
+		    // string.
+		    if (lhs_type == &t_number_or_string
+					    && rhs_type->tt_type == VAR_NUMBER)
+			lhs_type = &t_number;
+		    if (*p != '=' && need_type(rhs_type, lhs_type,
 					    -1, 0, cctx, FALSE, FALSE) == FAIL)
 		    goto theend;
+		}
 	    }
 	    else if (cmdidx == CMD_final)
 	    {
@@ -7711,6 +7724,7 @@ compile_for(char_u *arg_start, cctx_T *cctx)
     int		semicolon = FALSE;
     size_t	varlen;
     garray_T	*stack = &cctx->ctx_type_stack;
+    garray_T	*instr = &cctx->ctx_instr;
     scope_T	*scope;
     lvar_T	*loop_lvar;	// loop iteration variable
     lvar_T	*var_lvar;	// variable for "var"
@@ -7736,6 +7750,13 @@ compile_for(char_u *arg_start, cctx_T *cctx)
     wp = p + 2;
     if (may_get_next_line_error(wp, &p, cctx) == FAIL)
 	return NULL;
+
+    // Remove the already generated ISN_DEBUG, it is written below the ISN_FOR
+    // instruction.
+    if (cctx->ctx_compile_type == CT_DEBUG && instr->ga_len > 0
+	    && ((isn_T *)instr->ga_data)[instr->ga_len - 1]
+							.isn_type == ISN_DEBUG)
+	--instr->ga_len;
 
     scope = new_scope(cctx, FOR_SCOPE);
     if (scope == NULL)
@@ -7788,11 +7809,12 @@ compile_for(char_u *arg_start, cctx_T *cctx)
 	    item_type = vartype->tt_member->tt_member;
     }
 
-    // CMDMOD_REV must come before the FOR instruction
+    // CMDMOD_REV must come before the FOR instruction.
     generate_undo_cmdmods(cctx);
 
     // "for_end" is set when ":endfor" is found
     scope->se_u.se_for.fs_top_label = current_instr_idx(cctx);
+
     generate_FOR(cctx, loop_lvar->lv_idx);
 
     arg = arg_start;
@@ -7893,6 +7915,10 @@ compile_for(char_u *arg_start, cctx_T *cctx)
 	vim_free(name);
     }
 
+    if (cctx->ctx_compile_type == CT_DEBUG)
+	// Add ISN_DEBUG here, so that the loop variables can be inspected.
+	generate_instr_debug(cctx);
+
     return arg_end;
 
 failed:
@@ -7927,7 +7953,7 @@ compile_endfor(char_u *arg, cctx_T *cctx)
     // At end of ":for" scope jump back to the FOR instruction.
     generate_JUMP(cctx, JUMP_ALWAYS, forscope->fs_top_label);
 
-    // Fill in the "end" label in the FOR statement so it can jump here
+    // Fill in the "end" label in the FOR statement so it can jump here.
     isn = ((isn_T *)instr->ga_data) + forscope->fs_top_label;
     isn->isn_arg.forloop.for_end = instr->ga_len;
 
@@ -8234,6 +8260,7 @@ compile_catch(char_u *arg, cctx_T *cctx UNUSED)
 #ifdef FEAT_PROFILE
 	// the profile-start should be after the jump
 	if (cctx->ctx_compile_type == CT_PROFILE
+		&& instr->ga_len > 0
 		&& ((isn_T *)instr->ga_data)[instr->ga_len - 1]
 						   .isn_type == ISN_PROF_START)
 	    --instr->ga_len;

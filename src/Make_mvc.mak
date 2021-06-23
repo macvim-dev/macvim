@@ -41,6 +41,13 @@
 #
 #	Sound support: SOUND=yes (default is yes)
 #
+#	Sodium support: SODIUM=[Path to Sodium directory]
+#	 Dynamic built with libsodium
+#	 You need to install the msvc package from
+#	 https://download.libsodium.org/libsodium/releases/
+#	 and package the libsodium.dll with Vim
+#
+#
 #	DLL support (EXPERIMENTAL): VIMDLL=yes (default is no)
 #	  Creates vim{32,64}.dll, and stub gvim.exe and vim.exe.
 #	  The shared codes between the GUI and the console are built into
@@ -372,6 +379,26 @@ SOUND = no
 ! endif
 !endif
 
+!ifndef SODIUM
+SODIUM = no
+!endif
+
+!if "$(SODIUM)" != "no"
+! if "$(CPU)" == "AMD64"
+SOD_LIB		= $(SODIUM)\x64\Release\v140\dynamic
+! elseif "$(CPU)" == "i386"
+SOD_LIB		= $(SODIUM)\Win32\Release\v140\dynamic
+! else
+SODIUM = no
+! endif
+!endif
+
+!if "$(SODIUM)" != "no"
+SOD_INC		= /I "$(SODIUM)\include"
+SOD_DEFS	= -DFEAT_SODIUM
+SOD_LIB		= $(SOD_LIB)\libsodium.lib
+!endif
+
 !ifndef NETBEANS
 NETBEANS = $(GUI)
 !endif
@@ -491,7 +518,7 @@ CON_LIB = $(CON_LIB) /DELAYLOAD:comdlg32.dll /DELAYLOAD:ole32.dll DelayImp.lib
 
 CFLAGS = -c /W3 /GF /nologo $(CVARS) -I. -Iproto -DHAVE_PATHDEF -DWIN32 \
 		$(CSCOPE_DEFS) $(TERM_DEFS) $(SOUND_DEFS) $(NETBEANS_DEFS) $(CHANNEL_DEFS) \
-		$(NBDEBUG_DEFS) $(XPM_DEFS) \
+		$(NBDEBUG_DEFS) $(XPM_DEFS) $(SOD_DEFS) $(SOD_INC) \
 		$(DEFINES) -DWINVER=$(WINVER) -D_WIN32_WINNT=$(WINVER)
 
 #>>>>> end of choices
@@ -1282,7 +1309,7 @@ conflags = $(conflags) /map /mapinfo:lines
 LINKARGS1 = $(linkdebug) $(conflags)
 LINKARGS2 = $(CON_LIB) $(GUI_LIB) $(NODEFAULTLIB) $(LIBC) $(OLE_LIB) user32.lib \
 		$(LUA_LIB) $(MZSCHEME_LIB) $(PERL_LIB) $(PYTHON_LIB) $(PYTHON3_LIB) $(RUBY_LIB) \
-		$(TCL_LIB) $(SOUND_LIB) $(NETBEANS_LIB) $(XPM_LIB) $(LINK_PDB)
+		$(TCL_LIB) $(SOUND_LIB) $(NETBEANS_LIB) $(XPM_LIB) $(SOD_LIB) $(LINK_PDB)
 
 # Report link time code generation progress if used. 
 !ifdef NODEBUG

@@ -148,6 +148,23 @@ exe_newlist(int count, ectx_T *ectx)
 }
 
 /*
+ * If debug_tick changed check if "ufunc" has a breakpoint and update
+ * "uf_has_breakpoint".
+ */
+    static void
+update_has_breakpoint(ufunc_T *ufunc)
+{
+    if (ufunc->uf_debug_tick != debug_tick)
+    {
+	linenr_T breakpoint;
+
+	ufunc->uf_debug_tick = debug_tick;
+	breakpoint = dbg_find_breakpoint(FALSE, ufunc->uf_name, 0);
+	ufunc->uf_has_breakpoint = breakpoint > 0;
+    }
+}
+
+/*
  * Call compiled function "cdf_idx" from compiled code.
  * This adds a stack frame and sets the instruction pointer to the start of the
  * called function.
@@ -211,6 +228,9 @@ call_dfunc(
 	    return FAIL;
     }
 #endif
+
+    // Update uf_has_breakpoint if needed.
+    update_has_breakpoint(ufunc);
 
     // When debugging and using "cont" switches to the not-debugged
     // instructions, may need to still compile them.
@@ -1394,7 +1414,7 @@ typedef struct subs_expr_S {
 
 // Set when calling do_debug().
 static ectx_T	*debug_context = NULL;
-static int	debug_arg_count;
+static int	debug_var_count;
 
 /*
  * When debugging lookup "name" and return the typeval.
@@ -1405,21 +1425,98 @@ lookup_debug_var(char_u *name)
 {
     int		    idx;
     dfunc_T	    *dfunc;
+    ufunc_T	    *ufunc;
     ectx_T	    *ectx = debug_context;
+    int		    varargs_off;
 
     if (ectx == NULL)
 	return NULL;
     dfunc = ((dfunc_T *)def_functions.ga_data) + ectx->ec_dfunc_idx;
 
     // Go through the local variable names, from last to first.
-    for (idx = debug_arg_count - 1; idx >= 0; --idx)
+    for (idx = debug_var_count - 1; idx >= 0; --idx)
     {
-	char_u *s = ((char_u **)dfunc->df_var_names.ga_data)[idx];
-	if (STRCMP(s, name) == 0)
+	if (STRCMP(((char_u **)dfunc->df_var_names.ga_data)[idx], name) == 0)
 	    return STACK_TV_VAR(idx);
     }
 
+    // Go through argument names.
+    ufunc = dfunc->df_ufunc;
+    varargs_off = ufunc->uf_va_name == NULL ? 0 : 1;
+    for (idx = 0; idx < ufunc->uf_args.ga_len; ++idx)
+	if (STRCMP(((char_u **)(ufunc->uf_args.ga_data))[idx], name) == 0)
+	    return STACK_TV(ectx->ec_frame_idx - ufunc->uf_args.ga_len
+							  - varargs_off + idx);
+    if (ufunc->uf_va_name != NULL && STRCMP(ufunc->uf_va_name, name) == 0)
+	return STACK_TV(ectx->ec_frame_idx - 1);
+
     return NULL;
+}
+
+    static void
+handle_debug(isn_T *iptr, ectx_T *ectx)
+{
+    char_u	*line;
+    ufunc_T	*ufunc = (((dfunc_T *)def_functions.ga_data)
+					       + ectx->ec_dfunc_idx)->df_ufunc;
+    isn_T	*ni;
+    int		end_lnum = iptr->isn_lnum;
+    garray_T	ga;
+    int		lnum;
+
+    if (ex_nesting_level > debug_break_level)
+    {
+	linenr_T breakpoint;
+
+	if (!ufunc->uf_has_breakpoint)
+	    return;
+
+	// check for the next breakpoint if needed
+	breakpoint = dbg_find_breakpoint(FALSE, ufunc->uf_name,
+							   iptr->isn_lnum - 1);
+	if (breakpoint <= 0 || breakpoint > iptr->isn_lnum)
+	    return;
+    }
+
+    SOURCING_LNUM = iptr->isn_lnum;
+    debug_context = ectx;
+    debug_var_count = iptr->isn_arg.number;
+
+    for (ni = iptr + 1; ni->isn_type != ISN_FINISH; ++ni)
+	if (ni->isn_type == ISN_DEBUG
+		  || ni->isn_type == ISN_RETURN
+		  || ni->isn_type == ISN_RETURN_VOID)
+	{
+	    end_lnum = ni->isn_lnum;
+	    break;
+	}
+
+    if (end_lnum > iptr->isn_lnum)
+    {
+	ga_init2(&ga, sizeof(char_u *), 10);
+	for (lnum = iptr->isn_lnum; lnum < end_lnum; ++lnum)
+	{
+	    char_u *p = skipwhite(
+			       ((char_u **)ufunc->uf_lines.ga_data)[lnum - 1]);
+
+	    if (*p == '#')
+		break;
+	    if (ga_grow(&ga, 1) == OK)
+		((char_u **)(ga.ga_data))[ga.ga_len++] = p;
+	    if (STRNCMP(p, "def ", 4) == 0)
+		break;
+	}
+	line = ga_concat_strings(&ga, "  ");
+	vim_free(ga.ga_data);
+    }
+    else
+	line = ((char_u **)ufunc->uf_lines.ga_data)[iptr->isn_lnum - 1];
+
+    do_debug(line == NULL ? (char_u *)"[empty]" : line);
+    debug_context = NULL;
+
+    if (end_lnum > iptr->isn_lnum)
+	vim_free(line);
 }
 
 /*
@@ -2127,8 +2224,7 @@ exec_instructions(ectx_T *ectx)
 
 		    --ectx->ec_stack.ga_len;
 		    tv = STACK_TV_BOT(0);
-		    write_reg_contents(reg == '@' ? '"' : reg,
-						 tv_get_string(tv), -1, FALSE);
+		    write_reg_contents(reg, tv_get_string(tv), -1, FALSE);
 		    clear_tv(tv);
 		}
 		break;
@@ -3736,12 +3832,12 @@ exec_instructions(ectx_T *ectx)
 	    case ISN_GETITEM:
 		{
 		    listitem_T	*li;
-		    int		index = iptr->isn_arg.number;
+		    getitem_T	*gi = &iptr->isn_arg.getitem;
 
 		    // Get list item: list is at stack-1, push item.
 		    // List type and length is checked for when compiling.
-		    tv = STACK_TV_BOT(-1);
-		    li = list_find(tv->vval.v_list, index);
+		    tv = STACK_TV_BOT(-1 - gi->gi_with_op);
+		    li = list_find(tv->vval.v_list, gi->gi_index);
 
 		    if (GA_GROW(&ectx->ec_stack, 1) == FAIL)
 			goto theend;
@@ -3750,7 +3846,7 @@ exec_instructions(ectx_T *ectx)
 
 		    // Useful when used in unpack assignment.  Reset at
 		    // ISN_DROP.
-		    ectx->ec_where.wt_index = index + 1;
+		    ectx->ec_where.wt_index = gi->gi_index + 1;
 		    ectx->ec_where.wt_variable = TRUE;
 		}
 		break;
@@ -4144,22 +4240,7 @@ exec_instructions(ectx_T *ectx)
 		break;
 
 	    case ISN_DEBUG:
-		if (ex_nesting_level <= debug_break_level)
-		{
-		    char_u	*line;
-		    ufunc_T	*ufunc = (((dfunc_T *)def_functions.ga_data)
-					       + ectx->ec_dfunc_idx)->df_ufunc;
-
-		    SOURCING_LNUM = iptr->isn_lnum;
-		    debug_context = ectx;
-		    debug_arg_count = iptr->isn_arg.number;
-		    line = ((char_u **)ufunc->uf_lines.ga_data)[
-							   iptr->isn_lnum - 1];
-		    if (line == NULL)
-			line = (char_u *)"[empty]";
-		    do_debug(line);
-		    debug_context = NULL;
-		}
+		handle_debug(iptr, ectx);
 		break;
 
 	    case ISN_SHUFFLE:
@@ -4334,6 +4415,9 @@ call_def_function(
 // Get pointer to a local variable on the stack.  Negative for arguments.
 #undef STACK_TV_VAR
 #define STACK_TV_VAR(idx) (((typval_T *)ectx.ec_stack.ga_data) + ectx.ec_frame_idx + STACK_FRAME_SIZE + idx)
+
+    // Update uf_has_breakpoint if needed.
+    update_has_breakpoint(ufunc);
 
     if (ufunc->uf_def_status == UF_NOT_COMPILED
 	    || ufunc->uf_def_status == UF_COMPILE_ERROR
@@ -5292,8 +5376,10 @@ list_instructions(char *pfx, isn_T *instr, int instr_count, ufunc_T *ufunc)
 	    case ISN_ANYSLICE: smsg("%s%4d ANYSLICE", pfx, current); break;
 	    case ISN_SLICE: smsg("%s%4d SLICE %lld",
 					 pfx, current, iptr->isn_arg.number); break;
-	    case ISN_GETITEM: smsg("%s%4d ITEM %lld",
-					 pfx, current, iptr->isn_arg.number); break;
+	    case ISN_GETITEM: smsg("%s%4d ITEM %lld%s", pfx, current,
+					 iptr->isn_arg.getitem.gi_index,
+					 iptr->isn_arg.getitem.gi_with_op ?
+						       " with op" : ""); break;
 	    case ISN_MEMBER: smsg("%s%4d MEMBER", pfx, current); break;
 	    case ISN_STRINGMEMBER: smsg("%s%4d MEMBER %s", pfx, current,
 						  iptr->isn_arg.string); break;

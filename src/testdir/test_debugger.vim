@@ -885,19 +885,19 @@ func Test_Backtrace_DefFunction()
                 \ ':debug call GlobalFunction()',
                 \ ['cmd: call GlobalFunction()'])
 
-  call RunDbgCmd(buf, 'step', ['line 1:   var some = "some var"'])
-  call RunDbgCmd(buf, 'step', ['line 2:   CallAFunction()'])
+  call RunDbgCmd(buf, 'step', ['line 1: var some = "some var"'])
+  call RunDbgCmd(buf, 'step', ['line 2: CallAFunction()'])
   call RunDbgCmd(buf, 'echo some', ['some var'])
 
   call RunDbgCmd(buf, 'backtrace', [
         \ '\V>backtrace',
         \ '\V->0 function GlobalFunction',
-        \ '\Vline 2:   CallAFunction()',
+        \ '\Vline 2: CallAFunction()',
         \ ],
         \ #{match: 'pattern'})
 
-  call RunDbgCmd(buf, 'step', ['line 1:   SourceAnotherFile()'])
-  call RunDbgCmd(buf, 'step', ['line 1:   source Xtest2.vim'])
+  call RunDbgCmd(buf, 'step', ['line 1: SourceAnotherFile()'])
+  call RunDbgCmd(buf, 'step', ['line 1: source Xtest2.vim'])
   " Repeated line, because we fist are in the compiled function before the
   " EXEC and then in do_cmdline() before the :source command.
   call RunDbgCmd(buf, 'step', ['line 1: source Xtest2.vim'])
@@ -932,17 +932,83 @@ func Test_Backtrace_DefFunction()
   call delete('Xtest2.vim')
 endfunc
 
+func Test_debug_DefFunction()
+  CheckCWD
+  let file =<< trim END
+    vim9script
+    def g:SomeFunc()
+      echo "here"
+      echo "and"
+      echo "there"
+      breakadd func 2 LocalFunc
+      LocalFunc()
+    enddef
+
+    def LocalFunc()
+      echo "first"
+      echo "second"
+      breakadd func 1 LegacyFunc
+      LegacyFunc()
+    enddef
+
+    func LegacyFunc()
+      echo "legone"
+      echo "legtwo"
+    endfunc
+
+    breakadd func 2 g:SomeFunc
+  END
+  call writefile(file, 'XtestDebug.vim')
+
+  let buf = RunVimInTerminal('-S XtestDebug.vim', {})
+
+  call RunDbgCmd(buf,':call SomeFunc()', ['line 2: echo "and"'])
+  call RunDbgCmd(buf,'next', ['line 3: echo "there"'])
+  call RunDbgCmd(buf,'next', ['line 4: breakadd func 2 LocalFunc'])
+
+  " continue, next breakpoint is in LocalFunc()
+  call RunDbgCmd(buf,'cont', ['line 2: echo "second"'])
+
+  " continue, next breakpoint is in LegacyFunc()
+  call RunDbgCmd(buf,'cont', ['line 1: echo "legone"'])
+
+  call RunDbgCmd(buf, 'cont')
+
+  call StopVimInTerminal(buf)
+  call delete('Xtest1.vim')
+  call delete('Xtest2.vim')
+endfunc
+
 func Test_debug_def_function()
   CheckCWD
   let file =<< trim END
     vim9script
     def g:Func()
-        var n: number
-        def Closure(): number
-            return n + 3
-        enddef
-        n += Closure()
-        echo 'result: ' .. n
+      var n: number
+      def Closure(): number
+          return n + 3
+      enddef
+      n += Closure()
+      echo 'result: ' .. n
+    enddef
+
+    def g:FuncWithArgs(text: string, nr: number, ...items: list<number>)
+      echo text .. nr
+      for it in items
+        echo it
+      endfor
+      echo "done"
+    enddef
+
+    def g:FuncWithDict()
+      var d = {
+         a: 1,
+         b: 2,
+         }
+         # comment
+         def Inner()
+           eval 1
+         enddef
     enddef
   END
   call writefile(file, 'Xtest.vim')
@@ -954,7 +1020,37 @@ func Test_debug_def_function()
                 \ ['cmd: call Func()'])
   call RunDbgCmd(buf, 'next', ['result: 3'])
   call term_sendkeys(buf, "\r")
+  call RunDbgCmd(buf, 'cont')
 
+  call RunDbgCmd(buf,
+                \ ':debug call FuncWithArgs("asdf", 42, 1, 2, 3)',
+                \ ['cmd: call FuncWithArgs("asdf", 42, 1, 2, 3)'])
+  call RunDbgCmd(buf, 'step', ['line 1: echo text .. nr'])
+  call RunDbgCmd(buf, 'echo text', ['asdf'])
+  call RunDbgCmd(buf, 'echo nr', ['42'])
+  call RunDbgCmd(buf, 'echo items', ['[1, 2, 3]'])
+  call RunDbgCmd(buf, 'step', ['asdf42', 'function FuncWithArgs', 'line 2: for it in items'])
+  call RunDbgCmd(buf, 'echo it', ['1'])
+  call RunDbgCmd(buf, 'step', ['line 3: echo it'])
+  call RunDbgCmd(buf, 'step', ['1', 'function FuncWithArgs', 'line 4: endfor'])
+  call RunDbgCmd(buf, 'step', ['line 2: for it in items'])
+  call RunDbgCmd(buf, 'echo it', ['2'])
+  call RunDbgCmd(buf, 'step', ['line 3: echo it'])
+  call RunDbgCmd(buf, 'step', ['2', 'function FuncWithArgs', 'line 4: endfor'])
+  call RunDbgCmd(buf, 'step', ['line 2: for it in items'])
+  call RunDbgCmd(buf, 'echo it', ['3'])
+  call RunDbgCmd(buf, 'step', ['line 3: echo it'])
+  call RunDbgCmd(buf, 'step', ['3', 'function FuncWithArgs', 'line 4: endfor'])
+  call RunDbgCmd(buf, 'step', ['line 5: echo "done"'])
+  call RunDbgCmd(buf, 'cont')
+
+  call RunDbgCmd(buf,
+                \ ':debug call FuncWithDict()',
+                \ ['cmd: call FuncWithDict()'])
+  call RunDbgCmd(buf, 'step', ['line 1: var d = {  a: 1,  b: 2,  }'])
+  call RunDbgCmd(buf, 'step', ['line 6: def Inner()'])
+
+  call RunDbgCmd(buf, 'cont')
   call StopVimInTerminal(buf)
   call delete('Xtest.vim')
 endfunc

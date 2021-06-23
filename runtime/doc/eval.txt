@@ -3034,6 +3034,8 @@ test_feedinput({string})	none	add key sequence to input buffer
 test_garbagecollect_now()	none	free memory right now for testing
 test_garbagecollect_soon()	none	free memory soon for testing
 test_getvalue({string})		any	get value of an internal variable
+test_gui_mouse_event({button}, {row}, {col}, {repeated}, {mods})
+				none	add a mouse event to the input buffer
 test_ignore_error({expr})	none	ignore a specific error
 test_null_blob()		Blob	null value for testing
 test_null_channel()		Channel	null value for testing
@@ -5853,7 +5855,10 @@ getqflist([{what}])					*getqflist()*
 				bufname() to get the name
 			module	module name
 			lnum	line number in the buffer (first line is 1)
+			end_lnum
+				end of line number if the item is multiline
 			col	column number (first column is 1)
+			end_col	end of column number if the item has range
 			vcol	|TRUE|: "col" is visual column
 				|FALSE|: "col" is byte index
 			nr	error number
@@ -11983,6 +11988,7 @@ scrollbind		Compiled with 'scrollbind' support. (always true)
 showcmd			Compiled with 'showcmd' support.
 signs			Compiled with |:sign| support.
 smartindent		Compiled with 'smartindent' support.
+sodium			Compiled with libsodium for better crypt support
 sound			Compiled with sound support, e.g. `sound_playevent()`
 spell			Compiled with spell checking support |spell|.
 startuptime		Compiled with |--startuptime| support.

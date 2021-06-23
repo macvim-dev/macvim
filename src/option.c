@@ -1324,9 +1324,10 @@ do_set(
 	    // remember character after option name
 	    afterchar = arg[len];
 
-	    // skip white space, allow ":set ai  ?"
-	    while (VIM_ISWHITE(arg[len]))
-		++len;
+	    if (!in_vim9script())
+		// skip white space, allow ":set ai  ?", ":set hlsearch  !"
+		while (VIM_ISWHITE(arg[len]))
+		    ++len;
 
 	    adding = FALSE;
 	    prepending = FALSE;
@@ -2734,6 +2735,10 @@ set_bool_option(
 				|| (opt_flags & OPT_GLOBAL) || opt_flags == 0)
 			&& !curbufIsChanged() && curbuf->b_ml.ml_mfp != NULL)
 		{
+#ifdef FEAT_CRYPT
+		    if (crypt_get_method_nr(curbuf) == CRYPT_M_SOD)
+			continue;
+#endif
 		    u_compute_hash(hash);
 		    u_read_undo(NULL, hash, curbuf->b_fname);
 		}

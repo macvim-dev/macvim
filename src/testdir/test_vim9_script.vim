@@ -3212,7 +3212,7 @@ def Test_vim9_comment_not_compiled()
       'if 1# comment3',
       '  echo "yes"',
       'endif',
-      ], 'E15:')
+      ], 'E488:')
 
   CheckScriptFailure([
       'vim9script',
@@ -3221,7 +3221,7 @@ def Test_vim9_comment_not_compiled()
       'elseif 2#comment',
       '  echo "no"',
       'endif',
-      ], 'E15:')
+      ], 'E488:')
 
   CheckScriptSuccess([
       'vim9script',
@@ -3231,7 +3231,7 @@ def Test_vim9_comment_not_compiled()
   CheckScriptFailure([
       'vim9script',
       'var v = 1# comment6',
-      ], 'E15:')
+      ], 'E488:')
 
   CheckScriptSuccess([
       'vim9script',
@@ -3935,6 +3935,26 @@ def Test_mapping_line_number()
 
   nunmap <F3>
   delfunc g:FuncA
+enddef
+
+def Test_option_modifier()
+  var lines =<< trim END
+      set hlsearch &  hlsearch  !
+      call assert_equal(1, &hlsearch)
+  END
+  CheckScriptSuccess(lines)
+
+  lines =<< trim END
+      vim9script
+      set hlsearch &
+  END
+  CheckScriptFailure(lines, 'E518:')
+
+  lines =<< trim END
+      vim9script
+      set hlsearch &  hlsearch  !
+  END
+  CheckScriptFailure(lines, 'E518:')
 enddef
 
 " Keep this last, it messes up highlighting.

@@ -1629,6 +1629,11 @@ typedef struct
 # endif
 
     garray_T	uf_lines;	// function lines
+
+    int		uf_debug_tick;	// when last checked for a breakpoint in this
+				// function.
+    int		uf_has_breakpoint;  // TRUE when a breakpoint has been set in
+				    // this function.
 # ifdef FEAT_PROFILE
     int		uf_profiling;	// TRUE when func is being profiled
     int		uf_prof_initialized;
@@ -2516,11 +2521,12 @@ typedef struct {
 # define CRYPT_M_ZIP	0
 # define CRYPT_M_BF	1
 # define CRYPT_M_BF2	2
-# define CRYPT_M_COUNT	3 // number of crypt methods
+# define CRYPT_M_SOD    3
+# define CRYPT_M_COUNT	4 // number of crypt methods
 
 // Currently all crypt methods work inplace.  If one is added that isn't then
 // define this.
-//  # define CRYPT_NOT_INPLACE 1
+# define CRYPT_NOT_INPLACE 1
 #endif
 
 #ifdef FEAT_PROP_POPUP

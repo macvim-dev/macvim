@@ -90,6 +90,24 @@ def Test_compile_error_in_called_function()
   CheckScriptFailureList(lines, ['E1012:', 'E1191:'])
 enddef
 
+def Test_wrong_function_name()
+  var lines =<< trim END
+      vim9script
+      func _Foo()
+        echo 'foo'
+      endfunc
+  END
+  CheckScriptFailure(lines, 'E128:')
+
+  lines =<< trim END
+      vim9script
+      def _Foo()
+        echo 'foo'
+      enddef
+  END
+  CheckScriptFailure(lines, 'E128:')
+enddef
+
 def Test_autoload_name_mismatch()
   var dir = 'Xdir/autoload'
   mkdir(dir, 'p')
@@ -985,6 +1003,20 @@ def Test_pass_legacy_lambda_to_def_func()
       def Bar(y: any)
       enddef
       Foo()
+  END
+  CheckScriptSuccess(lines)
+
+  lines =<< trim END
+      vim9script
+      def g:TestFunc(f: func())
+      enddef
+      legacy call g:TestFunc({-> 0})
+      delfunc g:TestFunc
+
+      def g:TestFunc(f: func(number))
+      enddef
+      legacy call g:TestFunc({nr -> 0})
+      delfunc g:TestFunc
   END
   CheckScriptSuccess(lines)
 enddef
