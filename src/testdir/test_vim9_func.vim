@@ -918,6 +918,22 @@ def Test_call_lambda_args()
   CheckScriptFailure(['vim9script'] + lines, 'E1168:')
 
   lines =<< trim END
+    var Ref: func(any, ?any): bool
+    Ref = (_, y = 1) => false
+  END
+  CheckDefAndScriptFailure(lines, 'E1172:')
+
+  lines =<< trim END
+      var a = 0
+      var b = (a == 0 ? 1 : 2)
+      assert_equal(1, b)
+      var txt = 'a'
+      b = (txt =~ 'x' ? 1 : 2)
+      assert_equal(2, b)
+  END
+  CheckDefAndScriptSuccess(lines)
+
+  lines =<< trim END
       def ShadowLocal()
         var one = 1
         var l = [1, 2, 3]
@@ -2312,6 +2328,23 @@ def Test_legacy_lambda()
         echo (() => 'no error')()
       enddef
       legacy call s:Func()
+  END
+  CheckScriptSuccess(lines)
+enddef
+
+def Test_legacy()
+  var lines =<< trim END
+      vim9script
+      func g:LegacyFunction()
+        let g:legacyvar = 1
+      endfunc
+      def Testit()
+        legacy call g:LegacyFunction()
+      enddef
+      Testit()
+      assert_equal(1, g:legacyvar)
+      unlet g:legacyvar
+      delfunc g:LegacyFunction
   END
   CheckScriptSuccess(lines)
 enddef

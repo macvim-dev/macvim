@@ -2411,7 +2411,7 @@ buflist_getfile(
     if (buf == NULL)
     {
 	if ((options & GETF_ALT) && n == 0)
-	    emsg(_(e_noalt));
+	    emsg(_(e_no_alternate_file));
 	else
 	    semsg(_("E92: Buffer %d not found"), n);
 	return FAIL;
@@ -3520,7 +3520,7 @@ getaltfname(
     if (buflist_name_nr(0, &fname, &dummy) == FAIL)
     {
 	if (errmsg)
-	    emsg(_(e_noalt));
+	    emsg(_(e_no_alternate_file));
 	return NULL;
     }
     return fname;

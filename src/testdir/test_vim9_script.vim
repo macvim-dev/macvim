@@ -1519,6 +1519,27 @@ def Test_vim9script_reload_noclear()
   delete('XExportReload')
   delfunc g:Values
   unlet g:loadCount
+
+  lines =<< trim END
+      vim9script
+      def Inner()
+      enddef
+  END
+  lines->writefile('XreloadScript.vim')
+  source XreloadScript.vim
+
+  lines =<< trim END
+      vim9script
+      def Outer()
+        def Inner()
+        enddef
+      enddef
+      defcompile
+  END
+  lines->writefile('XreloadScript.vim')
+  source XreloadScript.vim
+
+  delete('XreloadScript.vim')
 enddef
 
 def Test_vim9script_reload_import()
@@ -2384,6 +2405,13 @@ def Test_for_loop()
         res ..= n .. s
       endfor
       assert_equal('1a2b', res)
+
+      # unpack with one var
+      var reslist = []
+      for [x] in [['aaa'], ['bbb']]
+        reslist->add(x)
+      endfor
+      assert_equal(['aaa', 'bbb'], reslist)
 
       # loop over string
       res = ''

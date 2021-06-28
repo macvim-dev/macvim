@@ -10,6 +10,44 @@
  * Definition of error messages, sorted on error number.
  */
 
+EXTERN char e_backslash_should_be_followed_by[]
+	INIT(= N_("E10: \\ should be followed by /, ? or &"));
+#ifdef FEAT_CMDWIN
+EXTERN char e_invalid_in_cmdline_window[]
+	INIT(= N_("E11: Invalid in command-line window; <CR> executes, CTRL-C quits"));
+#endif
+EXTERN char e_command_not_allowed_from_vimrc_in_current_dir_or_tag_search[]
+	INIT(= N_("E12: Command not allowed from exrc/vimrc in current dir or tag search"));
+EXTERN char e_file_exists[]
+	INIT(= N_("E13: File exists (add ! to override)"));
+#ifdef FEAT_EVAL
+EXTERN char e_invalid_expression_str[]
+	INIT(= N_("E15: Invalid expression: \"%s\""));
+#endif
+EXTERN char e_invalid_range[]
+	INIT(= N_("E16: Invalid range"));
+#if defined(UNIX) || defined(FEAT_SYN_HL) || defined(FEAT_SPELL)
+EXTERN char e_src_is_directory[]
+	INIT(= N_("E17: \"%s\" is a directory"));
+#endif
+#ifdef FEAT_EVAL
+EXTERN char e_unexpected_characters_in_let[]
+	INIT(= N_("E18: Unexpected characters in :let"));
+EXTERN char e_unexpected_characters_in_assignment[]
+	INIT(= N_("E18: Unexpected characters in assignment"));
+#endif
+EXTERN char e_mark_has_invalid_line_number[]
+	INIT(= N_("E19: Mark has invalid line number"));
+EXTERN char e_mark_not_set[]
+	INIT(= N_("E20: Mark not set"));
+EXTERN char e_cannot_make_changes_modifiable_is_off[]
+	INIT(= N_("E21: Cannot make changes, 'modifiable' is off"));
+EXTERN char e_scripts_nested_too_deep[]
+	INIT(= N_("E22: Scripts nested too deep"));
+EXTERN char e_no_alternate_file[]
+	INIT(= N_("E23: No alternate file"));
+EXTERN char e_no_such_abbreviation[]
+	INIT(= N_("E24: No such abbreviation"));
 #ifdef FEAT_EVAL
 EXTERN char e_undefined_variable_str[]
 	INIT(= N_("E121: Undefined variable: %s"));
@@ -318,7 +356,7 @@ EXTERN char e_using_bool_as_number[]
 EXTERN char e_missing_matching_bracket_after_dict_key[]
 	INIT(= N_("E1139: Missing matching bracket after dict key"));
 EXTERN char e_for_argument_must_be_sequence_of_lists[]
-	INIT(= N_("E1140: For argument must be a sequence of lists"));
+	INIT(= N_("E1140: :for argument must be a sequence of lists"));
 EXTERN char e_indexable_type_required[]
 	INIT(= N_("E1141: Indexable type required"));
 EXTERN char e_non_empty_string_required[]
@@ -446,3 +484,7 @@ EXTERN char e_libsodium_decryption_failed[]
 	INIT(= N_("E1200: Decryption failed!"));
 EXTERN char e_libsodium_decryption_failed_premature[]
 	INIT(= N_("E1201: Decryption failed: pre-mature end of file!"));
+EXTERN char e_no_white_space_allowed_after_str_str[]
+	INIT(= N_("E1202: No white space allowed after '%s': %s"));
+EXTERN char e_dot_can_only_be_used_on_dictionary_str[]
+	INIT(= N_("E1203: Dot can only be used on a dictionary: %s"));

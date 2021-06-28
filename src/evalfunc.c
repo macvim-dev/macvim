@@ -1700,6 +1700,8 @@ static funcentry_T global_functions[] =
 			ret_void,	    f_test_garbagecollect_soon},
     {"test_getvalue",	1, 1, FEARG_1,	    NULL,
 			ret_number,	    f_test_getvalue},
+    {"test_gui_drop_files",	4, 4, 0,	    NULL,
+			ret_void,	    f_test_gui_drop_files},
     {"test_gui_mouse_event",	5, 5, 0,	    NULL,
 			ret_void,	    f_test_gui_mouse_event},
     {"test_ignore_error", 1, 1, FEARG_1,    NULL,
@@ -2921,7 +2923,7 @@ f_eval(typval_T *argvars, typval_T *rettv)
     if (s == NULL || eval1(&s, rettv, &EVALARG_EVALUATE) == FAIL)
     {
 	if (p != NULL && !aborting())
-	    semsg(_(e_invexpr2), p);
+	    semsg(_(e_invalid_expression_str), p);
 	need_clr_eos = FALSE;
 	rettv->v_type = VAR_NUMBER;
 	rettv->vval.v_number = 0;
@@ -4571,6 +4573,13 @@ f_has(typval_T *argvars, typval_T *rettv)
 		},
 	{"dnd",
 #ifdef FEAT_DND
+		1
+#else
+		0
+#endif
+		},
+	{"drop_file",
+#ifdef HAVE_DROP_FILE
 		1
 #else
 		0
@@ -8006,7 +8015,7 @@ f_searchpos(typval_T *argvars, typval_T *rettv)
 
 /*
  * Set the cursor or mark position.
- * If 'charpos' is TRUE, then use the column number as a character offet.
+ * If 'charpos' is TRUE, then use the column number as a character offset.
  * Otherwise use the column number as a byte offset.
  */
     static void

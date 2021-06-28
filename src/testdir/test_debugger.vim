@@ -932,7 +932,7 @@ func Test_Backtrace_DefFunction()
   call delete('Xtest2.vim')
 endfunc
 
-func Test_debug_DefFunction()
+func Test_debug_def_and_legacy_function()
   CheckCWD
   let file =<< trim END
     vim9script
@@ -947,7 +947,7 @@ func Test_debug_DefFunction()
     def LocalFunc()
       echo "first"
       echo "second"
-      breakadd func 1 LegacyFunc
+      breakadd func LegacyFunc
       LegacyFunc()
     enddef
 
@@ -1010,6 +1010,13 @@ func Test_debug_def_function()
            eval 1
          enddef
     enddef
+    def g:FuncComment()
+      # comment
+      echo "first"
+         .. "one"
+      # comment
+      echo "second"
+    enddef
   END
   call writefile(file, 'Xtest.vim')
 
@@ -1049,10 +1056,43 @@ func Test_debug_def_function()
                 \ ['cmd: call FuncWithDict()'])
   call RunDbgCmd(buf, 'step', ['line 1: var d = {  a: 1,  b: 2,  }'])
   call RunDbgCmd(buf, 'step', ['line 6: def Inner()'])
+  call RunDbgCmd(buf, 'cont')
+
+  call RunDbgCmd(buf, ':breakadd func 1 FuncComment')
+  call RunDbgCmd(buf, ':call FuncComment()', ['function FuncComment', 'line 2: echo "first"  .. "one"'])
+  call RunDbgCmd(buf, ':breakadd func 3 FuncComment')
+  call RunDbgCmd(buf, 'cont', ['function FuncComment', 'line 5: echo "second"'])
 
   call RunDbgCmd(buf, 'cont')
   call StopVimInTerminal(buf)
   call delete('Xtest.vim')
+endfunc
+
+func Test_debug_def_function_with_lambda()
+  CheckCWD
+  let lines =<< trim END
+     vim9script
+     def g:Func()
+       var s = 'a'
+       ['b']->map((_, v) => s)
+       echo "done"
+     enddef
+     breakadd func 2 g:Func
+  END
+  call writefile(lines, 'XtestLambda.vim')
+
+  let buf = RunVimInTerminal('-S XtestLambda.vim', {})
+
+  call RunDbgCmd(buf,
+                \ ':call g:Func()',
+                \ ['function Func', 'line 2: [''b'']->map((_, v) => s)'])
+  call RunDbgCmd(buf,
+                \ 'next',
+                \ ['function Func', 'line 3: echo "done"'])
+
+  call RunDbgCmd(buf, 'cont')
+  call StopVimInTerminal(buf)
+  call delete('XtestLambda.vim')
 endfunc
 
 func Test_debug_backtrace_level()

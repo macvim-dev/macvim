@@ -1251,7 +1251,7 @@ channel_set_options(channel_T *channel, jobopt_T *opt)
 
 	    if (!buf->b_p_ma && !channel->ch_part[PART_OUT].ch_nomodifiable)
 	    {
-		emsg(_(e_modifiable));
+		emsg(_(e_cannot_make_changes_modifiable_is_off));
 	    }
 	    else
 	    {
@@ -1297,7 +1297,7 @@ channel_set_options(channel_T *channel, jobopt_T *opt)
 						!opt->jo_modifiable[PART_ERR];
 	    if (!buf->b_p_ma && !channel->ch_part[PART_ERR].ch_nomodifiable)
 	    {
-		emsg(_(e_modifiable));
+		emsg(_(e_cannot_make_changes_modifiable_is_off));
 	    }
 	    else
 	    {
