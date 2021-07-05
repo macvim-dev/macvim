@@ -8231,6 +8231,8 @@ prompt_getprompt({buf})					*prompt_getprompt()*
 		Can also be used as a |method|: >
 			GetBuffer()->prompt_getprompt()
 
+<		{only available when compiled with the |+channel| feature}
+
 
 prompt_setcallback({buf}, {expr})			*prompt_setcallback()*
 		Set prompt callback for buffer {buf} to {expr}.  When {expr}
@@ -8264,6 +8266,7 @@ prompt_setcallback({buf}, {expr})			*prompt_setcallback()*
 <		Can also be used as a |method|: >
 			GetBuffer()->prompt_setcallback(callback)
 
+<		{only available when compiled with the |+channel| feature}
 
 prompt_setinterrupt({buf}, {expr})			*prompt_setinterrupt()*
 		Set a callback for buffer {buf} to {expr}.  When {expr} is an
@@ -8277,6 +8280,8 @@ prompt_setinterrupt({buf}, {expr})			*prompt_setinterrupt()*
 		Can also be used as a |method|: >
 			GetBuffer()->prompt_setinterrupt(callback)
 
+<		{only available when compiled with the |+channel| feature}
+
 prompt_setprompt({buf}, {text})				*prompt_setprompt()*
 		Set prompt for buffer {buf} to {text}.  You most likely want
 		{text} to end in a space.
@@ -8286,6 +8291,8 @@ prompt_setprompt({buf}, {text})				*prompt_setprompt()*
 <
 		Can also be used as a |method|: >
 			GetBuffer()->prompt_setprompt('command: ')
+
+<		{only available when compiled with the |+channel| feature}
 
 prop_ functions are documented here: |text-prop-functions|
 
@@ -9890,6 +9897,10 @@ sha256({string})						*sha256()*
 
 shellescape({string} [, {special}])			*shellescape()*
 		Escape {string} for use as a shell command argument.
+		When the 'shell' contains powershell (MS-Windows) or pwsh
+		(MS-Windows, Linux, and MacOS) then it will enclose {string}
+		in single quotes and will double up all internal single
+		quotes.
 		On MS-Windows, when 'shellslash' is not set, it will enclose
 		{string} in double quotes and double all double quotes within
 		{string}.
@@ -11052,7 +11063,8 @@ tempname()					*tempname()* *temp-file-name*
 			:exe "redir > " . tmpfile
 <		For Unix, the file will be in a private directory |tempfile|.
 		For MS-Windows forward slashes are used when the 'shellslash'
-		option is set or when 'shellcmdflag' starts with '-'.
+		option is set, or when 'shellcmdflag' starts with '-' and
+		'shell' does not contain powershell or pwsh.
 
 
 term_ functions are documented here: |terminal-function-details|

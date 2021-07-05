@@ -1437,6 +1437,7 @@ endfunc
 
 func Test_popup_atcursor_pos()
   CheckScreendump
+  CheckFeature conceal
 
   let lines =<< trim END
 	call setline(1, repeat([repeat('-', 60)], 15))
@@ -1462,6 +1463,13 @@ func Test_popup_atcursor_pos()
 	      \ moved: range(3),
 	      \ mousemoved: range(3),
 	      \ })
+
+	normal 9G27|Rconcealed  X
+	syn match Hidden /concealed/ conceal
+	set conceallevel=2 concealcursor=n
+	redraw
+	normal 0fX
+	call popup_atcursor('mark', {})
   END
   call writefile(lines, 'XtestPopupAtcursorPos')
   let buf = RunVimInTerminal('-S XtestPopupAtcursorPos', #{rows: 12})
@@ -1542,24 +1550,32 @@ func Test_popup_filter()
   redraw
 
   " e is consumed by the filter
+  let g:eaten = ''
   call feedkeys('e', 'xt')
   call assert_equal('e', g:eaten)
   call feedkeys("\<F9>", 'xt')
   call assert_equal("\<F9>", g:eaten)
 
   " 0 is ignored by the filter
+  let g:ignored = ''
   normal $
   call assert_equal(9, getcurpos()[2])
   call feedkeys('0', 'xt')
   call assert_equal('0', g:ignored)
-  normal! l
-  call assert_equal(2, getcurpos()[2])
+
+  if has('win32') && has('gui_running')
+    echo "FIXME: this check is very flaky on MS-Windows GUI, the cursor doesn't move"
+  else
+    call assert_equal(1, getcurpos()[2])
+  endif
 
   " x closes the popup
   call feedkeys('x', 'xt')
   call assert_equal("\<F9>", g:eaten)
   call assert_equal(-1, winbufnr(winid))
 
+  unlet g:eaten
+  unlet g:ignored
   delfunc MyPopupFilter
   call popup_clear()
 endfunc

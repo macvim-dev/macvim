@@ -57,7 +57,7 @@ def Test_expr1_trinary()
       assert_equal(function('len'), Res)
 
       var RetOne: func(string): number = function('len')
-      var RetTwo: func(string): number = function('winnr')
+      var RetTwo: func(string): number = function('charcol')
       var RetThat: func = g:atrue ? RetOne : RetTwo
       assert_equal(function('len'), RetThat)
 
@@ -2969,13 +2969,6 @@ def Test_expr7_method_call()
       assert_equal([1, 2, 3], sorted)
   END
   CheckDefAndScriptSuccess(lines)
-
-  lines =<< trim END
-    def RetVoid()
-    enddef
-    RetVoid()->byte2line()
-  END
-  CheckDefExecAndScriptFailure(lines, 'E1031:')
 
   lines =<< trim END
     def RetVoid()

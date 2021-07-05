@@ -1123,6 +1123,8 @@ func TestGuiTabToolTip()
 endfunc
 
 func Test_gui_tablabel_tooltip()
+  CheckNotFeature gui_athena
+
   %bw!
   " Removing the tabline at the end of this test, reduces the window height by
   " one. Save and restore it after the test.
