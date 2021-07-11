@@ -252,6 +252,12 @@ endfunc
 
 func Test_communicate_ipv6()
   CheckIPv6
+
+  " FIXME: this test is very flaky on MS-Windows
+  if has('win32')
+    throw 'Skipped: test is very flaky with MS-Windows'
+  endif
+
   call Test_communicate()
 endfunc
 

@@ -7775,7 +7775,10 @@ compile_for(char_u *arg_start, cctx_T *cctx)
 	return NULL;
     if (STRNCMP(p, "in", 2) != 0 || !IS_WHITE_OR_NUL(p[2]))
     {
-	emsg(_(e_missing_in));
+	if (*p == ':' && wp != p)
+	    semsg(_(e_no_white_space_allowed_before_colon_str), p);
+	else
+	    emsg(_(e_missing_in));
 	return NULL;
     }
     wp = p + 2;
@@ -7929,8 +7932,11 @@ compile_for(char_u *arg_start, cctx_T *cctx)
 	    if (lhs_type == &t_any)
 		lhs_type = item_type;
 	    else if (item_type != &t_unknown
-		       && !(var_list && item_type == &t_any)
-		       && check_type(lhs_type, item_type, TRUE, where) == FAIL)
+			&& (item_type == &t_any
+			  ? need_type(item_type, lhs_type,
+						     -1, 0, cctx, FALSE, FALSE)
+			  : check_type(lhs_type, item_type, TRUE, where))
+			== FAIL)
 		goto failed;
 	    var_lvar = reserve_local(cctx, arg, varlen, TRUE, lhs_type);
 	    if (var_lvar == NULL)
@@ -8555,6 +8561,37 @@ compile_throw(char_u *arg, cctx_T *cctx UNUSED)
 	return NULL;
 
     return p;
+}
+
+    static char_u *
+compile_eval(char_u *arg, cctx_T *cctx)
+{
+    char_u	*p = arg;
+    int		name_only;
+    char_u	*alias;
+    long	lnum = SOURCING_LNUM;
+
+    // find_ex_command() will consider a variable name an expression, assuming
+    // that something follows on the next line.  Check that something actually
+    // follows, otherwise it's probably a misplaced command.
+    get_name_len(&p, &alias, FALSE, FALSE);
+    name_only = ends_excmd2(arg, skipwhite(p));
+    vim_free(alias);
+
+    p = arg;
+    if (compile_expr0(&p, cctx) == FAIL)
+	return NULL;
+
+    if (name_only && lnum == SOURCING_LNUM)
+    {
+	semsg(_(e_expression_without_effect_str), arg);
+	return NULL;
+    }
+
+    // drop the result
+    generate_instr_drop(cctx, ISN_DROP, 1);
+
+    return skipwhite(p);
 }
 
 /*
@@ -9624,13 +9661,7 @@ compile_def_function(
 		    break;
 
 	    case CMD_eval:
-		    if (compile_expr0(&p, &cctx) == FAIL)
-			goto erret;
-
-		    // drop the result
-		    generate_instr_drop(&cctx, ISN_DROP, 1);
-
-		    line = skipwhite(p);
+		    line = compile_eval(p, &cctx);
 		    break;
 
 	    case CMD_echo:

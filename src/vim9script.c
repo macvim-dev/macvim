@@ -616,7 +616,7 @@ handle_import(
 	    if (idx < 0 && ufunc == NULL)
 		goto erret;
 
-	    // If already imported with the same propertis and the
+	    // If already imported with the same properties and the
 	    // IMP_FLAGS_RELOAD set then we keep that entry.  Otherwise create
 	    // a new one (and give an error for an existing import).
 	    imported = find_imported(name, len, cctx);
@@ -922,7 +922,7 @@ free_all_script_vars(scriptitem_T *si)
 
 /*
  * Find the script-local variable that links to "dest".
- * Returns NULL if not found.
+ * Returns NULL if not found and give an internal error.
  */
     svar_T *
 find_typval_in_script(typval_T *dest)

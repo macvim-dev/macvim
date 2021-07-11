@@ -1248,9 +1248,10 @@ ex_set(exarg_T *eap)
  */
     int
 do_set(
-    char_u	*arg,		// option string (may be written to!)
+    char_u	*arg_start,	// option string (may be written to!)
     int		opt_flags)
 {
+    char_u	*arg = arg_start;
     int		opt_idx;
     char	*errmsg;
     char	errbuf[80];
@@ -1375,7 +1376,22 @@ do_set(
 	    // remember character after option name
 	    afterchar = arg[len];
 
-	    if (!in_vim9script())
+	    if (in_vim9script())
+	    {
+		char_u *p = skipwhite(arg + len);
+
+		// disallow white space before =val, +=val, -=val, ^=val
+		if (p > arg + len && (p[0] == '='
+			|| (vim_strchr((char_u *)"+-^", p[0]) != NULL
+							      && p[1] == '=')))
+		{
+		    errmsg = e_no_white_space_allowed_between_option_and;
+		    arg = p;
+		    startarg = p;
+		    goto skip;
+		}
+	    }
+	    else
 		// skip white space, allow ":set ai  ?", ":set hlsearch  !"
 		while (VIM_ISWHITE(arg[len]))
 		    ++len;
@@ -1405,7 +1421,11 @@ do_set(
 
 	    if (opt_idx == -1 && key == 0)	// found a mismatch: skip
 	    {
-		errmsg = N_("E518: Unknown option");
+		if (in_vim9script() && arg > arg_start
+				  && vim_strchr((char_u *)"!&<", *arg) != NULL)
+		    errmsg = e_no_white_space_allowed_between_option_and;
+		else
+		    errmsg = N_("E518: Unknown option");
 		goto skip;
 	    }
 

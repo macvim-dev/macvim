@@ -57,6 +57,7 @@ static int eval7_leader(typval_T *rettv, int numeric_only, char_u *start_leader,
 
 static int free_unref_items(int copyID);
 static char_u *make_expanded_name(char_u *in_start, char_u *expr_start, char_u *expr_end, char_u *in_end);
+static char_u *eval_next_line(evalarg_T *evalarg);
 
 /*
  * Return "n1" divided by "n2", taking care of dividing by zero.
@@ -1660,6 +1661,7 @@ eval_for_line(
     evalarg_T	*evalarg)
 {
     forinfo_T	*fi;
+    char_u	*var_list_end;
     char_u	*expr;
     typval_T	tv;
     list_T	*l;
@@ -1671,15 +1673,19 @@ eval_for_line(
     if (fi == NULL)
 	return NULL;
 
-    expr = skip_var_list(arg, TRUE, &fi->fi_varcount, &fi->fi_semicolon, FALSE);
-    if (expr == NULL)
+    var_list_end = skip_var_list(arg, TRUE, &fi->fi_varcount,
+						     &fi->fi_semicolon, FALSE);
+    if (var_list_end == NULL)
 	return fi;
 
-    expr = skipwhite_and_linebreak(expr, evalarg);
+    expr = skipwhite_and_linebreak(var_list_end, evalarg);
     if (expr[0] != 'i' || expr[1] != 'n'
 				  || !(expr[2] == NUL || VIM_ISWHITE(expr[2])))
     {
-	emsg(_(e_missing_in));
+	if (in_vim9script() && *expr == ':' && expr != var_list_end)
+	    semsg(_(e_no_white_space_allowed_before_colon_str), expr);
+	else
+	    emsg(_(e_missing_in));
 	return fi;
     }
 
@@ -1772,7 +1778,10 @@ next_for_item(void *fi_void, char_u *arg)
     forinfo_T	*fi = (forinfo_T *)fi_void;
     int		result;
     int		flag = ASSIGN_FOR_LOOP | (in_vim9script()
-			 ? (ASSIGN_FINAL | ASSIGN_DECL | ASSIGN_NO_MEMBER_TYPE)
+			 ? (ASSIGN_FINAL
+			     // first round: error if variable exists
+			     | (fi->fi_bi == 0 ? 0 : ASSIGN_DECL)
+			     | ASSIGN_NO_MEMBER_TYPE)
 			 : 0);
     listitem_T	*item;
 
@@ -1802,6 +1811,7 @@ next_for_item(void *fi_void, char_u *arg)
 	tv.v_lock = VAR_FIXED;
 	tv.vval.v_string = vim_strnsave(fi->fi_string + fi->fi_byte_idx, len);
 	fi->fi_byte_idx += len;
+	++fi->fi_bi;
 	result = ex_let_vars(arg, &tv, TRUE, fi->fi_semicolon,
 					    fi->fi_varcount, flag, NULL) == OK;
 	vim_free(tv.vval.v_string);
@@ -1814,6 +1824,7 @@ next_for_item(void *fi_void, char_u *arg)
     else
     {
 	fi->fi_lw.lw_item = item->li_next;
+	++fi->fi_bi;
 	result = (ex_let_vars(arg, &item->li_tv, TRUE, fi->fi_semicolon,
 					   fi->fi_varcount, flag, NULL) == OK);
     }
@@ -2103,7 +2114,7 @@ getline_peek_skip_comments(evalarg_T *evalarg)
  * FALSE.
  * "arg" must point somewhere inside a line, not at the start.
  */
-    char_u *
+    static char_u *
 eval_next_non_blank(char_u *arg, evalarg_T *evalarg, int *getnext)
 {
     char_u *p = skipwhite(arg);
@@ -2134,7 +2145,7 @@ eval_next_non_blank(char_u *arg, evalarg_T *evalarg, int *getnext)
  * To be called after eval_next_non_blank() sets "getnext" to TRUE.
  * Only called for Vim9 script.
  */
-    char_u *
+    static char_u *
 eval_next_line(evalarg_T *evalarg)
 {
     garray_T	*gap = &evalarg->eval_ga;
@@ -5159,50 +5170,6 @@ echo_string(
     int		copyID)
 {
     return echo_string_core(tv, tofree, numbuf, copyID, TRUE, FALSE, FALSE);
-}
-
-/*
- * Return string "str" in ' quotes, doubling ' characters.
- * If "str" is NULL an empty string is assumed.
- * If "function" is TRUE make it function('string').
- */
-    char_u *
-string_quote(char_u *str, int function)
-{
-    unsigned	len;
-    char_u	*p, *r, *s;
-
-    len = (function ? 13 : 3);
-    if (str != NULL)
-    {
-	len += (unsigned)STRLEN(str);
-	for (p = str; *p != NUL; MB_PTR_ADV(p))
-	    if (*p == '\'')
-		++len;
-    }
-    s = r = alloc(len);
-    if (r != NULL)
-    {
-	if (function)
-	{
-	    STRCPY(r, "function('");
-	    r += 10;
-	}
-	else
-	    *r++ = '\'';
-	if (str != NULL)
-	    for (p = str; *p != NUL; )
-	    {
-		if (*p == '\'')
-		    *r++ = '\'';
-		MB_COPY_CHAR(p, r);
-	    }
-	*r++ = '\'';
-	if (function)
-	    *r++ = ')';
-	*r++ = NUL;
-    }
-    return s;
 }
 
 /*

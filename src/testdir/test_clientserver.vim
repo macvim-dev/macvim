@@ -19,9 +19,7 @@ source shared.vim
 
 func Check_X11_Connection()
   if has('x11')
-    if empty($DISPLAY)
-      throw 'Skipped: $DISPLAY is not set'
-    endif
+    CheckEnv DISPLAY
     try
       call remote_send('xxx', '')
     catch
