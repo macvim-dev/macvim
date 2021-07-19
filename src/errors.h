@@ -381,8 +381,8 @@ EXTERN char e_mismatched_endfunction[]
 	INIT(= N_("E1151: Mismatched endfunction"));
 EXTERN char e_mismatched_enddef[]
 	INIT(= N_("E1152: Mismatched enddef"));
-EXTERN char e_invalid_operation_for_bool[]
-	INIT(= N_("E1153: Invalid operation for bool"));
+EXTERN char e_invalid_operation_for_str[]
+	INIT(= N_("E1153: Invalid operation for %s"));
 EXTERN char e_divide_by_zero[]
 	INIT(= N_("E1154: Divide by zero"));
 EXTERN char e_cannot_define_autocommands_for_all_events[]
@@ -496,3 +496,15 @@ EXTERN char e_dict_required_for_argument_nr[]
 	INIT(= N_("E1206: Dictionary required for argument %d"));
 EXTERN char e_expression_without_effect_str[]
 	INIT(= N_("E1207: Expression without an effect: %s"));
+EXTERN char e_complete_used_without_nargs[]
+	INIT(= N_("E1208: -complete used without -nargs"));
+EXTERN char e_invalid_value_for_line_number_str[]
+	INIT(= N_("E1209: Invalid value for a line number: \"%s\""));
+EXTERN char e_number_required_for_argument_nr[]
+	INIT(= N_("E1210: Number required for argument %d"));
+EXTERN char e_list_required_for_argument_nr[]
+	INIT(= N_("E1211: List required for argument %d"));
+EXTERN char e_bool_required_for_argument_nr[]
+	INIT(= N_("E1211: Bool required for argument %d"));
+EXTERN char e_redefining_imported_item_str[]
+	INIT(= N_("E1212: Redefining imported item %s"));

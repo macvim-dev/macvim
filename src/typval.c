@@ -352,7 +352,7 @@ tv_get_float(typval_T *varp)
 #endif
 
 /*
- * Give an error and return FAIL unless "tv" is a string.
+ * Give an error and return FAIL unless "args[idx]" is a string.
  */
     int
 check_for_string_arg(typval_T *args, int idx)
@@ -385,7 +385,61 @@ check_for_nonempty_string_arg(typval_T *args, int idx)
 }
 
 /*
- * Give an error and return FAIL unless "tv" is a dict.
+ * Give an error and return FAIL unless "args[idx]" is a number.
+ */
+    int
+check_for_number_arg(typval_T *args, int idx)
+{
+    if (args[idx].v_type != VAR_NUMBER)
+    {
+	if (idx >= 0)
+	    semsg(_(e_number_required_for_argument_nr), idx + 1);
+	else
+	    emsg(_(e_numberreq));
+	return FAIL;
+    }
+    return OK;
+}
+
+/*
+ * Give an error and return FAIL unless "args[idx]" is a bool.
+ */
+    int
+check_for_bool_arg(typval_T *args, int idx)
+{
+    if (args[idx].v_type != VAR_BOOL
+	    && !(args[idx].v_type == VAR_NUMBER
+		&& (args[idx].vval.v_number == 0
+		    || args[idx].vval.v_number == 1)))
+    {
+	if (idx >= 0)
+	    semsg(_(e_bool_required_for_argument_nr), idx + 1);
+	else
+	    emsg(_(e_boolreq));
+	return FAIL;
+    }
+    return OK;
+}
+
+/*
+ * Give an error and return FAIL unless "args[idx]" is a list.
+ */
+    int
+check_for_list_arg(typval_T *args, int idx)
+{
+    if (args[idx].v_type != VAR_LIST)
+    {
+	if (idx >= 0)
+	    semsg(_(e_list_required_for_argument_nr), idx + 1);
+	else
+	    emsg(_(e_listreq));
+	return FAIL;
+    }
+    return OK;
+}
+
+/*
+ * Give an error and return FAIL unless "args[idx]" is a dict.
  */
     int
 check_for_dict_arg(typval_T *args, int idx)
@@ -883,7 +937,9 @@ typval_compare(
 	}
     }
     else if (in_vim9script() && (typ1->v_type == VAR_BOOL
-						 || typ2->v_type == VAR_BOOL))
+				    || typ2->v_type == VAR_BOOL
+				    || (typ1->v_type == VAR_SPECIAL
+					      && typ2->v_type == VAR_SPECIAL)))
     {
 	if (typ1->v_type != typ2->v_type)
 	{
@@ -901,13 +957,23 @@ typval_compare(
 	    case EXPR_ISNOT:
 	    case EXPR_NEQUAL:   n1 = (n1 != n2); break;
 	    default:
-		emsg(_(e_invalid_operation_for_bool));
+		semsg(_(e_invalid_operation_for_str),
+						   vartype_name(typ1->v_type));
 		clear_tv(typ1);
 		return FAIL;
 	}
     }
     else
     {
+	if (in_vim9script()
+	      && ((typ1->v_type != VAR_STRING && typ1->v_type != VAR_SPECIAL)
+	       || (typ2->v_type != VAR_STRING && typ2->v_type != VAR_SPECIAL)))
+	{
+	    semsg(_(e_cannot_compare_str_with_str),
+		       vartype_name(typ1->v_type), vartype_name(typ2->v_type));
+	    clear_tv(typ1);
+	    return FAIL;
+	}
 	s1 = tv_get_string_buf(typ1, buf1);
 	s2 = tv_get_string_buf(typ2, buf2);
 	if (type != EXPR_MATCH && type != EXPR_NOMATCH)

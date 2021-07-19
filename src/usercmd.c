@@ -1019,20 +1019,22 @@ ex_command(exarg_T *eap)
     // we are listing commands
     p = skipwhite(end);
     if (!has_attr && ends_excmd2(eap->arg, p))
-    {
 	uc_list(name, end - name);
-    }
     else if (!ASCII_ISUPPER(*name))
-    {
 	emsg(_("E183: User defined commands must start with an uppercase letter"));
-	return;
-    }
     else if ((name_len == 1 && *name == 'X')
 	  || (name_len <= 4
 		  && STRNCMP(name, "Next", name_len > 4 ? 4 : name_len) == 0))
-    {
 	emsg(_("E841: Reserved name, cannot be used for user defined command"));
-	return;
+    else if (compl > 0 && (argt & EX_EXTRA) == 0)
+    {
+	// Some plugins rely on silently ignoring the mistake, only make this
+	// an error in Vim9 script.
+	if (in_vim9script())
+	    emsg(_(e_complete_used_without_nargs));
+	else
+	    give_warning_with_source(
+		       (char_u *)_(e_complete_used_without_nargs), TRUE, TRUE);
     }
     else
 	uc_add_command(name, end - name, p, argt, def, flags, compl, compl_arg,

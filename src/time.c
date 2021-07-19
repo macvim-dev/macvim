@@ -169,6 +169,10 @@ f_reltime(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
 # ifdef FEAT_RELTIME
     proftime_T	res;
     proftime_T	start;
+    long	n1, n2;
+
+    if (rettv_list_alloc(rettv) != OK)
+	return;
 
     if (argvars[0].v_type == VAR_UNKNOWN)
     {
@@ -178,7 +182,11 @@ f_reltime(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
     else if (argvars[1].v_type == VAR_UNKNOWN)
     {
 	if (list2proftime(&argvars[0], &res) == FAIL)
+	{
+	    if (in_vim9script())
+		emsg(_(e_invarg));
 	    return;
+	}
 	profile_end(&res);
     }
     else
@@ -186,24 +194,23 @@ f_reltime(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
 	// Two arguments: compute the difference.
 	if (list2proftime(&argvars[0], &start) == FAIL
 		|| list2proftime(&argvars[1], &res) == FAIL)
+	{
+	    if (in_vim9script())
+		emsg(_(e_invarg));
 	    return;
+	}
 	profile_sub(&res, &start);
     }
 
-    if (rettv_list_alloc(rettv) == OK)
-    {
-	long	n1, n2;
-
 #  ifdef MSWIN
-	n1 = res.HighPart;
-	n2 = res.LowPart;
+    n1 = res.HighPart;
+    n2 = res.LowPart;
 #  else
-	n1 = res.tv_sec;
-	n2 = res.tv_usec;
+    n1 = res.tv_sec;
+    n2 = res.tv_usec;
 #  endif
-	list_append_number(rettv->vval.v_list, (varnumber_T)n1);
-	list_append_number(rettv->vval.v_list, (varnumber_T)n2);
-    }
+    list_append_number(rettv->vval.v_list, (varnumber_T)n1);
+    list_append_number(rettv->vval.v_list, (varnumber_T)n2);
 # endif
 }
 
@@ -223,6 +230,8 @@ f_reltimefloat(typval_T *argvars UNUSED, typval_T *rettv)
 #  ifdef FEAT_RELTIME
     if (list2proftime(&argvars[0], &tm) == OK)
 	rettv->vval.v_float = profile_float(&tm);
+    else if (in_vim9script())
+	emsg(_(e_invarg));
 #  endif
 }
 # endif
@@ -242,6 +251,8 @@ f_reltimestr(typval_T *argvars UNUSED, typval_T *rettv)
 # ifdef FEAT_RELTIME
     if (list2proftime(&argvars[0], &tm) == OK)
 	rettv->vval.v_string = vim_strsave((char_u *)profile_msg(&tm));
+    else if (in_vim9script())
+	emsg(_(e_invarg));
 # endif
 }
 
@@ -256,6 +267,12 @@ f_strftime(typval_T *argvars, typval_T *rettv)
     struct tm	*curtime;
     time_t	seconds;
     char_u	*p;
+
+    if (in_vim9script()
+	    && (check_for_string_arg(argvars, 0) == FAIL
+		|| (argvars[1].v_type != VAR_UNKNOWN
+		    && check_for_number_arg(argvars, 1) == FAIL)))
+	return;
 
     rettv->v_type = VAR_STRING;
 

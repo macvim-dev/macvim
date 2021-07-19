@@ -2255,6 +2255,32 @@ def Test_nested_inline_lambda()
       assert_equal('--there', F('unused')('there')('--'))
   END
   CheckScriptSuccess(lines)
+
+  lines =<< trim END
+      vim9script
+      echo range(4)->mapnew((_, v) => {
+        return range(v) ->mapnew((_, s) => {
+          return string(s)
+          })
+        })
+  END
+  CheckScriptSuccess(lines)
+
+  lines =<< trim END
+      vim9script
+
+      def s:func()
+        range(10)
+          ->mapnew((_, _) => ({
+            key: range(10)->mapnew((_, _) => {
+              return ' '
+            }),
+          }))
+      enddef
+
+      defcomp
+  END
+  CheckScriptSuccess(lines)
 enddef
 
 def Shadowed(): list<number>

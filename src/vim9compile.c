@@ -1051,7 +1051,8 @@ need_type(
 
     // If the actual type can be the expected type add a runtime check.
     // If it's a constant a runtime check makes no sense.
-    if (!actual_is_const && use_typecheck(actual, expected))
+    if ((!actual_is_const || actual == &t_any)
+					    && use_typecheck(actual, expected))
     {
 	generate_TYPECHECK(cctx, expected, offset, arg_idx);
 	return OK;
@@ -1781,6 +1782,7 @@ generate_BCALL(cctx_T *cctx, int func_idx, int argcount, int method_call)
     garray_T	*stack = &cctx->ctx_type_stack;
     int		argoff;
     type_T	**argtypes = NULL;
+    type_T	*shuffled_argtypes[MAX_FUNC_ARGS];
     type_T	*maptype = NULL;
 
     RETURN_OK_IF_SKIP(cctx);
@@ -1800,6 +1802,16 @@ generate_BCALL(cctx_T *cctx, int func_idx, int argcount, int method_call)
     {
 	// Check the types of the arguments.
 	argtypes = ((type_T **)stack->ga_data) + stack->ga_len - argcount;
+	if (method_call && argoff > 1)
+	{
+	    int i;
+
+	    for (i = 0; i < argcount; ++i)
+		shuffled_argtypes[i] = (i < argoff - 1)
+			    ? argtypes[i + 1]
+			    : (i == argoff - 1) ? argtypes[0] : argtypes[i];
+	    argtypes = shuffled_argtypes;
+	}
 	if (internal_func_check_arg_types(argtypes, func_idx, argcount,
 								 cctx) == FAIL)
 	    return FAIL;
@@ -3624,6 +3636,13 @@ compile_lambda(char_u **arg, cctx_T *cctx)
 	ufunc->uf_ret_type = &t_unknown;
     compile_def_function(ufunc, FALSE, cctx->ctx_compile_type, cctx);
 
+#ifdef FEAT_PROFILE
+    // When the outer function is compiled for profiling, the lambda may be
+    // called without profiling.  Compile it here in the right context.
+    if (cctx->ctx_compile_type == CT_PROFILE)
+	compile_def_function(ufunc, FALSE, CT_NONE, cctx);
+#endif
+
     // evalarg.eval_tofree_cmdline may have a copy of the last line and "*arg"
     // points into it.  Point to the original line to avoid a dangling pointer.
     if (evalarg.eval_tofree_cmdline != NULL)
@@ -4316,7 +4335,6 @@ compile_subscript(
 		    semsg(_(e_missing_paren), *arg);
 		    return FAIL;
 		}
-		// TODO: base value may not be the first argument
 		if (compile_call(arg, p - *arg, cctx, ppconst, 1) == FAIL)
 		    return FAIL;
 	    }
@@ -5077,6 +5095,7 @@ compile_and_or(
 	while (p[0] == opchar && p[1] == opchar)
 	{
 	    long	start_lnum = SOURCING_LNUM;
+	    long	save_sourcing_lnum;
 	    int		start_ctx_lnum = cctx->ctx_lnum;
 	    int		save_lnum;
 
@@ -5098,6 +5117,7 @@ compile_and_or(
 	    generate_ppconst(cctx, ppconst);
 
 	    // Every part must evaluate to a bool.
+	    save_sourcing_lnum = SOURCING_LNUM;
 	    SOURCING_LNUM = start_lnum;
 	    save_lnum = cctx->ctx_lnum;
 	    cctx->ctx_lnum = start_ctx_lnum;
@@ -5120,6 +5140,7 @@ compile_and_or(
 				 ?  JUMP_IF_COND_TRUE : JUMP_IF_COND_FALSE, 0);
 
 	    // eval the next expression
+	    SOURCING_LNUM = save_sourcing_lnum;
 	    if (may_get_next_line_error(p + 2, arg, cctx) == FAIL)
 	    {
 		ga_clear(&end_ga);
@@ -5552,6 +5573,7 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx)
     char_u	*lambda_name;
     ufunc_T	*ufunc;
     int		r = FAIL;
+    compiletype_T   compile_type;
 
     if (eap->forceit)
     {
@@ -5618,13 +5640,26 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx)
 	}
     }
 
-    if (func_needs_compiling(ufunc, COMPILE_TYPE(ufunc))
-	    && compile_def_function(ufunc, TRUE, COMPILE_TYPE(ufunc), cctx)
-								       == FAIL)
+    compile_type = COMPILE_TYPE(ufunc);
+#ifdef FEAT_PROFILE
+    // If the outer function is profiled, also compile the nested function for
+    // profiling.
+    if (cctx->ctx_compile_type == CT_PROFILE)
+	compile_type = CT_PROFILE;
+#endif
+    if (func_needs_compiling(ufunc, compile_type)
+	    && compile_def_function(ufunc, TRUE, compile_type, cctx) == FAIL)
     {
 	func_ptr_unref(ufunc);
 	goto theend;
     }
+
+#ifdef FEAT_PROFILE
+    // When the outer function is compiled for profiling, the nested function
+    // may be called without profiling.  Compile it here in the right context.
+    if (compile_type == CT_PROFILE && func_needs_compiling(ufunc, CT_NONE))
+	compile_def_function(ufunc, FALSE, CT_NONE, cctx);
+#endif
 
     if (is_global)
     {
@@ -7255,15 +7290,6 @@ compile_unletlock(char_u *arg, exarg_T *eap, cctx_T *cctx)
 	    eap->cmdidx == CMD_unlet ? compile_unlet : compile_lock_unlock,
 	    cctx);
     return eap->nextcmd == NULL ? (char_u *)"" : eap->nextcmd;
-}
-
-/*
- * Compile an :import command.
- */
-    static char_u *
-compile_import(char_u *arg, cctx_T *cctx)
-{
-    return handle_import(arg, &cctx->ctx_imports, 0, NULL, cctx);
 }
 
 /*
@@ -9474,7 +9500,8 @@ compile_def_function(
 		}
 	    }
 	}
-	p = find_ex_command(&ea, NULL, starts_with_colon
+	p = find_ex_command(&ea, NULL,
+		starts_with_colon || (local_cmdmod.cmod_flags & CMOD_LEGACY)
 						  ? NULL : item_exists, &cctx);
 
 	if (p == NULL)
@@ -9601,7 +9628,8 @@ compile_def_function(
 		    break;
 
 	    case CMD_import:
-		    line = compile_import(p, &cctx);
+		    emsg(_(e_import_can_only_be_used_in_script));
+		    line = NULL;
 		    break;
 
 	    case CMD_if:

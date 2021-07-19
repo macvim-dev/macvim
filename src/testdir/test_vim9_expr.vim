@@ -401,6 +401,13 @@ def Test_expr2_fails()
     # comment
   END
   CheckScriptFailure(lines, 'E1004: White space required before and after ''||'' at "||true"', 3)
+
+  lines =<< trim END
+      var x = false
+              || false
+              || a.b
+  END
+  CheckDefFailure(lines, 'E1001:', 3)
 enddef
 
 " test &&
@@ -653,13 +660,36 @@ def Test_expr4_equal()
   CheckDefExecAndScriptFailure(["var x: any = true", 'echo x == ""'], 'E1072: Cannot compare bool with string', 2)
   CheckDefExecAndScriptFailure2(["var x: any = 99", 'echo x == true'], 'E1138', 'E1072:', 2)
   CheckDefExecAndScriptFailure2(["var x: any = 'a'", 'echo x == 99'], 'E1030:', 'E1072:', 2)
+enddef
 
+def Test_expr4_wrong_type()
   for op in ['>', '>=', '<', '<=', '=~', '!~']
     CheckDefExecAndScriptFailure([
         "var a: any = 'a'",
         'var b: any = true',
         'echo a ' .. op .. ' b'], 'E1072:', 3)
   endfor
+  for op in ['>', '>=', '<', '<=']
+    CheckDefExecAndScriptFailure2([
+        "var n: any = 2",
+        'echo n ' .. op .. ' "3"'], 'E1030:', 'E1072:', 2)
+  endfor
+  for op in ['=~', '!~']
+    CheckDefExecAndScriptFailure([
+        "var n: any = 2",
+        'echo n ' .. op .. ' "3"'], 'E1072:', 2)
+  endfor
+
+  CheckDefAndScriptFailure([
+      'echo v:none == true'], 'E1072:', 1)
+  CheckDefAndScriptFailure([
+      'echo false >= true'], 'E1072:', 1)
+  CheckDefExecAndScriptFailure([
+      "var n: any = v:none",
+      'echo n == true'], 'E1072:', 2)
+  CheckDefExecAndScriptFailure([
+      "var n: any = v:none",
+      'echo n < true'], 'E1072:', 2)
 enddef
 
 " test != comperator
@@ -2075,7 +2105,8 @@ def Test_expr7_lambda_block()
       var Func = (nr: number): int => {
               return nr
   END
-  CheckDefAndScriptFailure(lines, 'E1171', 1)  # line nr is function start
+  CheckDefFailure(lines, 'E1171', 0)  # line nr is function start
+  CheckScriptFailure(['vim9script'] + lines, 'E1171', 2)
 
   lines =<< trim END
       var Func = (nr: number): int => {
@@ -2478,6 +2509,13 @@ def Test_expr7_dict_vim9script()
   else
     CheckDefAndScriptFailure(lines, 'E117:', 0)
   endif
+
+  lines =<< trim END
+      vim9script
+      var x = 99
+      assert_equal({x: 99}, s:)
+  END
+  CheckScriptSuccess(lines)
 enddef
 
 def Test_expr7_call_2bool()
@@ -2975,7 +3013,7 @@ def Test_expr7_method_call()
     enddef
     RetVoid()->byteidx(3)
   END
-  CheckDefExecAndScriptFailure(lines, 'E1031:')
+  CheckDefExecFailure(lines, 'E1013:')
 enddef
 
 

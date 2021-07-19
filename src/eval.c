@@ -1358,7 +1358,8 @@ set_var_lval(
 			 || (!var_check_ro(di->di_flags, lp->ll_name, FALSE)
 			   && !tv_check_lock(&di->di_tv, lp->ll_name, FALSE)))
 			&& tv_op(&tv, rettv, op) == OK)
-		    set_var(lp->ll_name, &tv, FALSE);
+		    set_var_const(lp->ll_name, NULL, &tv, FALSE,
+							    ASSIGN_NO_DECL, 0);
 		clear_tv(&tv);
 	    }
 	}
@@ -1784,6 +1785,8 @@ next_for_item(void *fi_void, char_u *arg)
 			     | ASSIGN_NO_MEMBER_TYPE)
 			 : 0);
     listitem_T	*item;
+    int		skip_assign = in_vim9script() && arg[0] == '_'
+						      && !eval_isnamec(arg[1]);
 
     if (fi->fi_blob != NULL)
     {
@@ -1795,6 +1798,8 @@ next_for_item(void *fi_void, char_u *arg)
 	tv.v_lock = VAR_FIXED;
 	tv.vval.v_number = blob_get(fi->fi_blob, fi->fi_bi);
 	++fi->fi_bi;
+	if (skip_assign)
+	    return TRUE;
 	return ex_let_vars(arg, &tv, TRUE, fi->fi_semicolon,
 					    fi->fi_varcount, flag, NULL) == OK;
     }
@@ -1812,7 +1817,10 @@ next_for_item(void *fi_void, char_u *arg)
 	tv.vval.v_string = vim_strnsave(fi->fi_string + fi->fi_byte_idx, len);
 	fi->fi_byte_idx += len;
 	++fi->fi_bi;
-	result = ex_let_vars(arg, &tv, TRUE, fi->fi_semicolon,
+	if (skip_assign)
+	    result = TRUE;
+	else
+	    result = ex_let_vars(arg, &tv, TRUE, fi->fi_semicolon,
 					    fi->fi_varcount, flag, NULL) == OK;
 	vim_free(tv.vval.v_string);
 	return result;
@@ -1825,7 +1833,10 @@ next_for_item(void *fi_void, char_u *arg)
     {
 	fi->fi_lw.lw_item = item->li_next;
 	++fi->fi_bi;
-	result = (ex_let_vars(arg, &item->li_tv, TRUE, fi->fi_semicolon,
+	if (skip_assign)
+	    result = TRUE;
+	else
+	    result = (ex_let_vars(arg, &item->li_tv, TRUE, fi->fi_semicolon,
 					   fi->fi_varcount, flag, NULL) == OK);
     }
     return result;
@@ -2177,6 +2188,11 @@ eval_next_line(evalarg_T *evalarg)
 	vim_free(evalarg->eval_tofree);
 	evalarg->eval_tofree = line;
     }
+
+    // Advanced to the next line, "arg" no longer points into the previous
+    // line.
+    VIM_CLEAR(evalarg->eval_tofree_cmdline);
+
     return skipwhite(line);
 }
 
@@ -5376,6 +5392,8 @@ var2fpos(
 	}
 	return &pos;
     }
+    if (in_vim9script())
+	semsg(_(e_invalid_value_for_line_number_str), name);
     return NULL;
 }
 
@@ -6189,6 +6207,7 @@ ex_execute(exarg_T *eap)
     char_u	*p;
     garray_T	ga;
     int		len;
+    long	start_lnum = SOURCING_LNUM;
 
     ga_init2(&ga, 1, 80);
 
@@ -6242,6 +6261,9 @@ ex_execute(exarg_T *eap)
 
     if (ret != FAIL && ga.ga_data != NULL)
     {
+	// use the first line of continuation lines for messages
+	SOURCING_LNUM = start_lnum;
+
 	if (eap->cmdidx == CMD_echomsg || eap->cmdidx == CMD_echoerr)
 	{
 	    // Mark the already saved text as finishing the line, so that what

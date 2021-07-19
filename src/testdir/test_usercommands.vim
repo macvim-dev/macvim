@@ -1,5 +1,7 @@
 " Tests for user defined commands
 
+source vim9.vim
+
 " Test for <mods> in user defined commands
 function Test_cmdmods()
   let g:mods = ''
@@ -275,6 +277,24 @@ func Test_CmdErrors()
   call assert_fails('com! -count=x DoCmd :', 'E178:')
   call assert_fails('com! -range=x DoCmd :', 'E178:')
 
+  com! -complete=file DoCmd :
+  call assert_match('E1208:', v:warningmsg)
+  let v:warningmsg = ''
+  com! -nargs=0 -complete=file DoCmd :
+  call assert_match('E1208:', v:warningmsg)
+
+  let lines =<< trim END
+      vim9script
+      com! -complete=file DoCmd :
+  END
+  call CheckScriptFailure(lines, 'E1208', 2)
+
+  let lines =<< trim END
+      vim9script
+      com! -nargs=0 -complete=file DoCmd :
+  END
+  call CheckScriptFailure(lines, 'E1208', 2)
+
   com! -nargs=0 DoCmd :
   call assert_fails('DoCmd x', 'E488:')
 
@@ -338,34 +358,30 @@ func Test_CmdCompletion()
   call feedkeys(":com DoC\<C-A>\<C-B>\"\<CR>", 'tx')
   call assert_equal('"com DoC', @:)
 
-  com! -complete=behave DoCmd :
+  com! -nargs=1 -complete=behave DoCmd :
   call feedkeys(":DoCmd \<C-A>\<C-B>\"\<CR>", 'tx')
   call assert_equal('"DoCmd mswin xterm', @:)
 
-  " This does not work. Why?
-  "call feedkeys(":DoCmd x\<C-A>\<C-B>\"\<CR>", 'tx')
-  "call assert_equal('"DoCmd xterm', @:)
-
-  com! -complete=custom,CustomComplete DoCmd :
+  com! -nargs=* -complete=custom,CustomComplete DoCmd :
   call feedkeys(":DoCmd \<C-A>\<C-B>\"\<CR>", 'tx')
   call assert_equal('"DoCmd January February Mars', @:)
 
-  com! -complete=customlist,CustomCompleteList DoCmd :
+  com! -nargs=? -complete=customlist,CustomCompleteList DoCmd :
   call feedkeys(":DoCmd \<C-A>\<C-B>\"\<CR>", 'tx')
   call assert_equal('"DoCmd Monday Tuesday Wednesday', @:)
 
-  com! -complete=custom,CustomCompleteList DoCmd :
+  com! -nargs=+ -complete=custom,CustomCompleteList DoCmd :
   call assert_fails("call feedkeys(':DoCmd \<C-D>', 'tx')", 'E730:')
 
-  com! -complete=customlist,CustomComp DoCmd :
+  com! -nargs=+ -complete=customlist,CustomComp DoCmd :
   call assert_fails("call feedkeys(':DoCmd \<C-D>', 'tx')", 'E117:')
 
   " custom completion without a function
-  com! -complete=custom, DoCmd
+  com! -nargs=? -complete=custom, DoCmd
   call assert_beeps("call feedkeys(':DoCmd \t', 'tx')")
 
   " custom completion failure with the wrong function
-  com! -complete=custom,min DoCmd
+  com! -nargs=? -complete=custom,min DoCmd
   call assert_fails("call feedkeys(':DoCmd \t', 'tx')", 'E118:')
 
   delcom DoCmd
@@ -500,21 +516,21 @@ func Test_command_list()
         \           execute('command DoCmd'))
 
   " Test with various -complete= argument values (non-exhaustive list)
-  command! -complete=arglist DoCmd :
+  command! -nargs=1 -complete=arglist DoCmd :
   call assert_equal("\n    Name              Args Address Complete    Definition"
-        \        .. "\n    DoCmd             0            arglist     :",
+        \        .. "\n    DoCmd             1            arglist     :",
         \           execute('command DoCmd'))
-  command! -complete=augroup DoCmd :
+  command! -nargs=* -complete=augroup DoCmd :
   call assert_equal("\n    Name              Args Address Complete    Definition"
-        \        .. "\n    DoCmd             0            augroup     :",
+        \        .. "\n    DoCmd             *            augroup     :",
         \           execute('command DoCmd'))
-  command! -complete=custom,CustomComplete DoCmd :
+  command! -nargs=? -complete=custom,CustomComplete DoCmd :
   call assert_equal("\n    Name              Args Address Complete    Definition"
-        \        .. "\n    DoCmd             0            custom      :",
+        \        .. "\n    DoCmd             ?            custom      :",
         \           execute('command DoCmd'))
-  command! -complete=customlist,CustomComplete DoCmd :
+  command! -nargs=+ -complete=customlist,CustomComplete DoCmd :
   call assert_equal("\n    Name              Args Address Complete    Definition"
-        \        .. "\n    DoCmd             0            customlist  :",
+        \        .. "\n    DoCmd             +            customlist  :",
         \           execute('command DoCmd'))
 
   " Test with various -narg= argument values.
