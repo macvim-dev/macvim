@@ -1571,7 +1571,7 @@ qf_setup_state(
 
     if (efile != NULL && (pstate->fd = mch_fopen((char *)efile, "r")) == NULL)
     {
-	semsg(_(e_openerrf), efile);
+	semsg(_(e_cant_open_errorfile_str), efile);
 	return FAIL;
     }
 
@@ -1769,7 +1769,7 @@ qf_init_ext(
 	retval = qfl->qf_count;
 	goto qf_init_end;
     }
-    emsg(_(e_readerrf));
+    emsg(_(e_error_while_reading_errorfile));
 error2:
     if (!adding)
     {
@@ -3439,7 +3439,7 @@ qf_jump_newwin(qf_info_T	*qi,
 
     if (qf_stack_empty(qi) || qf_list_empty(qf_get_curlist(qi)))
     {
-	emsg(_(e_quickfix));
+	emsg(_(e_no_errors));
 	return;
     }
 
@@ -3619,7 +3619,7 @@ qf_list(exarg_T *eap)
 
     if (qf_stack_empty(qi) || qf_list_empty(qf_get_curlist(qi)))
     {
-	emsg(_(e_quickfix));
+	emsg(_(e_no_errors));
 	return;
     }
     if (*arg == '+')
@@ -4025,7 +4025,7 @@ qf_view_result(int split)
 
     if (qf_list_empty(qf_get_curlist(qi)))
     {
-	emsg(_(e_quickfix));
+	emsg(_(e_no_errors));
 	return;
     }
 
@@ -5668,7 +5668,7 @@ ex_cbelow(exarg_T *eap)
 	buf_has_flag = BUF_HAS_LL_ENTRY;
     if (!(curbuf->b_has_qf_entry & buf_has_flag))
     {
-	emsg(_(e_quickfix));
+	emsg(_(e_no_errors));
 	return;
     }
 
@@ -5679,7 +5679,7 @@ ex_cbelow(exarg_T *eap)
     // check if the list has valid errors
     if (!qf_list_has_valid_entries(qfl))
     {
-	emsg(_(e_quickfix));
+	emsg(_(e_no_errors));
 	return;
     }
 
@@ -5843,7 +5843,7 @@ vgr_init_regmatch(regmmatch_T *regmatch, char_u *s)
 	// Pattern is empty, use last search pattern.
 	if (last_search_pat() == NULL)
 	{
-	    emsg(_(e_noprevre));
+	    emsg(_(e_no_previous_regular_expression));
 	    return;
 	}
 	regmatch->regprog = vim_regcomp(last_search_pat(), RE_MAGIC);
@@ -8466,6 +8466,14 @@ f_setloclist(typval_T *argvars, typval_T *rettv)
 
     rettv->vval.v_number = -1;
 
+    if (in_vim9script()
+	    && (check_for_number_arg(argvars, 0) == FAIL
+		|| check_for_list_arg(argvars, 1) == FAIL
+		|| check_for_opt_string_arg(argvars, 2) == FAIL
+		|| (argvars[2].v_type != VAR_UNKNOWN
+		    && check_for_opt_dict_arg(argvars, 3) == FAIL)))
+	return;
+
     win = find_win_by_nr_or_id(&argvars[0]);
     if (win != NULL)
 	set_qf_ll_list(win, &argvars[1], &argvars[2], &argvars[3], rettv);
@@ -8477,6 +8485,13 @@ f_setloclist(typval_T *argvars, typval_T *rettv)
     void
 f_setqflist(typval_T *argvars, typval_T *rettv)
 {
+    if (in_vim9script()
+	    && (check_for_list_arg(argvars, 0) == FAIL
+		|| check_for_opt_string_arg(argvars, 1) == FAIL
+		|| (argvars[1].v_type != VAR_UNKNOWN
+		    && check_for_opt_dict_arg(argvars, 2) == FAIL)))
+	return;
+
     set_qf_ll_list(NULL, &argvars[0], &argvars[1], &argvars[2], rettv);
 }
 #endif

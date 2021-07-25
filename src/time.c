@@ -270,8 +270,7 @@ f_strftime(typval_T *argvars, typval_T *rettv)
 
     if (in_vim9script()
 	    && (check_for_string_arg(argvars, 0) == FAIL
-		|| (argvars[1].v_type != VAR_UNKNOWN
-		    && check_for_number_arg(argvars, 1) == FAIL)))
+		|| check_for_opt_number_arg(argvars, 1) == FAIL))
 	return;
 
     rettv->v_type = VAR_STRING;
@@ -758,7 +757,7 @@ f_timer_info(typval_T *argvars, typval_T *rettv)
     if (argvars[0].v_type != VAR_UNKNOWN)
     {
 	if (argvars[0].v_type != VAR_NUMBER)
-	    emsg(_(e_number_exp));
+	    emsg(_(e_number_expected));
 	else
 	{
 	    timer = find_timer((int)tv_get_number(&argvars[0]));
@@ -777,12 +776,17 @@ f_timer_info(typval_T *argvars, typval_T *rettv)
 f_timer_pause(typval_T *argvars, typval_T *rettv UNUSED)
 {
     timer_T	*timer = NULL;
-    int		paused = (int)tv_get_bool(&argvars[1]);
+
+    if (in_vim9script()
+	    && (check_for_number_arg(argvars, 0) == FAIL
+		|| check_for_bool_arg(argvars, 1) == FAIL))
+	return;
 
     if (argvars[0].v_type != VAR_NUMBER)
-	emsg(_(e_number_exp));
+	emsg(_(e_number_expected));
     else
     {
+	int	paused = (int)tv_get_bool(&argvars[1]);
 	timer = find_timer((int)tv_get_number(&argvars[0]));
 	if (timer != NULL)
 	    timer->tr_paused = paused;
@@ -795,7 +799,7 @@ f_timer_pause(typval_T *argvars, typval_T *rettv UNUSED)
     void
 f_timer_start(typval_T *argvars, typval_T *rettv)
 {
-    long	msec = (long)tv_get_number(&argvars[0]);
+    long	msec;
     timer_T	*timer;
     int		repeat = 0;
     callback_T	callback;
@@ -804,6 +808,13 @@ f_timer_start(typval_T *argvars, typval_T *rettv)
     rettv->vval.v_number = -1;
     if (check_secure())
 	return;
+
+    if (in_vim9script()
+	    && (check_for_number_arg(argvars, 0) == FAIL
+		|| check_for_opt_dict_arg(argvars, 2) == FAIL))
+	return;
+
+    msec = (long)tv_get_number(&argvars[0]);
     if (argvars[2].v_type != VAR_UNKNOWN)
     {
 	if (argvars[2].v_type != VAR_DICT
@@ -840,7 +851,7 @@ f_timer_stop(typval_T *argvars, typval_T *rettv UNUSED)
 
     if (argvars[0].v_type != VAR_NUMBER)
     {
-	emsg(_(e_number_exp));
+	emsg(_(e_number_expected));
 	return;
     }
     timer = find_timer((int)tv_get_number(&argvars[0]));

@@ -4457,7 +4457,10 @@ typedef enum {
 
 // Struct used to pass to error messages about where the error happened.
 typedef struct {
+    char    *wt_func_name;  // function name or NULL
     char    wt_index;	    // argument or variable index, 0 means unknown
     char    wt_variable;    // "variable" when TRUE, "argument" otherwise
 } where_T;
+
+#define WHERE_INIT {NULL, 0, 0}
 
