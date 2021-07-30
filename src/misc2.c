@@ -22,14 +22,16 @@ static int coladvance2(pos_T *pos, int addspaces, int finetune, colnr_T wcol);
     int
 virtual_active(void)
 {
+    unsigned int cur_ve_flags = get_ve_flags();
+
     // While an operator is being executed we return "virtual_op", because
     // VIsual_active has already been reset, thus we can't check for "block"
     // being used.
     if (virtual_op != MAYBE)
 	return virtual_op;
-    return (ve_flags == VE_ALL
-	    || ((ve_flags & VE_BLOCK) && VIsual_active && VIsual_mode == Ctrl_V)
-	    || ((ve_flags & VE_INSERT) && (State & INSERT)));
+    return (cur_ve_flags == VE_ALL
+	    || ((cur_ve_flags & VE_BLOCK) && VIsual_active && VIsual_mode == Ctrl_V)
+	    || ((cur_ve_flags & VE_INSERT) && (State & INSERT)));
 }
 
 /*
@@ -137,7 +139,7 @@ coladvance2(
     one_more = (State & INSERT)
 		    || restart_edit != NUL
 		    || (VIsual_active && *p_sel != 'o')
-		    || ((ve_flags & VE_ONEMORE) && wcol < MAXCOL);
+		    || ((get_ve_flags() & VE_ONEMORE) && wcol < MAXCOL);
     line = ml_get_buf(curbuf, pos->lnum, FALSE);
 
     if (wcol >= MAXCOL)
@@ -549,9 +551,10 @@ check_cursor_col(void)
     void
 check_cursor_col_win(win_T *win)
 {
-    colnr_T len;
-    colnr_T oldcol = win->w_cursor.col;
-    colnr_T oldcoladd = win->w_cursor.col + win->w_cursor.coladd;
+    colnr_T      len;
+    colnr_T      oldcol = win->w_cursor.col;
+    colnr_T      oldcoladd = win->w_cursor.col + win->w_cursor.coladd;
+    unsigned int cur_ve_flags = get_ve_flags();
 
     len = (colnr_T)STRLEN(ml_get_buf(win->w_buffer, win->w_cursor.lnum, FALSE));
     if (len == 0)
@@ -564,7 +567,7 @@ check_cursor_col_win(win_T *win)
 	// - 'virtualedit' is set
 	if ((State & INSERT) || restart_edit
 		|| (VIsual_active && *p_sel != 'o')
-		|| (ve_flags & VE_ONEMORE)
+		|| (cur_ve_flags & VE_ONEMORE)
 		|| virtual_active())
 	    win->w_cursor.col = len;
 	else
@@ -583,7 +586,7 @@ check_cursor_col_win(win_T *win)
     // line.
     if (oldcol == MAXCOL)
 	win->w_cursor.coladd = 0;
-    else if (ve_flags == VE_ALL)
+    else if (cur_ve_flags == VE_ALL)
     {
 	if (oldcoladd > win->w_cursor.col)
 	{
@@ -1485,7 +1488,6 @@ ga_grow_inner(garray_T *gap, int n)
     return OK;
 }
 
-#if defined(FEAT_EVAL) || defined(FEAT_SEARCHPATH) || defined(PROTO)
 /*
  * For a growing array that contains a list of strings: concatenate all the
  * strings with a separating "sep".
@@ -1521,27 +1523,27 @@ ga_concat_strings(garray_T *gap, char *sep)
     }
     return s;
 }
-#endif
 
-#if defined(FEAT_VIMINFO) || defined(FEAT_EVAL) || defined(PROTO)
 /*
  * Make a copy of string "p" and add it to "gap".
- * When out of memory nothing changes.
+ * When out of memory nothing changes and FAIL is returned.
  */
-    void
+    int
 ga_add_string(garray_T *gap, char_u *p)
 {
     char_u *cp = vim_strsave(p);
 
-    if (cp != NULL)
+    if (cp == NULL)
+	return FAIL;
+
+    if (ga_grow(gap, 1) == FAIL)
     {
-	if (ga_grow(gap, 1) == OK)
-	    ((char_u **)(gap->ga_data))[gap->ga_len++] = cp;
-	else
-	    vim_free(cp);
+	vim_free(cp);
+	return FAIL;
     }
+    ((char_u **)(gap->ga_data))[gap->ga_len++] = cp;
+    return OK;
 }
-#endif
 
 /*
  * Concatenate a string to a growarray which contains bytes.
@@ -1556,6 +1558,22 @@ ga_concat(garray_T *gap, char_u *s)
     if (s == NULL || *s == NUL)
 	return;
     len = (int)STRLEN(s);
+    if (ga_grow(gap, len) == OK)
+    {
+	mch_memmove((char *)gap->ga_data + gap->ga_len, s, (size_t)len);
+	gap->ga_len += len;
+    }
+}
+
+/*
+ * Concatenate 'len' bytes from string 's' to a growarray.
+ * When "s" is NULL does not do anything.
+ */
+    void
+ga_concat_len(garray_T *gap, char_u *s, size_t len)
+{
+    if (s == NULL || *s == NUL)
+	return;
     if (ga_grow(gap, len) == OK)
     {
 	mch_memmove((char *)gap->ga_data + gap->ga_len, s, (size_t)len);

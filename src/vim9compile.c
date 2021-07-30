@@ -355,9 +355,22 @@ find_script_var(char_u *name, size_t len, cctx_T *cctx)
 	return NULL;
 
     sav = HI2SAV(hi);
-    if (sav->sav_block_id == 0 || cctx == NULL)
-	// variable defined in the script scope or not in a function.
+    if (sav->sav_block_id == 0)
+	// variable defined in the top script scope is always visible
 	return sav;
+
+    if (cctx == NULL)
+    {
+	// Not in a function scope, find variable with block id equal to or
+	// smaller than the current block id.
+	while (sav != NULL)
+	{
+	    if (sav->sav_block_id <= si->sn_current_block_id)
+		break;
+	    sav = sav->sav_next;
+	}
+	return sav;
+    }
 
     // Go over the variables with this name and find one that was visible
     // from the function.
@@ -2117,6 +2130,9 @@ generate_PCALL(
 	    }
 	}
 	ret_type = type->tt_member;
+	if (ret_type == &t_unknown)
+	    // return type not known yet, use a runtime check
+	    ret_type = &t_any;
     }
     else
     {
@@ -2161,7 +2177,11 @@ generate_STRINGMEMBER(cctx_T *cctx, char_u *name, size_t len)
     type = ((type_T **)stack->ga_data)[stack->ga_len - 1];
     if (type->tt_type != VAR_DICT && type != &t_any)
     {
-	emsg(_(e_dictreq));
+	char *tofree;
+
+	semsg(_(e_expected_dictionary_for_using_key_str_but_got_str),
+					       name, type_name(type, &tofree));
+	vim_free(tofree);
 	return FAIL;
     }
     // change dict type to dict member type
@@ -3549,14 +3569,18 @@ to_name_end(char_u *arg, int use_namespace)
 
 /*
  * Like to_name_end() but also skip over a list or dict constant.
+ * Also accept "<SNR>123_Func".
  * This intentionally does not handle line continuation.
  */
     char_u *
 to_name_const_end(char_u *arg)
 {
-    char_u	*p = to_name_end(arg, TRUE);
+    char_u	*p = arg;
     typval_T	rettv;
 
+    if (STRNCMP(p, "<SNR>", 5) == 0)
+	p = skipdigits(p + 5);
+    p = to_name_end(p, TRUE);
     if (p == arg && *arg == '[')
     {
 
@@ -6851,7 +6875,15 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	if (compile_assign_lhs(var_start, &lhs, cmdidx,
 					is_decl, heredoc, oplen, cctx) == FAIL)
 	    goto theend;
-	if (!heredoc)
+	if (heredoc)
+	{
+	    SOURCING_LNUM = start_lnum;
+	    if (lhs.lhs_has_type
+		    && need_type(&t_list_string, lhs.lhs_type,
+					    -1, 0, cctx, FALSE, FALSE) == FAIL)
+		goto theend;
+	}
+	else
 	{
 	    if (cctx->ctx_skip == SKIP_YES)
 	    {

@@ -882,6 +882,8 @@ EXTERN int	VIsual_active INIT(= FALSE);
 				// whether Visual mode is active
 EXTERN int	VIsual_select INIT(= FALSE);
 				// whether Select mode is active
+EXTERN int	restart_VIsual_select INIT(= 0);
+				// restart Select mode when next cmd finished
 EXTERN int	VIsual_reselect;
 				// whether to restart the selection after a
 				// Select mode mapping or menu
@@ -1865,7 +1867,7 @@ EXTERN listitem_T range_list_item;
 // Passed to an eval() function to enable evaluation.
 EXTERN evalarg_T EVALARG_EVALUATE
 # ifdef DO_INIT
-	= {EVAL_EVALUATE, 0, NULL, NULL, NULL, {0, 0, 0, 0, NULL},
+	= {EVAL_EVALUATE, 0, NULL, NULL, NULL, NULL, {0, 0, 0, 0, NULL},
 					  {0, 0, 0, 0, NULL}, NULL, NULL, NULL}
 # endif
 	;

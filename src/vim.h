@@ -487,6 +487,10 @@ typedef unsigned int u8char_T;	// int is 32 bits or more
 # endif
 #endif
 
+#ifdef HAVE_SODIUM
+# include <sodium.h>
+#endif
+
 // ================ end of the header file puzzle ===============
 
 /*
@@ -2742,5 +2746,8 @@ long elapsed(DWORD start_tick);
 
 // Maximum number of characters that can be fuzzy matched
 #define MAX_FUZZY_MATCHES	256
+
+// flags for equal_type()
+#define ETYPE_ARG_UNKNOWN 1
 
 #endif // VIM__H

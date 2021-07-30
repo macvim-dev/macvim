@@ -1888,6 +1888,9 @@ typedef struct {
     // used when compiling a :def function, NULL otherwise
     cctx_T	*eval_cctx;
 
+    // used when executing commands from a script, NULL otherwise
+    cstack_T	*eval_cstack;
+
     // Used to collect lines while parsing them, so that they can be
     // concatenated later.  Used when "eval_ga.ga_itemsize" is not zero.
     // "eval_ga.ga_data" is a list of pointers to lines.
@@ -2972,6 +2975,8 @@ struct file_buffer
 #ifdef FEAT_TERMINAL
     long	b_p_twsl;	// 'termwinscroll'
 #endif
+    char_u	*b_p_ve;	// 'virtualedit' local value
+    unsigned	b_ve_flags;     // flags for 'virtualedit'
 
     /*
      * end of buffer options

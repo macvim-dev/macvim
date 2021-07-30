@@ -1078,6 +1078,8 @@ EXTERN unsigned ve_flags;
 #define VE_INSERT	6	// includes "all"
 #define VE_ALL		4
 #define VE_ONEMORE	8
+#define VE_NONE		16
+#define VE_NONEU	32      // Upper-case NONE
 EXTERN long	p_verbose;	// 'verbose'
 #ifdef IN_OPTION_C
 char_u	*p_vfile = (char_u *)""; // used before options are initialized
@@ -1257,6 +1259,7 @@ enum
     , BV_VSTS
     , BV_VTS
 #endif
+    , BV_VE
     , BV_COUNT	    // must be the last one
 };
 

@@ -819,6 +819,7 @@ ex_let(exarg_T *eap)
     else if (expr[0] == '=' && expr[1] == '<' && expr[2] == '<')
     {
 	list_T	*l;
+	long	cur_lnum = SOURCING_LNUM;
 
 	// HERE document
 	l = heredoc_get(eap, expr + 3, FALSE);
@@ -827,6 +828,8 @@ ex_let(exarg_T *eap)
 	    rettv_list_set(&rettv, l);
 	    if (!eap->skip)
 	    {
+		// errors are for the assignment, not the end marker
+		SOURCING_LNUM = cur_lnum;
 		op[0] = '=';
 		op[1] = NUL;
 		(void)ex_let_vars(eap->arg, &rettv, FALSE, semicolon, var_count,
@@ -882,13 +885,7 @@ ex_let(exarg_T *eap)
 
 	    if (eap->skip)
 		++emsg_skip;
-	    CLEAR_FIELD(evalarg);
-	    evalarg.eval_flags = eap->skip ? 0 : EVAL_EVALUATE;
-	    if (getline_equal(eap->getline, eap->cookie, getsourceline))
-	    {
-		evalarg.eval_getline = eap->getline;
-		evalarg.eval_cookie = eap->cookie;
-	    }
+	    fill_evalarg_from_eap(&evalarg, eap, eap->skip);
 	    expr = skipwhite_and_linebreak(expr, &evalarg);
 	    cur_lnum = SOURCING_LNUM;
 	    i = eval0(expr, &rettv, eap, &evalarg);

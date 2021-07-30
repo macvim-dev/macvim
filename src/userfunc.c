@@ -614,6 +614,35 @@ is_function_cmd(char_u **cmd)
 }
 
 /*
+ * Called when defining a function: The context may be needed for script
+ * variables declared in a block that is visible now but not when the function
+ * is compiled or called later.
+ */
+    static void
+function_using_block_scopes(ufunc_T *fp, cstack_T *cstack)
+{
+    if (cstack != NULL && cstack->cs_idx >= 0)
+    {
+	int	    count = cstack->cs_idx + 1;
+	int	    i;
+
+	fp->uf_block_ids = ALLOC_MULT(int, count);
+	if (fp->uf_block_ids != NULL)
+	{
+	    mch_memmove(fp->uf_block_ids, cstack->cs_block_id,
+							  sizeof(int) * count);
+	    fp->uf_block_depth = count;
+	}
+
+	// Set flag in each block to indicate a function was defined.  This
+	// is used to keep the variable when leaving the block, see
+	// hide_script_var().
+	for (i = 0; i <= cstack->cs_idx; ++i)
+	    cstack->cs_flags[i] |= CSF_FUNC_DEF;
+    }
+}
+
+/*
  * Read the body of a function, put every line in "newlines".
  * This stops at "}", "endfunction" or "enddef".
  * "newlines" must already have been initialized.
@@ -1195,6 +1224,8 @@ lambda_function_body(
     ufunc->uf_script_ctx.sc_lnum += sourcing_lnum_top;
     set_function_type(ufunc);
 
+    function_using_block_scopes(ufunc, evalarg->eval_cstack);
+
     rettv->vval.v_partial = pt;
     rettv->v_type = VAR_PARTIAL;
     ufunc = NULL;
@@ -1367,7 +1398,7 @@ get_lambda_tv(
 
 	// If there are line breaks, we need to split up the string.
 	line_end = vim_strchr(start, '\n');
-	if (line_end == NULL)
+	if (line_end == NULL || line_end > end)
 	    line_end = end;
 
 	// Add "return " before the expression (or the first line).
@@ -1442,6 +1473,8 @@ get_lambda_tv(
 	fp->uf_script_ctx = current_sctx;
 	fp->uf_script_ctx.sc_lnum += SOURCING_LNUM - newlines.ga_len;
 
+	function_using_block_scopes(fp, evalarg->eval_cstack);
+
 	pt->pt_func = fp;
 	pt->pt_refcount = 1;
 	rettv->vval.v_partial = pt;
@@ -1459,6 +1492,7 @@ theend:
     vim_free(tofree2);
     if (types_optional)
 	ga_clear_strings(&argtypes);
+
     return OK;
 
 errret:
@@ -1640,7 +1674,8 @@ get_func_tv(
 
     if (ret == OK)
     {
-	int		i = 0;
+	int	i = 0;
+	int	did_emsg_before = did_emsg;
 
 	if (get_vim_var_nr(VV_TESTING))
 	{
@@ -1655,6 +1690,13 @@ get_func_tv(
 	}
 
 	ret = call_func(name, len, rettv, argcount, argvars, funcexe);
+	if (in_vim9script() && did_emsg > did_emsg_before)
+	{
+	    // An error in a builtin function does not return FAIL, but we do
+	    // want to abort further processing if an error was given.
+	    ret = FAIL;
+	    clear_tv(rettv);
+	}
 
 	funcargs.ga_len -= i;
     }
@@ -4313,28 +4355,8 @@ define_function(exarg_T *eap, char_u *name_arg)
 	// error messages are for the first function line
 	SOURCING_LNUM = sourcing_lnum_top;
 
-	if (cstack != NULL && cstack->cs_idx >= 0)
-	{
-	    int	    count = cstack->cs_idx + 1;
-	    int	    i;
-
-	    // The block context may be needed for script variables declared in
-	    // a block that is visible now but not when the function is called
-	    // later.
-	    fp->uf_block_ids = ALLOC_MULT(int, count);
-	    if (fp->uf_block_ids != NULL)
-	    {
-		mch_memmove(fp->uf_block_ids, cstack->cs_block_id,
-							  sizeof(int) * count);
-		fp->uf_block_depth = count;
-	    }
-
-	    // Set flag in each block to indicate a function was defined.  This
-	    // is used to keep the variable when leaving the block, see
-	    // hide_script_var().
-	    for (i = 0; i <= cstack->cs_idx; ++i)
-		cstack->cs_flags[i] |= CSF_FUNC_DEF;
-	}
+	// The function may use script variables from the context.
+	function_using_block_scopes(fp, cstack);
 
 	if (parse_argument_types(fp, &argtypes, varargs) == FAIL)
 	{

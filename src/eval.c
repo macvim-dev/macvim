@@ -146,10 +146,14 @@ fill_evalarg_from_eap(evalarg_T *evalarg, exarg_T *eap, int skip)
 {
     CLEAR_FIELD(*evalarg);
     evalarg->eval_flags = skip ? 0 : EVAL_EVALUATE;
-    if (eap != NULL && getline_equal(eap->getline, eap->cookie, getsourceline))
+    if (eap != NULL)
     {
-	evalarg->eval_getline = eap->getline;
-	evalarg->eval_cookie = eap->cookie;
+	evalarg->eval_cstack = eap->cstack;
+	if (getline_equal(eap->getline, eap->cookie, getsourceline))
+	{
+	    evalarg->eval_getline = eap->getline;
+	    evalarg->eval_cookie = eap->cookie;
+	}
     }
 }
 
@@ -3322,7 +3326,8 @@ eval7t(
 				       : (evalarg->eval_flags & EVAL_EVALUATE);
 
     // Recognize <type> in Vim9 script only.
-    if (in_vim9script() && **arg == '<' && eval_isnamec1((*arg)[1]))
+    if (in_vim9script() && **arg == '<' && eval_isnamec1((*arg)[1])
+					     && STRNCMP(*arg, "<SNR>", 5) != 0)
     {
 	++*arg;
 	ga_init2(&type_list, sizeof(type_T *), 10);
@@ -3354,7 +3359,7 @@ eval7t(
 	{
 	    type_T *actual = typval2type(rettv, get_copyID(), &type_list, TRUE);
 
-	    if (!equal_type(want_type, actual))
+	    if (!equal_type(want_type, actual, 0))
 	    {
 		if (want_type == &t_bool && actual != &t_bool
 					&& (actual->tt_flags & TTFLAG_BOOL_OK))
@@ -4185,9 +4190,9 @@ check_can_index(typval_T *rettv, int evaluate, int verbose)
 f_slice(typval_T *argvars, typval_T *rettv)
 {
     if (in_vim9script()
-	    && ((argvars[0].v_type != VAR_LIST
+	    && ((argvars[0].v_type != VAR_STRING
+		    && argvars[0].v_type != VAR_LIST
 		    && argvars[0].v_type != VAR_BLOB
-		    && argvars[0].v_type != VAR_STRING
 		    && check_for_list_arg(argvars, 0) == FAIL)
 		|| check_for_number_arg(argvars, 1) == FAIL
 		|| check_for_opt_number_arg(argvars, 2) == FAIL))

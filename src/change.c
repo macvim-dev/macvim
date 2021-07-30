@@ -281,6 +281,9 @@ f_listener_flush(typval_T *argvars, typval_T *rettv UNUSED)
 {
     buf_T	*buf = curbuf;
 
+    if (in_vim9script() && check_for_opt_buffer_arg(argvars, 0) == FAIL)
+	return;
+
     if (argvars[0].v_type != VAR_UNKNOWN)
     {
 	buf = get_buf_arg(&argvars[0]);
@@ -299,9 +302,13 @@ f_listener_remove(typval_T *argvars, typval_T *rettv)
     listener_T	*lnr;
     listener_T	*next;
     listener_T	*prev;
-    int		id = tv_get_number(argvars);
+    int		id;
     buf_T	*buf;
 
+    if (in_vim9script() && check_for_number_arg(argvars, 0) == FAIL)
+	return;
+
+    id = tv_get_number(argvars);
     FOR_ALL_BUFFERS(buf)
     {
 	prev = NULL;
@@ -1257,7 +1264,7 @@ del_bytes(
 	// fixpos is TRUE, we don't want to end up positioned at the NUL,
 	// unless "restart_edit" is set or 'virtualedit' contains "onemore".
 	if (col > 0 && fixpos && restart_edit == 0
-					      && (ve_flags & VE_ONEMORE) == 0)
+					      && (get_ve_flags() & VE_ONEMORE) == 0)
 	{
 	    --curwin->w_cursor.col;
 	    curwin->w_cursor.coladd = 0;

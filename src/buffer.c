@@ -2310,6 +2310,10 @@ free_buf_options(
     clear_string_option(&buf->b_p_fex);
 #endif
 #ifdef FEAT_CRYPT
+# ifdef FEAT_SODIUM
+    if (buf->b_p_key != NULL && (crypt_get_method_nr(buf) == CRYPT_M_SOD))
+	sodium_munlock(buf->b_p_key, STRLEN(buf->b_p_key));
+# endif
     clear_string_option(&buf->b_p_key);
 #endif
     clear_string_option(&buf->b_p_kp);
@@ -2388,6 +2392,7 @@ free_buf_options(
 #endif
     clear_string_option(&buf->b_p_bkc);
     clear_string_option(&buf->b_p_menc);
+    clear_string_option(&buf->b_p_ve);
 }
 
 /*

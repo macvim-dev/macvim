@@ -3646,6 +3646,9 @@ u_eval_tree(u_header_T *first_uhp, list_T *list)
     void
 f_undofile(typval_T *argvars UNUSED, typval_T *rettv)
 {
+    if (in_vim9script() && check_for_string_arg(argvars, 0) == FAIL)
+	return;
+
     rettv->v_type = VAR_STRING;
 #ifdef FEAT_PERSISTENT_UNDO
     {
@@ -3669,6 +3672,28 @@ f_undofile(typval_T *argvars UNUSED, typval_T *rettv)
     rettv->vval.v_string = NULL;
 #endif
 }
+#ifdef FEAT_PERSISTENT_UNDO
+/*
+ * Reset undofile option and delete the undofile
+ */
+    void
+u_undofile_reset_and_delete(buf_T *buf)
+{
+    char_u *file_name;
+
+    if (!buf->b_p_udf)
+	return;
+
+    file_name = u_get_undo_file_name(buf->b_ffname, TRUE);
+    if (file_name != NULL)
+    {
+	mch_remove(file_name);
+	vim_free(file_name);
+    }
+
+    set_option_value((char_u *)"undofile", 0L, NULL, OPT_LOCAL);
+}
+ #endif
 
 /*
  * "undotree()" function
