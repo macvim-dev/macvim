@@ -434,6 +434,10 @@ ignorecase_opt(char_u *pat, int ic_in, int scs)
 pat_has_uppercase(char_u *pat)
 {
     char_u *p = pat;
+    magic_T magic_val = MAGIC_ON;
+
+    // get the magicness of the pattern
+    (void)skip_regexp_ex(pat, NUL, magic_isset(), NULL, NULL, &magic_val);
 
     while (*p != NUL)
     {
@@ -445,7 +449,7 @@ pat_has_uppercase(char_u *pat)
 		return TRUE;
 	    p += l;
 	}
-	else if (*p == '\\')
+	else if (*p == '\\' && magic_val == MAGIC_ON)
 	{
 	    if (p[1] == '_' && p[2] != NUL)  // skip "\_X"
 		p += 3;
@@ -455,6 +459,11 @@ pat_has_uppercase(char_u *pat)
 		p += 2;
 	    else
 		p += 1;
+	}
+	else if ((*p == '%' || *p == '_') && magic_val == MAGIC_ALL)
+	{
+	    if (p[1] != NUL)  // skip "_X" and %X
+		p += 2;
 	}
 	else if (MB_ISUPPER(*p))
 	    return TRUE;
@@ -2154,6 +2163,8 @@ findmatchlimit(
     else if (initc != '#' && initc != NUL)
     {
 	find_mps_values(&initc, &findc, &backwards, TRUE);
+	if (dir)
+	    backwards = (dir == FORWARD) ? FALSE : TRUE;
 	if (findc == NUL)
 	    return NULL;
     }

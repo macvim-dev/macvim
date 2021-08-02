@@ -6536,19 +6536,25 @@ compile_load_lhs(
     {
 	size_t	    varlen = lhs->lhs_varlen;
 	int	    c = var_start[varlen];
+	int	    lines_len = cctx->ctx_ufunc->uf_lines.ga_len;
 	char_u	    *p = var_start;
 	garray_T    *stack = &cctx->ctx_type_stack;
+	int	    res;
 
-	// Evaluate "ll[expr]" of "ll[expr][idx]"
+	// Evaluate "ll[expr]" of "ll[expr][idx]".  End the line with a NUL and
+	// limit the lines array length to avoid skipping to a following line.
 	var_start[varlen] = NUL;
-	if (compile_expr0(&p, cctx) == OK && p != var_start + varlen)
+	cctx->ctx_ufunc->uf_lines.ga_len = cctx->ctx_lnum + 1;
+	res = compile_expr0(&p, cctx);
+	var_start[varlen] = c;
+	cctx->ctx_ufunc->uf_lines.ga_len = lines_len;
+	if (res == FAIL || p != var_start + varlen)
 	{
 	    // this should not happen
-	    emsg(_(e_missbrac));
-	    var_start[varlen] = c;
+	    if (res != FAIL)
+		emsg(_(e_missbrac));
 	    return FAIL;
 	}
-	var_start[varlen] = c;
 
 	lhs->lhs_type = stack->ga_len == 0 ? &t_void
 			      : ((type_T **)stack->ga_data)[stack->ga_len - 1];
@@ -7086,18 +7092,23 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	    type_T	    *stacktype;
 
 	    if (*op == '.')
-		expected = &t_string;
+	    {
+		if (may_generate_2STRING(-1, FALSE, cctx) == FAIL)
+		    goto theend;
+	    }
 	    else
+	    {
 		expected = lhs.lhs_member_type;
-	    stacktype = ((type_T **)stack->ga_data)[stack->ga_len - 1];
-	    if (
+		stacktype = ((type_T **)stack->ga_data)[stack->ga_len - 1];
+		if (
 #ifdef FEAT_FLOAT
-		// If variable is float operation with number is OK.
-		!(expected == &t_float && stacktype == &t_number) &&
+		    // If variable is float operation with number is OK.
+		    !(expected == &t_float && stacktype == &t_number) &&
 #endif
 		    need_type(stacktype, expected, -1, 0, cctx,
 							 FALSE, FALSE) == FAIL)
-		goto theend;
+		    goto theend;
+	    }
 
 	    if (*op == '.')
 	    {
@@ -8850,11 +8861,13 @@ compile_put(char_u *arg, exarg_T *eap, cctx_T *cctx)
  * A command that is not compiled, execute with legacy code.
  */
     static char_u *
-compile_exec(char_u *line, exarg_T *eap, cctx_T *cctx)
+compile_exec(char_u *line_arg, exarg_T *eap, cctx_T *cctx)
 {
+    char_u	*line = line_arg;
     char_u	*p;
     int		has_expr = FALSE;
     char_u	*nextcmd = (char_u *)"";
+    char_u	*tofree = NULL;
 
     if (cctx->ctx_skip == SKIP_YES)
 	goto theend;
@@ -8909,6 +8922,34 @@ compile_exec(char_u *line, exarg_T *eap, cctx_T *cctx)
 	    {
 		*p = NUL;
 		nextcmd = p + 1;
+	    }
+	}
+	else if (eap->cmdidx == CMD_command || eap->cmdidx == CMD_autocmd)
+	{
+	    // If there is a trailing '{' read lines until the '}'
+	    p = eap->arg + STRLEN(eap->arg) - 1;
+	    while (p > eap->arg && VIM_ISWHITE(*p))
+		--p;
+	    if (*p == '{')
+	    {
+		exarg_T ea;
+		int	flags;  // unused
+		int	start_lnum = SOURCING_LNUM;
+
+		CLEAR_FIELD(ea);
+		ea.arg = eap->arg;
+		fill_exarg_from_cctx(&ea, cctx);
+		(void)may_get_cmd_block(&ea, p, &tofree, &flags);
+		if (tofree != NULL)
+		{
+		    *p = NUL;
+		    line = concat_str(line, tofree);
+		    if (line == NULL)
+			goto theend;
+		    vim_free(tofree);
+		    tofree = line;
+		    SOURCING_LNUM = start_lnum;
+		}
 	    }
 	}
     }
@@ -8997,6 +9038,7 @@ theend:
 	--nextcmd;
 	*nextcmd = '|';
     }
+    vim_free(tofree);
 
     return nextcmd;
 }
