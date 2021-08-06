@@ -548,7 +548,7 @@ generate_instr(cctx_T *cctx, isntype_T isn_type)
     isn_T	*isn;
 
     RETURN_NULL_IF_SKIP(cctx);
-    if (ga_grow(instr, 1) == FAIL)
+    if (GA_GROW_FAILS(instr, 1))
 	return NULL;
     isn = ((isn_T *)instr->ga_data) + instr->ga_len;
     isn->isn_type = isn_type;
@@ -585,7 +585,7 @@ generate_instr_type(cctx_T *cctx, isntype_T isn_type, type_T *type)
     if ((isn = generate_instr(cctx, isn_type)) == NULL)
 	return NULL;
 
-    if (ga_grow(stack, 1) == FAIL)
+    if (GA_GROW_FAILS(stack, 1))
 	return NULL;
     ((type_T **)stack->ga_data)[stack->ga_len] = type == NULL ? &t_any : type;
     ++stack->ga_len;
@@ -1172,21 +1172,26 @@ generate_PUSHF(cctx_T *cctx, float_T fnumber)
 
 /*
  * Generate an ISN_PUSHS instruction.
- * Consumes "str".
+ * Consumes "*str".  When freed *str is set to NULL, unless "str" is NULL.
  */
     static int
-generate_PUSHS(cctx_T *cctx, char_u *str)
+generate_PUSHS(cctx_T *cctx, char_u **str)
 {
     isn_T	*isn;
 
     if (cctx->ctx_skip == SKIP_YES)
     {
-	vim_free(str);
+	if (str != NULL)
+	    VIM_CLEAR(*str);
 	return OK;
     }
     if ((isn = generate_instr_type(cctx, ISN_PUSHS, &t_string)) == NULL)
+    {
+	if (str != NULL)
+	    VIM_CLEAR(*str);
 	return FAIL;
-    isn->isn_arg.string = str;
+    }
+    isn->isn_arg.string = str == NULL ? NULL : *str;
 
     return OK;
 }
@@ -1288,7 +1293,7 @@ generate_GETITEM(cctx_T *cctx, int index, int with_op)
     isn->isn_arg.getitem.gi_with_op = with_op;
 
     // add the item type to the type stack
-    if (ga_grow(stack, 1) == FAIL)
+    if (GA_GROW_FAILS(stack, 1))
 	return FAIL;
     ((type_T **)stack->ga_data)[stack->ga_len] = item_type;
     ++stack->ga_len;
@@ -1590,7 +1595,7 @@ generate_NEWLIST(cctx_T *cctx, int count)
     stack->ga_len -= count;
 
     // add the list type to the type stack
-    if (ga_grow(stack, 1) == FAIL)
+    if (GA_GROW_FAILS(stack, 1))
 	return FAIL;
     ((type_T **)stack->ga_data)[stack->ga_len] = type;
     ++stack->ga_len;
@@ -1626,7 +1631,7 @@ generate_NEWDICT(cctx_T *cctx, int count)
     stack->ga_len -= 2 * count;
 
     // add the dict type to the type stack
-    if (ga_grow(stack, 1) == FAIL)
+    if (GA_GROW_FAILS(stack, 1))
 	return FAIL;
     ((type_T **)stack->ga_data)[stack->ga_len] = type;
     ++stack->ga_len;
@@ -1654,7 +1659,7 @@ generate_FUNCREF(cctx_T *cctx, ufunc_T *ufunc)
     if (ufunc->uf_flags & FC_CLOSURE)
 	cctx->ctx_ufunc->uf_flags |= FC_CLOSURE;
 
-    if (ga_grow(stack, 1) == FAIL)
+    if (GA_GROW_FAILS(stack, 1))
 	return FAIL;
     ((type_T **)stack->ga_data)[stack->ga_len] =
 	       ufunc->uf_func_type == NULL ? &t_func_any : ufunc->uf_func_type;
@@ -1759,7 +1764,7 @@ generate_FOR(cctx_T *cctx, int loop_idx)
 	return FAIL;
     isn->isn_arg.forloop.for_idx = loop_idx;
 
-    if (ga_grow(stack, 1) == FAIL)
+    if (GA_GROW_FAILS(stack, 1))
 	return FAIL;
     // type doesn't matter, will be stored next
     ((type_T **)stack->ga_data)[stack->ga_len] = &t_any;
@@ -1841,7 +1846,7 @@ generate_BCALL(cctx_T *cctx, int func_idx, int argcount, int method_call)
 
     // Drop the argument types and push the return type.
     stack->ga_len -= argcount;
-    if (ga_grow(stack, 1) == FAIL)
+    if (GA_GROW_FAILS(stack, 1))
 	return FAIL;
     ((type_T **)stack->ga_data)[stack->ga_len] =
 			  internal_func_ret_type(func_idx, argcount, argtypes);
@@ -2031,7 +2036,7 @@ generate_CALL(cctx_T *cctx, ufunc_T *ufunc, int pushed_argcount)
     }
 
     stack->ga_len -= argcount; // drop the arguments
-    if (ga_grow(stack, 1) == FAIL)
+    if (GA_GROW_FAILS(stack, 1))
 	return FAIL;
     // add return value
     ((type_T **)stack->ga_data)[stack->ga_len] = ufunc->uf_ret_type;
@@ -2056,7 +2061,7 @@ generate_UCALL(cctx_T *cctx, char_u *name, int argcount)
     isn->isn_arg.ufunc.cuf_argcount = argcount;
 
     stack->ga_len -= argcount; // drop the arguments
-    if (ga_grow(stack, 1) == FAIL)
+    if (GA_GROW_FAILS(stack, 1))
 	return FAIL;
     // add return value
     ((type_T **)stack->ga_data)[stack->ga_len] = &t_any;
@@ -2265,7 +2270,7 @@ generate_LEGACY_EVAL(cctx_T *cctx, char_u *line)
 	return FAIL;
     isn->isn_arg.string = vim_strsave(line);
 
-    if (ga_grow(stack, 1) == FAIL)
+    if (GA_GROW_FAILS(stack, 1))
 	return FAIL;
     ((type_T **)stack->ga_data)[stack->ga_len] = &t_any;
     ++stack->ga_len;
@@ -2297,7 +2302,7 @@ generate_RANGE(cctx_T *cctx, char_u *range)
 	return FAIL;
     isn->isn_arg.string = range;
 
-    if (ga_grow(stack, 1) == FAIL)
+    if (GA_GROW_FAILS(stack, 1))
 	return FAIL;
     ((type_T **)stack->ga_data)[stack->ga_len] = &t_number;
     ++stack->ga_len;
@@ -2431,7 +2436,7 @@ reserve_local(
 	return NULL;
     }
 
-    if (ga_grow(&cctx->ctx_locals, 1) == FAIL)
+    if (GA_GROW_FAILS(&cctx->ctx_locals, 1))
 	return NULL;
     lvar = ((lvar_T *)cctx->ctx_locals.ga_data) + cctx->ctx_locals.ga_len++;
     CLEAR_POINTER(lvar);
@@ -2448,7 +2453,7 @@ reserve_local(
     lvar->lv_type = type;
 
     // Remember the name for debugging.
-    if (ga_grow(&dfunc->df_var_names, 1) == FAIL)
+    if (GA_GROW_FAILS(&dfunc->df_var_names, 1))
 	return NULL;
     ((char_u **)dfunc->df_var_names.ga_data)[lvar->lv_idx] =
 						    vim_strsave(lvar->lv_name);
@@ -2785,7 +2790,7 @@ generate_tv_PUSH(cctx_T *cctx, typval_T *tv)
 		tv->vval.v_blob = NULL;
 		break;
 	    case VAR_STRING:
-		generate_PUSHS(cctx, tv->vval.v_string);
+		generate_PUSHS(cctx, &tv->vval.v_string);
 		tv->vval.v_string = NULL;
 		break;
 	    default:
@@ -3280,7 +3285,7 @@ compile_string(isn_T *isn, cctx_T *cctx)
     trailing_error = *s != NUL;
 
     if (expr_res == FAIL || trailing_error
-				       || ga_grow(&cctx->ctx_instr, 1) == FAIL)
+				       || GA_GROW_FAILS(&cctx->ctx_instr, 1))
     {
 	if (trailing_error)
 	    semsg(_(e_trailing_arg), s);
@@ -3395,11 +3400,14 @@ compile_call(
     int		is_autoload;
     int		is_searchpair;
 
-    // we can evaluate "has('name')" at compile time
-    if (varlen == 3 && STRNCMP(*arg, "has", 3) == 0)
+    // We can evaluate "has('name')" at compile time.
+    // We can evaluate some "exists()" values at compile time.
+    if ((varlen == 3 && STRNCMP(*arg, "has", 3) == 0)
+	    || (varlen == 6 && STRNCMP(*arg, "exists", 6) == 0))
     {
 	char_u	    *s = skipwhite(*arg + varlen + 1);
 	typval_T    argvars[2];
+	int	    is_has = **arg == 'h';
 
 	argvars[0].v_type = VAR_UNKNOWN;
 	if (*s == '"')
@@ -3408,7 +3416,9 @@ compile_call(
 	    (void)eval_lit_string(&s, &argvars[0], TRUE);
 	s = skipwhite(s);
 	if (*s == ')' && argvars[0].v_type == VAR_STRING
-		&& !dynamic_feature(argvars[0].vval.v_string))
+	       && ((is_has && !dynamic_feature(argvars[0].vval.v_string))
+		    || (!is_has && vim_strchr((char_u *)"+&:*",
+						  *argvars[0].vval.v_string))))
 	{
 	    typval_T	*tv = &ppconst->pp_tv[ppconst->pp_used];
 
@@ -3416,7 +3426,10 @@ compile_call(
 	    argvars[1].v_type = VAR_UNKNOWN;
 	    tv->v_type = VAR_NUMBER;
 	    tv->vval.v_number = 0;
-	    f_has(argvars, tv);
+	    if (is_has)
+		f_has(argvars, tv);
+	    else
+		f_exists(argvars, tv);
 	    clear_tv(&argvars[0]);
 	    ++ppconst->pp_used;
 	    return OK;
@@ -3829,7 +3842,7 @@ compile_dict(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 	    key = get_literal_key(arg);
 	    if (key == NULL)
 		return FAIL;
-	    if (generate_PUSHS(cctx, key) == FAIL)
+	    if (generate_PUSHS(cctx, &key) == FAIL)
 		return FAIL;
 	}
 
@@ -5678,7 +5691,7 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx)
 	name_end = skip_regexp(name_start + 1, '/', TRUE);
 	if (*name_end == '/')
 	    ++name_end;
-	eap->nextcmd = check_nextcmd(name_end);
+	set_nextcmd(eap, name_end);
     }
     if (name_end == name_start || *skipwhite(name_end) != '(')
     {
@@ -6517,7 +6530,7 @@ compile_assign_index(
 	char_u *key_end = to_name_end(p + 1, TRUE);
 	char_u *key = vim_strnsave(p + 1, key_end - p - 1);
 
-	r = generate_PUSHS(cctx, key);
+	r = generate_PUSHS(cctx, &key);
     }
     return r;
 }
@@ -6803,7 +6816,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	    // Push each line and the create the list.
 	    FOR_ALL_LIST_ITEMS(l, li)
 	    {
-		generate_PUSHS(cctx, li->li_tv.vval.v_string);
+		generate_PUSHS(cctx, &li->li_tv.vval.v_string);
 		li->li_tv.vval.v_string = NULL;
 	    }
 	    generate_NEWLIST(cctx, l->lv_len);
@@ -7008,8 +7021,10 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 
 		    // Special case: assigning to @# can use a number or a
 		    // string.
-		    if (lhs_type == &t_number_or_string
-					    && rhs_type->tt_type == VAR_NUMBER)
+		    // Also: can assign a number to a float.
+		    if ((lhs_type == &t_number_or_string
+				|| lhs_type == &t_float)
+			    && rhs_type->tt_type == VAR_NUMBER)
 			lhs_type = &t_number;
 		    if (*p != '=' && need_type(rhs_type, lhs_type,
 					    -1, 0, cctx, FALSE, FALSE) == FAIL)
@@ -7034,7 +7049,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	    else
 	    {
 		// variables are always initialized
-		if (ga_grow(instr, 1) == FAIL)
+		if (GA_GROW_FAILS(instr, 1))
 		    goto theend;
 		switch (lhs.lhs_member_type->tt_type)
 		{
@@ -7089,7 +7104,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	if (oplen > 0 && *op != '=')
 	{
 	    type_T	    *expected;
-	    type_T	    *stacktype;
+	    type_T	    *stacktype = NULL;
 
 	    if (*op == '.')
 	    {
@@ -7103,7 +7118,8 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		if (
 #ifdef FEAT_FLOAT
 		    // If variable is float operation with number is OK.
-		    !(expected == &t_float && stacktype == &t_number) &&
+		    !(expected == &t_float && (stacktype == &t_number
+			    || stacktype == &t_number_bool)) &&
 #endif
 		    need_type(stacktype, expected, -1, 0, cctx,
 							 FALSE, FALSE) == FAIL)
@@ -7653,7 +7669,7 @@ compile_elseif(char_u *arg, cctx_T *cctx)
 	// Move any CMDMOD instruction to after the jump
 	if (((isn_T *)instr->ga_data)[instr->ga_len - 1].isn_type == ISN_CMDMOD)
 	{
-	    if (ga_grow(instr, 1) == FAIL)
+	    if (GA_GROW_FAILS(instr, 1))
 		return NULL;
 	    ((isn_T *)instr->ga_data)[instr->ga_len] =
 				  ((isn_T *)instr->ga_data)[instr->ga_len - 1];
@@ -7999,7 +8015,7 @@ compile_for(char_u *arg_start, cctx_T *cctx)
 	arg = skipwhite(arg + 1);	// skip white after '['
 
 	// the list item is replaced by a number of items
-	if (ga_grow(stack, var_count - 1) == FAIL)
+	if (GA_GROW_FAILS(stack, var_count - 1))
 	{
 	    drop_scope(cctx);
 	    return NULL;
@@ -8511,7 +8527,7 @@ compile_catch(char_u *arg, cctx_T *cctx UNUSED)
 	p += len + 2 + dropped;
 	if (pat == NULL)
 	    return FAIL;
-	if (generate_PUSHS(cctx, pat) == FAIL)
+	if (generate_PUSHS(cctx, &pat) == FAIL)
 	    return FAIL;
 
 	if (generate_COMPARE(cctx, EXPR_MATCH, FALSE) == FAIL)
@@ -8999,7 +9015,9 @@ compile_exec(char_u *line_arg, exarg_T *eap, cctx_T *cctx)
 	{
 	    if (p > start)
 	    {
-		generate_PUSHS(cctx, vim_strnsave(start, p - start));
+		char_u *val = vim_strnsave(start, p - start);
+
+		generate_PUSHS(cctx, &val);
 		++count;
 	    }
 	    p += 2;
@@ -9020,7 +9038,9 @@ compile_exec(char_u *line_arg, exarg_T *eap, cctx_T *cctx)
 	    {
 		if (*skipwhite(start) != NUL)
 		{
-		    generate_PUSHS(cctx, vim_strsave(start));
+		    char_u *val = vim_strsave(start);
+
+		    generate_PUSHS(cctx, &val);
 		    ++count;
 		}
 		break;
@@ -9107,7 +9127,7 @@ compile_substitute(char_u *arg, exarg_T *eap, cctx_T *cctx)
 	    trailing_error = *cmd != delimiter && *cmd != NUL;
 
 	    if (expr_res == FAIL || trailing_error
-				       || ga_grow(&cctx->ctx_instr, 1) == FAIL)
+				       || GA_GROW_FAILS(&cctx->ctx_instr, 1))
 	    {
 		if (trailing_error)
 		    semsg(_(e_trailing_arg), cmd);
@@ -9267,13 +9287,13 @@ add_def_function(ufunc_T *ufunc)
     {
 	// The first position is not used, so that a zero uf_dfunc_idx means it
 	// wasn't set.
-	if (ga_grow(&def_functions, 1) == FAIL)
+	if (GA_GROW_FAILS(&def_functions, 1))
 	    return FAIL;
 	++def_functions.ga_len;
     }
 
     // Add the function to "def_functions".
-    if (ga_grow(&def_functions, 1) == FAIL)
+    if (GA_GROW_FAILS(&def_functions, 1))
 	return FAIL;
     dfunc = ((dfunc_T *)def_functions.ga_data) + def_functions.ga_len;
     CLEAR_POINTER(dfunc);
@@ -9838,6 +9858,7 @@ compile_def_function(
 	    case CMD_execute:
 	    case CMD_echomsg:
 	    case CMD_echoerr:
+	    // TODO:  "echoconsole"
 		    line = compile_mult_expr(p, ea.cmdidx, &cctx);
 		    break;
 
@@ -9875,8 +9896,6 @@ compile_def_function(
 		    line = NULL;
 #endif
 		    break;
-
-	    // TODO: any other commands with an expression argument?
 
 	    case CMD_append:
 	    case CMD_change:

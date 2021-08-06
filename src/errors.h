@@ -366,7 +366,8 @@ EXTERN char e_returning_value_in_function_without_return_type[]
 	INIT(= N_("E1096: Returning a value in a function without a return type"));
 EXTERN char e_line_incomplete[]
 	INIT(= N_("E1097: Line incomplete"));
-// E1098 unused
+EXTERN char e_string_list_or_blob_required[]
+	INIT(= N_("E1098: String, List or Blob required"));
 EXTERN char e_unknown_error_while_executing_str[]
 	INIT(= N_("E1099: Unknown error while executing %s"));
 EXTERN char e_cannot_declare_script_variable_in_function[]
@@ -595,8 +596,8 @@ EXTERN char e_dict_required_for_argument_nr[]
 	INIT(= N_("E1206: Dictionary required for argument %d"));
 EXTERN char e_expression_without_effect_str[]
 	INIT(= N_("E1207: Expression without an effect: %s"));
-EXTERN char e_complete_used_without_nargs[]
-	INIT(= N_("E1208: -complete used without -nargs"));
+EXTERN char e_complete_used_without_allowing_arguments[]
+	INIT(= N_("E1208: -complete used without allowing arguments"));
 EXTERN char e_invalid_value_for_line_number_str[]
 	INIT(= N_("E1209: Invalid value for a line number: \"%s\""));
 EXTERN char e_number_required_for_argument_nr[]
@@ -642,4 +643,6 @@ EXTERN char e_list_dict_or_blob_required_for_argument_nr[]
 EXTERN char e_expected_dictionary_for_using_key_str_but_got_str[]
 	INIT(= N_("E1229: Expected dictionary for using key \"%s\", but got %s"));
 EXTERN char e_encryption_sodium_mlock_failed[]
-	INIT(= N_("E1230: encryption: sodium_mlock() failed"));
+	INIT(= N_("E1230: Encryption: sodium_mlock() failed"));
+EXTERN char e_cannot_use_bar_to_separate_commands_here_str[]
+	INIT(= N_("E1231: Cannot use a bar to separate commands here: %s"));

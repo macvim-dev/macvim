@@ -2392,7 +2392,6 @@ free_buf_options(
 #endif
     clear_string_option(&buf->b_p_bkc);
     clear_string_option(&buf->b_p_menc);
-    clear_string_option(&buf->b_p_ve);
 }
 
 /*

@@ -449,7 +449,7 @@ pat_has_uppercase(char_u *pat)
 		return TRUE;
 	    p += l;
 	}
-	else if (*p == '\\' && magic_val == MAGIC_ON)
+	else if (*p == '\\' && magic_val <= MAGIC_ON)
 	{
 	    if (p[1] == '_' && p[2] != NUL)  // skip "\_X"
 		p += 3;
@@ -464,6 +464,8 @@ pat_has_uppercase(char_u *pat)
 	{
 	    if (p[1] != NUL)  // skip "_X" and %X
 		p += 2;
+	    else
+		p++;
 	}
 	else if (MB_ISUPPER(*p))
 	    return TRUE;
