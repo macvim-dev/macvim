@@ -33,7 +33,7 @@ jobs:
   # Builds and test MacVim
   build-and-test:
 
-    # Test on macOS 10.15 / 11.0, and also older version of Xcode for compatibility testing.
+    # Test on macOS 10.15 / 11.x, and also older version of Xcode for compatibility testing.
     strategy:
       fail-fast: false
       matrix:
@@ -41,7 +41,7 @@ jobs:
           - os: macos-10.15
             xcode: 11.7
           - os: macos-10.15
-          - os: macos-11.0
+          - os: macos-11
             publish: true
 
     runs-on: ${{ matrix.os }}
