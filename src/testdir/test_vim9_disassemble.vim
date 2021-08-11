@@ -435,16 +435,17 @@ def Test_disassemble_list_assign()
         '\d STORE $1\_s*' ..
         'var l: list<any>\_s*' ..
         '\d NEWLIST size 0\_s*' ..
+        '\d SETTYPE list<any>\_s*' ..
         '\d STORE $2\_s*' ..
         '\[x, y; l\] = g:stringlist\_s*' ..
         '\d LOADG g:stringlist\_s*' ..
         '\d CHECKTYPE list<any> stack\[-1\]\_s*' ..
         '\d CHECKLEN >= 2\_s*' ..
         '\d\+ ITEM 0\_s*' ..
-        '\d\+ CHECKTYPE string stack\[-1\]\_s*' ..
+        '\d\+ CHECKTYPE string stack\[-1\] arg 1\_s*' ..
         '\d\+ STORE $0\_s*' ..
         '\d\+ ITEM 1\_s*' ..
-        '\d\+ CHECKTYPE string stack\[-1\]\_s*' ..
+        '\d\+ CHECKTYPE string stack\[-1\] arg 2\_s*' ..
         '\d\+ STORE $1\_s*' ..
         '\d\+ SLICE 2\_s*' ..
         '\d\+ STORE $2\_s*' ..
@@ -1938,6 +1939,7 @@ enddef
 
 def s:Echomsg()
   echomsg 'some' 'message'
+  echoconsole 'nothing'
   echoerr 'went' .. 'wrong'
 enddef
 
@@ -1948,6 +1950,9 @@ def Test_disassemble_echomsg()
         '\d PUSHS "some"\_s*' ..
         '\d PUSHS "message"\_s*' ..
         '\d ECHOMSG 2\_s*' ..
+        "echoconsole 'nothing'\\_s*" ..
+        '\d PUSHS "nothing"\_s*' ..
+        '\d ECHOCONSOLE 1\_s*' ..
         "echoerr 'went' .. 'wrong'\\_s*" ..
         '\d PUSHS "wentwrong"\_s*' ..
         '\d ECHOERR 1\_s*' ..

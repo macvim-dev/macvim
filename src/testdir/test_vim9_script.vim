@@ -641,6 +641,20 @@ def Test_try_catch_throw()
       endtry
   END
   CheckScriptFailure(lines, 'E1032:')
+
+  # skipping try-finally-endtry when try-finally-endtry is used in another block
+  lines =<< trim END
+      if v:true
+        try
+        finally
+        endtry
+      else
+        try
+        finally
+        endtry
+      endif
+  END
+  CheckDefAndScriptSuccess(lines)
 enddef
 
 def Test_try_in_catch()
@@ -2358,6 +2372,14 @@ def Test_if_const_expr()
   if false
     burp
   endif
+
+  # expression with line breaks skipped
+  if false
+      ('aaa'
+      .. 'bbb'
+      .. 'ccc'
+      )->setline(1)
+  endif
 enddef
 
 def Test_if_const_expr_fails()
@@ -2479,10 +2501,11 @@ def Test_echomsg_cmd_vimscript()
 enddef
 
 def Test_echoerr_cmd()
+  var local = 'local'
   try
-    echoerr 'something' 'wrong' # comment
+    echoerr 'something' local 'wrong' # comment
   catch
-    assert_match('something wrong', v:exception)
+    assert_match('something local wrong', v:exception)
   endtry
 enddef
 
@@ -2499,6 +2522,12 @@ def Test_echoerr_cmd_vimscript()
       endtry
   END
   CheckScriptSuccess(lines)
+enddef
+
+def Test_echoconsole_cmd()
+  var local = 'local'
+  echoconsole 'something' local # comment
+  # output goes anywhere
 enddef
 
 def Test_for_outside_of_function()

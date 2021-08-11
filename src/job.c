@@ -1594,7 +1594,7 @@ invoke_prompt_interrupt(void)
 /*
  * Return the effective prompt for the specified buffer.
  */
-    char_u *
+    static char_u *
 buf_prompt_text(buf_T* buf)
 {
     if (buf->b_prompt_text == NULL)

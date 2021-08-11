@@ -1689,24 +1689,10 @@ win_exchange(long Prenum)
     curwin->w_vsep_width = wp->w_vsep_width;
     wp->w_vsep_width = temp;
 
-    // If the windows are not in the same frame, exchange the sizes to avoid
-    // messing up the window layout.  Otherwise fix the frame sizes.
-    if (curwin->w_frame->fr_parent != wp->w_frame->fr_parent)
-    {
-	temp = curwin->w_height;
-	curwin->w_height = wp->w_height;
-	wp->w_height = temp;
-	temp = curwin->w_width;
-	curwin->w_width = wp->w_width;
-	wp->w_width = temp;
-    }
-    else
-    {
-	frame_fix_height(curwin);
-	frame_fix_height(wp);
-	frame_fix_width(curwin);
-	frame_fix_width(wp);
-    }
+    frame_fix_height(curwin);
+    frame_fix_height(wp);
+    frame_fix_width(curwin);
+    frame_fix_width(wp);
 
     (void)win_comp_pos();		// recompute window positions
 
@@ -4494,7 +4480,7 @@ win_goto(win_T *wp)
 #endif
 }
 
-#if defined(FEAT_PERL) || defined(FEAT_LUA) || defined(PROTO)
+#if defined(FEAT_PERL) || defined(PROTO)
 /*
  * Find window number "winnr" (counting top to bottom).
  */
@@ -5280,12 +5266,7 @@ frame_remove(frame_T *frp)
     if (frp->fr_prev != NULL)
 	frp->fr_prev->fr_next = frp->fr_next;
     else
-    {
 	frp->fr_parent->fr_child = frp->fr_next;
-	// special case: topframe->fr_child == frp
-	if (topframe->fr_child == frp)
-	    topframe->fr_child = frp->fr_next;
-    }
     if (frp->fr_next != NULL)
 	frp->fr_next->fr_prev = frp->fr_prev;
 }

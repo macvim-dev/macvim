@@ -1149,6 +1149,18 @@ def Test_call_def_varargs()
       enddef
   END
   CheckScriptFailure(lines, 'E1160:')
+
+  lines =<< trim END
+      vim9script
+      def DoIt()
+        g:Later('')
+      enddef
+      defcompile
+      def g:Later(...l:  list<number>)
+      enddef
+      DoIt()
+  END
+  CheckScriptFailure(lines, 'E1013: Argument 1: type mismatch, expected number but got string')
 enddef
 
 let s:value = ''
@@ -1415,6 +1427,27 @@ def Test_return_type_wrong()
         'return',
         'enddef',
         'defcompile'], 'E1003:')
+  delfunc! g:Func
+
+  CheckScriptFailure([
+        'def Func():number',
+        'return 123',
+        'enddef',
+        'defcompile'], 'E1069:')
+  delfunc! g:Func
+
+  CheckScriptFailure([
+        'def Func() :number',
+        'return 123',
+        'enddef',
+        'defcompile'], 'E1059:')
+  delfunc! g:Func
+
+  CheckScriptFailure([
+        'def Func() : number',
+        'return 123',
+        'enddef',
+        'defcompile'], 'E1059:')
   delfunc! g:Func
 
   CheckScriptFailure(['def Func(): list', 'return []', 'enddef'], 'E1008:')
@@ -2895,6 +2928,27 @@ def Test_check_func_arg_types()
 
   CheckScriptSuccess(lines + ['echo H(G(F1))'])
   CheckScriptFailure(lines + ['echo H(G(F2))'], 'E1013:')
+enddef
+
+def Test_list_any_type_checked()
+  var lines =<< trim END
+      vim9script
+      def Foo()
+        --decl--
+        Bar(l)
+      enddef
+      def Bar(ll: list<dict<any>>)
+      enddef
+      Foo()
+  END
+  lines[2] = 'var l: list<any>'
+  CheckScriptFailure(lines, 'E1013: Argument 1: type mismatch, expected list<dict<any>> but got list<any>', 2)
+
+  lines[2] = 'var l: list<any> = []'
+  CheckScriptFailure(lines, 'E1013: Argument 1: type mismatch, expected list<dict<any>> but got list<any>', 2)
+
+  lines[2] = 'var l: list<any> = [11]'
+  CheckScriptFailure(lines, 'E1013: Argument 1: type mismatch, expected list<dict<any>> but got list<number>', 2)
 enddef
 
 def Test_compile_error()

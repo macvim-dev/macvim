@@ -1026,7 +1026,7 @@ ex_endif(exarg_T *eap)
 {
     cstack_T	*cstack = eap->cstack;
 
-    if (cmdmod_error())
+    if (cmdmod_error(FALSE))
 	return;
     did_endif = TRUE;
     if (cstack->cs_idx < 0
@@ -1355,7 +1355,7 @@ ex_endwhile(exarg_T *eap)
     int		csf;
     int		fl;
 
-    if (cmdmod_error())
+    if (cmdmod_error(TRUE))
 	return;
 
     if (eap->cmdidx == CMD_endwhile)
@@ -1593,7 +1593,7 @@ ex_try(exarg_T *eap)
     int		skip;
     cstack_T	*cstack = eap->cstack;
 
-    if (cmdmod_error())
+    if (cmdmod_error(FALSE))
 	return;
 
     if (cstack->cs_idx == CSTACK_LEN - 1)
@@ -1674,7 +1674,7 @@ ex_catch(exarg_T *eap)
     cstack_T	*cstack = eap->cstack;
     char_u	*pat;
 
-    if (cmdmod_error())
+    if (cmdmod_error(FALSE))
 	return;
 
     if (cstack->cs_trylevel <= 0 || cstack->cs_idx < 0)
@@ -1839,7 +1839,7 @@ ex_finally(exarg_T *eap)
     int		pending = CSTP_NONE;
     cstack_T	*cstack = eap->cstack;
 
-    if (cmdmod_error())
+    if (cmdmod_error(FALSE))
 	return;
 
     if (cstack->cs_trylevel <= 0 || cstack->cs_idx < 0)
@@ -1971,7 +1971,7 @@ ex_endtry(exarg_T *eap)
     void	*rettv = NULL;
     cstack_T	*cstack = eap->cstack;
 
-    if (cmdmod_error())
+    if (cmdmod_error(FALSE))
 	return;
 
     if (cstack->cs_trylevel <= 0 || cstack->cs_idx < 0)
@@ -2018,7 +2018,8 @@ ex_endtry(exarg_T *eap)
 	{
 	    idx = cstack->cs_idx;
 
-	    if (in_vim9script()
+	    // Check the flags only when not in a skipped block.
+	    if (!skip && in_vim9script()
 		     && (cstack->cs_flags[idx] & (CSF_CATCH|CSF_FINALLY)) == 0)
 	    {
 		// try/endtry without any catch or finally: give an error and

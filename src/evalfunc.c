@@ -49,6 +49,7 @@ static void f_escape(typval_T *argvars, typval_T *rettv);
 static void f_eval(typval_T *argvars, typval_T *rettv);
 static void f_eventhandler(typval_T *argvars, typval_T *rettv);
 static void f_execute(typval_T *argvars, typval_T *rettv);
+static void f_exists_compiled(typval_T *argvars, typval_T *rettv);
 static void f_expand(typval_T *argvars, typval_T *rettv);
 static void f_expandcmd(typval_T *argvars, typval_T *rettv);
 static void f_feedkeys(typval_T *argvars, typval_T *rettv);
@@ -1329,6 +1330,8 @@ static funcentry_T global_functions[] =
 			ret_string,	    f_exepath},
     {"exists",		1, 1, FEARG_1,	    arg1_string,
 			ret_number_bool,    f_exists},
+    {"exists_compiled",	1, 1, FEARG_1,	    arg1_string,
+			ret_number_bool,    f_exists_compiled},
     {"exp",		1, 1, FEARG_1,	    arg1_float_or_nr,
 			ret_float,	    FLOAT_FUNC(f_exp)},
     {"expand",		1, 3, FEARG_1,	    arg3_string_bool_bool,
@@ -1969,7 +1972,7 @@ static funcentry_T global_functions[] =
 			ret_list_number,    f_srand},
     {"state",		0, 1, FEARG_1,	    arg1_string,
 			ret_string,	    f_state},
-    {"str2float",	1, 1, FEARG_1,	    arg1_string,
+    {"str2float",	1, 2, FEARG_1,	    arg2_string_bool,
 			ret_float,	    FLOAT_FUNC(f_str2float)},
     {"str2list",	1, 2, FEARG_1,	    arg2_string_bool,
 			ret_list_number,    f_str2list},
@@ -3365,6 +3368,48 @@ execute_redir_str(char_u *value, int value_len)
 }
 
 /*
+ * Get next line from a string containing NL separated lines.
+ * Called by do_cmdline() to get the next line.
+ * Returns an allocated string, or NULL when at the end of the string.
+ */
+    static char_u *
+get_str_line(
+    int	    c UNUSED,
+    void    *cookie,
+    int	    indent UNUSED,
+    getline_opt_T options UNUSED)
+{
+    char_u	*start = *(char_u **)cookie;
+    char_u	*line;
+    char_u	*p;
+
+    p = start;
+    if (p == NULL || *p == NUL)
+	return NULL;
+    p = vim_strchr(p, '\n');
+    if (p == NULL)
+	line = vim_strsave(start);
+    else
+    {
+	line = vim_strnsave(start, p - start);
+	p++;
+    }
+
+    *(char_u **)cookie = p;
+    return line;
+}
+
+/*
+ * Execute a series of Ex commands in 'str'
+ */
+    void
+execute_cmds_from_string(char_u *str)
+{
+    do_cmdline(NULL, get_str_line, (void *)&str,
+	    DOCMD_NOWAIT|DOCMD_VERBOSE|DOCMD_REPEAT|DOCMD_KEYTYPED);
+}
+
+/*
  * Get next line from a list.
  * Called by do_cmdline() to get the next line.
  * Returns allocated string, or NULL for end of function.
@@ -3582,6 +3627,12 @@ f_exists(typval_T *argvars, typval_T *rettv)
     }
 
     rettv->vval.v_number = n;
+}
+
+    static void
+f_exists_compiled(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
+{
+    emsg(_(e_exists_compiled_can_only_be_used_in_def_function));
 }
 
 /*

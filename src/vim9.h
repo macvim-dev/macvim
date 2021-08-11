@@ -16,10 +16,11 @@ typedef enum {
     ISN_EXECCONCAT, // execute Ex command from isn_arg.number items on stack
     ISN_EXEC_SPLIT, // execute Ex command from isn_arg.string split at NL
     ISN_LEGACY_EVAL, // evaluate expression isn_arg.string with legacy syntax.
-    ISN_ECHO,	    // echo isn_arg.echo.echo_count items on top of stack
-    ISN_EXECUTE,    // execute Ex commands isn_arg.number items on top of stack
-    ISN_ECHOMSG,    // echo Ex commands isn_arg.number items on top of stack
-    ISN_ECHOERR,    // echo Ex commands isn_arg.number items on top of stack
+    ISN_ECHO,	    // :echo with isn_arg.echo.echo_count items on top of stack
+    ISN_EXECUTE,    // :execute with isn_arg.number items on top of stack
+    ISN_ECHOMSG,    // :echomsg with isn_arg.number items on top of stack
+    ISN_ECHOCONSOLE, // :echoconsole with isn_arg.number items on top of stack
+    ISN_ECHOERR,    // :echoerr with isn_arg.number items on top of stack
     ISN_RANGE,	    // compute range from isn_arg.string, push to stack
     ISN_SUBSTITUTE, // :s command with expression
     ISN_INSTR,	    // instructions compiled from expression
@@ -456,9 +457,9 @@ struct dfunc_S {
     int		df_refcount;	    // how many ufunc_T point to this dfunc_T
     int		df_idx;		    // index in def_functions
     int		df_deleted;	    // if TRUE function was deleted
-    char_u	*df_name;	    // name used for error messages
     int		df_script_seq;	    // Value of sctx_T sc_seq when the function
 				    // was compiled.
+    char_u	*df_name;	    // name used for error messages
 
     garray_T	df_def_args_isn;    // default argument instructions
     garray_T	df_var_names;	    // names of local vars
@@ -466,12 +467,12 @@ struct dfunc_S {
     // After compiling "df_instr" and/or "df_instr_prof" is not NULL.
     isn_T	*df_instr;	    // function body to be executed
     int		df_instr_count;	    // size of "df_instr"
+    int		df_instr_debug_count; // size of "df_instr_debug"
+    isn_T	*df_instr_debug;      // like "df_instr" with debugging
 #ifdef FEAT_PROFILE
     isn_T	*df_instr_prof;	     // like "df_instr" with profiling
     int		df_instr_prof_count; // size of "df_instr_prof"
 #endif
-    isn_T	*df_instr_debug;      // like "df_instr" with debugging
-    int		df_instr_debug_count; // size of "df_instr_debug"
 
     int		df_varcount;	    // number of local variables
     int		df_has_closure;	    // one if a closure was created

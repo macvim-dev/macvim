@@ -85,8 +85,8 @@ struct ectx_S {
 
     garray_T	ec_trystack;	// stack of trycmd_T values
 
-    int		ec_dfunc_idx;	// current function index
     isn_T	*ec_instr;	// array with instructions
+    int		ec_dfunc_idx;	// current function index
     int		ec_iidx;	// index in ec_instr: instruction to execute
 
     garray_T	ec_funcrefs;	// partials that might be a closure
@@ -893,7 +893,7 @@ call_by_name(
 
     if (ufunc != NULL)
     {
-	if (ufunc->uf_arg_types != NULL)
+	if (ufunc->uf_arg_types != NULL || ufunc->uf_va_type != NULL)
 	{
 	    int i;
 	    typval_T	*argv = STACK_TV_BOT(0) - argcount;
@@ -904,7 +904,7 @@ call_by_name(
 	    {
 		type_T *type = NULL;
 
-		if (i < ufunc->uf_args.ga_len)
+		if (i < ufunc->uf_args.ga_len && ufunc->uf_arg_types != NULL)
 		    type = ufunc->uf_arg_types[i];
 		else if (ufunc->uf_va_type != NULL)
 		    type = ufunc->uf_va_type->tt_member;
@@ -1869,9 +1869,11 @@ exec_instructions(ectx_T *ectx)
 
 	    // :execute {string} ...
 	    // :echomsg {string} ...
+	    // :echoconsole {string} ...
 	    // :echoerr {string} ...
 	    case ISN_EXECUTE:
 	    case ISN_ECHOMSG:
+	    case ISN_ECHOCONSOLE:
 	    case ISN_ECHOERR:
 		{
 		    int		count = iptr->isn_arg.number;
@@ -1940,6 +1942,12 @@ exec_instructions(ectx_T *ectx)
 			    {
 				msg_attr(ga.ga_data, echo_attr);
 				out_flush();
+			    }
+			    else if (iptr->isn_type == ISN_ECHOCONSOLE)
+			    {
+				ui_write(ga.ga_data, (int)STRLEN(ga.ga_data),
+									 TRUE);
+				ui_write((char_u *)"\r\n", 2, TRUE);
 			    }
 			    else
 			    {
@@ -3427,13 +3435,22 @@ exec_instructions(ectx_T *ectx)
 		    typval_T	*tv2 = STACK_TV_BOT(-1);
 		    varnumber_T arg1 = tv1->vval.v_number;
 		    varnumber_T arg2 = tv2->vval.v_number;
-		    varnumber_T res;
+		    varnumber_T res = 0;
+		    int		div_zero = FALSE;
 
 		    switch (iptr->isn_arg.op.op_type)
 		    {
 			case EXPR_MULT: res = arg1 * arg2; break;
-			case EXPR_DIV: res = arg1 / arg2; break;
-			case EXPR_REM: res = arg1 % arg2; break;
+			case EXPR_DIV:  if (arg2 == 0)
+					    div_zero = TRUE;
+					else
+					    res = arg1 / arg2;
+					break;
+			case EXPR_REM:  if (arg2 == 0)
+					    div_zero = TRUE;
+					else
+					    res = arg1 % arg2;
+					break;
 			case EXPR_SUB: res = arg1 - arg2; break;
 			case EXPR_ADD: res = arg1 + arg2; break;
 
@@ -3443,7 +3460,7 @@ exec_instructions(ectx_T *ectx)
 			case EXPR_GEQUAL: res = arg1 >= arg2; break;
 			case EXPR_SMALLER: res = arg1 < arg2; break;
 			case EXPR_SEQUAL: res = arg1 <= arg2; break;
-			default: res = 0; break;
+			default: break;
 		    }
 
 		    --ectx->ec_stack.ga_len;
@@ -3454,6 +3471,12 @@ exec_instructions(ectx_T *ectx)
 		    }
 		    else
 			tv1->vval.v_number = res;
+		    if (div_zero)
+		    {
+			SOURCING_LNUM = iptr->isn_lnum;
+			emsg(_(e_divide_by_zero));
+			goto on_error;
+		    }
 		}
 		break;
 
@@ -4900,15 +4923,19 @@ list_instructions(char *pfx, isn_T *instr, int instr_count, ufunc_T *ufunc)
 		break;
 	    case ISN_EXECUTE:
 		smsg("%s%4d EXECUTE %lld", pfx, current,
-					    (varnumber_T)(iptr->isn_arg.number));
+					  (varnumber_T)(iptr->isn_arg.number));
 		break;
 	    case ISN_ECHOMSG:
 		smsg("%s%4d ECHOMSG %lld", pfx, current,
-					    (varnumber_T)(iptr->isn_arg.number));
+					  (varnumber_T)(iptr->isn_arg.number));
+		break;
+	    case ISN_ECHOCONSOLE:
+		smsg("%s%4d ECHOCONSOLE %lld", pfx, current,
+					  (varnumber_T)(iptr->isn_arg.number));
 		break;
 	    case ISN_ECHOERR:
 		smsg("%s%4d ECHOERR %lld", pfx, current,
-					    (varnumber_T)(iptr->isn_arg.number));
+					  (varnumber_T)(iptr->isn_arg.number));
 		break;
 	    case ISN_LOAD:
 		{
