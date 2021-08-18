@@ -902,17 +902,27 @@ get_lval(
     if ((*p != '[' && *p != '.') || lp->ll_name == NULL)
 	return p;
 
-    cc = *p;
-    *p = NUL;
-    // When we would write to the variable pass &ht and prevent autoload.
-    writing = !(flags & GLV_READ_ONLY);
-    v = find_var(lp->ll_name, writing ? &ht : NULL,
+    if (in_vim9script() && lval_root != NULL)
+    {
+	// using local variable
+	lp->ll_tv = lval_root;
+	v = NULL;
+    }
+    else
+    {
+	cc = *p;
+	*p = NUL;
+	// When we would write to the variable pass &ht and prevent autoload.
+	writing = !(flags & GLV_READ_ONLY);
+	v = find_var(lp->ll_name, writing ? &ht : NULL,
 					 (flags & GLV_NO_AUTOLOAD) || writing);
-    if (v == NULL && !quiet)
-	semsg(_(e_undefined_variable_str), lp->ll_name);
-    *p = cc;
-    if (v == NULL)
-	return NULL;
+	if (v == NULL && !quiet)
+	    semsg(_(e_undefined_variable_str), lp->ll_name);
+	*p = cc;
+	if (v == NULL)
+	    return NULL;
+	lp->ll_tv = &v->di_tv;
+    }
 
     if (in_vim9script() && (flags & GLV_NO_DECL) == 0)
     {
@@ -924,7 +934,6 @@ get_lval(
     /*
      * Loop until no more [idx] or .key is following.
      */
-    lp->ll_tv = &v->di_tv;
     var1.v_type = VAR_UNKNOWN;
     var2.v_type = VAR_UNKNOWN;
     while (*p == '[' || (*p == '.' && p[1] != '=' && p[1] != '.'))
@@ -959,6 +968,7 @@ get_lval(
 	}
 
 	if (in_vim9script() && lp->ll_valtype == NULL
+		&& v != NULL
 		&& lp->ll_tv == &v->di_tv
 		&& ht != NULL && ht == get_script_local_ht())
 	{
@@ -2850,7 +2860,7 @@ eval5(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	// "++" and "--" on the next line are a separate command.
 	p = eval_next_non_blank(*arg, evalarg, &getnext);
 	op = *p;
-	concat = op == '.' && (*(p + 1) == '.' || current_sctx.sc_version < 2);
+	concat = op == '.' && (*(p + 1) == '.' || in_old_script(2));
 	if ((op != '+' && op != '-' && !concat) || p[1] == '='
 					       || (p[1] == '.' && p[2] == '='))
 	    break;
@@ -3391,7 +3401,7 @@ eval7(
 
     if (**arg == '.' && (!isdigit(*(*arg + 1))
 #ifdef FEAT_FLOAT
-	    || current_sctx.sc_version < 2
+	    || in_old_script(2)
 #endif
 	    ))
     {
@@ -5866,7 +5876,7 @@ handle_subscript(
 		|| (**arg == '.' && (rettv->v_type == VAR_DICT
 			|| (!evaluate
 			    && (*arg)[1] != '.'
-			    && current_sctx.sc_version >= 2))))
+			    && !in_old_script(2)))))
 	{
 	    dict_unref(selfdict);
 	    if (rettv->v_type == VAR_DICT)

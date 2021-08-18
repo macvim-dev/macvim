@@ -588,6 +588,25 @@ def Test_disassemble_unlet()
         res)
 enddef
 
+def s:LockLocal()
+  var d = {a: 1}
+  lockvar d.a
+enddef
+
+def Test_disassemble_locl_local()
+  var res = execute('disass s:LockLocal')
+  assert_match('<SNR>\d*_LockLocal\_s*' ..
+        'var d = {a: 1}\_s*' ..
+        '\d PUSHS "a"\_s*' ..
+        '\d PUSHNR 1\_s*' ..
+        '\d NEWDICT size 1\_s*' ..
+        '\d STORE $0\_s*' ..
+        'lockvar d.a\_s*' ..
+        '\d LOAD $0\_s*' ..
+        '\d LOCKUNLOCK lockvar d.a\_s*',
+        res)
+enddef
+
 def s:ScriptFuncTry()
   try
     echo "yes"
@@ -1661,25 +1680,27 @@ def Test_disassemble_any_slice()
 enddef
 
 def NegateNumber(): number
-  var nr = 9
-  var plus = +nr
-  var res = -nr
-  return res
+  g:nr = 9
+  var plus = +g:nr
+  var minus = -g:nr
+  return minus
 enddef
 
 def Test_disassemble_negate_number()
   var instr = execute('disassemble NegateNumber')
   assert_match('NegateNumber\_s*' ..
-        'var nr = 9\_s*' ..
-        '\d STORE 9 in $0\_s*' ..
-        'var plus = +nr\_s*' ..
-        '\d LOAD $0\_s*' ..
-        '\d CHECKNR\_s*' ..
-        '\d STORE $1\_s*' ..
-        'var res = -nr\_s*' ..
-        '\d LOAD $0\_s*' ..
+        'g:nr = 9\_s*' ..
+        '\d PUSHNR 9\_s*' ..
+        '\d STOREG g:nr\_s*' ..
+        'var plus = +g:nr\_s*' ..
+        '\d LOADG g:nr\_s*' ..
+        '\d CHECKTYPE number stack\[-1\]\_s*' ..
+        '\d STORE $0\_s*' ..
+        'var minus = -g:nr\_s*' ..
+        '\d LOADG g:nr\_s*' ..
+        '\d CHECKTYPE number stack\[-1\]\_s*' ..
         '\d NEGATENR\_s*' ..
-        '\d STORE $2\_s*',
+        '\d STORE $1\_s*',
         instr)
   assert_equal(-9, NegateNumber())
 enddef

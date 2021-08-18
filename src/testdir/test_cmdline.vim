@@ -657,6 +657,11 @@ func Test_cmdline_complete_user_func()
   " g: prefix also works
   call feedkeys(":echo g:Test_cmdline_complete_user_f\<Tab>\<Home>\"\<cr>", 'tx')
   call assert_match('"echo g:Test_cmdline_complete_user_func', @:)
+
+  " using g: prefix does not result in just "g:" matches from a lambda
+  let Fx = { a ->  a }
+  call feedkeys(":echo g:\<Tab>\<Home>\"\<cr>", 'tx')
+  call assert_match('"echo g:[A-Z]', @:)
 endfunc
 
 func Test_cmdline_complete_user_names()
@@ -839,6 +844,14 @@ func Test_cmdline_complete_various()
   " completion of autocmd group after comma
   call feedkeys(":doautocmd BufNew,BufEn\<C-A>\<C-B>\"\<CR>", 'xt')
   call assert_equal("\"doautocmd BufNew,BufEnter", @:)
+
+  " completion of file name in :doautocmd
+  call writefile([], 'Xfile1')
+  call writefile([], 'Xfile2')
+  call feedkeys(":doautocmd BufEnter Xfi\<C-A>\<C-B>\"\<CR>", 'xt')
+  call assert_equal("\"doautocmd BufEnter Xfile1 Xfile2", @:)
+  call delete('Xfile1')
+  call delete('Xfile2')
 
   " completion for the :augroup command
   augroup XTest
@@ -1409,6 +1422,10 @@ func Test_cmd_backtick()
   %argd
   argadd `=['a', 'b', 'c']`
   call assert_equal(['a', 'b', 'c'], argv())
+  %argd
+
+  argadd `echo abc def`
+  call assert_equal(['abc def'], argv())
   %argd
 endfunc
 

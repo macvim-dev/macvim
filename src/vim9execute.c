@@ -844,12 +844,13 @@ may_restore_cmdmod(funclocal_T *funclocal)
 }
 
 /*
- * Return TRUE if an error was given or CTRL-C was pressed.
+ * Return TRUE if an error was given (not caught in try/catch) or CTRL-C was
+ * pressed.
  */
     static int
-vim9_aborting(int prev_called_emsg)
+vim9_aborting(int prev_uncaught_emsg)
 {
-    return called_emsg > prev_called_emsg || got_int || did_throw;
+    return uncaught_emsg > prev_uncaught_emsg || got_int || did_throw;
 }
 
 /*
@@ -882,12 +883,13 @@ call_by_name(
 
     if (ufunc == NULL)
     {
-	int called_emsg_before = called_emsg;
+	int prev_uncaught_emsg = uncaught_emsg;
 
 	if (script_autoload(name, TRUE))
 	    // loaded a package, search for the function again
 	    ufunc = find_func(name, FALSE, NULL);
-	if (vim9_aborting(called_emsg_before))
+
+	if (vim9_aborting(prev_uncaught_emsg))
 	    return FAIL;  // bail out if loading the script caused an error
     }
 
@@ -1396,6 +1398,27 @@ fill_partial_and_closure(partial_T *pt, ufunc_T *ufunc, ectx_T *ectx)
     return OK;
 }
 
+/*
+ * Execute iptr->isn_arg.string as an Ex command.
+ */
+    static int
+exec_command(isn_T *iptr)
+{
+    source_cookie_T cookie;
+
+    SOURCING_LNUM = iptr->isn_lnum;
+    // Pass getsourceline to get an error for a missing ":end"
+    // command.
+    CLEAR_FIELD(cookie);
+    cookie.sourcing_lnum = iptr->isn_lnum - 1;
+    if (do_cmdline(iptr->isn_arg.string,
+		getsourceline, &cookie,
+			     DOCMD_VERBOSE|DOCMD_NOWAIT|DOCMD_KEYTYPED) == FAIL
+		|| did_emsg)
+	return FAIL;
+    return OK;
+}
+
 // used for v_instr of typval of VAR_INSTR
 struct instr_S {
     ectx_T	*instr_ectx;
@@ -1637,21 +1660,8 @@ exec_instructions(ectx_T *ectx)
 	{
 	    // execute Ex command line
 	    case ISN_EXEC:
-		{
-		    source_cookie_T cookie;
-
-		    SOURCING_LNUM = iptr->isn_lnum;
-		    // Pass getsourceline to get an error for a missing ":end"
-		    // command.
-		    CLEAR_FIELD(cookie);
-		    cookie.sourcing_lnum = iptr->isn_lnum - 1;
-		    if (do_cmdline(iptr->isn_arg.string,
-				getsourceline, &cookie,
-				   DOCMD_VERBOSE|DOCMD_NOWAIT|DOCMD_KEYTYPED)
-									== FAIL
-				|| did_emsg)
-			goto on_error;
-		}
+		if (exec_command(iptr) == FAIL)
+		    goto on_error;
 		break;
 
 	    // execute Ex command line split at NL characters.
@@ -2878,6 +2888,23 @@ exec_instructions(ectx_T *ectx)
 		break;
 	    case ISN_UNLETENV:
 		vim_unsetenv(iptr->isn_arg.unlet.ul_name);
+		break;
+
+	    case ISN_LOCKUNLOCK:
+		{
+		    typval_T	*lval_root_save = lval_root;
+		    int		res;
+
+		    // Stack has the local variable, argument the whole :lock
+		    // or :unlock command, like ISN_EXEC.
+		    --ectx->ec_stack.ga_len;
+		    lval_root = STACK_TV_BOT(0);
+		    res = exec_command(iptr);
+		    clear_tv(lval_root);
+		    lval_root = lval_root_save;
+		    if (res == FAIL)
+			goto on_error;
+		}
 		break;
 
 	    case ISN_LOCKCONST:
@@ -5243,6 +5270,9 @@ list_instructions(char *pfx, isn_T *instr, int instr_count, ufunc_T *ufunc)
 		break;
 	    case ISN_UNLETRANGE:
 		smsg("%s%4d UNLETRANGE", pfx, current);
+		break;
+	    case ISN_LOCKUNLOCK:
+		smsg("%s%4d LOCKUNLOCK %s", pfx, current, iptr->isn_arg.string);
 		break;
 	    case ISN_LOCKCONST:
 		smsg("%s%4d LOCKCONST", pfx, current);
