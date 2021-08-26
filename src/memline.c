@@ -289,6 +289,7 @@ ml_open(buf_T *buf)
     buf->b_ml.ml_line_lnum = 0;	// no cached line
 #ifdef FEAT_BYTEOFF
     buf->b_ml.ml_chunksize = NULL;
+    buf->b_ml.ml_usedchunks = 0;
 #endif
 
     if (cmdmod.cmod_flags & CMOD_NOSWAPFILE)
@@ -3251,9 +3252,15 @@ ml_append_int(
     }
 
 #ifdef FEAT_BYTEOFF
+# ifdef FEAT_PROP_POPUP
+    if (curbuf->b_has_textprop)
+	// only use the space needed for the text, ignore properties
+	len = (colnr_T)STRLEN(line) + 1;
+# endif
     // The line was inserted below 'lnum'
     ml_updatechunk(buf, lnum + 1, (long)len, ML_CHNK_ADDLINE);
 #endif
+
 #ifdef FEAT_NETBEANS_INTG
     if (netbeans_active())
     {
@@ -3601,7 +3608,7 @@ ml_delete_int(buf_T *buf, linenr_T lnum, int flags)
     int		ret = FAIL;
 #ifdef FEAT_PROP_POPUP
     char_u	*textprop_save = NULL;
-    int		textprop_save_len;
+    int		textprop_save_len = 0;
 #endif
 
     if (lowest_marked && lowest_marked > lnum)
@@ -3752,7 +3759,11 @@ ml_delete_int(buf_T *buf, linenr_T lnum, int flags)
     }
 
 #ifdef FEAT_BYTEOFF
-    ml_updatechunk(buf, lnum, line_size, ML_CHNK_DELLINE);
+    ml_updatechunk(buf, lnum, line_size
+# ifdef FEAT_PROP_POPUP
+					- textprop_save_len
+# endif
+							    , ML_CHNK_DELLINE);
 #endif
     ret = OK;
 

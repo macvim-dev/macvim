@@ -521,6 +521,60 @@ def Test_method_and_user_command()
   CheckScriptSuccess(lines)
 enddef
 
+def Test_option_use_linebreak()
+  var lines =<< trim END
+      new
+      &matchpairs = '(:)'
+      &matchpairs->setline(1)
+      &matchpairs = '[:]'
+      &matchpairs   ->setline(2)
+      &matchpairs = '{:}'
+      &matchpairs  
+          ->setline(3)
+      assert_equal(['(:)', '[:]', '{:}'], getline(1, '$'))
+      bwipe!
+  END
+  CheckDefAndScriptSuccess(lines)
+enddef
+
+def Test_use_register()
+  var lines =<< trim END
+      new
+      @a = 'one'
+      @a->setline(1)
+      @b = 'two'
+      @b   ->setline(2)
+      @c = 'three'
+      @c  
+          ->setline(3)
+      assert_equal(['one', 'two', 'three'], getline(1, '$'))
+      bwipe!
+  END
+  CheckDefAndScriptSuccess(lines)
+
+  lines =<< trim END
+      @a = 'echo "text"'
+      @a
+  END
+  CheckDefAndScriptFailure(lines, 'E1207:')
+enddef
+
+def Test_environment_use_linebreak()
+  var lines =<< trim END
+      new
+      $TESTENV = 'one'
+      $TESTENV->setline(1)
+      $TESTENV = 'two'
+      $TESTENV  ->setline(2)
+      $TESTENV = 'three'
+      $TESTENV  
+          ->setline(3)
+      assert_equal(['one', 'two', 'three'], getline(1, '$'))
+      bwipe!
+  END
+  CheckDefAndScriptSuccess(lines)
+enddef
+
 def Test_skipped_expr_linebreak()
   if 0
     var x = []
