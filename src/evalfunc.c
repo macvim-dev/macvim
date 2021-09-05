@@ -1354,9 +1354,9 @@ static funcentry_T global_functions[] =
     {"filter",		2, 2, FEARG_1,	    arg2_mapfilter,
 			ret_first_arg,	    f_filter},
     {"finddir",		1, 3, FEARG_1,	    arg3_string_string_number,
-			ret_string,	    f_finddir},
+			ret_any,	    f_finddir},
     {"findfile",	1, 3, FEARG_1,	    arg3_string_string_number,
-			ret_string,	    f_findfile},
+			ret_any,	    f_findfile},
     {"flatten",		1, 2, FEARG_1,	    arg2_list_any_number,
 			ret_list_any,	    f_flatten},
     {"flattennew",	1, 2, FEARG_1,	    arg2_list_any_number,
@@ -3931,6 +3931,11 @@ common_function(typval_T *argvars, typval_T *rettv, int is_funcref)
 	// function('MyFunc', [arg], dict)
 	s = tv_get_string(&argvars[0]);
 	use_string = TRUE;
+    }
+    if (s == NULL)
+    {
+	semsg(_(e_invarg2), "NULL");
+	return;
     }
 
     if ((use_string && vim_strchr(s, AUTOLOAD_CHAR) == NULL) || is_funcref)
@@ -6719,9 +6724,14 @@ libcall_common(typval_T *argvars UNUSED, typval_T *rettv, int type)
 	if (argvars[2].v_type == VAR_STRING)
 	    string_in = argvars[2].vval.v_string;
 	if (type == VAR_NUMBER)
+	{
 	    string_result = NULL;
+	}
 	else
+	{
+	    rettv->vval.v_string = NULL;
 	    string_result = &rettv->vval.v_string;
+	}
 	if (mch_libcall(argvars[0].vval.v_string,
 			     argvars[1].vval.v_string,
 			     string_in,

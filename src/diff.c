@@ -655,6 +655,8 @@ diff_redraw(
     int		dofold)	    // also recompute the folds
 {
     win_T	*wp;
+    win_T	*wp_other = NULL;
+    int		used_max_fill = FALSE;
     int		n;
 
     need_diff_redraw = FALSE;
@@ -662,6 +664,8 @@ diff_redraw(
 	if (wp->w_p_diff)
 	{
 	    redraw_win_later(wp, SOME_VALID);
+	    if (wp != curwin)
+		wp_other = wp;
 #ifdef FEAT_FOLDING
 	    if (dofold && foldmethodIsDiff(wp))
 		foldUpdateAll(wp);
@@ -674,10 +678,19 @@ diff_redraw(
 		if (wp->w_topfill > n)
 		    wp->w_topfill = (n < 0 ? 0 : n);
 		else if (n > 0 && n > wp->w_topfill)
+		{
 		    wp->w_topfill = n;
+		    if (wp == curwin)
+			used_max_fill = TRUE;
+		}
 		check_topfill(wp, FALSE);
 	    }
 	}
+
+    if (wp_other != NULL && used_max_fill && curwin->w_p_scb)
+	// The current window was set to used the maximum number of filler
+	// lines, may need to reduce them.
+	diff_set_topline(wp_other, curwin);
 }
 
     static void
@@ -1095,7 +1108,7 @@ diff_file_internal(diffio_T *diffio)
 
     emit_cfg.ctxlen = 0; // don't need any diff_context here
     emit_cb.priv = &diffio->dio_diff;
-    emit_cb.outf = xdiff_out;
+    emit_cb.out_line = xdiff_out;
     if (xdl_diff(&diffio->dio_orig.din_mmfile,
 		&diffio->dio_new.din_mmfile,
 		&param, &emit_cfg, &emit_cb) < 0)

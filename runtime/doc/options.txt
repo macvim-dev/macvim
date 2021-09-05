@@ -1,4 +1,4 @@
-*options.txt*	For Vim version 8.2.  Last change: 2021 Jul 22
+*options.txt*	For Vim version 8.2.  Last change: 2021 Aug 28
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -195,10 +195,17 @@ include the "|" in the option value, use "\|" instead.  This example sets the
 This sets the 'titlestring' option to "hi" and 'iconstring' to "there": >
    :set titlestring=hi|set iconstring=there
 
-Similarly, the double quote character starts a comment.  To include the '"' in
-the option value, use '\"' instead.  This example sets the 'titlestring'
-option to 'hi "there"': >
+Similarly, in legacy script the double quote character starts a comment.  To
+include the '"' in the option value, use '\"' instead.  This example sets the
+'titlestring' option to 'hi "there"': >
    :set titlestring=hi\ \"there\"
+
+In |Vim9| script it's simpler, comments start with a '#' character, and only
+when preceded by white space.  A backslash is needed less often: >
+   vim9script
+   set titlestring=hi\ "there"
+   set titlestring=hi#there#
+   set titlestring=hi\ \#there#
 
 For Win32 backslashes in file names are mostly not removed.  More precise: For
 options that expect a file name (those where environment variables are
@@ -540,6 +547,15 @@ chance that a normal word like "lex:" is caught.  There is one exception:
 "vi:" and "vim:" can also be at the start of the line (for compatibility with
 version 3.0).  Using "ex:" at the start of the line will be ignored (this
 could be short for "example:").
+
+If the modeline is disabled within a modeline, subsequent modelines will be
+ignored.  This is to allow turning off modeline on a per-file basis.  This is
+useful when a line looks like a modeline but isn't.  For example, it would be
+good to start a YAML file containing strings like "vim:" with
+    # vim: nomodeline ~
+so as to avoid modeline misdetection.  Following options on the same line
+after modeline deactivation, if any, are still evaluated (but you would
+normally not have any).
 
 							*modeline-local*
 The options are set like with ":setlocal": The new value only applies to the

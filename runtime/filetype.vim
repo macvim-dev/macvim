@@ -1,7 +1,7 @@
 " Vim support file to detect file types
 "
 " Maintainer:	Bram Moolenaar <Bram@vim.org>
-" Last Change:	2021 Jul 03
+" Last Change:	2021 Aug 23
 
 " Listen very carefully, I will say this only once
 if exists("did_load_filetypes")
@@ -1029,7 +1029,7 @@ au BufNewFile,BufRead *.markdown,*.mdown,*.mkd,*.mkdn,*.mdwn,*.md  setf markdown
 " Mason
 au BufNewFile,BufRead *.mason,*.mhtml,*.comp	setf mason
 
-" Mathematica, Matlab, Murphi or Objective C
+" Mathematica, Matlab, Murphi, Objective C or Octave
 au BufNewFile,BufRead *.m			call dist#ft#FTm()
 
 " Mathematica notebook
@@ -1174,6 +1174,9 @@ au BufNewFile,BufRead *.ml,*.mli,*.mll,*.mly,.ocamlinit,*.mlt,*.mlp,*.mlip,*.mli
 
 " Occam
 au BufNewFile,BufRead *.occ			setf occam
+
+" Octave
+au BufNewFile,BufRead octave.conf,.octaverc,octaverc	setf octave
 
 " Omnimark
 au BufNewFile,BufRead *.xom,*.xin		setf omnimark

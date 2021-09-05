@@ -1277,12 +1277,8 @@ set_one_cmd_context(
 		xp->xp_context = EXPAND_SHELLCMD;
 	}
 
-	// Check for environment variable
-	if (*xp->xp_pattern == '$'
-#if defined(MSWIN)
-		|| *xp->xp_pattern == '%'
-#endif
-		)
+	// Check for environment variable.
+	if (*xp->xp_pattern == '$')
 	{
 	    for (p = xp->xp_pattern + 1; *p != NUL; ++p)
 		if (!vim_isIDc(*p))
@@ -1296,7 +1292,7 @@ set_one_cmd_context(
 		    compl = EXPAND_ENV_VARS;
 	    }
 	}
-	// Check for user names
+	// Check for user names.
 	if (*xp->xp_pattern == '~')
 	{
 	    for (p = xp->xp_pattern + 1; *p != NUL && *p != '/'; ++p)
@@ -2082,7 +2078,9 @@ ExpandFromContext(
 
     // When expanding a function name starting with s:, match the <SNR>nr_
     // prefix.
-    if (xp->xp_context == EXPAND_USER_FUNC && STRNCMP(pat, "^s:", 3) == 0)
+    if ((xp->xp_context == EXPAND_USER_FUNC
+				       || xp->xp_context == EXPAND_DISASSEMBLE)
+	    && STRNCMP(pat, "^s:", 3) == 0)
     {
 	int len = (int)STRLEN(pat) + 20;
 
@@ -2145,8 +2143,8 @@ ExpandFromContext(
 	    {EXPAND_SYNTIME, get_syntime_arg, TRUE, TRUE},
 # endif
 	    {EXPAND_HIGHLIGHT, get_highlight_name, TRUE, TRUE},
-	    {EXPAND_EVENTS, get_event_name, TRUE, TRUE},
-	    {EXPAND_AUGROUP, get_augroup_name, TRUE, TRUE},
+	    {EXPAND_EVENTS, get_event_name, TRUE, FALSE},
+	    {EXPAND_AUGROUP, get_augroup_name, TRUE, FALSE},
 # ifdef FEAT_CSCOPE
 	    {EXPAND_CSCOPE, get_cscope_name, TRUE, TRUE},
 # endif
