@@ -1477,6 +1477,39 @@ def Test_vim9_import_export()
   delete('Xvim9_script')
 enddef
 
+def Test_import_star_fails()
+  writefile([], 'Xfoo.vim')
+  var lines =<< trim END
+      import * as foo from './Xfoo.vim'
+      foo = 'bar'
+  END
+  CheckDefAndScriptFailure2(lines, 'E1094:', 'E1236: Cannot use foo itself')
+  lines =<< trim END
+      vim9script
+      import * as foo from './Xfoo.vim'
+      var that = foo
+  END
+  CheckScriptFailure(lines, 'E1029: Expected ''.''')
+
+  lines =<< trim END
+      vim9script
+      import * as 9foo from './Xfoo.vim'
+  END
+  CheckScriptFailure(lines, 'E1047:')
+  lines =<< trim END
+      vim9script
+      import * as the#foo from './Xfoo.vim'
+  END
+  CheckScriptFailure(lines, 'E1047:')
+  lines =<< trim END
+      vim9script
+      import * as g:foo from './Xfoo.vim'
+  END
+  CheckScriptFailure(lines, 'E1047:')
+
+  delete('Xfoo.vim')
+enddef
+
 def Test_import_as()
   var export_lines =<< trim END
     vim9script

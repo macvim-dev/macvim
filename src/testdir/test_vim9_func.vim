@@ -438,6 +438,29 @@ def Test_return_invalid()
   CheckScriptFailure(lines, 'E1010:')
 enddef
 
+def Test_return_list_any()
+  var lines =<< trim END
+      vim9script
+      def Func(): list<string>
+        var l: list<any>
+        l->add('string')
+        return l
+      enddef
+      echo Func()
+  END
+  CheckScriptFailure(lines, 'E1012:')
+  lines =<< trim END
+      vim9script
+      def Func(): list<string>
+        var l: list<any>
+        l += ['string']
+        return l
+      enddef
+      echo Func()
+  END
+  CheckScriptFailure(lines, 'E1012:')
+enddef
+
 func Increment()
   let g:counter += 1
 endfunc
@@ -465,6 +488,10 @@ def Test_call_varargs()
   MyVarargs('one')->assert_equal('one')
   MyVarargs('one', 'two')->assert_equal('one,two')
   MyVarargs('one', 'two', 'three')->assert_equal('one,two,three')
+enddef
+
+def Test_call_white_space()
+  CheckDefAndScriptFailure2(["call Test ('text')"], 'E476:', 'E1068:')
 enddef
 
 def MyDefaultArgs(name = 'string'): string

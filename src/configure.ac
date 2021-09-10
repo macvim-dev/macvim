@@ -3941,7 +3941,9 @@ if test "$enable_canberra" = "yes"; then
   AC_MSG_CHECKING(for libcanberra)
   ac_save_CFLAGS="$CFLAGS"
   ac_save_LIBS="$LIBS"
-  CFLAGS="$CFLAGS $canberra_cflags"
+  if `echo "$CFLAGS" | grep -v "$canberra_cflags" >/dev/null`; then
+    CFLAGS="$CFLAGS $canberra_cflags"
+  fi
   LIBS="$LIBS $canberra_lib"
   AC_TRY_LINK([
   # include <canberra.h>
@@ -4726,6 +4728,11 @@ if test "x$MACOS_X" = "xyes"; then
   AC_SUBST(XCODEFLAGS)
 fi
 
+dnl On some systems REENTRANT needs to be defined.  It should not hurt to use
+dnl it everywhere.
+if `echo "$CFLAGS" | grep -v D_REENTRANT >/dev/null`; then
+  CFLAGS="$CFLAGS -D_REENTRANT"
+fi
 
 dnl gcc 3.1 changed the meaning of -MM.  The only solution appears to be to
 dnl use "-isystem" instead of "-I" for all non-Vim include dirs.
