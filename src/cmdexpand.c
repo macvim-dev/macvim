@@ -2274,7 +2274,8 @@ ExpandGeneric(
     {
 	if (xp->xp_context == EXPAND_EXPRESSION
 		|| xp->xp_context == EXPAND_FUNCTIONS
-		|| xp->xp_context == EXPAND_USER_FUNC)
+		|| xp->xp_context == EXPAND_USER_FUNC
+		|| xp->xp_context == EXPAND_DISASSEMBLE)
 	    // <SNR> functions should be sorted to the end.
 	    qsort((void *)*file, (size_t)*num_file, sizeof(char_u *),
 							   sort_func_compare);

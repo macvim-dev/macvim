@@ -287,6 +287,10 @@ def Test_balloon_split()
   assert_fails('balloon_split(true)', 'E1174:')
 enddef
 
+def Test_blob2list()
+  CheckDefAndScriptFailure2(['blob2list(10)'], 'E1013: Argument 1: type mismatch, expected blob but got number', 'E1238: Blob required for argument 1')
+enddef
+
 def Test_browse()
   CheckFeature browse
 
@@ -572,6 +576,7 @@ def Test_char2nr()
   assert_equal(97, char2nr('a', 0))
   assert_equal(97, char2nr('a', true))
   assert_equal(97, char2nr('a', false))
+  char2nr('')->assert_equal(0)
 enddef
 
 def Test_charclass()
@@ -786,6 +791,8 @@ def Test_escape()
   CheckDefAndScriptFailure2(['escape(true, false)'], 'E1013: Argument 1: type mismatch, expected string but got bool', 'E1174: String required for argument 1')
   CheckDefAndScriptFailure2(['escape("a", 10)'], 'E1013: Argument 2: type mismatch, expected string but got number', 'E1174: String required for argument 2')
   assert_equal('a\:b', escape("a:b", ":"))
+  escape('abc', '')->assert_equal('abc')
+  escape('', ':')->assert_equal('')
 enddef
 
 def Test_eval()
@@ -1090,6 +1097,13 @@ def Test_findfile()
   CheckDefAndScriptFailure2(['findfile("a", "b", "c")'], 'E1013: Argument 3: type mismatch, expected number but got string', 'E1210: Number required for argument 3')
 enddef
 
+def Test_flatten()
+  var lines =<< trim END
+      echo flatten([1, 2, 3])
+  END
+  CheckDefAndScriptFailure(lines, 'E1158:')
+enddef
+
 def Test_flattennew()
   var lines =<< trim END
       var l = [1, [2, [3, 4]], 5]
@@ -1098,13 +1112,12 @@ def Test_flattennew()
 
       call assert_equal([1, 2, [3, 4], 5], flattennew(l, 1))
       call assert_equal([1, [2, [3, 4]], 5], l)
+
+      var ll: list<list<string>> = [['a', 'b', 'c']]
+      assert_equal(['a', 'b', 'c'], ll->flattennew())
   END
   CheckDefAndScriptSuccess(lines)
 
-  lines =<< trim END
-      echo flatten([1, 2, 3])
-  END
-  CheckDefAndScriptFailure(lines, 'E1158:')
   CheckDefAndScriptFailure2(['flattennew({})'], 'E1013: Argument 1: type mismatch, expected list<any> but got dict<unknown>', 'E1211: List required for argument 1')
   CheckDefAndScriptFailure2(['flattennew([], "1")'], 'E1013: Argument 2: type mismatch, expected number but got string', 'E1210: Number required for argument 2')
 enddef
@@ -1913,6 +1926,11 @@ def Test_lispindent()
   CheckDefAndScriptFailure2(['lispindent({})'], 'E1013: Argument 1: type mismatch, expected string but got dict<unknown>', 'E1220: String or Number required for argument 1')
   CheckDefExecAndScriptFailure(['lispindent("")'], 'E1209: Invalid value for a line number')
   assert_equal(0, lispindent(1))
+enddef
+
+def Test_list2blob()
+  CheckDefAndScriptFailure2(['list2blob(10)'], 'E1013: Argument 1: type mismatch, expected list<number> but got number', 'E1211: List required for argument 1')
+  CheckDefFailure(['list2blob([0z10, 0z02])'], 'E1013: Argument 1: type mismatch, expected list<number> but got list<blob>')
 enddef
 
 def Test_list2str_str2list_utf8()

@@ -1386,6 +1386,7 @@ end_visual_mode_keep_button()
 #endif
 
     VIsual_active = FALSE;
+    trigger_modechanged();
     setmouse();
     mouse_dragging = 0;
 
@@ -5111,19 +5112,23 @@ nv_replace(cmdarg_T *cap)
 	    {
 		/*
 		 * Get ptr again, because u_save and/or showmatch() will have
-		 * released the line.  At the same time we let know that the
-		 * line will be changed.
+		 * released the line.  This may also happen in ins_copychar().
+		 * At the same time we let know that the line will be changed.
 		 */
-		ptr = ml_get_buf(curbuf, curwin->w_cursor.lnum, TRUE);
 		if (cap->nchar == Ctrl_E || cap->nchar == Ctrl_Y)
 		{
 		  int c = ins_copychar(curwin->w_cursor.lnum
 					   + (cap->nchar == Ctrl_Y ? -1 : 1));
+
+		  ptr = ml_get_buf(curbuf, curwin->w_cursor.lnum, TRUE);
 		  if (c != NUL)
 		    ptr[curwin->w_cursor.col] = c;
 		}
 		else
+		{
+		    ptr = ml_get_buf(curbuf, curwin->w_cursor.lnum, TRUE);
 		    ptr[curwin->w_cursor.col] = cap->nchar;
+		}
 		if (p_sm && msg_silent == 0)
 		    showmatch(cap->nchar);
 		++curwin->w_cursor.col;
@@ -5650,6 +5655,7 @@ nv_visual(cmdarg_T *cap)
 	{				    //	   or char/line mode
 	    VIsual_mode = cap->cmdchar;
 	    showmode();
+	    trigger_modechanged();
 	}
 	redraw_curbuf_later(INVERTED);	    // update the inversion
     }
@@ -5765,6 +5771,7 @@ n_start_visual_mode(int c)
     VIsual_mode = c;
     VIsual_active = TRUE;
     VIsual_reselect = TRUE;
+    trigger_modechanged();
 
     // Corner case: the 0 position in a tab may change when going into
     // virtualedit.  Recalculate curwin->w_cursor to avoid bad highlighting.

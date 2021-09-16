@@ -459,13 +459,32 @@ check_for_bool_arg(typval_T *args, int idx)
 }
 
 /*
- * Check for an optional bool argument at 'idx'
+ * Check for an optional bool argument at 'idx'.
+ * Return FAIL if the type is wrong.
  */
     int
 check_for_opt_bool_arg(typval_T *args, int idx)
 {
-    return (args[idx].v_type == VAR_UNKNOWN
-	    || check_for_bool_arg(args, idx) != FAIL);
+    if (args[idx].v_type == VAR_UNKNOWN)
+	return OK;
+    return check_for_bool_arg(args, idx);
+}
+
+/*
+ * Give an error and return FAIL unless "args[idx]" is a blob.
+ */
+    int
+check_for_blob_arg(typval_T *args, int idx)
+{
+    if (args[idx].v_type != VAR_BLOB)
+    {
+	if (idx >= 0)
+	    semsg(_(e_blob_required_for_argument_nr), idx + 1);
+	else
+	    emsg(_(e_blob_required));
+	return FAIL;
+    }
+    return OK;
 }
 
 /*
