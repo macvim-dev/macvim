@@ -122,4 +122,16 @@ func Test_put_visual_delete_all_lines()
   close!
 endfunc
 
+func Test_gp_with_count_leaves_cursor_at_end()
+  new
+  call setline(1, '<---->')
+  call setreg('@', "foo\nbar", 'c')
+  normal 1G3|3gp
+  call assert_equal([0, 4, 4, 0], getpos("."))
+  call assert_equal(['<--foo', 'barfoo', 'barfoo', 'bar-->'], getline(1, '$'))
+  call assert_equal([0, 4, 3, 0], getpos("']"))
+
+  bwipe!
+endfunc
+
 " vim: shiftwidth=2 sts=2 expandtab
