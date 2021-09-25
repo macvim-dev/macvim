@@ -16,6 +16,8 @@
 
 <p>Apologies for the late update, as I have not had much time to work on MacVim. This update is primarily to catch up to latest Vim. Future MacVim releases in near future will go back to more bug fixes / features, and addressing potential issues caused by macOS 12.</p>
 
+<p>Note: If you are currently on release 166 / 8.2.1719 (released on 2020-09-20), you may see errors when updating to this release directly using the updater since it contained a wrong key. Simply go to https://macvim.org/ and download the latest version directly. This issue does not affect any other release.</p>
+
 <h1 id="compatibility">Compatibility</h1>
 
 <p>Requires macOS 10.9 or above.</p>
