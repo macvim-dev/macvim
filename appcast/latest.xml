@@ -6,20 +6,15 @@
     <description>MacVim</description>
 
     <item>
-      <title>MacVim snapshot-171</title>
+      <title>MacVim snapshot-172</title>
       <description><![CDATA[
 <style>
 :root { supported-color-schemes: light dark; color-scheme: light dark; }
 </style>
-<p>Updated to Vim 8.2.2681.</p>
 
-<p>This is a small update mostly containing a fix to a rendering bug in Core Text renderer.</p>
+<p>Updated to Vim 8.2.3455.</p>
 
-<h1 id="fixes">Fixes</h1>
-
-<ul>
-  <li>Fixed a rendering issue where MacVim would stop drawing text when the computer is running low on memory. Previously the user would have to restart MacVim in order to get the rendering back. <a href="https://github.com/macvim-dev/macvim/issues/1164">#1164</a></li>
-</ul>
+<p>Apologies for the late update, as I have not had much time to work on MacVim. This update is primarily to catch up to latest Vim. Future MacVim releases in near future will go back to more bug fixes / features, and addressing potential issues caused by macOS 12.</p>
 
 <h1 id="compatibility">Compatibility</h1>
 
@@ -38,22 +33,22 @@
 <p><br /><small>Read the latest release notes <a href="https://github.com/macvim-dev/macvim/releases/latest">here</a>.</small></p>
 
       ]]></description>
-      <pubDate>Thu, 01 Apr 2021 02:00:00 -0700</pubDate>
+      <pubDate>Fri, 24 Sep 2021 18:00:00 -0700</pubDate>
       <sparkle:minimumSystemVersion>10.9</sparkle:minimumSystemVersion>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-171/MacVim.dmg"
-        sparkle:version="171"
-        sparkle:shortVersionString="8.2.2681"
-        sparkle:dsaSignature="MC4CFQCZ9ihexyGUMlRyY3TO4YCAH9MhGgIVALv1TJTPr5kZ2VeaJnxrvNsYiJMk"
-        length="23692879"
+        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-172/MacVim.dmg"
+        sparkle:version="172"
+        sparkle:shortVersionString="8.2.3455"
+        sparkle:dsaSignature="MC0CFHCuo46E/4RIgwTG8j2pTmfPY87fAhUAodv8UFRvhYWV2ADVrTNcTIXewO0="
+        sparkle:edSignature="QnCFKig2ht7lFgqT1T+x+5QiOb20eCrLJ0ZVB4ufzGo+J65R3JFfNiUk2fcvXLZKdzvcwPc2bdS4YseaLOwSAQ==" length="24001847"
         />
       <sparkle:deltas>
         <enclosure type="application/octet-stream"
-          url="https://github.com/macvim-dev/macvim/releases/download/snapshot-171/170_to_171.delta"
-          sparkle:version="171"
-          sparkle:deltaFrom="170"
-          sparkle:dsaSignature="MCwCFCLcFRvrC5EGY1T4zR6dI6rGBrp/AhRH7mtRbSIMF5fAM+u/owVKEVfeZA=="
-          length="808944"
+          url="https://github.com/macvim-dev/macvim/releases/download/snapshot-172/171_to_172.delta"
+          sparkle:version="172"
+          sparkle:deltaFrom="171"
+          sparkle:dsaSignature="MCwCFDe8OABQSJyJGRsbVEZBr7As2wAYAhQ2NCvcJjzMApxV6gYwyeR9FIhbjg=="
+          sparkle:edSignature="eGkr0RhyJDdu2+FFU5v2xelbJk30zK0HlpsNu/sknXZ1m1gdIJtspjrSiIgWpRCV8q8nx2YB3V2PqiYO9frQCg==" length="2607618"
           />
       </sparkle:deltas>
     </item>
