@@ -5,14 +5,7 @@
 # file.
 
 if [[ $# == 0 ]]; then
-    echo "Usage: sign-developer-id <MacVim_dmg> <entitlements_file>"
-    exit -1
-fi
-
-set -e
-
-if [[ $ALTOOL_USERNAME == '' || $ALTOOL_PASSWORD == '' ]]; then
-    echo 'Need to set ALTOOL_USERNAME and ALTOOL_PASSWORD in environment variables'
+    echo "Usage: notarize-dmg <MacVim_dmg>"
     exit -1
 fi
 
@@ -20,55 +13,89 @@ set -e
 
 macvim_dmg=$1
 
-# Step 1: Submit app to Apple's servers for notarization
-set -x
-notarize_submit_uuid=$(xcrun altool --notarize-app --primary-bundle-id "org.vim.macvim" --file ${macvim_dmg} --username "${ALTOOL_USERNAME}" --password "${ALTOOL_PASSWORD}" | grep "RequestUUID" | sed -E "s/RequestUUID = (.*)/\1/")
-set +x
+# Xcode 13 changed the workflow to use "notarytool" instead of "altool". Use that by default.
 
-if [[ ${notarize_submit_uuid} == "" ]]; then
-    echo "Failed to submit for notarization!"
-    exit -1
-fi
-if ! [[ ${notarize_submit_uuid} =~ "^[a-f0-9\-]*$" ]]; then
-    echo "Request UUID format error!"
-    exit -1
-fi
+if [[ "$USE_ALTOOL" != "1" ]]; then
+    # Xcode 13+ path using notarytool and App Store Connect API key.
+    #
+    # Note that you should have an API key from
+    # https://appstoreconnect.apple.com/access/api, and have already used
+    # "xcrun notarytool store-credentials" to store the key to your local
+    # Keychain.
+    #
+    # See: https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution/customizing_the_notarization_workflow
 
-# Step 2: Wait for notarization to success or fail by continuously querying
-# Apple's servers for status updates
-echo "Notarization request UUID: ${notarize_submit_uuid}"
-printf "Waiting for notarization results..."
-
-counter=0
-while sleep 30; do
-    notarize_results=$(xcrun altool --notarization-info ${notarize_submit_uuid} --username "${ALTOOL_USERNAME}" --password "${ALTOOL_PASSWORD}")
-    notarize_status=$(echo $notarize_results | grep "Status:" | sed -E "s/^.*Status: (.*)/\1/")
-
-    if ((++counter > 60)); then
-        echo "Notarization timeout!"
+    if [[ "${NOTARIZATION_KEYCHAIN_PROFILE}" == '' ]]; then
+        echo 'Need to set NOTARIZATION_KEYCHAIN_PROFILE in environment variables'
         exit -1
     fi
 
-    if [[ $notarize_status == "in progress" ]]; then
-        printf "."
-        continue
-    elif [[ $notarize_status == "success" ]]; then
-        printf "\n"
-        echo "Notarization Success!\n"
-        echo $notarize_results
-        break
-    else
-        printf "\n"
+    # Step 1: Submit app for notarization, and wait till it finishes.
+    set -x
+    xcrun notarytool submit ${macvim_dmg} --keychain-profile "${NOTARIZATION_KEYCHAIN_PROFILE}" --progress --wait --timeout=20m
+    set +x
+else
+    # Legacy Xcode 12 path using altool and username + app-specific password.
+    # See: https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution/customizing_the_notarization_workflow/notarizing_apps_when_developing_with_xcode_12_and_earlier
+
+    if [[ $ALTOOL_USERNAME == '' || $ALTOOL_PASSWORD == '' ]]; then
+        echo 'Need to set ALTOOL_USERNAME and ALTOOL_PASSWORD in environment variables'
         exit -1
     fi
-done
 
-# Step 3: Staple the notarization info to the DMG so that an offline user can
+    # Step 1.1: Submit app to Apple's servers for notarization
+    set -x
+    notarize_submit_uuid=$(xcrun altool --notarize-app --primary-bundle-id "org.vim.macvim" --file ${macvim_dmg} --username "${ALTOOL_USERNAME}" --password "${ALTOOL_PASSWORD}" | grep "RequestUUID" | sed -E "s/RequestUUID = (.*)/\1/")
+    set +x
+
+    if [[ ${notarize_submit_uuid} == "" ]]; then
+        echo "Failed to submit for notarization!"
+        exit -1
+    fi
+    if ! [[ ${notarize_submit_uuid} =~ "^[a-f0-9\-]*$" ]]; then
+        echo "Request UUID format error!"
+        exit -1
+    fi
+
+    # Step 1.2: Wait for notarization to success or fail by continuously querying
+    # Apple's servers for status updates
+    echo "Notarization request UUID: ${notarize_submit_uuid}"
+    printf "Waiting for notarization results..."
+
+    counter=0
+    while sleep 30; do
+        notarize_results=$(xcrun altool --notarization-info ${notarize_submit_uuid} --username "${ALTOOL_USERNAME}" --password "${ALTOOL_PASSWORD}")
+        notarize_status=$(echo $notarize_results | grep "Status:" | sed -E "s/^.*Status: (.*)/\1/")
+
+        if ((++counter > 60)); then
+            echo "Notarization timeout!"
+            exit -1
+        fi
+
+        if [[ $notarize_status == "in progress" ]]; then
+            printf "."
+            continue
+        elif [[ $notarize_status == "success" ]]; then
+            printf "\n"
+            echo "Notarization Success!\n"
+            echo $notarize_results
+            break
+        else
+            printf "\n"
+            exit -1
+        fi
+    done
+fi
+
+# Step 2: Staple the notarization info to the DMG so that an offline user can
 # verify that it is notarized.
 set -x
 xcrun stapler staple ${macvim_dmg}
+set +x
 
 # Just print out extra info for reference
 echo "--------------------"
+set -x
 codesign -d --verbose=2 ${macvim_dmg}
 spctl -a -t open --context context:primary-signature -v ${macvim_dmg}
+set +x
