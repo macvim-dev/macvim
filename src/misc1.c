@@ -675,6 +675,11 @@ f_mode(typval_T *argvars, typval_T *rettv)
 	{
 	    buf[0] = 'R';
 	    buf[1] = 'v';
+
+	    if (ins_compl_active())
+		buf[2] = 'c';
+	    else if (ctrl_x_mode_not_defined_yet())
+		buf[2] = 'x';
 	}
 	else
 	{
@@ -682,6 +687,7 @@ f_mode(typval_T *argvars, typval_T *rettv)
 		buf[0] = 'R';
 	    else
 		buf[0] = 'i';
+
 	    if (ins_compl_active())
 		buf[1] = 'c';
 	    else if (ctrl_x_mode_not_defined_yet())
@@ -712,6 +718,10 @@ f_mode(typval_T *argvars, typval_T *rettv)
 	    buf[1] = 'i';
 	    buf[2] = restart_edit;
 	}
+#ifdef FEAT_TERMINAL
+	else if (term_in_normal_mode())
+	    buf[1] = 't';
+#endif
     }
 
     // Clear out the minor mode when the argument is not a non-zero number or
@@ -2660,7 +2670,7 @@ trigger_modechanged()
 #if defined(FEAT_EVAL) || defined(PROTO)
     dict_T	    *v_event;
     typval_T	    rettv;
-    typval_T	    tv;
+    typval_T	    tv[2];
     char_u	    *pat_pre;
     char_u	    *pat;
 
@@ -2669,8 +2679,10 @@ trigger_modechanged()
 
     v_event = get_vim_var_dict(VV_EVENT);
 
-    tv.v_type = VAR_UNKNOWN;
-    f_mode(&tv, &rettv);
+    tv[0].v_type = VAR_NUMBER;
+    tv[0].vval.v_number = 1;	    // get full mode
+    tv[1].v_type = VAR_UNKNOWN;
+    f_mode(tv, &rettv);
     (void)dict_add_string(v_event, "new_mode", rettv.vval.v_string);
     (void)dict_add_string(v_event, "old_mode", last_mode);
     dict_set_items_ro(v_event);

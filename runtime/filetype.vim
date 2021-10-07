@@ -1,7 +1,7 @@
 " Vim support file to detect file types
 "
 " Maintainer:	Bram Moolenaar <Bram@vim.org>
-" Last Change:	2021 Sep 21
+" Last Change:	2021 Oct 03
 
 " Listen very carefully, I will say this only once
 if exists("did_load_filetypes")
@@ -488,7 +488,7 @@ au BufNewFile,BufRead *.desktop,*.directory	setf desktop
 au BufNewFile,BufRead dict.conf,.dictrc		setf dictconf
 
 " Dictd config
-au BufNewFile,BufRead dictd.conf		setf dictdconf
+au BufNewFile,BufRead dictd*.conf		setf dictdconf
 
 " Diff files
 au BufNewFile,BufRead *.diff,*.rej		setf diff
@@ -876,6 +876,9 @@ au BufNewFile,BufRead *.json-patch			setf json
 " Jupyter Notebook is also json
 au BufNewFile,BufRead *.ipynb				setf json
 
+" Other files that look like json
+au BufNewFile,BufRead .babelrc,.eslintrc,.prettierrc,.firebaserc  setf json
+
 " JSONC
 au BufNewFile,BufRead *.jsonc			setf jsonc
 
@@ -1113,6 +1116,9 @@ au BufNewFile,BufRead *.mysql			setf mysql
 " Mutt setup files (must be before catch *.rc)
 au BufNewFile,BufRead */etc/Muttrc.d/*		call s:StarSetf('muttrc')
 
+" Tcl Shell RC file
+au BufNewFile,BufRead tclsh.rc			setf tcl
+
 " M$ Resource files
 au BufNewFile,BufRead *.rc,*.rch		setf rc
 
@@ -1142,6 +1148,9 @@ au BufNewFile,BufRead Neomuttrc			setf neomuttrc
 
 " Netrc
 au BufNewFile,BufRead .netrc			setf netrc
+
+" Nginx
+au BufNewFile,BufRead *.nginx,nginx*.conf,*nginx.conf,*/etc/nginx/*,*/usr/local/nginx/conf/*,*/nginx/*.conf			setf nginx
 
 " Ninja file
 au BufNewFile,BufRead *.ninja			setf ninja
@@ -1805,7 +1814,7 @@ au BufRead,BufNewFile {pending,completed,undo}.data  setf taskdata
 au BufRead,BufNewFile *.task			setf taskedit
 
 " Tcl (JACL too)
-au BufNewFile,BufRead *.tcl,*.tk,*.itcl,*.itk,*.jacl	setf tcl
+au BufNewFile,BufRead *.tcl,*.tm,*.tk,*.itcl,*.itk,*.jacl,.tclshrc,.wishrc	setf tcl
 
 " TealInfo
 au BufNewFile,BufRead *.tli			setf tli
@@ -1999,14 +2008,15 @@ au BufNewFile,BufRead *.ws[fc]			setf wsh
 " XHTML
 au BufNewFile,BufRead *.xhtml,*.xht		setf xhtml
 
-" X Pixmap (dynamically sets colors, use BufEnter to make it work better)
-au BufEnter *.xpm
+" X Pixmap (dynamically sets colors, this used to trigger on BufEnter to make
+" it work better, but that breaks setting 'filetype' manually)
+au BufNewFile,BufRead *.xpm
 	\ if getline(1) =~ "XPM2" |
 	\   setf xpm2 |
 	\ else |
 	\   setf xpm |
 	\ endif
-au BufEnter *.xpm2				setf xpm2
+au BufNewFile,BufRead *.xpm2			setf xpm2
 
 " XFree86 config
 au BufNewFile,BufRead XF86Config

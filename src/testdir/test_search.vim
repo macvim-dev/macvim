@@ -1977,4 +1977,17 @@ func Test_pattern_is_uppercase_smartcase()
   bw!
 endfunc
 
+func Test_no_last_search_pattern()
+  CheckOption incsearch
+
+  let @/ = ""
+  set incsearch
+  " these were causing a crash
+  call feedkeys("//\<C-G>", 'xt')
+  call feedkeys("//\<C-T>", 'xt')
+  call feedkeys("??\<C-G>", 'xt')
+  call feedkeys("??\<C-T>", 'xt')
+endfunc
+
+
 " vim: shiftwidth=2 sts=2 expandtab

@@ -2273,6 +2273,47 @@ func Test_user_command_function_call_with_endtry()
   call delete('XtestThrow')
 endfunc
 
+func ThisWillFail()
+
+endfunc
+
+" This was crashing prior to the fix in 8.2.3478.
+func Test_error_in_catch_and_finally()
+  let lines =<< trim END
+    try
+      echo x
+    catch
+      for l in []
+    finally
+  END
+  call writefile(lines, 'XtestCatchAndFinally')
+  try
+    source XtestCatchAndFinally
+  catch /E600:/
+  endtry
+
+  call delete('XtestCatchAndFinally')
+endfunc
+
+" This was causing an illegal memory access
+func Test_leave_block_in_endtry_not_called()
+  let lines =<< trim END
+      vim9script
+      try #
+      for x in []
+      if
+      endwhile
+      if
+      endtry
+  END
+  call writefile(lines, 'XtestEndtry')
+  try
+    source XtestEndtry
+  catch /E171:/
+  endtry
+
+  call delete('XtestEndtry')
+endfunc
 
 " Modeline								    {{{1
 " vim: ts=8 sw=2 sts=2 expandtab tw=80 fdm=marker

@@ -1066,6 +1066,9 @@ doESCkey:
 	case K_CURSORHOLD:	// Didn't type something for a while.
 	    ins_apply_autocmds(EVENT_CURSORHOLDI);
 	    did_cursorhold = TRUE;
+	    // If CTRL-G U was used apply it to the next typed key.
+	    if (dont_sync_undo == TRUE)
+		dont_sync_undo = MAYBE;
 	    break;
 
 #ifdef FEAT_GUI_MSWIN
