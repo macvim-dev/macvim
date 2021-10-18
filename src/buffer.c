@@ -327,6 +327,7 @@ open_buffer(
     // Set last_changedtick to avoid triggering a TextChanged autocommand right
     // after it was added.
     curbuf->b_last_changedtick = CHANGEDTICK(curbuf);
+    curbuf->b_last_changedtick_i = CHANGEDTICK(curbuf);
     curbuf->b_last_changedtick_pum = CHANGEDTICK(curbuf);
 
     // require "!" to overwrite the file, because it wasn't read completely
@@ -2367,6 +2368,7 @@ free_buf_options(
 #ifdef FEAT_COMPL_FUNC
     clear_string_option(&buf->b_p_cfu);
     clear_string_option(&buf->b_p_ofu);
+    clear_string_option(&buf->b_p_tsrfu);
 #endif
 #ifdef FEAT_QUICKFIX
     clear_string_option(&buf->b_p_gp);
@@ -3033,8 +3035,6 @@ buflist_setfpos(
     wip->wi_prev = NULL;
     if (wip->wi_next)
 	wip->wi_next->wi_prev = wip;
-
-    return;
 }
 
 #ifdef FEAT_DIFF

@@ -3886,7 +3886,7 @@ f_fnameescape(typval_T *argvars, typval_T *rettv)
 	return;
 
     rettv->vval.v_string = vim_strsave_fnameescape(
-					   tv_get_string(&argvars[0]), FALSE);
+					 tv_get_string(&argvars[0]), VSE_NONE);
     rettv->v_type = VAR_STRING;
 }
 
@@ -5493,6 +5493,13 @@ f_has(typval_T *argvars, typval_T *rettv)
 		0
 #endif
 		},
+	{"nanotime",
+#ifdef ST_MTIM_NSEC
+		1
+#else
+		0
+#endif
+	},
 	{"num64", 1},
 	{"ole",
 #ifdef FEAT_OLE

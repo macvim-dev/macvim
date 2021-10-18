@@ -664,3 +664,11 @@ EXTERN char e_blob_required_for_argument_nr[]
 	INIT(= N_("E1238: Blob required for argument %d"));
 EXTERN char e_invalid_value_for_blob_nr[]
 	INIT(= N_("E1239: Invalid value for blob: %d"));
+EXTERN char e_resulting_text_too_long[]
+	INIT(= N_("E1240: Resulting text too long"));
+EXTERN char e_separator_not_supported_str[]
+	INIT(= N_("E1241: Separator not supported: %s"));
+EXTERN char e_no_white_space_allowed_before_separator_str[]
+	INIT(= N_("E1242: No white space allowed before separator: %s"));
+EXTERN char e_ascii_code_not_in_range[]
+	INIT(= N_("E1243: ASCII code not in 32-127 range"));

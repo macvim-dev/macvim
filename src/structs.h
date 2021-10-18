@@ -2704,10 +2704,10 @@ struct file_buffer
 				// incremented for each change, also for undo
 #define CHANGEDTICK(buf) ((buf)->b_ct_di.di_tv.vval.v_number)
 
-    varnumber_T	b_last_changedtick; // b:changedtick when TextChanged or
-				    // TextChangedI was last triggered.
-    varnumber_T	b_last_changedtick_pum; // b:changedtick when TextChangedP was
+    varnumber_T	b_last_changedtick;	// b:changedtick when TextChanged was
 					// last triggered.
+    varnumber_T	b_last_changedtick_pum; // b:changedtick for TextChangedP
+    varnumber_T	b_last_changedtick_i;   // b:changedtick for TextChangedI
 
     int		b_saving;	// Set to TRUE if we are in the middle of
 				// saving the buffer.
@@ -2727,7 +2727,9 @@ struct file_buffer
     wininfo_T	*b_wininfo;	// list of last used info for each window
 
     long	b_mtime;	// last change time of original file
+    long	b_mtime_ns;	// nanoseconds of last change time
     long	b_mtime_read;	// last change time when reading
+    long	b_mtime_read_ns;  // nanoseconds of last read time
     off_T	b_orig_size;	// size of original file in bytes
     int		b_orig_mode;	// mode of original file
 #ifdef FEAT_VIMINFO
@@ -2967,6 +2969,9 @@ struct file_buffer
     unsigned	b_tc_flags;     // flags for 'tagcase'
     char_u	*b_p_dict;	// 'dictionary' local value
     char_u	*b_p_tsr;	// 'thesaurus' local value
+#ifdef FEAT_COMPL_FUNC
+    char_u	*b_p_tsrfu;	// 'thesaurusfunc' local value
+#endif
     long	b_p_ul;		// 'undolevels' local value
 #ifdef FEAT_PERSISTENT_UNDO
     int		b_p_udf;	// 'undofile'

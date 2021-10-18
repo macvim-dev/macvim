@@ -404,6 +404,7 @@ EXTERN char_u	*p_cinw;	// 'cinwords'
 #ifdef FEAT_COMPL_FUNC
 EXTERN char_u	*p_cfu;		// 'completefunc'
 EXTERN char_u	*p_ofu;		// 'omnifunc'
+EXTERN char_u	*p_tsrfu;	// 'thesaurusfunc'
 #endif
 EXTERN int	p_ci;		// 'copyindent'
 #ifdef FEAT_ANTIALIAS
@@ -633,6 +634,9 @@ EXTERN char_u	*p_guifontset;	// 'guifontset'
 EXTERN char_u	*p_guifontwide;	// 'guifontwide'
 EXTERN int	p_guipty;	// 'guipty'
 #endif
+#ifdef FEAT_GUI_GTK
+EXTERN char_u	*p_guiligatures;  // 'guiligatures'
+# endif
 #if defined(FEAT_GUI_GTK) || defined(FEAT_GUI_X11)
 EXTERN long	p_ghr;		// 'guiheadroom'
 #endif
@@ -1246,6 +1250,9 @@ enum
 #endif
     , BV_TAGS
     , BV_TC
+#ifdef FEAT_COMPL_FUNC
+    , BV_TSRFU
+#endif
     , BV_TS
     , BV_TW
     , BV_TX

@@ -3753,7 +3753,7 @@ nv_ident(cmdarg_T *cap)
 	ptr = vim_strnsave(ptr, n);
 	if (kp_ex)
 	    // Escape the argument properly for an Ex command
-	    p = vim_strsave_fnameescape(ptr, FALSE);
+	    p = vim_strsave_fnameescape(ptr, VSE_NONE);
 	else
 	    // Escape the argument properly for a shell command
 	    p = vim_strsave_shellescape(ptr, TRUE, TRUE);
@@ -5683,8 +5683,7 @@ nv_visual(cmdarg_T *cap)
 	    {
 		curwin->w_cursor.lnum +=
 				    resel_VIsual_line_count * cap->count0 - 1;
-		if (curwin->w_cursor.lnum > curbuf->b_ml.ml_line_count)
-		    curwin->w_cursor.lnum = curbuf->b_ml.ml_line_count;
+		check_cursor();
 	    }
 	    VIsual_mode = resel_VIsual_mode;
 	    if (VIsual_mode == 'v')
