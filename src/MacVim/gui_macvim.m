@@ -1677,14 +1677,17 @@ gui_mch_get_color(char_u *name)
     if (![MMBackend sharedInstance])
 	return INVALCOLOR;
 
-    name = CONVERT_TO_UTF8(name);
+    char_u *u8name = CONVERT_TO_UTF8(name);
 
-    NSString *key = [NSString stringWithUTF8String:(char*)name];
-    guicolor_T col = [[MMBackend sharedInstance] lookupColorWithKey:key];
+    NSString *key = [NSString stringWithUTF8String:(char*)u8name];
+    guicolor_T color = [[MMBackend sharedInstance] lookupColorWithKey:key];
 
-    CONVERT_TO_UTF8_FREE(name);
+    CONVERT_TO_UTF8_FREE(u8name);
 
-    return col;
+    if (color != INVALCOLOR)
+        return color;
+
+    return gui_get_color_cmn(name);
 }
 
 
