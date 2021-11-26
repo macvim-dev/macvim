@@ -1903,7 +1903,10 @@ do_autochdir(void)
     if ((starting == 0 || test_autochdir)
 	    && curbuf->b_ffname != NULL
 	    && vim_chdirfile(curbuf->b_ffname, "auto") == OK)
+    {
 	shorten_fnames(TRUE);
+	last_chdir_reason = "autochdir";
+    }
 }
 #endif
 
@@ -2345,6 +2348,7 @@ free_buf_options(
     clear_string_option(&buf->b_p_tc);
 #ifdef FEAT_EVAL
     clear_string_option(&buf->b_p_tfu);
+    free_callback(&buf->b_tfu_cb);
 #endif
     clear_string_option(&buf->b_p_dict);
     clear_string_option(&buf->b_p_tsr);
@@ -3453,6 +3457,11 @@ buf_name_changed(buf_T *buf)
      */
     if (buf->b_ml.ml_mfp != NULL)
 	ml_setname(buf);
+
+#ifdef FEAT_TERMINAL
+    if (buf->b_term != NULL)
+	term_clear_status_text(buf->b_term);
+#endif
 
     if (curwin->w_buffer == buf)
 	check_arg_idx(curwin);	// check file name for arg list

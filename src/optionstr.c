@@ -1341,11 +1341,10 @@ ambw_end:
 	    if (!(opt_flags & OPT_GLOBAL))
 		clear_string_option(&curwin->w_p_lcs);
 	    FOR_ALL_TAB_WINDOWS(tp, wp)
-	    {
-		errmsg = set_chars_option(wp, &wp->w_p_lcs);
-		if (errmsg)
-		    break;
-	    }
+		// If no error was returned above, we don't expect an error
+		// here, so ignore the return value.
+		(void)set_chars_option(wp, &wp->w_p_lcs);
+
 	    redraw_all_later(NOT_VALID);
 	}
     }
@@ -2225,10 +2224,7 @@ ambw_end:
     }
     // 'wincolor'
     else if (varp == &curwin->w_p_wcr)
-    {
-	if (curwin->w_buffer->b_term != NULL)
-	    term_update_colors(curwin->w_buffer->b_term);
-    }
+	term_update_wincolor(curwin);
 # if defined(MSWIN)
     // 'termwintype'
     else if (varp == &p_twt)
@@ -2340,10 +2336,27 @@ ambw_end:
 # endif
 #endif
 
+    // 'operatorfunc'
+    else if (varp == &p_opfunc)
+    {
+	if (set_operatorfunc_option() == FAIL)
+	    errmsg = e_invarg;
+    }
+
 #ifdef FEAT_QUICKFIX
+    // 'quickfixtextfunc'
     else if (varp == &p_qftf)
     {
-	if (qf_process_qftf_option() == FALSE)
+	if (qf_process_qftf_option() == FAIL)
+	    errmsg = e_invarg;
+    }
+#endif
+
+#ifdef FEAT_EVAL
+    // 'tagfunc'
+    else if (gvarp == &p_tfu)
+    {
+	if (set_tagfunc_option() == FAIL)
 	    errmsg = e_invarg;
     }
 #endif

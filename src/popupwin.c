@@ -632,7 +632,7 @@ popup_highlight_curline(win_T *wp)
 
 	    if (syn_name2id((char_u *)linehl) == 0)
 		linehl = "PmenuSel";
-	    sign_define_by_name(sign_name, NULL, (char_u *)linehl, NULL, NULL);
+	    sign_define_by_name(sign_name, NULL, (char_u *)linehl, NULL, NULL, NULL);
 	}
 
 	sign_place(&sign_id, (char_u *)"PopUpMenu", sign_name,
@@ -732,8 +732,13 @@ apply_general_options(win_T *wp, dict_T *dict)
 
     str = dict_get_string(dict, (char_u *)"highlight", FALSE);
     if (str != NULL)
+    {
 	set_string_option_direct_in_win(wp, (char_u *)"wincolor", -1,
 						   str, OPT_FREE|OPT_LOCAL, 0);
+#ifdef FEAT_TERMINAL
+	term_update_wincolor(wp);
+#endif
+    }
 
     set_padding_border(dict, wp->w_popup_padding, "padding", 999);
     set_padding_border(dict, wp->w_popup_border, "border", 1);
@@ -1851,13 +1856,13 @@ popup_create(typval_T *argvars, typval_T *rettv, create_type_T type)
     int		nr;
     int		i;
 
-    if (in_vim9script()
-	    && (check_for_string_or_number_or_list_arg(argvars, 0) == FAIL
-		|| check_for_dict_arg(argvars, 1) == FAIL))
-	return NULL;
-
     if (argvars != NULL)
     {
+	if (in_vim9script()
+		&& (check_for_string_or_number_or_list_arg(argvars, 0) == FAIL
+		    || check_for_dict_arg(argvars, 1) == FAIL))
+	    return NULL;
+
 	// Check that arguments look OK.
 	if (argvars[0].v_type == VAR_NUMBER)
 	{
@@ -3654,7 +3659,11 @@ may_update_popup_mask(int type)
 	    for (col = wp->w_wincol;
 		 col < wp->w_wincol + width - wp->w_popup_leftoff
 						&& col < screen_Columns; ++col)
-		if (wp->w_popup_mask_cells == NULL
+		if (wp->w_zindex < POPUPMENU_ZINDEX
+			&& pum_visible()
+			&& pum_under_menu(line, col, FALSE))
+		    mask[line * screen_Columns + col] = POPUPMENU_ZINDEX;
+		else if (wp->w_popup_mask_cells == NULL
 				|| !popup_masked(wp, width, height, col, line))
 		    mask[line * screen_Columns + col] = wp->w_zindex;
     }

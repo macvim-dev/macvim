@@ -7,6 +7,7 @@ SRC_ALL =	\
 		.coveralls.yml \
 		.gitattributes \
 		.github/CODEOWNERS \
+		.github/ISSUE_TEMPLATE/bug_report.yml \
 		.github/workflows/ci.yml \
 		.github/workflows/codeql-analysis.yml \
 		.github/workflows/coverity.yml \
@@ -142,7 +143,7 @@ SRC_ALL =	\
 		src/tag.c \
 		src/term.c \
 		src/terminal.c \
-		src/term.h \
+		src/termdefs.h \
 		src/termlib.c \
 		src/testing.c \
 		src/textformat.c \
@@ -376,6 +377,7 @@ SRC_ALL =	\
 		src/libvterm/t/30state_pen.test \
 		src/libvterm/t/31state_rep.test \
 		src/libvterm/t/32state_flow.test \
+		src/libvterm/t/40state_selection.test \
 		src/libvterm/t/60screen_ascii.test \
 		src/libvterm/t/61screen_unicode.test \
 		src/libvterm/t/62screen_damage.test \

@@ -123,6 +123,14 @@ typedef struct {
 #endif
 #define COLOR_INVALID(x) ((x) == INVALCOLOR || (x) == CTERMCOLOR)
 
+#ifdef FEAT_TERMINAL
+# include "libvterm/include/vterm.h"
+typedef struct {
+    VTermColor	fg;
+    VTermColor	bg;
+} termcellcolor_T;
+#endif
+
 /*
  * marks: positions in a file
  * (a normal mark is a lnum/col pair, the same as a file position)
@@ -845,6 +853,7 @@ typedef struct sign_attrs_S {
     char_u	*sat_text;
     int		sat_texthl;
     int		sat_linehl;
+    int		sat_culhl;
     int		sat_priority;
 } sign_attrs_T;
 
@@ -2872,7 +2881,8 @@ struct file_buffer
     char_u	*b_p_ofu;	// 'omnifunc'
 #endif
 #ifdef FEAT_EVAL
-    char_u	*b_p_tfu;	// 'tagfunc'
+    char_u	*b_p_tfu;	// 'tagfunc' option value
+    callback_T	b_tfu_cb;	// 'tagfunc' callback
 #endif
     int		b_p_eol;	// 'endofline'
     int		b_p_fixeol;	// 'fixendofline'
@@ -3630,6 +3640,9 @@ struct window_S
 #ifdef FEAT_LINEBREAK
     int		w_nrwidth;	    // width of 'number' and 'relativenumber'
 				    // column being used
+#endif
+#ifdef FEAT_TERMINAL
+    termcellcolor_T w_term_wincolor;	 // cache for term color of 'wincolor'
 #endif
 
     /*
@@ -4484,3 +4497,8 @@ typedef struct {
 
 #define WHERE_INIT {NULL, 0, 0}
 
+// Struct passed to get_v_event() and restore_v_event().
+typedef struct {
+    int		sve_did_save;
+    hashtab_T	sve_hashtab;
+} save_v_event_T;

@@ -380,8 +380,10 @@ static const struct nv_cmd
 // Number of commands in nv_cmds[].
 #define NV_CMDS_SIZE ARRAY_LENGTH(nv_cmds)
 
+#ifndef PROTO  // cproto doesn't like this
 // Sorted index of commands in nv_cmds[].
 static short nv_cmd_idx[NV_CMDS_SIZE];
+#endif
 
 // The highest index for which
 // nv_cmds[idx].cmd_char == nv_cmd_idx[nv_cmds[idx].cmd_char]
@@ -628,10 +630,14 @@ getcount:
 		del_from_showcmd(4);	// delete the digit and ~@%
 #endif
 	    }
-	    else
-		ca.count0 = ca.count0 * 10 + (c - '0');
-	    if (ca.count0 < 0)	    // overflow
+	    else if (ca.count0 > 99999999L)
+	    {
 		ca.count0 = 999999999L;
+	    }
+	    else
+	    {
+		ca.count0 = ca.count0 * 10 + (c - '0');
+	    }
 #ifdef FEAT_EVAL
 	    // Set v:count here, when called from main() and not a stuffed
 	    // command, so that v:count can be used in an expression mapping
@@ -698,11 +704,14 @@ getcount:
 	 * multiplied.
 	 */
 	if (ca.count0)
-	    ca.count0 *= ca.opcount;
+	{
+	    if (ca.opcount >= 999999999L / ca.count0)
+		ca.count0 = 999999999L;
+	    else
+		ca.count0 *= ca.opcount;
+	}
 	else
 	    ca.count0 = ca.opcount;
-	if (ca.count0 < 0)	    // overflow
-	    ca.count0 = 999999999L;
     }
 
     /*
@@ -1697,19 +1706,37 @@ prep_redo(
     int	    cmd4,
     int	    cmd5)
 {
+    prep_redo_num2(regname, num, cmd1, cmd2, 0L, cmd3, cmd4, cmd5);
+}
+
+/*
+ * Prepare for redo of any command with extra count after "cmd2".
+ */
+    void
+prep_redo_num2(
+    int	    regname,
+    long    num1,
+    int	    cmd1,
+    int	    cmd2,
+    long    num2,
+    int	    cmd3,
+    int	    cmd4,
+    int	    cmd5)
+{
     ResetRedobuff();
     if (regname != 0)	// yank from specified buffer
     {
 	AppendCharToRedobuff('"');
 	AppendCharToRedobuff(regname);
     }
-    if (num)
-	AppendNumberToRedobuff(num);
-
+    if (num1 != 0)
+	AppendNumberToRedobuff(num1);
     if (cmd1 != NUL)
 	AppendCharToRedobuff(cmd1);
     if (cmd2 != NUL)
 	AppendCharToRedobuff(cmd2);
+    if (num2 != 0)
+	AppendNumberToRedobuff(num2);
     if (cmd3 != NUL)
 	AppendCharToRedobuff(cmd3);
     if (cmd4 != NUL)
@@ -2308,12 +2335,20 @@ nv_gd(
 
     if ((len = find_ident_under_cursor(&ptr, FIND_IDENT)) == 0
 	    || find_decl(ptr, len, nchar == 'd', thisblock, SEARCH_START)
-								      == FAIL)
+								       == FAIL)
+    {
 	clearopbeep(oap);
+    }
+    else
+    {
 #ifdef FEAT_FOLDING
-    else if ((fdo_flags & FDO_SEARCH) && KeyTyped && oap->op_type == OP_NOP)
-	foldOpenCursor();
+	if ((fdo_flags & FDO_SEARCH) && KeyTyped && oap->op_type == OP_NOP)
+	    foldOpenCursor();
 #endif
+	// clear any search statistics
+	if (messaging() && !msg_silent && !shortmess(SHM_SEARCHCOUNT))
+	    clear_cmdline = TRUE;
+    }
 }
 
 /*
@@ -3885,8 +3920,10 @@ get_visual_text(
 	    *pp = ml_get_pos(&VIsual);
 	    *lenp = curwin->w_cursor.col - VIsual.col + 1;
 	}
-	if (has_mbyte)
-	    // Correct the length to include the whole last character.
+	if (**pp == NUL)
+	    *lenp = 0;
+	if (has_mbyte && *lenp > 0)
+	    // Correct the length to include all bytes of the last character.
 	    *lenp += (*mb_ptr2len)(*pp + (*lenp - 1)) - 1;
     }
     reset_VIsual_and_resel();
@@ -5782,7 +5819,6 @@ n_start_visual_mode(int c)
     VIsual_mode = c;
     VIsual_active = TRUE;
     VIsual_reselect = TRUE;
-    trigger_modechanged();
 
     // Corner case: the 0 position in a tab may change when going into
     // virtualedit.  Recalculate curwin->w_cursor to avoid bad highlighting.
@@ -5797,6 +5833,7 @@ n_start_visual_mode(int c)
     foldAdjustVisual();
 #endif
 
+    trigger_modechanged();
     setmouse();
 #ifdef FEAT_CONCEAL
     // Check if redraw is needed after changing the state.

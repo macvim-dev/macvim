@@ -1491,7 +1491,7 @@ get_lambda_tv(
 	fp->uf_flags = flags;
 	fp->uf_calls = 0;
 	fp->uf_script_ctx = current_sctx;
-	fp->uf_script_ctx.sc_lnum += SOURCING_LNUM - newlines.ga_len;
+	fp->uf_script_ctx.sc_lnum += SOURCING_LNUM - newlines.ga_len + 1;
 
 	function_using_block_scopes(fp, evalarg->eval_cstack);
 
@@ -4256,6 +4256,7 @@ define_function(exarg_T *eap, char_u *name_arg)
 			&& (fp->uf_script_ctx.sc_sid != current_sctx.sc_sid
 			  || fp->uf_script_ctx.sc_seq == current_sctx.sc_seq)))
 	    {
+		SOURCING_LNUM = sourcing_lnum_top;
 		if (vim9script)
 		    emsg_funcname(e_name_already_defined_str, name);
 		else

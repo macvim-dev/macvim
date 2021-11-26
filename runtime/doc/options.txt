@@ -1,4 +1,4 @@
-*options.txt*	For Vim version 8.2.  Last change: 2021 Oct 20
+*options.txt*	For Vim version 8.2.  Last change: 2021 Nov 18
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -370,6 +370,17 @@ used.  Thus it does the same as: >
 Note: In the future more global options can be made global-local.  Using
 ":setlocal" on a global option might work differently then.
 
+
+						*option-value-function*
+Some options ('completefunc', 'imactivatefunc', 'imstatusfunc', 'omnifunc',
+'operatorfunc', 'quickfixtextfunc' and 'tagfunc') are set to a function name
+or a function reference or a lambda function.  Examples:
+>
+	set opfunc=MyOpFunc
+	set opfunc=function('MyOpFunc')
+	set opfunc=funcref('MyOpFunc')
+	let &opfunc = "{t -> MyOpFunc(t)}"
+<
 
 Setting the filetype
 
@@ -1425,6 +1436,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 	Also see |win_gettype()|, which returns the type of the window.
 
 	Be careful with changing this option, it can have many side effects!
+	One such effect is that Vim will not check the timestamp of the file,
+	if the file is changed by another program this will not be noticed.
 
 	A "quickfix" buffer is only used for the error list and the location
 	list.  This value is set by the |:cwindow| and |:lwindow| commands and
@@ -5001,9 +5014,10 @@ A jump table for the options with a short description can be found at |Q_op|.
 						*'list'* *'nolist'*
 'list'			boolean	(default off)
 			local to window
-	List mode: Show tabs as CTRL-I is displayed, display $ after end of
-	line.  Useful to see the difference between tabs and spaces and for
-	trailing blanks.  Further changed by the 'listchars' option.
+	List mode: By default show tabs as CTRL-I is displayed, display $
+	after end of line.  Useful to see the difference between tabs and
+	spaces and for trailing blanks.  Further changed by the 'listchars'
+	option.
 
 	The cursor is displayed at the start of the space a Tab character
 	occupies, not at the end as usual in Normal mode.  To get this cursor
@@ -5752,7 +5766,9 @@ A jump table for the options with a short description can be found at |Q_op|.
 'operatorfunc' 'opfunc'	string	(default: empty)
 			global
 	This option specifies a function to be called by the |g@| operator.
-	See |:map-operator| for more info and an example.
+	See |:map-operator| for more info and an example.  The value can be
+	the name of a function, a |lambda| or a |Funcref|. See
+	|option-value-function| for more information.
 
 	This option cannot be set from a |modeline| or in the |sandbox|, for
 	security reasons.
@@ -6152,8 +6168,9 @@ A jump table for the options with a short description can be found at |Q_op|.
 	customize the information displayed in the quickfix or location window
 	for each entry in the corresponding quickfix or location list.  See
 	|quickfix-window-function| for an explanation of how to write the
-	function and an example. The value can be the name of a function or a
-	lambda.
+	function and an example.  The value can be the name of a function, a
+	|lambda| or a |Funcref|. See |option-value-function| for more
+	information.
 
 	This option cannot be set from a |modeline| or in the |sandbox|, for
 	security reasons.
@@ -7907,7 +7924,9 @@ A jump table for the options with a short description can be found at |Q_op|.
 	This option specifies a function to be used to perform tag searches.
 	The function gets the tag pattern and should return a List of matching
 	tags.  See |tag-function| for an explanation of how to write the
-	function and an example.
+	function and an example.  The value can be the name of a function, a
+	|lambda| or a |Funcref|. See |option-value-function| for more
+	information.
 
 						*'taglength'* *'tl'*
 'taglength' 'tl'	number	(default 0)
@@ -8071,6 +8090,9 @@ A jump table for the options with a short description can be found at |Q_op|.
 	Number of scrollback lines to keep.  When going over this limit the
 	first 10% of the scrollback lines are deleted.  This is just to reduce
 	the memory usage.  See |Terminal-Normal|.
+	Also used as a limit for text sent to the terminal in one write,
+	multiplied by the number of columns times 3 (average number of bytes
+	per cell).
 
 						*'termwinsize'* *'tws'*
 'termwinsize' 'tws'	string	(default "")

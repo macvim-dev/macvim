@@ -2149,7 +2149,7 @@ def Test_import_compile_error()
   try
     source Ximport.vim
   catch /E1001/
-    # Error should be fore the Xexported.vim file.
+    # Error should be before the Xexported.vim file.
     assert_match('E1001: Variable not found: notDefined', v:exception)
     assert_match('function <SNR>\d\+_ImpFunc\[1\]..<SNR>\d\+_ExpFunc, line 1', v:throwpoint)
   endtry
@@ -2865,11 +2865,35 @@ def Test_for_loop_fails()
       endfor
   END
   CheckDefExecAndScriptFailure(lines, 'E1012: Type mismatch; expected job but got string', 2)
+
+  lines =<< trim END
+      var i = 0
+      for i in [1, 2, 3]
+        echo i
+      endfor
+  END
+  CheckDefExecAndScriptFailure2(lines, 'E1017:', 'E1041:')
+
+  lines =<< trim END
+      var l = [0]
+      for l[0] in [1, 2, 3]
+        echo l[0]
+      endfor
+  END
+  CheckDefExecAndScriptFailure2(lines, 'E461:', 'E1017:')
+
+  lines =<< trim END
+      var d = {x: 0}
+      for d.x in [1, 2, 3]
+        echo d.x
+      endfor
+  END
+  CheckDefExecAndScriptFailure2(lines, 'E461:', 'E1017:')
 enddef
 
 def Test_for_loop_script_var()
   # cannot use s:var in a :def function
-  CheckDefFailure(['for s:var in range(3)', 'echo 3'], 'E1101:')
+  CheckDefFailure(['for s:var in range(3)', 'echo 3'], 'E461:')
 
   # can use s:var in Vim9 script, with or without s:
   var lines =<< trim END
@@ -3081,6 +3105,21 @@ def Test_while_loop()
   var s = ''
   while s == 'x' # {comment}
   endwhile
+enddef
+
+def Test_while_loop_in_script()
+  var lines =<< trim END
+      vim9script
+      var result = ''
+      var cnt = 0
+      while cnt < 3
+        var s = 'v' .. cnt
+        result ..= s
+        cnt += 1
+      endwhile
+      assert_equal('v0v1v2', result)
+  END
+  CheckScriptSuccess(lines)
 enddef
 
 def Test_while_loop_fails()
@@ -4579,7 +4618,7 @@ def ProfiledNestedProfiled()
   Nested()
 enddef
 
-" Execute this near the end, profiling doesn't stop until Vim exists.
+" Execute this near the end, profiling doesn't stop until Vim exits.
 " This only tests that it works, not the profiling output.
 def Test_xx_profile_with_lambda()
   CheckFeature profile

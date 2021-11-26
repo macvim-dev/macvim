@@ -363,7 +363,7 @@ func Test_normal08_fold()
   bw!
 endfunc
 
-func Test_normal09_operatorfunc()
+func Test_normal09a_operatorfunc()
   " Test operatorfunc
   call Setup_NewWindow()
   " Add some spaces for counting
@@ -386,6 +386,70 @@ func Test_normal09_operatorfunc()
   norm V10j,,
   call assert_equal(22, g:a)
 
+  " Use a lambda function for 'opfunc'
+  unmap <buffer> ,,
+  call cursor(1, 1)
+  let g:a=0
+  nmap <buffer><silent> ,, :set opfunc={type\ ->\ CountSpaces(type)}<CR>g@
+  vmap <buffer><silent> ,, :<C-U>call CountSpaces(visualmode(), 1)<CR>
+  50
+  norm V2j,,
+  call assert_equal(6, g:a)
+  norm V,,
+  call assert_equal(2, g:a)
+  norm ,,l
+  call assert_equal(0, g:a)
+  50
+  exe "norm 0\<c-v>10j2l,,"
+  call assert_equal(11, g:a)
+  50
+  norm V10j,,
+  call assert_equal(22, g:a)
+
+  " use a partial function for 'opfunc'
+  let g:OpVal = 0
+  func! Test_opfunc1(x, y, type)
+    let g:OpVal =  a:x + a:y
+  endfunc
+  set opfunc=function('Test_opfunc1',\ [5,\ 7])
+  normal! g@l
+  call assert_equal(12, g:OpVal)
+  " delete the function and try to use g@
+  delfunc Test_opfunc1
+  call test_garbagecollect_now()
+  call assert_fails('normal! g@l', 'E117:')
+  set opfunc=
+
+  " use a funcref for 'opfunc'
+  let g:OpVal = 0
+  func! Test_opfunc2(x, y, type)
+    let g:OpVal =  a:x + a:y
+  endfunc
+  set opfunc=funcref('Test_opfunc2',\ [4,\ 3])
+  normal! g@l
+  call assert_equal(7, g:OpVal)
+  " delete the function and try to use g@
+  delfunc Test_opfunc2
+  call test_garbagecollect_now()
+  call assert_fails('normal! g@l', 'E933:')
+  set opfunc=
+
+  " Try to use a function with two arguments for 'operatorfunc'
+  let g:OpVal = 0
+  func! Test_opfunc3(x, y)
+    let g:OpVal = 4
+  endfunc
+  set opfunc=Test_opfunc3
+  call assert_fails('normal! g@l', 'E119:')
+  call assert_equal(0, g:OpVal)
+  set opfunc=
+  delfunc Test_opfunc3
+  unlet g:OpVal
+
+  " Try to use a lambda function with two arguments for 'operatorfunc'
+  set opfunc={x,\ y\ ->\ 'done'}
+  call assert_fails('normal! g@l', 'E119:')
+
   " clean up
   unmap <buffer> ,,
   set opfunc=
@@ -393,7 +457,7 @@ func Test_normal09_operatorfunc()
   bw!
 endfunc
 
-func Test_normal09a_operatorfunc()
+func Test_normal09b_operatorfunc()
   " Test operatorfunc
   call Setup_NewWindow()
   " Add some spaces for counting
@@ -418,6 +482,26 @@ func Test_normal09a_operatorfunc()
   call assert_fails('normal Vg@', 'E774:')
   bw!
   unlet! g:opt
+endfunc
+
+func OperatorfuncRedo(_)
+  let g:opfunc_count = v:count
+endfunc
+
+func Test_normal09c_operatorfunc()
+  " Test redoing operatorfunc
+  new
+  call setline(1, 'some text')
+  set operatorfunc=OperatorfuncRedo
+  normal v3g@
+  call assert_equal(3, g:opfunc_count)
+  let g:opfunc_count = 0
+  normal .
+  call assert_equal(3, g:opfunc_count)
+
+  bw!
+  unlet g:opfunc_count
+  set operatorfunc=
 endfunc
 
 func Test_normal10_expand()
@@ -1179,7 +1263,7 @@ func Test_normal18_z_fold()
   norm! j
   call assert_equal('52', getline('.'))
 
-  " zA on a opened fold when foldenable is not set
+  " zA on an opened fold when foldenable is not set
   50
   set nofoldenable
   norm! zA
@@ -1537,7 +1621,7 @@ func Test_normal23_K()
 
   let not_gnu_man = has('mac') || has('bsd')
   if not_gnu_man
-    " In MacOS and BSD, the option for specifying a pager is different
+    " In macOS and BSD, the option for specifying a pager is different
     set keywordprg=man\ -P\ cat
   else
     set keywordprg=man\ --pager=cat
@@ -2330,7 +2414,7 @@ func Test_normal33_g_cmd2()
   call assert_equal('foo       first line', getline(1))
   set virtualedit&
 
-  " Test for aboring a g command using CTRL-\ CTRL-G
+  " Test for aborting a g command using CTRL-\ CTRL-G
   exe "normal! g\<C-\>\<C-G>"
   call assert_equal('foo       first line', getline('.'))
 
@@ -3433,6 +3517,27 @@ func Test_normal_gj_on_extra_wide_char()
   norm! gj
   call assert_equal([0,2,25,0], getpos('.'))
   bw!
+endfunc
+
+func Test_normal_count_out_of_range()
+  new
+  call setline(1, 'text')
+  normal 44444444444|
+  call assert_equal(999999999, v:count)
+  normal 444444444444|
+  call assert_equal(999999999, v:count)
+  normal 4444444444444|
+  call assert_equal(999999999, v:count)
+  normal 4444444444444444444|
+  call assert_equal(999999999, v:count)
+
+  normal 9y99999999|
+  call assert_equal(899999991, v:count)
+  normal 10y99999999|
+  call assert_equal(999999999, v:count)
+  normal 44444444444y44444444444|
+  call assert_equal(999999999, v:count)
+  bwipe!
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

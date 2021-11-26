@@ -180,6 +180,7 @@ let s:filename_checks = {
     \ 'fennel': ['file.fnl'],
     \ 'fetchmail': ['.fetchmailrc'],
     \ 'fgl': ['file.4gl', 'file.4gh', 'file.m4gl'],
+    \ 'fish': ['file.fish'],
     \ 'focexec': ['file.fex', 'file.focexec'],
     \ 'forth': ['file.fs', 'file.ft', 'file.fth'],
     \ 'fortran': ['file.f', 'file.for', 'file.fortran', 'file.fpp', 'file.ftn', 'file.f77', 'file.f90', 'file.f95', 'file.f03', 'file.f08'],
@@ -188,7 +189,7 @@ let s:filename_checks = {
     \ 'freebasic': ['file.fb', 'file.bi'],
     \ 'fstab': ['fstab', 'mtab'],
     \ 'fvwm': ['/.fvwm/file', 'any/.fvwm/file'],
-    \ 'gdb': ['.gdbinit'],
+    \ 'gdb': ['.gdbinit', 'gdbinit'],
     \ 'gdmo': ['file.mo', 'file.gdmo'],
     \ 'gedcom': ['file.ged', 'lltxxxxx.txt', '/tmp/lltmp', '/tmp/lltmp-file', 'any/tmp/lltmp', 'any/tmp/lltmp-file'],
     \ 'gemtext': ['file.gmi', 'file.gemini'],
@@ -420,6 +421,7 @@ let s:filename_checks = {
     \ 'rnc': ['file.rnc'],
     \ 'rng': ['file.rng'],
     \ 'robots': ['robots.txt'],
+    \ 'routeros': ['file.rsc'],
     \ 'rpcgen': ['file.x'],
     \ 'rpl': ['file.rpl'],
     \ 'rst': ['file.rst'],
@@ -480,7 +482,7 @@ let s:filename_checks = {
     \ 'st': ['file.st'],
     \ 'stata': ['file.ado', 'file.do', 'file.imata', 'file.mata'],
     \ 'stp': ['file.stp'],
-    \ 'sudoers': ['any/etc/sudoers', 'sudoers.tmp', '/etc/sudoers'],
+    \ 'sudoers': ['any/etc/sudoers', 'sudoers.tmp', '/etc/sudoers', 'any/etc/sudoers.d/file'],
     \ 'svg': ['file.svg'],
     \ 'svn': ['svn-commitfile.tmp', 'svn-commit-file.tmp', 'svn-commit.tmp'],
     \ 'swift': ['file.swift'],
@@ -660,6 +662,8 @@ let s:script_checks = {
       \ 'yaml': [['%YAML 1.2']],
       \ 'pascal': [['#!/path/instantfpc']],
       \ 'fennel': [['#!/path/fennel']],
+      \ 'routeros': [['#!/path/rsc']],
+      \ 'fish': [['#!/path/fish']],
       \ }
 
 " Various forms of "env" optional arguments.

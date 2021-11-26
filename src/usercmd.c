@@ -141,7 +141,11 @@ find_ucmd(
     /*
      * Look for buffer-local user commands first, then global ones.
      */
-    gap = &curbuf->b_ucmds;
+    gap =
+#ifdef FEAT_CMDWIN
+	is_in_cmdwin() ? &prevwin->w_buffer->b_ucmds :
+#endif
+	&curbuf->b_ucmds;
     for (;;)
     {
 	for (j = 0; j < gap->ga_len; ++j)
@@ -303,7 +307,7 @@ get_user_commands(expand_T *xp UNUSED, int idx)
     // In cmdwin, the alternative buffer should be used.
     buf_T *buf =
 #ifdef FEAT_CMDWIN
-	(cmdwin_type != 0 && get_cmdline_type() == NUL) ? prevwin->w_buffer :
+	is_in_cmdwin() ? prevwin->w_buffer :
 #endif
 	curbuf;
 
@@ -330,10 +334,9 @@ get_user_command_name(int idx, int cmdidx)
 	// In cmdwin, the alternative buffer should be used.
 	buf_T *buf =
 #ifdef FEAT_CMDWIN
-		    (cmdwin_type != 0 && get_cmdline_type() == NUL)
-							  ? prevwin->w_buffer :
+		    is_in_cmdwin() ? prevwin->w_buffer :
 #endif
-	    curbuf;
+		    curbuf;
 
 	if (idx < buf->b_ucmds.ga_len)
 	    return USER_CMD_GA(&buf->b_ucmds, idx)->uc_name;
@@ -360,7 +363,7 @@ get_user_cmd_flags(expand_T *xp UNUSED, int idx)
 {
     static char *user_cmd_flags[] = {
 	"addr", "bang", "bar", "buffer", "complete",
-	"count", "nargs", "range", "register"
+	"count", "nargs", "range", "register", "keepscript"
     };
 
     if (idx >= (int)ARRAY_LENGTH(user_cmd_flags))
@@ -420,10 +423,9 @@ uc_list(char_u *name, size_t name_len)
     // In cmdwin, the alternative buffer should be used.
     gap =
 #ifdef FEAT_CMDWIN
-	(cmdwin_type != 0 && get_cmdline_type() == NUL) ?
-	&prevwin->w_buffer->b_ucmds :
+	    is_in_cmdwin() ? &prevwin->w_buffer->b_ucmds :
 #endif
-	&curbuf->b_ucmds;
+	    &curbuf->b_ucmds;
     for (;;)
     {
 	for (i = 0; i < gap->ga_len; ++i)
@@ -735,6 +737,8 @@ uc_scan_attr(
 	*flags |= UC_BUFFER;
     else if (STRNICMP(attr, "register", len) == 0)
 	*argt |= EX_REGSTR;
+    else if (STRNICMP(attr, "keepscript", len) == 0)
+	*argt |= EX_KEEPSCRIPT;
     else if (STRNICMP(attr, "bar", len) == 0)
 	*argt |= EX_TRLBAR;
     else
@@ -1764,13 +1768,17 @@ do_ucmd(exarg_T *eap)
 	}
     }
 
-    current_sctx.sc_version = cmd->uc_script_ctx.sc_version;
+    if ((cmd->uc_argt & EX_KEEPSCRIPT) == 0)
+    {
+	current_sctx.sc_version = cmd->uc_script_ctx.sc_version;
 #ifdef FEAT_EVAL
-    current_sctx.sc_sid = cmd->uc_script_ctx.sc_sid;
+	current_sctx.sc_sid = cmd->uc_script_ctx.sc_sid;
 #endif
+    }
     (void)do_cmdline(buf, eap->getline, eap->cookie,
 				   DOCMD_VERBOSE|DOCMD_NOWAIT|DOCMD_KEYTYPED);
-    current_sctx = save_current_sctx;
+    if ((cmd->uc_argt & EX_KEEPSCRIPT) == 0)
+	current_sctx = save_current_sctx;
     vim_free(buf);
     vim_free(split_buf);
 }

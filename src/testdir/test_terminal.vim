@@ -159,6 +159,18 @@ func Test_terminal_hide_buffer_job_finished()
   bwipe Xasdfasdf
 endfunc
 
+func Test_terminal_rename_buffer()
+  let cmd = Get_cat_123_cmd()
+  let buf = term_start(cmd, {'term_name': 'foo'})
+  call WaitForAssert({-> assert_equal('finished', term_getstatus(buf))})
+  call assert_equal('foo', bufname())
+  call assert_match('foo.*finished', execute('ls'))
+  file bar
+  call assert_equal('bar', bufname())
+  call assert_match('bar.*finished', execute('ls'))
+  exe 'bwipe! ' .. buf
+endfunc
+
 func s:Nasty_exit_cb(job, st)
   exe g:buf . 'bwipe!'
   let g:buf = 0
@@ -466,6 +478,12 @@ func Test_terminal_size()
   let size = term_getsize('')
   bwipe!
   call assert_equal([7, 27], size)
+
+  call assert_fails("call term_start(cmd, {'term_rows': -1})", 'E475:')
+  call assert_fails("call term_start(cmd, {'term_rows': 1001})", 'E475:')
+  if has('float')
+    call assert_fails("call term_start(cmd, {'term_rows': 10.0})", 'E805:')
+  endif
 
   call delete('Xtext')
 endfunc
@@ -2042,6 +2060,23 @@ func Test_terminal_adds_jump()
   clearjumps
   call term_start("ls", #{curwin: 1})
   call assert_equal(1, getjumplist()[0]->len())
+  bwipe!
+endfunc
+
+func Close_cb(ch, ctx)
+  call term_wait(a:ctx.bufnr)
+  let g:close_done = 'done'
+endfunc
+
+func Test_term_wait_in_close_cb()
+  let g:close_done = ''
+  let ctx = {}
+  let ctx.bufnr = term_start('echo "HELLO WORLD"',
+        \ {'close_cb': {ch -> Close_cb(ch, ctx)}})
+
+  call WaitForAssert({-> assert_equal("done", g:close_done)})
+
+  unlet g:close_done
   bwipe!
 endfunc
 

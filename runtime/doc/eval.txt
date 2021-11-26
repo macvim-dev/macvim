@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 8.2.  Last change: 2021 Oct 20
+*eval.txt*	For Vim version 8.2.  Last change: 2021 Nov 20
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -1865,15 +1865,15 @@ v:colornames    A dictionary that maps color names to hex color strings. These
 			\ 'mauve': '#915f6d,
 			\ }, 'keep')
 <
-		Using |extend| with the 'keep' option updates each color only
+		Using |extend()| with the 'keep' option updates each color only
 		if it did not exist in |v:colornames|. Doing so allows the
 		user to choose the precise color value for a common name
 		by setting it in their |.vimrc|.
 
 		It is possible to remove entries from this dictionary but
-		doing so is *NOT* recommended. Doing so is disruptive to
+		doing so is NOT recommended, because it is disruptive to
 		other scripts. It is also unlikely to achieve the desired
-		result because the |colorscheme| and |highlight| commands will
+		result because the |:colorscheme| and |:highlight| commands will
 		both automatically load all `colors/lists/default.vim` color
 		scripts.
 
@@ -2301,6 +2301,21 @@ v:shell_error	Result of the last shell command.  When non-zero, the last
 	:endif
 <		"shell_error" also works, for backwards compatibility, unless
 		|scriptversion| is 3 or higher.
+
+					*v:sizeofint* *sizeofint-variable*
+v:sizeofint	Number of bytes in an int.  Depends on how Vim was compiled.
+		This is only useful for deciding whether a test will give the
+		expected result.
+
+					*v:sizeoflong* *sizeoflong-variable*
+v:sizeoflong	Number of bytes in a long.  Depends on how Vim was compiled.
+		This is only useful for deciding whether a test will give the
+		expected result.
+
+				*v:sizeofpointer* *sizeofpointer-variable*
+v:sizeofpointer	Number of bytes in a pointer.  Depends on how Vim was compiled.
+		This is only useful for deciding whether a test will give the
+		expected result.
 
 					*v:statusmsg* *statusmsg-variable*
 v:statusmsg	Last given status message.  It's allowed to set this variable.
@@ -4979,6 +4994,9 @@ flatten({list} [, {maxdepth}])					*flatten()*
 			:echo flatten([1, [2, [3, 4]], 5], 1)
 <			[1, 2, [3, 4], 5]
 
+		Can also be used as a |method|: >
+			mylist->flatten()
+<
 flattennew({list} [, {maxdepth}])			*flattennew()*
 		Like |flatten()| but first make a copy of {list}.
 
@@ -5656,7 +5674,7 @@ getcompletion({pat}, {type} [, {filtered}])		*getcompletion()*
 		buffer		buffer names
 		behave		:behave suboptions
 		color		color schemes
-		command		Ex command (and arguments)
+		command		Ex command
 		cmdline		|cmdline-completion| result
 		compiler	compilers
 		cscope		|:cscope| suboptions
@@ -5751,7 +5769,7 @@ getcursorcharpos([{winid}])
 <							*getcwd()*
 getcwd([{winnr} [, {tabnr}]])
 		The result is a String, which is the name of the current
-		working directory.
+		working directory.  'autochdir' is ignored.
 
 		With {winnr} return the local current directory of this window
 		in the current tab page.  {winnr} can be the window number or
@@ -5764,8 +5782,8 @@ getcwd([{winnr} [, {tabnr}]])
 		the working directory of the tabpage.
 		If {winnr} is zero use the current window, if {tabnr} is zero
 		use the current tabpage.
-		Without any arguments, return the working directory of the
-		current window.
+		Without any arguments, return the actual working directory of
+		the current window.
 		Return an empty string if the arguments are invalid.
 
 		Examples: >
@@ -5913,8 +5931,8 @@ getline({lnum} [, {end}])
 		digit, |line()| is called to translate the String into a Number.
 		To get the line under the cursor: >
 			getline(".")
-<		When {lnum} is smaller than 1 or bigger than the number of
-		lines in the buffer, an empty string is returned.
+<		When {lnum} is a number smaller than 1 or bigger than the
+		number of lines in the buffer, an empty string is returned.
 
 		When {end} is given the result is a |List| where each item is
 		a line from the current buffer in the range {lnum} to {end},
@@ -6376,6 +6394,9 @@ getwininfo([{winid}])					*getwininfo()*
 					otherwise
 			wincol		leftmost screen column of the window;
 					"col" from |win_screenpos()|
+			textoff		number of columns occupied by any
+					'foldcolumn', 'signcolumn' and line
+					number in front of the text
 			winid		|window-ID|
 			winnr		window number
 			winrow		topmost screen line of the window;
@@ -6744,7 +6765,7 @@ hlget([{name} [, {resolve}]])				*hlget()*
 
 		Each entry in the returned List is a Dictionary with the
 		following items:
-			cleared	Boolean flag, set to v:true if the highlight
+			cleared	boolean flag, set to v:true if the highlight
 				group attributes are cleared or not yet
 				specified.  See |highlight-clear|.
 			cterm	cterm attributes. See |highlight-cterm|.
@@ -6753,6 +6774,9 @@ hlget([{name} [, {resolve}]])				*hlget()*
 			ctermfg	cterm foreground color.
 				See |highlight-ctermfg|.
 			ctermul	cterm underline color.  See |highlight-ctermul|.
+			default boolean flag, set to v:true if the highlight
+				group link is a default link. See
+				|highlight-default|.
 			font	highlight group font.  See |highlight-font|.
 			gui	gui attributes. See |highlight-gui|.
 			guibg	gui background color.  See |highlight-guibg|.
@@ -6785,6 +6809,13 @@ hlset({list})						*hlset()*
 		attributes of a highlight group. See |hlget()| for the list of
 		supported items in this dictionary.
 
+		In addition to the items described in |hlget()|, the following
+		additional items are supported in the dictionary:
+
+			force		boolean flag to force the creation of
+					a link for an existing highlight group
+					with attributes.
+
 		The highlight group is identified using the 'name' item and
 		the 'id' item (if supplied) is ignored.  If a highlight group
 		with a specified name doesn't exist, then it is created.
@@ -6814,6 +6845,11 @@ hlset({list})						*hlset()*
 			:call hlset([#{name: 'Title', term: {}}])
 			" create the MyHlg group linking it to DiffAdd
 			:call hlset([#{name: 'MyHlg', linksto: 'DiffAdd'}])
+			" remove the MyHlg group link
+			:call hlset([#{name: 'MyHlg', linksto: 'NONE'}])
+			" clear the attributes and a link
+			:call hlset([#{name: 'MyHlg', cleared: v:true,
+					\ linksto: 'NONE'}])
 <
 		Can also be used as a |method|: >
 			GetAttrList()->hlset()
@@ -7784,6 +7820,7 @@ match({expr}, {pat} [, {start} [, {count}]])			*match()*
 		further down in the text.
 
 		Can also be used as a |method|: >
+			GetText()->match('word')
 			GetList()->match('word')
 <
 				*matchadd()* *E798* *E799* *E801* *E957*
@@ -8020,8 +8057,10 @@ matchlist({expr}, {pat} [, {start} [, {count}]])		*matchlist()*
 <		Results in: ['acd', 'a', '', 'c', 'd', '', '', '', '', '']
 		When there is no match an empty list is returned.
 
+		You can pass in a List, but that is not very useful.
+
 		Can also be used as a |method|: >
-			GetList()->matchlist('word')
+			GetText()->matchlist('word')
 
 matchstr({expr}, {pat} [, {start} [, {count}]])			*matchstr()*
 		Same as |match()|, but return the matched string.  Example: >
@@ -8462,15 +8501,18 @@ printf({fmt}, {expr1} ...)				*printf()*
 			field width.  If the converted value has fewer bytes
 			than the field width, it will be padded with spaces on
 			the left (or right, if the left-adjustment flag has
-			been given) to fill out the field width.
+			been given) to fill out the field width.  For the S
+			conversion the count is in cells.
 
 		.precision
 			An optional precision, in the form of a period '.'
 			followed by an optional digit string.  If the digit
 			string is omitted, the precision is taken as zero.
 			This gives the minimum number of digits to appear for
-			d, o, x, and X conversions, or the maximum number of
-			bytes to be printed from a string for s conversions.
+			d, o, x, and X conversions, the maximum number of
+			bytes to be printed from a string for s conversions,
+			or the maximum number of cells to be printed from a
+			string for S conversions.
 			For floating point it is the number of digits after
 			the decimal point.
 
@@ -9555,7 +9597,9 @@ searchcount([{options}])					*searchcount()*
 						|getpos()|
 						(default: cursor's position)
 
-
+		Can also be used as a |method|: >
+			GetSearchOpts()->searchcount()
+<
 searchdecl({name} [, {global} [, {thisblock}]])			*searchdecl()*
 		Search for the declaration of {name}.
 
@@ -10219,7 +10263,7 @@ settabwinvar({tabnr}, {winnr}, {varname}, {val})	*settabwinvar()*
 
 		Can also be used as a |method|, the base is passed as the
 		fourth argument: >
-			GetValue()->settabvar(tab, winnr, name)
+			GetValue()->settabwinvar(tab, winnr, name)
 
 settagstack({nr}, {dict} [, {action}])			*settagstack()*
 		Modify the tag stack of the window {nr} using {dict}.
@@ -10476,6 +10520,10 @@ sort({list} [, {func} [, {dict}]])			*sort()* *E702*
 <
 sound_clear()						*sound_clear()*
 		Stop playing all sounds.
+
+		On some Linux systems you may need the libcanberra-pulse
+		package, otherwise sound may not stop.
+
 		{only available when compiled with the |+sound| feature}
 
 							*sound_playevent()*
@@ -10527,6 +10575,9 @@ sound_playfile({path} [, {callback}])
 sound_stop({id})					*sound_stop()*
 		Stop playing sound {id}.  {id} must be previously returned by
 		`sound_playevent()` or `sound_playfile()`.
+
+		On some Linux systems you may need the libcanberra-pulse
+		package, otherwise sound may not stop.
 
 		On MS-Windows, this does not work for event sound started by
 		`sound_playevent()`. To stop event sounds, use `sound_clear()`.
@@ -10967,9 +11018,11 @@ strptime({format}, {timestring})				*strptime()*
 		  :echo strftime("%c", strptime("%Y%m%d%H%M%S", "19970427115355") + 3600)
 <		  Sun Apr 27 12:53:55 1997
 
+		Can also be used as a |method|: >
+			GetFormat()->strptime(timestring)
+<
 		Not available on all systems.  To check use: >
 			:if exists("*strptime")
-
 
 strridx({haystack}, {needle} [, {start}])			*strridx()*
 		The result is a Number, which gives the byte index in
@@ -11239,10 +11292,10 @@ synstack({lnum}, {col})					*synstack()*
 		valid positions.
 
 system({expr} [, {input}])				*system()* *E677*
-		Get the output of the shell command {expr} as a string.  See
+		Get the output of the shell command {expr} as a |String|.  See
 		|systemlist()| to get the output as a |List|.
 
-		When {input} is given and is a string this string is written
+		When {input} is given and is a |String| this string is written
 		to a file and passed as stdin to the command.  The string is
 		written as-is, you need to take care of using the correct line
 		separators yourself.
@@ -11865,9 +11918,9 @@ wildmenumode()					*wildmenumode()*
 win_execute({id}, {command} [, {silent}])		*win_execute()*
 		Like `execute()` but in the context of window {id}.
 		The window will temporarily be made the current window,
-		without triggering autocommands.  When executing {command}
-		autocommands will be triggered, this may have unexpected side
-		effects.  Use |:noautocmd| if needed.
+		without triggering autocommands or changing directory.  When
+		executing {command} autocommands will be triggered, this may
+		have unexpected side effects.  Use |:noautocmd| if needed.
 		Example: >
 			call win_execute(winid, 'set syntax=python')
 <		Doing the same with `setwinvar()` would not trigger
@@ -11922,7 +11975,9 @@ win_gettype([{nr}])					*win_gettype()*
 		popup window then 'buftype' is "terminal" and win_gettype()
 		returns "popup".
 
-
+		Can also be used as a |method|: >
+			GetWinid()->win_gettype()
+<
 win_gotoid({expr})					*win_gotoid()*
 		Go to window with ID {expr}.  This may also change the current
 		tabpage.

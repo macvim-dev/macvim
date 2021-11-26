@@ -887,22 +887,35 @@ report_discard_pending(int pending, void *value)
     }
 }
 
+/*
+ * Return TRUE if "arg" is only a variable, register, environment variable or
+ * option name.
+ */
     int
 cmd_is_name_only(char_u *arg)
 {
     char_u  *p = arg;
-    char_u  *alias;
+    char_u  *alias = NULL;
     int	    name_only = FALSE;
 
-    if (*p == '&')
+    if (*p == '@')
     {
 	++p;
-	if (STRNCMP("l:", p, 2) == 0 || STRNCMP("g:", p, 2) == 0)
-	    p += 2;
+	if (*p != NUL)
+	    ++p;
     }
-    else if (*p == '@')
-	++p;
-    get_name_len(&p, &alias, FALSE, FALSE);
+    else
+    {
+	if (*p == '&')
+	{
+	    ++p;
+	    if (STRNCMP("l:", p, 2) == 0 || STRNCMP("g:", p, 2) == 0)
+		p += 2;
+	}
+	else if (*p == '$')
+	    ++p;
+	get_name_len(&p, &alias, FALSE, FALSE);
+    }
     name_only = ends_excmd2(arg, skipwhite(p));
     vim_free(alias);
     return name_only;
@@ -1191,9 +1204,10 @@ ex_while(exarg_T *eap)
 								& CSF_FUNC_DEF;
 
 		// Any variables defined in the previous round are no longer
-		// visible.  Keep the first one, it is the loop variable that
-		// we reuse every time around.
-		for (i = cstack->cs_script_var_len[cstack->cs_idx] + 1;
+		// visible.  Keep the first one for ":for", it is the loop
+		// variable that we reuse every time around.
+		for (i = cstack->cs_script_var_len[cstack->cs_idx]
+					  + (eap->cmdidx == CMD_while ? 0 : 1);
 					       i < si->sn_var_vals.ga_len; ++i)
 		{
 		    svar_T	*sv = ((svar_T *)si->sn_var_vals.ga_data) + i;

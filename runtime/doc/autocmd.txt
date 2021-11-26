@@ -1,4 +1,4 @@
-*autocmd.txt*   For Vim version 8.2.  Last change: 2021 Oct 04
+*autocmd.txt*   For Vim version 8.2.  Last change: 2021 Nov 20
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -83,7 +83,7 @@ triggered.
 		}
 
 Note: The ":autocmd" command can only be followed by another command when the
-'|' appears before {cmd}.  This works: >
+'|' appears where the pattern is expected.  This works: >
 	:augroup mine | au! BufRead | augroup END
 But this sees "augroup" as part of the defined command: >
 	:augroup mine | au! BufRead * | augroup END
@@ -350,6 +350,7 @@ Name			triggered by ~
 
 |WinNew|		after creating a new window
 |TabNew|		after creating a new tab page
+|WinClosed|		after closing a window
 |TabClosed|		after closing a tab page
 |WinEnter|		after entering another window
 |WinLeave|		before leaving a window
@@ -1287,6 +1288,12 @@ VimResume			When the Vim instance is resumed after being
 VimSuspend			When the Vim instance is suspended.  Only when
 				CTRL-Z was typed inside Vim, not when the
 				SIGSTOP or SIGTSTP signal was sent to Vim.
+							*WinClosed*
+WinClosed			After closing a window.  The pattern is
+				matched against the |window-ID|.  Both
+				<amatch> and <afile> are set to the
+				|window-ID|.  Non-recursive (event cannot
+				trigger itself).
 							*WinEnter*
 WinEnter			After entering another window.  Not done for
 				the first window, when Vim has just started.

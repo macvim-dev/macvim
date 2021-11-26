@@ -8,12 +8,8 @@
  */
 
 /*
- * getchar.c
- *
- * functions related with getting a character from the user/mapping/redo/...
- *
- * manipulations with redo buffer and stuff buffer
- * mappings and abbreviations
+ * getchar.c: Code related to getting a character from the user or a script
+ * file, manipulations with redo buffer and stuff buffer.
  */
 
 #include "vim.h"
@@ -1001,6 +997,8 @@ ins_typebuf(
     }
     else
     {
+	int extra;
+
 	/*
 	 * Need to allocate a new buffer.
 	 * In typebuf.tb_buf there must always be room for 3 * (MAXMAPLEN + 4)
@@ -1008,13 +1006,15 @@ ins_typebuf(
 	 * often.
 	 */
 	newoff = MAXMAPLEN + 4;
-	newlen = typebuf.tb_len + addlen + newoff + 4 * (MAXMAPLEN + 4);
-	if (newlen < 0)		    // string is getting too long
+	extra = addlen + newoff + 4 * (MAXMAPLEN + 4);
+	if (typebuf.tb_len > 2147483647 - extra)
 	{
+	    // string is getting too long for a 32 bit int
 	    emsg(_(e_toocompl));    // also calls flush_buffers
 	    setcursor();
 	    return FAIL;
 	}
+	newlen = typebuf.tb_len + extra;
 	s1 = alloc(newlen);
 	if (s1 == NULL)		    // out of memory
 	    return FAIL;
@@ -2642,7 +2642,7 @@ handle_mapping(
 		keylen = KEYLEN_PART_KEY;
 
 	    // If no termcode matched, try to include the modifier into the
-	    // key.  This for when modifyOtherKeys is working.
+	    // key.  This is for when modifyOtherKeys is working.
 	    if (keylen == 0 && !no_reduce_keys)
 		keylen = check_simplify_modifier(max_mlen + 1);
 

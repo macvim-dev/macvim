@@ -3305,6 +3305,29 @@ op_colon(oparg_T *oap)
     // do_cmdline() does the rest
 }
 
+// callback function for 'operatorfunc'
+static callback_T opfunc_cb;
+
+/*
+ * Process the 'operatorfunc' option value.
+ * Returns OK or FAIL.
+ */
+    int
+set_operatorfunc_option(void)
+{
+    return option_set_callback_func(p_opfunc, &opfunc_cb);
+}
+
+#if defined(EXITFREE) || defined(PROTO)
+    void
+free_operatorfunc_option(void)
+{
+#  ifdef FEAT_EVAL
+    free_callback(&opfunc_cb);
+#  endif
+}
+#endif
+
 /*
  * Handle the "g@" operator: call 'operatorfunc'.
  */
@@ -3317,6 +3340,7 @@ op_function(oparg_T *oap UNUSED)
     int		save_finish_op = finish_op;
     pos_T	orig_start = curbuf->b_op_start;
     pos_T	orig_end = curbuf->b_op_end;
+    typval_T	rettv;
 
     if (*p_opfunc == NUL)
 	emsg(_("E774: 'operatorfunc' is empty"));
@@ -3345,7 +3369,8 @@ op_function(oparg_T *oap UNUSED)
 	// Reset finish_op so that mode() returns the right value.
 	finish_op = FALSE;
 
-	(void)call_func_noret(p_opfunc, 1, argv);
+	if (call_callback(&opfunc_cb, 0, &rettv, 1, argv) != FAIL)
+	    clear_tv(&rettv);
 
 	virtual_op = save_virtual_op;
 	finish_op = save_finish_op;
@@ -3739,6 +3764,8 @@ do_pending_operator(cmdarg_T *cap, int old_col, int gui_yank)
 			    oap->motion_force, cap->cmdchar, cap->nchar);
 		else if (cap->cmdchar != ':' && cap->cmdchar != K_COMMAND)
 		{
+		    int opchar = get_op_char(oap->op_type);
+		    int extra_opchar = get_extra_op_char(oap->op_type);
 		    int nchar = oap->op_type == OP_REPLACE ? cap->nchar : NUL;
 
 		    // reverse what nv_replace() did
@@ -3746,10 +3773,14 @@ do_pending_operator(cmdarg_T *cap, int old_col, int gui_yank)
 			nchar = CAR;
 		    else if (nchar == REPLACE_NL_NCHAR)
 			nchar = NL;
-		    prep_redo(oap->regname, 0L, NUL, 'v',
-					get_op_char(oap->op_type),
-					get_extra_op_char(oap->op_type),
-					nchar);
+
+		    if (opchar == 'g' && extra_opchar == '@')
+			// also repeat the count for 'operatorfunc'
+			prep_redo_num2(oap->regname, 0L, NUL, 'v',
+				     cap->count0, opchar, extra_opchar, nchar);
+		    else
+			prep_redo(oap->regname, 0L, NUL, 'v',
+						  opchar, extra_opchar, nchar);
 		}
 		if (!redo_VIsual_busy)
 		{

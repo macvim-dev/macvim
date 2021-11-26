@@ -446,7 +446,7 @@ reset_last_sourcing(void)
     static int
 other_sourcing_name(void)
 {
-    if (SOURCING_NAME != NULL)
+    if (HAVE_SOURCING_INFO && SOURCING_NAME != NULL)
     {
 	if (last_sourcing_name != NULL)
 	    return STRCMP(SOURCING_NAME, last_sourcing_name) != 0;
@@ -465,7 +465,7 @@ get_emsg_source(void)
 {
     char_u	*Buf, *p;
 
-    if (SOURCING_NAME != NULL && other_sourcing_name())
+    if (HAVE_SOURCING_INFO && SOURCING_NAME != NULL && other_sourcing_name())
     {
 	char_u	    *sname = estack_sfile(ESTACK_NONE);
 	char_u	    *tofree = sname;
@@ -522,6 +522,12 @@ get_emsg_lnum(void)
 msg_source(int attr)
 {
     char_u	*p;
+    static int	recursive = FALSE;
+
+    // Bail out if something called here causes an error.
+    if (recursive)
+	return;
+    recursive = TRUE;
 
     ++no_wait_return;
     p = get_emsg_source();
@@ -541,13 +547,13 @@ msg_source(int attr)
     // remember the last sourcing name printed, also when it's empty
     if (SOURCING_NAME == NULL || other_sourcing_name())
     {
-	vim_free(last_sourcing_name);
-	if (SOURCING_NAME == NULL)
-	    last_sourcing_name = NULL;
-	else
+	VIM_CLEAR(last_sourcing_name);
+	if (SOURCING_NAME != NULL)
 	    last_sourcing_name = vim_strsave(SOURCING_NAME);
     }
     --no_wait_return;
+
+    recursive = FALSE;
 }
 
 /*

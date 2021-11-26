@@ -6,6 +6,12 @@ source check.vim
 source script_util.vim
 source vim9.vim
 
+func ClearDict(d)
+  for k in keys(a:d)
+    call remove(a:d, k)
+  endfor
+endfunc
+
 func Test_highlight()
   " basic test if ":highlight" doesn't crash
   highlight
@@ -936,19 +942,30 @@ func Test_highlight_default_colorscheme_restores_links()
 endfunc
 
 func Test_colornames_assignment_and_lookup()
+  CheckAnyOf Feature:gui_running Feature:termguicolors
+
   " Ensure highlight command can find custom color.
   let v:colornames['a redish white'] = '#ffeedd'
   highlight Normal guifg='a redish white'
   highlight clear
+  call ClearDict(v:colornames)
 endfunc
 
 func Test_colornames_default_list()
+  CheckAnyOf Feature:gui_running Feature:termguicolors
+
   " Ensure default lists are loaded automatically and can be used for all gui fields.
+  call assert_equal(0, len(v:colornames))
   highlight Normal guifg='rebecca purple' guibg='rebecca purple' guisp='rebecca purple'
+  call assert_notequal(0, len(v:colornames))
+  echo v:colornames['rebecca purple']
   highlight clear
+  call ClearDict(v:colornames)
 endfunc
 
 func Test_colornames_overwrite_default()
+  CheckAnyOf Feature:gui_running Feature:termguicolors
+
   " Ensure entries in v:colornames can be overwritten.
   " Load default color scheme to trigger default color list loading.
   colorscheme default
@@ -961,6 +978,10 @@ func Test_colornames_overwrite_default()
 endfunc
 
 func Test_colornames_assignment_and_unassignment()
+  " No feature check is needed for this test because the v:colornames dict
+  " always exists with +eval. The feature checks are only required for
+  " commands that do color lookup.
+
   " Ensure we cannot overwrite the v:colornames dict.
   call assert_fails("let v:colornames = {}", 'E46:')
 
@@ -1102,12 +1123,10 @@ func Test_hlset()
                 \ 'standout': v:true, 'nocombine': v:true}
     call hlset([{'name': 'myhlg2', 'term': attr, 'cterm': attr, 'gui': attr}])
     VAR id2 = hlID('myhlg2')
-    VAR output =<< trim END
-      myhlg2         xxx term=bold,standout,underline,undercurl,italic,reverse,nocombine,strikethrough
-                         cterm=bold,standout,underline,undercurl,italic,reverse,nocombine,strikethrough
-                         gui=bold,standout,underline,undercurl,italic,reverse,nocombine,strikethrough
-    END
-    call assert_equal(output, execute('highlight myhlg2')->split("\n"))
+    VAR expected = "myhlg2 xxx term=bold,standout,underline,undercurl,italic,reverse,nocombine,strikethrough cterm=bold,standout,underline,undercurl,italic,reverse,nocombine,strikethrough gui=bold,standout,underline,undercurl,italic,reverse,nocombine,strikethrough"
+    VAR output = execute('highlight myhlg2')
+    LET output = output->split("\n")->join()->substitute('\s\+', ' ', 'g')
+    call assert_equal(expected, output)
     call assert_equal([{'id': id2, 'name': 'myhlg2', 'gui': attr,
                       \ 'term': attr, 'cterm': attr}], hlget('myhlg2'))
   END
@@ -1119,16 +1138,111 @@ func Test_hlset()
     VAR attr = {'bold': v:false, 'underline': v:true, 'strikethrough': v:true}
     call hlset([{'name': 'myhlg2', 'term': attr, 'cterm': attr, 'gui': attr}])
     VAR id2 = hlID('myhlg2')
-    VAR output =<< trim END
-      myhlg2         xxx term=underline,strikethrough cterm=underline,strikethrough
-                         gui=underline,strikethrough
-    END
-    call assert_equal(output, execute('highlight myhlg2')->split("\n"))
+    VAR expected = "myhlg2 xxx term=underline,strikethrough cterm=underline,strikethrough gui=underline,strikethrough"
+    VAR output = execute('highlight myhlg2')
+    LET output = output->split("\n")->join()->substitute('\s\+', ' ', 'g')
+    call assert_equal(expected, output)
     LET attr = {'underline': v:true, 'strikethrough': v:true}
     call assert_equal([{'id': id2, 'name': 'myhlg2', 'gui': attr,
                       \ 'term': attr, 'cterm': attr}], hlget('myhlg2'))
   END
   call CheckLegacyAndVim9Success(lines)
+
+  " Test for clearing the attributes and link of a highlight group
+  let lines =<< trim END
+    highlight myhlg3 ctermbg=green guibg=green
+    highlight! default link myhlg3 ErrorMsg
+    VAR id3 = hlID('myhlg3')
+    call hlset([{'name': 'myhlg3', 'cleared': v:true, 'linksto': 'NONE'}])
+    call assert_equal([{'id': id3, 'name': 'myhlg3', 'cleared': v:true}],
+                      \ hlget('myhlg3'))
+    highlight clear hlg3
+  END
+  call CheckLegacyAndVim9Success(lines)
+
+  " Test for setting default attributes for a highlight group
+  let lines =<< trim END
+    call hlset([{'name': 'hlg4', 'ctermfg': '8'}])
+    call hlset([{'name': 'hlg4', 'default': v:true, 'ctermfg': '9'}])
+    VAR id4 = hlID('hlg4')
+    call assert_equal([{'id': id4, 'name': 'hlg4', 'ctermfg': '8'}],
+                    \ hlget('hlg4'))
+    highlight clear hlg4
+
+    call hlset([{'name': 'hlg5', 'default': v:true, 'ctermbg': '2'}])
+    call hlset([{'name': 'hlg5', 'ctermbg': '4'}])
+    VAR id5 = hlID('hlg5')
+    call assert_equal([{'id': id5, 'name': 'hlg5', 'ctermbg': '4'}],
+                    \ hlget('hlg5'))
+    highlight clear hlg5
+
+    call hlset([{'name': 'hlg6', 'linksto': 'Error'}])
+    VAR id6 = hlID('hlg6')
+    call hlset([{'name': 'hlg6', 'default': v:true, 'ctermbg': '2'}])
+    call assert_equal([{'id': id6, 'name': 'hlg6', 'linksto': 'Error'}],
+                    \ hlget('hlg6'))
+    highlight clear hlg6
+  END
+  call CheckLegacyAndVim9Success(lines)
+
+  " Test for setting default links for a highlight group
+  let lines =<< trim END
+    call hlset([{'name': 'hlg7', 'ctermfg': '5'}])
+    call hlset([{'name': 'hlg7', 'default': v:true, 'linksto': 'Search'}])
+    VAR id7 = hlID('hlg7')
+    call assert_equal([{'id': id7, 'name': 'hlg7', 'ctermfg': '5'}],
+                    \ hlget('hlg7'))
+    highlight clear hlg7
+
+    call hlset([{'name': 'hlg8', 'default': v:true, 'linksto': 'Search'}])
+    VAR id8 = hlID('hlg8')
+    call assert_equal([{'id': id8, 'name': 'hlg8', 'default': v:true,
+                    \ 'linksto': 'Search'}], hlget('hlg8'))
+    call hlset([{'name': 'hlg8', 'ctermbg': '2'}])
+    call assert_equal([{'id': id8, 'name': 'hlg8', 'ctermbg': '2'}],
+                    \ hlget('hlg8'))
+    highlight clear hlg8
+
+    highlight default link hlg9 ErrorMsg
+    VAR hlg_save = hlget('hlg9')
+    LET hlg_save[0]['name'] = 'hlg9dup'
+    call hlset(hlg_save)
+    VAR id9 = hlID('hlg9dup')
+    highlight clear hlg9dup
+    call assert_equal([{'id': id9, 'name': 'hlg9dup', 'default': v:true,
+                    \ 'linksto': 'ErrorMsg'}], hlget('hlg9dup'))
+    highlight clear hlg9
+  END
+  call CheckLegacyAndVim9Success(lines)
+
+  " Test for force creating a link to a highlight group
+  let lines =<< trim END
+    call hlset([{'name': 'hlg10', 'ctermfg': '8'}])
+    call hlset([{'name': 'hlg10', 'linksto': 'Search'}])
+    VAR id10 = hlID('hlg10')
+    call assert_equal([{'id': id10, 'name': 'hlg10', 'ctermfg': '8'}],
+                    \ hlget('hlg10'))
+    call hlset([{'name': 'hlg10', 'linksto': 'Search', 'force': v:true}])
+    call assert_equal([{'id': id10, 'name': 'hlg10', 'ctermfg': '8',
+                    \ 'linksto': 'Search'}], hlget('hlg10'))
+    highlight clear hlg10
+  END
+  call CheckLegacyAndVim9Success(lines)
+
+  " Test for empty values of attributes
+  call hlset([{'name': 'hlg11', 'cterm': {}}])
+  call hlset([{'name': 'hlg11', 'ctermfg': ''}])
+  call hlset([{'name': 'hlg11', 'ctermbg': ''}])
+  call hlset([{'name': 'hlg11', 'ctermul': ''}])
+  call hlset([{'name': 'hlg11', 'font': ''}])
+  call hlset([{'name': 'hlg11', 'gui': {}}])
+  call hlset([{'name': 'hlg11', 'guifg': ''}])
+  call hlset([{'name': 'hlg11', 'guibg': ''}])
+  call hlset([{'name': 'hlg11', 'guisp': ''}])
+  call hlset([{'name': 'hlg11', 'start': ''}])
+  call hlset([{'name': 'hlg11', 'stop': ''}])
+  call hlset([{'name': 'hlg11', 'term': {}}])
+  call assert_true(hlget('hlg11')[0].cleared)
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

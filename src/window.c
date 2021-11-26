@@ -19,6 +19,7 @@ static void win_exchange(long);
 static void win_rotate(int, int);
 static void win_totop(int size, int flags);
 static void win_equal_rec(win_T *next_curwin, int current, frame_T *topfr, int dir, int col, int row, int width, int height);
+static void trigger_winclosed(win_T *win);
 static win_T *win_free_mem(win_T *win, int *dirp, tabpage_T *tp);
 static frame_T *win_altframe(win_T *win, tabpage_T *tp);
 static tabpage_T *alt_tabpage(void);
@@ -1426,6 +1427,9 @@ win_init(win_T *newp, win_T *oldp, int flags UNUSED)
 #ifdef FEAT_SYN_HL
     check_colorcolumn(newp);
 #endif
+#ifdef FEAT_TERMINAL
+    term_update_wincolor(newp);
+#endif
 }
 
 /*
@@ -2269,8 +2273,9 @@ entering_window(win_T *win)
 	stop_insert_mode = FALSE;
 
     // When entering the prompt window restart Insert mode if we were in Insert
-    // mode when we left it.
-    restart_edit = win->w_buffer->b_prompt_insert;
+    // mode when we left it and not already in Insert mode.
+    if ((State & INSERT) == 0)
+	restart_edit = win->w_buffer->b_prompt_insert;
 }
 #endif
 
@@ -2571,6 +2576,13 @@ win_close(win_T *win, int free_buf)
     if (popup_win_closed(win) && !win_valid(win))
 	return FAIL;
 #endif
+
+    // Trigger WinClosed just before starting to free window-related resources.
+    trigger_winclosed(win);
+    // autocmd may have freed the window already.
+    if (!win_valid_any_tab(win))
+	return OK;
+
     win_close_buffer(win, free_buf ? DOBUF_UNLOAD : 0, TRUE);
 
     if (only_one_window() && win_valid(win) && win->w_buffer == NULL
@@ -2715,6 +2727,20 @@ win_close(win_T *win, int free_buf)
     return OK;
 }
 
+    static void
+trigger_winclosed(win_T *win)
+{
+    static int	recursive = FALSE;
+    char_u	winid[NUMBUFLEN];
+
+    if (recursive)
+	return;
+    recursive = TRUE;
+    vim_snprintf((char *)winid, sizeof(winid), "%i", win->w_id);
+    apply_autocmds(EVENT_WINCLOSED, winid, winid, FALSE, win->w_buffer);
+    recursive = FALSE;
+}
+
 /*
  * Close window "win" in tab page "tp", which is not the current tab page.
  * This may be the last window in that tab page and result in closing the tab,
@@ -2735,6 +2761,12 @@ win_close_othertab(win_T *win, int free_buf, tabpage_T *tp)
     if (win->w_closing || (win->w_buffer != NULL
 					       && win->w_buffer->b_locked > 0))
 	return; // window is already being closed
+
+    // Trigger WinClosed just before starting to free window-related resources.
+    trigger_winclosed(win);
+    // autocmd may have freed the window already.
+    if (!win_valid_any_tab(win))
+	return;
 
     if (win->w_buffer != NULL)
 	// Close the link to the buffer.
@@ -3660,6 +3692,9 @@ win_init_empty(win_T *wp)
     wp->w_botline = 2;
 #if defined(FEAT_SYN_HL) || defined(FEAT_SPELL)
     wp->w_s = &wp->w_buffer->b_s;
+#endif
+#ifdef FEAT_TERMINAL
+    term_reset_wincolor(wp);
 #endif
 }
 
@@ -4773,36 +4808,7 @@ win_enter_ext(win_T *wp, int flags)
     }
 #endif
 
-    if (curwin->w_localdir != NULL || curtab->tp_localdir != NULL)
-    {
-	char_u	*dirname;
-
-	// Window or tab has a local directory: Save current directory as
-	// global directory (unless that was done already) and change to the
-	// local directory.
-	if (globaldir == NULL)
-	{
-	    char_u	cwd[MAXPATHL];
-
-	    if (mch_dirname(cwd, MAXPATHL) == OK)
-		globaldir = vim_strsave(cwd);
-	}
-	if (curwin->w_localdir != NULL)
-	    dirname = curwin->w_localdir;
-	else
-	    dirname = curtab->tp_localdir;
-
-	if (mch_chdir((char *)dirname) == 0)
-	    shorten_fnames(TRUE);
-    }
-    else if (globaldir != NULL)
-    {
-	// Window doesn't have a local directory and we are not in the global
-	// directory: Change to the global directory.
-	vim_ignored = mch_chdir((char *)globaldir);
-	VIM_CLEAR(globaldir);
-	shorten_fnames(TRUE);
-    }
+    fix_current_dir();
 
 #ifdef FEAT_JOB_CHANNEL
     entering_window(curwin);
@@ -4852,6 +4858,48 @@ win_enter_ext(win_T *wp, int flags)
     return did_decrement;
 }
 
+/*
+ * Used after making another window the current one: change directory if
+ * needed.
+ */
+    void
+fix_current_dir(void)
+{
+    if (curwin->w_localdir != NULL || curtab->tp_localdir != NULL)
+    {
+	char_u	*dirname;
+
+	// Window or tab has a local directory: Save current directory as
+	// global directory (unless that was done already) and change to the
+	// local directory.
+	if (globaldir == NULL)
+	{
+	    char_u	cwd[MAXPATHL];
+
+	    if (mch_dirname(cwd, MAXPATHL) == OK)
+		globaldir = vim_strsave(cwd);
+	}
+	if (curwin->w_localdir != NULL)
+	    dirname = curwin->w_localdir;
+	else
+	    dirname = curtab->tp_localdir;
+
+	if (mch_chdir((char *)dirname) == 0)
+	{
+	    last_chdir_reason = NULL;
+	    shorten_fnames(TRUE);
+	}
+    }
+    else if (globaldir != NULL)
+    {
+	// Window doesn't have a local directory and we are not in the global
+	// directory: Change to the global directory.
+	vim_ignored = mch_chdir((char *)globaldir);
+	VIM_CLEAR(globaldir);
+	last_chdir_reason = NULL;
+	shorten_fnames(TRUE);
+    }
+}
 
 /*
  * Jump to the first open window that contains buffer "buf", if one exists.

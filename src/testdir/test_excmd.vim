@@ -603,7 +603,7 @@ func Sandbox_tests()
   if has('clientserver')
     call assert_fails('let s=remote_expr("gvim", "2+2")', 'E48:')
     if !has('win32')
-      " remote_foreground() doesn't thrown an error message on MS-Windows
+      " remote_foreground() doesn't throw an error message on MS-Windows
       call assert_fails('call remote_foreground("gvim")', 'E48:')
     endif
     call assert_fails('let s=remote_peek("gvim")', 'E48:')
@@ -654,5 +654,17 @@ func Test_not_break_expression_register()
   endif
   call assert_equal('1+1', getreg('=', 1))
 endfunc
+
+func Test_address_line_overflow()
+  if v:sizeoflong < 8
+    throw 'Skipped: only works with 64 bit long ints'
+  endif
+  new
+  call setline(1, 'text')
+  call assert_fails('|.44444444444444444444444', 'E1247:')
+  call assert_fails('|.9223372036854775806', 'E1247:')
+  bwipe!
+endfunc
+
 
 " vim: shiftwidth=2 sts=2 expandtab

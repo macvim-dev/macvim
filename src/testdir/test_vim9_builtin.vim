@@ -915,6 +915,14 @@ def Test_expand()
   CheckDefAndScriptFailure2(['expand("a", 2)'], 'E1013: Argument 2: type mismatch, expected bool but got number', 'E1212: Bool required for argument 2')
   CheckDefAndScriptFailure2(['expand("a", true, 2)'], 'E1013: Argument 3: type mismatch, expected bool but got number', 'E1212: Bool required for argument 3')
   expand('')->assert_equal('')
+
+  var caught = false
+  try
+    echo expand("<sfile>")
+  catch /E1245:/
+    caught = true
+  endtry
+  assert_true(caught)
 enddef
 
 def Test_expandcmd()
@@ -3297,6 +3305,7 @@ def Test_sign_placelist()
   CheckDefAndScriptFailure2(['sign_placelist("x")'], 'E1013: Argument 1: type mismatch, expected list<any> but got string', 'E1211: List required for argument 1')
   CheckDefAndScriptFailure2(['sign_placelist({"a": 10})'], 'E1013: Argument 1: type mismatch, expected list<any> but got dict<number>', 'E1211: List required for argument 1')
   CheckDefExecAndScriptFailure(['sign_placelist([{"name": "MySign", "buffer": bufnr(), "lnum": ""}])'], 'E1209: Invalid value for a line number: ""')
+  assert_fails('sign_placelist([{name: "MySign", buffer: "", lnum: 1}])', 'E155:')
 enddef
 
 def Test_sign_undefine()

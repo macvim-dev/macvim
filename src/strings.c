@@ -2137,28 +2137,28 @@ vim_vsnprintf_typval(
 			char *q = memchr(str_arg, '\0',
 				  precision <= (size_t)0x7fffffffL ? precision
 						       : (size_t)0x7fffffffL);
+
 			str_arg_l = (q == NULL) ? precision
 						      : (size_t)(q - str_arg);
 		    }
 		    if (fmt_spec == 'S')
 		    {
-			if (min_field_width != 0)
-			    min_field_width += STRLEN(str_arg)
-				     - mb_string2cells((char_u *)str_arg, -1);
-			if (precision)
-			{
-			    char_u  *p1;
-			    size_t  i = 0;
+			char_u	*p1;
+			size_t	i;
+			int	cell;
 
-			    for (p1 = (char_u *)str_arg; *p1;
+			for (i = 0, p1 = (char_u *)str_arg; *p1;
 							  p1 += mb_ptr2len(p1))
-			    {
-				i += (size_t)mb_ptr2cells(p1);
-				if (i > precision)
-				    break;
-			    }
-			    str_arg_l = precision = p1 - (char_u *)str_arg;
+			{
+			    cell = mb_ptr2cells(p1);
+			    if (precision_specified && i + cell > precision)
+				break;
+			    i += cell;
 			}
+
+			str_arg_l = p1 - (char_u *)str_arg;
+			if (min_field_width != 0)
+			    min_field_width += str_arg_l - i;
 		    }
 		    break;
 

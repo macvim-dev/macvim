@@ -73,6 +73,7 @@ runtime/ftplugin/awk.vim		@dkearns
 runtime/ftplugin/basic.vim		@dkearns
 runtime/ftplugin/bst.vim		@tpope
 runtime/ftplugin/cfg.vim		@chrisbra
+runtime/ftplugin/clojure.vim		@axvr
 runtime/ftplugin/csh.vim		@dkearns
 runtime/ftplugin/css.vim		@dkearns
 runtime/ftplugin/cucumber.vim		@tpope
@@ -88,10 +89,12 @@ runtime/ftplugin/gitsendemail.vim	@tpope
 runtime/ftplugin/gprof.vim		@dpelle
 runtime/ftplugin/haml.vim		@tpope
 runtime/ftplugin/hgcommit.vim		@k-takata
+runtime/ftplugin/indent.vim		@dkearns
 runtime/ftplugin/javascript.vim		@dkearns
 runtime/ftplugin/javascriptreact.vim	@dkearns
 runtime/ftplugin/kconfig.vim		@chrisbra
 runtime/ftplugin/liquid.vim		@tpope
+runtime/ftplugin/lua.vim		@dkearns
 runtime/ftplugin/m3build.vim		@dkearns
 runtime/ftplugin/m3quake.vim		@dkearns
 runtime/ftplugin/markdown.vim		@tpope
@@ -107,6 +110,7 @@ runtime/ftplugin/pbtxt.vim		@lakshayg
 runtime/ftplugin/pdf.vim		@tpope
 runtime/ftplugin/ps1.vim		@heaths
 runtime/ftplugin/ps1xml.vim		@heaths
+runtime/ftplugin/routeros.vim		@zainin
 runtime/ftplugin/ruby.vim		@tpope @dkearns
 runtime/ftplugin/sass.vim		@tpope
 runtime/ftplugin/scss.vim		@tpope
@@ -122,6 +126,7 @@ runtime/ftplugin/xml.vim		@chrisbra
 runtime/ftplugin/zsh.vim		@chrisbra
 runtime/indent/bst.vim			@tpope
 runtime/indent/cdl.vim			@dkearns
+runtime/indent/clojure.vim		@axvr
 runtime/indent/config.vim		@dkearns
 runtime/indent/css.vim			@dkearns
 runtime/indent/cucumber.vim		@tpope
@@ -179,6 +184,7 @@ runtime/syntax/bst.vim			@tpope
 runtime/syntax/cabal.vim		@coot
 runtime/syntax/cabalconfig.vim		@coot
 runtime/syntax/cabalproject.vim		@coot
+runtime/syntax/clojure.vim		@axvr
 runtime/syntax/cs.vim			@nickspoons
 runtime/syntax/csh.vim			@cecamp
 runtime/syntax/cucumber.vim		@tpope
@@ -202,6 +208,7 @@ runtime/syntax/groff.vim		@jmarshall
 runtime/syntax/haml.vim			@tpope
 runtime/syntax/haskell.vim		@coot
 runtime/syntax/hgcommit.vim		@k-takata
+runtime/syntax/indent.vim		@dkearns
 runtime/syntax/kconfig.vim		@chrisbra
 runtime/syntax/less.vim			@genoma
 runtime/syntax/lex.vim			@cecamp
@@ -230,6 +237,7 @@ runtime/syntax/ps1.vim			@heaths
 runtime/syntax/ps1xml.vim		@heaths
 runtime/syntax/psl.vim			@danielkho
 runtime/syntax/rc.vim			@chrisbra
+runtime/syntax/routeros.vim		@zainin
 runtime/syntax/rpcgen.vim		@cecamp
 runtime/syntax/ruby.vim			@dkearns
 runtime/syntax/sass.vim			@tpope

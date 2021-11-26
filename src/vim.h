@@ -432,7 +432,7 @@ typedef unsigned int u8char_T;	// int is 32 bits or more
 
 #include "ascii.h"
 #include "keymap.h"
-#include "term.h"
+#include "termdefs.h"
 #include "macros.h"
 
 #ifdef LATTICE
@@ -1388,6 +1388,7 @@ enum auto_event
     EVENT_WINENTER,		// after entering a window
     EVENT_WINLEAVE,		// before leaving a window
     EVENT_WINNEW,		// when entering a new window
+    EVENT_WINCLOSED,		// after closing a window
     EVENT_VIMSUSPEND,		// before Vim is suspended
     EVENT_VIMRESUME,		// after Vim is resumed
 
@@ -1419,6 +1420,8 @@ typedef enum
     , HLF_LNA	    // LineNrAbove
     , HLF_LNB	    // LineNrBelow
     , HLF_CLN	    // current line number
+    , HLF_CLS	    // current line sign column
+    , HLF_CLF	    // current line fold
     , HLF_R	    // return to continue message and yes/no questions
     , HLF_S	    // status lines
     , HLF_SNC	    // status lines of not-current windows
@@ -1459,7 +1462,7 @@ typedef enum
 // The HL_FLAGS must be in the same order as the HLF_ enums!
 // When changing this also adjust the default for 'highlight'.
 #define HL_FLAGS {'8', '~', '@', 'd', 'e', 'h', 'i', 'l', 'm', 'M', \
-		  'n', 'a', 'b', 'N', 'r', 's', 'S', 'c', 't', 'v', 'V', \
+		  'n', 'a', 'b', 'N', 'G', 'O', 'r', 's', 'S', 'c', 't', 'v', 'V', \
 		  'w', 'W', 'f', 'F', 'A', 'C', 'D', 'T', '-', '>', \
 		  'B', 'P', 'R', 'L', \
 		  '+', '=', 'x', 'X', '*', '#', '_', '!', '.', 'o', 'q', \

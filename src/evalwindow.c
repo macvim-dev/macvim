@@ -407,6 +407,7 @@ get_win_info(win_T *wp, short tpnr, short winnr)
 #endif
     dict_add_number(dict, "width", wp->w_width);
     dict_add_number(dict, "wincol", wp->w_wincol + 1);
+    dict_add_number(dict, "textoff", win_col_off(wp));
     dict_add_number(dict, "bufnr", wp->w_buffer->b_fnum);
 
 #ifdef FEAT_TERMINAL
@@ -1311,5 +1312,9 @@ restore_win_noblock(
 	// to the first valid window.
 	win_goto(firstwin);
 # endif
+
+    // If called by win_execute() and executing the command changed the
+    // directory, it now has to be restored.
+    fix_current_dir();
 }
 #endif

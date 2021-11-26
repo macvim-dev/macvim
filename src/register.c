@@ -991,17 +991,18 @@ shift_delete_registers()
     void
 yank_do_autocmd(oparg_T *oap, yankreg_T *reg)
 {
-    static int	recursive = FALSE;
-    dict_T	*v_event;
-    list_T	*list;
-    int		n;
-    char_u	buf[NUMBUFLEN + 2];
-    long	reglen = 0;
+    static int	    recursive = FALSE;
+    dict_T	    *v_event;
+    list_T	    *list;
+    int		    n;
+    char_u	    buf[NUMBUFLEN + 2];
+    long	    reglen = 0;
+    save_v_event_T  save_v_event;
 
     if (recursive)
 	return;
 
-    v_event = get_vim_var_dict(VV_EVENT);
+    v_event = get_v_event(&save_v_event);
 
     list = list_alloc();
     if (list == NULL)
@@ -1045,8 +1046,7 @@ yank_do_autocmd(oparg_T *oap, yankreg_T *reg)
     recursive = FALSE;
 
     // Empty the dictionary, v:event is still valid
-    dict_free_contents(v_event);
-    hash_init(&v_event->dv_hashtab);
+    restore_v_event(v_event, &save_v_event);
 }
 #endif
 
@@ -1884,18 +1884,30 @@ do_put(
 		    spaces = 0;
 	    }
 
-	    // insert the new text
+	    // Insert the new text.
+	    // First check for multiplication overflow.
+	    if (yanklen + spaces != 0
+		     && count > ((INT_MAX - (bd.startspaces + bd.endspaces))
+							/ (yanklen + spaces)))
+	    {
+		emsg(_(e_resulting_text_too_long));
+		break;
+	    }
+
 	    totlen = count * (yanklen + spaces) + bd.startspaces + bd.endspaces;
 	    newp = alloc(totlen + oldlen + 1);
 	    if (newp == NULL)
 		break;
+
 	    // copy part up to cursor to new line
 	    ptr = newp;
 	    mch_memmove(ptr, oldp, (size_t)bd.textcol);
 	    ptr += bd.textcol;
+
 	    // may insert some spaces before the new text
 	    vim_memset(ptr, ' ', (size_t)bd.startspaces);
 	    ptr += bd.startspaces;
+
 	    // insert the new text
 	    for (j = 0; j < count; ++j)
 	    {
@@ -1909,9 +1921,11 @@ do_put(
 		    ptr += spaces;
 		}
 	    }
+
 	    // may insert some spaces after the new text
 	    vim_memset(ptr, ' ', (size_t)bd.endspaces);
 	    ptr += bd.endspaces;
+
 	    // move the text after the cursor to the end of the line.
 	    mch_memmove(ptr, oldp + bd.textcol + delcount,
 				(size_t)(oldlen - bd.textcol - delcount + 1));
@@ -1990,6 +2004,7 @@ do_put(
 	{
 	    linenr_T	end_lnum = 0; // init for gcc
 	    linenr_T	start_lnum = lnum;
+	    int		first_byte_off = 0;
 
 	    if (VIsual_active)
 	    {
@@ -2010,26 +2025,20 @@ do_put(
 		}
 	    }
 
-	    do {
-#ifdef FEAT_FLOAT
-		double multlen = (double)count * (double)yanklen;
-
+	    if (count == 0 || yanklen == 0)
+	    {
+		if (VIsual_active)
+		    lnum = end_lnum;
+	    }
+	    else if (count > INT_MAX / yanklen)
+		// multiplication overflow
+		emsg(_(e_resulting_text_too_long));
+	    else
+	    {
 		totlen = count * yanklen;
-		if ((double)totlen != multlen)
-#else
-		long multlen = count * yanklen;
-
-		// this only works when sizeof(int) != sizeof(long)
-		totlen = multlen;
-		if (totlen != multlen)
-#endif
-		{
-		    emsg(_(e_resulting_text_too_long));
-		    break;
-		}
-		else if (totlen > 0)
-		{
+		do {
 		    oldp = ml_get(lnum);
+		    oldlen = (int)STRLEN(oldp);
 		    if (lnum > start_lnum)
 		    {
 			pos_T   pos;
@@ -2040,12 +2049,12 @@ do_put(
 			else
 			    col = MAXCOL;
 		    }
-		    if (VIsual_active && col > (int)STRLEN(oldp))
+		    if (VIsual_active && col > oldlen)
 		    {
 			lnum++;
 			continue;
 		    }
-		    newp = alloc(STRLEN(oldp) + totlen + 1);
+		    newp = alloc(totlen + oldlen + 1);
 		    if (newp == NULL)
 			goto end;	// alloc() gave an error message
 		    mch_memmove(newp, oldp, (size_t)col);
@@ -2057,6 +2066,10 @@ do_put(
 		    }
 		    STRMOVE(ptr, oldp + col);
 		    ml_replace(lnum, newp, FALSE);
+
+		    // compute the byte offset for the last character
+		    first_byte_off = mb_head_off(newp, ptr - 1);
+
 		    // Place cursor on last putted char.
 		    if (lnum == curwin->w_cursor.lnum)
 		    {
@@ -2064,23 +2077,29 @@ do_put(
 			changed_cline_bef_curs();
 			curwin->w_cursor.col += (colnr_T)(totlen - 1);
 		    }
-		}
-		if (VIsual_active)
-		    lnum++;
-	    } while (VIsual_active && lnum <= end_lnum);
+		    if (VIsual_active)
+			lnum++;
+		} while (VIsual_active && lnum <= end_lnum);
 
-	    if (VIsual_active) // reset lnum to the last visual line
-		lnum--;
+		if (VIsual_active) // reset lnum to the last visual line
+		    lnum--;
+	    }
 
+	    // put '] at the first byte of the last character
 	    curbuf->b_op_end = curwin->w_cursor;
+	    curbuf->b_op_end.col -= first_byte_off;
+
 	    // For "CTRL-O p" in Insert mode, put cursor after last char
 	    if (totlen && (restart_edit != 0 || (flags & PUT_CURSEND)))
 		++curwin->w_cursor.col;
+	    else
+		curwin->w_cursor.col -= first_byte_off;
 	    changed_bytes(lnum, col);
 	}
 	else
 	{
 	    linenr_T	new_lnum = new_cursor.lnum;
+	    size_t	len;
 
 	    // Insert at least one line.  When y_type is MCHAR, break the first
 	    // line in two.
@@ -2190,12 +2209,15 @@ error:
 		changed_lines(curbuf->b_op_start.lnum, 0,
 					   curbuf->b_op_start.lnum, nr_lines);
 
-	    // put '] mark at last inserted character
+	    // Put the '] mark on the first byte of the last inserted character.
+	    // Correct the length for change in indent.
 	    curbuf->b_op_end.lnum = new_lnum;
-	    // correct length for change in indent
-	    col = (colnr_T)STRLEN(y_array[y_size - 1]) - lendiff;
+	    len = STRLEN(y_array[y_size - 1]);
+	    col = (colnr_T)len - lendiff;
 	    if (col > 1)
-		curbuf->b_op_end.col = col - 1;
+		curbuf->b_op_end.col = col - 1
+				- mb_head_off(y_array[y_size - 1],
+						y_array[y_size - 1] + len - 1);
 	    else
 		curbuf->b_op_end.col = 0;
 

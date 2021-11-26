@@ -741,7 +741,18 @@ def Test_nested_global_function()
       enddef
       defcompile
   END
-  CheckScriptFailure(lines, "E1073:")
+  CheckScriptFailure(lines, "E1073:", 1)
+
+  lines =<< trim END
+      vim9script
+      def Func()
+        echo 'script'
+      enddef
+      def Func()
+        echo 'script'
+      enddef
+  END
+  CheckScriptFailure(lines, "E1073:", 5)
 enddef
 
 def DefListAll()
@@ -1050,6 +1061,20 @@ def Test_call_lambda_args()
   END
   CheckDefFailure(lines, 'E118: Too many arguments for function: ->((a) => a)(''bb'')', 1)
   CheckScriptFailure(['vim9script'] + lines, 'E118: Too many arguments for function: <lambda>', 2)
+enddef
+
+def Test_lambda_line_nr()
+  var lines =<< trim END
+      vim9script
+      # comment
+      # comment
+      var id = timer_start(1'000, (_) => 0)
+      var out = execute('verbose ' .. timer_info(id)[0].callback
+          ->string()
+          ->substitute("('\\|')", ' ', 'g'))
+      assert_match('Last set from .* line 4', out)
+  END
+  CheckScriptSuccess(lines)
 enddef
 
 def FilterWithCond(x: string, Cond: func(string): bool): bool
