@@ -1819,7 +1819,6 @@ gui_mch_set_text_area_pos(int x UNUSED, int y UNUSED, int w UNUSED, int h UNUSED
 }
 
 
-#ifdef FEAT_TITLE
 /*
  * Set the window title and icon.
  * (The icon is not taken care of).
@@ -1840,7 +1839,6 @@ gui_mch_settitle(char_u *title, char_u *icon)
 
     CONVERT_TO_UTF8_FREE(title);
 }
-#endif
 
 
     void

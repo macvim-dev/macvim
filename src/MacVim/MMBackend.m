@@ -1510,9 +1510,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 #ifdef FEAT_EVAL
             set_vim_var_string(VV_SEND_SERVER, serverName, -1);
 #endif
-#ifdef FEAT_TITLE
 	    need_maketitle = TRUE;
-#endif
             [self queueMessage:SetServerNameMsgID
                         data:[svrName dataUsingEncoding:NSUTF8StringEncoding]];
             break;

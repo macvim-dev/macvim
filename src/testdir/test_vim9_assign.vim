@@ -322,6 +322,16 @@ def Test_skipped_assignment()
   CheckDefAndScriptSuccess(lines)
 enddef
 
+def Test_assign_keep_type()
+  var lines =<< trim END
+      vim9script
+      var l: list<number> = [123]
+      l = [123]
+      l->add('string')
+  END
+  CheckScriptFailure(lines, 'E1012:', 4)
+enddef
+
 def Test_assign_unpack()
   var lines =<< trim END
     var v1: number
@@ -1844,6 +1854,12 @@ def Test_unlet()
     'var ll = [1, 2]',
     'unlet ll[0: 1]',
     ], 'E1004:', 2)
+  # command recognized as assignment when skipping, should not give an error
+  CheckScriptSuccess([
+    'vim9script',
+    'for i in []',
+    "  put =''",
+    'endfor'])
 
   CheckDefFailure([
     'var ll = [1, 2]',

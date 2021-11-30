@@ -2129,9 +2129,7 @@ set_termname(char_u *term)
     {
 	starttermcap();		// may change terminal mode
 	setmouse();		// may start using the mouse
-#ifdef FEAT_TITLE
 	maketitle();		// may display window title
-#endif
     }
 
 	// display initial screen after ttest() checking. jw.
@@ -3097,8 +3095,7 @@ term_ul_rgb_color(guicolor_T rgb)
 }
 #endif
 
-#if (defined(FEAT_TITLE) && (defined(UNIX) || defined(VMS) \
-	|| defined(MACOS_X))) || defined(PROTO)
+#if (defined(UNIX) || defined(VMS) || defined(MACOS_X)) || defined(PROTO)
 /*
  * Generic function to set window title, using t_ts and t_fs.
  */
@@ -3511,9 +3508,8 @@ set_shellsize(int width, int height, int mustset)
 
     if (starting != NO_SCREEN)
     {
-#ifdef FEAT_TITLE
 	maketitle();
-#endif
+
 	changed_line_abv_curs();
 	invalidate_botline();
 

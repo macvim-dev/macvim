@@ -1198,11 +1198,10 @@ ui_focus_change(
 	    gui_update_scrollbars(FALSE);
 # endif
     }
-#ifdef FEAT_TITLE
+
     // File may have been changed from 'readonly' to 'noreadonly'
     if (need_maketitle)
 	maketitle();
-#endif
 }
 
 #if defined(HAVE_INPUT_METHOD) || defined(PROTO)

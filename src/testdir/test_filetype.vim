@@ -182,11 +182,12 @@ let s:filename_checks = {
     \ 'fgl': ['file.4gl', 'file.4gh', 'file.m4gl'],
     \ 'fish': ['file.fish'],
     \ 'focexec': ['file.fex', 'file.focexec'],
-    \ 'forth': ['file.fs', 'file.ft', 'file.fth'],
+    \ 'forth': ['file.ft', 'file.fth'],
     \ 'fortran': ['file.f', 'file.for', 'file.fortran', 'file.fpp', 'file.ftn', 'file.f77', 'file.f90', 'file.f95', 'file.f03', 'file.f08'],
     \ 'fpcmake': ['file.fpc'],
     \ 'framescript': ['file.fsl'],
     \ 'freebasic': ['file.fb', 'file.bi'],
+    \ 'fs': ['file.fs'],
     \ 'fstab': ['fstab', 'mtab'],
     \ 'fvwm': ['/.fvwm/file', 'any/.fvwm/file'],
     \ 'gdb': ['.gdbinit', 'gdbinit'],
@@ -554,7 +555,7 @@ let s:filename_checks = {
     \ 'xhtml': ['file.xhtml', 'file.xht'],
     \ 'xinetd': ['/etc/xinetd.conf', '/etc/xinetd.d/file', 'any/etc/xinetd.conf', 'any/etc/xinetd.d/file'],
     \ 'xmath': ['file.msc', 'file.msf'],
-    \ 'xml': ['/etc/blkid.tab', '/etc/blkid.tab.old', 'file.xmi', 'file.csproj', 'file.csproj.user', 'file.ui', 'file.tpm', '/etc/xdg/menus/file.menu', 'fglrxrc', 'file.xlf', 'file.xliff', 'file.xul', 'file.wsdl', 'file.wpl', 'any/etc/blkid.tab', 'any/etc/blkid.tab.old', 'any/etc/xdg/menus/file.menu', 'file.atom', 'file.rss', 'file.cdxml', 'file.psc1', 'file.mpd'],
+    \ 'xml': ['/etc/blkid.tab', '/etc/blkid.tab.old', 'file.xmi', 'file.csproj', 'file.csproj.user', 'file.fsproj', 'file.fsproj.user', 'file.vbproj', 'file.vbproj.user', 'file.ui', 'file.tpm', '/etc/xdg/menus/file.menu', 'fglrxrc', 'file.xlf', 'file.xliff', 'file.xul', 'file.wsdl', 'file.wpl', 'any/etc/blkid.tab', 'any/etc/blkid.tab.old', 'any/etc/xdg/menus/file.menu', 'file.atom', 'file.rss', 'file.cdxml', 'file.psc1', 'file.mpd'],
     \ 'xmodmap': ['anyXmodmap', 'Xmodmap', 'some-Xmodmap', 'some-xmodmap', 'some-xmodmap-file', 'xmodmap', 'xmodmap-file'],
     \ 'xf86conf': ['xorg.conf', 'xorg.conf-4'],
     \ 'xpm': ['file.xpm'],
@@ -664,6 +665,7 @@ let s:script_checks = {
       \ 'fennel': [['#!/path/fennel']],
       \ 'routeros': [['#!/path/rsc']],
       \ 'fish': [['#!/path/fish']],
+      \ 'forth': [['#!/path/gforth']],
       \ }
 
 " Various forms of "env" optional arguments.
@@ -891,6 +893,16 @@ func Test_m_file()
   call assert_equal('objc', &filetype)
   bwipe!
 
+  call writefile(['#include <header.h>'], 'Xfile.m')
+  split Xfile.m
+  call assert_equal('objc', &filetype)
+  bwipe!
+
+  call writefile(['#define FORTY_TWO'], 'Xfile.m')
+  split Xfile.m
+  call assert_equal('objc', &filetype)
+  bwipe!
+
   " Octave
 
   call writefile(['# Octave line comment'], 'Xfile.m')
@@ -957,6 +969,59 @@ func Test_xpm_file()
   bwipe!
 
   call delete('file.xpm')
+  filetype off
+endfunc
+
+func Test_fs_file()
+  filetype on
+
+  call writefile(['looks like F#'], 'Xfile.fs')
+  split Xfile.fs
+  call assert_equal('fs', &filetype)
+  bwipe!
+
+  let g:filetype_fs = 'forth'
+  split Xfile.fs
+  call assert_equal('forth', &filetype)
+  bwipe!
+  unlet g:filetype_fs
+
+  " Test dist#ft#FTfs()
+
+  " Forth (Gforth)
+
+  call writefile(['( Forth inline comment )'], 'Xfile.fs')
+  split Xfile.fs
+  call assert_equal('forth', &filetype)
+  bwipe!
+
+  call writefile(['.( Forth displayed inline comment )'], 'Xfile.fs')
+  split Xfile.fs
+  call assert_equal('forth', &filetype)
+  bwipe!
+
+  call writefile(['\ Forth line comment'], 'Xfile.fs')
+  split Xfile.fs
+  call assert_equal('forth', &filetype)
+  bwipe!
+
+  " empty line comment - no space required
+  call writefile(['\'], 'Xfile.fs')
+  split Xfile.fs
+  call assert_equal('forth', &filetype)
+  bwipe!
+
+  call writefile(['\G Forth documentation comment '], 'Xfile.fs')
+  split Xfile.fs
+  call assert_equal('forth', &filetype)
+  bwipe!
+
+  call writefile([': squared ( n -- n^2 )', 'dup * ;'], 'Xfile.fs')
+  split Xfile.fs
+  call assert_equal('forth', &filetype)
+  bwipe!
+
+  call delete('Xfile.fs')
   filetype off
 endfunc
 

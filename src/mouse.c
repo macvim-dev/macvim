@@ -1650,13 +1650,15 @@ retnomove:
 	if (WIN_IS_POPUP(wp))
 	{
 	    on_sep_line = 0;
+	    on_status_line = 0;
 	    in_popup_win = TRUE;
 	    if (which_button == MOUSE_LEFT && popup_close_if_on_X(wp, row, col))
 	    {
 		return IN_UNKNOWN;
 	    }
-	    else if ((wp->w_popup_flags & (POPF_DRAG | POPF_RESIZE))
+	    else if (((wp->w_popup_flags & (POPF_DRAG | POPF_RESIZE))
 					      && popup_on_border(wp, row, col))
+				       || (wp->w_popup_flags & POPF_DRAGALL))
 	    {
 		popup_dragwin = wp;
 		popup_start_drag(wp, row, col);

@@ -265,6 +265,9 @@ win_line(
     int		c_extra = NUL;		// extra chars, all the same
     int		c_final = NUL;		// final char, mandatory if set
     int		extra_attr = 0;		// attributes when n_extra != 0
+#ifdef FEAT_LINEBREAK
+    int		in_linebreak = FALSE;	// n_extra set for showing linebreak
+#endif
     static char_u *at_end_str = (char_u *)""; // used for p_extra when
 					// displaying eol at end-of-line
     int		lcs_eol_one = wp->w_lcs_chars.eol; // eol until it's been used
@@ -434,6 +437,7 @@ win_line(
 
 #if defined(FEAT_CONCEAL) || defined(FEAT_SEARCH_EXTRA)
     int		match_conc	= 0;	// cchar for match functions
+    int		on_last_col     = FALSE;
 #endif
 #ifdef FEAT_CONCEAL
     int		syntax_flags	= 0;
@@ -1382,7 +1386,8 @@ win_line(
 		v = (long)(ptr - line);
 		search_attr = update_search_hl(wp, lnum, (colnr_T)v, &line,
 				      &screen_search_hl, &has_match_conc,
-				      &match_conc, did_line_attr, lcs_eol_one);
+				      &match_conc, did_line_attr, lcs_eol_one,
+				      &on_last_col);
 		ptr = line + v;  // "line" may have been changed
 
 		// Do not allow a conceal over EOL otherwise EOL will be missed
@@ -1417,7 +1422,11 @@ win_line(
 		int pi;
 		int bcol = (int)(ptr - line);
 
-		if (n_extra > 0)
+		if (n_extra > 0
+# ifdef FEAT_LINEBREAK
+			&& !in_linebreak
+# endif
+			)
 		    --bcol;  // still working on the previous char, e.g. Tab
 
 		// Check if any active property ends.
@@ -1435,6 +1444,11 @@ win_line(
 					 * (text_props_active - (pi + 1)));
 			--text_props_active;
 			--pi;
+# ifdef FEAT_LINEBREAK
+			// not exactly right but should work in most cases
+			if (in_linebreak && syntax_attr == text_prop_attr)
+			    syntax_attr = 0;
+# endif
 		    }
 		}
 
@@ -1703,6 +1717,10 @@ win_line(
 		++p_extra;
 	    }
 	    --n_extra;
+#ifdef FEAT_LINEBREAK
+	    if (n_extra <= 0)
+		in_linebreak = FALSE;
+#endif
 	}
 	else
 	{
@@ -2012,6 +2030,10 @@ win_line(
 			if (n_extra < 0)
 			    n_extra = 0;
 		    }
+		    if (on_last_col)
+			// Do not continue search/match highlighting over the
+			// line break.
+			search_attr = 0;
 
 		    if (c == TAB && n_extra + col > wp->w_width)
 # ifdef FEAT_VARTABS
@@ -2024,6 +2046,8 @@ win_line(
 
 		    c_extra = mb_off > 0 ? MB_FILLER_CHAR : ' ';
 		    c_final = NUL;
+		    if (n_extra > 0)
+			in_linebreak = TRUE;
 		    if (VIM_ISWHITE(c))
 		    {
 # ifdef FEAT_CONCEAL

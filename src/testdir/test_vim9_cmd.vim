@@ -105,6 +105,23 @@ def Test_edit_wildcards()
   var files = ['file 1', 'file%2', 'file# 3']
   args `=files`
   assert_equal(files, argv())
+
+  filename = 'Xwindo'
+  windo edit `=filename`
+  assert_equal('Xwindo', bufname())
+
+  filename = 'Xtabdo'
+  tabdo edit `=filename`
+  assert_equal('Xtabdo', bufname())
+
+  filename = 'Xargdo'
+  argdo edit `=filename`
+  assert_equal('Xargdo', bufname())
+
+  :%bwipe!
+  filename = 'Xbufdo'
+  bufdo file `=filename`
+  assert_equal('Xbufdo', bufname())
 enddef
 
 def Test_expand_alternate_file()
@@ -695,6 +712,16 @@ def Test_command_modifier_filter()
       @a = 'very specific z3d37dh234 string'
       filter z3d37dh234 registers
       assert_match('very specific z3d37dh234 string', Screenline(&lines))
+  END
+  CheckDefAndScriptSuccess(lines)
+
+  lines =<< trim END
+      edit foobar
+      redir => g:filter_out
+      filter #foobar# ls
+      redir END
+      assert_match('"foobar"', g:filter_out)
+      unlet g:filter_out
   END
   CheckDefAndScriptSuccess(lines)
 enddef
