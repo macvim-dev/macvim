@@ -144,6 +144,7 @@ typedef struct {
 				      // any "[expr]" or ".name"
     char_u	    *lhs_dest_end;  // end of the destination, including
 				    // "[expr]" or ".name".
+    char_u	    *lhs_end;	    // end including any type
 
     int		    lhs_has_index;  // has "[expr]" or ".name"
 
@@ -2274,8 +2275,12 @@ generate_PUT(cctx_T *cctx, int regname, linenr_T lnum)
     return OK;
 }
 
+/*
+ * Generate an EXEC instruction that takes a string argument.
+ * A copy is made of "line".
+ */
     static int
-generate_EXEC(cctx_T *cctx, isntype_T isntype, char_u *line)
+generate_EXEC_copy(cctx_T *cctx, isntype_T isntype, char_u *line)
 {
     isn_T	*isn;
 
@@ -2283,6 +2288,29 @@ generate_EXEC(cctx_T *cctx, isntype_T isntype, char_u *line)
     if ((isn = generate_instr(cctx, isntype)) == NULL)
 	return FAIL;
     isn->isn_arg.string = vim_strsave(line);
+    return OK;
+}
+
+/*
+ * Generate an EXEC instruction that takes a string argument.
+ * "str" must be allocated, it is consumed.
+ */
+    static int
+generate_EXEC(cctx_T *cctx, isntype_T isntype, char_u *str)
+{
+    isn_T	*isn;
+
+    if (cctx->ctx_skip == SKIP_YES)
+    {
+	vim_free(str);
+	return OK;
+    }
+    if ((isn = generate_instr(cctx, isntype)) == NULL)
+    {
+	vim_free(str);
+	return FAIL;
+    }
+    isn->isn_arg.string = str;
     return OK;
 }
 
@@ -6299,6 +6327,7 @@ compile_lhs(
 	--lhs->lhs_dest_end;
     if (is_decl && var_end == var_start + 2 && var_end[-1] == ':')
 	--var_end;
+    lhs->lhs_end = lhs->lhs_dest_end;
 
     // compute the length of the destination without "[expr]" or ".name"
     lhs->lhs_varlen = var_end - var_start;
@@ -6435,7 +6464,7 @@ compile_lhs(
 	}
     }
 
-    // handle "a:name" as a name, not index "name" on "a"
+    // handle "a:name" as a name, not index "name" in "a"
     if (lhs->lhs_varlen > 1 || var_start[lhs->lhs_varlen] != ':')
 	var_end = lhs->lhs_dest_end;
 
@@ -6456,6 +6485,7 @@ compile_lhs(
 	    if (lhs->lhs_type == NULL)
 		return FAIL;
 	    lhs->lhs_has_type = TRUE;
+	    lhs->lhs_end = p;
 	}
 	else if (lhs->lhs_lvar != NULL)
 	    lhs->lhs_type = lhs->lhs_lvar->lv_type;
@@ -6896,13 +6926,6 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
     if (p == NULL)
 	return *arg == '[' ? arg : NULL;
 
-    if (var_count > 0 && is_decl)
-    {
-	// TODO: should we allow this, and figure out type inference from list
-	// members?
-	emsg(_(e_cannot_use_list_for_declaration));
-	return NULL;
-    }
     lhs.lhs_name = NULL;
 
     sp = p;
@@ -6976,6 +6999,8 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	if (cctx->ctx_skip != SKIP_YES)
 	{
 	    type_T	*stacktype;
+	    int		needed_list_len;
+	    int		did_check = FALSE;
 
 	    stacktype = stack->ga_len == 0 ? &t_void
 			      : ((type_T **)stack->ga_data)[stack->ga_len - 1];
@@ -6987,9 +7012,26 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	    if (need_type(stacktype, &t_list_any, -1, 0, cctx,
 							 FALSE, FALSE) == FAIL)
 		goto theend;
-	    // TODO: check the length of a constant list here
-	    generate_CHECKLEN(cctx, semicolon ? var_count - 1 : var_count,
-								    semicolon);
+	    // If a constant list was used we can check the length right here.
+	    needed_list_len = semicolon ? var_count - 1 : var_count;
+	    if (instr->ga_len > 0)
+	    {
+		isn_T	*isn = ((isn_T *)instr->ga_data) + instr->ga_len - 1;
+
+		if (isn->isn_type == ISN_NEWLIST)
+		{
+		    did_check = TRUE;
+		    if (semicolon ? isn->isn_arg.number < needed_list_len
+			    : isn->isn_arg.number != needed_list_len)
+		    {
+			semsg(_(e_expected_nr_items_but_got_nr),
+					 needed_list_len, isn->isn_arg.number);
+			goto theend;
+		    }
+		}
+	    }
+	    if (!did_check)
+		generate_CHECKLEN(cctx, needed_list_len, semicolon);
 	    if (stacktype->tt_member != NULL)
 		rhs_type = stacktype->tt_member;
 	}
@@ -7330,7 +7372,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	cctx->ctx_lnum = save_lnum;
 
 	if (var_idx + 1 < var_count)
-	    var_start = skipwhite(lhs.lhs_dest_end + 1);
+	    var_start = skipwhite(lhs.lhs_end + 1);
     }
 
     // For "[var, var] = expr" drop the "expr" value.
@@ -7556,7 +7598,7 @@ compile_lock_unlock(
 	vim_snprintf((char *)buf, len, "%s %s",
 		eap->cmdidx == CMD_lockvar ? "lockvar" : "unlockvar",
 		p);
-	ret = generate_EXEC(cctx, isn, buf);
+	ret = generate_EXEC_copy(cctx, isn, buf);
 
 	vim_free(buf);
 	*name_end = cc;
@@ -7789,7 +7831,7 @@ compile_elseif(char_u *arg, cctx_T *cctx)
 {
     char_u	*p = arg;
     garray_T	*instr = &cctx->ctx_instr;
-    int		instr_count = instr->ga_len;
+    int		instr_count;
     isn_T	*isn;
     scope_T	*scope = cctx->ctx_scope;
     ppconst_T	ppconst;
@@ -7875,19 +7917,15 @@ compile_elseif(char_u *arg, cctx_T *cctx)
 	cctx->ctx_skip = SKIP_UNKNOWN;
 #ifdef FEAT_PROFILE
 	if (cctx->ctx_compile_type == CT_PROFILE)
-	{
 	    // the previous block was skipped, need to profile this line
 	    generate_instr(cctx, ISN_PROF_START);
-	    instr_count = instr->ga_len;
-	}
 #endif
 	if (cctx->ctx_compile_type == CT_DEBUG)
-	{
 	    // the previous block was skipped, may want to debug this line
 	    generate_instr_debug(cctx);
-	    instr_count = instr->ga_len;
-	}
     }
+
+    instr_count = instr->ga_len;
     if (compile_expr1(&p, cctx, &ppconst) == FAIL)
     {
 	clear_ppconst(&ppconst);
@@ -7896,6 +7934,7 @@ compile_elseif(char_u *arg, cctx_T *cctx)
     cctx->ctx_skip = save_skip;
     if (!ends_excmd2(arg, skipwhite(p)))
     {
+	clear_ppconst(&ppconst);
 	semsg(_(e_trailing_arg), p);
 	return NULL;
     }
@@ -7906,11 +7945,13 @@ compile_elseif(char_u *arg, cctx_T *cctx)
 	int error = FALSE;
 	int v;
 
-	// The expression results in a constant.
-	// TODO: how about nesting?
+	// The expression result is a constant.
 	v = tv_get_bool_chk(&ppconst.pp_tv[0], &error);
 	if (error)
+	{
+	    clear_ppconst(&ppconst);
 	    return NULL;
+	}
 	cctx->ctx_skip = v ? SKIP_NOT : SKIP_YES;
 	clear_ppconst(&ppconst);
 	scope->se_u.se_if.is_if_label = -1;
@@ -8179,7 +8220,6 @@ compile_for(char_u *arg_start, cctx_T *cctx)
 		item_type = vartype->tt_member;
 	    else if (vartype->tt_member->tt_type == VAR_LIST
 			  && vartype->tt_member->tt_member->tt_type != VAR_ANY)
-		// TODO: should get the type for each lhs
 		item_type = vartype->tt_member->tt_member;
 	}
 
@@ -8232,7 +8272,7 @@ compile_for(char_u *arg_start, cctx_T *cctx)
 		lhs_type = parse_type(&p, cctx->ctx_type_list, TRUE);
 	    }
 
-	    // TODO: script var not supported?
+	    // Script var is not supported.
 	    if (get_var_dest(name, &dest, CMD_for, &opt_flags,
 					      &vimvaridx, &type, cctx) == FAIL)
 		goto failed;
@@ -8779,21 +8819,21 @@ compile_finally(char_u *arg, cctx_T *cctx)
 #ifdef FEAT_PROFILE
 	if (cctx->ctx_compile_type == CT_PROFILE
 		&& ((isn_T *)instr->ga_data)[this_instr - 1]
-						       .isn_type == ISN_PROF_START)
+						   .isn_type == ISN_PROF_START)
 	{
 	    // jump to the profile start of the "finally"
 	    --this_instr;
 
 	    // jump to the profile end above it
 	    if (this_instr > 0 && ((isn_T *)instr->ga_data)[this_instr - 1]
-							 .isn_type == ISN_PROF_END)
+						     .isn_type == ISN_PROF_END)
 		--this_instr;
 	}
 #endif
 
 	// Fill in the "end" label in jumps at the end of the blocks.
 	compile_fill_jump_to_end(&scope->se_u.se_try.ts_end_label,
-								this_instr, cctx);
+							     this_instr, cctx);
 
 	// If there is no :catch then an exception jumps to :finally.
 	if (isn->isn_arg.try.try_ref->try_catch == 0)
@@ -8808,8 +8848,6 @@ compile_finally(char_u *arg, cctx_T *cctx)
 	}
 	if (generate_instr(cctx, ISN_FINALLY) == NULL)
 	    return NULL;
-
-	// TODO: set index in ts_finally_label jumps
     }
 
     return arg;
@@ -9082,6 +9120,7 @@ compile_exec(char_u *line_arg, exarg_T *eap, cctx_T *cctx)
     int		has_expr = FALSE;
     char_u	*nextcmd = (char_u *)"";
     char_u	*tofree = NULL;
+    char_u	*cmd_arg = NULL;
 
     if (cctx->ctx_skip == SKIP_YES)
 	goto theend;
@@ -9184,17 +9223,25 @@ compile_exec(char_u *line_arg, exarg_T *eap, cctx_T *cctx)
 
 	p = skip_regexp_ex(eap->arg + 1, delim, TRUE, NULL, NULL, NULL);
 	if (*p == delim)
-	{
-	    eap->arg = p + 1;
-	    has_expr = TRUE;
-	}
+	    cmd_arg = p + 1;
     }
 
     if (eap->cmdidx == CMD_folddoopen || eap->cmdidx == CMD_folddoclosed)
+	cmd_arg = eap->arg;
+
+    if (cmd_arg != NULL)
     {
-	// TODO: should only expand when appropriate for the command
-	eap->arg = skiptowhite(eap->arg);
-	has_expr = TRUE;
+	exarg_T nea;
+
+	CLEAR_FIELD(nea);
+	nea.cmd = cmd_arg;
+	p = find_ex_command(&nea, NULL, lookup_scriptitem, NULL);
+	if (nea.cmdidx < CMD_SIZE)
+	{
+	    has_expr = excmd_get_argt(nea.cmdidx) & (EX_XFILE | EX_EXPAND);
+	    if (has_expr)
+		eap->arg = skiptowhite(eap->arg);
+	}
     }
 
     if (has_expr && (p = (char_u *)strstr((char *)eap->arg, "`=")) != NULL)
@@ -9247,7 +9294,7 @@ compile_exec(char_u *line_arg, exarg_T *eap, cctx_T *cctx)
 	generate_EXECCONCAT(cctx, count);
     }
     else
-	generate_EXEC(cctx, ISN_EXEC, line);
+	generate_EXEC_copy(cctx, ISN_EXEC, line);
 
 theend:
     if (*nextcmd != NUL)
@@ -9873,10 +9920,12 @@ compile_def_function(
 		if (ends_excmd2(line, ea.cmd))
 		{
 		    // A range without a command: jump to the line.
-		    // TODO: compile to a more efficient command, possibly
-		    // calling parse_cmd_address().
-		    ea.cmdidx = CMD_SIZE;
-		    line = compile_exec(line, &ea, &cctx);
+		    line = skipwhite(line);
+		    while (*line == ':')
+			++line;
+		    generate_EXEC(&cctx, ISN_EXECRANGE,
+					    vim_strnsave(line, ea.cmd - line));
+		    line = ea.cmd;
 		    goto nextline;
 		}
 	    }
@@ -10349,6 +10398,7 @@ delete_instr(isn_T *isn)
     {
 	case ISN_DEF:
 	case ISN_EXEC:
+	case ISN_EXECRANGE:
 	case ISN_EXEC_SPLIT:
 	case ISN_LEGACY_EVAL:
 	case ISN_LOADAUTO:

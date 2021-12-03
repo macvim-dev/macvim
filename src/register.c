@@ -1089,26 +1089,8 @@ free_yank(long n)
 	long	    i;
 
 	for (i = n; --i >= 0; )
-	{
-#ifdef AMIGA	    // only for very slow machines
-	    if ((i & 1023) == 1023)  // this may take a while
-	    {
-		// This message should never cause a hit-return message.
-		// Overwrite this message with any next message.
-		++no_wait_return;
-		smsg(_("freeing %ld lines"), i + 1);
-		--no_wait_return;
-		msg_didout = FALSE;
-		msg_col = 0;
-	    }
-#endif
 	    vim_free(y_current->y_array[i]);
-	}
 	VIM_CLEAR(y_current->y_array);
-#ifdef AMIGA
-	if (n >= 1000)
-	    msg("");
-#endif
     }
 }
 
@@ -1550,6 +1532,7 @@ do_put(
     long	j;
     struct block_def bd;
     char_u	**y_array = NULL;
+    yankreg_T	*y_current_used = NULL;
     long	nr_lines = 0;
     pos_T	new_cursor;
     int		indent;
@@ -1660,6 +1643,7 @@ do_put(
 	y_width = y_current->y_width;
 	y_size = y_current->y_size;
 	y_array = y_current->y_array;
+	y_current_used = y_current;
     }
 
     if (y_type == MLINE)
@@ -2208,6 +2192,14 @@ error:
 	    else
 		changed_lines(curbuf->b_op_start.lnum, 0,
 					   curbuf->b_op_start.lnum, nr_lines);
+	    if (y_current_used != NULL && (y_current_used != y_current
+					     || y_current->y_array != y_array))
+	    {
+		// Something invoked through changed_lines() has changed the
+		// yank buffer, e.g. a GUI clipboard callback.
+		emsg(_(e_yank_register_changed_while_using_it));
+		goto end;
+	    }
 
 	    // Put the '] mark on the first byte of the last inserted character.
 	    // Correct the length for change in indent.

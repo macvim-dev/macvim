@@ -316,7 +316,10 @@ EXTERN char e_cannot_index_number[]
 	INIT(= N_("E1062: Cannot index a Number"));
 EXTERN char e_type_mismatch_for_v_variable[]
 	INIT(= N_("E1063: Type mismatch for v: variable"));
-// E1064 unused
+#endif
+EXTERN char e_yank_register_changed_while_using_it[]
+	INIT(= N_("E1064: Yank register changed while using it"));
+#ifdef FEAT_EVAL
 // E1065 unused
 EXTERN char e_cannot_declare_a_register_str[]
 	INIT(= N_("E1066: Cannot declare a register: %s"));
@@ -366,8 +369,7 @@ EXTERN char e_cannot_assign_to_argument[]
 	INIT(= N_("E1090: Cannot assign to argument %s"));
 EXTERN char e_function_is_not_compiled_str[]
 	INIT(= N_("E1091: Function is not compiled: %s"));
-EXTERN char e_cannot_use_list_for_declaration[]
-	INIT(= N_("E1092: Cannot use a list for a declaration"));
+// E1092 unused
 EXTERN char e_expected_nr_items_but_got_nr[]
 	INIT(= N_("E1093: Expected %d items but got %d"));
 EXTERN char e_import_can_only_be_used_in_script[]
@@ -690,3 +692,5 @@ EXTERN char e_cannot_find_variable_to_unlock_str[]
 	INIT(= N_("E1246: Cannot find variable to (un)lock: %s"));
 EXTERN char e_line_number_out_of_range[]
 	INIT(= N_("E1247: Line number out of range"));
+EXTERN char e_closure_called_from_invalid_context[]
+	INIT(= N_("E1248: Closure called from invalid context"));

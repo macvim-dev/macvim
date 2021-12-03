@@ -183,11 +183,18 @@ def Test_expand_alternate_file()
 enddef
 
 def Test_global_backtick_expansion()
+  var name = 'xxx'
   new
-  setline(1, 'xx')
-  var name = 'foobar'
-  g/^xx/s/.*/`=name`
-  assert_equal('foobar', getline(1))
+  setline(1, ['one', 'two', 'three'])
+  set nomod
+  g/two/edit `=name`
+  assert_equal('xxx', bufname())
+  bwipe!
+
+  new
+  setline(1, ['one', 'two', 'three'])
+  g/two/s/^/`=name`/
+  assert_equal('`=name`two', getline(2))
   bwipe!
 enddef
 
@@ -206,6 +213,15 @@ def Test_folddo_backtick_expansion()
   folddoclose edit `=name`
   assert_equal('xxx', bufname())
   bwipe!
+
+  var lines =<< trim END
+      g:val = 'value'
+      def Test()
+        folddoopen echo `=g:val`
+      enddef
+      call Test()
+  END
+  CheckScriptFailure(lines, 'E15: Invalid expression: "`=g:val`"')
 enddef
 
 def Test_hardcopy_wildcards()
@@ -282,16 +298,24 @@ def Test_condition_types()
       elseif 'text'
       endif
   END
-  CheckDefFailure(lines, 'E1012:', 3)
-  CheckScriptFailure(['vim9script'] + lines, 'E1135:', 4)
+  CheckDefAndScriptFailure(lines, 'E1135:', 3)
 
   lines =<< trim END
+      g:cond = 0
+      if g:cond
+      elseif 'text' garbage
+      endif
+  END
+  CheckDefAndScriptFailure(lines, 'E488:', 3)
+
+  lines =<< trim END
+      g:cond = 0
       if g:cond
       elseif [1]
       endif
   END
-  CheckDefFailure(lines, 'E1012:', 2)
-  CheckScriptFailure(['vim9script'] + lines, 'E745:', 3)
+  CheckDefFailure(lines, 'E1012:', 3)
+  CheckScriptFailure(['vim9script'] + lines, 'E745:', 4)
 
   lines =<< trim END
       g:cond = 'text'
