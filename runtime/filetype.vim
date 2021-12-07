@@ -1,7 +1,7 @@
 " Vim support file to detect file types
 "
 " Maintainer:	Bram Moolenaar <Bram@vim.org>
-" Last Change:	2021 Nov 16
+" Last Change:	2021 Dec 03
 
 " Listen very carefully, I will say this only once
 if exists("did_load_filetypes")
@@ -123,7 +123,7 @@ au BufNewFile,BufRead *.aml			setf aml
 " APT config file
 au BufNewFile,BufRead apt.conf		       setf aptconf
 au BufNewFile,BufRead */.aptitude/config       setf aptconf
-au BufNewFile,BufRead */etc/apt/apt.conf.d/{[-_[:alnum:]]\+,[-_.[:alnum:]]\+.conf} setf aptconf
+" more generic pattern far down
 
 " Arch Inventory file
 au BufNewFile,BufRead .arch-inventory,=tagging-method	setf arch
@@ -1123,14 +1123,15 @@ au BufNewFile,BufRead *.msql			setf msql
 " Mysql
 au BufNewFile,BufRead *.mysql			setf mysql
 
-" Mutt setup files (must be before catch *.rc)
-au BufNewFile,BufRead */etc/Muttrc.d/*		call s:StarSetf('muttrc')
-
 " Tcl Shell RC file
 au BufNewFile,BufRead tclsh.rc			setf tcl
 
 " M$ Resource files
-au BufNewFile,BufRead *.rc,*.rch		setf rc
+" /etc/Muttrc.d/file.rc is muttrc
+au BufNewFile,BufRead *.rc,*.rch
+	\ if expand("<afile>") !~ "/etc/Muttrc.d/" |
+	\   setf rc |
+	\ endif
 
 " MuPAD source
 au BufRead,BufNewFile *.mu			setf mupad
@@ -1756,6 +1757,9 @@ au BufNewFile,BufRead *.sqlj			setf sqlj
 " SQR
 au BufNewFile,BufRead *.sqr,*.sqi		setf sqr
 
+" Squirrel
+au BufNewFile,BufRead *.nut			setf squirrel
+
 " OpenSSH configuration
 au BufNewFile,BufRead ssh_config,*/.ssh/config		setf sshconfig
 au BufNewFile,BufRead */etc/ssh/ssh_config.d/*.conf	setf sshconfig
@@ -2159,6 +2163,12 @@ au BufNewFile,BufRead *
 au StdinReadPost * if !did_filetype() | runtime! scripts.vim | endif
 
 
+" Plain text files, needs to be far down to not override others.  This avoids
+" the "conf" type being used if there is a line starting with '#'.
+" But before patterns matching everything in a directory.
+au BufNewFile,BufRead *.text,README,LICENSE,COPYING,AUTHORS	setf text
+
+
 " Extra checks for when no filetype has been detected now.  Mostly used for
 " patterns that end in "*".  E.g., "zsh*" matches "zsh.vim", but that's a Vim
 " script file.
@@ -2172,6 +2182,9 @@ au BufNewFile,BufRead proftpd.conf*					call s:StarSetf('apachestyle')
 " More Apache config files
 au BufNewFile,BufRead access.conf*,apache.conf*,apache2.conf*,httpd.conf*,srm.conf*	call s:StarSetf('apache')
 au BufNewFile,BufRead */etc/apache2/*.conf*,*/etc/apache2/conf.*/*,*/etc/apache2/mods-*/*,*/etc/apache2/sites-*/*,*/etc/httpd/conf.*/*,*/etc/httpd/mods-*/*,*/etc/httpd/sites-*/*,*/etc/httpd/conf.d/*.conf*		call s:StarSetf('apache')
+
+" APT config file
+au BufNewFile,BufRead */etc/apt/apt.conf.d/{[-_[:alnum:]]\+,[-_.[:alnum:]]\+.conf} call s:StarSetf('aptconf')
 
 " Asterisk config file
 au BufNewFile,BufRead *asterisk/*.conf*		call s:StarSetf('asterisk')
@@ -2274,6 +2287,9 @@ au BufNewFile,BufRead */etc/modutils/*
 	\|endif
 au BufNewFile,BufRead */etc/modprobe.*		call s:StarSetf('modconf')
 
+" Mutt setup files (must be before catch *.rc)
+au BufNewFile,BufRead */etc/Muttrc.d/*		call s:StarSetf('muttrc')
+
 " Mutt setup file
 au BufNewFile,BufRead .mutt{ng,}rc*,*/.mutt{ng,}/mutt{ng,}rc*	call s:StarSetf('muttrc')
 au BufNewFile,BufRead mutt{ng,}rc*,Mutt{ng,}rc*		call s:StarSetf('muttrc')
@@ -2365,10 +2381,6 @@ au BufNewFile,BufRead */etc/yum.repos.d/*	call s:StarSetf('dosini')
 au BufNewFile,BufRead .zsh*,.zlog*,.zcompdump*  call s:StarSetf('zsh')
 au BufNewFile,BufRead zsh*,zlog*		call s:StarSetf('zsh')
 
-
-" Plain text files, needs to be far down to not override others.  This avoids
-" the "conf" type being used if there is a line starting with '#'.
-au BufNewFile,BufRead *.text,README		setf text
 
 " Help files match *.txt but should have a last line that is a modeline.
 au BufNewFile,BufRead *.txt

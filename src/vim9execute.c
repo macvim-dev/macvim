@@ -1785,6 +1785,8 @@ exec_instructions(ectx_T *ectx)
 		    ea.addr_type = ADDR_LINES;
 		    ea.cmd = iptr->isn_arg.string;
 		    parse_cmd_address(&ea, &error, FALSE);
+		    if (ea.cmd == NULL)
+			goto on_error;
 		    if (error == NULL)
 			error = ex_range_without_command(&ea);
 		    if (error != NULL)
@@ -4986,8 +4988,9 @@ call_def_function(
     estack_pop();
     current_sctx = save_current_sctx;
 
-    // TODO: when is it safe to delete the function if it is no longer used?
-    --ufunc->uf_calls;
+    if (--ufunc->uf_calls <= 0 && ufunc->uf_refcount <= 0)
+	// Function was unreferenced while being used, free it now.
+	func_clear_free(ufunc, FALSE);
 
     if (*msg_list != NULL && saved_msg_list != NULL)
     {
@@ -5902,12 +5905,12 @@ ex_disassemble(exarg_T *eap)
     int		is_global = FALSE;
     compiletype_T compile_type = CT_NONE;
 
-    if (STRNCMP(arg, "profile", 7) == 0)
+    if (STRNCMP(arg, "profile", 7) == 0 && VIM_ISWHITE(arg[7]))
     {
 	compile_type = CT_PROFILE;
 	arg = skipwhite(arg + 7);
     }
-    else if (STRNCMP(arg, "debug", 5) == 0)
+    else if (STRNCMP(arg, "debug", 5) == 0 && VIM_ISWHITE(arg[5]))
     {
 	compile_type = CT_DEBUG;
 	arg = skipwhite(arg + 5);

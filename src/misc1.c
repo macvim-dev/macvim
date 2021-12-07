@@ -852,7 +852,8 @@ get_keystroke(void)
 
 	if (n == KEYLEN_REMOVED)  // key code removed
 	{
-	    if (must_redraw != 0 && !need_wait_return && (State & CMDLINE) == 0)
+	    if (must_redraw != 0 && !need_wait_return
+				 && (State & (CMDLINE|HITRETURN|ASKMORE)) == 0)
 	    {
 		// Redrawing was postponed, do it now.
 		update_screen(0);
@@ -2409,7 +2410,7 @@ get_cmd_output_as_rettv(
 	    buf = buflist_findnr(argvars[1].vval.v_number);
 	    if (buf == NULL)
 	    {
-		semsg(_(e_nobufnr), argvars[1].vval.v_number);
+		semsg(_(e_buffer_nr_does_not_exist), argvars[1].vval.v_number);
 		fclose(fd);
 		goto errret;
 	    }

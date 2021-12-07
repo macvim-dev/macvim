@@ -56,10 +56,10 @@ static int put_setstring(FILE *fd, char *cmd, char *name, char_u **valuep, long_
 static int put_setnum(FILE *fd, char *cmd, char *name, long *valuep);
 static int put_setbool(FILE *fd, char *cmd, char *name, int value);
 static int istermoption(struct vimoption *p);
-static char_u *get_varp_scope(struct vimoption *p, int opt_flags);
+static char_u *get_varp_scope(struct vimoption *p, int scope);
 static char_u *get_varp(struct vimoption *);
 static void check_win_options(win_T *win);
-static void option_value2string(struct vimoption *, int opt_flags);
+static void option_value2string(struct vimoption *, int scope);
 static void check_winopt(winopt_T *wop);
 static int wc_use_keyname(char_u *varp, long *wcp);
 static void paste_option_changed(void);
@@ -1236,11 +1236,12 @@ ex_set(exarg_T *eap)
  * does not need to be expanded with option_expand().
  * "opt_flags":
  * 0 for ":set"
- * OPT_GLOBAL   for ":setglobal"
- * OPT_LOCAL    for ":setlocal" and a modeline
- * OPT_MODELINE for a modeline
- * OPT_WINONLY  to only set window-local options
- * OPT_NOWIN	to skip setting window-local options
+ * OPT_GLOBAL     for ":setglobal"
+ * OPT_LOCAL      for ":setlocal" and a modeline
+ * OPT_MODELINE   for a modeline
+ * OPT_WINONLY    to only set window-local options
+ * OPT_NOWIN	  to skip setting window-local options
+ * OPT_ONECOLUMN  do not use multiple columns
  *
  * returns FAIL if an error is detected, OK otherwise
  */
@@ -1308,7 +1309,7 @@ do_set(
 	else if (STRNCMP(arg, "termcap", 7) == 0 && !(opt_flags & OPT_MODELINE))
 	{
 	    showoptions(2, opt_flags);
-	    show_termcodes();
+	    show_termcodes(opt_flags);
 	    did_show = TRUE;
 	    arg += 7;
 	}
@@ -4044,13 +4045,16 @@ findoption(char_u *arg)
  * Hidden Toggle option: gov_hidden_bool.
  * Hidden String option: gov_hidden_string.
  * Unknown option: gov_unknown.
+ *
+ * "flagsp" (if not NULL) is set to the option flags (P_xxxx).
  */
     getoption_T
 get_option_value(
     char_u	*name,
     long	*numval,
     char_u	**stringval,	    // NULL when only checking existence
-    int		opt_flags)
+    int		*flagsp,
+    int		scope)
 {
     int		opt_idx;
     char_u	*varp;
@@ -4088,7 +4092,11 @@ get_option_value(
 	return gov_unknown;
     }
 
-    varp = get_varp_scope(&(options[opt_idx]), opt_flags);
+    varp = get_varp_scope(&(options[opt_idx]), scope);
+
+    if (flagsp != NULL)
+	// Return the P_xxxx option flags.
+	*flagsp = options[opt_idx].flags;
 
     if (options[opt_idx].flags & P_STRING)
     {
@@ -5286,17 +5294,18 @@ unset_global_local_option(char_u *name, void *from)
 
 /*
  * Get pointer to option variable, depending on local or global scope.
+ * "scope" can be OPT_LOCAL, OPT_GLOBAL or a combination.
  */
     static char_u *
-get_varp_scope(struct vimoption *p, int opt_flags)
+get_varp_scope(struct vimoption *p, int scope)
 {
-    if ((opt_flags & OPT_GLOBAL) && p->indir != PV_NONE)
+    if ((scope & OPT_GLOBAL) && p->indir != PV_NONE)
     {
 	if (p->var == VAR_WIN)
 	    return (char_u *)GLOBAL_WO(get_varp(p));
 	return p->var;
     }
-    if ((opt_flags & OPT_LOCAL) && ((int)p->indir & PV_BOTH))
+    if ((scope & OPT_LOCAL) && ((int)p->indir & PV_BOTH))
     {
 	switch ((int)p->indir)
 	{
@@ -5355,9 +5364,9 @@ get_varp_scope(struct vimoption *p, int opt_flags)
  * scope.
  */
     char_u *
-get_option_varp_scope(int opt_idx, int opt_flags)
+get_option_varp_scope(int opt_idx, int scope)
 {
-    return get_varp_scope(&(options[opt_idx]), opt_flags);
+    return get_varp_scope(&(options[opt_idx]), scope);
 }
 
 /*
@@ -6038,13 +6047,15 @@ buf_copy_options(buf_T *buf, int flags)
 #ifdef FEAT_COMPL_FUNC
 	    buf->b_p_cfu = vim_strsave(p_cfu);
 	    COPY_OPT_SCTX(buf, BV_CFU);
+	    set_buflocal_cfu_callback(buf);
 	    buf->b_p_ofu = vim_strsave(p_ofu);
 	    COPY_OPT_SCTX(buf, BV_OFU);
+	    set_buflocal_ofu_callback(buf);
 #endif
 #ifdef FEAT_EVAL
 	    buf->b_p_tfu = vim_strsave(p_tfu);
 	    COPY_OPT_SCTX(buf, BV_TFU);
-	    buf_set_tfu_callback(buf);
+	    set_buflocal_tfu_callback(buf);
 #endif
 	    buf->b_p_sts = p_sts;
 	    COPY_OPT_SCTX(buf, BV_STS);
@@ -6729,11 +6740,11 @@ ExpandOldSetting(int *num_file, char_u ***file)
     static void
 option_value2string(
     struct vimoption	*opp,
-    int			opt_flags)	// OPT_GLOBAL and/or OPT_LOCAL
+    int			scope)	// OPT_GLOBAL and/or OPT_LOCAL
 {
     char_u	*varp;
 
-    varp = get_varp_scope(opp, opt_flags);
+    varp = get_varp_scope(opp, scope);
 
     if (opp->flags & P_NUM)
     {

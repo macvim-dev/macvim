@@ -134,6 +134,68 @@ EXTERN char e_invalid_character_after_str_at[]
 	INIT(= N_("E59: invalid character after %s@"));
 EXTERN char e_too_many_complex_str_curly[]
 	INIT(= N_("E60: Too many complex %s{...}s"));
+EXTERN char e_nested_str[]
+	INIT(= N_("E61: Nested %s*"));
+EXTERN char e_nested_str_chr[]
+	INIT(= N_("E62: Nested %s%c"));
+EXTERN char e_invalid_use_of_underscore[]
+	INIT(= N_("E63: invalid use of \\_"));
+EXTERN char e_str_chr_follows_nothing[]
+	INIT(= N_("E64: %s%c follows nothing"));
+EXTERN char e_illegal_back_reference[]
+	INIT(= N_("E65: Illegal back reference"));
+#ifdef FEAT_SYN_HL
+EXTERN char e_z_not_allowed_here[]
+	INIT(= N_("E66: \\z( not allowed here"));
+EXTERN char e_z1_z9_not_allowed_here[]
+	INIT(= N_("E67: \\z1 - \\z9 not allowed here"));
+#endif
+EXTERN char e_missing_sb_after_str[]
+	INIT(= N_("E69: Missing ] after %s%%["));
+EXTERN char e_empty_str_brackets[]
+	INIT(= N_("E70: Empty %s%%[]"));
+EXTERN char e_invalid_character_after_str[]
+	INIT(= N_("E71: Invalid character after %s%%"));
+EXTERN char e_close_error_on_swap_file[]
+	INIT(= N_("E72: Close error on swap file"));
+EXTERN char e_tag_stack_empty[]
+	INIT(= N_("E73: tag stack empty"));
+EXTERN char e_command_too_complex[]
+	INIT(= N_("E74: Command too complex"));
+EXTERN char e_name_too_long[]
+	INIT(= N_("E75: Name too long"));
+EXTERN char e_too_many_brackets[]
+	INIT(= N_("E76: Too many ["));
+EXTERN char e_too_many_file_names[]
+	INIT(= N_("E77: Too many file names"));
+EXTERN char e_unknown_mark[]
+	INIT(= N_("E78: Unknown mark"));
+EXTERN char e_cannot_expand_wildcards[]
+	INIT(= N_("E79: Cannot expand wildcards"));
+EXTERN char e_error_while_writing[]
+	INIT(= N_("E80: Error while writing"));
+#ifdef FEAT_EVAL
+EXTERN char e_using_sid_not_in_script_context[]
+	INIT(= N_("E81: Using <SID> not in a script context"));
+#endif
+EXTERN char e_cannot_allocate_any_buffer_exiting[]
+	INIT(= N_("E82: Cannot allocate any buffer, exiting..."));
+EXTERN char e_cannot_allocate_buffer_using_other_one[]
+	INIT(= N_("E83: Cannot allocate buffer, using other one..."));
+EXTERN char e_no_modified_buffer_found[]
+	INIT(= N_("E84: No modified buffer found"));
+EXTERN char e_there_is_no_listed_buffer[]
+	INIT(= N_("E85: There is no listed buffer"));
+EXTERN char e_buffer_nr_does_not_exist[]
+	INIT(= N_("E86: Buffer %ld does not exist"));
+EXTERN char e_cannot_go_beyond_last_buffer[]
+	INIT(= N_("E87: Cannot go beyond last buffer"));
+EXTERN char e_cannot_go_before_first_buffer[]
+	INIT(= N_("E88: Cannot go before first buffer"));
+EXTERN char e_no_write_since_last_change_for_buffer_nr_add_bang_to_override[]
+	INIT(= N_("E89: No write since last change for buffer %d (add ! to override)"));
+EXTERN char e_cannot_unload_last_buffer[]
+	INIT(= N_("E90: Cannot unload last buffer"));
 
 #ifdef FEAT_EVAL
 EXTERN char e_undefined_variable_str[]

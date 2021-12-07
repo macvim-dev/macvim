@@ -193,7 +193,7 @@ open_buffer(
 	// This is OK, since there are no changes to lose.
 	if (curbuf == NULL)
 	{
-	    emsg(_("E82: Cannot allocate any buffer, exiting..."));
+	    emsg(_(e_cannot_allocate_any_buffer_exiting));
 
 	    // Don't try to do any saving, with "curbuf" NULL almost nothing
 	    // will work.
@@ -201,7 +201,7 @@ open_buffer(
 	    getout(2);
 	}
 
-	emsg(_("E83: Cannot allocate buffer, using other one..."));
+	emsg(_(e_cannot_allocate_buffer_using_other_one));
 	enter_buffer(curbuf);
 #ifdef FEAT_SYN_HL
 	if (old_tw != curbuf->b_p_tw)
@@ -1186,7 +1186,7 @@ empty_curbuf(
 
     if (action == DOBUF_UNLOAD)
     {
-	emsg(_("E90: Cannot unload last buffer"));
+	emsg(_(e_cannot_unload_last_buffer));
 	return FAIL;
     }
 
@@ -1259,7 +1259,7 @@ do_buffer_ext(
 	}
 	if (!bufIsChanged(buf))
 	{
-	    emsg(_("E84: No modified buffer found"));
+	    emsg(_(e_no_modified_buffer_found));
 	    return FAIL;
 	}
     }
@@ -1298,7 +1298,7 @@ do_buffer_ext(
 	    if (bp == buf)
 	    {
 		// back where we started, didn't find anything.
-		emsg(_("E85: There is no listed buffer"));
+		emsg(_(e_there_is_no_listed_buffer));
 		return FAIL;
 	    }
 	}
@@ -1310,12 +1310,12 @@ do_buffer_ext(
 	{
 	    // don't warn when deleting
 	    if (!unload)
-		semsg(_(e_nobufnr), count);
+		semsg(_(e_buffer_nr_does_not_exist), count);
 	}
 	else if (dir == FORWARD)
-	    emsg(_("E87: Cannot go beyond last buffer"));
+	    emsg(_(e_cannot_go_beyond_last_buffer));
 	else
-	    emsg(_("E88: Cannot go before first buffer"));
+	    emsg(_(e_cannot_go_before_first_buffer));
 	return FAIL;
     }
 #ifdef FEAT_PROP_POPUP
@@ -1368,7 +1368,7 @@ do_buffer_ext(
 	    else
 #endif
 	    {
-		semsg(_("E89: No write since last change for buffer %d (add ! to override)"),
+		semsg(_(e_no_write_since_last_change_for_buffer_nr_add_bang_to_override),
 								 buf->b_fnum);
 		return FAIL;
 	    }
@@ -2330,8 +2330,11 @@ free_buf_options(
     clear_string_option(&buf->b_p_cpt);
 #ifdef FEAT_COMPL_FUNC
     clear_string_option(&buf->b_p_cfu);
+    free_callback(&buf->b_cfu_cb);
     clear_string_option(&buf->b_p_ofu);
+    free_callback(&buf->b_ofu_cb);
     clear_string_option(&buf->b_p_tsrfu);
+    free_callback(&buf->b_tsrfu_cb);
 #endif
 #ifdef FEAT_QUICKFIX
     clear_string_option(&buf->b_p_gp);

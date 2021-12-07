@@ -1229,7 +1229,8 @@ channel_set_options(channel_T *channel, jobopt_T *opt)
 	{
 	    buf = buflist_findnr(opt->jo_io_buf[PART_OUT]);
 	    if (buf == NULL)
-		semsg(_(e_nobufnr), (long)opt->jo_io_buf[PART_OUT]);
+		semsg(_(e_buffer_nr_does_not_exist),
+					       (long)opt->jo_io_buf[PART_OUT]);
 	}
 	else
 	{
@@ -1276,7 +1277,8 @@ channel_set_options(channel_T *channel, jobopt_T *opt)
 	{
 	    buf = buflist_findnr(opt->jo_io_buf[PART_ERR]);
 	    if (buf == NULL)
-		semsg(_(e_nobufnr), (long)opt->jo_io_buf[PART_ERR]);
+		semsg(_(e_buffer_nr_does_not_exist),
+					       (long)opt->jo_io_buf[PART_ERR]);
 	}
 	else
 	{

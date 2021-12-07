@@ -2879,7 +2879,9 @@ struct file_buffer
 #endif
 #ifdef FEAT_COMPL_FUNC
     char_u	*b_p_cfu;	// 'completefunc'
+    callback_T	b_cfu_cb;	// 'completefunc' callback
     char_u	*b_p_ofu;	// 'omnifunc'
+    callback_T	b_ofu_cb;	// 'omnifunc' callback
 #endif
 #ifdef FEAT_EVAL
     char_u	*b_p_tfu;	// 'tagfunc' option value
@@ -2985,6 +2987,7 @@ struct file_buffer
     char_u	*b_p_tsr;	// 'thesaurus' local value
 #ifdef FEAT_COMPL_FUNC
     char_u	*b_p_tsrfu;	// 'thesaurusfunc' local value
+    callback_T	b_tsrfu_cb;	// 'thesaurusfunc' callback
 #endif
     long	b_p_ul;		// 'undolevels' local value
 #ifdef FEAT_PERSISTENT_UNDO

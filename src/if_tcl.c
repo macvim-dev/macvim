@@ -248,6 +248,14 @@ vim_tcl_init(char *arg)
 #endif
 }
 
+#if defined(EXITFREE) || defined(PROTO)
+    void
+vim_tcl_finalize(void)
+{
+    Tcl_Finalize();
+}
+#endif
+
 #if defined(DYNAMIC_TCL) || defined(PROTO)
 
 static int stubs_initialized = FALSE;
@@ -1300,7 +1308,7 @@ tclsetoption(
 
     option = (char_u *)Tcl_GetStringFromObj(objv[objn], NULL);
     ++objn;
-    gov = get_option_value(option, &lval, &sval, 0);
+    gov = get_option_value(option, &lval, &sval, NULL, 0);
     err = TCL_OK;
     switch (gov)
     {

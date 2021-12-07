@@ -5418,6 +5418,8 @@ check_termcode(
 		if (STRNCMP(termcodes[idx].code, tp,
 				     (size_t)(slen > len ? len : slen)) == 0)
 		{
+		    int	    looks_like_mouse_start = FALSE;
+
 		    if (len < slen)		// got a partial sequence
 			return -1;		// need to get more chars
 
@@ -5440,15 +5442,48 @@ check_termcode(
 			    }
 		    }
 
-		    // The mouse termcode "ESC [" is also the prefix of
-		    // "ESC [ I" (focus gained).  Only use it when there is
-		    // no other match.  Do use it when a digit is following to
-		    // avoid waiting for more bytes.
 		    if (slen == 2 && len > 2
 			    && termcodes[idx].code[0] == ESC
-			    && termcodes[idx].code[1] == '['
-			    && !isdigit(tp[2]))
+			    && termcodes[idx].code[1] == '[')
 		    {
+			// The mouse termcode "ESC [" is also the prefix of
+			// "ESC [ I" (focus gained) and other keys.  Check some
+			// more bytes to find out.
+			if (!isdigit(tp[2]))
+			{
+			    // ESC [ without number following: Only use it when
+			    // there is no other match.
+			    looks_like_mouse_start = TRUE;
+			}
+			else if (termcodes[idx].name[0] == KS_DEC_MOUSE)
+			{
+			    char_u  *nr = tp + 2;
+			    int	    count = 0;
+
+			    // If a digit is following it could be a key with
+			    // modifier, e.g., ESC [ 1;2P.  Can be confused
+			    // with DEC_MOUSE, which requires four numbers
+			    // following.  If not then it can't be a DEC_MOUSE
+			    // code.
+			    for (;;)
+			    {
+				++count;
+				(void)getdigits(&nr);
+				if (nr >= tp + len)
+				    return -1;	// partial sequence
+				if (*nr != ';')
+				    break;
+				++nr;
+				if (nr >= tp + len)
+				    return -1;	// partial sequence
+			    }
+			    if (count < 4)
+				continue;	// no match
+			}
+		    }
+		    if (looks_like_mouse_start)
+		    {
+			// Only use it when there is no other match.
 			if (mouse_index_found < 0)
 			    mouse_index_found = idx;
 		    }
@@ -5992,7 +6027,7 @@ replace_termcodes(
 	    if (STRNICMP(src, "<SID>", 5) == 0)
 	    {
 		if (current_sctx.sc_sid <= 0)
-		    emsg(_(e_usingsid));
+		    emsg(_(e_using_sid_not_in_script_context));
 		else
 		{
 		    src += 5;
@@ -6188,9 +6223,10 @@ gather_termleader(void)
 /*
  * Show all termcodes (for ":set termcap")
  * This code looks a lot like showoptions(), but is different.
+ * "flags" can have OPT_ONECOLUMN.
  */
     void
-show_termcodes(void)
+show_termcodes(int flags)
 {
     int		col;
     int		*items;
@@ -6215,12 +6251,13 @@ show_termcodes(void)
     msg_puts_title(_("\n--- Terminal keys ---"));
 
     /*
-     * do the loop two times:
+     * Do the loop three times:
      * 1. display the short items (non-strings and short strings)
      * 2. display the medium items (medium length strings)
      * 3. display the long items (remaining strings)
+     * When "flags" has OPT_ONECOLUMN do everything in 3.
      */
-    for (run = 1; run <= 3 && !got_int; ++run)
+    for (run = (flags & OPT_ONECOLUMN) ? 3 : 1; run <= 3 && !got_int; ++run)
     {
 	/*
 	 * collect the items in items[]
@@ -6230,9 +6267,10 @@ show_termcodes(void)
 	{
 	    len = show_one_termcode(termcodes[i].name,
 						    termcodes[i].code, FALSE);
-	    if (len <= INC3 - GAP ? run == 1
+	    if ((flags & OPT_ONECOLUMN) ||
+		    (len <= INC3 - GAP ? run == 1
 			: len <= INC2 - GAP ? run == 2
-			: run == 3)
+			: run == 3))
 		items[item_count++] = i;
 	}
 

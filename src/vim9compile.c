@@ -6072,7 +6072,7 @@ vim9_declare_error(char_u *name)
 /*
  * For one assignment figure out the type of destination.  Return it in "dest".
  * When not recognized "dest" is not set.
- * For an option "opt_flags" is set.
+ * For an option "option_scope" is set.
  * For a v:var "vimvaridx" is set.
  * "type" is set to the destination type if known, unchanted otherwise.
  * Return FAIL if an error message was given.
@@ -6082,7 +6082,7 @@ get_var_dest(
 	char_u		*name,
 	assign_dest_T	*dest,
 	int		cmdidx,
-	int		*opt_flags,
+	int		*option_scope,
 	int		*vimvaridx,
 	type_T		**type,
 	cctx_T		*cctx)
@@ -6102,7 +6102,7 @@ get_var_dest(
 	    return FAIL;
 	}
 	p = name;
-	p = find_option_end(&p, opt_flags);
+	p = find_option_end(&p, option_scope);
 	if (p == NULL)
 	{
 	    // cannot happen?
@@ -6112,7 +6112,7 @@ get_var_dest(
 	cc = *p;
 	*p = NUL;
 	opt_type = get_option_value(skip_option_env_lead(name),
-						    &numval, NULL, *opt_flags);
+					   &numval, NULL, NULL, *option_scope);
 	*p = cc;
 	switch (opt_type)
 	{
@@ -9903,15 +9903,15 @@ compile_def_function(
 	 * in "$ENV->func()" the "$" is not a range
 	 */
 	cmd = ea.cmd;
-	if (!(local_cmdmod.cmod_flags & CMOD_LEGACY)
-		&& (*cmd != '$' || starts_with_colon)
+	if ((*cmd != '$' || starts_with_colon)
 		&& (starts_with_colon || !(*cmd == '\''
 		       || (cmd[0] == cmd[1] && (*cmd == '+' || *cmd == '-')))))
 	{
 	    ea.cmd = skip_range(ea.cmd, TRUE, NULL);
 	    if (ea.cmd > cmd)
 	    {
-		if (!starts_with_colon)
+		if (!starts_with_colon
+				   && !(local_cmdmod.cmod_flags & CMOD_LEGACY))
 		{
 		    semsg(_(e_colon_required_before_range_str), cmd);
 		    goto erret;
@@ -9920,11 +9920,8 @@ compile_def_function(
 		if (ends_excmd2(line, ea.cmd))
 		{
 		    // A range without a command: jump to the line.
-		    line = skipwhite(line);
-		    while (*line == ':')
-			++line;
 		    generate_EXEC(&cctx, ISN_EXECRANGE,
-					    vim_strnsave(line, ea.cmd - line));
+					      vim_strnsave(cmd, ea.cmd - cmd));
 		    line = ea.cmd;
 		    goto nextline;
 		}

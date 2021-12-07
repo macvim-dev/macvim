@@ -2326,6 +2326,46 @@ ambw_end:
 # endif
 #endif
 
+#ifdef FEAT_COMPL_FUNC
+    // 'completefunc'
+    else if (gvarp == &p_cfu)
+    {
+	if (set_completefunc_option() == FAIL)
+	    errmsg = e_invarg;
+    }
+
+    // 'omnifunc'
+    else if (gvarp == &p_ofu)
+    {
+	if (set_omnifunc_option() == FAIL)
+	    errmsg = e_invarg;
+    }
+
+    // 'thesaurusfunc'
+    else if (gvarp == &p_tsrfu)
+    {
+	if (set_thesaurusfunc_option() == FAIL)
+	    errmsg = e_invarg;
+    }
+#endif
+
+#if defined(FEAT_EVAL) && \
+     (defined(FEAT_XIM) || defined(IME_WITHOUT_XIM) || defined(VIMDLL))
+    // 'imactivatefunc'
+    else if (gvarp == &p_imaf)
+    {
+	if (set_imactivatefunc_option() == FAIL)
+	    errmsg = e_invarg;
+    }
+
+    // 'imstatusfunc'
+    else if (gvarp == &p_imsf)
+    {
+	if (set_imstatusfunc_option() == FAIL)
+	    errmsg = e_invarg;
+    }
+#endif
+
     // 'operatorfunc'
     else if (varp == &p_opfunc)
     {
