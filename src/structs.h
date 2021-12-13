@@ -1809,6 +1809,7 @@ struct svar_S {
     char_u	*sv_name;	// points into "sn_all_vars" di_key
     typval_T	*sv_tv;		// points into "sn_vars" or "sn_all_vars" di_tv
     type_T	*sv_type;
+    int		sv_type_allocated;  // call free_type() for sv_type
     int		sv_const;	// 0, ASSIGN_CONST or ASSIGN_FINAL
     int		sv_export;	// "export let var = val"
 };
@@ -2000,6 +2001,8 @@ typedef struct {
     dict_T	*selfdict;	// Dictionary for "self"
     typval_T	*basetv;	// base for base->method()
     type_T	*check_type;	// type from funcref or NULL
+    int		fe_found_var;	// if the function is not found then give an
+				// error that a variable is not callable.
 } funcexe_T;
 
 /*
@@ -3227,7 +3230,8 @@ struct tabpage_S
     win_T	    *tp_first_popupwin; // first popup window in this Tab page
 #endif
     long	    tp_old_Rows;    // Rows when Tab page was left
-    long	    tp_old_Columns; // Columns when Tab page was left
+    long	    tp_old_Columns; // Columns when Tab page was left, -1 when
+				    // calling shell_new_columns() postponed
     long	    tp_ch_used;	    // value of 'cmdheight' when frame size
 				    // was set
 #ifdef FEAT_GUI

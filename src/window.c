@@ -2438,8 +2438,10 @@ win_close_buffer(win_T *win, int action, int abort_if_last)
 #endif
 
 #ifdef FEAT_QUICKFIX
-    // When the quickfix/location list window is closed, unlist the buffer.
-    if (win->w_buffer != NULL && bt_quickfix(win->w_buffer))
+    // When a quickfix/location list window is closed and the buffer is
+    // displayed in only one window, then unlist the buffer.
+    if (win->w_buffer != NULL && bt_quickfix(win->w_buffer)
+					&& win->w_buffer->b_nwindows == 1)
 	win->w_buffer->b_p_bl = FALSE;
 #endif
 
@@ -4195,7 +4197,8 @@ leave_tabpage(
     tp->tp_firstwin = firstwin;
     tp->tp_lastwin = lastwin;
     tp->tp_old_Rows = Rows;
-    tp->tp_old_Columns = Columns;
+    if (tp->tp_old_Columns != -1)
+	tp->tp_old_Columns = Columns;
     firstwin = NULL;
     lastwin = NULL;
     return OK;
@@ -4258,8 +4261,16 @@ enter_tabpage(
 #endif
 		))
 	shell_new_rows();
-    if (curtab->tp_old_Columns != Columns && starting == 0)
-	shell_new_columns();	// update window widths
+    if (curtab->tp_old_Columns != Columns)
+    {
+	if (starting == 0)
+	{
+	    shell_new_columns();	// update window widths
+	    curtab->tp_old_Columns = Columns;
+	}
+	else
+	    curtab->tp_old_Columns = -1;  // update window widths later
+    }
 
     lastused_tabpage = last_tab;
 
@@ -5518,6 +5529,18 @@ frame_comp_pos(frame_T *topfrp, int *row, int *col)
 	    frame_comp_pos(frp, row, col);
 	}
     }
+}
+
+/*
+ * Make the current window show at least one line and one column.
+ */
+    void
+win_ensure_size()
+{
+    if (curwin->w_height == 0)
+	win_setheight(1);
+    if (curwin->w_width == 0)
+	win_setwidth(1);
 }
 
 /*

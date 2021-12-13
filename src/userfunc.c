@@ -1544,6 +1544,7 @@ errret:
  * "partialp".
  * If "type" is not NULL and a Vim9 script-local variable is found look up the
  * type of the variable.
+ * If "found_var" is not NULL and a variable was found set it to TRUE.
  */
     char_u *
 deref_func_name(
@@ -1551,7 +1552,8 @@ deref_func_name(
 	int	    *lenp,
 	partial_T   **partialp,
 	type_T	    **type,
-	int	    no_autoload)
+	int	    no_autoload,
+	int	    *found_var)
 {
     dictitem_T	*v;
     typval_T	*tv = NULL;
@@ -1609,6 +1611,8 @@ deref_func_name(
 
     if (tv != NULL)
     {
+	if (found_var != NULL)
+	    *found_var = TRUE;
 	if (tv->v_type == VAR_FUNC)
 	{
 	    if (tv->vval.v_string == NULL)
@@ -3146,6 +3150,7 @@ get_callback_depth(void)
 
 /*
  * Invoke call_func() with a callback.
+ * Returns FAIL if the callback could not be called.
  */
     int
 call_callback(
@@ -3159,6 +3164,8 @@ call_callback(
     funcexe_T	funcexe;
     int		ret;
 
+    if (callback->cb_name == NULL || *callback->cb_name == NUL)
+	return FAIL;
     CLEAR_FIELD(funcexe);
     funcexe.evaluate = TRUE;
     funcexe.partial = callback->cb_partial;
@@ -3170,7 +3177,7 @@ call_callback(
 
 /*
  * call the 'callback' function and return the result as a number.
- * Returns -1 when calling the function fails.  Uses argv[0] to argv[argc - 1]
+ * Returns -2 when calling the function fails.  Uses argv[0] to argv[argc - 1]
  * for the function arguments. argv[argc] should have type VAR_UNKNOWN.
  */
     varnumber_T
@@ -3184,7 +3191,7 @@ call_callback_retnr(
     varnumber_T	retval;
 
     if (call_callback(callback, 0, &rettv, argcount, argvars) == FAIL)
-	return -1;
+	return -2;
 
     retval = tv_get_number_chk(&rettv, NULL);
     clear_tv(&rettv);
@@ -3196,12 +3203,15 @@ call_callback_retnr(
  * Nothing if "error" is FCERR_NONE.
  */
     void
-user_func_error(int error, char_u *name)
+user_func_error(int error, char_u *name, funcexe_T *funcexe)
 {
     switch (error)
     {
 	case FCERR_UNKNOWN:
-		emsg_funcname(e_unknownfunc, name);
+		if (funcexe->fe_found_var)
+		    semsg(_(e_not_callable_type_str), name);
+		else
+		    emsg_funcname(e_unknownfunc, name);
 		break;
 	case FCERR_NOTMETHOD:
 		emsg_funcname(
@@ -3445,7 +3455,7 @@ theend:
      */
     if (!aborting())
     {
-	user_func_error(error, (name != NULL) ? name : funcname);
+	user_func_error(error, (name != NULL) ? name : funcname, funcexe);
     }
 
     // clear the copies made from the partial
@@ -3674,7 +3684,7 @@ trans_function_name(
     {
 	len = (int)STRLEN(lv.ll_exp_name);
 	name = deref_func_name(lv.ll_exp_name, &len, partial, type,
-						     flags & TFN_NO_AUTOLOAD);
+						flags & TFN_NO_AUTOLOAD, NULL);
 	if (name == lv.ll_exp_name)
 	    name = NULL;
     }
@@ -3682,7 +3692,7 @@ trans_function_name(
     {
 	len = (int)(end - *pp);
 	name = deref_func_name(*pp, &len, partial, type,
-						      flags & TFN_NO_AUTOLOAD);
+						flags & TFN_NO_AUTOLOAD, NULL);
 	if (name == *pp)
 	    name = NULL;
     }
@@ -4131,19 +4141,41 @@ define_function(exarg_T *eap, char_u *name_arg)
 				     || (fudi.fd_di->di_tv.v_type != VAR_FUNC
 				 && fudi.fd_di->di_tv.v_type != VAR_PARTIAL)))
 	{
+	    char_u  *name_base = arg;
+	    int	    i;
+
 	    if (*arg == K_SPECIAL)
-		j = 3;
-	    else
-		j = 0;
-	    while (arg[j] != NUL && (j == 0 ? eval_isnamec1(arg[j])
-						      : eval_isnamec(arg[j])))
-		++j;
-	    if (arg[j] != NUL)
+	    {
+		name_base = vim_strchr(arg, '_');
+		if (name_base == NULL)
+		    name_base = arg + 3;
+		else
+		    ++name_base;
+	    }
+	    for (i = 0; name_base[i] != NUL && (i == 0
+					? eval_isnamec1(name_base[i])
+					: eval_isnamec(name_base[i])); ++i)
+		;
+	    if (name_base[i] != NUL)
 		emsg_funcname((char *)e_invarg2, arg);
+
+	    // In Vim9 script a function cannot have the same name as a
+	    // variable.
+	    if (vim9script && *arg == K_SPECIAL
+		     && eval_variable(name_base, STRLEN(name_base), NULL, NULL,
+			 EVAL_VAR_NOAUTOLOAD + EVAL_VAR_IMPORT
+						     + EVAL_VAR_NO_FUNC) == OK)
+	    {
+		semsg(_(e_redefining_script_item_str), name_base);
+		goto ret_free;
+	    }
 	}
 	// Disallow using the g: dict.
 	if (fudi.fd_dict != NULL && fudi.fd_dict->dv_scope == VAR_DEF_SCOPE)
+	{
 	    emsg(_("E862: Cannot use g: here"));
+	    goto ret_free;
+	}
     }
 
     // This may get more lines and make the pointers into the first line
@@ -4979,6 +5011,7 @@ ex_call(exarg_T *eap)
     partial_T	*partial = NULL;
     evalarg_T	evalarg;
     type_T	*type = NULL;
+    int		found_var = FALSE;
 
     fill_evalarg_from_eap(&evalarg, eap, eap->skip);
     if (eap->skip)
@@ -5015,7 +5048,7 @@ ex_call(exarg_T *eap)
     // from trans_function_name().
     len = (int)STRLEN(tofree);
     name = deref_func_name(tofree, &len, partial != NULL ? NULL : &partial,
-			in_vim9script() && type == NULL ? &type : NULL, FALSE);
+	    in_vim9script() && type == NULL ? &type : NULL, FALSE, &found_var);
 
     // Skip white space to allow ":call func ()".  Not good, but required for
     // backward compatibility.
@@ -5071,6 +5104,7 @@ ex_call(exarg_T *eap)
 	funcexe.partial = partial;
 	funcexe.selfdict = fudi.fd_dict;
 	funcexe.check_type = type;
+	funcexe.fe_found_var = found_var;
 	rettv.v_type = VAR_UNKNOWN;	// clear_tv() uses this
 	if (get_func_tv(name, -1, &rettv, &arg, &evalarg, &funcexe) == FAIL)
 	{

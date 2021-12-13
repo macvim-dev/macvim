@@ -1395,6 +1395,7 @@ ex_let_option(
 	int	    failed = FALSE;
 	int	    opt_p_flags;
 	char_u	    *tofree = NULL;
+	char_u	    numbuf[NUMBUFLEN];
 
 	c1 = *p;
 	*p = NUL;
@@ -1415,15 +1416,12 @@ ex_let_option(
 		n = (long)tv_get_number(tv);
 	}
 
-	if (opt_p_flags & P_FUNC && (tv->v_type == VAR_PARTIAL
+	if ((opt_p_flags & P_FUNC) && (tv->v_type == VAR_PARTIAL
 						|| tv->v_type == VAR_FUNC))
 	{
-	    char_u	numbuf[NUMBUFLEN];
-
 	    // If the option can be set to a function reference or a lambda
 	    // and the passed value is a function reference, then convert it to
 	    // the name (string) of the function reference.
-
 	    s = tv2string(tv, &tofree, numbuf, 0);
 	}
 	// Avoid setting a string option to the text "v:false" or similar.
@@ -2715,7 +2713,7 @@ eval_variable(
 		type = sv->sv_type;
 	    }
 	}
-	else if (in_vim9script())
+	else if (in_vim9script() && (flags & EVAL_VAR_NO_FUNC) == 0)
 	{
 	    ufunc_T *ufunc = find_func(name, FALSE, NULL);
 
@@ -2727,7 +2725,12 @@ eval_variable(
 		if (rettv != NULL)
 		{
 		    rettv->v_type = VAR_FUNC;
-		    rettv->vval.v_string = vim_strsave(ufunc->uf_name);
+		    if (STRNCMP(name, "g:", 2) == 0)
+			// Keep the "g:", otherwise script-local may be
+			// assumed.
+			rettv->vval.v_string = vim_strsave(name);
+		    else
+			rettv->vval.v_string = vim_strsave(ufunc->uf_name);
 		    if (rettv->vval.v_string != NULL)
 			func_ref(ufunc->uf_name);
 		}
@@ -3294,6 +3297,7 @@ set_var_const(
     int		vim9script = in_vim9script();
     int		var_in_vim9script;
     int		flags = flags_arg;
+    int		free_tv_arg = !copy;  // free tv_arg if not used
 
     ht = find_var_ht(name, &varname);
     if (ht == NULL || *varname == NUL)
@@ -3548,6 +3552,7 @@ set_var_const(
 	dest_tv->v_lock = 0;
 	init_tv(tv);
     }
+    free_tv_arg = FALSE;
 
     if (vim9script && type != NULL)
     {
@@ -3576,10 +3581,9 @@ set_var_const(
 	// if the reference count is up to one.  That locks only literal
 	// values.
 	item_lock(dest_tv, DICT_MAXNEST, TRUE, TRUE);
-    return;
 
 failed:
-    if (!copy)
+    if (free_tv_arg)
 	clear_tv(tv_arg);
 }
 

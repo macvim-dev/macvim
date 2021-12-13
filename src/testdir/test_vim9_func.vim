@@ -1202,6 +1202,66 @@ def Test_lambda_in_reduce_line_break()
   CheckScriptSuccess(lines)
 enddef
 
+def Test_set_opfunc_to_lambda()
+  var lines =<< trim END
+    vim9script
+    nnoremap <expr> <F4> <SID>CountSpaces() .. '_'
+    def CountSpaces(type = ''): string
+      if type == ''
+        &operatorfunc = (t) => CountSpaces(t)
+        return 'g@'
+      endif
+      normal! '[V']y
+      g:result = getreg('"')->count(' ')
+      return ''
+    enddef
+    new
+    'a b c d e'->setline(1)
+    feedkeys("\<F4>", 'x')
+    assert_equal(4, g:result)
+    bwipe!
+  END
+  CheckScriptSuccess(lines)
+enddef
+
+def Test_set_opfunc_to_global_function()
+  var lines =<< trim END
+    vim9script
+    def g:CountSpaces(type = ''): string
+      normal! '[V']y
+      g:result = getreg('"')->count(' ')
+      return ''
+    enddef
+    &operatorfunc = g:CountSpaces
+    new
+    'a b c d e'->setline(1)
+    feedkeys("g@_", 'x')
+    assert_equal(4, g:result)
+    bwipe!
+  END
+  CheckScriptSuccess(lines)
+  &operatorfunc = ''
+enddef
+
+def Test_lambda_type_allocated()
+  # Check that unreferencing a partial using a lambda can use the variable type
+  # after the lambda has been freed and does not leak memory.
+  var lines =<< trim END
+    vim9script
+
+    func MyomniFunc1(val, findstart, base)
+      return a:findstart ? 0 : []
+    endfunc
+
+    var Lambda = (a, b) => MyomniFunc1(19, a, b)
+    &omnifunc = Lambda
+    Lambda = (a, b) => MyomniFunc1(20, a, b)
+    &omnifunc = string(Lambda)
+    Lambda = (a, b) => strlen(a)
+  END
+  CheckScriptSuccess(lines)
+enddef
+
 " Default arg and varargs
 def MyDefVarargs(one: string, two = 'foo', ...rest: list<string>): string
   var res = one .. ',' .. two
@@ -1418,7 +1478,7 @@ endfunc
 def Test_call_funcref()
   g:SomeFunc('abc')->assert_equal(3)
   assert_fails('NotAFunc()', 'E117:', '', 2, 'Test_call_funcref') # comment after call
-  assert_fails('g:NotAFunc()', 'E117:', '', 3, 'Test_call_funcref')
+  assert_fails('g:NotAFunc()', 'E1085:', '', 3, 'Test_call_funcref')
 
   var lines =<< trim END
     vim9script

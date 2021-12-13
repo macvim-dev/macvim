@@ -618,6 +618,11 @@ edit(
 	    c = hkmap(c);		// Hebrew mode mapping
 #endif
 
+	// If the window was made so small that nothing shows, make it at least
+	// one line and one column when typing.
+	if (KeyTyped && !KeyStuffed)
+	    win_ensure_size();
+
 	/*
 	 * Special handling of keys while the popup menu is visible or wanted
 	 * and the cursor is still in the completed word.  Only when there is
@@ -5151,7 +5156,8 @@ ins_eol(int c)
 
     AppendToRedobuff(NL_STR);
     i = open_line(FORWARD,
-	    has_format_option(FO_RET_COMS) ? OPENLINE_DO_COM : 0, old_indent);
+	    has_format_option(FO_RET_COMS) ? OPENLINE_DO_COM : 0, old_indent,
+	    NULL);
     old_indent = 0;
 #ifdef FEAT_CINDENT
     can_cindent = TRUE;

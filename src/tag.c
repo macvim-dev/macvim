@@ -133,15 +133,31 @@ set_tagfunc_option(void)
     return OK;
 }
 
-# if defined(EXITFREE) || defined(PROTO)
+#if defined(EXITFREE) || defined(PROTO)
     void
 free_tagfunc_option(void)
 {
-#  ifdef FEAT_EVAL
+# ifdef FEAT_EVAL
     free_callback(&tfu_cb);
-#  endif
-}
 # endif
+}
+#endif
+
+/*
+ * Mark the global 'tagfunc' callback with 'copyID' so that it is not garbage
+ * collected.
+ */
+    int
+set_ref_in_tagfunc(int copyID UNUSED)
+{
+    int	abort = FALSE;
+
+#ifdef FEAT_EVAL
+    abort = set_ref_in_callback(&tfu_cb, copyID);
+#endif
+
+    return abort;
+}
 
 /*
  * Copy the global 'tagfunc' callback function to the buffer-local 'tagfunc'
@@ -1361,7 +1377,8 @@ find_tagfunc_tags(
     dict_T	*d;
     taggy_T	*tag = &curwin->w_tagstack[curwin->w_tagstackidx];
 
-    if (*curbuf->b_p_tfu == NUL)
+    if (*curbuf->b_p_tfu == NUL || curbuf->b_tfu_cb.cb_name == NULL
+					   || *curbuf->b_tfu_cb.cb_name == NUL)
 	return FAIL;
 
     args[0].v_type = VAR_STRING;
@@ -2010,8 +2027,6 @@ find_tags(
 		eof = vim_fgets(lbuf, lbuf_size, fp);
 		if (!eof && search_info.curr_offset != 0)
 		{
-		    // The explicit cast is to work around a bug in gcc 3.4.2
-		    // (repeated below).
 		    search_info.curr_offset = vim_ftell(fp);
 		    if (search_info.curr_offset == search_info.high_offset)
 		    {
@@ -2051,7 +2066,10 @@ find_tags(
 			eof = cs_fgets(lbuf, lbuf_size);
 		    else
 #endif
+		    {
+			search_info.curr_offset = vim_ftell(fp);
 			eof = vim_fgets(lbuf, lbuf_size, fp);
+		    }
 		} while (!eof && vim_isblankline(lbuf));
 
 		if (eof)
@@ -2293,6 +2311,10 @@ parse_line:
 		lbuf = alloc(lbuf_size);
 		if (lbuf == NULL)
 		    goto findtag_end;
+
+		if (state == TS_STEP_FORWARD)
+		    // Seek to the same position to read the same line again
+		    vim_fseek(fp, search_info.curr_offset, SEEK_SET);
 #ifdef FEAT_TAG_BINS
 		// this will try the same thing again, make sure the offset is
 		// different

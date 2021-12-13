@@ -2334,20 +2334,33 @@ set_thesaurusfunc_option(void)
     if (*curbuf->b_p_tsrfu != NUL)
     {
 	// buffer-local option set
-	free_callback(&curbuf->b_tsrfu_cb);
 	retval = option_set_callback_func(curbuf->b_p_tsrfu,
 							&curbuf->b_tsrfu_cb);
     }
     else
     {
 	// global option set
-	free_callback(&tsrfu_cb);
 	retval = option_set_callback_func(p_tsrfu, &tsrfu_cb);
     }
 
     return retval;
 }
 
+/*
+ * Mark the global 'completefunc' 'omnifunc' and 'thesaurusfunc' callbacks with
+ * 'copyID' so that they are not garbage collected.
+ */
+    int
+set_ref_in_insexpand_funcs(int copyID)
+{
+    int abort = FALSE;
+
+    abort = set_ref_in_callback(&cfu_cb, copyID);
+    abort = abort || set_ref_in_callback(&ofu_cb, copyID);
+    abort = abort || set_ref_in_callback(&tsrfu_cb, copyID);
+
+    return abort;
+}
 
 /*
  * Get the user-defined completion function name for completion 'type'

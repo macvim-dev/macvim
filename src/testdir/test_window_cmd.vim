@@ -1358,4 +1358,42 @@ func Test_close_dest_window()
   %bw!
 endfunc
 
+func Test_window_minimal_size()
+  set winminwidth=0 winminheight=0
+
+  " check size is fixed vertically
+  new
+  call win_execute(win_getid(2), 'wincmd _')
+  call assert_equal(0, winheight(0))
+  call feedkeys('0', 'tx')
+  call assert_equal(1, winheight(0))
+  bwipe!
+
+  " check size is fixed horizontally
+  vert new
+  call win_execute(win_getid(2), 'wincmd |')
+  call assert_equal(0, winwidth(0))
+  call feedkeys('0', 'tx')
+  call assert_equal(1, winwidth(0))
+  bwipe!
+
+  if has('timers')
+    " check size is fixed in Insert mode
+    func s:CheckSize(timer) abort
+      call win_execute(win_getid(2), 'wincmd _')
+      call assert_equal(0, winheight(0))
+      call feedkeys(" \<Esc>", 't!')
+    endfunc
+    new
+    call timer_start(100, function('s:CheckSize'))
+    call feedkeys('a', 'tx!')
+    call assert_equal(1, winheight(0))
+    bwipe!
+    delfunc s:CheckSize
+  endif
+
+  set winminwidth& winminheight&
+endfunc
+
+
 " vim: shiftwidth=2 sts=2 expandtab

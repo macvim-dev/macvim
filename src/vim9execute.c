@@ -890,7 +890,7 @@ call_ufunc(
 
     if (error != FCERR_NONE)
     {
-	user_func_error(error, ufunc->uf_name);
+	user_func_error(error, ufunc->uf_name, &funcexe);
 	return FAIL;
     }
     if (did_emsg > did_emsg_before)
@@ -2336,10 +2336,15 @@ exec_instructions(ectx_T *ectx)
 
 	    // store option
 	    case ISN_STOREOPT:
+	    case ISN_STOREFUNCOPT:
 		{
+		    char_u	*opt_name = iptr->isn_arg.storeopt.so_name;
+		    int		opt_flags = iptr->isn_arg.storeopt.so_flags;
 		    long	n = 0;
 		    char_u	*s = NULL;
 		    char	*msg;
+		    char_u	numbuf[NUMBUFLEN];
+		    char_u	*tofree = NULL;
 
 		    --ectx->ec_stack.ga_len;
 		    tv = STACK_TV_BOT(0);
@@ -2349,12 +2354,26 @@ exec_instructions(ectx_T *ectx)
 			if (s == NULL)
 			    s = (char_u *)"";
 		    }
+		    else if (iptr->isn_type == ISN_STOREFUNCOPT)
+		    {
+			SOURCING_LNUM = iptr->isn_lnum;
+			// If the option can be set to a function reference or
+			// a lambda and the passed value is a function
+			// reference, then convert it to the name (string) of
+			// the function reference.
+			s = tv2string(tv, &tofree, numbuf, 0);
+			if (s == NULL || *s == NUL)
+			{
+			    clear_tv(tv);
+			    goto on_error;
+			}
+		    }
 		    else
 			// must be VAR_NUMBER, CHECKTYPE makes sure
 			n = tv->vval.v_number;
-		    msg = set_option_value(iptr->isn_arg.storeopt.so_name,
-					n, s, iptr->isn_arg.storeopt.so_flags);
+		    msg = set_option_value(opt_name, n, s, opt_flags);
 		    clear_tv(tv);
+		    vim_free(tofree);
 		    if (msg != NULL)
 		    {
 			SOURCING_LNUM = iptr->isn_lnum;
@@ -5335,7 +5354,9 @@ list_instructions(char *pfx, isn_T *instr, int instr_count, ufunc_T *ufunc)
 		}
 		break;
 	    case ISN_STOREOPT:
-		smsg("%s%4d STOREOPT &%s", pfx, current,
+	    case ISN_STOREFUNCOPT:
+		smsg("%s%4d %s &%s", pfx, current,
+		  iptr->isn_type == ISN_STOREOPT ? "STOREOPT" : "STOREFUNCOPT",
 					       iptr->isn_arg.storeopt.so_name);
 		break;
 	    case ISN_STOREENV:

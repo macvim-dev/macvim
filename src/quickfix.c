@@ -2818,7 +2818,7 @@ qf_get_entry(
 }
 
 /*
- * Find a window displaying a Vim help file.
+ * Find a window displaying a Vim help file in the current tab page.
  */
     static win_T *
 qf_find_help_win(void)
@@ -2893,8 +2893,8 @@ jump_to_help_window(qf_info_T *qi, int newwin, int *opened_window)
 }
 
 /*
- * Find a non-quickfix window in the current tabpage using the given location
- * list stack.
+ * Find a non-quickfix window using the given location list stack in the
+ * current tabpage.
  * Returns NULL if a matching window is not found.
  */
     static win_T *
@@ -2910,7 +2910,7 @@ qf_find_win_with_loclist(qf_info_T *ll)
 }
 
 /*
- * Find a window containing a normal buffer
+ * Find a window containing a normal buffer in the current tab page.
  */
     static win_T *
 qf_find_win_with_normal_buf(void)
@@ -2981,7 +2981,7 @@ qf_goto_win_with_ll_file(win_T *use_win, int qf_fnum, qf_info_T *ll_ref)
 
     if (win == NULL)
     {
-	// Find the window showing the selected file
+	// Find the window showing the selected file in the current tab page.
 	FOR_ALL_WINDOWS(win)
 	    if (win->w_buffer->b_fnum == qf_fnum)
 		break;
@@ -4394,8 +4394,8 @@ is_qf_win(win_T *win, qf_info_T *qi)
 }
 
 /*
- * Find a window displaying the quickfix/location stack 'qi'
- * Only searches in the current tabpage.
+ * Find a window displaying the quickfix/location stack 'qi' in the current tab
+ * page.
  */
     static win_T *
 qf_find_win(qf_info_T *qi)
@@ -4410,7 +4410,7 @@ qf_find_win(qf_info_T *qi)
 
 /*
  * Find a quickfix buffer.
- * Searches in windows opened in all the tabs.
+ * Searches in windows opened in all the tab pages.
  */
     static buf_T *
 qf_find_buf(qf_info_T *qi)
@@ -6793,13 +6793,18 @@ qf_winid(qf_info_T *qi)
 
 /*
  * Returns the number of the buffer displayed in the quickfix/location list
- * window. If there is no buffer associated with the list, then returns 0.
+ * window. If there is no buffer associated with the list or the buffer is
+ * wiped out, then returns 0.
  */
     static int
 qf_getprop_qfbufnr(qf_info_T *qi, dict_T *retdict)
 {
-    return dict_add_number(retdict, "qfbufnr",
-					(qi == NULL) ? 0 : qi->qf_bufnr);
+    int	bufnum = 0;
+
+    if (qi != NULL && buflist_findnr(qi->qf_bufnr) != NULL)
+	bufnum = qi->qf_bufnr;
+
+    return dict_add_number(retdict, "qfbufnr", bufnum);
 }
 
 /*
@@ -7670,7 +7675,8 @@ set_errorlist(
 }
 
 /*
- * Mark the context as in use for all the lists in a quickfix stack.
+ * Mark the quickfix context and callback function as in use for all the lists
+ * in a quickfix stack.
  */
     static int
 mark_quickfix_ctx(qf_info_T *qi, int copyID)
@@ -7678,13 +7684,17 @@ mark_quickfix_ctx(qf_info_T *qi, int copyID)
     int		i;
     int		abort = FALSE;
     typval_T	*ctx;
+    callback_T	*cb;
 
     for (i = 0; i < LISTCOUNT && !abort; ++i)
     {
 	ctx = qi->qf_lists[i].qf_ctx;
 	if (ctx != NULL && ctx->v_type != VAR_NUMBER
 		&& ctx->v_type != VAR_STRING && ctx->v_type != VAR_FLOAT)
-	    abort = set_ref_in_item(ctx, copyID, NULL, NULL);
+	    abort = abort || set_ref_in_item(ctx, copyID, NULL, NULL);
+
+	cb = &qi->qf_lists[i].qftf_cb;
+	abort = abort || set_ref_in_callback(cb, copyID);
     }
 
     return abort;
@@ -7702,6 +7712,10 @@ set_ref_in_quickfix(int copyID)
     win_T	*win;
 
     abort = mark_quickfix_ctx(&ql_info, copyID);
+    if (abort)
+	return abort;
+
+    abort = set_ref_in_callback(&qftf_cb, copyID);
     if (abort)
 	return abort;
 

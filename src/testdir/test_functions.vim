@@ -2234,6 +2234,12 @@ func Test_call()
   call call(test_null_partial(), [])
   call assert_fails('call test_null_function()()', 'E1192:')
   call assert_fails('call test_null_partial()()', 'E117:')
+
+  let lines =<< trim END
+      let Time = 'localtime'
+      call Time()
+  END
+  call CheckScriptFailure(lines, 'E1085:')
 endfunc
 
 func Test_char2nr()
@@ -2769,6 +2775,11 @@ func Test_builtin_check()
   let g:bar = 123
   call extend(g:, #{bar: { -> "foo" }}, "keep")
   call assert_fails('call extend(g:, #{bar: { -> "foo" }}, "force")', 'E704:')
+endfunc
+
+func Test_funcref_to_string()
+  let Fn = funcref('g:Test_funcref_to_string')
+  call assert_equal("function('g:Test_funcref_to_string')", string(Fn))
 endfunc
 
 

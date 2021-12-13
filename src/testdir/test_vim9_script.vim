@@ -1896,6 +1896,17 @@ def Test_script_var_shadows_function()
   CheckScriptFailure(lines, 'E1041:', 5)
 enddef
 
+def Test_function_shadows_script_var()
+  var lines =<< trim END
+      vim9script
+      var Func = 1
+      def Func(): number
+        return 123
+      enddef
+  END
+  CheckScriptFailure(lines, 'E1041:', 3)
+enddef
+
 def Test_script_var_shadows_command()
   var lines =<< trim END
       var undo = 1
@@ -1909,6 +1920,15 @@ def Test_script_var_shadows_command()
       undo
   END
   CheckDefAndScriptFailure(lines, 'E1207:', 2)
+enddef
+
+def Test_vim9script_call_wrong_type()
+  var lines =<< trim END
+      vim9script
+      var Time = 'localtime'
+      Time()
+  END
+  CheckScriptFailure(lines, 'E1085:')
 enddef
 
 def s:RetSome(): string
@@ -2198,7 +2218,7 @@ def Test_func_overrules_import_fails()
       echo 'local to function'
     enddef
   END
-  CheckScriptFailure(lines, 'E1073:')
+  CheckScriptFailure(lines, 'E1041:')
 
   lines =<< trim END
     vim9script
@@ -2231,7 +2251,7 @@ def Test_func_redefine_fails()
     vim9script
     def Foo(): string
       return 'foo'
-      enddef
+    enddef
     def Func()
       var  Foo = {-> 'lambda'}
     enddef
@@ -4632,6 +4652,34 @@ def Test_xxx_echoerr_line_number()
          .. ' continued'
   END
   CheckDefExecAndScriptFailure(lines, 'some error continued', 1)
+enddef
+
+func Test_debug_with_lambda()
+  CheckRunVimInTerminal
+
+  " call indirectly to avoid compilation error for missing functions
+  call Run_Test_debug_with_lambda()
+endfunc
+
+def Run_Test_debug_with_lambda()
+  var lines =<< trim END
+      vim9script
+      def Func()
+        var n = 0
+        echo [0]->filter((_, v) => v == n)
+      enddef
+      breakadd func Func
+      Func()
+  END
+  writefile(lines, 'XdebugFunc')
+  var buf = RunVimInTerminal('-S XdebugFunc', {rows: 6, wait_for_ruler: 0})
+  WaitForAssert(() => assert_match('^>', term_getline(buf, 6)))
+
+  term_sendkeys(buf, "cont\<CR>")
+  WaitForAssert(() => assert_match('\[0\]', term_getline(buf, 5)))
+
+  StopVimInTerminal(buf)
+  delete('XdebugFunc')
 enddef
 
 def ProfiledWithLambda()
