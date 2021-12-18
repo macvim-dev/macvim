@@ -1,4 +1,4 @@
-*message.txt*   For Vim version 8.2.  Last change: 2021 Jul 31
+*message.txt*   For Vim version 8.2.  Last change: 2021 Dec 13
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -29,8 +29,7 @@ depends on the 'shortmess' option.
 				Clear messages, keeping only the {count} most
 				recent ones.
 
-The number of remembered messages is fixed at 20 for the tiny version and 200
-for other versions.
+The number of remembered messages is fixed at 200.
 
 								*g<*
 The "g<" command can be used to see the last page of previous command output.

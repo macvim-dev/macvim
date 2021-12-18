@@ -86,6 +86,12 @@ func s:setup_commands(cchar)
   endif
 endfunc
 
+" This must be run before any error lists are created.
+func Test_AA_cc_no_errors()
+  call assert_fails('cc', 'E42:')
+  call assert_fails('ll', 'E42:')
+endfunc
+
 " Tests for the :clist and :llist commands
 func XlistTests(cchar)
   call s:setup_commands(a:cchar)
@@ -5380,6 +5386,23 @@ func Test_qftextfunc_callback()
     cclose
   END
   call CheckLegacyAndVim9Success(lines)
+
+  " Test for using a script-local function name
+  func s:TqfFunc2(info)
+    let g:TqfFunc2Args = [a:info.start_idx, a:info.end_idx]
+    return ''
+  endfunc
+  let g:TqfFunc2Args = []
+  set quickfixtextfunc=s:TqfFunc2
+  cexpr "F10:10:10:L10"
+  cclose
+  call assert_equal([1, 1], g:TqfFunc2Args)
+
+  let &quickfixtextfunc = 's:TqfFunc2'
+  cexpr "F11:11:11:L11"
+  cclose
+  call assert_equal([1, 1], g:TqfFunc2Args)
+  delfunc s:TqfFunc2
 
   " set 'quickfixtextfunc' to a partial with dict. This used to cause a crash.
   func SetQftfFunc()

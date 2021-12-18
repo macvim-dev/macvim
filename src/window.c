@@ -198,7 +198,7 @@ do_window(
 		    if (Prenum == 0)
 			emsg(_(e_no_alternate_file));
 		    else
-			semsg(_("E92: Buffer %ld not found"), Prenum);
+			semsg(_(e_buffer_nr_not_found), Prenum);
 		    break;
 		}
 
@@ -1337,10 +1337,8 @@ win_split_ins(
 	    p_wh = size;
     }
 
-#ifdef FEAT_JUMPLIST
     // Keep same changelist position in new window.
     wp->w_changelistidx = oldwin->w_changelistidx;
-#endif
 
     /*
      * make the new window the current window
@@ -1388,9 +1386,7 @@ win_init(win_T *newp, win_T *oldp, int flags UNUSED)
     newp->w_wrow = oldp->w_wrow;
     newp->w_fraction = oldp->w_fraction;
     newp->w_prev_fraction_row = oldp->w_prev_fraction_row;
-#ifdef FEAT_JUMPLIST
     copy_jumplist(oldp, newp);
-#endif
 #ifdef FEAT_QUICKFIX
     if (flags & WSP_NEWLOC)
     {
@@ -5166,9 +5162,7 @@ win_free(
     clear_matches(wp);
 #endif
 
-#ifdef FEAT_JUMPLIST
     free_jumplist(wp);
-#endif
 
 #ifdef FEAT_QUICKFIX
     qf_free_all(wp);

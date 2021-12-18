@@ -575,6 +575,21 @@ func Test_opfunc_callback()
   END
   call CheckTransLegacySuccess(lines)
 
+  " Test for using a script-local function name
+  func s:OpFunc3(type)
+    let g:OpFunc3Args = [a:type]
+  endfunc
+  set opfunc=s:OpFunc3
+  let g:OpFunc3Args = []
+  normal! g@l
+  call assert_equal(['char'], g:OpFunc3Args)
+
+  let &opfunc = 's:OpFunc3'
+  let g:OpFunc3Args = []
+  normal! g@l
+  call assert_equal(['char'], g:OpFunc3Args)
+  delfunc s:OpFunc3
+
   " Using Vim9 lambda expression in legacy context should fail
   set opfunc=(a)\ =>\ OpFunc1(24,\ a)
   let g:OpFunc1Args = []
@@ -598,14 +613,32 @@ func Test_opfunc_callback()
   let lines =<< trim END
     vim9script
 
-    # Test for using a def function with opfunc
     def g:Vim9opFunc(val: number, type: string): void
       g:OpFunc1Args = [val, type]
     enddef
+
+    # Test for using a def function with opfunc
     set opfunc=function('g:Vim9opFunc',\ [60])
     g:OpFunc1Args = []
     normal! g@l
     assert_equal([60, 'char'], g:OpFunc1Args)
+
+    # Test for using a global function name
+    &opfunc = g:OpFunc2
+    g:OpFunc2Args = []
+    normal! g@l
+    assert_equal(['char'], g:OpFunc2Args)
+    bw!
+
+    # Test for using a script-local function name
+    def s:LocalOpFunc(type: string): void
+      g:LocalOpFuncArgs = [type]
+    enddef
+    &opfunc = s:LocalOpFunc
+    g:LocalOpFuncArgs = []
+    normal! g@l
+    assert_equal(['char'], g:LocalOpFuncArgs)
+    bw!
   END
   call CheckScriptSuccess(lines)
 
@@ -2336,7 +2369,6 @@ endfunc
 " Test for g`, g;, g,, g&, gv, gk, gj, gJ, g0, g^, g_, gm, g$, gM, g CTRL-G,
 " gi and gI commands
 func Test_normal33_g_cmd2()
-  CheckFeature jumplist
   call Setup_NewWindow()
   " Test for g`
   clearjumps
@@ -3270,7 +3302,6 @@ endfunc
 
 " Tests for g cmds
 func Test_normal_gdollar_cmd()
-  CheckFeature jumplist
   call Setup_NewWindow()
   " Make long lines that will wrap
   %s/$/\=repeat(' foobar', 10)/

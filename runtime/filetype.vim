@@ -1,7 +1,7 @@
 " Vim support file to detect file types
 "
 " Maintainer:	Bram Moolenaar <Bram@vim.org>
-" Last Change:	2021 Dec 03
+" Last Change:	2021 Dec 14
 
 " Listen very carefully, I will say this only once
 if exists("did_load_filetypes")
@@ -260,7 +260,7 @@ au BufNewFile,BufRead *.lpc,*.ulpc		setf lpc
 au BufNewFile,BufRead calendar			setf calendar
 
 " C#
-au BufNewFile,BufRead *.cs			setf cs
+au BufNewFile,BufRead *.cs,*.csx		setf cs
 
 " CSDL
 au BufNewFile,BufRead *.csdl			setf csdl
@@ -489,6 +489,9 @@ au BufNewFile,BufRead dict.conf,.dictrc		setf dictconf
 
 " Dictd config
 au BufNewFile,BufRead dictd*.conf		setf dictdconf
+
+" DEP3 formatted patch files
+au BufNewFile,BufRead */debian/patches/*	call dist#ft#Dep3patch()
 
 " Diff files
 au BufNewFile,BufRead *.diff,*.rej		setf diff
@@ -789,6 +792,10 @@ au BufNewFile,BufRead *.hb			setf hb
 
 " Httest
 au BufNewFile,BufRead *.htt,*.htb		setf httest
+
+" i3 (and sway)
+au BufNewFile,BufRead */i3/config,*/sway/config		setf i3config
+au BufNewFile,BufRead */.i3/config,*/.sway/config	setf i3config
 
 " Icon
 au BufNewFile,BufRead *.icn			setf icon
@@ -1738,6 +1745,9 @@ au BufNewFile,BufRead *.speedup,*.spdata,*.spd	setf spup
 
 " Slice
 au BufNewFile,BufRead *.ice			setf slice
+
+" Microsoft Visual Studio Solution
+au BufNewFile,BufRead *.sln			setf solution
 
 " Spice
 au BufNewFile,BufRead *.sp,*.spice		setf spice

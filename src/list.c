@@ -1935,9 +1935,9 @@ item_compare2(const void *s1, const void *s2)
 
     rettv.v_type = VAR_UNKNOWN;		// clear_tv() uses this
     CLEAR_FIELD(funcexe);
-    funcexe.evaluate = TRUE;
-    funcexe.partial = partial;
-    funcexe.selfdict = sortinfo->item_compare_selfdict;
+    funcexe.fe_evaluate = TRUE;
+    funcexe.fe_partial = partial;
+    funcexe.fe_selfdict = sortinfo->item_compare_selfdict;
     res = call_func(func_name, -1, &rettv, 2, argv, &funcexe);
     clear_tv(&argv[0]);
     clear_tv(&argv[1]);
@@ -2281,11 +2281,12 @@ filter_map(typval_T *argvars, typval_T *rettv, filtermap_T filtermap)
     garray_T	type_list;
 
     // map() and filter() return the first argument, also on failure.
-    if (filtermap != FILTERMAP_MAPNEW)
+    if (filtermap != FILTERMAP_MAPNEW && argvars[0].v_type != VAR_STRING)
 	copy_tv(&argvars[0], rettv);
 
     if (in_vim9script()
-	    && (check_for_list_or_dict_or_blob_arg(argvars, 0) == FAIL))
+	    && (check_for_list_or_dict_or_blob_or_string_arg(argvars, 0)
+								== FAIL))
 	return;
 
     if (filtermap == FILTERMAP_MAP && in_vim9script())
@@ -2329,9 +2330,15 @@ filter_map(typval_T *argvars, typval_T *rettv, filtermap_T filtermap)
 			    && value_check_lock(d->dv_lock, arg_errmsg, TRUE)))
 	    goto theend;
     }
+    else if (argvars[0].v_type == VAR_STRING)
+    {
+	rettv->v_type = VAR_STRING;
+	rettv->vval.v_string = NULL;
+    }
     else
     {
-	semsg(_(e_listdictblobarg), func_name);
+	semsg(_(e_argument_of_str_must_be_list_string_dictionary_or_blob),
+								    func_name);
 	goto theend;
     }
 
@@ -2479,6 +2486,66 @@ filter_map(typval_T *argvars, typval_T *rettv, filtermap_T filtermap)
 		}
 		++idx;
 	    }
+	}
+	else if (argvars[0].v_type == VAR_STRING)
+	{
+	    char_u	*p;
+	    typval_T	tv;
+	    garray_T	ga;
+	    char_u	buf[MB_MAXBYTES + 1];
+	    int		len;
+
+	    // set_vim_var_nr() doesn't set the type
+	    set_vim_var_type(VV_KEY, VAR_NUMBER);
+
+	    ga_init2(&ga, (int)sizeof(char), 80);
+	    for (p = tv_get_string(&argvars[0]); *p != NUL; p += len)
+	    {
+	        typval_T newtv;
+
+		if (has_mbyte)
+		    len = mb_ptr2len(p);
+		else
+		    len = 1;
+
+		STRNCPY(buf, p, len);
+		buf[len] = NUL;
+
+		tv.v_type = VAR_STRING;
+		tv.vval.v_string = vim_strsave(buf);
+
+		set_vim_var_nr(VV_KEY, idx);
+		if (filter_map_one(&tv, expr, filtermap, &newtv, &rem) == FAIL
+								   || did_emsg)
+		    break;
+		if (did_emsg)
+		{
+		    clear_tv(&newtv);
+		    clear_tv(&tv);
+		    break;
+		}
+		else if (filtermap != FILTERMAP_FILTER)
+		{
+		    if (newtv.v_type != VAR_STRING)
+		    {
+			clear_tv(&newtv);
+			clear_tv(&tv);
+			emsg(_(e_stringreq));
+			break;
+		    }
+		    else
+			ga_concat(&ga, newtv.vval.v_string);
+		}
+		else if (!rem)
+		    ga_concat(&ga, tv.vval.v_string);
+
+		clear_tv(&newtv);
+		clear_tv(&tv);
+
+	        ++idx;
+	    }
+	    ga_append(&ga, NUL);
+	    rettv->vval.v_string = ga.ga_data;
 	}
 	else // argvars[0].v_type == VAR_LIST
 	{
@@ -3203,9 +3270,9 @@ f_reduce(typval_T *argvars, typval_T *rettv)
 	return;
     }
 
-    vim_memset(&funcexe, 0, sizeof(funcexe));
-    funcexe.evaluate = TRUE;
-    funcexe.partial = partial;
+    CLEAR_FIELD(funcexe);
+    funcexe.fe_evaluate = TRUE;
+    funcexe.fe_partial = partial;
 
     if (argvars[0].v_type == VAR_LIST)
     {

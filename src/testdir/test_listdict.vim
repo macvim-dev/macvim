@@ -719,6 +719,7 @@ func Test_list_locked_var_unlet()
       call assert_equal(expected[depth][u][1], ps)
     endfor
   endfor
+
   " Deleting a list range should fail if the range is locked
   let l = [1, 2, 3, 4]
   lockvar l[1:2]
@@ -743,10 +744,7 @@ func Test_dict_item_lock_unlet()
       unlet d.a
       call assert_equal({'b': 100}, d)
   END
-  " TODO: make this work in a :def function
-  "call CheckLegacyAndVim9Success(lines)
-  call CheckTransLegacySuccess(lines)
-  call CheckTransVim9Success(lines)
+  call CheckLegacyAndVim9Success(lines)
 endfunc
 
 " filter() after lock on dict item
@@ -757,10 +755,7 @@ func Test_dict_lock_filter()
       call filter(d, 'v:key != "a"')
       call assert_equal({'b': 100}, d)
   END
-  " TODO: make this work in a :def function
-  "call CheckLegacyAndVim9Success(lines)
-  call CheckTransLegacySuccess(lines)
-  call CheckTransVim9Success(lines)
+  call CheckLegacyAndVim9Success(lines)
 endfunc
 
 " map() after lock on dict
@@ -774,6 +769,17 @@ func Test_dict_lock_map()
   " This won't work in a :def function
   call CheckTransLegacySuccess(lines)
   call CheckTransVim9Success(lines)
+
+  " For a :def function use a global dict.
+  let lines =<< trim END
+      let g:thedict = {'a': 77, 'b': 88}
+      lockvar 1 g:thedict
+      def Delkey()
+        unlet g:thedict.a
+      enddef
+      call Delkey()
+  END
+  call CheckScriptFailure(lines, 'E741:')
 endfunc
 
 " No extend() after lock on dict item
@@ -843,6 +849,17 @@ func Test_let_lock_list()
   call assert_fails('let l[1:2] = [0, 1]', 'E741:')
   call assert_equal([1, 2, 3, 4], l)
   unlet l
+
+  let lines =<< trim END
+      def TryUnletListItem(l: list<any>)
+        unlet l[0]
+      enddef
+      let l = [1, 2, 3, 4]
+      lockvar! l
+      call TryUnletListItem(l)
+  END
+  call CheckScriptFailure(lines, 'E741:')
+  unlet g:l
 endfunc
 
 " Locking part of the list

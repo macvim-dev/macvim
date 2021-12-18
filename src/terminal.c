@@ -739,6 +739,23 @@ term_start(
 	    curwin->w_buffer = curbuf;
 	    ++curbuf->b_nwindows;
 	}
+	else if (vgetc_busy
+#ifdef FEAT_TIMERS
+		|| timer_busy
+#endif
+		|| input_busy)
+	{
+	    char_u ignore[4];
+
+	    // When waiting for input need to return and possibly end up in
+	    // terminal_loop() instead.
+	    ignore[0] = K_SPECIAL;
+	    ignore[1] = KS_EXTRA;
+	    ignore[2] = KE_IGNORE;
+	    ignore[3] = NUL;
+	    ins_typebuf(ignore, REMAP_NONE, 0, TRUE, FALSE);
+	    typebuf_was_filled = TRUE;
+	}
     }
     else
     {
@@ -2106,15 +2123,15 @@ term_enter_job_mode()
 /*
  * Get a key from the user with terminal mode mappings.
  * Note: while waiting a terminal may be closed and freed if the channel is
- * closed and ++close was used.
+ * closed and ++close was used.  This may even happen before we get here.
  */
     static int
 term_vgetc()
 {
     int c;
     int save_State = State;
-    int modify_other_keys =
-			  vterm_is_modify_other_keys(curbuf->b_term->tl_vterm);
+    int modify_other_keys = curbuf->b_term->tl_vterm == NULL ? FALSE
+			: vterm_is_modify_other_keys(curbuf->b_term->tl_vterm);
 
     State = TERMINAL;
     got_int = FALSE;
@@ -3855,8 +3872,22 @@ term_update_window(win_T *wp)
 #endif
 				0);
     }
-    term->tl_dirty_row_start = MAX_ROW;
-    term->tl_dirty_row_end = 0;
+}
+
+/*
+ * Called after updating all windows: may reset dirty rows.
+ */
+    void
+term_did_update_window(win_T *wp)
+{
+    term_T	*term = wp->w_buffer->b_term;
+
+    if (term != NULL && term->tl_vterm != NULL && !term->tl_normal_mode
+						       && wp->w_redr_type == 0)
+    {
+	term->tl_dirty_row_start = MAX_ROW;
+	term->tl_dirty_row_end = 0;
+    }
 }
 
 /*
@@ -4339,9 +4370,9 @@ handle_call_command(term_T *term, channel_T *channel, listitem_T *item)
     argvars[0].vval.v_number = term->tl_buffer->b_fnum;
     argvars[1] = item->li_next->li_tv;
     CLEAR_FIELD(funcexe);
-    funcexe.firstline = 1L;
-    funcexe.lastline = 1L;
-    funcexe.evaluate = TRUE;
+    funcexe.fe_firstline = 1L;
+    funcexe.fe_lastline = 1L;
+    funcexe.fe_evaluate = TRUE;
     if (call_func(func, -1, &rettv, 2, argvars, &funcexe) == OK)
     {
 	clear_tv(&rettv);

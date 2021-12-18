@@ -449,6 +449,22 @@ arg_list_or_dict_or_blob(type_T *type, argcontext_T *context)
 }
 
 /*
+ * Check "type" is a list of 'any' or a dict of 'any' or a blob or a string.
+ */
+    static int
+arg_list_or_dict_or_blob_or_string(type_T *type, argcontext_T *context)
+{
+    if (type->tt_type == VAR_ANY
+		     || type->tt_type == VAR_LIST
+		     || type->tt_type == VAR_DICT
+		     || type->tt_type == VAR_BLOB
+		     || type->tt_type == VAR_STRING)
+	return OK;
+    arg_type_mismatch(&t_list_any, type, context->arg_idx + 1);
+    return FAIL;
+}
+
+/*
  * Check "type" is a job.
  */
     static int
@@ -797,7 +813,7 @@ static argcheck_T arg23_insert[] = {arg_list_or_blob, arg_item_of_prev, arg_numb
 static argcheck_T arg1_len[] = {arg_len1};
 static argcheck_T arg3_libcall[] = {arg_string, arg_string, arg_string_or_nr};
 static argcheck_T arg14_maparg[] = {arg_string, arg_string, arg_bool, arg_bool};
-static argcheck_T arg2_mapfilter[] = {arg_list_or_dict_or_blob, NULL};
+static argcheck_T arg2_mapfilter[] = {arg_list_or_dict_or_blob_or_string, NULL};
 static argcheck_T arg25_matchadd[] = {arg_string, arg_string, arg_number, arg_number, arg_dict_any};
 static argcheck_T arg25_matchaddpos[] = {arg_string, arg_list_any, arg_number, arg_number, arg_dict_any};
 static argcheck_T arg119_printf[] = {arg_string_or_nr, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
@@ -2513,9 +2529,9 @@ check_internal_func(int idx, int argcount)
 
     name = internal_func_name(idx);
     if (res == FCERR_TOOMANY)
-	semsg(_(e_toomanyarg), name);
+	semsg(_(e_too_many_arguments_for_function_str), name);
     else
-	semsg(_(e_toofewarg), name);
+	semsg(_(e_not_enough_arguments_for_function_str), name);
     return -1;
 }
 
@@ -4033,7 +4049,8 @@ common_function(typval_T *argvars, typval_T *rettv, int is_funcref)
 		    arg_idx = 0;
 		else if (list->lv_len > MAX_FUNC_ARGS)
 		{
-		    emsg_funcname((char *)e_toomanyarg, s);
+		    emsg_funcname((char *)e_too_many_arguments_for_function_str,
+									    s);
 		    vim_free(name);
 		    goto theend;
 		}
@@ -4301,12 +4318,10 @@ f_get(typval_T *argvars, typval_T *rettv)
     static void
 f_getchangelist(typval_T *argvars, typval_T *rettv)
 {
-#ifdef FEAT_JUMPLIST
     buf_T	*buf;
     int		i;
     list_T	*l;
     dict_T	*d;
-#endif
 
     if (rettv_list_alloc(rettv) != OK)
 	return;
@@ -4314,7 +4329,6 @@ f_getchangelist(typval_T *argvars, typval_T *rettv)
     if (in_vim9script() && check_for_opt_buffer_arg(argvars, 0) == FAIL)
 	return;
 
-#ifdef FEAT_JUMPLIST
     if (argvars[0].v_type == VAR_UNKNOWN)
 	buf = curbuf;
     else
@@ -4349,7 +4363,6 @@ f_getchangelist(typval_T *argvars, typval_T *rettv)
 	dict_add_number(d, "col", (long)buf->b_changelist[i].col);
 	dict_add_number(d, "coladd", (long)buf->b_changelist[i].coladd);
     }
-#endif
 }
 
     static void
@@ -4525,12 +4538,10 @@ f_getfontname(typval_T *argvars UNUSED, typval_T *rettv)
     static void
 f_getjumplist(typval_T *argvars, typval_T *rettv)
 {
-#ifdef FEAT_JUMPLIST
     win_T	*wp;
     int		i;
     list_T	*l;
     dict_T	*d;
-#endif
 
     if (rettv_list_alloc(rettv) != OK)
 	return;
@@ -4541,7 +4552,6 @@ f_getjumplist(typval_T *argvars, typval_T *rettv)
 		    && check_for_opt_number_arg(argvars, 1) == FAIL)))
 	return;
 
-#ifdef FEAT_JUMPLIST
     wp = find_tabwin(&argvars[0], &argvars[1], NULL);
     if (wp == NULL)
 	return;
@@ -4571,7 +4581,6 @@ f_getjumplist(typval_T *argvars, typval_T *rettv)
 	if (wp->w_jumplist[i].fname != NULL)
 	    dict_add_string(d, "filename", wp->w_jumplist[i].fname);
     }
-#endif
 }
 
 /*
@@ -5336,13 +5345,7 @@ f_has(typval_T *argvars, typval_T *rettv)
 		0
 #endif
 		},
-	{"jumplist",
-#ifdef FEAT_JUMPLIST
-		1
-#else
-		0
-#endif
-		},
+	{"jumplist", 1},
 	{"keymap",
 #ifdef FEAT_KEYMAP
 		1
@@ -9045,7 +9048,7 @@ f_setreg(typval_T *argvars, typval_T *rettv)
     {
 	if (yank_type != MAUTO)
 	{
-	    semsg(_(e_toomanyarg), "setreg");
+	    semsg(_(e_too_many_arguments_for_function_str), "setreg");
 	    return;
 	}
 
