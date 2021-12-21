@@ -286,6 +286,8 @@ EXTERN char e_invalid_command[]
 #ifdef FEAT_EVAL
 EXTERN char e_invalid_command_str[]
 	INIT(= N_("E476: Invalid command: %s"));
+EXTERN char e_cannot_index_a_funcref[]
+	INIT(= N_("E695: Cannot index a Funcref"));
 EXTERN char e_list_value_has_more_items_than_targets[]
 	INIT(= N_("E710: List value has more items than targets"));
 EXTERN char e_list_value_does_not_have_enough_items[]
@@ -843,4 +845,10 @@ EXTERN char e_highlight_group_name_too_long[]
 EXTERN char e_argument_of_str_must_be_list_string_dictionary_or_blob[]
 	INIT(= N_("E1250: Argument of %s must be a List, String, Dictionary or Blob"));
 EXTERN char e_list_dict_blob_or_string_required_for_argument_nr[]
-	INIT(= N_("E1228: List, Dictionary, Blob or String required for argument %d"));
+	INIT(= N_("E1251: List, Dictionary, Blob or String required for argument %d"));
+EXTERN char e_string_list_or_blob_required_for_argument_nr[]
+	INIT(= N_("E1252: String, List or Blob required for argument %d"));
+EXTERN char e_string_expected_for_argument_nr[]
+	INIT(= N_("E1253: String expected for argument %d"));
+EXTERN char e_cannot_use_script_variable_in_for_loop[]
+	INIT(= N_("E1254: Cannot use script variable in for loop"));

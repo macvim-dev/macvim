@@ -1712,8 +1712,11 @@ BASIC_SRC = \
 	usercmd.c \
 	userfunc.c \
 	version.c \
+	vim9cmds.c, \
 	vim9compile.c \
 	vim9execute.c \
+	vim9expr.c, \
+	vim9instr.c, \
 	vim9script.c \
 	vim9type.c \
 	viminfo.c \
@@ -1865,8 +1868,11 @@ OBJ_COMMON = \
 	objects/usercmd.o \
 	objects/userfunc.o \
 	objects/version.o \
+	objects/vim9cmds.o \
 	objects/vim9compile.o \
 	objects/vim9execute.o \
+	objects/vim9expr.o \
+	objects/vim9instr.o \
 	objects/vim9script.o \
 	objects/vim9type.o \
 	objects/viminfo.o \
@@ -2051,8 +2057,11 @@ PRO_AUTO = \
 	usercmd.pro \
 	userfunc.pro \
 	version.pro \
+	vim9cmds.pro \
 	vim9compile.pro \
 	vim9execute.pro \
+	vim9expr.pro \
+	vim9instr.pro \
 	vim9script.pro \
 	vim9type.pro \
 	viminfo.pro \
@@ -3601,11 +3610,20 @@ objects/usercmd.o: usercmd.c
 objects/userfunc.o: userfunc.c
 	$(CCC) -o $@ userfunc.c
 
+objects/vim9cmds.o: vim9cmds.c
+	$(CCC) -o $@ vim9cmds.c
+
 objects/vim9compile.o: vim9compile.c
 	$(CCC) -o $@ vim9compile.c
 
 objects/vim9execute.o: vim9execute.c
 	$(CCC) -o $@ vim9execute.c
+
+objects/vim9expr.o: vim9expr.c
+	$(CCC) -o $@ vim9expr.c
+
+objects/vim9instr.o: vim9instr.c
+	$(CCC) -o $@ vim9instr.c
 
 objects/vim9script.o: vim9script.c
 	$(CCC) -o $@ vim9script.c
@@ -4212,11 +4230,23 @@ objects/version.o: version.c vim.h protodef.h auto/config.h feature.h os_unix.h 
  auto/osdef.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
  proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \
  proto.h globals.h errors.h version.h
+objects/vim9cmds.o: vim9cmds.c vim.h protodef.h auto/config.h feature.h \
+ os_unix.h auto/osdef.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
+ proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \
+ proto.h globals.h errors.h vim9.h
 objects/vim9compile.o: vim9compile.c vim.h protodef.h auto/config.h feature.h \
  os_unix.h auto/osdef.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
  proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \
  proto.h globals.h errors.h vim9.h
 objects/vim9execute.o: vim9execute.c vim.h protodef.h auto/config.h feature.h \
+ os_unix.h auto/osdef.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
+ proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \
+ proto.h globals.h errors.h vim9.h
+objects/vim9expr.o: vim9expr.c vim.h protodef.h auto/config.h feature.h \
+ os_unix.h auto/osdef.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
+ proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \
+ proto.h globals.h errors.h vim9.h
+objects/vim9instr.o: vim9instr.c vim.h protodef.h auto/config.h feature.h \
  os_unix.h auto/osdef.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
  proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \
  proto.h globals.h errors.h vim9.h

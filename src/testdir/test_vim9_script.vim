@@ -611,15 +611,49 @@ def Test_try_catch_throw()
   # no requirement for spaces before |
   try|echo 0|catch|endtry
 
+  # return in try with finally
+  def ReturnInTry(): number
+    var ret = 4
+    try
+      return ret
+    catch /this/
+      return -1
+    catch /that/
+      return -1
+    finally
+      # changing ret has no effect
+      ret = 7
+    endtry
+    return -2
+  enddef
+  assert_equal(4, ReturnInTry())
+
+  # return in catch with finally
+  def ReturnInCatch(): number
+    var ret = 5
+    try
+      throw 'getout'
+      return -1
+    catch /getout/
+      # ret is evaluated here
+      return ret
+    finally
+      # changing ret later has no effect
+      ret = -3
+    endtry
+    return -2
+  enddef
+  assert_equal(5, ReturnInCatch())
+
   # return in finally after empty catch
   def ReturnInFinally(): number
     try
     finally
-      return 4
+      return 6
     endtry
-    return 2
+    return -1
   enddef
-  assert_equal(4, ReturnInFinally())
+  assert_equal(6, ReturnInFinally())
 
   var lines =<< trim END
       vim9script
@@ -1511,7 +1545,7 @@ def Test_import_star_fails()
       import * as foo from './Xfoo.vim'
       foo = 'bar'
   END
-  CheckDefAndScriptFailure2(lines, 'E1094:', 'E1236: Cannot use foo itself')
+  CheckDefAndScriptFailure(lines, ['E1094:', 'E1236: Cannot use foo itself'])
   lines =<< trim END
       vim9script
       import * as foo from './Xfoo.vim'
@@ -1549,7 +1583,7 @@ def Test_import_star_fails()
       import * as That from './Xthat.vim'
       That()
   END
-  CheckDefAndScriptFailure2(lines, 'E1094:', 'E1236: Cannot use That itself')
+  CheckDefAndScriptFailure(lines, ['E1094:', 'E1236: Cannot use That itself'])
   delete('Xthat.vim')
 enddef
 
@@ -2852,12 +2886,12 @@ def Test_for_loop_with_closure()
 enddef
 
 def Test_for_loop_fails()
-  CheckDefAndScriptFailure2(['for '], 'E1097:', 'E690:')
-  CheckDefAndScriptFailure2(['for x'], 'E1097:', 'E690:')
-  CheckDefAndScriptFailure2(['for x in'], 'E1097:', 'E15:')
+  CheckDefAndScriptFailure(['for '], ['E1097:', 'E690:'])
+  CheckDefAndScriptFailure(['for x'], ['E1097:', 'E690:'])
+  CheckDefAndScriptFailure(['for x in'], ['E1097:', 'E15:'])
   CheckDefAndScriptFailure(['for # in range(5)'], 'E690:')
   CheckDefAndScriptFailure(['for i In range(5)'], 'E690:')
-  CheckDefAndScriptFailure2(['var x = 5', 'for x in range(5)', 'endfor'], 'E1017:', 'E1041:')
+  CheckDefAndScriptFailure(['var x = 5', 'for x in range(5)', 'endfor'], ['E1017:', 'E1041:'])
   CheckScriptFailure(['vim9script', 'var x = 5', 'for x in range(5)', '# comment', 'endfor'], 'E1041:', 3)
   CheckScriptFailure(['def Func(arg: any)', 'for arg in range(5)', 'enddef', 'defcompile'], 'E1006:')
   delfunc! g:Func
@@ -2879,7 +2913,7 @@ def Test_for_loop_fails()
         e = {a: 0, b: ''}
       endfor
   END
-  CheckDefAndScriptFailure2(lines, 'E1018:', 'E46:', 3)
+  CheckDefAndScriptFailure(lines, ['E1018:', 'E46:'], 3)
 
   lines =<< trim END
       for nr: number in ['foo']
@@ -2908,7 +2942,7 @@ def Test_for_loop_fails()
         echo i
       endfor
   END
-  CheckDefExecAndScriptFailure2(lines, 'E1017:', 'E1041:')
+  CheckDefExecAndScriptFailure(lines, ['E1017:', 'E1041:'])
 
   lines =<< trim END
       var l = [0]
@@ -2916,7 +2950,7 @@ def Test_for_loop_fails()
         echo l[0]
       endfor
   END
-  CheckDefExecAndScriptFailure2(lines, 'E461:', 'E1017:')
+  CheckDefExecAndScriptFailure(lines, ['E461:', 'E1017:'])
 
   lines =<< trim END
       var d = {x: 0}
@@ -2924,12 +2958,12 @@ def Test_for_loop_fails()
         echo d.x
       endfor
   END
-  CheckDefExecAndScriptFailure2(lines, 'E461:', 'E1017:')
+  CheckDefExecAndScriptFailure(lines, ['E461:', 'E1017:'])
 enddef
 
 def Test_for_loop_script_var()
   # cannot use s:var in a :def function
-  CheckDefFailure(['for s:var in range(3)', 'echo 3'], 'E461:')
+  CheckDefFailure(['for s:var in range(3)', 'echo 3'], 'E1254:')
 
   # can use s:var in Vim9 script, with or without s:
   var lines =<< trim END

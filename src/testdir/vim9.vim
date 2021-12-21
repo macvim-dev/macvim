@@ -100,36 +100,46 @@ def CheckDefAndScriptSuccess(lines: list<string>)
   CheckScriptSuccess(['vim9script'] + lines)
 enddef
 
-" Check that a command fails with the same error when used in a :def function
-" and when used in Vim9 script.
-def CheckDefAndScriptFailure(lines: list<string>, error: string, lnum = -3)
-  CheckDefFailure(lines, error, lnum)
-  CheckScriptFailure(['vim9script'] + lines, error, lnum + 1)
-enddef
-
-" As CheckDefAndScriptFailure() but with two different expected errors.
-def CheckDefAndScriptFailure2(
-  	lines: list<string>,
-	errorDef: string,
-	errorScript: string,
-	lnum = -3)
+" Check that a command fails when used in a :def function and when used in
+" Vim9 script.
+" When "error" is a string, both with the same error.
+" When "error" is a list, the :def function fails with "error[0]" , the script
+" fails with "error[1]".
+def CheckDefAndScriptFailure(lines: list<string>, error: any, lnum = -3)
+  var errorDef: string
+  var errorScript: string
+  if type(error) == v:t_string
+    errorDef = error
+    errorScript = error
+  elseif type(error) == v:t_list && len(error) == 2
+    errorDef = error[0]
+    errorScript = error[1]
+  else
+    echoerr 'error argument must be a string or a list with two items'
+    return
+  endif
   CheckDefFailure(lines, errorDef, lnum)
   CheckScriptFailure(['vim9script'] + lines, errorScript, lnum + 1)
 enddef
 
-" Check that a command fails with the same error  when executed in a :def
-" function and when used in Vim9 script.
-def CheckDefExecAndScriptFailure(lines: list<string>, error: string, lnum = -3)
-  CheckDefExecFailure(lines, error, lnum)
-  CheckScriptFailure(['vim9script'] + lines, error, lnum + 1)
-enddef
-
-" As CheckDefExecAndScriptFailure() but with two different expected errors.
-def CheckDefExecAndScriptFailure2(
-  	lines: list<string>,
-	errorDef: string,
-	errorScript: string,
-	lnum = -3)
+" Check that a command fails when executed in a :def function and when used in
+" Vim9 script.
+" When "error" is a string, both with the same error.
+" When "error" is a list, the :def function fails with "error[0]" , the script
+" fails with "error[1]".
+def CheckDefExecAndScriptFailure(lines: list<string>, error: any, lnum = -3)
+  var errorDef: string
+  var errorScript: string
+  if type(error) == v:t_string
+    errorDef = error
+    errorScript = error
+  elseif type(error) == v:t_list && len(error) == 2
+    errorDef = error[0]
+    errorScript = error[1]
+  else
+    echoerr 'error argument must be a string or a list with two items'
+    return
+  endif
   CheckDefExecFailure(lines, errorDef, lnum)
   CheckScriptFailure(['vim9script'] + lines, errorScript, lnum + 1)
 enddef
@@ -175,32 +185,33 @@ def CheckTransLegacySuccess(lines: list<string>)
 		           	 ->substitute('\<LSTART\>', '{', 'g')
 		           	 ->substitute('\<LMIDDLE\>', '->', 'g')
 				 ->substitute('\<LEND\>', '}', 'g')
+				 ->substitute('\<TRUE\>', '1', 'g')
+				 ->substitute('\<FALSE\>', '0', 'g')
 		           	 ->substitute('#"', ' "', 'g'))
   CheckLegacySuccess(legacylines)
+enddef
+
+def Vim9Trans(lines: list<string>): list<string>
+  return lines->mapnew((_, v) =>
+	    v->substitute('\<VAR\>', 'var', 'g')
+	    ->substitute('\<LET ', '', 'g')
+	    ->substitute('\<LSTART\>', '(', 'g')
+	    ->substitute('\<LMIDDLE\>', ') =>', 'g')
+	    ->substitute(' *\<LEND\> *', '', 'g')
+	    ->substitute('\<TRUE\>', 'true', 'g')
+	    ->substitute('\<FALSE\>', 'false', 'g'))
 enddef
 
 " Execute "lines" in a :def function, translated as in
 " CheckLegacyAndVim9Success()
 def CheckTransDefSuccess(lines: list<string>)
-  var vim9lines = lines->mapnew((_, v) =>
-  				v->substitute('\<VAR\>', 'var', 'g')
-		           	 ->substitute('\<LET ', '', 'g')
-		           	 ->substitute('\<LSTART\>', '(', 'g')
-		           	 ->substitute('\<LMIDDLE\>', ') =>', 'g')
-				 ->substitute(' *\<LEND\> *', '', 'g'))
-  CheckDefSuccess(vim9lines)
+  CheckDefSuccess(Vim9Trans(lines))
 enddef
 
 " Execute "lines" in a Vim9 script, translated as in
 " CheckLegacyAndVim9Success()
 def CheckTransVim9Success(lines: list<string>)
-  var vim9lines = lines->mapnew((_, v) =>
-  				v->substitute('\<VAR\>', 'var', 'g')
-		           	 ->substitute('\<LET ', '', 'g')
-		           	 ->substitute('\<LSTART\>', '(', 'g')
-		           	 ->substitute('\<LMIDDLE\>', ') =>', 'g')
-				 ->substitute(' *\<LEND\> *', '', 'g'))
-  CheckScriptSuccess(['vim9script'] + vim9lines)
+  CheckScriptSuccess(['vim9script'] + Vim9Trans(lines))
 enddef
 
 " Execute "lines" in a legacy function, :def function and Vim9 script.
@@ -208,6 +219,8 @@ enddef
 " Use 'LET' for an assignment
 " Use ' #"' for a comment
 " Use LSTART arg LMIDDLE expr LEND for lambda
+" Use 'TRUE' for 1 in legacy, true in Vim9
+" Use 'FALSE' for 0 in legacy, false in Vim9
 def CheckLegacyAndVim9Success(lines: list<string>)
   CheckTransLegacySuccess(lines)
   CheckTransDefSuccess(lines)
