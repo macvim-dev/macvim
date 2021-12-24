@@ -854,6 +854,7 @@ typedef struct sign_attrs_S {
     int		sat_texthl;
     int		sat_linehl;
     int		sat_culhl;
+    int		sat_numhl;
     int		sat_priority;
 } sign_attrs_T;
 
@@ -4511,3 +4512,11 @@ typedef struct {
     int		sve_did_save;
     hashtab_T	sve_hashtab;
 } save_v_event_T;
+
+// Enum used by filter(), map() and mapnew()
+typedef enum {
+    FILTERMAP_FILTER,
+    FILTERMAP_MAP,
+    FILTERMAP_MAPNEW
+} filtermap_T;
+

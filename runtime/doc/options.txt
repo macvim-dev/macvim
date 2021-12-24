@@ -5733,8 +5733,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 	number.
 	When a long, wrapped line doesn't start with the first character, '-'
 	characters are put before the number.
-	See |hl-LineNr|  and |hl-CursorLineNr| for the highlighting used for
-	the number.
+	For highlighting see |hl-LineNr|, and |hl-CursorLineNr|, and the
+	|:sign-define| "numhl" argument.
 						*number_relativenumber*
 	The 'relativenumber' option changes the displayed number to be
 	relative to the cursor.  Together with 'number' there are these
@@ -9349,5 +9349,17 @@ A jump table for the options with a short description can be found at |Q_op|.
 	The number of milliseconds to wait for each character sent to the
 	screen.  When non-zero, characters are sent to the terminal one by
 	one.  For debugging purposes.
+
+					   *'xtermcodes'* *'noxtermcodes'*
+'xtermcodes'		boolean	(default on)
+			global
+	When detecting xterm patchlevel 141 or higher with the termresponse
+	mechanism and this option is set, Vim will request the actual termimal
+	key codes and number of colors from the terminal.  This takes care of
+	various configuration options of the terminal that cannot be obtained
+	from the termlib/terminfo entry, see |xterm-codes|.
+	A side effect may be that t_Co changes and Vim will redraw the
+	display.
+
 
  vim:tw=78:ts=8:noet:ft=help:norl:

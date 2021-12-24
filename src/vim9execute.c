@@ -1660,7 +1660,8 @@ handle_debug(isn_T *iptr, ectx_T *ectx)
     if (end_lnum > iptr->isn_lnum)
     {
 	ga_init2(&ga, sizeof(char_u *), 10);
-	for (lnum = iptr->isn_lnum; lnum < end_lnum; ++lnum)
+	for (lnum = iptr->isn_lnum; lnum < end_lnum
+				     && lnum <= ufunc->uf_lines.ga_len; ++lnum)
 	{
 	    char_u *p = ((char_u **)ufunc->uf_lines.ga_data)[lnum - 1];
 
@@ -3517,11 +3518,11 @@ exec_instructions(ectx_T *ectx)
 		    trycmd->tcd_frame_idx = ectx->ec_frame_idx;
 		    trycmd->tcd_stack_len = ectx->ec_stack.ga_len;
 		    trycmd->tcd_catch_idx =
-					  iptr->isn_arg.try.try_ref->try_catch;
+				       iptr->isn_arg.tryref.try_ref->try_catch;
 		    trycmd->tcd_finally_idx =
-					iptr->isn_arg.try.try_ref->try_finally;
+				     iptr->isn_arg.tryref.try_ref->try_finally;
 		    trycmd->tcd_endtry_idx =
-					 iptr->isn_arg.try.try_ref->try_endtry;
+				      iptr->isn_arg.tryref.try_ref->try_endtry;
 		}
 		break;
 
@@ -5670,7 +5671,7 @@ list_instructions(char *pfx, isn_T *instr, int instr_count, ufunc_T *ufunc)
 
 	    case ISN_TRY:
 		{
-		    try_T *try = &iptr->isn_arg.try;
+		    try_T *try = &iptr->isn_arg.tryref;
 
 		    if (try->try_ref->try_finally == 0)
 			smsg("%s%4d TRY catch -> %d, endtry -> %d",
