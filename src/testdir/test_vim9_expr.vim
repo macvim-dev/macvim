@@ -1821,8 +1821,21 @@ def Test_expr7_string()
 enddef
 
 def Test_expr7_vimvar()
+  v:errors = []
+  var errs: list<string> = v:errors
+  CheckDefFailure(['var errs: list<number> = v:errors'], 'E1012:')
+
   var old: list<string> = v:oldfiles
-  var compl: dict<any> = v:completed_item
+  CheckDefFailure(['var old: list<number> = v:oldfiles'], 'E1012:')
+
+  var compl: dict<string> = v:completed_item
+  CheckDefFailure(['var compl: dict<number> = v:completed_item'], 'E1012:')
+
+  var args: list<string> = v:argv
+  CheckDefFailure(['var args: list<number> = v:argv'], 'E1012:')
+
+  var colors: dict<string> = v:colornames
+  CheckDefFailure(['var colors: dict<number> = v:colornames'], 'E1012:')
 
   CheckDefFailure(["var old: list<number> = v:oldfiles"], 'E1012: Type mismatch; expected list<number> but got list<string>', 1)
   CheckScriptFailure(['vim9script', 'v:oldfiles = ["foo"]', "var old: list<number> = v:oldfiles"], 'E1012: Type mismatch; expected list<number> but got list<string>', 3)
@@ -2064,7 +2077,7 @@ def Test_expr7_lambda()
             )
       assert_equal([111, 222, 111], ll)
 
-      var dl = [{key: 0}, {key: 22}]->filter(( _, v) => v['key'] )
+      var dl = [{key: 0}, {key: 22}]->filter(( _, v) => !!v['key'] )
       assert_equal([{key: 22}], dl)
 
       dl = [{key: 12}, {['foo']: 34}]
@@ -2223,7 +2236,7 @@ def Test_expr7_new_lambda()
             )
       assert_equal([111, 222, 111], ll)
 
-      var dl = [{key: 0}, {key: 22}]->filter(( _, v) => v['key'] )
+      var dl = [{key: 0}, {key: 22}]->filter(( _, v) => !!v['key'] )
       assert_equal([{key: 22}], dl)
 
       dl = [{key: 12}, {['foo']: 34}]
@@ -2295,7 +2308,7 @@ def Test_expr7_lambda_vim9script()
   lines =<< trim END
       search('"', 'cW', 0, 0, () =>
 	synstack('.', col('.'))
-          ->map((_, v) => synIDattr(v, 'name'))->len())
+          ->mapnew((_, v) => synIDattr(v, 'name'))->len())
   END
   CheckDefAndScriptSuccess(lines)
 enddef

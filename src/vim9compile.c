@@ -812,11 +812,13 @@ func_needs_compiling(ufunc_T *ufunc, compiletype_T compile_type)
  * Compile a nested :def command.
  */
     static char_u *
-compile_nested_function(exarg_T *eap, cctx_T *cctx)
+compile_nested_function(exarg_T *eap, cctx_T *cctx, char_u **line_to_free)
 {
     int		is_global = *eap->arg == 'g' && eap->arg[1] == ':';
     char_u	*name_start = eap->arg;
     char_u	*name_end = to_name_end(eap->arg, TRUE);
+    int		off;
+    char_u	*func_name;
     char_u	*lambda_name;
     ufunc_T	*ufunc;
     int		r = FAIL;
@@ -866,7 +868,17 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx)
     lambda_name = vim_strsave(get_lambda_name());
     if (lambda_name == NULL)
 	return NULL;
-    ufunc = define_function(eap, lambda_name);
+
+    // This may free the current line, make a copy of the name.
+    off = is_global ? 2 : 0;
+    func_name = vim_strnsave(name_start + off, name_end - name_start - off);
+    if (func_name == NULL)
+    {
+	r = FAIL;
+	goto theend;
+    }
+
+    ufunc = define_function(eap, lambda_name, line_to_free);
 
     if (ufunc == NULL)
     {
@@ -911,21 +923,14 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx)
 
     if (is_global)
     {
-	char_u *func_name = vim_strnsave(name_start + 2,
-						    name_end - name_start - 2);
-
-	if (func_name == NULL)
-	    r = FAIL;
-	else
-	{
-	    r = generate_NEWFUNC(cctx, lambda_name, func_name);
-	    lambda_name = NULL;
-	}
+	r = generate_NEWFUNC(cctx, lambda_name, func_name);
+	func_name = NULL;
+	lambda_name = NULL;
     }
     else
     {
 	// Define a local variable for the function reference.
-	lvar_T	*lvar = reserve_local(cctx, name_start, name_end - name_start,
+	lvar_T	*lvar = reserve_local(cctx, func_name, name_end - name_start,
 						    TRUE, ufunc->uf_func_type);
 
 	if (lvar == NULL)
@@ -937,6 +942,7 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx)
 
 theend:
     vim_free(lambda_name);
+    vim_free(func_name);
     return r == FAIL ? NULL : (char_u *)"";
 }
 
@@ -1963,6 +1969,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
     {
 	int	instr_count = -1;
 	int	save_lnum;
+	int	skip_store = FALSE;
 
 	if (var_start[0] == '_' && !eval_isnamec(var_start[1]))
 	{
@@ -2186,7 +2193,12 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		    case VAR_VOID:
 		    case VAR_INSTR:
 		    case VAR_SPECIAL:  // cannot happen
-			generate_PUSHNR(cctx, 0);
+			// This is skipped for local variables, they are
+			// always initialized to zero.
+			if (lhs.lhs_dest == dest_local)
+			    skip_store = TRUE;
+			else
+			    generate_PUSHNR(cctx, 0);
 			break;
 		}
 	    }
@@ -2278,7 +2290,8 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		// type of "val" is used.
 		generate_SETTYPE(cctx, lhs.lhs_type);
 
-	    if (generate_store_lhs(cctx, &lhs, instr_count) == FAIL)
+	    if (!skip_store && generate_store_lhs(cctx, &lhs,
+						 instr_count, is_decl) == FAIL)
 	    {
 		cctx->ctx_lnum = save_lnum;
 		goto theend;
@@ -2854,7 +2867,7 @@ compile_def_function(
 	    case CMD_def:
 	    case CMD_function:
 		    ea.arg = p;
-		    line = compile_nested_function(&ea, &cctx);
+		    line = compile_nested_function(&ea, &cctx, &line_to_free);
 		    break;
 
 	    case CMD_return:

@@ -647,6 +647,21 @@ def Test_nested_function()
   END
   CheckDefFailure(lines, 'E1117:')
 
+  lines =<< trim END
+      vim9script
+      def Outer()
+        def Inner()
+          g:result = 'ok'
+        enddef
+        Inner()
+      enddef
+      Outer()
+      Inner()
+  END
+  CheckScriptFailure(lines, 'E117: Unknown function: Inner')
+  assert_equal('ok', g:result)
+  unlet g:result
+
   # nested function inside conditional
   lines =<< trim END
       vim9script
@@ -1652,6 +1667,26 @@ enddef
 def Test_error_in_nested_function()
   # Error in called function requires unwinding the call stack.
   assert_fails('FuncWithForwardCall()', 'E1096:', '', 1, 'FuncWithForwardCall')
+enddef
+
+def Test_nested_functin_with_nextcmd()
+  var lines =<< trim END
+      vim9script
+      # Define an outer function
+      def FirstFunction()
+        # Define an inner function
+        def SecondFunction()
+          # the function has a body, a double free is detected.
+          AAAAA
+
+         # enddef followed by | or } followed by # one or more characters
+         enddef|BBBB
+      enddef
+
+      # Compile all functions
+      defcompile
+  END
+  CheckScriptFailure(lines, 'E476: Invalid command: AAAAA')
 enddef
 
 def Test_return_type_wrong()

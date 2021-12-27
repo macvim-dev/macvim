@@ -416,6 +416,35 @@ func Test_argedit()
   bw! x
 endfunc
 
+" Test for the :argdedupe command
+func Test_argdedupe()
+  call Reset_arglist()
+  argdedupe
+  call assert_equal([], argv())
+  args a a a aa b b a b aa
+  argdedupe
+  call assert_equal(['a', 'aa', 'b'], argv())
+  args a b c
+  argdedupe
+  call assert_equal(['a', 'b', 'c'], argv())
+  args a
+  argdedupe
+  call assert_equal(['a'], argv())
+  args a A b B
+  argdedupe
+  if has('fname_case')
+    call assert_equal(['a', 'A', 'b', 'B'], argv())
+  else
+    call assert_equal(['a', 'b'], argv())
+  endif
+  args a b a c a b
+  last
+  argdedupe
+  next
+  call assert_equal('c', expand('%:t'))
+  %argd
+endfunc
+
 " Test for the :argdelete command
 func Test_argdelete()
   call Reset_arglist()
@@ -484,18 +513,14 @@ func Test_arglist_autocmd()
   new
   " redefine arglist; go to Xxx1
   next! Xxx1 Xxx2 Xxx3
-  " open window for all args; Reading Xxx2 will change the arglist and the
-  " third window will get Xxx1:
-  "   win 1: Xxx1
-  "   win 2: Xxx2
-  "   win 3: Xxx1
-  all
+  " open window for all args; Reading Xxx2 will try to change the arglist and
+  " that will fail
+  call assert_fails("all", "E1156:")
   call assert_equal('test file Xxx1', getline(1))
   wincmd w
-  wincmd w
-  call assert_equal('test file Xxx1', getline(1))
-  rewind
   call assert_equal('test file Xxx2', getline(1))
+  wincmd w
+  call assert_equal('test file Xxx3', getline(1))
 
   autocmd! BufReadPost Xxx2
   enew! | only
@@ -581,6 +606,13 @@ func Test_all_not_allowed_from_cmdwin()
   endtry
   call assert_equal('yes', caught)
   au! BufEnter
+endfunc
+
+func Test_clear_arglist_in_all()
+  n 0 00 000 0000 00000 000000
+  au WinNew 0 n 0
+  call assert_fails("all", "E1156")
+  au! *
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

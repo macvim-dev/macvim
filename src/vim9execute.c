@@ -397,7 +397,12 @@ call_dfunc(
 
     // Initialize local variables
     for (idx = 0; idx < dfunc->df_varcount; ++idx)
-	STACK_TV_BOT(STACK_FRAME_SIZE + idx)->v_type = VAR_UNKNOWN;
+    {
+	typval_T *tv = STACK_TV_BOT(STACK_FRAME_SIZE + idx);
+
+	tv->v_type = VAR_NUMBER;
+	tv->vval.v_number = 0;
+    }
     if (dfunc->df_has_closure)
     {
 	typval_T *tv = STACK_TV_BOT(STACK_FRAME_SIZE + dfunc->df_varcount);
@@ -3340,10 +3345,12 @@ exec_instructions(ectx_T *ectx)
 		else
 		{
 		    exarg_T ea;
+		    char_u  *line_to_free = NULL;
 
 		    CLEAR_FIELD(ea);
 		    ea.cmd = ea.arg = iptr->isn_arg.string;
-		    define_function(&ea, NULL);
+		    define_function(&ea, NULL, &line_to_free);
+		    vim_free(line_to_free);
 		}
 		break;
 
@@ -5002,8 +5009,13 @@ call_def_function(
 	dfunc_T	*dfunc = ((dfunc_T *)def_functions.ga_data)
 							 + ufunc->uf_dfunc_idx;
 
+	// Initialize variables to zero.  That avoids having to generate
+	// initializing instructions for "var nr: number", "var x: any", etc.
 	for (idx = 0; idx < dfunc->df_varcount; ++idx)
-	    STACK_TV_VAR(idx)->v_type = VAR_UNKNOWN;
+	{
+	    STACK_TV_VAR(idx)->v_type = VAR_NUMBER;
+	    STACK_TV_VAR(idx)->vval.v_number = 0;
+	}
 	ectx.ec_stack.ga_len += dfunc->df_varcount;
 	if (dfunc->df_has_closure)
 	{
