@@ -70,6 +70,15 @@ jobs:
           formula: gettext
           contents: lib/libintl.a,lib/libintl.dylib
 
+      # Set up, install, and cache libsodium library for encryption.
+
+      - name: Set up libsodium
+        if: matrix.publish
+        uses: ./.github/actions/universal-package
+        with:
+          formula: libsodium
+          contents: lib/libsodium.a,lib/libsodium.dylib
+
       # Set up remaining packages and tools
 
       - name: Install packages
