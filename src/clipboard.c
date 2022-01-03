@@ -571,7 +571,7 @@ clip_get_word_boundaries(Clipboard_T *cb, int row, int col)
 	return;
 
     p = ScreenLines + LineOffset[row];
-    // Correct for starting in the right halve of a double-wide char
+    // Correct for starting in the right half of a double-wide char
     if (enc_dbcs != 0)
 	col -= dbcs_screen_head_off(p, p + col);
     else if (enc_utf8 && p[col] == 0)
@@ -1034,7 +1034,7 @@ clip_copy_modeless_selection(int both UNUSED)
     if (row2 > clip_star.max_row)
 	row2 = clip_star.max_row;
 #endif
-    // correct starting point for being on right halve of double-wide char
+    // correct starting point for being on right half of double-wide char
     p = ScreenLines + LineOffset[row1];
     if (enc_dbcs != 0)
 	col1 -= (*mb_head_off)(p, p + col1);
@@ -1144,7 +1144,7 @@ clip_copy_modeless_selection(int both UNUSED)
 									bufp);
 			}
 		    }
-		    // Skip right halve of double-wide character.
+		    // Skip right half of double-wide character.
 		    if (ScreenLines[off + i + 1] == 0)
 			++i;
 		}
@@ -1309,12 +1309,12 @@ check_clipboard_option(void)
 	    p += 8;
 	    new_exclude_prog = vim_regcomp(p, RE_MAGIC);
 	    if (new_exclude_prog == NULL)
-		errmsg = e_invarg;
+		errmsg = e_invalid_argument;
 	    break;
 	}
 	else
 	{
-	    errmsg = e_invarg;
+	    errmsg = e_invalid_argument;
 	    break;
 	}
 	if (*p == ',')

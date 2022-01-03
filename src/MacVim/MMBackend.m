@@ -1533,7 +1533,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         if (!silent) {
             char_u *s = (char_u*)[name UTF8String];
             s = CONVERT_FROM_UTF8(s);
-	    semsg(_(e_noserver), s);
+	    semsg(_(e_no_registered_server_named_str), s);
             CONVERT_FROM_UTF8_FREE(s);
         }
         return NO;
@@ -1554,7 +1554,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
                 if (eval) {
                     *reply = [eval vimStringSave];
                 } else {
-                    *reply = vim_strsave((char_u*)_(e_invexprmsg));
+                    *reply = vim_strsave((char_u*)_(e_invalid_expression_received));
                 }
             }
 

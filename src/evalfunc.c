@@ -494,6 +494,7 @@ arg_filter_func(type_T *type, argcontext_T *context)
     if (type->tt_type == VAR_FUNC
 	    && !(type->tt_member->tt_type == VAR_BOOL
 		|| type->tt_member->tt_type == VAR_NUMBER
+		|| type->tt_member->tt_type == VAR_UNKNOWN
 		|| type->tt_member->tt_type == VAR_ANY))
     {
 	arg_type_mismatch(&t_func_bool, type, context->arg_idx + 1);
@@ -1201,7 +1202,6 @@ typedef struct
 #define FEARG_2    2	    // base is the second argument
 #define FEARG_3    3	    // base is the third argument
 #define FEARG_4    4	    // base is the fourth argument
-#define FEARG_LAST 9	    // base is the last argument
 
 #ifdef FEAT_FLOAT
 # define FLOAT_FUNC(name) name
@@ -2717,14 +2717,7 @@ call_internal_method(
     if (argcount + 1 > global_functions[fi].f_max_argc)
 	return FCERR_TOOMANY;
 
-    if (global_functions[fi].f_argtype == FEARG_LAST)
-    {
-	// base value goes last
-	for (i = 0; i < argcount; ++i)
-	    argv[i] = argvars[i];
-	argv[argcount] = *basetv;
-    }
-    else if (global_functions[fi].f_argtype == FEARG_2)
+    if (global_functions[fi].f_argtype == FEARG_2)
     {
 	// base value goes second
 	argv[0] = argvars[0];
@@ -2934,7 +2927,7 @@ f_call(typval_T *argvars, typval_T *rettv)
 
     if (argvars[1].v_type != VAR_LIST)
     {
-	emsg(_(e_listreq));
+	emsg(_(e_list_required));
 	return;
     }
     if (argvars[1].vval.v_list == NULL)
@@ -2956,7 +2949,7 @@ f_call(typval_T *argvars, typval_T *rettv)
     {
 	if (argvars[2].v_type != VAR_DICT)
 	{
-	    emsg(_(e_dictreq));
+	    emsg(_(e_dictionary_required));
 	    return;
 	}
 	selfdict = argvars[2].vval.v_dict;
@@ -3070,7 +3063,7 @@ get_optional_window(typval_T *argvars, int idx)
 	win = find_win_by_nr_or_id(&argvars[idx]);
 	if (win == NULL)
 	{
-	    emsg(_(e_invalwindow));
+	    emsg(_(e_invalid_window_number));
 	    return NULL;
 	}
     }
@@ -3187,7 +3180,7 @@ set_cursorpos(typval_T *argvars, typval_T *rettv, int charcol)
 
 	if (list2fpos(argvars, &pos, NULL, &curswant, charcol) == FAIL)
 	{
-	    emsg(_(e_invarg));
+	    emsg(_(e_invalid_argument));
 	    return;
 	}
 	line = pos.lnum;
@@ -3206,7 +3199,7 @@ set_cursorpos(typval_T *argvars, typval_T *rettv, int charcol)
     {
 	line = tv_get_lnum(argvars);
 	if (line < 0)
-	    semsg(_(e_invarg2), tv_get_string(&argvars[0]));
+	    semsg(_(e_invalid_argument_str), tv_get_string(&argvars[0]));
 	col = (long)tv_get_number_chk(&argvars[1], NULL);
 	if (charcol)
 	    col = buf_charidx_to_byteidx(curbuf, line, col) + 1;
@@ -3215,7 +3208,7 @@ set_cursorpos(typval_T *argvars, typval_T *rettv, int charcol)
     }
     else
     {
-	emsg(_(e_invarg));
+	emsg(_(e_invalid_argument));
 	return;
     }
     if (line < 0 || col < 0 || coladd < 0)
@@ -3264,7 +3257,7 @@ f_debugbreak(typval_T *argvars, typval_T *rettv)
 
     pid = (int)tv_get_number(&argvars[0]);
     if (pid == 0)
-	emsg(_(e_invarg));
+	emsg(_(e_invalid_argument));
     else
     {
 	HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, 0, pid);
@@ -3495,7 +3488,7 @@ f_eval(typval_T *argvars, typval_T *rettv)
 	rettv->vval.v_number = 0;
     }
     else if (*s != NUL)
-	semsg(_(e_trailing_arg), s);
+	semsg(_(e_trailing_characters_str), s);
 }
 
 /*
@@ -4093,7 +4086,7 @@ common_function(typval_T *argvars, typval_T *rettv, int is_funcref)
     }
     if (s == NULL)
     {
-	semsg(_(e_invarg2), "NULL");
+	semsg(_(e_invalid_argument_str), "NULL");
 	return;
     }
 
@@ -4108,7 +4101,7 @@ common_function(typval_T *argvars, typval_T *rettv, int is_funcref)
 
     if (s == NULL || *s == NUL || (use_string && VIM_ISDIGIT(*s))
 					 || (is_funcref && trans_name == NULL))
-	semsg(_(e_invarg2), use_string ? tv_get_string(&argvars[0]) : s);
+	semsg(_(e_invalid_argument_str), use_string ? tv_get_string(&argvars[0]) : s);
     // Don't check an autoload name for existence here.
     else if (trans_name != NULL && (is_funcref
 			 ? find_func(trans_name, is_global, NULL) == NULL
@@ -4401,7 +4394,7 @@ f_get(typval_T *argvars, typval_T *rettv)
 		}
 	    }
 	    else
-		semsg(_(e_invarg2), what);
+		semsg(_(e_invalid_argument_str), what);
 
 	    // When {what} == "dict" and pt->pt_dict == NULL, evaluate the
 	    // third argument
@@ -4410,7 +4403,7 @@ f_get(typval_T *argvars, typval_T *rettv)
 	}
     }
     else
-	semsg(_(e_listdictblobarg), "get()");
+	semsg(_(e_argument_of_str_must_be_list_dictionary_or_blob), "get()");
 
     if (tv == NULL)
     {
@@ -4846,7 +4839,6 @@ f_getregtype(typval_T *argvars, typval_T *rettv)
 		sprintf((char *)buf + 1, "%ld", reglen + 1);
 		break;
     }
-    rettv->v_type = VAR_STRING;
     rettv->vval.v_string = vim_strsave(buf);
 }
 
@@ -4887,7 +4879,7 @@ f_gettext(typval_T *argvars, typval_T *rettv)
 	    || argvars[0].vval.v_string == NULL
 	    || *argvars[0].vval.v_string == NUL)
     {
-	semsg(_(e_invarg2), tv_get_string(&argvars[0]));
+	semsg(_(e_invalid_argument_str), tv_get_string(&argvars[0]));
     }
     else
     {
@@ -5964,6 +5956,7 @@ f_has(typval_T *argvars, typval_T *rettv)
 		0
 #endif
 		},
+	{"vim9script", 1},
 	{"vimscript-1", 1},
 	{"vimscript-2", 1},
 	{"vimscript-3", 1},
@@ -6492,7 +6485,7 @@ f_index(typval_T *argvars, typval_T *rettv)
     }
     else if (argvars[0].v_type != VAR_LIST)
     {
-	emsg(_(e_listblobreq));
+	emsg(_(e_list_or_blob_required));
 	return;
     }
 
@@ -6604,7 +6597,7 @@ f_inputlist(typval_T *argvars, typval_T *rettv)
 
     if (argvars[0].v_type != VAR_LIST || argvars[0].vval.v_list == NULL)
     {
-	semsg(_(e_listarg), "inputlist()");
+	semsg(_(e_argument_of_str_must_be_list), "inputlist()");
 	return;
     }
 
@@ -6732,7 +6725,7 @@ f_islocked(typval_T *argvars, typval_T *rettv)
 	if (*end != NUL)
 	{
 	    semsg(_(lv.ll_name == lv.ll_name_end
-					   ? e_invarg2 : e_trailing_arg), end);
+					   ? e_invalid_argument_str : e_trailing_characters_str), end);
 	}
 	else
 	{
@@ -6752,7 +6745,7 @@ f_islocked(typval_T *argvars, typval_T *rettv)
 	    else if (lv.ll_range)
 		emsg(_("E786: Range not allowed"));
 	    else if (lv.ll_newkey != NULL)
-		semsg(_(e_dictkey), lv.ll_newkey);
+		semsg(_(e_key_not_present_in_dictionary), lv.ll_newkey);
 	    else if (lv.ll_list != NULL)
 		// List item.
 		rettv->vval.v_number = tv_islocked(&lv.ll_li->li_tv);
@@ -7345,7 +7338,7 @@ max_min(typval_T *argvars, typval_T *rettv, int domax)
 	}
     }
     else
-	semsg(_(e_listdictarg), domax ? "max()" : "min()");
+	semsg(_(e_argument_of_str_must_be_list_or_dictionary), domax ? "max()" : "min()");
 
     rettv->vval.v_number = n;
 }
@@ -7795,7 +7788,7 @@ f_rand(typval_T *argvars, typval_T *rettv)
     return;
 
 theend:
-    semsg(_(e_invarg2), tv_get_string(&argvars[0]));
+    semsg(_(e_invalid_argument_str), tv_get_string(&argvars[0]));
     rettv->v_type = VAR_NUMBER;
     rettv->vval.v_number = -1;
 }
@@ -8120,7 +8113,7 @@ get_search_arg(typval_T *varp, int *flagsp)
 			     }
 			  if (mask == 0)
 			  {
-			      semsg(_(e_invarg2), flags);
+			      semsg(_(e_invalid_argument_str), flags);
 			      dir = 0;
 			  }
 			  else
@@ -8210,7 +8203,7 @@ search_cmn(typval_T *argvars, pos_T *match_pos, int *flagsp)
     if (((flags & (SP_REPEAT | SP_RETCOUNT)) != 0)
 	    || ((flags & SP_NOMOVE) && (flags & SP_SETPCMARK)))
     {
-	semsg(_(e_invarg2), tv_get_string(&argvars[1]));
+	semsg(_(e_invalid_argument_str), tv_get_string(&argvars[1]));
 	goto theend;
     }
 
@@ -8554,7 +8547,7 @@ searchpair_cmn(typval_T *argvars, pos_T *match_pos)
     if ((flags & (SP_END | SP_SUBPAT)) != 0
 	    || ((flags & SP_NOMOVE) && (flags & SP_SETPCMARK)))
     {
-	semsg(_(e_invarg2), tv_get_string(&argvars[3]));
+	semsg(_(e_invalid_argument_str), tv_get_string(&argvars[3]));
 	goto theend;
     }
 
@@ -8576,7 +8569,7 @@ searchpair_cmn(typval_T *argvars, pos_T *match_pos)
 	    lnum_stop = (long)tv_get_number_chk(&argvars[5], NULL);
 	    if (lnum_stop < 0)
 	    {
-		semsg(_(e_invarg2), tv_get_string(&argvars[5]));
+		semsg(_(e_invalid_argument_str), tv_get_string(&argvars[5]));
 		goto theend;
 	    }
 #ifdef FEAT_RELTIME
@@ -8585,7 +8578,7 @@ searchpair_cmn(typval_T *argvars, pos_T *match_pos)
 		time_limit = (long)tv_get_number_chk(&argvars[6], NULL);
 		if (time_limit < 0)
 		{
-		    semsg(_(e_invarg2), tv_get_string(&argvars[6]));
+		    semsg(_(e_invalid_argument_str), tv_get_string(&argvars[6]));
 		    goto theend;
 		}
 	    }
@@ -8886,7 +8879,7 @@ set_position(typval_T *argvars, typval_T *rettv, int charpos)
 		    rettv->vval.v_number = 0;
 	    }
 	    else
-		emsg(_(e_invarg));
+		emsg(_(e_invalid_argument));
 	}
     }
 }
@@ -8911,7 +8904,7 @@ f_setcharsearch(typval_T *argvars, typval_T *rettv UNUSED)
 
     if (argvars[0].v_type != VAR_DICT)
     {
-	emsg(_(e_dictreq));
+	emsg(_(e_dictionary_required));
 	return;
     }
 
@@ -9001,7 +8994,7 @@ f_setfperm(typval_T *argvars, typval_T *rettv)
 	return;
     if (STRLEN(mode_str) != 9)
     {
-	semsg(_(e_invarg2), mode_str);
+	semsg(_(e_invalid_argument_str), mode_str);
 	return;
     }
 
@@ -9120,7 +9113,7 @@ f_setreg(typval_T *argvars, typval_T *rettv)
 
 	    if (ret == FAIL || *++stropt != NUL)
 	    {
-		semsg(_(e_invargval), "value");
+		semsg(_(e_invalid_value_for_argument_str), "value");
 		return;
 	    }
 	}
@@ -9255,7 +9248,7 @@ f_settagstack(typval_T *argvars, typval_T *rettv)
     // second argument: dict with items to set in the tag stack
     if (argvars[1].v_type != VAR_DICT)
     {
-	emsg(_(e_dictreq));
+	emsg(_(e_dictionary_required));
 	return;
     }
     d = argvars[1].vval.v_dict;
@@ -9283,7 +9276,7 @@ f_settagstack(typval_T *argvars, typval_T *rettv)
     }
     else
     {
-	emsg(_(e_stringreq));
+	emsg(_(e_string_required));
 	return;
     }
 
@@ -9399,7 +9392,7 @@ f_spellbadword(typval_T *argvars UNUSED, typval_T *rettv)
 
     if (*curwin->w_s->b_p_spl == NUL)
     {
-	emsg(_(e_no_spell));
+	emsg(_(e_spell_checking_is_not_possible));
 	curwin->w_p_spell = wo_spell_save;
 	return;
     }
@@ -9489,7 +9482,7 @@ f_spellsuggest(typval_T *argvars UNUSED, typval_T *rettv)
 
     if (*curwin->w_s->b_p_spl == NUL)
     {
-	emsg(_(e_no_spell));
+	emsg(_(e_spell_checking_is_not_possible));
 	curwin->w_p_spell = wo_spell_save;
 	return;
     }

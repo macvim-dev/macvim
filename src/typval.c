@@ -320,7 +320,7 @@ tv_get_float_chk(typval_T *varp, int *error)
 	    emsg(_("E894: Using a Dictionary as a Float"));
 	    break;
 	case VAR_BOOL:
-	    emsg(_("E362: Using a boolean value as a Float"));
+	    emsg(_(e_using_boolean_valud_as_float));
 	    break;
 	case VAR_SPECIAL:
 	    emsg(_("E907: Using a special value as a Float"));
@@ -939,7 +939,7 @@ tv_get_string_buf_chk_strict(typval_T *varp, char_u *buf, int strict)
 #ifdef FEAT_FLOAT
 	    if (strict)
 	    {
-		emsg(_(e_float_as_string));
+		emsg(_(e_using_float_as_string));
 		break;
 	    }
 	    vim_snprintf((char *)buf, NUMBUFLEN, "%g", varp->vval.v_float);
@@ -1388,7 +1388,7 @@ typval_compare_blob(
 	if (tv1->v_type != tv2->v_type)
 	    emsg(_("E977: Can only compare Blob with Blob"));
 	else
-	    emsg(_(e_invalblob));
+	    emsg(_(e_invalid_operation_for_blob));
 	return FAIL;
     }
     else
@@ -2249,9 +2249,10 @@ tv_get_lnum(typval_T *argvars)
     if (lnum <= 0 && argvars[0].v_type != VAR_NUMBER)
     {
 	int	fnum;
-	pos_T	*fp = var2fpos(&argvars[0], TRUE, &fnum, FALSE);
+	pos_T	*fp;
 
 	// no valid number, try using arg like line()
+	fp = var2fpos(&argvars[0], TRUE, &fnum, FALSE);
 	if (fp != NULL)
 	    lnum = fp->lnum;
     }
@@ -2269,6 +2270,7 @@ tv_get_lnum_buf(typval_T *argvars, buf_T *buf)
     if (argvars[0].v_type == VAR_STRING
 	    && argvars[0].vval.v_string != NULL
 	    && argvars[0].vval.v_string[0] == '$'
+	    && argvars[0].vval.v_string[1] == NUL
 	    && buf != NULL)
 	return buf->b_ml.ml_line_count;
     return (linenr_T)tv_get_number_chk(&argvars[0], NULL);

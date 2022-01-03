@@ -59,9 +59,6 @@ static char_u *menu_translate_tab_and_shift(char_u *arg_start);
 // The character for each menu mode
 static char *menu_mode_chars[] = {"n", "v", "s", "o", "i", "c", "tl", "t"};
 
-static char_u e_notsubmenu[] = N_("E327: Part of menu-item path is not sub-menu");
-static char_u e_nomenu[] = N_("E329: No menu \"%s\"");
-
 #ifdef FEAT_TOOLBAR
 static const char *toolbar_names[] =
 {
@@ -273,7 +270,7 @@ ex_menu(
     menu_path = arg;
     if (*menu_path == '.')
     {
-	semsg(_(e_invarg2), menu_path);
+	semsg(_(e_invalid_argument_str), menu_path);
 	goto theend;
     }
 
@@ -289,7 +286,7 @@ ex_menu(
     }
     else if (*map_to != NUL && (unmenu || enable != MAYBE))
     {
-	semsg(_(e_trailing_arg), map_to);
+	semsg(_(e_trailing_characters_str), map_to);
 	goto theend;
     }
 #if defined(FEAT_GUI) && !(defined(FEAT_GUI_GTK) || defined(FEAT_GUI_PHOTON) \
@@ -534,7 +531,7 @@ add_menu_path(
 		if (*next_name == NUL && menu->children != NULL)
 		{
 		    if (!sys_menu)
-			emsg(_("E330: Menu path must not lead to a sub-menu"));
+			emsg(_(e_menu_path_must_not_loead_to_sub_menu));
 		    goto erret;
 		}
 		if (*next_name != NUL && menu->children == NULL
@@ -544,7 +541,7 @@ add_menu_path(
 			)
 		{
 		    if (!sys_menu)
-			emsg(_(e_notsubmenu));
+			emsg(_(e_part_of_menu_item_path_is_not_sub_menu));
 		    goto erret;
 		}
 		break;
@@ -573,17 +570,17 @@ add_menu_path(
 	{
 	    if (*next_name == NUL && parent == NULL)
 	    {
-		emsg(_("E331: Must not add menu items directly to menu bar"));
+		emsg(_(e_must_not_add_menu_items_directly_to_menu_bar));
 		goto erret;
 	    }
 
 	    if (menu_is_separator(dname) && *next_name != NUL)
 	    {
-		emsg(_("E332: Separator cannot be part of a menu path"));
+		emsg(_(e_separator_cannot_be_part_of_menu_path));
 		goto erret;
 	    }
 
-	    // Not already there, so lets add it
+	    // Not already there, so let's add it
 	    menu = ALLOC_CLEAR_ONE(vimmenu_T);
 	    if (menu == NULL)
 		goto erret;
@@ -872,7 +869,7 @@ menu_nable_recurse(
 	    {
 		if (menu->children == NULL)
 		{
-		    emsg(_(e_notsubmenu));
+		    emsg(_(e_part_of_menu_item_path_is_not_sub_menu));
 		    return FAIL;
 		}
 		if (menu_nable_recurse(menu->children, p, modes, enable)
@@ -897,7 +894,7 @@ menu_nable_recurse(
     }
     if (*name != NUL && *name != '*' && menu == NULL)
     {
-	semsg(_(e_nomenu), name);
+	semsg(_(e_no_menu_str), name);
 	return FAIL;
     }
 
@@ -938,7 +935,7 @@ remove_menu(
 	    if (*p != NUL && menu->children == NULL)
 	    {
 		if (!silent)
-		    emsg(_(e_notsubmenu));
+		    emsg(_(e_part_of_menu_item_path_is_not_sub_menu));
 		return FAIL;
 	    }
 	    if ((menu->modes & modes) != 0x0)
@@ -960,7 +957,7 @@ remove_menu(
 	    else if (*name != NUL)
 	    {
 		if (!silent)
-		    emsg(_(e_menuothermode));
+		    emsg(_(e_menu_only_exists_in_another_mode));
 		return FAIL;
 	    }
 
@@ -990,7 +987,7 @@ remove_menu(
 	if (menu == NULL)
 	{
 	    if (!silent)
-		semsg(_(e_nomenu), name);
+		semsg(_(e_no_menu_str), name);
 	    return FAIL;
 	}
 
@@ -998,7 +995,7 @@ remove_menu(
 	// Recalculate modes for menu based on the new updated children
 	menu->modes &= ~modes;
 #if defined(FEAT_GUI_MSWIN) & defined(FEAT_TEAROFF)
-	if ((s_tearoffs) && (menu->children != NULL)) // there's a tear bar..
+	if ((s_tearoffs) && (menu->children != NULL)) // there's a tear bar.
 	    child = menu->children->next; // don't count tearoff bar
 	else
 #endif
@@ -1019,7 +1016,7 @@ remove_menu(
 	{
 	    // The menu item is no longer valid in ANY mode, so delete it
 #if defined(FEAT_GUI_MSWIN) & defined(FEAT_TEAROFF)
-	    if (s_tearoffs && menu->children != NULL) // there's a tear bar..
+	    if (s_tearoffs && menu->children != NULL) // there's a tear bar.
 		free_menu(&menu->children);
 #endif
 	    *menup = menu;
@@ -1131,13 +1128,13 @@ show_menus(char_u *path_name, int modes)
 		// Found menu
 		if (*p != NUL && menu->children == NULL)
 		{
-		    emsg(_(e_notsubmenu));
+		    emsg(_(e_part_of_menu_item_path_is_not_sub_menu));
 		    vim_free(path_name);
 		    return FAIL;
 		}
 		else if ((menu->modes & modes) == 0x0)
 		{
-		    emsg(_(e_menuothermode));
+		    emsg(_(e_menu_only_exists_in_another_mode));
 		    vim_free(path_name);
 		    return FAIL;
 		}
@@ -1147,7 +1144,7 @@ show_menus(char_u *path_name, int modes)
 	}
 	if (menu == NULL)
 	{
-	    semsg(_(e_nomenu), name);
+	    semsg(_(e_no_menu_str), name);
 	    vim_free(path_name);
 	    return FAIL;
 	}
@@ -2449,7 +2446,7 @@ execute_menu(exarg_T *eap, vimmenu_T *menu, int mode_idx)
 	}
 	else
 #endif // FEAT_GUI_MACVIM
-	    semsg(_("E335: Menu not defined for %s mode"), mode);
+	semsg(_(e_menu_not_defined_for_str_mode), mode);
     }
 }
 
@@ -2483,13 +2480,13 @@ menu_getbyname(char_u *name_arg)
 	    {
 		if (*p == NUL && menu->children != NULL)
 		{
-		    emsg(_("E333: Menu path must lead to a menu item"));
+		    emsg(_(e_menu_path_must_lead_to_menu_item));
 		    gave_emsg = TRUE;
 		    menu = NULL;
 		}
 		else if (*p != NUL && menu->children == NULL)
 		{
-		    emsg(_(e_notsubmenu));
+		    emsg(_(e_part_of_menu_item_path_is_not_sub_menu));
 		    menu = NULL;
 		}
 		break;
@@ -2505,7 +2502,7 @@ menu_getbyname(char_u *name_arg)
     if (menu == NULL)
     {
 	if (!gave_emsg)
-	    semsg(_("E334: Menu not found: %s"), name_arg);
+	    semsg(_(e_menu_not_found_str), name_arg);
 	return NULL;
     }
 
@@ -2534,7 +2531,7 @@ ex_emenu(exarg_T *eap)
 	    case 't': mode_idx = MENU_INDEX_TERMINAL; break;
 	    case 'i': mode_idx = MENU_INDEX_INSERT; break;
 	    case 'c': mode_idx = MENU_INDEX_CMDLINE; break;
-	    default: semsg(_(e_invarg2), arg);
+	    default: semsg(_(e_invalid_argument_str), arg);
 		     return;
 	}
 	arg = skipwhite(arg + 2);
@@ -2636,9 +2633,9 @@ gui_find_menu(char_u *path_name)
 		{
 		    // found a menu item instead of a sub-menu
 		    if (*p == NUL)
-			emsg(_("E336: Menu path must lead to a sub-menu"));
+			emsg(_(e_menu_path_must_lead_to_sub_menu));
 		    else
-			emsg(_(e_notsubmenu));
+			emsg(_(e_part_of_menu_item_path_is_not_sub_menu));
 		    menu = NULL;
 		    goto theend;
 		}
@@ -2657,7 +2654,7 @@ gui_find_menu(char_u *path_name)
     }
 
     if (menu == NULL)
-	emsg(_("E337: Menu not found - check menu names"));
+	emsg(_(e_menu_not_found_check_menu_names));
 theend:
     vim_free(saved_name);
     return menu;
@@ -2725,7 +2722,7 @@ ex_menutranslate(exarg_T *eap UNUSED)
 	if (arg == to || ends_excmd2(eap->arg, from)
 		      || ends_excmd2(eap->arg, to)
 		      || !ends_excmd2(eap->arg, skipwhite(arg)))
-	    emsg(_(e_invarg));
+	    emsg(_(e_invalid_argument));
 	else
 	{
 	    if (ga_grow(&menutrans_ga, 1) == OK)
@@ -2884,7 +2881,7 @@ menu_for_path(char_u *menu_path)
 		}
 		else if (*p != NUL && menu->children == NULL)
 		{
-		    emsg(_(e_notsubmenu));
+		    emsg(_(e_part_of_menu_item_path_is_not_sub_menu));
 		    menu = NULL;
 		}
 		break;
@@ -2965,7 +2962,7 @@ ex_macmenu(exarg_T *eap)
     menu_path = arg;
     if (*menu_path == '.')
     {
-	semsg(_(e_invarg2), menu_path);
+	semsg(_(e_invalid_argument_str), menu_path);
 	return;
     }
 
@@ -3067,7 +3064,7 @@ ex_macmenu(exarg_T *eap)
 	    }
 	    else
 	    {
-		semsg(_(e_invarg2), arg);
+		semsg(_(e_invalid_argument_str), arg);
 		error = TRUE;
 		break;
 	    }
@@ -3076,7 +3073,7 @@ ex_macmenu(exarg_T *eap)
 	{
 	    if (arg[0] != '<')
 	    {
-		semsg(_(e_invarg2), arg);
+		semsg(_(e_invalid_argument_str), arg);
 		error = TRUE;
 		break;
 	    }
@@ -3144,14 +3141,14 @@ ex_macmenu(exarg_T *eap)
 
 	    if (mac_key == 0)
 	    {
-		semsg(_(e_invarg2), arg);
+		semsg(_(e_invalid_argument_str), arg);
 		error = TRUE;
 		break;
 	    }
 	}
 	else
 	{
-	    semsg(_(e_invarg2), key_start);
+	    semsg(_(e_invalid_argument_str), key_start);
 	    error = TRUE;
 	    break;
 	}

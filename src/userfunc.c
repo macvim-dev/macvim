@@ -166,6 +166,35 @@ one_function_arg(
 }
 
 /*
+ * Handle line continuation in function arguments or body.
+ * Get a next line, store it in "eap" if appropriate and use "line_to_free" to
+ * handle freeing the line later.
+ */
+    static char_u *
+get_function_line(
+	exarg_T		*eap,
+	char_u		**line_to_free,
+	int		indent,
+	getline_opt_T	getline_options)
+{
+    char_u *theline;
+
+    if (eap->getline == NULL)
+	theline = getcmdline(':', 0L, indent, 0);
+    else
+	theline = eap->getline(':', eap->cookie, indent, getline_options);
+    if (theline != NULL)
+    {
+	if (*eap->cmdlinep == *line_to_free)
+	    *eap->cmdlinep = theline;
+	vim_free(*line_to_free);
+	*line_to_free = theline;
+    }
+
+    return theline;
+}
+
+/*
  * Get function arguments.
  * "argp" should point to just after the "(", possibly to white space.
  * "argp" is advanced just after "endchar".
@@ -212,14 +241,12 @@ get_function_args(
 	while (eap != NULL && eap->getline != NULL
 			 && (*p == NUL || (VIM_ISWHITE(*whitep) && *p == '#')))
 	{
-	    char_u *theline;
-
 	    // End of the line, get the next one.
-	    theline = eap->getline(':', eap->cookie, 0, TRUE);
+	    char_u *theline = get_function_line(eap, line_to_free, 0,
+							  GETLINE_CONCAT_CONT);
+
 	    if (theline == NULL)
 		break;
-	    vim_free(*line_to_free);
-	    *line_to_free = theline;
 	    whitep = (char_u *)" ";
 	    p = skipwhite(theline);
 	}
@@ -227,7 +254,7 @@ get_function_args(
 	if (mustend && *p != endchar)
 	{
 	    if (!skip)
-		semsg(_(e_invarg2), *argp);
+		semsg(_(e_invalid_argument_str), *argp);
 	    goto err_ret;
 	}
 	if (*p == endchar)
@@ -718,15 +745,8 @@ get_function_body(
 	}
 	else
 	{
-	    if (eap->getline == NULL)
-		theline = getcmdline(':', 0L, indent, getline_options);
-	    else
-		theline = eap->getline(':', eap->cookie, indent,
+	    theline = get_function_line(eap, line_to_free, indent,
 							      getline_options);
-	    if (*eap->cmdlinep == *line_to_free)
-		*eap->cmdlinep = theline;
-	    vim_free(*line_to_free);
-	    *line_to_free = theline;
 	}
 	if (KeyTyped)
 	    lines_left = Rows - 1;
@@ -825,7 +845,7 @@ get_function_body(
 			SOURCING_LNUM = sourcing_lnum_top
 							+ newlines->ga_len + 1;
 			if (eap->cmdidx == CMD_def)
-			    semsg(_(e_text_found_after_enddef_str), p);
+			    semsg(_(e_text_found_after_str_str), "enddef", p);
 			else
 			    give_warning2((char_u *)
 				   _("W22: Text found after :endfunction: %s"),
@@ -1035,7 +1055,7 @@ get_function_body(
 
 	if (heredoc_concat_len > 0)
 	{
-	    // For a :def function "python << EOF" concatenats all the lines,
+	    // For a :def function "python << EOF" concatenates all the lines,
 	    // to be used for the instruction later.
 	    ga_concat(&heredoc_ga, theline);
 	    ga_concat(&heredoc_ga, (char_u *)"\n");
@@ -1107,7 +1127,7 @@ lambda_function_body(
 
     if (!ends_excmd2(*arg, skipwhite(*arg + 1)))
     {
-	semsg(_(e_trailing_arg), *arg + 1);
+	semsg(_(e_trailing_characters_str), *arg + 1);
 	return FAIL;
     }
 
@@ -1127,7 +1147,8 @@ lambda_function_body(
     ga_init2(&newlines, (int)sizeof(char_u *), 10);
     if (get_function_body(&eap, &newlines, NULL, &line_to_free) == FAIL)
     {
-	vim_free(cmdline);
+	if (cmdline != line_to_free)
+	    vim_free(cmdline);
 	goto erret;
     }
 
@@ -1394,7 +1415,7 @@ get_lambda_tv(
 	*arg = skipwhite_and_linebreak(*arg, evalarg);
 	if (**arg != '}')
 	{
-	    semsg(_("E451: Expected }: %s"), *arg);
+	    semsg(_(e_expected_right_curly_str), *arg);
 	    goto errret;
 	}
 	++*arg;
@@ -2339,7 +2360,7 @@ copy_func(char_u *lambda, char_u *global, ectx_T *ectx)
     if (fp != NULL)
     {
 	// TODO: handle ! to overwrite
-	semsg(_(e_function_str_already_exists_add_excl_to_replace), global);
+	semsg(_(e_function_str_already_exists_add_bang_to_replace), global);
 	return FAIL;
     }
 
@@ -3247,10 +3268,10 @@ user_func_error(int error, char_u *name, funcexe_T *funcexe)
 		break;
 	case FCERR_NOTMETHOD:
 		emsg_funcname(
-			N_("E276: Cannot use function as a method: %s"), name);
+			N_(e_cannot_use_function_as_method_str), name);
 		break;
 	case FCERR_DELETED:
-		emsg_funcname(e_func_deleted, name);
+		emsg_funcname(e_function_was_deleted_str, name);
 		break;
 	case FCERR_TOOMANY:
 		emsg_funcname((char *)e_too_many_arguments_for_function_str,
@@ -3305,6 +3326,7 @@ call_func(
     int		argv_base = 0;
     partial_T	*partial = funcexe->fe_partial;
     type_T	check_type;
+    type_T	*check_type_args[MAX_FUNC_ARGS];
 
     // Initialize rettv so that it is safe for caller to invoke clear_tv(rettv)
     // even when call_func() returns FAIL.
@@ -3356,6 +3378,11 @@ call_func(
 		// make a copy of the type with the correction.
 		check_type = *funcexe->fe_check_type;
 		funcexe->fe_check_type = &check_type;
+		check_type.tt_args = check_type_args;
+		CLEAR_FIELD(check_type_args);
+		for (i = 0; i < check_type.tt_argcount; ++i)
+		    check_type_args[i + partial->pt_argc] =
+							 check_type.tt_args[i];
 		check_type.tt_argcount += partial->pt_argc;
 		check_type.tt_min_argcount += partial->pt_argc;
 	    }
@@ -3665,7 +3692,7 @@ trans_function_name(
 	if (!aborting())
 	{
 	    if (end != NULL)
-		semsg(_(e_invarg2), start);
+		semsg(_(e_invalid_argument_str), start);
 	}
 	else
 	    *pp = find_name_end(start, NULL, NULL, FNE_INCL_BR);
@@ -3974,7 +4001,7 @@ list_functions(regmatch_T *regmatch)
 		list_func_head(fp, FALSE);
 		if (changed != func_hashtab.ht_changed)
 		{
-		    emsg(_("E454: function list was modified"));
+		    emsg(_(e_function_list_was_modified));
 		    return;
 		}
 	    }
@@ -4100,7 +4127,7 @@ define_function(exarg_T *eap, char_u *name_arg, char_u **line_to_free)
 	    if (!aborting())
 	    {
 		if (!eap->skip && fudi.fd_newkey != NULL)
-		    semsg(_(e_dictkey), fudi.fd_newkey);
+		    semsg(_(e_key_not_present_in_dictionary), fudi.fd_newkey);
 		vim_free(fudi.fd_newkey);
 		return NULL;
 	    }
@@ -4121,7 +4148,7 @@ define_function(exarg_T *eap, char_u *name_arg, char_u **line_to_free)
     {
 	if (!ends_excmd(*skipwhite(p)))
 	{
-	    semsg(_(e_trailing_arg), p);
+	    semsg(_(e_trailing_characters_str), p);
 	    goto ret_free;
 	}
 	set_nextcmd(eap, p);
@@ -4197,7 +4224,7 @@ define_function(exarg_T *eap, char_u *name_arg, char_u **line_to_free)
     // In Vim9 script only global functions can be redefined.
     if (vim9script && eap->forceit && !is_global)
     {
-	emsg(_(e_nobang));
+	emsg(_(e_no_bang_allowed));
 	goto ret_free;
     }
 
@@ -4231,7 +4258,7 @@ define_function(exarg_T *eap, char_u *name_arg, char_u **line_to_free)
 					: eval_isnamec(name_base[i])); ++i)
 		;
 	    if (name_base[i] != NUL)
-		emsg_funcname((char *)e_invarg2, arg);
+		emsg_funcname((char *)e_invalid_argument_str, arg);
 
 	    // In Vim9 script a function cannot have the same name as a
 	    // variable.
@@ -4337,7 +4364,7 @@ define_function(exarg_T *eap, char_u *name_arg, char_u **line_to_free)
 				     && (vim9script || eap->cmdidx == CMD_def))
 	    && !eap->skip
 	    && !did_emsg)
-	semsg(_(e_trailing_arg), p);
+	semsg(_(e_trailing_characters_str), p);
 
     /*
      * Read the body of the function, until "}", ":endfunction" or ":enddef" is
@@ -4353,7 +4380,7 @@ define_function(exarg_T *eap, char_u *name_arg, char_u **line_to_free)
 	    if (fudi.fd_dict != NULL && fudi.fd_newkey == NULL)
 		emsg(_(e_funcdict));
 	    else if (name != NULL && find_func(name, is_global, NULL) != NULL)
-		emsg_funcname(e_function_str_already_exists_add_excl_to_replace, name);
+		emsg_funcname(e_function_str_already_exists_add_bang_to_replace, name);
 	}
 
 	if (!eap->skip && did_emsg)
@@ -4411,7 +4438,7 @@ define_function(exarg_T *eap, char_u *name_arg, char_u **line_to_free)
 		if (vim9script)
 		    emsg_funcname(e_name_already_defined_str, name);
 		else
-		    emsg_funcname(e_function_str_already_exists_add_excl_to_replace, name);
+		    emsg_funcname(e_function_str_already_exists_add_bang_to_replace, name);
 		goto erret;
 	    }
 	    if (fp->uf_calls > 0)
@@ -4872,7 +4899,7 @@ ex_delfunction(exarg_T *eap)
     if (!ends_excmd(*skipwhite(p)))
     {
 	vim_free(name);
-	semsg(_(e_trailing_arg), p);
+	semsg(_(e_trailing_characters_str), p);
 	return;
     }
     set_nextcmd(eap, p);
@@ -4882,7 +4909,7 @@ ex_delfunction(exarg_T *eap)
     if (numbered_function(name) && fudi.fd_dict == NULL)
     {
 	if (!eap->skip)
-	    semsg(_(e_invarg2), eap->arg);
+	    semsg(_(e_invalid_argument_str), eap->arg);
 	vim_free(name);
 	return;
     }
@@ -5118,7 +5145,7 @@ ex_call(exarg_T *eap)
     if (fudi.fd_newkey != NULL)
     {
 	// Still need to give an error message for missing key.
-	semsg(_(e_dictkey), fudi.fd_newkey);
+	semsg(_(e_key_not_present_in_dictionary), fudi.fd_newkey);
 	vim_free(fudi.fd_newkey);
     }
     if (tofree == NULL)
@@ -5235,7 +5262,7 @@ ex_call(exarg_T *eap)
 	    if (!failed && !aborting())
 	    {
 		emsg_severe = TRUE;
-		semsg(_(e_trailing_arg), arg);
+		semsg(_(e_trailing_characters_str), arg);
 	    }
 	}
 	else

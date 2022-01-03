@@ -879,10 +879,17 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx, char_u **line_to_free)
     }
 
     ufunc = define_function(eap, lambda_name, line_to_free);
-
     if (ufunc == NULL)
     {
 	r = eap->skip ? OK : FAIL;
+	goto theend;
+    }
+    if (eap->nextcmd != NULL)
+    {
+	semsg(_(e_text_found_after_str_str),
+	      eap->cmdidx == CMD_def ? "enddef" : "endfunction", eap->nextcmd);
+	r = FAIL;
+	func_ptr_unref(ufunc);
 	goto theend;
     }
 
@@ -1102,7 +1109,7 @@ get_var_dest(
 	*dest = dest_option;
 	if (cmdidx == CMD_final || cmdidx == CMD_const)
 	{
-	    emsg(_(e_const_option));
+	    emsg(_(e_cannot_lock_an_option));
 	    return FAIL;
 	}
 	p = name;
@@ -2386,6 +2393,34 @@ may_compile_assignment(exarg_T *eap, char_u **line, cctx_T *cctx)
     return NOTDONE;
 }
 
+/*
+ * Check if arguments of "ufunc" shadow variables in "cctx".
+ * Return OK or FAIL.
+ */
+    static int
+check_args_shadowing(ufunc_T *ufunc, cctx_T *cctx)
+{
+    int	    i;
+    char_u  *arg;
+    int	    r = OK;
+
+    // Make sure arguments are not found when compiling a second time.
+    ufunc->uf_args_visible = 0;
+
+    // Check for arguments shadowing variables from the context.
+    for (i = 0; i < ufunc->uf_args.ga_len; ++i)
+    {
+	arg = ((char_u **)(ufunc->uf_args.ga_data))[i];
+	if (check_defined(arg, STRLEN(arg), cctx, TRUE) == FAIL)
+	{
+	    r = FAIL;
+	    break;
+	}
+    }
+    ufunc->uf_args_visible = ufunc->uf_args.ga_len;
+    return r;
+}
+
 
 /*
  * Add a function to the list of :def functions.
@@ -2518,6 +2553,9 @@ compile_def_function(
 	estack_push_ufunc(ufunc, 1);
     estack_compiling = TRUE;
 
+    if (check_args_shadowing(ufunc, &cctx) == FAIL)
+	goto erret;
+
     if (ufunc->uf_def_args.ga_len > 0)
     {
 	int	count = ufunc->uf_def_args.ga_len;
@@ -2601,7 +2639,7 @@ compile_def_function(
 		&& !(*line == '#' && (line == cctx.ctx_line_start
 						    || VIM_ISWHITE(line[-1]))))
 	{
-	    semsg(_(e_trailing_arg), line);
+	    semsg(_(e_trailing_characters_str), line);
 	    goto erret;
 	}
 	else if (line != NULL && vim9_bad_comment(skipwhite(line)))
@@ -3071,11 +3109,11 @@ nextline:
     if (cctx.ctx_scope != NULL)
     {
 	if (cctx.ctx_scope->se_type == IF_SCOPE)
-	    emsg(_(e_endif));
+	    emsg(_(e_missing_endif));
 	else if (cctx.ctx_scope->se_type == WHILE_SCOPE)
-	    emsg(_(e_endwhile));
+	    emsg(_(e_missing_endwhile));
 	else if (cctx.ctx_scope->se_type == FOR_SCOPE)
-	    emsg(_(e_endfor));
+	    emsg(_(e_missing_endfor));
 	else
 	    emsg(_(e_missing_rcurly));
 	goto erret;

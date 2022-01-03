@@ -50,8 +50,7 @@
  * On some systems scrolling needs to be done right away instead of in the
  * main loop.
  */
-#if defined(FEAT_GUI_MSWIN) || defined(FEAT_GUI_GTK) \
-	|| defined(FEAT_GUI_MACVIM)
+#if defined(FEAT_GUI_MSWIN) || defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MACVIM)
 # define USE_ON_FLY_SCROLL
 #endif
 

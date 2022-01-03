@@ -185,7 +185,7 @@ jobs:
 
           sed -i.bak -f ci/config.mk.sed -f ci/config.mk.clang.sed src/auto/config.mk
           if clang --version | grep -qs '^Apple clang version \(1[3-9]\|[2-9]\d\)\.'; then
-            sed -i.bak -f ci/config.mk.clang-13.sed src/auto/config.mk
+            sed -i.bak -f ci/config.mk.clang-12.sed src/auto/config.mk
           fi
 
       - name: Modify configure result

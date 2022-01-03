@@ -1009,7 +1009,7 @@ gui_mch_get_font(char_u *name, int giveErrorIfMissing)
         return font;
 
     if (giveErrorIfMissing)
-        semsg(_(e_font), name);
+        semsg(_(e_unknown_font_str), name);
 
     return NOFONT;
 }
@@ -2441,7 +2441,7 @@ gui_mch_register_sign(char_u *signfile)
     NSString *imgName = [NSString stringWithVimString:signfile];
     NSImage *img = [[NSImage alloc] initWithContentsOfFile:imgName];
     if (!img) {
-        emsg(_(e_signdata));
+        emsg(_(e_couldnt_read_in_sign_data));
         return NULL;
     }
 

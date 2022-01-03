@@ -161,7 +161,7 @@ ch_logfile(char_u *fname, char_u *opt)
 	file = fopen((char *)fname, *opt == 'w' ? "w" : "a");
 	if (file == NULL)
 	{
-	    semsg(_(e_notopen), fname);
+	    semsg(_(e_cant_open_file_str), fname);
 	    return;
 	}
 	vim_free(log_name);
@@ -1337,7 +1337,7 @@ channel_open_func(typval_T *argvars)
     if (argvars[1].v_type != VAR_UNKNOWN
 	 && (argvars[1].v_type != VAR_DICT || argvars[1].vval.v_dict == NULL))
     {
-	emsg(_(e_invarg));
+	emsg(_(e_invalid_argument));
 	return NULL;
     }
 
@@ -1349,7 +1349,7 @@ channel_open_func(typval_T *argvars)
 	p = vim_strchr(address + 1, ']');
 	if (p == NULL || *++p != ':')
 	{
-	    semsg(_(e_invarg2), address);
+	    semsg(_(e_invalid_argument_str), address);
 	    return NULL;
 	}
     }
@@ -1358,14 +1358,14 @@ channel_open_func(typval_T *argvars)
 	p = vim_strchr(address, ':');
 	if (p == NULL)
 	{
-	    semsg(_(e_invarg2), address);
+	    semsg(_(e_invalid_argument_str), address);
 	    return NULL;
 	}
     }
     port = strtol((char *)(p + 1), &rest, 10);
     if (*address == NUL || port <= 0 || port >= 65536 || *rest != NUL)
     {
-	semsg(_(e_invarg2), address);
+	semsg(_(e_invalid_argument_str), address);
 	return NULL;
     }
     if (is_ipv6)
@@ -1386,7 +1386,7 @@ channel_open_func(typval_T *argvars)
 	goto theend;
     if (opt.jo_timeout < 0)
     {
-	emsg(_(e_invarg));
+	emsg(_(e_invalid_argument));
 	goto theend;
     }
 
@@ -3859,7 +3859,7 @@ get_channel_arg(typval_T *tv, int check_open, int reading, ch_part_T part)
     }
     else
     {
-	semsg(_(e_invarg2), tv_get_string(tv));
+	semsg(_(e_invalid_argument_str), tv_get_string(tv));
 	return NULL;
     }
     if (channel != NULL && reading)

@@ -1314,3 +1314,15 @@
 #if defined(FEAT_GUI) && defined(MACOS_X)
 # define FEAT_ANTIALIAS
 #endif
+
+#if defined(DYNAMIC_PERL) \
+	|| defined(DYNAMIC_PYTHON) || defined(DYNAMIC_PYTHON3) \
+	|| defined(DYNAMIC_RUBY) \
+	|| defined(DYNAMIC_TCL) \
+	|| defined(DYNAMIC_ICONV) \
+	|| defined(DYNAMIC_GETTEXT) \
+	|| defined(DYNAMIC_MZSCHEME) \
+	|| defined(DYNAMIC_LUA) \
+	|| defined(FEAT_TERMINAL)
+# define USING_LOAD_LIBRARY
+#endif
