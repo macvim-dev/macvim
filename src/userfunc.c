@@ -29,9 +29,6 @@ static funccall_T *current_funccal = NULL;
 // item in it is still being used.
 static funccall_T *previous_funccal = NULL;
 
-static char *e_funcdict = N_("E717: Dictionary entry already exists");
-static char *e_funcref = N_("E718: Funcref required");
-
 static void funccal_unref(funccall_T *fc, ufunc_T *fp, int force);
 static void func_clear(ufunc_T *fp, int force);
 static int func_free(ufunc_T *fp, int force);
@@ -112,7 +109,7 @@ one_function_arg(
 	    for (i = 0; i < newargs->ga_len; ++i)
 		if (STRCMP(((char_u **)(newargs->ga_data))[i], arg_copy) == 0)
 		{
-		    semsg(_("E853: Duplicate argument name: %s"), arg_copy);
+		    semsg(_(e_duplicate_argument_name_str), arg_copy);
 		    vim_free(arg_copy);
 		    return arg;
 		}
@@ -342,7 +339,7 @@ get_function_args(
 	    }
 	    else if (any_default)
 	    {
-		emsg(_("E989: Non-default argument follows default argument"));
+		emsg(_(e_non_default_argument_follows_default_argument));
 		goto err_ret;
 	    }
 
@@ -1611,34 +1608,14 @@ deref_func_name(
 	}
 	import = find_imported(p, len, NULL);
 
-	// imported variable from another script
+	// imported function from another script
 	if (import != NULL)
 	{
-	    if (import->imp_funcname != NULL)
-	    {
-		s = import->imp_funcname;
-		*lenp = (int)STRLEN(s);
-		return s;
-	    }
-	    if (import->imp_flags & IMP_FLAGS_STAR)
-	    {
-		name[len] = NUL;
-		semsg(_(e_cannot_use_str_itself_it_is_imported_with_star),
-									 name);
-		name[len] = cc;
-		*lenp = 0;
-		return (char_u *)"";	// just in case
-	    }
-	    else
-	    {
-		scriptitem_T    *si = SCRIPT_ITEM(import->imp_sid);
-		svar_T		*sv = ((svar_T *)si->sn_var_vals.ga_data)
-						    + import->imp_var_vals_idx;
-		tv = sv->sv_tv;
-		if (type != NULL)
-		    *type = sv->sv_type;
-		did_type = TRUE;
-	    }
+	    name[len] = NUL;
+	    semsg(_(e_cannot_use_str_itself_it_is_imported), name);
+	    name[len] = cc;
+	    *lenp = 0;
+	    return (char_u *)"";	// just in case
 	}
     }
 
@@ -1676,7 +1653,7 @@ deref_func_name(
 	{
 	    if (!did_type && type != NULL && ht == get_script_local_ht())
 	    {
-		svar_T  *sv = find_typval_in_script(tv);
+		svar_T  *sv = find_typval_in_script(tv, 0);
 
 		if (sv != NULL)
 		    *type = sv->sv_type;
@@ -1802,7 +1779,7 @@ get_func_tv(
     else if (!aborting())
     {
 	if (argcount == MAX_FUNC_ARGS)
-	    emsg_funcname(N_("E740: Too many arguments for function %s"), name);
+	    emsg_funcname(e_too_many_arguments_for_function_str_2, name);
 	else
 	    emsg_funcname(e_invalid_arguments_for_function_str, name);
     }
@@ -1908,16 +1885,13 @@ find_func_with_sid(char_u *name, int sid)
  * Return NULL for unknown function.
  */
     ufunc_T *
-find_func_even_dead(char_u *name, int is_global, cctx_T *cctx)
+find_func_even_dead(char_u *name, int is_global, cctx_T *cctx UNUSED)
 {
     hashitem_T	*hi;
     ufunc_T	*func;
-    imported_T	*imported;
 
     if (!is_global)
     {
-	char_u	*after_script = NULL;
-	long	sid = 0;
 	int	find_script_local = in_vim9script() && eval_isnamec1(*name)
 					   && (name[1] != ':' || *name == 's');
 
@@ -1928,35 +1902,6 @@ find_func_even_dead(char_u *name, int is_global, cctx_T *cctx)
 				       ? name + 2 : name, current_sctx.sc_sid);
 	    if (func != NULL)
 		return func;
-	}
-
-	if (name[0] == K_SPECIAL
-		&& name[1] == KS_EXTRA
-		&& name[2] == KE_SNR)
-	{
-	    // Caller changes s: to <SNR>99_name.
-
-	    after_script = name + 3;
-	    sid = getdigits(&after_script);
-	    if (*after_script == '_')
-		++after_script;
-	    else
-		after_script = NULL;
-	}
-	if (find_script_local || after_script != NULL)
-	{
-	    // Find imported function before global one.
-	    if (after_script != NULL && sid != current_sctx.sc_sid)
-		imported = find_imported_in_script(after_script, 0, sid);
-	    else
-		imported = find_imported(after_script == NULL
-					       ? name : after_script, 0, cctx);
-	    if (imported != NULL && imported->imp_funcname != NULL)
-	    {
-		hi = hash_find(&func_hashtab, imported->imp_funcname);
-		if (!HASHITEM_EMPTY(hi))
-		    return HI2UF(hi);
-	    }
 	}
     }
 
@@ -3156,7 +3101,7 @@ func_call(
     {
 	if (argc == MAX_FUNC_ARGS - (partial == NULL ? 0 : partial->pt_argc))
 	{
-	    emsg(_("E699: Too many arguments"));
+	    emsg(_(e_too_many_arguments));
 	    break;
 	}
 	// Make a copy of each argument.  This is needed to be able to set
@@ -3274,21 +3219,18 @@ user_func_error(int error, char_u *name, funcexe_T *funcexe)
 		emsg_funcname(e_function_was_deleted_str, name);
 		break;
 	case FCERR_TOOMANY:
-		emsg_funcname((char *)e_too_many_arguments_for_function_str,
-									 name);
+		emsg_funcname(e_too_many_arguments_for_function_str, name);
 		break;
 	case FCERR_TOOFEW:
-		emsg_funcname((char *)e_not_enough_arguments_for_function_str,
-									 name);
+		emsg_funcname(e_not_enough_arguments_for_function_str, name);
 		break;
 	case FCERR_SCRIPT:
 		emsg_funcname(
 		    e_using_sid_not_in_script_context_str, name);
 		break;
 	case FCERR_DICT:
-		emsg_funcname(
-		      N_("E725: Calling dict function without Dictionary: %s"),
-			name);
+		emsg_funcname(e_calling_dict_function_without_dictionary_str,
+									 name);
 		break;
     }
 }
@@ -3725,7 +3667,7 @@ trans_function_name(
 	{
 	    if (!skip && !(flags & TFN_QUIET) && (fdp == NULL
 			     || lv.ll_dict == NULL || fdp->fd_newkey == NULL))
-		emsg(_(e_funcref));
+		emsg(_(e_funcref_required));
 	    else
 		*pp = end;
 	    name = NULL;
@@ -3856,7 +3798,7 @@ trans_function_name(
 
 	if (cp != NULL && cp < end)
 	{
-	    semsg(_("E884: Function name cannot contain a colon: %s"), start);
+	    semsg(_(e_function_name_cannot_contain_colon_str), start);
 	    goto theend;
 	}
     }
@@ -4258,13 +4200,13 @@ define_function(exarg_T *eap, char_u *name_arg, char_u **line_to_free)
 					: eval_isnamec(name_base[i])); ++i)
 		;
 	    if (name_base[i] != NUL)
-		emsg_funcname((char *)e_invalid_argument_str, arg);
+		emsg_funcname(e_invalid_argument_str, arg);
 
 	    // In Vim9 script a function cannot have the same name as a
 	    // variable.
 	    if (vim9script && *arg == K_SPECIAL
-		&& eval_variable(name_base, (int)STRLEN(name_base), NULL, NULL,
-			 EVAL_VAR_NOAUTOLOAD + EVAL_VAR_IMPORT
+		&& eval_variable(name_base, (int)STRLEN(name_base), 0, NULL,
+		    NULL, EVAL_VAR_NOAUTOLOAD + EVAL_VAR_IMPORT
 						     + EVAL_VAR_NO_FUNC) == OK)
 	    {
 		semsg(_(e_redefining_script_item_str), name_base);
@@ -4274,7 +4216,7 @@ define_function(exarg_T *eap, char_u *name_arg, char_u **line_to_free)
 	// Disallow using the g: dict.
 	if (fudi.fd_dict != NULL && fudi.fd_dict->dv_scope == VAR_DEF_SCOPE)
 	{
-	    emsg(_("E862: Cannot use g: here"));
+	    emsg(_(e_cannot_use_g_here));
 	    goto ret_free;
 	}
     }
@@ -4344,7 +4286,7 @@ define_function(exarg_T *eap, char_u *name_arg, char_u **line_to_free)
 		p += 7;
 		if (current_funccal == NULL)
 		{
-		    emsg_funcname(N_("E932: Closure function should not be at top level: %s"),
+		    emsg_funcname(e_closure_function_should_not_be_at_top_level,
 			    name == NULL ? (char_u *)"" : name);
 		    goto erret;
 		}
@@ -4378,7 +4320,7 @@ define_function(exarg_T *eap, char_u *name_arg, char_u **line_to_free)
 	if (!eap->skip && !eap->forceit)
 	{
 	    if (fudi.fd_dict != NULL && fudi.fd_newkey == NULL)
-		emsg(_(e_funcdict));
+		emsg(_(e_dictionary_entry_already_exists));
 	    else if (name != NULL && find_func(name, is_global, NULL) != NULL)
 		emsg_funcname(e_function_str_already_exists_add_bang_to_replace, name);
 	}
@@ -4409,8 +4351,7 @@ define_function(exarg_T *eap, char_u *name_arg, char_u **line_to_free)
 	v = find_var(name, &ht, TRUE);
 	if (v != NULL && v->di_tv.v_type == VAR_FUNC)
 	{
-	    emsg_funcname(N_("E707: Function name conflicts with variable: %s"),
-									name);
+	    emsg_funcname(e_function_name_conflicts_with_variable_str, name);
 	    goto erret;
 	}
 
@@ -4481,7 +4422,7 @@ define_function(exarg_T *eap, char_u *name_arg, char_u **line_to_free)
 	fp = NULL;
 	if (fudi.fd_newkey == NULL && !eap->forceit)
 	{
-	    emsg(_(e_funcdict));
+	    emsg(_(e_dictionary_entry_already_exists));
 	    goto erret;
 	}
 	if (fudi.fd_di == NULL)
@@ -4531,7 +4472,8 @@ define_function(exarg_T *eap, char_u *name_arg, char_u **line_to_free)
 		linenr_T save_lnum = SOURCING_LNUM;
 
 		SOURCING_LNUM = sourcing_lnum_top;
-		semsg(_("E746: Function name does not match script file name: %s"), name);
+		semsg(_(e_function_name_does_not_match_script_file_name_str),
+									 name);
 		SOURCING_LNUM = save_lnum;
 		goto erret;
 	    }
@@ -4893,7 +4835,7 @@ ex_delfunction(exarg_T *eap)
     if (name == NULL)
     {
 	if (fudi.fd_dict != NULL && !eap->skip)
-	    emsg(_(e_funcref));
+	    emsg(_(e_funcref_required));
 	return;
     }
     if (!ends_excmd(*skipwhite(p)))

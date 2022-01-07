@@ -436,8 +436,7 @@ check_changed_any(
 	if (
 #ifdef FEAT_TERMINAL
 		term_job_running(buf->b_term)
-		    ? semsg(_("E947: Job still running in buffer \"%s\""),
-								  buf->b_fname)
+		    ? semsg(_(e_job_still_running_in_buffer_str), buf->b_fname)
 		    :
 #endif
 		semsg(_(e_no_write_since_last_change_for_buffer_str),
@@ -834,7 +833,7 @@ ex_compiler(exarg_T *eap)
 
 	    sprintf((char *)buf, "compiler/%s.vim", eap->arg);
 	    if (source_runtime(buf, DIP_ALL) == FAIL)
-		semsg(_("E666: compiler not supported: %s"), eap->arg);
+		semsg(_(e_compiler_not_supported_str), eap->arg);
 	    vim_free(buf);
 
 	    do_cmdline_cmd((char_u *)":delcommand CompilerSet");

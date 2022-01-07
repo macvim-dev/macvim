@@ -618,7 +618,7 @@ parse_addr_type_arg(
 	for (i = 0; err[i] != NUL && !VIM_ISWHITE(err[i]); i++)
 	    ;
 	err[i] = NUL;
-	semsg(_("E180: Invalid address type value: %s"), err);
+	semsg(_(e_invalid_address_type_value_str), err);
 	return FAIL;
     }
 
@@ -1101,7 +1101,7 @@ ex_command(exarg_T *eap)
     else if ((name_len == 1 && *name == 'X')
 	  || (name_len <= 4
 		  && STRNCMP(name, "Next", name_len > 4 ? 4 : name_len) == 0))
-	emsg(_("E841: Reserved name, cannot be used for user defined command"));
+	emsg(_(e_reserved_name_cannot_be_used_for_user_defined_command));
     else if (compl > 0 && (argt & EX_EXTRA) == 0)
     {
 	// Some plugins rely on silently ignoring the mistake, only make this

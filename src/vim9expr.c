@@ -77,7 +77,7 @@ clear_ppconst(ppconst_T *ppconst)
     int
 compile_member(int is_slice, int *keeping_dict, cctx_T *cctx)
 {
-    type_T	**typep;
+    type2_T	*typep;
     garray_T	*stack = &cctx->ctx_type_stack;
     vartype_T	vartype;
     type_T	*idxtype;
@@ -85,12 +85,13 @@ compile_member(int is_slice, int *keeping_dict, cctx_T *cctx)
     // We can index a list, dict and blob.  If we don't know the type
     // we can use the index value type.  If we still don't know use an "ANY"
     // instruction.
-    typep = ((type_T **)stack->ga_data) + stack->ga_len
-						  - (is_slice ? 3 : 2);
-    vartype = (*typep)->tt_type;
-    idxtype = ((type_T **)stack->ga_data)[stack->ga_len - 1];
+    // TODO: what about the decl type?
+    typep = (((type2_T *)stack->ga_data) + stack->ga_len - (is_slice ? 3 : 2));
+    vartype = typep->type_curr->tt_type;
+    idxtype = (((type2_T *)stack->ga_data) + stack->ga_len - 1)->type_curr;
     // If the index is a string, the variable must be a Dict.
-    if ((*typep == &t_any || *typep == &t_unknown) && idxtype == &t_string)
+    if ((typep->type_curr == &t_any || typep->type_curr == &t_unknown)
+						       && idxtype == &t_string)
 	vartype = VAR_DICT;
     if (vartype == VAR_STRING || vartype == VAR_LIST || vartype == VAR_BLOB)
     {
@@ -98,7 +99,7 @@ compile_member(int is_slice, int *keeping_dict, cctx_T *cctx)
 	    return FAIL;
 	if (is_slice)
 	{
-	    idxtype = ((type_T **)stack->ga_data)[stack->ga_len - 2];
+	    idxtype = get_type_on_stack(cctx, 1);
 	    if (need_type(idxtype, &t_number, -2, 0, cctx,
 							 FALSE, FALSE) == FAIL)
 		return FAIL;
@@ -112,19 +113,29 @@ compile_member(int is_slice, int *keeping_dict, cctx_T *cctx)
 	    emsg(_(e_cannot_slice_dictionary));
 	    return FAIL;
 	}
-	if ((*typep)->tt_type == VAR_DICT)
+	if (typep->type_curr->tt_type == VAR_DICT)
 	{
-	    *typep = (*typep)->tt_member;
-	    if (*typep == &t_unknown)
+	    typep->type_curr = typep->type_curr->tt_member;
+	    if (typep->type_curr == &t_unknown)
 		// empty dict was used
-		*typep = &t_any;
+		typep->type_curr = &t_any;
+	    if (typep->type_decl->tt_type == VAR_DICT)
+	    {
+		typep->type_decl = typep->type_decl->tt_member;
+		if (typep->type_decl == &t_unknown)
+		    // empty dict was used
+		    typep->type_decl = &t_any;
+	    }
+	    else
+		typep->type_decl = typep->type_curr;
 	}
 	else
 	{
-	    if (need_type(*typep, &t_dict_any, -2, 0, cctx,
+	    if (need_type(typep->type_curr, &t_dict_any, -2, 0, cctx,
 							 FALSE, FALSE) == FAIL)
 		return FAIL;
-	    *typep = &t_any;
+	    typep->type_curr = &t_any;
+	    typep->type_decl = &t_any;
 	}
 	if (may_generate_2STRING(-1, FALSE, cctx) == FAIL)
 	    return FAIL;
@@ -135,7 +146,8 @@ compile_member(int is_slice, int *keeping_dict, cctx_T *cctx)
     }
     else if (vartype == VAR_STRING)
     {
-	*typep = &t_string;
+	typep->type_curr = &t_string;
+	typep->type_decl = &t_string;
 	if ((is_slice
 		? generate_instr_drop(cctx, ISN_STRSLICE, 2)
 		: generate_instr_drop(cctx, ISN_STRINDEX, 1)) == FAIL)
@@ -145,18 +157,21 @@ compile_member(int is_slice, int *keeping_dict, cctx_T *cctx)
     {
 	if (is_slice)
 	{
-	    *typep = &t_blob;
+	    typep->type_curr = &t_blob;
+	    typep->type_decl = &t_blob;
 	    if (generate_instr_drop(cctx, ISN_BLOBSLICE, 2) == FAIL)
 		return FAIL;
 	}
 	else
 	{
-	    *typep = &t_number;
+	    typep->type_curr = &t_number;
+	    typep->type_decl = &t_number;
 	    if (generate_instr_drop(cctx, ISN_BLOBINDEX, 1) == FAIL)
 		return FAIL;
 	}
     }
-    else if (vartype == VAR_LIST || *typep == &t_any || *typep == &t_unknown)
+    else if (vartype == VAR_LIST || typep->type_curr == &t_any
+					     || typep->type_curr == &t_unknown)
     {
 	if (is_slice)
 	{
@@ -167,12 +182,21 @@ compile_member(int is_slice, int *keeping_dict, cctx_T *cctx)
 	}
 	else
 	{
-	    if ((*typep)->tt_type == VAR_LIST)
+	    if (typep->type_curr->tt_type == VAR_LIST)
 	    {
-		*typep = (*typep)->tt_member;
-		if (*typep == &t_unknown)
+		typep->type_curr = typep->type_curr->tt_member;
+		if (typep->type_curr == &t_unknown)
 		    // empty list was used
-		    *typep = &t_any;
+		    typep->type_curr = &t_any;
+		if (typep->type_decl->tt_type == VAR_LIST)
+		{
+		    typep->type_decl = typep->type_decl->tt_member;
+		    if (typep->type_decl == &t_unknown)
+			// empty list was used
+			typep->type_decl = &t_any;
+		}
+		else
+			typep->type_decl = typep->type_curr;
 	    }
 	    if (generate_instr_drop(cctx,
 			vartype == VAR_LIST ?  ISN_LISTINDEX : ISN_ANYINDEX, 1)
@@ -216,7 +240,7 @@ compile_load_scriptvar(
 	cctx_T *cctx,
 	char_u *name,	    // variable NUL terminated
 	char_u *start,	    // start of variable
-	char_u **end,	    // end of variable
+	char_u **end,	    // end of variable, may be NULL
 	int    error)	    // when TRUE may give error
 {
     scriptitem_T    *si;
@@ -242,65 +266,56 @@ compile_load_scriptvar(
 	return OK;
     }
 
-    import = find_imported(name, 0, cctx);
+    import = end == NULL ? NULL : find_imported(name, 0, cctx);
     if (import != NULL)
     {
-	if (import->imp_flags & IMP_FLAGS_STAR)
+	char_u	*p = skipwhite(*end);
+	char_u	*exp_name;
+	int	cc;
+	ufunc_T	*ufunc;
+	type_T	*type;
+
+	// Need to lookup the member.
+	if (*p != '.')
 	{
-	    char_u	*p = skipwhite(*end);
-	    char_u	*exp_name;
-	    int		cc;
-	    ufunc_T	*ufunc;
-	    type_T	*type;
-
-	    // Used "import * as Name", need to lookup the member.
-	    if (*p != '.')
-	    {
-		semsg(_(e_expected_dot_after_name_str), start);
-		return FAIL;
-	    }
-	    ++p;
-	    if (VIM_ISWHITE(*p))
-	    {
-		emsg(_(e_no_white_space_allowed_after_dot));
-		return FAIL;
-	    }
-
-	    // isolate one name
-	    exp_name = p;
-	    while (eval_isnamec(*p))
-		++p;
-	    cc = *p;
-	    *p = NUL;
-
-	    idx = find_exported(import->imp_sid, exp_name, &ufunc, &type,
-								   cctx, TRUE);
-	    *p = cc;
-	    p = skipwhite(p);
-	    *end = p;
-
-	    if (idx < 0)
-	    {
-		if (*p == '(' && ufunc != NULL)
-		{
-		    generate_PUSHFUNC(cctx, ufunc->uf_name, import->imp_type);
-		    return OK;
-		}
-		return FAIL;
-	    }
-
-	    generate_VIM9SCRIPT(cctx, ISN_LOADSCRIPT,
-		    import->imp_sid,
-		    idx,
-		    type);
+	    semsg(_(e_expected_dot_after_name_str), start);
+	    return FAIL;
 	}
-	else if (import->imp_funcname != NULL)
-	    generate_PUSHFUNC(cctx, import->imp_funcname, import->imp_type);
-	else
-	    generate_VIM9SCRIPT(cctx, ISN_LOADSCRIPT,
-		    import->imp_sid,
-		    import->imp_var_vals_idx,
-		    import->imp_type);
+	++p;
+	if (VIM_ISWHITE(*p))
+	{
+	    emsg(_(e_no_white_space_allowed_after_dot));
+	    return FAIL;
+	}
+
+	// isolate one name
+	exp_name = p;
+	while (eval_isnamec(*p))
+	    ++p;
+	cc = *p;
+	*p = NUL;
+
+	idx = find_exported(import->imp_sid, exp_name, &ufunc, &type,
+								   cctx, TRUE);
+	*p = cc;
+	p = skipwhite(p);
+	*end = p;
+
+	if (idx < 0)
+	{
+	    if (ufunc != NULL)
+	    {
+		// function call or function reference
+		generate_PUSHFUNC(cctx, ufunc->uf_name, NULL);
+		return OK;
+	    }
+	    return FAIL;
+	}
+
+	generate_VIM9SCRIPT(cctx, ISN_LOADSCRIPT,
+		import->imp_sid,
+		idx,
+		type);
 	return OK;
     }
 
@@ -709,9 +724,7 @@ compile_call(
 
 	    if (STRCMP(name, "add") == 0 && argcount == 2)
 	    {
-		garray_T    *stack = &cctx->ctx_type_stack;
-		type_T	    *type = ((type_T **)stack->ga_data)[
-							    stack->ga_len - 2];
+		type_T	    *type = get_type_on_stack(cctx, 1);
 
 		// add() can be compiled to instructions if we know the type
 		if (type->tt_type == VAR_LIST)
@@ -758,8 +771,7 @@ compile_call(
     if (STRNCMP(namebuf, "g:", 2) != 0 && !is_autoload
 	    && compile_load(&p, namebuf + varlen, cctx, FALSE, FALSE) == OK)
     {
-	garray_T    *stack = &cctx->ctx_type_stack;
-	type_T	    *type = ((type_T **)stack->ga_data)[stack->ga_len - 1];
+	type_T	    *type = get_type_on_stack(cctx, 0);
 
 	res = generate_PCALL(cctx, argcount, namebuf, type, FALSE);
 	goto theend;
@@ -1421,10 +1433,9 @@ skip_expr_cctx(char_u **arg, cctx_T *cctx)
     int
 bool_on_stack(cctx_T *cctx)
 {
-    garray_T	*stack = &cctx->ctx_type_stack;
     type_T	*type;
 
-    type = ((type_T **)stack->ga_data)[stack->ga_len - 1];
+    type = get_type_on_stack(cctx, 0);
     if (type == &t_bool)
 	return OK;
 
@@ -1470,10 +1481,9 @@ compile_leader(cctx_T *cctx, int numeric_only, char_u *start, char_u **end)
 	{
 	    int		negate = *p == '-';
 	    isn_T	*isn;
-	    garray_T    *stack = &cctx->ctx_type_stack;
 	    type_T	*type;
 
-	    type = ((type_T **)stack->ga_data)[stack->ga_len - 1];
+	    type = get_type_on_stack(cctx, 0);
 	    if (type != &t_float && need_type(type, &t_number,
 					    -1, 0, cctx, FALSE, FALSE) == FAIL)
 		return FAIL;
@@ -1594,7 +1604,6 @@ compile_subscript(
 	// is not a function call.
 	if (**arg == '(')
 	{
-	    garray_T    *stack = &cctx->ctx_type_stack;
 	    type_T	*type;
 	    int		argcount = 0;
 
@@ -1603,7 +1612,7 @@ compile_subscript(
 	    ppconst->pp_is_const = FALSE;
 
 	    // funcref(arg)
-	    type = ((type_T **)stack->ga_data)[stack->ga_len - 1];
+	    type = get_type_on_stack(cctx, 0);
 
 	    *arg = skipwhite(p + 1);
 	    if (compile_arguments(arg, cctx, &argcount, FALSE) == FAIL)
@@ -1672,12 +1681,13 @@ compile_subscript(
 		// instructions of the expression and move the type of the
 		// expression after the argument types.  This is what ISN_PCALL
 		// expects.
-		stack = &cctx->ctx_type_stack;
 		arg_isn_count = cctx->ctx_instr.ga_len - expr_isn_end;
 		if (arg_isn_count > 0)
 		{
 		    int	    expr_isn_count = expr_isn_end - expr_isn_start;
 		    isn_T   *isn = ALLOC_MULT(isn_T, expr_isn_count);
+		    type_T  *decl_type;
+		    type2_T  *typep;
 
 		    if (isn == NULL)
 			return FAIL;
@@ -1693,15 +1703,19 @@ compile_subscript(
 					  isn, sizeof(isn_T) * expr_isn_count);
 		    vim_free(isn);
 
-		    type = ((type_T **)stack->ga_data)[type_idx_start];
-		    mch_memmove(((type_T **)stack->ga_data) + type_idx_start,
-			      ((type_T **)stack->ga_data) + type_idx_start + 1,
-			      sizeof(type_T *)
+		    typep = ((type2_T *)stack->ga_data) + type_idx_start;
+		    type = typep->type_curr;
+		    decl_type = typep->type_decl;
+		    mch_memmove(((type2_T *)stack->ga_data) + type_idx_start,
+			      ((type2_T *)stack->ga_data) + type_idx_start + 1,
+			      sizeof(type2_T)
 				       * (stack->ga_len - type_idx_start - 1));
-		    ((type_T **)stack->ga_data)[stack->ga_len - 1] = type;
+		    typep = ((type2_T *)stack->ga_data) + stack->ga_len - 1;
+		    typep->type_curr = type;
+		    typep->type_decl = decl_type;
 		}
 
-		type = ((type_T **)stack->ga_data)[stack->ga_len - 1];
+		type = get_type_on_stack(cctx, 0);
 		if (generate_PCALL(cctx, argcount, p - 2, type, FALSE) == FAIL)
 		    return FAIL;
 	    }
@@ -2152,12 +2166,11 @@ compile_expr7(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 
     if (want_type != NULL)
     {
-	garray_T    *stack = &cctx->ctx_type_stack;
 	type_T	    *actual;
 	where_T	    where = WHERE_INIT;
 
 	generate_ppconst(cctx, ppconst);
-	actual = ((type_T **)stack->ga_data)[stack->ga_len - 1];
+	actual = get_type_on_stack(cctx, 0);
 	if (check_type_maybe(want_type, actual, FALSE, where) != OK)
 	{
 	    if (need_type(actual, want_type, -1, 0, cctx, FALSE, FALSE)
@@ -2781,7 +2794,7 @@ compile_expr1(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 	    generate_JUMP(cctx, op_falsy
 				   ? JUMP_AND_KEEP_IF_TRUE : JUMP_IF_FALSE, 0);
 	    if (op_falsy)
-		type1 = ((type_T **)stack->ga_data)[stack->ga_len];
+		type1 = get_type_on_stack(cctx, -1);
 	}
 
 	// evaluate the second expression; any type is accepted
@@ -2797,8 +2810,8 @@ compile_expr1(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 	    if (!op_falsy)
 	    {
 		// remember the type and drop it
+		type1 = get_type_on_stack(cctx, 0);
 		--stack->ga_len;
-		type1 = ((type_T **)stack->ga_data)[stack->ga_len];
 
 		end_idx = instr->ga_len;
 		generate_JUMP(cctx, JUMP_ALWAYS, 0);
@@ -2849,7 +2862,8 @@ compile_expr1(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 	    ppconst->pp_is_const = FALSE;
 
 	    // If the types differ, the result has a more generic type.
-	    typep = ((type_T **)stack->ga_data) + stack->ga_len - 1;
+	    typep = &((((type2_T *)stack->ga_data)
+					      + stack->ga_len - 1)->type_curr);
 	    common_type(type1, *typep, typep, cctx->ctx_type_list);
 
 	    // jump here from JUMP_ALWAYS or JUMP_AND_KEEP_IF_TRUE

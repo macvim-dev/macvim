@@ -1407,7 +1407,7 @@ handle_did_throw()
     {
 	case ET_USER:
 	    vim_snprintf((char *)IObuff, IOSIZE,
-		    _("E605: Exception not caught: %s"),
+		    _(e_exception_not_caught_str),
 		    current_exception->value);
 	    p = (char *)vim_strsave(IObuff);
 	    break;
@@ -2088,7 +2088,7 @@ do_one_cmd(
 #endif
 	if (restricted != 0 && (ea.argt & EX_RESTRICT))
 	{
-	    errormsg = _("E981: Command not allowed in rvim");
+	    errormsg = _(e_command_not_allowed_in_rvim);
 	    goto doend;
 	}
 	if (!curbuf->b_p_ma && (ea.argt & EX_MODIFY))
@@ -3638,7 +3638,8 @@ find_ex_command(
 	}
 
 	// Check for "++nr" and "--nr".
-	if (p == eap->cmd && p[0] == p[1] && (*p == '+' || *p == '-'))
+	if (p == eap->cmd && p[0] != NUL && p[0] == p[1]
+						   && (*p == '+' || *p == '-'))
 	{
 	    eap->cmdidx = *p == '+' ? CMD_increment : CMD_decrement;
 	    return eap->cmd + 2;
@@ -3720,7 +3721,7 @@ find_ex_command(
 
 	    if (command_count != (int)CMD_SIZE)
 	    {
-		iemsg(_("E943: Command table needs to be updated, run 'make cmdidxs'"));
+		iemsg(_(e_command_table_needs_to_be_updated_run_make_cmdidxs));
 		getout(1);
 	    }
 
@@ -3903,7 +3904,7 @@ f_fullcommand(typval_T *argvars, typval_T *rettv)
     if (name == NULL)
 	return;
 
-    while (*name != NUL && *name == ':')
+    while (*name == ':')
 	name++;
     name = skip_range(name, TRUE, NULL);
 
@@ -6029,7 +6030,7 @@ ex_tabclose(exarg_T *eap)
     else
 # endif
 	if (first_tabpage->tp_next == NULL)
-	    emsg(_("E784: Cannot close last tab page"));
+	    emsg(_(e_cannot_close_last_tab_page));
 	else
 	{
 	    tab_number = get_tabpage_arg(eap);
@@ -7374,7 +7375,7 @@ changedir_func(
 
     if (vim_strchr(p_cpo, CPO_CHDIR) != NULL && curbufIsChanged() && !forceit)
     {
-	emsg(_("E747: Cannot change directory, buffer is modified (add ! to override)"));
+	emsg(_(e_cannot_change_directory_buffer_is_modified_add_bang_to_override));
 	return FALSE;
     }
 
@@ -8065,7 +8066,7 @@ ex_redir(exarg_T *eap)
 #ifdef FEAT_EVAL
     if (redir_execute)
     {
-	emsg(_("E930: Cannot use :redir inside execute()"));
+	emsg(_(e_cannot_use_redir_inside_execute));
 	return;
     }
 #endif
@@ -8289,7 +8290,7 @@ vim_mkdir_emsg(char_u *name, int prot UNUSED)
 {
     if (vim_mkdir(name, prot) != 0)
     {
-	semsg(_("E739: Cannot create directory: %s"), name);
+	semsg(_(e_cannot_create_directory_str), name);
 	return FAIL;
     }
     return OK;
@@ -9066,7 +9067,7 @@ eval_vars(
 			return NULL;
 		    }
 #else
-		    *errormsg = _("E809: #< is not available without the +eval feature");
+		    *errormsg = _(e_hashsmall_is_not_available_without_the_eval_feature);
 		    return NULL;
 #endif
 		}
@@ -9162,7 +9163,7 @@ eval_vars(
 	case SPEC_SLNUM:	// line in file for ":so" command
 		if (SOURCING_NAME == NULL || SOURCING_LNUM == 0)
 		{
-		    *errormsg = _("E842: no line number to use for \"<slnum>\"");
+		    *errormsg = _(e_no_line_number_to_use_for_slnum);
 		    return NULL;
 		}
 		sprintf((char *)strbuf, "%ld", SOURCING_LNUM);
@@ -9173,7 +9174,7 @@ eval_vars(
 	case SPEC_SFLNUM:	// line in script file
 		if (current_sctx.sc_lnum + SOURCING_LNUM == 0)
 		{
-		    *errormsg = _("E961: no line number to use for \"<sflnum>\"");
+		    *errormsg = _(e_no_line_number_to_use_for_sflnum);
 		    return NULL;
 		}
 		sprintf((char *)strbuf, "%ld",

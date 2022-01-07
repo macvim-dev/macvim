@@ -1009,12 +1009,12 @@ ambw_end:
 #if defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MACVIM)
 	if (errmsg == NULL && varp == &p_tenc && gui.in_use)
 	{
-	    // MacVim and GTK+ 2 uses only a single encoding, and that is UTF-8.
+	    // MacVim and GTK uses only a single encoding, and that is UTF-8.
 	    if (STRCMP(p_tenc, "utf-8") != 0)
 # if defined(FEAT_GUI_MACVIM)
-		errmsg = N_("E617: Cannot be changed in MacVim");
+		errmsg = e_cannot_be_changed_in_macvim;
 # else
-		errmsg = N_("E617: Cannot be changed in the GTK+ 2 GUI");
+		errmsg = e_cannot_be_changed_in_gtk_GUI;
 # endif
 	}
 #endif
@@ -1036,8 +1036,8 @@ ambw_end:
 		if (convert_setup(&input_conv, p_tenc, p_enc) == FAIL
 			|| convert_setup(&output_conv, p_enc, p_tenc) == FAIL)
 		{
-		    semsg(_("E950: Cannot convert between %s and %s"),
-			    p_tenc, p_enc);
+		    semsg(_(e_cannot_convert_between_str_and_str),
+								p_tenc, p_enc);
 		    errmsg = e_invalid_argument;
 		}
 	    }

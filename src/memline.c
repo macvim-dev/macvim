@@ -621,7 +621,7 @@ ml_set_crypt_key(
 	    mf_put(mfp, hp, FALSE, FALSE);  // release previous block
 
 	if (error > 0)
-	    emsg(_("E843: Error while updating swap file crypt"));
+	    emsg(_(e_error_while_updating_swap_file_crypt));
     }
 
     mfp->mf_old_key = NULL;
@@ -1342,7 +1342,7 @@ ml_recover(int checkext)
 #else
     if (b0p->b0_id[1] != BLOCK0_ID1)
     {
-	semsg(_("E833: %s is encrypted and this version of Vim does not support encryption"), mfp->mf_fname);
+	semsg(_(e_str_is_encrypted_and_this_version_of_vim_does_not_support_encryption), mfp->mf_fname);
 	goto theend;
     }
 #endif
@@ -4415,7 +4415,7 @@ resolve_symlink(char_u *fname, char_u *buf)
 	// Limit symlink depth to 100, catch recursive loops.
 	if (++depth == 100)
 	{
-	    semsg(_("E773: Symlink loop for \"%s\""), fname);
+	    semsg(_(e_symlink_loop_for_str), fname);
 	    return FAIL;
 	}
 

@@ -241,7 +241,7 @@ gui_do_fork(void)
     pid = fork();
     if (pid < 0)	    // Fork error
     {
-	emsg(_("E851: Failed to create a new process for the GUI"));
+	emsg(_(e_failed_to_create_new_process_for_GUI));
 	return;
     }
     else if (pid > 0)	    // Parent
@@ -265,7 +265,7 @@ gui_do_fork(void)
 # else
 		waitpid(pid, &exit_status, 0);
 # endif
-		emsg(_("E852: The child process failed to start the GUI"));
+		emsg(_(e_the_child_process_failed_to_start_GUI));
 		return;
 	    }
 	    else if (status == GUI_CHILD_IO_ERROR)
@@ -682,7 +682,7 @@ gui_init(void)
 	    gui_init_font(*p_guifont == NUL ? hl_get_font_name()
 						  : p_guifont, FALSE) == FAIL)
     {
-	emsg(_("E665: Cannot start GUI, no valid font found"));
+	emsg(_(e_cannot_start_gui_no_valid_font_found));
 	goto error2;
     }
     if (gui_get_wide_font() == FAIL)

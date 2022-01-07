@@ -219,11 +219,6 @@ static qf_info_T *ll_get_or_alloc_list(win_T *);
 static char_u   *qf_last_bufname = NULL;
 static bufref_T  qf_last_bufref = {NULL, 0, 0};
 
-static char	*e_current_quickfix_list_was_changed =
-				 N_("E925: Current quickfix list was changed");
-static char	*e_current_location_list_was_changed =
-				 N_("E926: Current location list was changed");
-
 /*
  * Maximum number of bytes allowed per line while reading a errorfile.
  */
@@ -3160,7 +3155,7 @@ qf_jump_edit_buffer(
 	win_T	*wp = win_id2wp(prev_winid);
 	if (wp == NULL && curwin->w_llist != qi)
 	{
-	    emsg(_("E924: Current window was closed"));
+	    emsg(_(e_current_window_was_closed));
 	    *opened_window = FALSE;
 	    return NOTDONE;
 	}
@@ -6116,7 +6111,7 @@ vgr_process_args(
     p = skipwhite(p);
     if (*p == NUL)
     {
-	emsg(_("E683: File name missing or invalid pattern"));
+	emsg(_(e_file_name_missing_or_invalid_pattern));
 	return FAIL;
     }
 
@@ -7785,7 +7780,7 @@ cbuffer_process_args(
 
     if (buf->b_ml.ml_mfp == NULL)
     {
-	emsg(_("E681: Buffer is not loaded"));
+	emsg(_(e_buffer_is_not_loaded));
 	return FAIL;
     }
 
@@ -7978,7 +7973,7 @@ cexpr_core(exarg_T *eap, typval_T *tv)
 	return OK;
     }
 
-    emsg(_("E777: String or List expected"));
+    emsg(_(e_string_or_list_expected));
     return FAIL;
 }
 
@@ -8386,7 +8381,6 @@ set_qf_ll_list(
     typval_T	*rettv)
 {
 # ifdef FEAT_QUICKFIX
-    static char *e_invact = N_("E927: Invalid action: '%s'");
     char_u	*act;
     int		action = 0;
     static int	recursive = 0;
@@ -8414,7 +8408,7 @@ set_qf_ll_list(
 		    act[1] == NUL)
 		action = *act;
 	    else
-		semsg(_(e_invact), act);
+		semsg(_(e_invalid_action_str_1), act);
 	}
 	else if (action_arg->v_type == VAR_UNKNOWN)
 	    action = ' ';

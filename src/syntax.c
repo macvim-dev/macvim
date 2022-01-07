@@ -4635,7 +4635,7 @@ get_syn_options(
 #ifdef FEAT_CONCEAL
 	    if (!vim_isprintc_strict(*conceal_char))
 	    {
-		emsg(_("E844: invalid cchar value"));
+		emsg(_(e_invalid_cchar_value));
 		return NULL;
 	    }
 #endif
@@ -4785,7 +4785,7 @@ syn_cmd_include(exarg_T *eap, int syncing UNUSED)
      */
     if (running_syn_inc_tag >= MAX_SYN_INC_TAG)
     {
-	emsg(_("E847: Too many syntax includes"));
+	emsg(_(e_too_many_syntax_includes));
 	return;
     }
     prev_syn_inc_tag = current_syn_inc_tag;
@@ -4882,15 +4882,15 @@ syn_cmd_keyword(exarg_T *eap, int syncing UNUSED)
 			    break;
 			if (p[1] == NUL)
 			{
-			    semsg(_("E789: Missing ']': %s"), kw);
+			    semsg(_(e_error_missing_rsb_str), kw);
 			    goto error;
 			}
 			if (p[1] == ']')
 			{
 			    if (p[2] != NUL)
 			    {
-				semsg(_("E890: trailing char after ']': %s]%s"),
-								kw, &p[2]);
+				semsg(_(e_trailing_char_after_rsb_str_str),
+								    kw, &p[2]);
 				goto error;
 			    }
 			    kw = p + 1;		// skip over the "]"
@@ -5522,7 +5522,7 @@ syn_add_cluster(char_u *name)
     len = curwin->w_s->b_syn_clusters.ga_len;
     if (len >= MAX_CLUSTER_ID)
     {
-	emsg(_("E848: Too many syntax clusters"));
+	emsg(_(e_too_many_syntax_clusters));
 	vim_free(name);
 	return 0;
     }

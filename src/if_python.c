@@ -679,7 +679,7 @@ python_runtime_link_init(char *libname, int verbose)
     if (python3_loaded())
     {
 	if (verbose)
-	    emsg(_("E836: This Vim cannot execute :python after using :py3"));
+	    emsg(_(e_this_vim_cannot_execute_python_after_using_py3));
 	return FAIL;
     }
 # endif
@@ -955,7 +955,7 @@ Python_Init(void)
 	site = PyImport_ImportModule("site");
 	if (site == NULL)
 	{
-	    emsg(_("E887: Sorry, this command is disabled, the Python's site module could not be loaded."));
+	    emsg(_(e_sorry_this_command_is_disabled_python_side_module_could_not_be_loaded));
 	    goto fail;
 	}
 	Py_DECREF(site);
@@ -1028,7 +1028,7 @@ DoPyCommand(const char *cmd, rangeinitializer init_range, runner run, void *arg)
 #ifndef PY_CAN_RECURSE
     if (recursive)
     {
-	emsg(_("E659: Cannot invoke Python recursively"));
+	emsg(_(e_cannot_invoke_python_recursively));
 	return;
     }
     ++recursive;

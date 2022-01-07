@@ -45,8 +45,7 @@ match_add(
 	return -1;
     if (id < -1 || id == 0)
     {
-	semsg(_("E799: Invalid ID: %d (must be greater than or equal to 1)"),
-									   id);
+	semsg(_(e_invalid_id_nr_must_be_greater_than_or_equal_to_one_1), id);
 	return -1;
     }
     if (id != -1)
@@ -56,7 +55,7 @@ match_add(
 	{
 	    if (cur->id == id)
 	    {
-		semsg(_("E801: ID already taken: %d"), id);
+		semsg(_(e_id_already_taken_nr), id);
 		return -1;
 	    }
 	    cur = cur->next;
@@ -234,8 +233,7 @@ match_delete(win_T *wp, int id, int perr)
     if (id < 1)
     {
 	if (perr == TRUE)
-	    semsg(_("E802: Invalid ID: %d (must be greater than or equal to 1)"),
-									  id);
+	    semsg(_(e_invalid_id_nr_must_be_greater_than_or_equal_to_one_2), id);
 	return -1;
     }
     while (cur != NULL && cur->id != id)
@@ -246,7 +244,7 @@ match_delete(win_T *wp, int id, int perr)
     if (cur == NULL)
     {
 	if (perr == TRUE)
-	    semsg(_("E803: ID not found: %d"), id);
+	    semsg(_(e_id_not_found_nr), id);
 	return -1;
     }
     if (cur == prev)
@@ -1216,7 +1214,7 @@ f_matchadd(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
 	return;
     if (id >= 1 && id <= 3)
     {
-	semsg(_("E798: ID is reserved for \":match\": %d"), id);
+	semsg(_(e_id_is_reserved_for_match_nr), id);
 	return;
     }
 
@@ -1284,7 +1282,7 @@ f_matchaddpos(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
     // id == 3 is ok because matchaddpos() is supposed to substitute :3match
     if (id == 1 || id == 2)
     {
-	semsg(_("E798: ID is reserved for \":match\": %d"), id);
+	semsg(_(e_id_is_reserved_for_match_nr), id);
 	return;
     }
 

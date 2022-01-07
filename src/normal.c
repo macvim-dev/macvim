@@ -592,12 +592,19 @@ normal_cmd(
 	    && VIsual_select
 	    && (vim_isprintc(c) || c == NL || c == CAR || c == K_KENTER))
     {
+	int len;
+
 	// Fake a "c"hange command.  When "restart_edit" is set (e.g., because
 	// 'insertmode' is set) fake a "d"elete command, Insert mode will
 	// restart automatically.
 	// Insert the typed character in the typeahead buffer, so that it can
 	// be mapped in Insert mode.  Required for ":lmap" to work.
-	ins_char_typebuf(vgetc_char, vgetc_mod_mask);
+	len = ins_char_typebuf(vgetc_char, vgetc_mod_mask);
+
+	// When recording the character will be recorded again, remove the
+	// previously recording.
+	ungetchars(len);
+
 	if (restart_edit != 0)
 	    c = 'd';
 	else
@@ -5632,11 +5639,11 @@ nv_pcmark(cmdarg_T *cap)
 	else if (cap->cmdchar == 'g')
 	{
 	    if (curbuf->b_changelistlen == 0)
-		emsg(_("E664: changelist is empty"));
+		emsg(_(e_changelist_is_empty));
 	    else if (cap->count1 < 0)
-		emsg(_("E662: At start of changelist"));
+		emsg(_(e_at_start_of_changelist));
 	    else
-		emsg(_("E663: At end of changelist"));
+		emsg(_(e_at_end_of_changelist));
 	}
 	else
 	    clearopbeep(cap->oap);

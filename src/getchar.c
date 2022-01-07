@@ -242,6 +242,22 @@ add_buff(
 }
 
 /*
+ * Delete "slen" bytes from the end of "buf".
+ * Only works when it was just added.
+ */
+    static void
+delete_buff_tail(buffheader_T *buf, int slen)
+{
+    int len = (int)STRLEN(buf->bh_curr->b_str);
+
+    if (len >= slen)
+    {
+	buf->bh_curr->b_str[len - slen] = NUL;
+	buf->bh_space += slen;
+    }
+}
+
+/*
  * Add number "n" to buffer "buf".
  */
     static void
@@ -1100,12 +1116,13 @@ ins_typebuf(
  * Can be used for a character obtained by vgetc() that needs to be put back.
  * Uses cmd_silent, KeyTyped and KeyNoremap to restore the flags belonging to
  * the char.
+ * Returns the length of what was inserted.
  */
-    void
+    int
 ins_char_typebuf(int c, int modifier)
 {
-    char_u	buf[MB_MAXBYTES + 4];
-    int		idx = 0;
+    char_u	buf[MB_MAXBYTES * 3 + 4];
+    int		len = 0;
 
     if (modifier != 0)
     {
@@ -1113,19 +1130,33 @@ ins_char_typebuf(int c, int modifier)
 	buf[1] = KS_MODIFIER;
 	buf[2] = modifier;
 	buf[3] = NUL;
-	idx = 3;
+	len = 3;
     }
     if (IS_SPECIAL(c))
     {
-	buf[idx] = K_SPECIAL;
-	buf[idx + 1] = K_SECOND(c);
-	buf[idx + 2] = K_THIRD(c);
-	buf[idx + 3] = NUL;
-	idx += 3;
+	buf[len] = K_SPECIAL;
+	buf[len + 1] = K_SECOND(c);
+	buf[len + 2] = K_THIRD(c);
+	buf[len + 3] = NUL;
+	len += 3;
     }
     else
-	buf[(*mb_char2bytes)(c, buf + idx) + idx] = NUL;
+    {
+	char_u	*p = buf + len;
+	int	char_len = (*mb_char2bytes)(c, p);
+#ifdef FEAT_GUI
+	int	save_gui_in_use = gui.in_use;
+
+	gui.in_use = FALSE;
+#endif
+	// if the character contains CSI or K_SPECIAL bytes they need escaping
+	len += fix_input_buffer(p, char_len);
+#ifdef FEAT_GUI
+	gui.in_use = save_gui_in_use;
+#endif
+    }
     (void)ins_typebuf(buf, KeyNoremap, 0, !KeyTyped, cmd_silent);
+    return len;
 }
 
 /*
@@ -1299,6 +1330,22 @@ gotchars(char_u *chars, int len)
     // Since characters have been typed, consider the following to be in
     // another mapping.  Search string will be kept in history.
     ++maptick;
+}
+
+/*
+ * Undo the last gotchars() for "len" bytes.  To be used when putting a typed
+ * character back into the typeahead buffer, thus gotchars() will be called
+ * again.
+ * Only affects recorded characters.
+ */
+    void
+ungetchars(int len)
+{
+    if (reg_recording != 0)
+    {
+	delete_buff_tail(&recordbuff, len);
+	last_recorded_len -= len;
+    }
 }
 
 /*
@@ -2429,7 +2476,7 @@ handle_mapping(
 	    && State != ASKMORE
 	    && State != CONFIRM
 	    && !((ctrl_x_mode_not_default() && at_ctrl_x_key())
-		    || ((compl_cont_status & CONT_LOCAL)
+		    || (compl_status_local()
 			&& (tb_c1 == Ctrl_N || tb_c1 == Ctrl_P))))
     {
 #ifdef FEAT_GUI
@@ -3620,7 +3667,6 @@ fix_input_buffer(char_u *buf, int len)
 	    p += 2;
 	    i -= 2;
 	}
-# ifndef MSWIN
 	// When the GUI is not used CSI needs to be escaped.
 	else if (!gui.in_use && p[0] == CSI)
 	{
@@ -3630,7 +3676,6 @@ fix_input_buffer(char_u *buf, int len)
 	    *p = (int)KE_CSI;
 	    len += 2;
 	}
-# endif
 	else
 #endif
 	if (p[0] == NUL || (p[0] == K_SPECIAL

@@ -15,8 +15,6 @@
 
 #if defined(FEAT_EVAL) || defined(PROTO)
 
-static char *e_listblobarg = N_("E899: Argument of %s must be a List or Blob");
-
 // List heads for garbage collection.
 static list_T		*first_list = NULL;	// list of all lists
 
@@ -1005,7 +1003,7 @@ flatten_common(typval_T *argvars, typval_T *rettv, int make_copy)
 	    return;
 	if (maxdepth < 0)
 	{
-	    emsg(_("E900: maxdepth must be non-negative number"));
+	    emsg(_(e_maxdepth_must_be_non_negative_number));
 	    return;
 	}
     }
@@ -1542,7 +1540,7 @@ eval_list(char_u **arg, typval_T *rettv, evalarg_T *evalarg, int do_error)
 		    semsg(_(e_no_white_space_allowed_before_str_str),
 								    ",", *arg);
 		else
-		    semsg(_("E696: Missing comma in List: %s"), *arg);
+		    semsg(_(e_missing_comma_in_list_str), *arg);
 	    }
 	    goto failret;
 	}
@@ -2002,7 +2000,7 @@ do_sort(list_T *l, sortinfo_T *info)
 		|| info->item_compare_partial != NULL)
 	    && item_compare2((void *)&ptrs[0], (void *)&ptrs[1])
 	    == ITEM_COMPARE_FAIL)
-	emsg(_("E702: Sort compare function failed"));
+	emsg(_(e_sort_compare_function_failed));
     else
     {
 	// Sort the array with item pointers.
@@ -2059,7 +2057,7 @@ do_uniq(list_T *l, sortinfo_T *info)
 	    ptrs[i++].item = li;
 	if (info->item_compare_func_err)
 	{
-	    emsg(_("E882: Uniq compare function failed"));
+	    emsg(_(e_uniq_compare_function_failed));
 	    break;
 	}
     }
@@ -2478,7 +2476,7 @@ filter_map(typval_T *argvars, typval_T *rettv, filtermap_T filtermap)
     {
 	// Check that map() does not change the type of the dict.
 	ga_init2(&type_list, sizeof(type_T *), 10);
-	type = typval2type(argvars, get_copyID(), &type_list, TRUE);
+	type = typval2type(argvars, get_copyID(), &type_list, TVTT_DO_MEMBER);
     }
 
     if (argvars[0].v_type != VAR_BLOB
@@ -2758,25 +2756,26 @@ list_extend_func(
 extend(typval_T *argvars, typval_T *rettv, char_u *arg_errmsg, int is_new)
 {
     type_T	*type = NULL;
-    garray_T	type_list;
     char	*func_name = is_new ? "extendnew()" : "extend()";
 
-    if (!is_new && in_vim9script())
-    {
-	// Check that map() does not change the type of the dict.
-	ga_init2(&type_list, sizeof(type_T *), 10);
-	type = typval2type(argvars, get_copyID(), &type_list, TRUE);
-    }
-
     if (argvars[0].v_type == VAR_LIST && argvars[1].v_type == VAR_LIST)
+    {
+	// Check that extend() does not change the type of the list if it was
+	// declared.
+	if (!is_new && in_vim9script() && argvars[0].vval.v_list != NULL)
+	    type = argvars[0].vval.v_list->lv_type;
 	list_extend_func(argvars, type, func_name, arg_errmsg, is_new, rettv);
+    }
     else if (argvars[0].v_type == VAR_DICT && argvars[1].v_type == VAR_DICT)
+    {
+	// Check that extend() does not change the type of the list if it was
+	// declared.
+	if (!is_new && in_vim9script() && argvars[0].vval.v_dict != NULL)
+	    type = argvars[0].vval.v_dict->dv_type;
 	dict_extend_func(argvars, type, func_name, arg_errmsg, is_new, rettv);
+    }
     else
 	semsg(_(e_argument_of_str_must_be_list_or_dictionary), func_name);
-
-    if (type != NULL)
-	clear_type_list(&type_list);
 }
 
 /*
@@ -2860,7 +2859,7 @@ f_insert(typval_T *argvars, typval_T *rettv)
     if (argvars[0].v_type == VAR_BLOB)
 	blob_insert_func(argvars, rettv);
     else if (argvars[0].v_type != VAR_LIST)
-	semsg(_(e_listblobarg), "insert()");
+	semsg(_(e_argument_of_str_must_be_list_or_blob), "insert()");
     else
 	list_insert_func(argvars, rettv);
 }
@@ -2938,7 +2937,7 @@ f_reverse(typval_T *argvars, typval_T *rettv)
     if (argvars[0].v_type == VAR_BLOB)
 	blob_reverse(argvars[0].vval.v_blob, rettv);
     else if (argvars[0].v_type != VAR_LIST)
-	semsg(_(e_listblobarg), "reverse()");
+	semsg(_(e_argument_of_str_must_be_list_or_blob), "reverse()");
     else
 	list_reverse(argvars[0].vval.v_list, rettv);
 }

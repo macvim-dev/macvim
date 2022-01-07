@@ -162,7 +162,6 @@ find_script_var(char_u *name, size_t len, cctx_T *cctx)
     hashitem_T	    *hi;
     int		    cc;
     sallvar_T	    *sav;
-    sallvar_T	    *found_sav;
     ufunc_T	    *ufunc;
 
     // Find the list of all script variables with the right name.
@@ -198,7 +197,6 @@ find_script_var(char_u *name, size_t len, cctx_T *cctx)
     // Go over the variables with this name and find one that was visible
     // from the function.
     ufunc = cctx->ctx_ufunc;
-    found_sav = sav;
     while (sav != NULL)
     {
 	int idx;
@@ -211,8 +209,8 @@ find_script_var(char_u *name, size_t len, cctx_T *cctx)
 	sav = sav->sav_next;
     }
 
-    // Not found, assume variable at script level was visible.
-    return found_sav;
+    // Not found, variable was not visible.
+    return NULL;
 }
 
 /*
@@ -1109,7 +1107,7 @@ get_var_dest(
 	*dest = dest_option;
 	if (cmdidx == CMD_final || cmdidx == CMD_const)
 	{
-	    emsg(_(e_cannot_lock_an_option));
+	    emsg(_(e_cannot_lock_option));
 	    return FAIL;
 	}
 	p = name;
@@ -1359,7 +1357,39 @@ compile_lhs(
 		    // existing script-local variables should have a type
 		    lhs->lhs_scriptvar_sid = current_sctx.sc_sid;
 		    if (import != NULL)
+		    {
+			char_u	*dot = vim_strchr(var_start, '.');
+			char_u	*p;
+
+			// for an import the name is what comes after the dot
+			if (dot == NULL)
+			{
+			    semsg(_(e_no_dot_after_imported_name_str),
+								    var_start);
+			    return FAIL;
+			}
+			p = skipwhite(dot + 1);
+			var_end = to_name_end(p, TRUE);
+			if (var_end == p)
+			{
+			    semsg(_(e_missing_name_after_imported_name_str),
+								    var_start);
+			    return FAIL;
+			}
+			vim_free(lhs->lhs_name);
+			lhs->lhs_varlen = var_end - p;
+			lhs->lhs_name = vim_strnsave(p, lhs->lhs_varlen);
+			if (lhs->lhs_name == NULL)
+			    return FAIL;
+			rawname = lhs->lhs_name;
 			lhs->lhs_scriptvar_sid = import->imp_sid;
+			// TODO: where do we check this name is exported?
+
+			// Check if something follows: "exp.var[idx]" or
+			// "exp.var.key".
+			lhs->lhs_has_index = lhs->lhs_dest_end
+							  > skipwhite(var_end);
+		    }
 		    if (SCRIPT_ID_VALID(lhs->lhs_scriptvar_sid))
 		    {
 			// Check writable only when no index follows.
@@ -1639,7 +1669,6 @@ compile_load_lhs(
 	int	    c = var_start[varlen];
 	int	    lines_len = cctx->ctx_ufunc->uf_lines.ga_len;
 	char_u	    *p = var_start;
-	garray_T    *stack = &cctx->ctx_type_stack;
 	int	    res;
 
 	// Evaluate "ll[expr]" of "ll[expr][idx]".  End the line with a NUL and
@@ -1657,8 +1686,8 @@ compile_load_lhs(
 	    return FAIL;
 	}
 
-	lhs->lhs_type = stack->ga_len == 0 ? &t_void
-			      : ((type_T **)stack->ga_data)[stack->ga_len - 1];
+	lhs->lhs_type = cctx->ctx_type_stack.ga_len == 0 ? &t_void
+						  : get_type_on_stack(cctx, 0);
 	// now we can properly check the type
 	if (rhs_type != NULL && lhs->lhs_type->tt_member != NULL
 		&& rhs_type != &t_void
@@ -1717,7 +1746,6 @@ compile_assign_unlet(
 	cctx_T	*cctx)
 {
     vartype_T	dest_type;
-    garray_T    *stack = &cctx->ctx_type_stack;
     int		range = FALSE;
 
     if (compile_assign_index(var_start, lhs, &range, cctx) == FAIL)
@@ -1753,12 +1781,12 @@ compile_assign_unlet(
 
 	    if (range)
 	    {
-		type = ((type_T **)stack->ga_data)[stack->ga_len - 2];
+		type = get_type_on_stack(cctx, 1);
 		if (need_type(type, &t_number,
 					    -1, 0, cctx, FALSE, FALSE) == FAIL)
 		return FAIL;
 	    }
-	    type = ((type_T **)stack->ga_data)[stack->ga_len - 1];
+	    type = get_type_on_stack(cctx, 0);
 	    if ((dest_type != VAR_BLOB && type != &t_special)
 		    && need_type(type, &t_number,
 					    -1, 0, cctx, FALSE, FALSE) == FAIL)
@@ -1837,7 +1865,6 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
     int		semicolon = 0;
     int		did_generate_slice = FALSE;
     garray_T	*instr = &cctx->ctx_instr;
-    garray_T    *stack = &cctx->ctx_type_stack;
     char_u	*op;
     int		oplen = 0;
     int		heredoc = FALSE;
@@ -1929,8 +1956,8 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	    int		needed_list_len;
 	    int		did_check = FALSE;
 
-	    stacktype = stack->ga_len == 0 ? &t_void
-			      : ((type_T **)stack->ga_data)[stack->ga_len - 1];
+	    stacktype = cctx->ctx_type_stack.ga_len == 0 ? &t_void
+						  : get_type_on_stack(cctx, 0);
 	    if (stacktype->tt_type == VAR_VOID)
 	    {
 		emsg(_(e_cannot_use_void_value));
@@ -2073,8 +2100,8 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 			goto theend;
 		}
 
-		rhs_type = stack->ga_len == 0 ? &t_void
-			      : ((type_T **)stack->ga_data)[stack->ga_len - 1];
+		rhs_type = cctx->ctx_type_stack.ga_len == 0 ? &t_void
+						  : get_type_on_stack(cctx, 0);
 		if (lhs.lhs_lvar != NULL && (is_decl || !lhs.lhs_has_type))
 		{
 		    if ((rhs_type->tt_type == VAR_FUNC
@@ -2230,7 +2257,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	    else
 	    {
 		expected = lhs.lhs_member_type;
-		stacktype = ((type_T **)stack->ga_data)[stack->ga_len - 1];
+		stacktype = get_type_on_stack(cctx, 0);
 		if (
 #ifdef FEAT_FLOAT
 		    // If variable is float operation with number is OK.
@@ -2282,19 +2309,12 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		// ":const var": lock the value, but not referenced variables
 		generate_LOCKCONST(cctx);
 
-	    if (is_decl
-		    && (lhs.lhs_type->tt_type == VAR_DICT
+	    if ((lhs.lhs_type->tt_type == VAR_DICT
 					  || lhs.lhs_type->tt_type == VAR_LIST)
 		    && lhs.lhs_type->tt_member != NULL
-		    && !(lhs.lhs_type->tt_member == &t_any
-			    && oplen > 0
-			    && rhs_type != NULL
-			    && rhs_type->tt_type == lhs.lhs_type->tt_type
-			    && rhs_type->tt_member != &t_unknown)
 		    && lhs.lhs_type->tt_member != &t_unknown)
 		// Set the type in the list or dict, so that it can be checked,
-		// also in legacy script.  Not for "list<any> = val", then the
-		// type of "val" is used.
+		// also in legacy script.
 		generate_SETTYPE(cctx, lhs.lhs_type);
 
 	    if (!skip_store && generate_store_lhs(cctx, &lhs,
@@ -2532,7 +2552,8 @@ compile_def_function(
     cctx.ctx_lnum = -1;
     cctx.ctx_outer = outer_cctx;
     ga_init2(&cctx.ctx_locals, sizeof(lvar_T), 10);
-    ga_init2(&cctx.ctx_type_stack, sizeof(type_T *), 50);
+    // Each entry on the type stack consists of two type pointers.
+    ga_init2(&cctx.ctx_type_stack, sizeof(type2_T), 50);
     ga_init2(&cctx.ctx_imports, sizeof(imported_T), 10);
     cctx.ctx_type_list = &ufunc->uf_type_list;
     ga_init2(&cctx.ctx_instr, sizeof(isn_T), 50);
@@ -2569,7 +2590,6 @@ compile_def_function(
 	SOURCING_LNUM = 0;  // line number unknown
 	for (i = 0; i < count; ++i)
 	{
-	    garray_T	*stack = &cctx.ctx_type_stack;
 	    type_T	*val_type;
 	    int		arg_idx = first_def_arg + i;
 	    where_T	where = WHERE_INIT;
@@ -2593,7 +2613,7 @@ compile_def_function(
 	    // If no type specified use the type of the default value.
 	    // Otherwise check that the default value type matches the
 	    // specified type.
-	    val_type = ((type_T **)stack->ga_data)[stack->ga_len - 1];
+	    val_type = get_type_on_stack(&cctx, 0);
 	    where.wt_index = arg_idx + 1;
 	    if (ufunc->uf_arg_types[arg_idx] == &t_unknown)
 	    {
@@ -2791,7 +2811,8 @@ compile_def_function(
 	cmd = ea.cmd;
 	if ((*cmd != '$' || starts_with_colon)
 		&& (starts_with_colon || !(*cmd == '\''
-		       || (cmd[0] == cmd[1] && (*cmd == '+' || *cmd == '-')))))
+		       || (cmd[0] != NUL && cmd[0] == cmd[1]
+					    && (*cmd == '+' || *cmd == '-')))))
 	{
 	    ea.cmd = skip_range(ea.cmd, TRUE, NULL);
 	    if (ea.cmd > cmd)

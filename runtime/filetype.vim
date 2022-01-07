@@ -497,7 +497,7 @@ au BufNewFile,BufRead */debian/patches/*	call dist#ft#Dep3patch()
 " Diff files
 au BufNewFile,BufRead *.diff,*.rej		setf diff
 au BufNewFile,BufRead *.patch
-	\ if getline(1) =~ '^From [0-9a-f]\{40\} Mon Sep 17 00:00:00 2001$' |
+	\ if getline(1) =~# '^From [0-9a-f]\{40,\} Mon Sep 17 00:00:00 2001$' |
 	\   setf gitsendemail |
 	\ else |
 	\   setf diff |
@@ -676,6 +676,7 @@ autocmd BufRead,BufNewFile *.gift		setf gift
 
 " Git
 au BufNewFile,BufRead COMMIT_EDITMSG,MERGE_MSG,TAG_EDITMSG	setf gitcommit
+au BufNewFile,BufRead NOTES_EDITMSG,EDIT_DESCRIPTION		setf gitcommit
 au BufNewFile,BufRead *.git/config,.gitconfig,/etc/gitconfig	setf gitconfig
 au BufNewFile,BufRead */.config/git/config			setf gitconfig
 au BufNewFile,BufRead .gitmodules,*.git/modules/*/config	setf gitconfig
@@ -684,12 +685,8 @@ if !empty($XDG_CONFIG_HOME)
 endif
 au BufNewFile,BufRead git-rebase-todo		setf gitrebase
 au BufRead,BufNewFile .gitsendemail.msg.??????	setf gitsendemail
-au BufNewFile,BufRead .msg.[0-9]*
-      \ if getline(1) =~ '^From.*# This line is ignored.$' |
-      \   setf gitsendemail |
-      \ endif
 au BufNewFile,BufRead *.git/*
-      \ if getline(1) =~ '^\x\{40\}\>\|^ref: ' |
+      \ if getline(1) =~# '^\x\{40,\}\>\|^ref: ' |
       \   setf git |
       \ endif
 
@@ -1778,8 +1775,8 @@ au BufNewFile,BufRead *.sqr,*.sqi		setf sqr
 au BufNewFile,BufRead *.nut			setf squirrel
 
 " OpenSSH configuration
-au BufNewFile,BufRead ssh_config,*/.ssh/config		setf sshconfig
-au BufNewFile,BufRead */etc/ssh/ssh_config.d/*.conf	setf sshconfig
+au BufNewFile,BufRead ssh_config,*/.ssh/config,*/.ssh/*.conf	setf sshconfig
+au BufNewFile,BufRead */etc/ssh/ssh_config.d/*.conf		setf sshconfig
 
 " OpenSSH server configuration
 au BufNewFile,BufRead sshd_config			setf sshdconfig

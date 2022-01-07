@@ -71,11 +71,6 @@ toggle_Magic(int x)
 
 #define MAX_LIMIT	(32767L << 16L)
 
-static char_u e_missingbracket[] = N_("E769: Missing ] after %s[");
-static char_u e_reverse_range[] = N_("E944: Reverse range in character class");
-static char_u e_large_class[] = N_("E945: Range too large in character class");
-static char_u e_recursive[]  = N_("E956: Cannot use pattern recursively");
-
 #define NOT_MULTI	0
 #define MULTI_ONE	1
 #define MULTI_MULT	2
@@ -552,7 +547,7 @@ skip_regexp_err(
 
     if (*p != delim)
     {
-	semsg(_("E654: missing delimiter after search pattern: %s"), startp);
+	semsg(_(e_missing_delimiter_after_search_pattern_str), startp);
 	return NULL;
     }
     return p;
@@ -1500,7 +1495,7 @@ re_mult_next(char *what)
 {
     if (re_multi_type(peekchr()) == MULTI_MULT)
     {
-       semsg(_("E888: (NFA regexp) cannot repeat %s"), what);
+       semsg(_(e_nfa_regexp_cannot_repeat_str), what);
        rc_did_emsg = TRUE;
        return FAIL;
     }
@@ -2643,7 +2638,7 @@ vim_regcomp(char_u *expr_arg, int re_flags)
 	}
 	else
 	{
-	    emsg(_("E864: \\%#= can only be followed by 0, 1, or 2. The automatic engine will be used "));
+	    emsg(_(e_percent_hash_can_only_be_followed_by_zero_one_two_automatic_engine_will_be_used));
 	    regexp_engine = AUTOMATIC_ENGINE;
 	}
     }
@@ -2779,7 +2774,7 @@ vim_regexec_string(
     // Cannot use the same prog recursively, it contains state.
     if (rmp->regprog->re_in_use)
     {
-	emsg(_(e_recursive));
+	emsg(_(e_cannot_use_pattern_recursively));
 	return FALSE;
     }
     rmp->regprog->re_in_use = TRUE;
@@ -2900,7 +2895,7 @@ vim_regexec_multi(
     // Cannot use the same prog recursively, it contains state.
     if (rmp->regprog->re_in_use)
     {
-	emsg(_(e_recursive));
+	emsg(_(e_cannot_use_pattern_recursively));
 	return FALSE;
     }
     rmp->regprog->re_in_use = TRUE;
