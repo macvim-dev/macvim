@@ -1241,8 +1241,8 @@ list_arg_vars(exarg_T *eap, char_u *arg, int *first)
 		{
 		    // handle d.key, l[idx], f(expr)
 		    arg_subsc = arg;
-		    if (handle_subscript(&arg, &tv, &EVALARG_EVALUATE, TRUE)
-								       == FAIL)
+		    if (handle_subscript(&arg, name_start, &tv,
+					      &EVALARG_EVALUATE, TRUE) == FAIL)
 			error = TRUE;
 		    else
 		    {
@@ -2685,14 +2685,14 @@ eval_variable(
 	char_u	    *p = STRNCMP(name, "s:", 2) == 0 ? name + 2 : name;
 
 	if (sid == 0)
-	    import = find_imported(p, 0, NULL);
+	    import = find_imported(p, 0, TRUE, NULL);
 
 	// imported variable from another script
 	if (import != NULL || sid != 0)
 	{
 	    if ((flags & EVAL_VAR_IMPORT) == 0)
 	    {
-		if (sid != 0 && SCRIPT_ID_VALID(sid))
+		if (SCRIPT_ID_VALID(sid))
 		{
 		    ht = &SCRIPT_VARS(sid);
 		    if (ht != NULL)
@@ -2880,6 +2880,39 @@ find_var(char_u *name, hashtab_T **htp, int no_autoload)
 }
 
 /*
+ * Like find_var() but if the name starts with <SNR>99_ then look in the
+ * referenced script (used for a funcref).
+ */
+    dictitem_T *
+find_var_also_in_script(char_u *name, hashtab_T **htp, int no_autoload)
+{
+    if (STRNCMP(name, "<SNR>", 5) == 0 && isdigit(name[5]))
+    {
+	char_u	    *p = name + 5;
+	int	    sid = getdigits(&p);
+
+	if (SCRIPT_ID_VALID(sid) && *p == '_')
+	{
+	    hashtab_T	*ht = &SCRIPT_VARS(sid);
+
+	    if (ht != NULL)
+	    {
+		dictitem_T *di = find_var_in_ht(ht, 0, p + 1, no_autoload);
+
+		if (di != NULL)
+		{
+		    if (htp != NULL)
+			*htp = ht;
+		    return di;
+		}
+	    }
+	}
+    }
+
+    return find_var(name, htp, no_autoload);
+}
+
+/*
  * Find variable "varname" in hashtab "ht" with name "htname".
  * When "varname" is empty returns curwin/curtab/etc vars dictionary.
  * Returns NULL if not found.
@@ -2984,7 +3017,7 @@ lookup_scriptitem(
     res = HASHITEM_EMPTY(hi) ? FAIL : OK;
 
     // if not script-local, then perhaps imported
-    if (res == FAIL && find_imported(p, 0, NULL) != NULL)
+    if (res == FAIL && find_imported(p, 0, FALSE, NULL) != NULL)
 	res = OK;
     if (p != buffer)
 	vim_free(p);
@@ -3357,7 +3390,7 @@ set_var_const(
 
     if (di == NULL && var_in_vim9script)
     {
-	imported_T  *import = find_imported(varname, 0, NULL);
+	imported_T  *import = find_imported(varname, 0, FALSE, NULL);
 
 	if (import != NULL)
 	{
@@ -3957,7 +3990,8 @@ var_exists(char_u *var)
 	{
 	    // handle d.key, l[idx], f(expr)
 	    arg = skipwhite(arg);
-	    n = (handle_subscript(&arg, &tv, &EVALARG_EVALUATE, FALSE) == OK);
+	    n = (handle_subscript(&arg, name, &tv, &EVALARG_EVALUATE,
+								 FALSE) == OK);
 	    if (n)
 		clear_tv(&tv);
 	}
@@ -3993,7 +4027,7 @@ clear_redir_lval(void)
     void
 init_redir_ga(void)
 {
-    ga_init2(&redir_ga, (int)sizeof(char), 500);
+    ga_init2(&redir_ga, sizeof(char), 500);
 }
 
 /*

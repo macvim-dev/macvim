@@ -2730,7 +2730,7 @@ read_viminfo_barline(vir_T *virp, int got_encoding, int force, int writing)
     {
 	// Continuation line of an unrecognized item.
 	if (writing)
-	    ga_add_string(&virp->vir_barlines, virp->vir_line);
+	    ga_copy_string(&virp->vir_barlines, virp->vir_line);
     }
     else
     {
@@ -2769,7 +2769,7 @@ read_viminfo_barline(vir_T *virp, int got_encoding, int force, int writing)
 	    default:
 		// copy unrecognized line (for future use)
 		if (writing)
-		    ga_add_string(&virp->vir_barlines, virp->vir_line);
+		    ga_copy_string(&virp->vir_barlines, virp->vir_line);
 	}
 	for (i = 0; i < values.ga_len; ++i)
 	{
@@ -2912,7 +2912,7 @@ do_viminfo(FILE *fp_in, FILE *fp_out, int flags)
 	return;
     vir.vir_fd = fp_in;
     vir.vir_conv.vc_type = CONV_NONE;
-    ga_init2(&vir.vir_barlines, (int)sizeof(char_u *), 100);
+    ga_init2(&vir.vir_barlines, sizeof(char_u *), 100);
     vir.vir_version = -1;
 
     if (fp_in != NULL)

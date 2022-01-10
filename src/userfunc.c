@@ -39,6 +39,7 @@ func_init()
     hash_init(&func_hashtab);
 }
 
+#if defined(FEAT_PROFILE) || defined(PROTO)
 /*
  * Return the function hash table
  */
@@ -47,6 +48,7 @@ func_tbl_get(void)
 {
     return &func_hashtab;
 }
+#endif
 
 /*
  * Get one function argument.
@@ -164,13 +166,13 @@ one_function_arg(
 
 /*
  * Handle line continuation in function arguments or body.
- * Get a next line, store it in "eap" if appropriate and use "line_to_free" to
- * handle freeing the line later.
+ * Get a next line, store it in "eap" if appropriate and put the line in
+ * "lines_to_free" to free the line later.
  */
     static char_u *
 get_function_line(
 	exarg_T		*eap,
-	char_u		**line_to_free,
+	garray_T	*lines_to_free,
 	int		indent,
 	getline_opt_T	getline_options)
 {
@@ -182,10 +184,11 @@ get_function_line(
 	theline = eap->getline(':', eap->cookie, indent, getline_options);
     if (theline != NULL)
     {
-	if (*eap->cmdlinep == *line_to_free)
+	if (lines_to_free->ga_len > 0
+		&& *eap->cmdlinep == ((char_u **)lines_to_free->ga_data)
+						   [lines_to_free->ga_len - 1])
 	    *eap->cmdlinep = theline;
-	vim_free(*line_to_free);
-	*line_to_free = theline;
+	ga_add_string(lines_to_free, theline);
     }
 
     return theline;
@@ -208,7 +211,7 @@ get_function_args(
     garray_T	*default_args,
     int		skip,
     exarg_T	*eap,
-    char_u	**line_to_free)
+    garray_T	*lines_to_free)
 {
     int		mustend = FALSE;
     char_u	*arg;
@@ -219,11 +222,11 @@ get_function_args(
     char_u	*whitep = *argp;
 
     if (newargs != NULL)
-	ga_init2(newargs, (int)sizeof(char_u *), 3);
+	ga_init2(newargs, sizeof(char_u *), 3);
     if (argtypes != NULL)
-	ga_init2(argtypes, (int)sizeof(char_u *), 3);
+	ga_init2(argtypes, sizeof(char_u *), 3);
     if (!skip && default_args != NULL)
-	ga_init2(default_args, (int)sizeof(char_u *), 3);
+	ga_init2(default_args, sizeof(char_u *), 3);
 
     if (varargs != NULL)
 	*varargs = FALSE;
@@ -239,7 +242,7 @@ get_function_args(
 			 && (*p == NUL || (VIM_ISWHITE(*whitep) && *p == '#')))
 	{
 	    // End of the line, get the next one.
-	    char_u *theline = get_function_line(eap, line_to_free, 0,
+	    char_u *theline = get_function_line(eap, lines_to_free, 0,
 							  GETLINE_CONCAT_CONT);
 
 	    if (theline == NULL)
@@ -675,7 +678,7 @@ get_function_body(
 	exarg_T	    *eap,
 	garray_T    *newlines,
 	char_u	    *line_arg_in,
-	char_u	    **line_to_free)
+	garray_T    *lines_to_free)
 {
     linenr_T	sourcing_lnum_top = SOURCING_LNUM;
     linenr_T	sourcing_lnum_off;
@@ -742,7 +745,7 @@ get_function_body(
 	}
 	else
 	{
-	    theline = get_function_line(eap, line_to_free, indent,
+	    theline = get_function_line(eap, lines_to_free, indent,
 							      getline_options);
 	}
 	if (KeyTyped)
@@ -852,14 +855,20 @@ get_function_body(
 		    {
 			// Another command follows. If the line came from "eap"
 			// we can simply point into it, otherwise we need to
-			// change "eap->cmdlinep".
+			// change "eap->cmdlinep" to point to the last fetched
+			// line.
 			eap->nextcmd = nextcmd;
-			if (*line_to_free != NULL
-					    && *eap->cmdlinep != *line_to_free)
+			if (lines_to_free->ga_len > 0
+				&& *eap->cmdlinep !=
+					    ((char_u **)lines_to_free->ga_data)
+						   [lines_to_free->ga_len - 1])
 			{
+			    // *cmdlinep will be freed later, thus remove the
+			    // line from lines_to_free.
 			    vim_free(*eap->cmdlinep);
-			    *eap->cmdlinep = *line_to_free;
-			    *line_to_free = NULL;
+			    *eap->cmdlinep = ((char_u **)lines_to_free->ga_data)
+						   [lines_to_free->ga_len - 1];
+			    --lines_to_free->ga_len;
 			}
 		    }
 		    break;
@@ -1116,7 +1125,6 @@ lambda_function_body(
     garray_T	newlines;
     char_u	*cmdline = NULL;
     int		ret = FAIL;
-    char_u	*line_to_free = NULL;
     partial_T	*pt;
     char_u	*name;
     int		lnum_save = -1;
@@ -1141,13 +1149,10 @@ lambda_function_body(
 	eap.cookie = evalarg->eval_cookie;
     }
 
-    ga_init2(&newlines, (int)sizeof(char_u *), 10);
-    if (get_function_body(&eap, &newlines, NULL, &line_to_free) == FAIL)
-    {
-	if (cmdline != line_to_free)
-	    vim_free(cmdline);
+    ga_init2(&newlines, sizeof(char_u *), 10);
+    if (get_function_body(&eap, &newlines, NULL,
+					     &evalarg->eval_tofree_ga) == FAIL)
 	goto erret;
-    }
 
     // When inside a lambda must add the function lines to evalarg.eval_ga.
     evalarg->eval_break_count += newlines.ga_len;
@@ -1206,8 +1211,6 @@ lambda_function_body(
 	{
 	    ((char_u **)(tfgap->ga_data))[tfgap->ga_len++] = cmdline;
 	    evalarg->eval_using_cmdline = TRUE;
-	    if (cmdline == line_to_free)
-		line_to_free = NULL;
 	}
     }
     else
@@ -1276,7 +1279,6 @@ lambda_function_body(
 erret:
     if (lnum_save >= 0)
 	SOURCING_LNUM = lnum_save;
-    vim_free(line_to_free);
     ga_clear_strings(&newlines);
     if (newargs != NULL)
 	ga_clear_strings(newargs);
@@ -1434,7 +1436,7 @@ get_lambda_tv(
 	if (pt == NULL)
 	    goto errret;
 
-	ga_init2(&newlines, (int)sizeof(char_u *), 1);
+	ga_init2(&newlines, sizeof(char_u *), 1);
 	if (ga_grow(&newlines, 1) == FAIL)
 	    goto errret;
 
@@ -1589,7 +1591,7 @@ deref_func_name(
     cc = name[*lenp];
     name[*lenp] = NUL;
 
-    v = find_var(name, &ht, no_autoload);
+    v = find_var_also_in_script(name, &ht, no_autoload);
     name[*lenp] = cc;
     if (v != NULL)
     {
@@ -1606,7 +1608,7 @@ deref_func_name(
 	    p = name + 2;
 	    len -= 2;
 	}
-	import = find_imported(p, len, NULL);
+	import = find_imported(p, len, FALSE, NULL);
 
 	// imported function from another script
 	if (import != NULL)
@@ -1758,7 +1760,7 @@ get_func_tv(
 	    // Prepare for calling test_garbagecollect_now(), need to know
 	    // what variables are used on the call stack.
 	    if (funcargs.ga_itemsize == 0)
-		ga_init2(&funcargs, (int)sizeof(typval_T *), 50);
+		ga_init2(&funcargs, sizeof(typval_T *), 50);
 	    for (i = 0; i < argcount; ++i)
 		if (ga_grow(&funcargs, 1) == OK)
 		    ((typval_T **)funcargs.ga_data)[funcargs.ga_len++] =
@@ -3955,10 +3957,11 @@ list_functions(regmatch_T *regmatch)
  * ":function" also supporting nested ":def".
  * When "name_arg" is not NULL this is a nested function, using "name_arg" for
  * the function name.
+ * "lines_to_free" is a list of strings to be freed later.
  * Returns a pointer to the function or NULL if no function defined.
  */
     ufunc_T *
-define_function(exarg_T *eap, char_u *name_arg, char_u **line_to_free)
+define_function(exarg_T *eap, char_u *name_arg, garray_T *lines_to_free)
 {
     int		j;
     int		c;
@@ -4076,6 +4079,9 @@ define_function(exarg_T *eap, char_u *name_arg, char_u **line_to_free)
 	    else
 		eap->skip = TRUE;
 	}
+
+//	if (is_export)
+//	    name = may_prefix_autoload(name);
     }
 
     // An error in a function call during evaluation of an expression in magic
@@ -4170,7 +4176,7 @@ define_function(exarg_T *eap, char_u *name_arg, char_u **line_to_free)
 	goto ret_free;
     }
 
-    ga_init2(&newlines, (int)sizeof(char_u *), 10);
+    ga_init2(&newlines, sizeof(char_u *), 10);
 
     if (!eap->skip && name_arg == NULL)
     {
@@ -4227,7 +4233,7 @@ define_function(exarg_T *eap, char_u *name_arg, char_u **line_to_free)
     if (get_function_args(&p, ')', &newargs,
 			eap->cmdidx == CMD_def ? &argtypes : NULL, FALSE,
 			 NULL, &varargs, &default_args, eap->skip,
-			 eap, line_to_free) == FAIL)
+			 eap, lines_to_free) == FAIL)
 	goto errret_2;
     whitep = p;
 
@@ -4337,7 +4343,7 @@ define_function(exarg_T *eap, char_u *name_arg, char_u **line_to_free)
 
     // Do not define the function when getting the body fails and when
     // skipping.
-    if (get_function_body(eap, &newlines, line_arg, line_to_free) == FAIL
+    if (get_function_body(eap, &newlines, line_arg, lines_to_free) == FAIL
 	    || eap->skip)
 	goto erret;
 
@@ -4360,7 +4366,7 @@ define_function(exarg_T *eap, char_u *name_arg, char_u **line_to_free)
 	{
 	    char_u *uname = untrans_function_name(name);
 
-	    import = find_imported(uname == NULL ? name : uname, 0, NULL);
+	    import = find_imported(uname == NULL ? name : uname, 0, FALSE, NULL);
 	}
 
 	if (fp != NULL || import != NULL)
@@ -4643,10 +4649,11 @@ ret_free:
     void
 ex_function(exarg_T *eap)
 {
-    char_u *line_to_free = NULL;
+    garray_T lines_to_free;
 
-    (void)define_function(eap, NULL, &line_to_free);
-    vim_free(line_to_free);
+    ga_init2(&lines_to_free, sizeof(char_u *), 50);
+    (void)define_function(eap, NULL, &lines_to_free);
+    ga_clear_strings(&lines_to_free);
 }
 
 /*
@@ -5170,7 +5177,7 @@ ex_call(exarg_T *eap)
 	    dbg_check_breakpoint(eap);
 
 	// Handle a function returning a Funcref, Dictionary or List.
-	if (handle_subscript(&arg, &rettv,
+	if (handle_subscript(&arg, NULL, &rettv,
 			   eap->skip ? NULL : &EVALARG_EVALUATE, TRUE) == FAIL)
 	{
 	    failed = TRUE;

@@ -3529,6 +3529,7 @@ execute_redir_str(char_u *value, int value_len)
     }
 }
 
+#if defined(FEAT_LUA) || defined(PROTO)
 /*
  * Get next line from a string containing NL separated lines.
  * Called by do_cmdline() to get the next line.
@@ -3570,6 +3571,7 @@ execute_cmds_from_string(char_u *str)
     do_cmdline(NULL, get_str_line, (void *)&str,
 	    DOCMD_NOWAIT|DOCMD_VERBOSE|DOCMD_REPEAT|DOCMD_KEYTYPED);
 }
+#endif
 
 /*
  * Get next line from a list.
@@ -3660,7 +3662,7 @@ execute_common(typval_T *argvars, typval_T *rettv, int arg_off)
 
     if (redir_execute)
 	save_ga = redir_execute_ga;
-    ga_init2(&redir_execute_ga, (int)sizeof(char), 500);
+    ga_init2(&redir_execute_ga, sizeof(char), 500);
     redir_execute = TRUE;
     redir_off = FALSE;
     if (!echo_output)

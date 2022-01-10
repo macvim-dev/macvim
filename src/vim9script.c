@@ -68,6 +68,9 @@ ex_vim9script(exarg_T *eap UNUSED)
 #ifdef FEAT_EVAL
     int		    sid = current_sctx.sc_sid;
     scriptitem_T    *si;
+    int		    found_noclear = FALSE;
+    int		    found_autoload = FALSE;
+    char_u	    *p;
 
     if (!getline_equal(eap->getline, eap->cookie, getsourceline))
     {
@@ -81,12 +84,40 @@ ex_vim9script(exarg_T *eap UNUSED)
 	emsg(_(e_vim9script_must_be_first_command_in_script));
 	return;
     }
-    if (!IS_WHITE_OR_NUL(*eap->arg) && STRCMP(eap->arg, "noclear") != 0)
+
+    for (p = eap->arg; !IS_WHITE_OR_NUL(*p); p = skipwhite(skiptowhite(p)))
     {
-	semsg(_(e_invalid_argument_str), eap->arg);
-	return;
+	if (STRNCMP(p, "noclear", 7) == 0 && IS_WHITE_OR_NUL(p[7]))
+	{
+	    if (found_noclear)
+	    {
+		semsg(_(e_duplicate_argument_str), p);
+		return;
+	    }
+	    found_noclear = TRUE;
+	}
+	else if (STRNCMP(p, "autoload", 8) == 0 && IS_WHITE_OR_NUL(p[8]))
+	{
+	    if (found_autoload)
+	    {
+		semsg(_(e_duplicate_argument_str), p);
+		return;
+	    }
+	    found_autoload = TRUE;
+	    if (script_name_after_autoload(si) == NULL)
+	    {
+		emsg(_(e_using_autoload_in_script_not_under_autoload_directory));
+		return;
+	    }
+	}
+	else
+	{
+	    semsg(_(e_invalid_argument_str), eap->arg);
+	    return;
+	}
     }
-    if (si->sn_state == SN_STATE_RELOAD && IS_WHITE_OR_NUL(*eap->arg))
+
+    if (si->sn_state == SN_STATE_RELOAD && !found_noclear)
     {
 	hashtab_T	*ht = &SCRIPT_VARS(sid);
 
@@ -100,6 +131,8 @@ ex_vim9script(exarg_T *eap UNUSED)
 	free_imports_and_script_vars(sid);
     }
     si->sn_state = SN_STATE_HAD_COMMAND;
+
+    si->sn_is_autoload = found_autoload;
 
     current_sctx.sc_version = SCRIPT_VERSION_VIM9;
     si->sn_version = SCRIPT_VERSION_VIM9;
@@ -115,6 +148,7 @@ ex_vim9script(exarg_T *eap UNUSED)
 #endif
 }
 
+#if defined(FEAT_EVAL) || defined(PROTO)
 /*
  * When in Vim9 script give an error and return FAIL.
  */
@@ -159,6 +193,7 @@ vim9_bad_comment(char_u *p)
     }
     return FALSE;
 }
+#endif
 
 /*
  * Return TRUE if "p" points at a "#" not followed by one '{'.
@@ -364,6 +399,7 @@ handle_import(
 {
     char_u	*arg = arg_start;
     char_u	*nextarg;
+    int		is_autoload = FALSE;
     int		getnext;
     char_u	*expr_end;
     int		ret = FAIL;
@@ -372,6 +408,14 @@ handle_import(
     int		sid = -1;
     int		res;
     long	start_lnum = SOURCING_LNUM;
+    garray_T	*import_gap;
+    int		i;
+
+    if (STRNCMP(arg, "autoload", 8) == 0 && VIM_ISWHITE(arg[8]))
+    {
+	is_autoload = TRUE;
+	arg = skipwhite(arg + 8);
+    }
 
     // The name of the file can be an expression, which must evaluate to a
     // string.
@@ -398,23 +442,48 @@ handle_import(
 	char_u		*tail = gettail(si->sn_name);
 	char_u		*from_name;
 
-	// Relative to current script: "./name.vim", "../../name.vim".
-	len = STRLEN(si->sn_name) - STRLEN(tail) + STRLEN(tv.vval.v_string) + 2;
-	from_name = alloc((int)len);
-	if (from_name == NULL)
-	    goto erret;
-	vim_strncpy(from_name, si->sn_name, tail - si->sn_name);
-	add_pathsep(from_name);
-	STRCAT(from_name, tv.vval.v_string);
-	simplify_filename(from_name);
+	if (is_autoload)
+	    res = FAIL;
+	else
+	{
 
-	res = do_source(from_name, FALSE, DOSO_NONE, &sid);
-	vim_free(from_name);
+	    // Relative to current script: "./name.vim", "../../name.vim".
+	    len = STRLEN(si->sn_name) - STRLEN(tail)
+						+ STRLEN(tv.vval.v_string) + 2;
+	    from_name = alloc((int)len);
+	    if (from_name == NULL)
+		goto erret;
+	    vim_strncpy(from_name, si->sn_name, tail - si->sn_name);
+	    add_pathsep(from_name);
+	    STRCAT(from_name, tv.vval.v_string);
+	    simplify_filename(from_name);
+
+	    res = do_source(from_name, FALSE, DOSO_NONE, &sid);
+	    vim_free(from_name);
+	}
     }
     else if (mch_isFullName(tv.vval.v_string))
     {
 	// Absolute path: "/tmp/name.vim"
-	res = do_source(tv.vval.v_string, FALSE, DOSO_NONE, &sid);
+	if (is_autoload)
+	    res = FAIL;
+	else
+	    res = do_source(tv.vval.v_string, FALSE, DOSO_NONE, &sid);
+    }
+    else if (is_autoload)
+    {
+	size_t	    len = 9 + STRLEN(tv.vval.v_string) + 1;
+	char_u	    *from_name;
+
+	// Find file in "autoload" subdirs in 'runtimepath'.
+	from_name = alloc((int)len);
+	if (from_name == NULL)
+	    goto erret;
+	vim_snprintf((char *)from_name, len, "autoload/%s", tv.vval.v_string);
+	// we need a scriptitem without loading the script
+	sid = find_script_in_rtp(from_name);
+	vim_free(from_name);
+	res = SCRIPT_ID_VALID(sid) ? OK : FAIL;
     }
     else
     {
@@ -424,9 +493,7 @@ handle_import(
 	// Find file in "import" subdirs in 'runtimepath'.
 	from_name = alloc((int)len);
 	if (from_name == NULL)
-	{
 	    goto erret;
-	}
 	vim_snprintf((char *)from_name, len, "import/%s", tv.vval.v_string);
 	res = source_in_path(p_rtp, from_name, DIP_NOAFTER, &sid);
 	vim_free(from_name);
@@ -434,8 +501,28 @@ handle_import(
 
     if (res == FAIL || sid <= 0)
     {
-	semsg(_(e_could_not_import_str), tv.vval.v_string);
+	semsg(_(is_autoload && sid <= 0
+		    ? e_autoload_import_cannot_use_absolute_or_relative_path
+		    : e_could_not_import_str), tv.vval.v_string);
 	goto erret;
+    }
+
+    import_gap = gap != NULL ? gap : &SCRIPT_ITEM(import_sid)->sn_imports;
+    for (i = 0; i < import_gap->ga_len; ++i)
+    {
+	imported_T *import = (imported_T *)import_gap->ga_data + i;
+
+	if (import->imp_sid == sid)
+	{
+	    if (import->imp_flags & IMP_FLAGS_RELOAD)
+	    {
+		// encountering same script first time on a reload is OK
+		import->imp_flags &= ~IMP_FLAGS_RELOAD;
+		break;
+	    }
+	    semsg(_(e_cannot_import_same_script_twice_str), tv.vval.v_string);
+	    goto erret;
+	}
     }
 
     // Allow for the "as Name" to be in the next line.
@@ -474,10 +561,14 @@ handle_import(
 	    semsg(_(e_trailing_characters_str), expr_end);
 	    goto erret;
 	}
-
-	if (end == NULL)
+	if (end == NULL || end[4] != NUL)
 	{
-	    semsg(_(e_imported_script_must_end_in_dot_vim_str), p);
+	    semsg(_(e_imported_script_must_use_as_or_end_in_dot_vim_str), p);
+	    goto erret;
+	}
+	if (end == p)
+	{
+	    semsg(_(e_cannot_import_dot_vim_without_using_as), p);
 	    goto erret;
 	}
 	as_name = vim_strnsave(p, end - p);
@@ -487,28 +578,24 @@ handle_import(
     {
 	imported_T  *imported;
 
-	imported = find_imported(as_name, STRLEN(as_name), cctx);
-	if (imported != NULL && imported->imp_sid == sid)
+	imported = find_imported(as_name, FALSE, STRLEN(as_name), cctx);
+	if (imported != NULL && imported->imp_sid != sid)
 	{
-	    if (imported->imp_flags & IMP_FLAGS_RELOAD)
-		// import already defined on a previous script load
-		imported->imp_flags &= ~IMP_FLAGS_RELOAD;
-	    else
-	    {
-		semsg(_(e_name_already_defined_str), as_name);
-		goto erret;
-	    }
+	    semsg(_(e_name_already_defined_str), as_name);
+	    goto erret;
 	}
-	else if (check_defined(as_name, STRLEN(as_name), cctx, FALSE) == FAIL)
+	else if (imported == NULL
+		&& check_defined(as_name, STRLEN(as_name), cctx, FALSE) == FAIL)
 	    goto erret;
 
-	imported = new_imported(gap != NULL ? gap
-					: &SCRIPT_ITEM(import_sid)->sn_imports);
+	imported = new_imported(import_gap);
 	if (imported == NULL)
 	    goto erret;
 	imported->imp_name = as_name;
 	as_name = NULL;
 	imported->imp_sid = sid;
+	if (is_autoload)
+	    imported->imp_flags = IMP_FLAGS_AUTOLOAD;
     }
 
 erret:

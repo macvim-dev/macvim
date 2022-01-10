@@ -319,6 +319,7 @@ get_user_commands(expand_T *xp UNUSED, int idx)
     return NULL;
 }
 
+#ifdef FEAT_EVAL
 /*
  * Get the name of user command "idx".  "cmdidx" can be CMD_USER or
  * CMD_USER_BUF.
@@ -343,6 +344,7 @@ get_user_command_name(int idx, int cmdidx)
     }
     return NULL;
 }
+#endif
 
 /*
  * Function given to ExpandGeneric() to obtain the list of user address type
@@ -394,6 +396,7 @@ get_user_cmd_complete(expand_T *xp UNUSED, int idx)
     return (char_u *)command_complete[idx].name;
 }
 
+#ifdef FEAT_EVAL
     int
 cmdcomplete_str_to_type(char_u *complete_str)
 {
@@ -405,6 +408,7 @@ cmdcomplete_str_to_type(char_u *complete_str)
 
     return EXPAND_NOTHING;
 }
+#endif
 
 /*
  * List user commands starting with "name[name_len]".
@@ -913,7 +917,7 @@ uc_add_command(
     {
 	gap = &curbuf->b_ucmds;
 	if (gap->ga_itemsize == 0)
-	    ga_init2(gap, (int)sizeof(ucmd_T), 4);
+	    ga_init2(gap, sizeof(ucmd_T), 4);
     }
     else
 	gap = &ucmds;
@@ -1017,7 +1021,7 @@ may_get_cmd_block(exarg_T *eap, char_u *p, char_u **tofree, int *flags)
 	char_u	    *line = NULL;
 
 	ga_init2(&ga, sizeof(char_u *), 10);
-	if (ga_add_string(&ga, p) == FAIL)
+	if (ga_copy_string(&ga, p) == FAIL)
 	    return retp;
 
 	// If the argument ends in "}" it must have been concatenated already
@@ -1034,7 +1038,7 @@ may_get_cmd_block(exarg_T *eap, char_u *p, char_u **tofree, int *flags)
 		    emsg(_(e_missing_rcurly));
 		    break;
 		}
-		if (ga_add_string(&ga, line) == FAIL)
+		if (ga_copy_string(&ga, line) == FAIL)
 		    break;
 		if (*skipwhite(line) == '}')
 		    break;

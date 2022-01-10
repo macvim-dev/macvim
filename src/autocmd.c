@@ -1425,8 +1425,6 @@ ex_doautoall(exarg_T *eap)
 	if (call_do_modelines && did_aucmd)
 	    do_modelines(0);
     }
-
-    check_cursor();	    // just in case lines got deleted
 }
 
 /*
@@ -1533,6 +1531,10 @@ aucmd_prepbuf(
     curbuf = buf;
     aco->new_curwin_id = curwin->w_id;
     set_bufref(&aco->new_curbuf, curbuf);
+
+    // disable the Visual area, the position may be invalid in another buffer
+    aco->save_VIsual_active = VIsual_active;
+    VIsual_active = FALSE;
 }
 
 /*
@@ -1657,6 +1659,11 @@ win_found:
 	    check_cursor();
 	}
     }
+
+    check_cursor();	    // just in case lines got deleted
+    VIsual_active = aco->save_VIsual_active;
+    if (VIsual_active)
+	check_pos(curbuf, &VIsual);
 }
 
 static int	autocmd_nested = FALSE;

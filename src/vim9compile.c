@@ -268,7 +268,7 @@ variable_exists(char_u *name, size_t len, cctx_T *cctx)
 		&& (lookup_local(name, len, NULL, cctx) == OK
 		    || arg_exists(name, len, NULL, NULL, NULL, cctx) == OK))
 	    || script_var_exists(name, len, cctx) == OK
-	    || find_imported(name, len, cctx) != NULL;
+	    || find_imported(name, len, FALSE, cctx) != NULL;
 }
 
 /*
@@ -331,7 +331,7 @@ check_defined(char_u *p, size_t len, cctx_T *cctx, int is_arg)
     if ((cctx != NULL
 		&& (lookup_local(p, len, NULL, cctx) == OK
 		    || arg_exists(p, len, NULL, NULL, NULL, cctx) == OK))
-	    || find_imported(p, len, cctx) != NULL
+	    || find_imported(p, len, FALSE, cctx) != NULL
 	    || (ufunc = find_func_even_dead(p, FALSE, cctx)) != NULL)
     {
 	// A local or script-local function can shadow a global function.
@@ -557,33 +557,7 @@ get_script_item_idx(int sid, char_u *name, int check_writable, cctx_T *cctx)
     return -1;
 }
 
-/*
- * Find "name" in imported items of the current script or in "cctx" if not
- * NULL.
- */
-    imported_T *
-find_imported(char_u *name, size_t len, cctx_T *cctx)
-{
-    int		    idx;
-
-    if (!SCRIPT_ID_VALID(current_sctx.sc_sid))
-	return NULL;
-    if (cctx != NULL)
-	for (idx = 0; idx < cctx->ctx_imports.ga_len; ++idx)
-	{
-	    imported_T *import = ((imported_T *)cctx->ctx_imports.ga_data)
-									 + idx;
-
-	    if (len == 0 ? STRCMP(name, import->imp_name) == 0
-			 : STRLEN(import->imp_name) == len
-				  && STRNCMP(name, import->imp_name, len) == 0)
-		return import;
-	}
-
-    return find_imported_in_script(name, len, current_sctx.sc_sid);
-}
-
-    imported_T *
+    static imported_T *
 find_imported_in_script(char_u *name, size_t len, int sid)
 {
     scriptitem_T    *si;
@@ -602,6 +576,47 @@ find_imported_in_script(char_u *name, size_t len, int sid)
 	    return import;
     }
     return NULL;
+}
+
+/*
+ * Find "name" in imported items of the current script or in "cctx" if not
+ * NULL.
+ * If "load" is TRUE and the script was not loaded yet, load it now.
+ */
+    imported_T *
+find_imported(char_u *name, size_t len, int load, cctx_T *cctx)
+{
+    int		    idx;
+    imported_T	    *ret = NULL;
+
+    if (!SCRIPT_ID_VALID(current_sctx.sc_sid))
+	return NULL;
+    if (cctx != NULL)
+	for (idx = 0; idx < cctx->ctx_imports.ga_len; ++idx)
+	{
+	    imported_T *import = ((imported_T *)cctx->ctx_imports.ga_data)
+									 + idx;
+
+	    if (len == 0 ? STRCMP(name, import->imp_name) == 0
+			 : STRLEN(import->imp_name) == len
+				  && STRNCMP(name, import->imp_name, len) == 0)
+	    {
+		ret = import;
+		break;
+	    }
+	}
+
+    if (ret == NULL)
+	ret = find_imported_in_script(name, len, current_sctx.sc_sid);
+
+    if (ret != NULL && load && ret->imp_flags == IMP_FLAGS_AUTOLOAD)
+    {
+	// script found before but not loaded yet
+	ret->imp_flags = 0;
+	(void)do_source(SCRIPT_ITEM(ret->imp_sid)->sn_name, FALSE,
+							      DOSO_NONE, NULL);
+    }
+    return ret;
 }
 
 /*
@@ -810,7 +825,7 @@ func_needs_compiling(ufunc_T *ufunc, compiletype_T compile_type)
  * Compile a nested :def command.
  */
     static char_u *
-compile_nested_function(exarg_T *eap, cctx_T *cctx, char_u **line_to_free)
+compile_nested_function(exarg_T *eap, cctx_T *cctx, garray_T *lines_to_free)
 {
     int		is_global = *eap->arg == 'g' && eap->arg[1] == ':';
     char_u	*name_start = eap->arg;
@@ -876,7 +891,7 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx, char_u **line_to_free)
 	goto theend;
     }
 
-    ufunc = define_function(eap, lambda_name, line_to_free);
+    ufunc = define_function(eap, lambda_name, lines_to_free);
     if (ufunc == NULL)
     {
 	r = eap->skip ? OK : FAIL;
@@ -1326,7 +1341,7 @@ compile_lhs(
 			  : script_var_exists(var_start, lhs->lhs_varlen,
 								  cctx)) == OK;
 		imported_T  *import =
-			       find_imported(var_start, lhs->lhs_varlen, cctx);
+			find_imported(var_start, lhs->lhs_varlen, FALSE, cctx);
 
 		if (script_namespace || script_var || import != NULL)
 		{
@@ -2496,7 +2511,7 @@ compile_def_function(
 	cctx_T		*outer_cctx)
 {
     char_u	*line = NULL;
-    char_u	*line_to_free = NULL;
+    garray_T	lines_to_free;
     char_u	*p;
     char	*errormsg = NULL;	// error message
     cctx_T	cctx;
@@ -2513,6 +2528,9 @@ compile_def_function(
     int		prof_lnum = -1;
 #endif
     int		debug_lnum = -1;
+
+    // allocated lines are freed at the end
+    ga_init2(&lines_to_free, sizeof(char_u *), 50);
 
     // When using a function that was compiled before: Free old instructions.
     // The index is reused.  Otherwise add a new entry in "def_functions".
@@ -2681,8 +2699,8 @@ compile_def_function(
 	    if (line != NULL)
 	    {
 		line = vim_strsave(line);
-		vim_free(line_to_free);
-		line_to_free = line;
+		if (ga_add_string(&lines_to_free, line) == FAIL)
+		    goto erret;
 	    }
 	}
 
@@ -2926,7 +2944,7 @@ compile_def_function(
 	    case CMD_def:
 	    case CMD_function:
 		    ea.arg = p;
-		    line = compile_nested_function(&ea, &cctx, &line_to_free);
+		    line = compile_nested_function(&ea, &cctx, &lines_to_free);
 		    break;
 
 	    case CMD_return:
@@ -3236,7 +3254,7 @@ erret:
     if (do_estack_push)
 	estack_pop();
 
-    vim_free(line_to_free);
+    ga_clear_strings(&lines_to_free);
     free_imported(&cctx);
     free_locals(&cctx);
     ga_clear(&cctx.ctx_type_stack);

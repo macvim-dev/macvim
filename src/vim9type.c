@@ -375,7 +375,7 @@ typval2type_int(typval_T *tv, int copyID, garray_T *type_gap, int flags)
 		set_function_type(ufunc);
 	    if (ufunc->uf_func_type != NULL)
 	    {
-		if (tv->v_type == VAR_PARTIAL
+		if (tv->v_type == VAR_PARTIAL && tv->vval.v_partial != NULL
 					    && tv->vval.v_partial->pt_argc > 0)
 		{
 		    type = get_type_ptr(type_gap);
@@ -529,12 +529,6 @@ check_typval_type(type_T *expected, typval_T *actual_tv, where_T where)
     }
     clear_type_list(&type_list);
     return res;
-}
-
-    void
-type_mismatch(type_T *expected, type_T *actual)
-{
-    arg_type_mismatch(expected, actual, 0);
 }
 
     void

@@ -320,7 +320,7 @@ tv_get_float_chk(typval_T *varp, int *error)
 	    emsg(_(e_using_dictionary_as_float));
 	    break;
 	case VAR_BOOL:
-	    emsg(_(e_using_boolean_valud_as_float));
+	    emsg(_(e_using_boolean_value_as_float));
 	    break;
 	case VAR_SPECIAL:
 	    emsg(_(e_using_special_value_as_float));
@@ -528,6 +528,7 @@ check_for_opt_dict_arg(typval_T *args, int idx)
 	    || check_for_dict_arg(args, idx) != FAIL);
 }
 
+#if defined(FEAT_JOB_CHANNEL) || defined(PROTO)
 /*
  * Give an error and return FAIL unless "args[idx]" is a channel or a job.
  */
@@ -576,6 +577,7 @@ check_for_opt_job_arg(typval_T *args, int idx)
     return (args[idx].v_type == VAR_UNKNOWN
 	    || check_for_job_arg(args, idx) != FAIL);
 }
+#endif
 
 /*
  * Give an error and return FAIL unless "args[idx]" is a string or
@@ -642,6 +644,7 @@ check_for_opt_lnum_arg(typval_T *args, int idx)
 	    || check_for_lnum_arg(args, idx));
 }
 
+#if defined(FEAT_JOB_CHANNEL) || defined(PROTO)
 /*
  * Give an error and return FAIL unless "args[idx]" is a string or a blob.
  */
@@ -655,6 +658,7 @@ check_for_string_or_blob_arg(typval_T *args, int idx)
     }
     return OK;
 }
+#endif
 
 /*
  * Give an error and return FAIL unless "args[idx]" is a string or a list.

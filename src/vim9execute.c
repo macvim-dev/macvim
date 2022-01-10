@@ -174,7 +174,7 @@ static garray_T dict_stack = GA_EMPTY;
 dict_stack_save(typval_T *tv)
 {
     if (dict_stack.ga_growsize == 0)
-	ga_init2(&dict_stack, (int)sizeof(typval_T), 10);
+	ga_init2(&dict_stack, sizeof(typval_T), 10);
     if (ga_grow(&dict_stack, 1) == FAIL)
 	return FAIL;
     ((typval_T *)dict_stack.ga_data)[dict_stack.ga_len] = *tv;
@@ -3344,13 +3344,14 @@ exec_instructions(ectx_T *ectx)
 		    list_functions(NULL);
 		else
 		{
-		    exarg_T ea;
-		    char_u  *line_to_free = NULL;
+		    exarg_T	ea;
+		    garray_T	lines_to_free;
 
 		    CLEAR_FIELD(ea);
 		    ea.cmd = ea.arg = iptr->isn_arg.string;
-		    define_function(&ea, NULL, &line_to_free);
-		    vim_free(line_to_free);
+		    ga_init2(&lines_to_free, sizeof(char_u *), 50);
+		    define_function(&ea, NULL, &lines_to_free);
+		    ga_clear_strings(&lines_to_free);
 		}
 		break;
 
