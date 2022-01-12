@@ -707,13 +707,26 @@ f_win_execute(typval_T *argvars, typval_T *rettv)
     {
 	pos_T	curpos = wp->w_cursor;
 	char_u	cwd[MAXPATHL];
-	int	cwd_status;
+	int	cwd_status = FAIL;
 #ifdef FEAT_AUTOCHDIR
 	char_u	autocwd[MAXPATHL];
 	int	apply_acd = FALSE;
 #endif
 
-	cwd_status = mch_dirname(cwd, MAXPATHL);
+	// Getting and setting directory can be slow on some systems, only do
+	// this when the current or target window/tab have a local directory or
+	// 'acd' is set.
+	if (curwin != wp
+		&& (curwin->w_localdir != NULL
+		    || wp->w_localdir != NULL
+		    || (curtab != tp
+			&& (curtab->tp_localdir != NULL
+			    || tp->tp_localdir != NULL))
+#ifdef FEAT_AUTOCHDIR
+		    || p_acd
+#endif
+		    ))
+	    cwd_status = mch_dirname(cwd, MAXPATHL);
 
 #ifdef FEAT_AUTOCHDIR
 	// If 'acd' is set, check we are using that directory.  If yes, then
@@ -833,6 +846,56 @@ f_win_id2win(typval_T *argvars, typval_T *rettv)
 	return;
 
     rettv->vval.v_number = win_id2win(argvars);
+}
+
+/*
+ * "win_move_separator()" function
+ */
+    void
+f_win_move_separator(typval_T *argvars, typval_T *rettv)
+{
+    win_T	*wp;
+    int		offset;
+
+    rettv->vval.v_number = FALSE;
+
+    if (in_vim9script()
+	    && (check_for_number_arg(argvars, 0) == FAIL
+		|| check_for_number_arg(argvars, 1) == FAIL))
+	return;
+
+    wp = find_win_by_nr_or_id(&argvars[0]);
+    if (wp == NULL || win_valid_popup(wp))
+	return;
+
+    offset = (int)tv_get_number(&argvars[1]);
+    win_drag_vsep_line(wp, offset);
+    rettv->vval.v_number = TRUE;
+}
+
+/*
+ * "win_move_statusline()" function
+ */
+    void
+f_win_move_statusline(typval_T *argvars, typval_T *rettv)
+{
+    win_T	*wp;
+    int		offset;
+
+    rettv->vval.v_number = FALSE;
+
+    if (in_vim9script()
+	    && (check_for_number_arg(argvars, 0) == FAIL
+		|| check_for_number_arg(argvars, 1) == FAIL))
+	return;
+
+    wp = find_win_by_nr_or_id(&argvars[0]);
+    if (wp == NULL || win_valid_popup(wp))
+	return;
+
+    offset = (int)tv_get_number(&argvars[1]);
+    win_drag_status_line(wp, offset);
+    rettv->vval.v_number = TRUE;
 }
 
 /*

@@ -2798,7 +2798,6 @@ handle_mapping(
 	int	save_m_noremap;
 	int	save_m_silent;
 	char_u	*save_m_keys;
-	char_u	*save_m_str;
 #else
 # define save_m_noremap mp->m_noremap
 # define save_m_silent mp->m_silent
@@ -2847,7 +2846,6 @@ handle_mapping(
 	save_m_noremap = mp->m_noremap;
 	save_m_silent = mp->m_silent;
 	save_m_keys = NULL;  // only saved when needed
-	save_m_str = NULL;  // only saved when needed
 
 	/*
 	 * Handle ":map <expr>": evaluate the {rhs} as an expression.  Also
@@ -2864,8 +2862,7 @@ handle_mapping(
 	    may_garbage_collect = FALSE;
 
 	    save_m_keys = vim_strsave(mp->m_keys);
-	    save_m_str = vim_strsave(mp->m_str);
-	    map_str = eval_map_expr(save_m_str, NUL);
+	    map_str = eval_map_expr(mp, NUL);
 
 	    // The mapping may do anything, but we expect it to take care of
 	    // redrawing.  Do put the cursor back where it was.
@@ -2913,7 +2910,6 @@ handle_mapping(
 	}
 #ifdef FEAT_EVAL
 	vim_free(save_m_keys);
-	vim_free(save_m_str);
 #endif
 	*keylenp = keylen;
 	if (i == FAIL)

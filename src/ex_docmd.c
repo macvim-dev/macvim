@@ -2380,7 +2380,10 @@ do_one_cmd(
 	else
 	{
 	    ea.line1 = ea.line2;
-	    ea.line2 += n - 1;
+	    if (ea.line2 >= LONG_MAX - (n - 1))
+	        ea.line2 = LONG_MAX;  // avoid overflow
+	    else
+		ea.line2 += n - 1;
 	    ++ea.addr_count;
 	    /*
 	     * Be vi compatible: no error message for out of range.
