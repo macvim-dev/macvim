@@ -132,8 +132,9 @@ ex_vim9script(exarg_T *eap UNUSED)
     }
     si->sn_state = SN_STATE_HAD_COMMAND;
 
-    // Store the prefix with the script.  It isused to find exported functions.
-    si->sn_autoload_prefix = get_autoload_prefix(si);
+    // Store the prefix with the script, it is used to find exported functions.
+    if (si->sn_autoload_prefix == NULL)
+	si->sn_autoload_prefix = get_autoload_prefix(si);
 
     current_sctx.sc_version = SCRIPT_VERSION_VIM9;
     si->sn_version = SCRIPT_VERSION_VIM9;
@@ -250,6 +251,8 @@ ex_incdec(exarg_T *eap)
     void
 ex_export(exarg_T *eap)
 {
+    int	    prev_did_emsg = did_emsg;
+
     if (!in_vim9script())
     {
 	emsg(_(e_export_can_only_be_used_in_vim9script));
@@ -273,12 +276,14 @@ ex_export(exarg_T *eap)
 	    // The command will reset "is_export" when exporting an item.
 	    if (is_export)
 	    {
-		emsg(_(e_export_with_invalid_argument));
+		if (did_emsg == prev_did_emsg)
+		    emsg(_(e_export_with_invalid_argument));
 		is_export = FALSE;
 	    }
 	    break;
 	default:
-	    emsg(_(e_invalid_command_after_export));
+	    if (did_emsg == prev_did_emsg)
+		emsg(_(e_invalid_command_after_export));
 	    break;
     }
 }
@@ -484,7 +489,19 @@ handle_import(
 	// we need a scriptitem without loading the script
 	sid = find_script_in_rtp(from_name);
 	vim_free(from_name);
-	res = SCRIPT_ID_VALID(sid) ? OK : FAIL;
+	if (SCRIPT_ID_VALID(sid))
+	{
+	    scriptitem_T    *si = SCRIPT_ITEM(sid);
+
+	    if (si->sn_autoload_prefix == NULL)
+		si->sn_autoload_prefix = get_autoload_prefix(si);
+	    res = OK;
+	    if (override_autoload && si->sn_state == SN_STATE_NOT_LOADED)
+		// testing override: load autoload script right away
+		(void)do_source(si->sn_name, FALSE, DOSO_NONE, NULL);
+	}
+	else
+	    res = FAIL;
     }
     else
     {
@@ -589,14 +606,17 @@ handle_import(
 		&& check_defined(as_name, STRLEN(as_name), cctx, FALSE) == FAIL)
 	    goto erret;
 
-	imported = new_imported(import_gap);
 	if (imported == NULL)
-	    goto erret;
-	imported->imp_name = as_name;
-	as_name = NULL;
-	imported->imp_sid = sid;
-	if (is_autoload)
-	    imported->imp_flags = IMP_FLAGS_AUTOLOAD;
+	{
+	    imported = new_imported(import_gap);
+	    if (imported == NULL)
+		goto erret;
+	    imported->imp_name = as_name;
+	    as_name = NULL;
+	    imported->imp_sid = sid;
+	    if (is_autoload)
+		imported->imp_flags = IMP_FLAGS_AUTOLOAD;
+	}
     }
 
 erret:
@@ -695,7 +715,7 @@ find_exported(
 	    funcname[2] = (int)KE_SNR;
 	    sprintf((char *)funcname + 3, "%ld_%s", (long)sid, name);
 	}
-	*ufunc = find_func(funcname, FALSE, NULL);
+	*ufunc = find_func(funcname, FALSE);
 	if (funcname != buffer)
 	    vim_free(funcname);
 

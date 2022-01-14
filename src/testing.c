@@ -1055,6 +1055,8 @@ f_test_override(typval_T *argvars, typval_T *rettv UNUSED)
 	    reset_term_props_on_termresponse = val;
 	else if (STRCMP(name, (char_u *)"uptime") == 0)
 	    override_sysinfo_uptime = val;
+	else if (STRCMP(name, (char_u *)"autoload") == 0)
+	    override_autoload = val;
 	else if (STRCMP(name, (char_u *)"ALL") == 0)
 	{
 	    disable_char_avail_for_testing = FALSE;
@@ -1113,7 +1115,7 @@ f_test_refcount(typval_T *argvars, typval_T *rettv)
 	    {
 		ufunc_T *fp;
 
-		fp = find_func(argvars[0].vval.v_string, FALSE, NULL);
+		fp = find_func(argvars[0].vval.v_string, FALSE);
 		if (fp != NULL)
 		    retval = fp->uf_refcount;
 	    }

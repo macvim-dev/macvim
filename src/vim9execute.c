@@ -1007,7 +1007,7 @@ call_by_name(
 	return call_bfunc(func_idx, argcount, ectx);
     }
 
-    ufunc = find_func(name, FALSE, NULL);
+    ufunc = find_func(name, FALSE);
 
     if (ufunc == NULL)
     {
@@ -1015,7 +1015,7 @@ call_by_name(
 
 	if (script_autoload(name, TRUE))
 	    // loaded a package, search for the function again
-	    ufunc = find_func(name, FALSE, NULL);
+	    ufunc = find_func(name, FALSE);
 
 	if (vim9_aborting(prev_uncaught_emsg))
 	    return FAIL;  // bail out if loading the script caused an error
@@ -2227,6 +2227,16 @@ exec_instructions(ectx_T *ectx)
 		    }
 		    di = find_var_in_ht(ht, 0, iptr->isn_arg.string, TRUE);
 
+		    if (di == NULL && ht == get_globvar_ht())
+		    {
+			// may need to load autoload script
+			if (script_autoload(iptr->isn_arg.string, FALSE))
+			    di = find_var_in_ht(ht, 0,
+						   iptr->isn_arg.string, TRUE);
+			if (did_emsg)
+			    goto on_error;
+		    }
+
 		    if (di == NULL)
 		    {
 			SOURCING_LNUM = iptr->isn_lnum;
@@ -3309,7 +3319,7 @@ exec_instructions(ectx_T *ectx)
 		    }
 		    else
 		    {
-			ufunc = find_func(funcref->fr_func_name, FALSE, NULL);
+			ufunc = find_func(funcref->fr_func_name, FALSE);
 		    }
 		    if (ufunc == NULL)
 		    {
@@ -6029,14 +6039,14 @@ ex_disassemble(exarg_T *eap)
 	return;
     }
 
-    ufunc = find_func(fname, is_global, NULL);
+    ufunc = find_func(fname, is_global);
     if (ufunc == NULL)
     {
 	char_u *p = untrans_function_name(fname);
 
 	if (p != NULL)
 	    // Try again without making it script-local.
-	    ufunc = find_func(p, FALSE, NULL);
+	    ufunc = find_func(p, FALSE);
     }
     vim_free(fname);
     if (ufunc == NULL)

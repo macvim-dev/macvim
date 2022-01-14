@@ -1274,7 +1274,8 @@ do_source(
 
     // See if we loaded this script before.
     sid = find_script_by_name(fname_exp);
-    if (sid > 0 && ret_sid != NULL)
+    if (sid > 0 && ret_sid != NULL
+			  && SCRIPT_ITEM(sid)->sn_state != SN_STATE_NOT_LOADED)
     {
 	// Already loaded and no need to load again, return here.
 	*ret_sid = sid;
@@ -2155,7 +2156,11 @@ get_autoload_prefix(scriptitem_T *si)
 
     if (p == NULL)
 	return NULL;
+#ifdef CASE_INSENSITIVE_FILENAME
+    prefix = strlow_save(p);
+#else
     prefix = vim_strsave(p);
+#endif
     if (prefix == NULL)
 	return NULL;
 

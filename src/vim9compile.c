@@ -296,7 +296,7 @@ item_exists(char_u *name, size_t len, int cmd UNUSED, cctx_T *cctx)
 	// valid command, such as ":split" versus "split()".
 	// Skip "g:" before a function name.
 	is_global = (name[0] == 'g' && name[1] == ':');
-	return find_func(is_global ? name + 2 : name, is_global, cctx) != NULL;
+	return find_func(is_global ? name + 2 : name, is_global) != NULL;
     }
     return FALSE;
 }
@@ -332,7 +332,7 @@ check_defined(char_u *p, size_t len, cctx_T *cctx, int is_arg)
 		&& (lookup_local(p, len, NULL, cctx) == OK
 		    || arg_exists(p, len, NULL, NULL, NULL, cctx) == OK))
 	    || find_imported(p, len, FALSE, cctx) != NULL
-	    || (ufunc = find_func_even_dead(p, FALSE, cctx)) != NULL)
+	    || (ufunc = find_func_even_dead(p, FALSE)) != NULL)
     {
 	// A local or script-local function can shadow a global function.
 	if (ufunc == NULL || ((ufunc->uf_flags & FC_DEAD) == 0
@@ -623,10 +623,12 @@ find_imported(char_u *name, size_t len, int load, cctx_T *cctx)
 
     if (ret != NULL && load && ret->imp_flags == IMP_FLAGS_AUTOLOAD)
     {
+	scid_T dummy;
+
 	// script found before but not loaded yet
 	ret->imp_flags = 0;
 	(void)do_source(SCRIPT_ITEM(ret->imp_sid)->sn_name, FALSE,
-							      DOSO_NONE, NULL);
+							    DOSO_NONE, &dummy);
     }
     return ret;
 }
@@ -3039,7 +3041,6 @@ compile_def_function(
 		    break;
 	    case CMD_endtry:
 		    line = compile_endtry(p, &cctx);
-		    cctx.ctx_had_return = FALSE;
 		    break;
 	    case CMD_throw:
 		    line = compile_throw(p, &cctx);
