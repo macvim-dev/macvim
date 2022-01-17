@@ -1240,6 +1240,7 @@ EXTERN char e_no_autocommand_match_name_to_substitute_for_amatch[]
 EXTERN char e_no_source_file_name_to_substitute_for_sfile[]
 	INIT(= N_("E498: no :source file name to substitute for \"<sfile>\""));
 EXTERN char e_empty_file_name_for_percent_or_hash_only_works_with_ph[]
+	// xgettext:no-c-format
 	INIT(= N_("E499: Empty file name for '%' or '#', only works with \":p:h\""));
 EXTERN char e_evaluates_to_an_empty_string[]
 	INIT(= N_("E500: Evaluates to an empty string"));
@@ -2046,6 +2047,7 @@ EXTERN char e_id_not_found_nr[]
 #endif
 #ifdef FEAT_EVAL
 EXTERN char e_cannot_use_percent_with_float[]
+	// xgettext:no-c-format
 	INIT(= N_("E804: Cannot use '%' with Float"));
 #endif
 #ifdef FEAT_FLOAT
@@ -2224,6 +2226,7 @@ EXTERN char e_not_allowed_for_terminal_in_popup_window[]
 	INIT(= N_("E863: Not allowed for a terminal in a popup window"));
 #endif
 EXTERN char e_percent_hash_can_only_be_followed_by_zero_one_two_automatic_engine_will_be_used[]
+	// xgettext:no-c-format
 	INIT(= N_("E864: \\%#= can only be followed by 0, 1, or 2. The automatic engine will be used"));
 EXTERN char e_nfa_regexp_end_encountered_prematurely[]
 	INIT(= N_("E865: (NFA) Regexp end encountered prematurely"));
@@ -2469,6 +2472,7 @@ EXTERN char e_file_changed_while_writing[]
 EXTERN char e_cannot_convert_between_str_and_str[]
 	INIT(= N_("E950: Cannot convert between %s and %s"));
 EXTERN char e_percent_value_too_large[]
+	// xgettext:no-c-format
 	INIT(= N_("E951: \\% value too large"));
 #if defined(FEAT_EVAL) && defined(FEAT_QUICKFIX)
 EXTERN char e_autocommand_caused_recursive_behavior[]
@@ -2695,6 +2699,7 @@ EXTERN char e_catch_unreachable_after_catch_all[]
 EXTERN char e_cannot_use_reserved_name[]
 	INIT(= N_("E1034: Cannot use reserved name %s"));
 EXTERN char e_percent_requires_number_arguments[]
+	// xgettext:no-c-format
 	INIT(= N_("E1035: % requires number arguments"));
 EXTERN char e_char_requires_number_or_float_arguments[]
 	INIT(= N_("E1036: %c requires number or float arguments"));
@@ -3212,4 +3217,6 @@ EXTERN char e_using_autoload_in_script_not_under_autoload_directory[]
 	INIT(= N_("E1263: Using autoload in a script not under an autoload directory"));
 EXTERN char e_autoload_import_cannot_use_absolute_or_relative_path[]
 	INIT(= N_("E1264: Autoload import cannot use absolute or relative path: %s"));
+EXTERN char e_cannot_use_partial_here[]
+	INIT(= N_("E1265: Cannot use a partial here"));
 #endif

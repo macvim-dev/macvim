@@ -3948,8 +3948,9 @@ eval_method(
     char_u	*name;
     long	len;
     char_u	*alias;
+    char_u	*tofree = NULL;
     typval_T	base = *rettv;
-    int		ret;
+    int		ret = OK;
     int		evaluate = evalarg != NULL
 				      && (evalarg->eval_flags & EVAL_EVALUATE);
 
@@ -3968,28 +3969,97 @@ eval_method(
     }
     else
     {
+	char_u *paren;
+
+	// If there is no "(" immediately following, but there is further on,
+	// it can be "import.Func()", "dict.Func()", "list[nr]", etc.
+	// Does not handle anything where "(" is part of the expression.
 	*arg = skipwhite(*arg);
-	if (**arg != '(')
+
+	if (**arg != '(' && alias == NULL
+				    && (paren = vim_strchr(*arg, '(')) != NULL)
 	{
-	    if (verbose)
-		semsg(_(e_missing_parenthesis_str), name);
-	    ret = FAIL;
+	    typval_T ref;
+
+	    *arg = name;
+	    *paren = NUL;
+	    ref.v_type = VAR_UNKNOWN;
+	    if (eval7(arg, &ref, evalarg, FALSE) == FAIL)
+	    {
+		*arg = name + len;
+		ret = FAIL;
+	    }
+	    else if (*skipwhite(*arg) != NUL)
+	    {
+		if (verbose)
+		    semsg(_(e_trailing_characters_str), *arg);
+		ret = FAIL;
+	    }
+	    else if (ref.v_type == VAR_FUNC && ref.vval.v_string != NULL)
+	    {
+		name = ref.vval.v_string;
+		ref.vval.v_string = NULL;
+		tofree = name;
+		len = STRLEN(name);
+	    }
+	    else if (ref.v_type == VAR_PARTIAL && ref.vval.v_partial != NULL)
+	    {
+		if (ref.vval.v_partial->pt_argc > 0
+					|| ref.vval.v_partial->pt_dict != NULL)
+		{
+		    emsg(_(e_cannot_use_partial_here));
+		    ret = FAIL;
+		}
+		else
+		{
+		    name = vim_strsave(partial_name(ref.vval.v_partial));
+		    tofree = name;
+		    if (name == NULL)
+		    {
+			ret = FAIL;
+			name = *arg;
+		    }
+		    else
+			len = STRLEN(name);
+		}
+	    }
+	    else
+	    {
+		if (verbose)
+		    semsg(_(e_not_callable_type_str), name);
+		ret = FAIL;
+	    }
+		clear_tv(&ref);
+	    *paren = '(';
 	}
-	else if (VIM_ISWHITE((*arg)[-1]))
+
+	if (ret == OK)
 	{
-	    if (verbose)
-		emsg(_(e_no_white_space_allowed_before_parenthesis));
-	    ret = FAIL;
-	}
-	else
-	    ret = eval_func(arg, evalarg, name, len, rettv,
+	    *arg = skipwhite(*arg);
+
+	    if (**arg != '(')
+	    {
+		if (verbose)
+		    semsg(_(e_missing_parenthesis_str), name);
+		ret = FAIL;
+	    }
+	    else if (VIM_ISWHITE((*arg)[-1]))
+	    {
+		if (verbose)
+		    emsg(_(e_no_white_space_allowed_before_parenthesis));
+		ret = FAIL;
+	    }
+	    else
+		ret = eval_func(arg, evalarg, name, len, rettv,
 					  evaluate ? EVAL_EVALUATE : 0, &base);
+	}
     }
 
     // Clear the funcref afterwards, so that deleting it while
     // evaluating the arguments is possible (see test55).
     if (evaluate)
 	clear_tv(&base);
+    vim_free(tofree);
 
     return ret;
 }
@@ -5931,7 +6001,6 @@ handle_subscript(
 	    idx = find_exported(rettv->vval.v_number, exp_name, &ufunc, &type,
 						  evalarg->eval_cctx, verbose);
 	    **arg = cc;
-	    *arg = skipwhite(*arg);
 
 	    if (idx < 0 && ufunc == NULL)
 	    {

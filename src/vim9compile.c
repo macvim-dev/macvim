@@ -2008,7 +2008,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 			    : isn->isn_arg.number != needed_list_len)
 		    {
 			semsg(_(e_expected_nr_items_but_got_nr),
-					 needed_list_len, isn->isn_arg.number);
+				    needed_list_len, (int)isn->isn_arg.number);
 			goto theend;
 		    }
 		}
@@ -2256,12 +2256,17 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		    case VAR_VOID:
 		    case VAR_INSTR:
 		    case VAR_SPECIAL:  // cannot happen
-			// This is skipped for local variables, they are
-			// always initialized to zero.
-			if (lhs.lhs_dest == dest_local)
+			// This is skipped for local variables, they are always
+			// initialized to zero.  But in a "for" or "while" loop
+			// the value may have been changed.
+			if (lhs.lhs_dest == dest_local
+						   && !inside_loop_scope(cctx))
 			    skip_store = TRUE;
 			else
+			{
+			    instr_count = instr->ga_len;
 			    generate_PUSHNR(cctx, 0);
+			}
 			break;
 		}
 	    }

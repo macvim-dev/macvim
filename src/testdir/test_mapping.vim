@@ -4,6 +4,7 @@ source shared.vim
 source check.vim
 source screendump.vim
 source term_util.vim
+source vim9.vim
 
 func Test_abbreviation()
   " abbreviation with 0x80 should work
@@ -1395,6 +1396,35 @@ func Test_map_cmdkey_redo()
   call delete('Xcmdtext')
   delfunc SelectDash
   ounmap i-
+endfunc
+
+func Test_map_script_cmd_restore()
+  let lines =<< trim END
+      vim9script
+      nnoremap <F3> <ScriptCmd>eval 1 + 2<CR>
+  END
+  call CheckScriptSuccess(lines)
+  call feedkeys("\<F3>:let g:result = 3+4\<CR>", 'xtc')
+  call assert_equal(7, g:result)
+
+  nunmap <F3>
+  unlet g:result
+endfunc
+
+func Test_map_script_cmd_finds_func()
+  let lines =<< trim END
+      vim9script
+      onoremap <F3> <ScriptCmd>Func()<CR>
+      def Func()
+        g:func_called = 'yes'
+      enddef
+  END
+  call CheckScriptSuccess(lines)
+  call feedkeys("y\<F3>\<Esc>", 'xtc')
+  call assert_equal('yes', g:func_called)
+
+  ounmap <F3>
+  unlet g:func_called
 endfunc
 
 " Test for using <script> with a map to remap characters in rhs

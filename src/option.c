@@ -7167,6 +7167,17 @@ get_bkc_value(buf_T *buf)
 }
 
 /*
+ * Get the local or global value of 'formatlistpat'.
+ */
+    char_u *
+get_flp_value(buf_T *buf)
+{
+    if (buf->b_p_flp == NULL || *buf->b_p_flp == NUL)
+	return p_flp;
+    return buf->b_p_flp;
+}
+
+/*
  * Get the local or global value of the 'virtualedit' flags.
  */
     unsigned int
