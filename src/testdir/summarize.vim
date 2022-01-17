@@ -11,14 +11,19 @@ if 1
     elseif a:type ==# 'skipped'
       let g:skipped += 1
       call extend(g:skipped_output, ["\t" .. a:match])
+    elseif a:type ==# 'pending'
+      let g:pending += 1
+      call extend(g:pending_output, ["\t" .. a:match])
     endif
   endfunc
 
   let g:executed = 0
   let g:skipped = 0
   let g:failed = 0
+  let g:pending = 0
   let g:skipped_output = []
   let g:failed_output = []
+  let g:pending_output = []
   let output = [""]
 
   if $TEST_FILTER != ''
@@ -32,9 +37,15 @@ if 1
     silent %s/Executed\s\+\zs\d\+\ze\s\+tests\?/\=Count(submatch(0),'executed')/egn
     silent %s/^SKIPPED \zs.*/\=Count(submatch(0), 'skipped')/egn
     silent %s/^\(\d\+\)\s\+FAILED:/\=Count(submatch(1), 'failed')/egn
+    silent %s/^PENDING \zs.*/\=Count(submatch(0), 'pending')/egn
 
     call extend(output, ["Skipped:"]) 
     call extend(output, skipped_output)
+    if !empty(pending_output)
+      call add(output, "")
+      call extend(output, ["Pending:"])
+      call extend(output, pending_output)
+    endif
 
     call extend(output, [
           \ "",
@@ -42,6 +53,7 @@ if 1
           \ printf("Executed: %5d Tests", g:executed),
           \ printf(" Skipped: %5d Tests", g:skipped),
           \ printf("  %s: %5d Tests", g:failed == 0 ? 'Failed' : 'FAILED', g:failed),
+          \ printf(" %s: %5d Tests", g:pending == 0 ? 'Pending' : 'PENDING', g:pending),
           \ "",
           \ ])
     if filereadable('test.log')
