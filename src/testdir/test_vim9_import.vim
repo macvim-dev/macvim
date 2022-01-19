@@ -580,6 +580,29 @@ def Test_use_import_in_mapping()
   nunmap <F3>
 enddef
 
+def Test_use_import_in_completion()
+  var lines =<< trim END
+      vim9script
+      export def Complete(..._): list<string>
+        return ['abcd']
+      enddef
+  END
+  writefile(lines, 'Xscript.vim')
+
+  lines =<< trim END
+      vim9script
+      import './Xscript.vim'
+
+      command -nargs=1 -complete=customlist,Xscript.Complete Cmd echo 'ok'
+      feedkeys(":Cmd ab\<Tab>\<C-B>#\<CR>", 'xnt')
+      assert_equal('#Cmd abcd', @:)
+  END
+  CheckScriptSuccess(lines)
+
+  delcommand Cmd
+  delete('Xscript.vim')
+enddef
+
 def Test_export_fails()
   CheckScriptFailure(['export var some = 123'], 'E1042:')
   CheckScriptFailure(['vim9script', 'export var g:some'], 'E1022:')
@@ -1173,9 +1196,9 @@ def Test_vim9script_autoload()
   var save_rtp = &rtp
   exe 'set rtp^=' .. getcwd() .. '/Xdir'
 
-  # when using "vim9script autoload" prefix is not needed
+  # when the path has "/autoload/" prefix is not needed
   var lines =<< trim END
-     vim9script autoload
+     vim9script
      g:prefixed_loaded += 1
 
      export def Gettest(): string
@@ -1233,13 +1256,147 @@ def Test_vim9script_autoload()
   &rtp = save_rtp
 enddef
 
+def Test_import_autoload_not_exported()
+  mkdir('Xdir/autoload', 'p')
+  var save_rtp = &rtp
+  exe 'set rtp^=' .. getcwd() .. '/Xdir'
+
+  # error when using an item that is not exported from an autoload script
+  var exportLines =<< trim END
+      vim9script
+      var notExported = 123
+      def NotExport()
+        echo 'nop'
+      enddef
+  END
+  writefile(exportLines, 'Xdir/autoload/notExport1.vim')
+
+  var lines =<< trim END
+      vim9script
+      import autoload 'notExport1.vim'
+      echo notExport1.notFound
+  END
+  CheckScriptFailure(lines, 'E1048: Item not found in script: notFound')
+
+  lines =<< trim END
+      vim9script
+      import autoload 'notExport1.vim'
+      echo notExport1.notExported
+  END
+  CheckScriptFailure(lines, 'E1049: Item not exported in script: notExported')
+
+  lines =<< trim END
+      vim9script
+      import autoload 'notExport1.vim'
+      echo notExport1.NotFunc()
+  END
+  CheckScriptFailure(lines, 'E1048: Item not found in script: NotFunc')
+
+  lines =<< trim END
+      vim9script
+      import autoload 'notExport1.vim'
+      echo notExport1.NotExport()
+  END
+  CheckScriptFailure(lines, 'E1049: Item not exported in script: NotExport')
+
+  lines =<< trim END
+      vim9script
+      import autoload 'notExport1.vim'
+      echo 'text'->notExport1.NotFunc()
+  END
+  CheckScriptFailure(lines, 'E1048: Item not found in script: NotFunc')
+
+  lines =<< trim END
+      vim9script
+      import autoload 'notExport1.vim'
+      echo 'text'->notExport1.NotExport()
+  END
+  CheckScriptFailure(lines, 'E1049: Item not exported in script: NotExport')
+
+  # using a :def function we use a different autoload script every time so that
+  # the function is compiled without the script loaded
+  writefile(exportLines, 'Xdir/autoload/notExport2.vim')
+  lines =<< trim END
+      vim9script
+      import autoload 'notExport2.vim'
+      def Testit()
+        echo notExport2.notFound
+      enddef
+      Testit()
+  END
+  CheckScriptFailure(lines, 'E1048: Item not found in script: notExport2#notFound')
+
+  writefile(exportLines, 'Xdir/autoload/notExport3.vim')
+  lines =<< trim END
+      vim9script
+      import autoload 'notExport3.vim'
+      def Testit()
+        echo notExport3.notExported
+      enddef
+      Testit()
+  END
+  # don't get E1049 because it is too complicated to figure out
+  CheckScriptFailure(lines, 'E1048: Item not found in script: notExport3#notExported')
+
+  writefile(exportLines, 'Xdir/autoload/notExport4.vim')
+  lines =<< trim END
+      vim9script
+      import autoload 'notExport4.vim'
+      def Testit()
+        echo notExport4.NotFunc()
+      enddef
+      Testit()
+  END
+  CheckScriptFailure(lines, 'E117: Unknown function: notExport4#NotFunc')
+
+  writefile(exportLines, 'Xdir/autoload/notExport5.vim')
+  lines =<< trim END
+      vim9script
+      import autoload 'notExport5.vim'
+      def Testit()
+        echo notExport5.NotExport()
+      enddef
+      Testit()
+  END
+  CheckScriptFailure(lines, 'E117: Unknown function: notExport5#NotExport')
+
+  writefile(exportLines, 'Xdir/autoload/notExport6.vim')
+  lines =<< trim END
+      vim9script
+      import autoload 'notExport6.vim'
+      def Testit()
+        echo 'text'->notExport6.NotFunc()
+      enddef
+      Testit()
+  END
+  CheckScriptFailure(lines, 'E117: Unknown function: notExport6#NotFunc')
+
+  writefile(exportLines, 'Xdir/autoload/notExport7.vim')
+  lines =<< trim END
+      vim9script
+      import autoload 'notExport7.vim'
+      def Testit()
+        echo 'text'->notExport7.NotExport()
+      enddef
+      Testit()
+  END
+  CheckScriptFailure(lines, 'E117: Unknown function: notExport7#NotExport')
+
+  delete('Xdir', 'rf')
+  &rtp = save_rtp
+enddef
+
 def Test_vim9script_autoload_call()
   mkdir('Xdir/autoload', 'p')
   var save_rtp = &rtp
   exe 'set rtp^=' .. getcwd() .. '/Xdir'
 
   var lines =<< trim END
-     vim9script autoload
+     vim9script
+
+     export def RetArg(arg: string): string
+       return arg
+     enddef
 
      export def Getother()
        g:result = 'other'
@@ -1250,6 +1407,13 @@ def Test_vim9script_autoload_call()
   lines =<< trim END
       vim9script
       import autoload 'another.vim'
+
+      # compile this before 'another.vim' is loaded
+      def CallAnother()
+        assert_equal('foo', 'foo'->another.RetArg())
+      enddef
+      CallAnother()
+
       call another.Getother()
       assert_equal('other', g:result)
   END
@@ -1266,7 +1430,7 @@ def Test_import_autoload_postponed()
   exe 'set rtp^=' .. getcwd() .. '/Xdir'
 
   var lines =<< trim END
-      vim9script autoload
+      vim9script
 
       g:loaded_postponed = 'true'
       export var variable = 'bla'
@@ -1303,7 +1467,7 @@ def Test_import_autoload_override()
   test_override('autoload', 1)
 
   var lines =<< trim END
-      vim9script autoload
+      vim9script
 
       g:loaded_override = 'true'
       export var variable = 'bla'
@@ -1338,7 +1502,7 @@ def Test_autoload_mapping()
   exe 'set rtp^=' .. getcwd() .. '/Xdir'
 
   var lines =<< trim END
-      vim9script autoload
+      vim9script
 
       g:toggle_loaded = 'yes'
 
@@ -1363,10 +1527,12 @@ def Test_autoload_mapping()
   CheckScriptSuccess(lines)
   assert_false(exists("g:toggle_loaded"))
   assert_false(exists("g:toggle_called"))
+  assert_match('\d A: \f*[/\\]toggle.vim', execute('scriptnames'))
 
   feedkeys("tt", 'xt')
   assert_equal('yes', g:toggle_loaded)
   assert_equal('yes', g:toggle_called)
+  assert_match('\d: \f*[/\\]toggle.vim', execute('scriptnames'))
 
   feedkeys("xx", 'xt')
   assert_equal('yes', g:doit_called)
@@ -1387,7 +1553,13 @@ def Test_vim9script_autoload_fails()
       vim9script autoload
       var n = 0
   END
-  CheckScriptFailure(lines, 'E1263:')
+  CheckScriptFailure(lines, 'E475: Invalid argument: autoload')
+
+  lines =<< trim END
+      vim9script noclear noclear
+      var n = 0
+  END
+  CheckScriptFailure(lines, 'E983: Duplicate argument: noclear')
 enddef
 
 def Test_import_autoload_fails()
@@ -1399,9 +1571,21 @@ def Test_import_autoload_fails()
 
   lines =<< trim END
       vim9script
-      import autoload 'doesNotExist.vim'
+      import autoload './doesNotExist.vim'
   END
   CheckScriptFailure(lines, 'E1264:')
+
+  lines =<< trim END
+      vim9script
+      import autoload '/dir/doesNotExist.vim'
+  END
+  CheckScriptFailure(lines, 'E1264:')
+
+  lines =<< trim END
+      vim9script
+      import autoload 'doesNotExist.vim'
+  END
+  CheckScriptFailure(lines, 'E1053: Could not import "doesNotExist.vim"')
 enddef
 
 " test disassembling an auto-loaded function starting with "debug"
@@ -1468,7 +1652,7 @@ enddef
 " test using a autoloaded file that is case sensitive
 def Test_vim9_autoload_case_sensitive()
   var lines =<< trim END
-     vim9script autoload
+     vim9script
      export def CaseSensitive(): string
        return 'done'
      enddef

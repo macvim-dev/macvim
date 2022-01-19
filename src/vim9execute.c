@@ -2200,10 +2200,12 @@ exec_instructions(ectx_T *ectx)
 	    case ISN_LOADW:
 	    case ISN_LOADT:
 		{
-		    dictitem_T *di = NULL;
-		    hashtab_T *ht = NULL;
-		    char namespace;
+		    dictitem_T	*di = NULL;
+		    hashtab_T	*ht = NULL;
+		    char	namespace;
 
+		    if (GA_GROW_FAILS(&ectx->ec_stack, 1))
+			goto theend;
 		    switch (iptr->isn_type)
 		    {
 			case ISN_LOADG:
@@ -2227,9 +2229,12 @@ exec_instructions(ectx_T *ectx)
 		    }
 		    di = find_var_in_ht(ht, 0, iptr->isn_arg.string, TRUE);
 
-		    if (di == NULL && ht == get_globvar_ht())
+		    if (di == NULL && ht == get_globvar_ht()
+					    && vim_strchr(iptr->isn_arg.string,
+							AUTOLOAD_CHAR) != NULL)
 		    {
-			// may need to load autoload script
+			// Global variable has an autoload name, may still need
+			// to load the script.
 			if (script_autoload(iptr->isn_arg.string, FALSE))
 			    di = find_var_in_ht(ht, 0,
 						   iptr->isn_arg.string, TRUE);
@@ -2240,14 +2245,19 @@ exec_instructions(ectx_T *ectx)
 		    if (di == NULL)
 		    {
 			SOURCING_LNUM = iptr->isn_lnum;
-			semsg(_(e_undefined_variable_char_str),
+			if (vim_strchr(iptr->isn_arg.string,
+							AUTOLOAD_CHAR) != NULL)
+			    // no check if the item exists in the script but
+			    // isn't exported, it is too complicated
+			    semsg(_(e_item_not_found_in_script_str),
+							 iptr->isn_arg.string);
+			else
+			    semsg(_(e_undefined_variable_char_str),
 					     namespace, iptr->isn_arg.string);
 			goto on_error;
 		    }
 		    else
 		    {
-			if (GA_GROW_FAILS(&ectx->ec_stack, 1))
-			    goto theend;
 			copy_tv(&di->di_tv, STACK_TV_BOT(0));
 			++ectx->ec_stack.ga_len;
 		    }

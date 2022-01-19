@@ -69,7 +69,6 @@ ex_vim9script(exarg_T *eap UNUSED)
     int		    sid = current_sctx.sc_sid;
     scriptitem_T    *si;
     int		    found_noclear = FALSE;
-    int		    found_autoload = FALSE;
     char_u	    *p;
 
     if (!getline_equal(eap->getline, eap->cookie, getsourceline))
@@ -95,20 +94,6 @@ ex_vim9script(exarg_T *eap UNUSED)
 		return;
 	    }
 	    found_noclear = TRUE;
-	}
-	else if (STRNCMP(p, "autoload", 8) == 0 && IS_WHITE_OR_NUL(p[8]))
-	{
-	    if (found_autoload)
-	    {
-		semsg(_(e_duplicate_argument_str), p);
-		return;
-	    }
-	    found_autoload = TRUE;
-	    if (script_name_after_autoload(si) == NULL)
-	    {
-		emsg(_(e_using_autoload_in_script_not_under_autoload_directory));
-		return;
-	    }
 	}
 	else
 	{
@@ -411,7 +396,7 @@ handle_import(
     int		ret = FAIL;
     char_u	*as_name = NULL;
     typval_T	tv;
-    int		sid = -1;
+    int		sid = -2;
     int		res;
     long	start_lnum = SOURCING_LNUM;
     garray_T	*import_gap;
@@ -468,7 +453,13 @@ handle_import(
 	    vim_free(from_name);
 	}
     }
-    else if (mch_isFullName(tv.vval.v_string))
+    else if (mch_isFullName(tv.vval.v_string)
+#ifdef BACKSLASH_IN_FILENAME
+	    // On MS-Windows omitting the drive is still handled like an
+	    // absolute path, not using 'runtimepath'.
+	    || *tv.vval.v_string == '/' || *tv.vval.v_string == '\\'
+#endif
+	    )
     {
 	// Absolute path: "/tmp/name.vim"
 	if (is_autoload)
@@ -519,7 +510,7 @@ handle_import(
 
     if (res == FAIL || sid <= 0)
     {
-	semsg(_(is_autoload && sid <= 0
+	semsg(_(is_autoload && sid == -2
 		    ? e_autoload_import_cannot_use_absolute_or_relative_path
 		    : e_could_not_import_str), tv.vval.v_string);
 	goto erret;
@@ -716,22 +707,36 @@ find_exported(
 	    sprintf((char *)funcname + 3, "%ld_%s", (long)sid, name);
 	}
 	*ufunc = find_func(funcname, FALSE);
-	if (funcname != buffer)
-	    vim_free(funcname);
 
 	if (*ufunc == NULL)
 	{
 	    if (verbose)
-		semsg(_(e_item_not_found_in_script_str), name);
-	    return -1;
+	    {
+		ufunc_T *alt_ufunc = NULL;
+
+		if (script->sn_autoload_prefix != NULL)
+		{
+		    // try find the function by the script-local name
+		    funcname[0] = K_SPECIAL;
+		    funcname[1] = KS_EXTRA;
+		    funcname[2] = (int)KE_SNR;
+		    sprintf((char *)funcname + 3, "%ld_%s", (long)sid, name);
+		    alt_ufunc = find_func(funcname, FALSE);
+		}
+		if (alt_ufunc != NULL)
+		    semsg(_(e_item_not_exported_in_script_str), name);
+		else
+		    semsg(_(e_item_not_found_in_script_str), name);
+	    }
 	}
 	else if (((*ufunc)->uf_flags & FC_EXPORT) == 0)
 	{
 	    if (verbose)
 		semsg(_(e_item_not_exported_in_script_str), name);
 	    *ufunc = NULL;
-	    return -1;
 	}
+	if (funcname != buffer)
+	    vim_free(funcname);
     }
 
     return idx;

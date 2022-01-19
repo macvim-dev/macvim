@@ -222,11 +222,12 @@ map_add(
 #ifdef FEAT_EVAL
 	int	    expr,
 	scid_T	    sid,	    // -1 to use current_sctx
+	int	    scriptversion,
 	linenr_T    lnum,
 #endif
 	int	    simplified)
 {
-    mapblock_T	*mp = ALLOC_ONE(mapblock_T);
+    mapblock_T	*mp = ALLOC_CLEAR_ONE(mapblock_T);
 
     if (mp == NULL)
 	return FAIL;
@@ -259,11 +260,11 @@ map_add(
     mp->m_simplified = simplified;
 #ifdef FEAT_EVAL
     mp->m_expr = expr;
-    if (sid >= 0)
+    if (sid > 0)
     {
 	mp->m_script_ctx.sc_sid = sid;
 	mp->m_script_ctx.sc_lnum = lnum;
-	mp->m_script_ctx.sc_version = in_vim9script() ? SCRIPT_VERSION_VIM9 : 0;
+	mp->m_script_ctx.sc_version = scriptversion;
     }
     else
     {
@@ -844,7 +845,7 @@ do_map(
 	if (map_add(map_table, abbr_table, keys, rhs, orig_rhs,
 		    noremap, nowait, silent, mode, abbrev,
 #ifdef FEAT_EVAL
-		    expr, /* sid */ -1, /* lnum */ 0,
+		    expr, /* sid */ -1, /* scriptversion */ 0, /* lnum */ 0,
 #endif
 		    did_simplify && keyround == 1) == FAIL)
 	{
@@ -1515,6 +1516,12 @@ check_abbr(
 	}
 	if (mp != NULL)
 	{
+	    int	noremap;
+	    int silent;
+#ifdef FEAT_EVAL
+	    int expr;
+#endif
+
 	    // Found a match:
 	    // Insert the rest of the abbreviation in typebuf.tb_buf[].
 	    // This goes from end to start.
@@ -1567,8 +1574,14 @@ check_abbr(
 					// insert the last typed char
 		(void)ins_typebuf(tb, 1, 0, TRUE, mp->m_silent);
 	    }
+
+	    // copy values here, calling eval_map_expr() may make "mp" invalid!
+	    noremap = mp->m_noremap;
+	    silent = mp->m_silent;
 #ifdef FEAT_EVAL
-	    if (mp->m_expr)
+	    expr = mp->m_expr;
+
+	    if (expr)
 		s = eval_map_expr(mp, c);
 	    else
 #endif
@@ -1576,11 +1589,11 @@ check_abbr(
 	    if (s != NULL)
 	    {
 					// insert the to string
-		(void)ins_typebuf(s, mp->m_noremap, 0, TRUE, mp->m_silent);
+		(void)ins_typebuf(s, noremap, 0, TRUE, silent);
 					// no abbrev. for these chars
 		typebuf.tb_no_abbr_cnt += (int)STRLEN(s) + j + 1;
 #ifdef FEAT_EVAL
-		if (mp->m_expr)
+		if (expr)
 		    vim_free(s);
 #endif
 	    }
@@ -1590,7 +1603,7 @@ check_abbr(
 	    if (has_mbyte)
 		len = clen;	// Delete characters instead of bytes
 	    while (len-- > 0)		// delete the from string
-		(void)ins_typebuf(tb, 1, 0, TRUE, mp->m_silent);
+		(void)ins_typebuf(tb, 1, 0, TRUE, silent);
 	    return TRUE;
 	}
     }
@@ -1601,6 +1614,7 @@ check_abbr(
 /*
  * Evaluate the RHS of a mapping or abbreviations and take care of escaping
  * special characters.
+ * Careful: after this "mp" will be invalid if the mapping was deleted.
  */
     char_u *
 eval_map_expr(
@@ -2289,6 +2303,8 @@ get_maparg(typval_T *argvars, typval_T *rettv, int exact)
 	dict_add_number(dict, "expr", mp->m_expr ? 1L : 0L);
 	dict_add_number(dict, "silent", mp->m_silent ? 1L : 0L);
 	dict_add_number(dict, "sid", (long)mp->m_script_ctx.sc_sid);
+	dict_add_number(dict, "scriptversion",
+					    (long)mp->m_script_ctx.sc_version);
 	dict_add_number(dict, "lnum", (long)mp->m_script_ctx.sc_lnum);
 	dict_add_number(dict, "buffer", (long)buffer_local);
 	dict_add_number(dict, "nowait", mp->m_nowait ? 1L : 0L);
@@ -2358,6 +2374,7 @@ f_mapset(typval_T *argvars, typval_T *rettv UNUSED)
     int		silent;
     int		buffer;
     scid_T	sid;
+    int		scriptversion;
     linenr_T	lnum;
     mapblock_T	**map_table = maphash;
     mapblock_T  **abbr_table = &first_abbr;
@@ -2403,6 +2420,7 @@ f_mapset(typval_T *argvars, typval_T *rettv UNUSED)
     expr = dict_get_number(d, (char_u *)"expr") != 0;
     silent = dict_get_number(d, (char_u *)"silent") != 0;
     sid = dict_get_number(d, (char_u *)"sid");
+    scriptversion = dict_get_number(d, (char_u *)"scriptversion");
     lnum = dict_get_number(d, (char_u *)"lnum");
     buffer = dict_get_number(d, (char_u *)"buffer");
     nowait = dict_get_number(d, (char_u *)"nowait") != 0;
@@ -2433,10 +2451,11 @@ f_mapset(typval_T *argvars, typval_T *rettv UNUSED)
     vim_free(arg);
 
     (void)map_add(map_table, abbr_table, lhsraw, rhs, orig_rhs, noremap,
-	    nowait, silent, mode, is_abbr, expr, sid, lnum, 0);
+	    nowait, silent, mode, is_abbr, expr, sid, scriptversion, lnum, 0);
     if (lhsrawalt != NULL)
 	(void)map_add(map_table, abbr_table, lhsrawalt, rhs, orig_rhs, noremap,
-		nowait, silent, mode, is_abbr, expr, sid, lnum, 1);
+		nowait, silent, mode, is_abbr, expr, sid, scriptversion,
+								      lnum, 1);
     vim_free(keys_buf);
     vim_free(arg_buf);
 }
