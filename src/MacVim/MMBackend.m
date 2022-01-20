@@ -2803,7 +2803,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
                     // Escape each file name and add to the growing array.
                     char_u *escapedFname = vim_strsave_fnameescape((char_u*)[file UTF8String], FALSE);
-                    ga_add_string(&filename_array, escapedFname);
+                    ga_copy_string(&filename_array, escapedFname);
                     vim_free(escapedFname);
                 }
                 char_u* escapedFilenameList = ga_concat_strings(&filename_array, " ");
