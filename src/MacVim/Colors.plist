@@ -6,1324 +6,1324 @@
      lightred) -->
 <dict>
 	<key>aliceblue</key>
-	<integer>15792383</integer>
+	<integer>0xf0f8ff</integer>
 	<key>antiquewhite</key>
-	<integer>16444375</integer>
+	<integer>0xfaebd7</integer>
 	<key>antiquewhite1</key>
-	<integer>16773083</integer>
+	<integer>0xffefdb</integer>
 	<key>antiquewhite2</key>
-	<integer>15654860</integer>
+	<integer>0xeedfcc</integer>
 	<key>antiquewhite3</key>
-	<integer>13484208</integer>
+	<integer>0xcdc0b0</integer>
 	<key>antiquewhite4</key>
-	<integer>9143160</integer>
+	<integer>0x8b8378</integer>
 	<key>aquamarine</key>
-	<integer>8388564</integer>
+	<integer>0x7fffd4</integer>
 	<key>aquamarine1</key>
-	<integer>8388564</integer>
+	<integer>0x7fffd4</integer>
 	<key>aquamarine2</key>
-	<integer>7794374</integer>
+	<integer>0x76eec6</integer>
 	<key>aquamarine3</key>
-	<integer>6737322</integer>
+	<integer>0x66cdaa</integer>
 	<key>aquamarine4</key>
-	<integer>4557684</integer>
+	<integer>0x458b74</integer>
 	<key>azure</key>
-	<integer>15794175</integer>
+	<integer>0xf0ffff</integer>
 	<key>azure1</key>
-	<integer>15794175</integer>
+	<integer>0xf0ffff</integer>
 	<key>azure2</key>
-	<integer>14741230</integer>
+	<integer>0xe0eeee</integer>
 	<key>azure3</key>
-	<integer>12701133</integer>
+	<integer>0xc1cdcd</integer>
 	<key>azure4</key>
-	<integer>8620939</integer>
+	<integer>0x838b8b</integer>
 	<key>beige</key>
-	<integer>16119260</integer>
+	<integer>0xf5f5dc</integer>
 	<key>bisque</key>
-	<integer>16770244</integer>
+	<integer>0xffe4c4</integer>
 	<key>bisque1</key>
-	<integer>16770244</integer>
+	<integer>0xffe4c4</integer>
 	<key>bisque2</key>
-	<integer>15652279</integer>
+	<integer>0xeed5b7</integer>
 	<key>bisque3</key>
-	<integer>13481886</integer>
+	<integer>0xcdb79e</integer>
 	<key>bisque4</key>
-	<integer>9141611</integer>
+	<integer>0x8b7d6b</integer>
 	<key>black</key>
-	<integer>0</integer>
+	<integer>0x000000</integer>
 	<key>blanchedalmond</key>
-	<integer>16772045</integer>
+	<integer>0xffebcd</integer>
 	<key>blue</key>
-	<integer>255</integer>
+	<integer>0x0000ff</integer>
 	<key>blue1</key>
-	<integer>255</integer>
+	<integer>0x0000ff</integer>
 	<key>blue2</key>
-	<integer>238</integer>
+	<integer>0x0000ee</integer>
 	<key>blue3</key>
-	<integer>205</integer>
+	<integer>0x0000cd</integer>
 	<key>blue4</key>
-	<integer>139</integer>
+	<integer>0x00008b</integer>
 	<key>blueviolet</key>
-	<integer>9055202</integer>
+	<integer>0x8a2be2</integer>
 	<key>brown</key>
-	<integer>10824234</integer>
+	<integer>0xa52a2a</integer>
 	<key>brown1</key>
-	<integer>16728128</integer>
+	<integer>0xff4040</integer>
 	<key>brown2</key>
-	<integer>15612731</integer>
+	<integer>0xee3b3b</integer>
 	<key>brown3</key>
-	<integer>13447987</integer>
+	<integer>0xcd3333</integer>
 	<key>brown4</key>
-	<integer>9118499</integer>
+	<integer>0x8b2323</integer>
 	<key>burlywood</key>
-	<integer>14596231</integer>
+	<integer>0xdeb887</integer>
 	<key>burlywood1</key>
-	<integer>16765851</integer>
+	<integer>0xffd39b</integer>
 	<key>burlywood2</key>
-	<integer>15648145</integer>
+	<integer>0xeec591</integer>
 	<key>burlywood3</key>
-	<integer>13478525</integer>
+	<integer>0xcdaa7d</integer>
 	<key>burlywood4</key>
-	<integer>9139029</integer>
+	<integer>0x8b7355</integer>
 	<key>cadetblue</key>
-	<integer>6266528</integer>
+	<integer>0x5f9ea0</integer>
 	<key>cadetblue1</key>
-	<integer>10024447</integer>
+	<integer>0x98f5ff</integer>
 	<key>cadetblue2</key>
-	<integer>9364974</integer>
+	<integer>0x8ee5ee</integer>
 	<key>cadetblue3</key>
-	<integer>8046029</integer>
+	<integer>0x7ac5cd</integer>
 	<key>cadetblue4</key>
-	<integer>5473931</integer>
+	<integer>0x53868b</integer>
 	<key>chartreuse</key>
-	<integer>8388352</integer>
+	<integer>0x7fff00</integer>
 	<key>chartreuse1</key>
-	<integer>8388352</integer>
+	<integer>0x7fff00</integer>
 	<key>chartreuse2</key>
-	<integer>7794176</integer>
+	<integer>0x76ee00</integer>
 	<key>chartreuse3</key>
-	<integer>6737152</integer>
+	<integer>0x66cd00</integer>
 	<key>chartreuse4</key>
-	<integer>4557568</integer>
+	<integer>0x458b00</integer>
 	<key>chocolate</key>
-	<integer>13789470</integer>
+	<integer>0xd2691e</integer>
 	<key>chocolate1</key>
-	<integer>16744228</integer>
+	<integer>0xff7f24</integer>
 	<key>chocolate2</key>
-	<integer>15627809</integer>
+	<integer>0xee7621</integer>
 	<key>chocolate3</key>
-	<integer>13461021</integer>
+	<integer>0xcd661d</integer>
 	<key>chocolate4</key>
-	<integer>9127187</integer>
+	<integer>0x8b4513</integer>
 	<key>coral</key>
-	<integer>16744272</integer>
+	<integer>0xff7f50</integer>
 	<key>coral1</key>
-	<integer>16740950</integer>
+	<integer>0xff7256</integer>
 	<key>coral2</key>
-	<integer>15624784</integer>
+	<integer>0xee6a50</integer>
 	<key>coral3</key>
-	<integer>13458245</integer>
+	<integer>0xcd5b45</integer>
 	<key>coral4</key>
-	<integer>9125423</integer>
+	<integer>0x8b3e2f</integer>
 	<key>cornflowerblue</key>
-	<integer>6591981</integer>
+	<integer>0x6495ed</integer>
 	<key>cornsilk</key>
-	<integer>16775388</integer>
+	<integer>0xfff8dc</integer>
 	<key>cornsilk1</key>
-	<integer>16775388</integer>
+	<integer>0xfff8dc</integer>
 	<key>cornsilk2</key>
-	<integer>15657165</integer>
+	<integer>0xeee8cd</integer>
 	<key>cornsilk3</key>
-	<integer>13486257</integer>
+	<integer>0xcdc8b1</integer>
 	<key>cornsilk4</key>
-	<integer>9144440</integer>
+	<integer>0x8b8878</integer>
 	<key>cyan</key>
-	<integer>65535</integer>
+	<integer>0x00ffff</integer>
 	<key>cyan1</key>
-	<integer>65535</integer>
+	<integer>0x00ffff</integer>
 	<key>cyan2</key>
-	<integer>61166</integer>
+	<integer>0x00eeee</integer>
 	<key>cyan3</key>
-	<integer>52685</integer>
+	<integer>0x00cdcd</integer>
 	<key>cyan4</key>
-	<integer>35723</integer>
+	<integer>0x008b8b</integer>
 	<key>darkblue</key>
-	<integer>139</integer>
+	<integer>0x00008b</integer>
 	<key>darkcyan</key>
-	<integer>35723</integer>
+	<integer>0x008b8b</integer>
 	<key>darkgoldenrod</key>
-	<integer>12092939</integer>
+	<integer>0xb8860b</integer>
 	<key>darkgoldenrod1</key>
-	<integer>16759055</integer>
+	<integer>0xffb90f</integer>
 	<key>darkgoldenrod2</key>
-	<integer>15641870</integer>
+	<integer>0xeead0e</integer>
 	<key>darkgoldenrod3</key>
-	<integer>13473036</integer>
+	<integer>0xcd950c</integer>
 	<key>darkgoldenrod4</key>
-	<integer>9135368</integer>
+	<integer>0x8b6508</integer>
 	<key>darkgray</key>
-	<integer>11119017</integer>
+	<integer>0xa9a9a9</integer>
 	<key>darkgreen</key>
-	<integer>25600</integer>
+	<integer>0x006400</integer>
 	<key>darkgrey</key>
-	<integer>11119017</integer>
+	<integer>0xa9a9a9</integer>
 	<key>darkkhaki</key>
-	<integer>12433259</integer>
+	<integer>0xbdb76b</integer>
 	<key>darkmagenta</key>
-	<integer>9109643</integer>
+	<integer>0x8b008b</integer>
 	<key>darkolivegreen</key>
-	<integer>5597999</integer>
+	<integer>0x556b2f</integer>
 	<key>darkolivegreen1</key>
-	<integer>13303664</integer>
+	<integer>0xcaff70</integer>
 	<key>darkolivegreen2</key>
-	<integer>12381800</integer>
+	<integer>0xbcee68</integer>
 	<key>darkolivegreen3</key>
-	<integer>10669402</integer>
+	<integer>0xa2cd5a</integer>
 	<key>darkolivegreen4</key>
-	<integer>7244605</integer>
+	<integer>0x6e8b3d</integer>
 	<key>darkorange</key>
-	<integer>16747520</integer>
+	<integer>0xff8c00</integer>
 	<key>darkorange1</key>
-	<integer>16744192</integer>
+	<integer>0xff7f00</integer>
 	<key>darkorange2</key>
-	<integer>15627776</integer>
+	<integer>0xee7600</integer>
 	<key>darkorange3</key>
-	<integer>13460992</integer>
+	<integer>0xcd6600</integer>
 	<key>darkorange4</key>
-	<integer>9127168</integer>
+	<integer>0x8b4500</integer>
 	<key>darkorchid</key>
-	<integer>10040012</integer>
+	<integer>0x9932cc</integer>
 	<key>darkorchid1</key>
-	<integer>12533503</integer>
+	<integer>0xbf3eff</integer>
 	<key>darkorchid2</key>
-	<integer>11680494</integer>
+	<integer>0xb23aee</integer>
 	<key>darkorchid3</key>
-	<integer>10105549</integer>
+	<integer>0x9a32cd</integer>
 	<key>darkorchid4</key>
-	<integer>6824587</integer>
+	<integer>0x68228b</integer>
 	<key>darkred</key>
-	<integer>9109504</integer>
+	<integer>0x8b0000</integer>
 	<key>darksalmon</key>
-	<integer>15308410</integer>
+	<integer>0xe9967a</integer>
 	<key>darkseagreen</key>
-	<integer>9419919</integer>
+	<integer>0x8fbc8f</integer>
 	<key>darkseagreen1</key>
-	<integer>12713921</integer>
+	<integer>0xc1ffc1</integer>
 	<key>darkseagreen2</key>
-	<integer>11857588</integer>
+	<integer>0xb4eeb4</integer>
 	<key>darkseagreen3</key>
-	<integer>10210715</integer>
+	<integer>0x9bcd9b</integer>
 	<key>darkseagreen4</key>
-	<integer>6916969</integer>
+	<integer>0x698b69</integer>
 	<key>darkslateblue</key>
-	<integer>4734347</integer>
+	<integer>0x483d8b</integer>
 	<key>darkslategray</key>
-	<integer>3100495</integer>
+	<integer>0x2f4f4f</integer>
 	<key>darkslategray1</key>
-	<integer>9961471</integer>
+	<integer>0x97ffff</integer>
 	<key>darkslategray2</key>
-	<integer>9301742</integer>
+	<integer>0x8deeee</integer>
 	<key>darkslategray3</key>
-	<integer>7982541</integer>
+	<integer>0x79cdcd</integer>
 	<key>darkslategray4</key>
-	<integer>5409675</integer>
+	<integer>0x528b8b</integer>
 	<key>darkslategrey</key>
-	<integer>3100495</integer>
+	<integer>0x2f4f4f</integer>
 	<key>darkturquoise</key>
-	<integer>52945</integer>
+	<integer>0x00ced1</integer>
 	<key>darkviolet</key>
-	<integer>9699539</integer>
+	<integer>0x9400d3</integer>
 	<key>darkyellow</key>
-	<integer>12303104</integer>
+	<integer>0x8b8b00</integer>
 	<key>deeppink</key>
-	<integer>16716947</integer>
+	<integer>0xff1493</integer>
 	<key>deeppink1</key>
-	<integer>16716947</integer>
+	<integer>0xff1493</integer>
 	<key>deeppink2</key>
-	<integer>15602313</integer>
+	<integer>0xee1289</integer>
 	<key>deeppink3</key>
-	<integer>13439094</integer>
+	<integer>0xcd1076</integer>
 	<key>deeppink4</key>
-	<integer>9112144</integer>
+	<integer>0x8b0a50</integer>
 	<key>deepskyblue</key>
-	<integer>49151</integer>
+	<integer>0x00bfff</integer>
 	<key>deepskyblue1</key>
-	<integer>49151</integer>
+	<integer>0x00bfff</integer>
 	<key>deepskyblue2</key>
-	<integer>45806</integer>
+	<integer>0x00b2ee</integer>
 	<key>deepskyblue3</key>
-	<integer>39629</integer>
+	<integer>0x009acd</integer>
 	<key>deepskyblue4</key>
-	<integer>26763</integer>
+	<integer>0x00688b</integer>
 	<key>dimgray</key>
-	<integer>6908265</integer>
+	<integer>0x696969</integer>
 	<key>dimgrey</key>
-	<integer>6908265</integer>
+	<integer>0x696969</integer>
 	<key>dodgerblue</key>
-	<integer>2003199</integer>
+	<integer>0x1e90ff</integer>
 	<key>dodgerblue1</key>
-	<integer>2003199</integer>
+	<integer>0x1e90ff</integer>
 	<key>dodgerblue2</key>
-	<integer>1869550</integer>
+	<integer>0x1c86ee</integer>
 	<key>dodgerblue3</key>
-	<integer>1602765</integer>
+	<integer>0x1874cd</integer>
 	<key>dodgerblue4</key>
-	<integer>1068683</integer>
+	<integer>0x104e8b</integer>
 	<key>firebrick</key>
-	<integer>11674146</integer>
+	<integer>0xb22222</integer>
 	<key>firebrick1</key>
-	<integer>16724016</integer>
+	<integer>0xff3030</integer>
 	<key>firebrick2</key>
-	<integer>15608876</integer>
+	<integer>0xee2c2c</integer>
 	<key>firebrick3</key>
-	<integer>13444646</integer>
+	<integer>0xcd2626</integer>
 	<key>firebrick4</key>
-	<integer>9116186</integer>
+	<integer>0x8b1a1a</integer>
 	<key>floralwhite</key>
-	<integer>16775920</integer>
+	<integer>0xfffaf0</integer>
 	<key>forestgreen</key>
-	<integer>2263842</integer>
+	<integer>0x228b22</integer>
 	<key>gainsboro</key>
-	<integer>14474460</integer>
+	<integer>0xdcdcdc</integer>
 	<key>ghostwhite</key>
-	<integer>16316671</integer>
+	<integer>0xf8f8ff</integer>
 	<key>gold</key>
-	<integer>16766720</integer>
+	<integer>0xffd700</integer>
 	<key>gold1</key>
-	<integer>16766720</integer>
+	<integer>0xffd700</integer>
 	<key>gold2</key>
-	<integer>15649024</integer>
+	<integer>0xeec900</integer>
 	<key>gold3</key>
-	<integer>13479168</integer>
+	<integer>0xcdad00</integer>
 	<key>gold4</key>
-	<integer>9139456</integer>
+	<integer>0x8b7500</integer>
 	<key>goldenrod</key>
-	<integer>14329120</integer>
+	<integer>0xdaa520</integer>
 	<key>goldenrod1</key>
-	<integer>16761125</integer>
+	<integer>0xffc125</integer>
 	<key>goldenrod2</key>
-	<integer>15643682</integer>
+	<integer>0xeeb422</integer>
 	<key>goldenrod3</key>
-	<integer>13474589</integer>
+	<integer>0xcd9b1d</integer>
 	<key>goldenrod4</key>
-	<integer>9136404</integer>
+	<integer>0x8b6914</integer>
 	<key>gray</key>
-	<integer>12500670</integer>
+	<integer>0xbebebe</integer>
 	<key>gray0</key>
-	<integer>0</integer>
+	<integer>0x000000</integer>
 	<key>gray1</key>
-	<integer>197379</integer>
+	<integer>0x030303</integer>
 	<key>gray10</key>
-	<integer>1710618</integer>
+	<integer>0x1a1a1a</integer>
 	<key>gray100</key>
-	<integer>16777215</integer>
+	<integer>0xffffff</integer>
 	<key>gray11</key>
-	<integer>1842204</integer>
+	<integer>0x1c1c1c</integer>
 	<key>gray12</key>
-	<integer>2039583</integer>
+	<integer>0x1f1f1f</integer>
 	<key>gray13</key>
-	<integer>2171169</integer>
+	<integer>0x212121</integer>
 	<key>gray14</key>
-	<integer>2368548</integer>
+	<integer>0x242424</integer>
 	<key>gray15</key>
-	<integer>2500134</integer>
+	<integer>0x262626</integer>
 	<key>gray16</key>
-	<integer>2697513</integer>
+	<integer>0x292929</integer>
 	<key>gray17</key>
-	<integer>2829099</integer>
+	<integer>0x2b2b2b</integer>
 	<key>gray18</key>
-	<integer>3026478</integer>
+	<integer>0x2e2e2e</integer>
 	<key>gray19</key>
-	<integer>3158064</integer>
+	<integer>0x303030</integer>
 	<key>gray2</key>
-	<integer>328965</integer>
+	<integer>0x050505</integer>
 	<key>gray20</key>
-	<integer>3355443</integer>
+	<integer>0x333333</integer>
 	<key>gray21</key>
-	<integer>3552822</integer>
+	<integer>0x363636</integer>
 	<key>gray22</key>
-	<integer>3684408</integer>
+	<integer>0x383838</integer>
 	<key>gray23</key>
-	<integer>3881787</integer>
+	<integer>0x3b3b3b</integer>
 	<key>gray24</key>
-	<integer>4013373</integer>
+	<integer>0x3d3d3d</integer>
 	<key>gray25</key>
-	<integer>4210752</integer>
+	<integer>0x404040</integer>
 	<key>gray26</key>
-	<integer>4342338</integer>
+	<integer>0x424242</integer>
 	<key>gray27</key>
-	<integer>4539717</integer>
+	<integer>0x454545</integer>
 	<key>gray28</key>
-	<integer>4671303</integer>
+	<integer>0x474747</integer>
 	<key>gray29</key>
-	<integer>4868682</integer>
+	<integer>0x4a4a4a</integer>
 	<key>gray3</key>
-	<integer>526344</integer>
+	<integer>0x080808</integer>
 	<key>gray30</key>
-	<integer>5066061</integer>
+	<integer>0x4d4d4d</integer>
 	<key>gray31</key>
-	<integer>5197647</integer>
+	<integer>0x4f4f4f</integer>
 	<key>gray32</key>
-	<integer>5395026</integer>
+	<integer>0x525252</integer>
 	<key>gray33</key>
-	<integer>5526612</integer>
+	<integer>0x545454</integer>
 	<key>gray34</key>
-	<integer>5723991</integer>
+	<integer>0x575757</integer>
 	<key>gray35</key>
-	<integer>5855577</integer>
+	<integer>0x595959</integer>
 	<key>gray36</key>
-	<integer>6052956</integer>
+	<integer>0x5c5c5c</integer>
 	<key>gray37</key>
-	<integer>6184542</integer>
+	<integer>0x5e5e5e</integer>
 	<key>gray38</key>
-	<integer>6381921</integer>
+	<integer>0x616161</integer>
 	<key>gray39</key>
-	<integer>6513507</integer>
+	<integer>0x636363</integer>
 	<key>gray4</key>
-	<integer>657930</integer>
+	<integer>0x0a0a0a</integer>
 	<key>gray40</key>
-	<integer>6710886</integer>
+	<integer>0x666666</integer>
 	<key>gray41</key>
-	<integer>6908265</integer>
+	<integer>0x696969</integer>
 	<key>gray42</key>
-	<integer>7039851</integer>
+	<integer>0x6b6b6b</integer>
 	<key>gray43</key>
-	<integer>7237230</integer>
+	<integer>0x6e6e6e</integer>
 	<key>gray44</key>
-	<integer>7368816</integer>
+	<integer>0x707070</integer>
 	<key>gray45</key>
-	<integer>7566195</integer>
+	<integer>0x737373</integer>
 	<key>gray46</key>
-	<integer>7697781</integer>
+	<integer>0x757575</integer>
 	<key>gray47</key>
-	<integer>7895160</integer>
+	<integer>0x787878</integer>
 	<key>gray48</key>
-	<integer>8026746</integer>
+	<integer>0x7a7a7a</integer>
 	<key>gray49</key>
-	<integer>8224125</integer>
+	<integer>0x7d7d7d</integer>
 	<key>gray5</key>
-	<integer>855309</integer>
+	<integer>0x0d0d0d</integer>
 	<key>gray50</key>
-	<integer>8355711</integer>
+	<integer>0x7f7f7f</integer>
 	<key>gray51</key>
-	<integer>8553090</integer>
+	<integer>0x828282</integer>
 	<key>gray52</key>
-	<integer>8750469</integer>
+	<integer>0x858585</integer>
 	<key>gray53</key>
-	<integer>8882055</integer>
+	<integer>0x878787</integer>
 	<key>gray54</key>
-	<integer>9079434</integer>
+	<integer>0x8a8a8a</integer>
 	<key>gray55</key>
-	<integer>9211020</integer>
+	<integer>0x8c8c8c</integer>
 	<key>gray56</key>
-	<integer>9408399</integer>
+	<integer>0x8f8f8f</integer>
 	<key>gray57</key>
-	<integer>9539985</integer>
+	<integer>0x919191</integer>
 	<key>gray58</key>
-	<integer>9737364</integer>
+	<integer>0x949494</integer>
 	<key>gray59</key>
-	<integer>9868950</integer>
+	<integer>0x969696</integer>
 	<key>gray6</key>
-	<integer>986895</integer>
+	<integer>0x0f0f0f</integer>
 	<key>gray60</key>
-	<integer>10066329</integer>
+	<integer>0x999999</integer>
 	<key>gray61</key>
-	<integer>10263708</integer>
+	<integer>0x9c9c9c</integer>
 	<key>gray62</key>
-	<integer>10395294</integer>
+	<integer>0x9e9e9e</integer>
 	<key>gray63</key>
-	<integer>10592673</integer>
+	<integer>0xa1a1a1</integer>
 	<key>gray64</key>
-	<integer>10724259</integer>
+	<integer>0xa3a3a3</integer>
 	<key>gray65</key>
-	<integer>10921638</integer>
+	<integer>0xa6a6a6</integer>
 	<key>gray66</key>
-	<integer>11053224</integer>
+	<integer>0xa8a8a8</integer>
 	<key>gray67</key>
-	<integer>11250603</integer>
+	<integer>0xababab</integer>
 	<key>gray68</key>
-	<integer>11382189</integer>
+	<integer>0xadadad</integer>
 	<key>gray69</key>
-	<integer>11579568</integer>
+	<integer>0xb0b0b0</integer>
 	<key>gray7</key>
-	<integer>1184274</integer>
+	<integer>0x121212</integer>
 	<key>gray70</key>
-	<integer>11776947</integer>
+	<integer>0xb3b3b3</integer>
 	<key>gray71</key>
-	<integer>11908533</integer>
+	<integer>0xb5b5b5</integer>
 	<key>gray72</key>
-	<integer>12105912</integer>
+	<integer>0xb8b8b8</integer>
 	<key>gray73</key>
-	<integer>12237498</integer>
+	<integer>0xbababa</integer>
 	<key>gray74</key>
-	<integer>12434877</integer>
+	<integer>0xbdbdbd</integer>
 	<key>gray75</key>
-	<integer>12566463</integer>
+	<integer>0xbfbfbf</integer>
 	<key>gray76</key>
-	<integer>12763842</integer>
+	<integer>0xc2c2c2</integer>
 	<key>gray77</key>
-	<integer>12895428</integer>
+	<integer>0xc4c4c4</integer>
 	<key>gray78</key>
-	<integer>13092807</integer>
+	<integer>0xc7c7c7</integer>
 	<key>gray79</key>
-	<integer>13224393</integer>
+	<integer>0xc9c9c9</integer>
 	<key>gray8</key>
-	<integer>1315860</integer>
+	<integer>0x141414</integer>
 	<key>gray80</key>
-	<integer>13421772</integer>
+	<integer>0xcccccc</integer>
 	<key>gray81</key>
-	<integer>13619151</integer>
+	<integer>0xcfcfcf</integer>
 	<key>gray82</key>
-	<integer>13750737</integer>
+	<integer>0xd1d1d1</integer>
 	<key>gray83</key>
-	<integer>13948116</integer>
+	<integer>0xd4d4d4</integer>
 	<key>gray84</key>
-	<integer>14079702</integer>
+	<integer>0xd6d6d6</integer>
 	<key>gray85</key>
-	<integer>14277081</integer>
+	<integer>0xd9d9d9</integer>
 	<key>gray86</key>
-	<integer>14408667</integer>
+	<integer>0xdbdbdb</integer>
 	<key>gray87</key>
-	<integer>14606046</integer>
+	<integer>0xdedede</integer>
 	<key>gray88</key>
-	<integer>14737632</integer>
+	<integer>0xe0e0e0</integer>
 	<key>gray89</key>
-	<integer>14935011</integer>
+	<integer>0xe3e3e3</integer>
 	<key>gray9</key>
-	<integer>1513239</integer>
+	<integer>0x171717</integer>
 	<key>gray90</key>
-	<integer>15066597</integer>
+	<integer>0xe5e5e5</integer>
 	<key>gray91</key>
-	<integer>15263976</integer>
+	<integer>0xe8e8e8</integer>
 	<key>gray92</key>
-	<integer>15461355</integer>
+	<integer>0xebebeb</integer>
 	<key>gray93</key>
-	<integer>15592941</integer>
+	<integer>0xededed</integer>
 	<key>gray94</key>
-	<integer>15790320</integer>
+	<integer>0xf0f0f0</integer>
 	<key>gray95</key>
-	<integer>15921906</integer>
+	<integer>0xf2f2f2</integer>
 	<key>gray96</key>
-	<integer>16119285</integer>
+	<integer>0xf5f5f5</integer>
 	<key>gray97</key>
-	<integer>16250871</integer>
+	<integer>0xf7f7f7</integer>
 	<key>gray98</key>
-	<integer>16448250</integer>
+	<integer>0xfafafa</integer>
 	<key>gray99</key>
-	<integer>16579836</integer>
+	<integer>0xfcfcfc</integer>
 	<key>green</key>
-	<integer>65280</integer>
+	<integer>0x00ff00</integer>
 	<key>green1</key>
-	<integer>65280</integer>
+	<integer>0x00ff00</integer>
 	<key>green2</key>
-	<integer>60928</integer>
+	<integer>0x00ee00</integer>
 	<key>green3</key>
-	<integer>52480</integer>
+	<integer>0x00cd00</integer>
 	<key>green4</key>
-	<integer>35584</integer>
+	<integer>0x008b00</integer>
 	<key>greenyellow</key>
-	<integer>11403055</integer>
+	<integer>0xadff2f</integer>
 	<key>grey</key>
-	<integer>12500670</integer>
+	<integer>0xbebebe</integer>
 	<key>grey0</key>
-	<integer>0</integer>
+	<integer>0x000000</integer>
 	<key>grey1</key>
-	<integer>197379</integer>
+	<integer>0x030303</integer>
 	<key>grey10</key>
-	<integer>1710618</integer>
+	<integer>0x1a1a1a</integer>
 	<key>grey100</key>
-	<integer>16777215</integer>
+	<integer>0xffffff</integer>
 	<key>grey11</key>
-	<integer>1842204</integer>
+	<integer>0x1c1c1c</integer>
 	<key>grey12</key>
-	<integer>2039583</integer>
+	<integer>0x1f1f1f</integer>
 	<key>grey13</key>
-	<integer>2171169</integer>
+	<integer>0x212121</integer>
 	<key>grey14</key>
-	<integer>2368548</integer>
+	<integer>0x242424</integer>
 	<key>grey15</key>
-	<integer>2500134</integer>
+	<integer>0x262626</integer>
 	<key>grey16</key>
-	<integer>2697513</integer>
+	<integer>0x292929</integer>
 	<key>grey17</key>
-	<integer>2829099</integer>
+	<integer>0x2b2b2b</integer>
 	<key>grey18</key>
-	<integer>3026478</integer>
+	<integer>0x2e2e2e</integer>
 	<key>grey19</key>
-	<integer>3158064</integer>
+	<integer>0x303030</integer>
 	<key>grey2</key>
-	<integer>328965</integer>
+	<integer>0x050505</integer>
 	<key>grey20</key>
-	<integer>3355443</integer>
+	<integer>0x333333</integer>
 	<key>grey21</key>
-	<integer>3552822</integer>
+	<integer>0x363636</integer>
 	<key>grey22</key>
-	<integer>3684408</integer>
+	<integer>0x383838</integer>
 	<key>grey23</key>
-	<integer>3881787</integer>
+	<integer>0x3b3b3b</integer>
 	<key>grey24</key>
-	<integer>4013373</integer>
+	<integer>0x3d3d3d</integer>
 	<key>grey25</key>
-	<integer>4210752</integer>
+	<integer>0x404040</integer>
 	<key>grey26</key>
-	<integer>4342338</integer>
+	<integer>0x424242</integer>
 	<key>grey27</key>
-	<integer>4539717</integer>
+	<integer>0x454545</integer>
 	<key>grey28</key>
-	<integer>4671303</integer>
+	<integer>0x474747</integer>
 	<key>grey29</key>
-	<integer>4868682</integer>
+	<integer>0x4a4a4a</integer>
 	<key>grey3</key>
-	<integer>526344</integer>
+	<integer>0x080808</integer>
 	<key>grey30</key>
-	<integer>5066061</integer>
+	<integer>0x4d4d4d</integer>
 	<key>grey31</key>
-	<integer>5197647</integer>
+	<integer>0x4f4f4f</integer>
 	<key>grey32</key>
-	<integer>5395026</integer>
+	<integer>0x525252</integer>
 	<key>grey33</key>
-	<integer>5526612</integer>
+	<integer>0x545454</integer>
 	<key>grey34</key>
-	<integer>5723991</integer>
+	<integer>0x575757</integer>
 	<key>grey35</key>
-	<integer>5855577</integer>
+	<integer>0x595959</integer>
 	<key>grey36</key>
-	<integer>6052956</integer>
+	<integer>0x5c5c5c</integer>
 	<key>grey37</key>
-	<integer>6184542</integer>
+	<integer>0x5e5e5e</integer>
 	<key>grey38</key>
-	<integer>6381921</integer>
+	<integer>0x616161</integer>
 	<key>grey39</key>
-	<integer>6513507</integer>
+	<integer>0x636363</integer>
 	<key>grey4</key>
-	<integer>657930</integer>
+	<integer>0x0a0a0a</integer>
 	<key>grey40</key>
-	<integer>6710886</integer>
+	<integer>0x666666</integer>
 	<key>grey41</key>
-	<integer>6908265</integer>
+	<integer>0x696969</integer>
 	<key>grey42</key>
-	<integer>7039851</integer>
+	<integer>0x6b6b6b</integer>
 	<key>grey43</key>
-	<integer>7237230</integer>
+	<integer>0x6e6e6e</integer>
 	<key>grey44</key>
-	<integer>7368816</integer>
+	<integer>0x707070</integer>
 	<key>grey45</key>
-	<integer>7566195</integer>
+	<integer>0x737373</integer>
 	<key>grey46</key>
-	<integer>7697781</integer>
+	<integer>0x757575</integer>
 	<key>grey47</key>
-	<integer>7895160</integer>
+	<integer>0x787878</integer>
 	<key>grey48</key>
-	<integer>8026746</integer>
+	<integer>0x7a7a7a</integer>
 	<key>grey49</key>
-	<integer>8224125</integer>
+	<integer>0x7d7d7d</integer>
 	<key>grey5</key>
-	<integer>855309</integer>
+	<integer>0x0d0d0d</integer>
 	<key>grey50</key>
-	<integer>8355711</integer>
+	<integer>0x7f7f7f</integer>
 	<key>grey51</key>
-	<integer>8553090</integer>
+	<integer>0x828282</integer>
 	<key>grey52</key>
-	<integer>8750469</integer>
+	<integer>0x858585</integer>
 	<key>grey53</key>
-	<integer>8882055</integer>
+	<integer>0x878787</integer>
 	<key>grey54</key>
-	<integer>9079434</integer>
+	<integer>0x8a8a8a</integer>
 	<key>grey55</key>
-	<integer>9211020</integer>
+	<integer>0x8c8c8c</integer>
 	<key>grey56</key>
-	<integer>9408399</integer>
+	<integer>0x8f8f8f</integer>
 	<key>grey57</key>
-	<integer>9539985</integer>
+	<integer>0x919191</integer>
 	<key>grey58</key>
-	<integer>9737364</integer>
+	<integer>0x949494</integer>
 	<key>grey59</key>
-	<integer>9868950</integer>
+	<integer>0x969696</integer>
 	<key>grey6</key>
-	<integer>986895</integer>
+	<integer>0x0f0f0f</integer>
 	<key>grey60</key>
-	<integer>10066329</integer>
+	<integer>0x999999</integer>
 	<key>grey61</key>
-	<integer>10263708</integer>
+	<integer>0x9c9c9c</integer>
 	<key>grey62</key>
-	<integer>10395294</integer>
+	<integer>0x9e9e9e</integer>
 	<key>grey63</key>
-	<integer>10592673</integer>
+	<integer>0xa1a1a1</integer>
 	<key>grey64</key>
-	<integer>10724259</integer>
+	<integer>0xa3a3a3</integer>
 	<key>grey65</key>
-	<integer>10921638</integer>
+	<integer>0xa6a6a6</integer>
 	<key>grey66</key>
-	<integer>11053224</integer>
+	<integer>0xa8a8a8</integer>
 	<key>grey67</key>
-	<integer>11250603</integer>
+	<integer>0xababab</integer>
 	<key>grey68</key>
-	<integer>11382189</integer>
+	<integer>0xadadad</integer>
 	<key>grey69</key>
-	<integer>11579568</integer>
+	<integer>0xb0b0b0</integer>
 	<key>grey7</key>
-	<integer>1184274</integer>
+	<integer>0x121212</integer>
 	<key>grey70</key>
-	<integer>11776947</integer>
+	<integer>0xb3b3b3</integer>
 	<key>grey71</key>
-	<integer>11908533</integer>
+	<integer>0xb5b5b5</integer>
 	<key>grey72</key>
-	<integer>12105912</integer>
+	<integer>0xb8b8b8</integer>
 	<key>grey73</key>
-	<integer>12237498</integer>
+	<integer>0xbababa</integer>
 	<key>grey74</key>
-	<integer>12434877</integer>
+	<integer>0xbdbdbd</integer>
 	<key>grey75</key>
-	<integer>12566463</integer>
+	<integer>0xbfbfbf</integer>
 	<key>grey76</key>
-	<integer>12763842</integer>
+	<integer>0xc2c2c2</integer>
 	<key>grey77</key>
-	<integer>12895428</integer>
+	<integer>0xc4c4c4</integer>
 	<key>grey78</key>
-	<integer>13092807</integer>
+	<integer>0xc7c7c7</integer>
 	<key>grey79</key>
-	<integer>13224393</integer>
+	<integer>0xc9c9c9</integer>
 	<key>grey8</key>
-	<integer>1315860</integer>
+	<integer>0x141414</integer>
 	<key>grey80</key>
-	<integer>13421772</integer>
+	<integer>0xcccccc</integer>
 	<key>grey81</key>
-	<integer>13619151</integer>
+	<integer>0xcfcfcf</integer>
 	<key>grey82</key>
-	<integer>13750737</integer>
+	<integer>0xd1d1d1</integer>
 	<key>grey83</key>
-	<integer>13948116</integer>
+	<integer>0xd4d4d4</integer>
 	<key>grey84</key>
-	<integer>14079702</integer>
+	<integer>0xd6d6d6</integer>
 	<key>grey85</key>
-	<integer>14277081</integer>
+	<integer>0xd9d9d9</integer>
 	<key>grey86</key>
-	<integer>14408667</integer>
+	<integer>0xdbdbdb</integer>
 	<key>grey87</key>
-	<integer>14606046</integer>
+	<integer>0xdedede</integer>
 	<key>grey88</key>
-	<integer>14737632</integer>
+	<integer>0xe0e0e0</integer>
 	<key>grey89</key>
-	<integer>14935011</integer>
+	<integer>0xe3e3e3</integer>
 	<key>grey9</key>
-	<integer>1513239</integer>
+	<integer>0x171717</integer>
 	<key>grey90</key>
-	<integer>15066597</integer>
+	<integer>0xe5e5e5</integer>
 	<key>grey91</key>
-	<integer>15263976</integer>
+	<integer>0xe8e8e8</integer>
 	<key>grey92</key>
-	<integer>15461355</integer>
+	<integer>0xebebeb</integer>
 	<key>grey93</key>
-	<integer>15592941</integer>
+	<integer>0xededed</integer>
 	<key>grey94</key>
-	<integer>15790320</integer>
+	<integer>0xf0f0f0</integer>
 	<key>grey95</key>
-	<integer>15921906</integer>
+	<integer>0xf2f2f2</integer>
 	<key>grey96</key>
-	<integer>16119285</integer>
+	<integer>0xf5f5f5</integer>
 	<key>grey97</key>
-	<integer>16250871</integer>
+	<integer>0xf7f7f7</integer>
 	<key>grey98</key>
-	<integer>16448250</integer>
+	<integer>0xfafafa</integer>
 	<key>grey99</key>
-	<integer>16579836</integer>
+	<integer>0xfcfcfc</integer>
 	<key>honeydew</key>
-	<integer>15794160</integer>
+	<integer>0xf0fff0</integer>
 	<key>honeydew1</key>
-	<integer>15794160</integer>
+	<integer>0xf0fff0</integer>
 	<key>honeydew2</key>
-	<integer>14741216</integer>
+	<integer>0xe0eee0</integer>
 	<key>honeydew3</key>
-	<integer>12701121</integer>
+	<integer>0xc1cdc1</integer>
 	<key>honeydew4</key>
-	<integer>8620931</integer>
+	<integer>0x838b83</integer>
 	<key>hotpink</key>
-	<integer>16738740</integer>
+	<integer>0xff69b4</integer>
 	<key>hotpink1</key>
-	<integer>16740020</integer>
+	<integer>0xff6eb4</integer>
 	<key>hotpink2</key>
-	<integer>15624871</integer>
+	<integer>0xee6aa7</integer>
 	<key>hotpink3</key>
-	<integer>13459600</integer>
+	<integer>0xcd6090</integer>
 	<key>hotpink4</key>
-	<integer>9124450</integer>
+	<integer>0x8b3a62</integer>
 	<key>indianred</key>
-	<integer>13458524</integer>
+	<integer>0xcd5c5c</integer>
 	<key>indianred1</key>
-	<integer>16738922</integer>
+	<integer>0xff6a6a</integer>
 	<key>indianred2</key>
-	<integer>15623011</integer>
+	<integer>0xee6363</integer>
 	<key>indianred3</key>
-	<integer>13456725</integer>
+	<integer>0xcd5555</integer>
 	<key>indianred4</key>
-	<integer>9124410</integer>
+	<integer>0x8b3a3a</integer>
 	<key>ivory</key>
-	<integer>16777200</integer>
+	<integer>0xfffff0</integer>
 	<key>ivory1</key>
-	<integer>16777200</integer>
+	<integer>0xfffff0</integer>
 	<key>ivory2</key>
-	<integer>15658720</integer>
+	<integer>0xeeeee0</integer>
 	<key>ivory3</key>
-	<integer>13487553</integer>
+	<integer>0xcdcdc1</integer>
 	<key>ivory4</key>
-	<integer>9145219</integer>
+	<integer>0x8b8b83</integer>
 	<key>khaki</key>
-	<integer>15787660</integer>
+	<integer>0xf0e68c</integer>
 	<key>khaki1</key>
-	<integer>16774799</integer>
+	<integer>0xfff68f</integer>
 	<key>khaki2</key>
-	<integer>15656581</integer>
+	<integer>0xeee685</integer>
 	<key>khaki3</key>
-	<integer>13485683</integer>
+	<integer>0xcdc673</integer>
 	<key>khaki4</key>
-	<integer>9143886</integer>
+	<integer>0x8b864e</integer>
 	<key>lavender</key>
-	<integer>15132410</integer>
+	<integer>0xe6e6fa</integer>
 	<key>lavenderblush</key>
-	<integer>16773365</integer>
+	<integer>0xfff0f5</integer>
 	<key>lavenderblush1</key>
-	<integer>16773365</integer>
+	<integer>0xfff0f5</integer>
 	<key>lavenderblush2</key>
-	<integer>15655141</integer>
+	<integer>0xeee0e5</integer>
 	<key>lavenderblush3</key>
-	<integer>13484485</integer>
+	<integer>0xcdc1c5</integer>
 	<key>lavenderblush4</key>
-	<integer>9143174</integer>
+	<integer>0x8b8386</integer>
 	<key>lawngreen</key>
-	<integer>8190976</integer>
+	<integer>0x7cfc00</integer>
 	<key>lemonchiffon</key>
-	<integer>16775885</integer>
+	<integer>0xfffacd</integer>
 	<key>lemonchiffon1</key>
-	<integer>16775885</integer>
+	<integer>0xfffacd</integer>
 	<key>lemonchiffon2</key>
-	<integer>15657407</integer>
+	<integer>0xeee9bf</integer>
 	<key>lemonchiffon3</key>
-	<integer>13486501</integer>
+	<integer>0xcdc9a5</integer>
 	<key>lemonchiffon4</key>
-	<integer>9144688</integer>
+	<integer>0x8b8970</integer>
 	<key>lightblue</key>
-	<integer>11393254</integer>
+	<integer>0xadd8e6</integer>
 	<key>lightblue1</key>
-	<integer>12578815</integer>
+	<integer>0xbfefff</integer>
 	<key>lightblue2</key>
-	<integer>11722734</integer>
+	<integer>0xb2dfee</integer>
 	<key>lightblue3</key>
-	<integer>10141901</integer>
+	<integer>0x9ac0cd</integer>
 	<key>lightblue4</key>
-	<integer>6849419</integer>
+	<integer>0x68838b</integer>
 	<key>lightcoral</key>
-	<integer>15761536</integer>
+	<integer>0xf08080</integer>
 	<key>lightcyan</key>
-	<integer>14745599</integer>
+	<integer>0xe0ffff</integer>
 	<key>lightcyan1</key>
-	<integer>14745599</integer>
+	<integer>0xe0ffff</integer>
 	<key>lightcyan2</key>
-	<integer>13758190</integer>
+	<integer>0xd1eeee</integer>
 	<key>lightcyan3</key>
-	<integer>11849165</integer>
+	<integer>0xb4cdcd</integer>
 	<key>lightcyan4</key>
-	<integer>8031115</integer>
+	<integer>0x7a8b8b</integer>
 	<key>lightgoldenrod</key>
-	<integer>15654274</integer>
+	<integer>0xeedd82</integer>
 	<key>lightgoldenrod1</key>
-	<integer>16772235</integer>
+	<integer>0xffec8b</integer>
 	<key>lightgoldenrod2</key>
-	<integer>15654018</integer>
+	<integer>0xeedc82</integer>
 	<key>lightgoldenrod3</key>
-	<integer>13483632</integer>
+	<integer>0xcdbe70</integer>
 	<key>lightgoldenrod4</key>
-	<integer>9142604</integer>
+	<integer>0x8b814c</integer>
 	<key>lightgoldenrodyellow</key>
-	<integer>16448210</integer>
+	<integer>0xfafad2</integer>
 	<key>lightgray</key>
-	<integer>13882323</integer>
+	<integer>0xd3d3d3</integer>
 	<key>lightgreen</key>
-	<integer>9498256</integer>
+	<integer>0x90ee90</integer>
 	<key>lightgrey</key>
-	<integer>13882323</integer>
+	<integer>0xd3d3d3</integer>
 	<key>lightmagenta</key>
-	<integer>16759807</integer>
+	<integer>0xff8bff</integer>
 	<key>lightpink</key>
-	<integer>16758465</integer>
+	<integer>0xffb6c1</integer>
 	<key>lightpink1</key>
-	<integer>16756409</integer>
+	<integer>0xffaeb9</integer>
 	<key>lightpink2</key>
-	<integer>15639213</integer>
+	<integer>0xeea2ad</integer>
 	<key>lightpink3</key>
-	<integer>13470869</integer>
+	<integer>0xcd8c95</integer>
 	<key>lightpink4</key>
-	<integer>9133925</integer>
+	<integer>0x8b5f65</integer>
 	<key>lightred</key>
-	<integer>16759739</integer>
+	<integer>0xff8b8b</integer>
 	<key>lightsalmon</key>
-	<integer>16752762</integer>
+	<integer>0xffa07a</integer>
 	<key>lightsalmon1</key>
-	<integer>16752762</integer>
+	<integer>0xffa07a</integer>
 	<key>lightsalmon2</key>
-	<integer>15635826</integer>
+	<integer>0xee9572</integer>
 	<key>lightsalmon3</key>
-	<integer>13468002</integer>
+	<integer>0xcd8162</integer>
 	<key>lightsalmon4</key>
-	<integer>9131842</integer>
+	<integer>0x8b5742</integer>
 	<key>lightseagreen</key>
-	<integer>2142890</integer>
+	<integer>0x20b2aa</integer>
 	<key>lightskyblue</key>
-	<integer>8900346</integer>
+	<integer>0x87cefa</integer>
 	<key>lightskyblue1</key>
-	<integer>11592447</integer>
+	<integer>0xb0e2ff</integer>
 	<key>lightskyblue2</key>
-	<integer>10802158</integer>
+	<integer>0xa4d3ee</integer>
 	<key>lightskyblue3</key>
-	<integer>9287373</integer>
+	<integer>0x8db6cd</integer>
 	<key>lightskyblue4</key>
-	<integer>6323083</integer>
+	<integer>0x607b8b</integer>
 	<key>lightslateblue</key>
-	<integer>8679679</integer>
+	<integer>0x8470ff</integer>
 	<key>lightslategray</key>
-	<integer>7833753</integer>
+	<integer>0x778899</integer>
 	<key>lightslategrey</key>
-	<integer>7833753</integer>
+	<integer>0x778899</integer>
 	<key>lightsteelblue</key>
-	<integer>11584734</integer>
+	<integer>0xb0c4de</integer>
 	<key>lightsteelblue1</key>
-	<integer>13296127</integer>
+	<integer>0xcae1ff</integer>
 	<key>lightsteelblue2</key>
-	<integer>12374766</integer>
+	<integer>0xbcd2ee</integer>
 	<key>lightsteelblue3</key>
-	<integer>10663373</integer>
+	<integer>0xa2b5cd</integer>
 	<key>lightsteelblue4</key>
-	<integer>7240587</integer>
+	<integer>0x6e7b8b</integer>
 	<key>lightyellow</key>
-	<integer>16777184</integer>
+	<integer>0xffffe0</integer>
 	<key>lightyellow1</key>
-	<integer>16777184</integer>
+	<integer>0xffffe0</integer>
 	<key>lightyellow2</key>
-	<integer>15658705</integer>
+	<integer>0xeeeed1</integer>
 	<key>lightyellow3</key>
-	<integer>13487540</integer>
+	<integer>0xcdcdb4</integer>
 	<key>lightyellow4</key>
-	<integer>9145210</integer>
+	<integer>0x8b8b7a</integer>
 	<key>limegreen</key>
-	<integer>3329330</integer>
+	<integer>0x32cd32</integer>
 	<key>linen</key>
-	<integer>16445670</integer>
+	<integer>0xfaf0e6</integer>
 	<key>magenta</key>
-	<integer>16711935</integer>
+	<integer>0xff00ff</integer>
 	<key>magenta1</key>
-	<integer>16711935</integer>
+	<integer>0xff00ff</integer>
 	<key>magenta2</key>
-	<integer>15597806</integer>
+	<integer>0xee00ee</integer>
 	<key>magenta3</key>
-	<integer>13435085</integer>
+	<integer>0xcd00cd</integer>
 	<key>magenta4</key>
-	<integer>9109643</integer>
+	<integer>0x8b008b</integer>
 	<key>maroon</key>
-	<integer>11546720</integer>
+	<integer>0xb03060</integer>
 	<key>maroon1</key>
-	<integer>16725171</integer>
+	<integer>0xff34b3</integer>
 	<key>maroon2</key>
-	<integer>15610023</integer>
+	<integer>0xee30a7</integer>
 	<key>maroon3</key>
-	<integer>13445520</integer>
+	<integer>0xcd2990</integer>
 	<key>maroon4</key>
-	<integer>9116770</integer>
+	<integer>0x8b1c62</integer>
 	<key>mediumaquamarine</key>
-	<integer>6737322</integer>
+	<integer>0x66cdaa</integer>
 	<key>mediumblue</key>
-	<integer>205</integer>
+	<integer>0x0000cd</integer>
 	<key>mediumorchid</key>
-	<integer>12211667</integer>
+	<integer>0xba55d3</integer>
 	<key>mediumorchid1</key>
-	<integer>14706431</integer>
+	<integer>0xe066ff</integer>
 	<key>mediumorchid2</key>
-	<integer>13721582</integer>
+	<integer>0xd15fee</integer>
 	<key>mediumorchid3</key>
-	<integer>11817677</integer>
+	<integer>0xb452cd</integer>
 	<key>mediumorchid4</key>
-	<integer>8009611</integer>
+	<integer>0x7a378b</integer>
 	<key>mediumpurple</key>
-	<integer>9662683</integer>
+	<integer>0x9370db</integer>
 	<key>mediumpurple1</key>
-	<integer>11240191</integer>
+	<integer>0xab82ff</integer>
 	<key>mediumpurple2</key>
-	<integer>10451438</integer>
+	<integer>0x9f79ee</integer>
 	<key>mediumpurple3</key>
-	<integer>9005261</integer>
+	<integer>0x8968cd</integer>
 	<key>mediumpurple4</key>
-	<integer>6113163</integer>
+	<integer>0x5d478b</integer>
 	<key>mediumseagreen</key>
-	<integer>3978097</integer>
+	<integer>0x3cb371</integer>
 	<key>mediumslateblue</key>
-	<integer>8087790</integer>
+	<integer>0x7b68ee</integer>
 	<key>mediumspringgreen</key>
-	<integer>64154</integer>
+	<integer>0x00fa9a</integer>
 	<key>mediumturquoise</key>
-	<integer>4772300</integer>
+	<integer>0x48d1cc</integer>
 	<key>mediumvioletred</key>
-	<integer>13047173</integer>
+	<integer>0xc71585</integer>
 	<key>midnightblue</key>
-	<integer>1644912</integer>
+	<integer>0x191970</integer>
 	<key>mintcream</key>
-	<integer>16121850</integer>
+	<integer>0xf5fffa</integer>
 	<key>mistyrose</key>
-	<integer>16770273</integer>
+	<integer>0xffe4e1</integer>
 	<key>mistyrose1</key>
-	<integer>16770273</integer>
+	<integer>0xffe4e1</integer>
 	<key>mistyrose2</key>
-	<integer>15652306</integer>
+	<integer>0xeed5d2</integer>
 	<key>mistyrose3</key>
-	<integer>13481909</integer>
+	<integer>0xcdb7b5</integer>
 	<key>mistyrose4</key>
-	<integer>9141627</integer>
+	<integer>0x8b7d7b</integer>
 	<key>moccasin</key>
-	<integer>16770229</integer>
+	<integer>0xffe4b5</integer>
 	<key>navajowhite</key>
-	<integer>16768685</integer>
+	<integer>0xffdead</integer>
 	<key>navajowhite1</key>
-	<integer>16768685</integer>
+	<integer>0xffdead</integer>
 	<key>navajowhite2</key>
-	<integer>15650721</integer>
+	<integer>0xeecfa1</integer>
 	<key>navajowhite3</key>
-	<integer>13480843</integer>
+	<integer>0xcdb38b</integer>
 	<key>navajowhite4</key>
-	<integer>9140574</integer>
+	<integer>0x8b795e</integer>
 	<key>navy</key>
-	<integer>128</integer>
+	<integer>0x000080</integer>
 	<key>navyblue</key>
-	<integer>128</integer>
+	<integer>0x000080</integer>
 	<key>oldlace</key>
-	<integer>16643558</integer>
+	<integer>0xfdf5e6</integer>
 	<key>olivedrab</key>
-	<integer>7048739</integer>
+	<integer>0x6b8e23</integer>
 	<key>olivedrab1</key>
-	<integer>12648254</integer>
+	<integer>0xc0ff3e</integer>
 	<key>olivedrab2</key>
-	<integer>11791930</integer>
+	<integer>0xb3ee3a</integer>
 	<key>olivedrab3</key>
-	<integer>10145074</integer>
+	<integer>0x9acd32</integer>
 	<key>olivedrab4</key>
-	<integer>6916898</integer>
+	<integer>0x698b22</integer>
 	<key>orange</key>
-	<integer>16753920</integer>
+	<integer>0xffa500</integer>
 	<key>orange1</key>
-	<integer>16753920</integer>
+	<integer>0xffa500</integer>
 	<key>orange2</key>
-	<integer>15636992</integer>
+	<integer>0xee9a00</integer>
 	<key>orange3</key>
-	<integer>13468928</integer>
+	<integer>0xcd8500</integer>
 	<key>orange4</key>
-	<integer>9132544</integer>
+	<integer>0x8b5a00</integer>
 	<key>orangered</key>
-	<integer>16729344</integer>
+	<integer>0xff4500</integer>
 	<key>orangered1</key>
-	<integer>16729344</integer>
+	<integer>0xff4500</integer>
 	<key>orangered2</key>
-	<integer>15613952</integer>
+	<integer>0xee4000</integer>
 	<key>orangered3</key>
-	<integer>13448960</integer>
+	<integer>0xcd3700</integer>
 	<key>orangered4</key>
-	<integer>9118976</integer>
+	<integer>0x8b2500</integer>
 	<key>orchid</key>
-	<integer>14315734</integer>
+	<integer>0xda70d6</integer>
 	<key>orchid1</key>
-	<integer>16745466</integer>
+	<integer>0xff83fa</integer>
 	<key>orchid2</key>
-	<integer>15629033</integer>
+	<integer>0xee7ae9</integer>
 	<key>orchid3</key>
-	<integer>13461961</integer>
+	<integer>0xcd69c9</integer>
 	<key>orchid4</key>
-	<integer>9127817</integer>
+	<integer>0x8b4789</integer>
 	<key>palegoldenrod</key>
-	<integer>15657130</integer>
+	<integer>0xeee8aa</integer>
 	<key>palegreen</key>
-	<integer>10025880</integer>
+	<integer>0x98fb98</integer>
 	<key>palegreen1</key>
-	<integer>10157978</integer>
+	<integer>0x9aff9a</integer>
 	<key>palegreen2</key>
-	<integer>9498256</integer>
+	<integer>0x90ee90</integer>
 	<key>palegreen3</key>
-	<integer>8179068</integer>
+	<integer>0x7ccd7c</integer>
 	<key>palegreen4</key>
-	<integer>5540692</integer>
+	<integer>0x548b54</integer>
 	<key>paleturquoise</key>
-	<integer>11529966</integer>
+	<integer>0xafeeee</integer>
 	<key>paleturquoise1</key>
-	<integer>12320767</integer>
+	<integer>0xbbffff</integer>
 	<key>paleturquoise2</key>
-	<integer>11464430</integer>
+	<integer>0xaeeeee</integer>
 	<key>paleturquoise3</key>
-	<integer>9883085</integer>
+	<integer>0x96cdcd</integer>
 	<key>paleturquoise4</key>
-	<integer>6720395</integer>
+	<integer>0x668b8b</integer>
 	<key>palevioletred</key>
-	<integer>14381203</integer>
+	<integer>0xdb7093</integer>
 	<key>palevioletred1</key>
-	<integer>16745131</integer>
+	<integer>0xff82ab</integer>
 	<key>palevioletred2</key>
-	<integer>15628703</integer>
+	<integer>0xee799f</integer>
 	<key>palevioletred3</key>
-	<integer>13461641</integer>
+	<integer>0xcd6889</integer>
 	<key>palevioletred4</key>
-	<integer>9127773</integer>
+	<integer>0x8b475d</integer>
 	<key>papayawhip</key>
-	<integer>16773077</integer>
+	<integer>0xffefd5</integer>
 	<key>peachpuff</key>
-	<integer>16767673</integer>
+	<integer>0xffdab9</integer>
 	<key>peachpuff1</key>
-	<integer>16767673</integer>
+	<integer>0xffdab9</integer>
 	<key>peachpuff2</key>
-	<integer>15649709</integer>
+	<integer>0xeecbad</integer>
 	<key>peachpuff3</key>
-	<integer>13479829</integer>
+	<integer>0xcdaf95</integer>
 	<key>peachpuff4</key>
-	<integer>9140069</integer>
+	<integer>0x8b7765</integer>
 	<key>peru</key>
-	<integer>13468991</integer>
+	<integer>0xcd853f</integer>
 	<key>pink</key>
-	<integer>16761035</integer>
+	<integer>0xffc0cb</integer>
 	<key>pink1</key>
-	<integer>16758213</integer>
+	<integer>0xffb5c5</integer>
 	<key>pink2</key>
-	<integer>15641016</integer>
+	<integer>0xeea9b8</integer>
 	<key>pink3</key>
-	<integer>13472158</integer>
+	<integer>0xcd919e</integer>
 	<key>pink4</key>
-	<integer>9134956</integer>
+	<integer>0x8b636c</integer>
 	<key>plum</key>
-	<integer>14524637</integer>
+	<integer>0xdda0dd</integer>
 	<key>plum1</key>
-	<integer>16759807</integer>
+	<integer>0xffbbff</integer>
 	<key>plum2</key>
-	<integer>15642350</integer>
+	<integer>0xeeaeee</integer>
 	<key>plum3</key>
-	<integer>13473485</integer>
+	<integer>0xcd96cd</integer>
 	<key>plum4</key>
-	<integer>9135755</integer>
+	<integer>0x8b668b</integer>
 	<key>powderblue</key>
-	<integer>11591910</integer>
+	<integer>0xb0e0e6</integer>
 	<key>purple</key>
-	<integer>10494192</integer>
+	<integer>0xa020f0</integer>
 	<key>purple1</key>
-	<integer>10170623</integer>
+	<integer>0x9b30ff</integer>
 	<key>purple2</key>
-	<integer>9514222</integer>
+	<integer>0x912cee</integer>
 	<key>purple3</key>
-	<integer>8201933</integer>
+	<integer>0x7d26cd</integer>
 	<key>purple4</key>
-	<integer>5577355</integer>
+	<integer>0x551a8b</integer>
 	<key>red</key>
-	<integer>16711680</integer>
+	<integer>0xff0000</integer>
 	<key>red1</key>
-	<integer>16711680</integer>
+	<integer>0xff0000</integer>
 	<key>red2</key>
-	<integer>15597568</integer>
+	<integer>0xee0000</integer>
 	<key>red3</key>
-	<integer>13434880</integer>
+	<integer>0xcd0000</integer>
 	<key>red4</key>
-	<integer>9109504</integer>
+	<integer>0x8b0000</integer>
 	<key>rosybrown</key>
-	<integer>12357519</integer>
+	<integer>0xbc8f8f</integer>
 	<key>rosybrown1</key>
-	<integer>16761281</integer>
+	<integer>0xffc1c1</integer>
 	<key>rosybrown2</key>
-	<integer>15643828</integer>
+	<integer>0xeeb4b4</integer>
 	<key>rosybrown3</key>
-	<integer>13474715</integer>
+	<integer>0xcd9b9b</integer>
 	<key>rosybrown4</key>
-	<integer>9136489</integer>
+	<integer>0x8b6969</integer>
 	<key>royalblue</key>
-	<integer>4286945</integer>
+	<integer>0x4169e1</integer>
 	<key>royalblue1</key>
-	<integer>4749055</integer>
+	<integer>0x4876ff</integer>
 	<key>royalblue2</key>
-	<integer>4419310</integer>
+	<integer>0x436eee</integer>
 	<key>royalblue3</key>
-	<integer>3825613</integer>
+	<integer>0x3a5fcd</integer>
 	<key>royalblue4</key>
-	<integer>2572427</integer>
+	<integer>0x27408b</integer>
 	<key>saddlebrown</key>
-	<integer>9127187</integer>
+	<integer>0x8b4513</integer>
 	<key>salmon</key>
-	<integer>16416882</integer>
+	<integer>0xfa8072</integer>
 	<key>salmon1</key>
-	<integer>16747625</integer>
+	<integer>0xff8c69</integer>
 	<key>salmon2</key>
-	<integer>15630946</integer>
+	<integer>0xee8262</integer>
 	<key>salmon3</key>
-	<integer>13463636</integer>
+	<integer>0xcd7054</integer>
 	<key>salmon4</key>
-	<integer>9129017</integer>
+	<integer>0x8b4c39</integer>
 	<key>sandybrown</key>
-	<integer>16032864</integer>
+	<integer>0xf4a460</integer>
 	<key>seagreen</key>
-	<integer>3050327</integer>
+	<integer>0x2e8b57</integer>
 	<key>seagreen1</key>
-	<integer>5570463</integer>
+	<integer>0x54ff9f</integer>
 	<key>seagreen2</key>
-	<integer>5172884</integer>
+	<integer>0x4eee94</integer>
 	<key>seagreen3</key>
-	<integer>4443520</integer>
+	<integer>0x43cd80</integer>
 	<key>seagreen4</key>
-	<integer>3050327</integer>
+	<integer>0x2e8b57</integer>
 	<key>seashell</key>
-	<integer>16774638</integer>
+	<integer>0xfff5ee</integer>
 	<key>seashell1</key>
-	<integer>16774638</integer>
+	<integer>0xfff5ee</integer>
 	<key>seashell2</key>
-	<integer>15656414</integer>
+	<integer>0xeee5de</integer>
 	<key>seashell3</key>
-	<integer>13485503</integer>
+	<integer>0xcdc5bf</integer>
 	<key>seashell4</key>
-	<integer>9143938</integer>
+	<integer>0x8b8682</integer>
 	<key>sienna</key>
-	<integer>10506797</integer>
+	<integer>0xa0522d</integer>
 	<key>sienna1</key>
-	<integer>16745031</integer>
+	<integer>0xff8247</integer>
 	<key>sienna2</key>
-	<integer>15628610</integer>
+	<integer>0xee7942</integer>
 	<key>sienna3</key>
-	<integer>13461561</integer>
+	<integer>0xcd6839</integer>
 	<key>sienna4</key>
-	<integer>9127718</integer>
+	<integer>0x8b4726</integer>
 	<key>skyblue</key>
-	<integer>8900331</integer>
+	<integer>0x87ceeb</integer>
 	<key>skyblue1</key>
-	<integer>8900351</integer>
+	<integer>0x87ceff</integer>
 	<key>skyblue2</key>
-	<integer>8306926</integer>
+	<integer>0x7ec0ee</integer>
 	<key>skyblue3</key>
-	<integer>7120589</integer>
+	<integer>0x6ca6cd</integer>
 	<key>skyblue4</key>
-	<integer>4878475</integer>
+	<integer>0x4a708b</integer>
 	<key>slateblue</key>
-	<integer>6970061</integer>
+	<integer>0x6a5acd</integer>
 	<key>slateblue1</key>
-	<integer>8613887</integer>
+	<integer>0x836fff</integer>
 	<key>slateblue2</key>
-	<integer>8021998</integer>
+	<integer>0x7a67ee</integer>
 	<key>slateblue3</key>
-	<integer>6904269</integer>
+	<integer>0x6959cd</integer>
 	<key>slateblue4</key>
-	<integer>4668555</integer>
+	<integer>0x473c8b</integer>
 	<key>slategray</key>
-	<integer>7372944</integer>
+	<integer>0x708090</integer>
 	<key>slategray1</key>
-	<integer>13034239</integer>
+	<integer>0xc6e2ff</integer>
 	<key>slategray2</key>
-	<integer>12178414</integer>
+	<integer>0xb9d3ee</integer>
 	<key>slategray3</key>
-	<integer>10467021</integer>
+	<integer>0x9fb6cd</integer>
 	<key>slategray4</key>
-	<integer>7109515</integer>
+	<integer>0x6c7b8b</integer>
 	<key>slategrey</key>
-	<integer>7372944</integer>
+	<integer>0x708090</integer>
 	<key>snow</key>
-	<integer>16775930</integer>
+	<integer>0xfffafa</integer>
 	<key>snow1</key>
-	<integer>16775930</integer>
+	<integer>0xfffafa</integer>
 	<key>snow2</key>
-	<integer>15657449</integer>
+	<integer>0xeee9e9</integer>
 	<key>snow3</key>
-	<integer>13486537</integer>
+	<integer>0xcdc9c9</integer>
 	<key>snow4</key>
-	<integer>9144713</integer>
+	<integer>0x8b8989</integer>
 	<key>springgreen</key>
-	<integer>65407</integer>
+	<integer>0x00ff7f</integer>
 	<key>springgreen1</key>
-	<integer>65407</integer>
+	<integer>0x00ff7f</integer>
 	<key>springgreen2</key>
-	<integer>61046</integer>
+	<integer>0x00ee76</integer>
 	<key>springgreen3</key>
-	<integer>52582</integer>
+	<integer>0x00cd66</integer>
 	<key>springgreen4</key>
-	<integer>35653</integer>
+	<integer>0x008b45</integer>
 	<key>steelblue</key>
-	<integer>4620980</integer>
+	<integer>0x4682b4</integer>
 	<key>steelblue1</key>
-	<integer>6535423</integer>
+	<integer>0x63b8ff</integer>
 	<key>steelblue2</key>
-	<integer>6073582</integer>
+	<integer>0x5cacee</integer>
 	<key>steelblue3</key>
-	<integer>5215437</integer>
+	<integer>0x4f94cd</integer>
 	<key>steelblue4</key>
-	<integer>3564683</integer>
+	<integer>0x36648b</integer>
 	<key>tan</key>
-	<integer>13808780</integer>
+	<integer>0xd2b48c</integer>
 	<key>tan1</key>
-	<integer>16753999</integer>
+	<integer>0xffa54f</integer>
 	<key>tan2</key>
-	<integer>15637065</integer>
+	<integer>0xee9a49</integer>
 	<key>tan3</key>
-	<integer>13468991</integer>
+	<integer>0xcd853f</integer>
 	<key>tan4</key>
-	<integer>9132587</integer>
+	<integer>0x8b5a2b</integer>
 	<key>thistle</key>
-	<integer>14204888</integer>
+	<integer>0xd8bfd8</integer>
 	<key>thistle1</key>
-	<integer>16769535</integer>
+	<integer>0xffe1ff</integer>
 	<key>thistle2</key>
-	<integer>15651566</integer>
+	<integer>0xeed2ee</integer>
 	<key>thistle3</key>
-	<integer>13481421</integer>
+	<integer>0xcdb5cd</integer>
 	<key>thistle4</key>
-	<integer>9141131</integer>
+	<integer>0x8b7b8b</integer>
 	<key>tomato</key>
-	<integer>16737095</integer>
+	<integer>0xff6347</integer>
 	<key>tomato1</key>
-	<integer>16737095</integer>
+	<integer>0xff6347</integer>
 	<key>tomato2</key>
-	<integer>15621186</integer>
+	<integer>0xee5c42</integer>
 	<key>tomato3</key>
-	<integer>13455161</integer>
+	<integer>0xcd4f39</integer>
 	<key>tomato4</key>
-	<integer>9123366</integer>
+	<integer>0x8b3626</integer>
 	<key>turquoise</key>
-	<integer>4251856</integer>
+	<integer>0x40e0d0</integer>
 	<key>turquoise1</key>
-	<integer>62975</integer>
+	<integer>0x00f5ff</integer>
 	<key>turquoise2</key>
-	<integer>58862</integer>
+	<integer>0x00e5ee</integer>
 	<key>turquoise3</key>
-	<integer>50637</integer>
+	<integer>0x00c5cd</integer>
 	<key>turquoise4</key>
-	<integer>34443</integer>
+	<integer>0x00868b</integer>
 	<key>violet</key>
-	<integer>15631086</integer>
+	<integer>0xee82ee</integer>
 	<key>violetred</key>
-	<integer>13639824</integer>
+	<integer>0xd02090</integer>
 	<key>violetred1</key>
-	<integer>16727702</integer>
+	<integer>0xff3e96</integer>
 	<key>violetred2</key>
-	<integer>15612556</integer>
+	<integer>0xee3a8c</integer>
 	<key>violetred3</key>
-	<integer>13447800</integer>
+	<integer>0xcd3278</integer>
 	<key>violetred4</key>
-	<integer>9118290</integer>
+	<integer>0x8b2252</integer>
 	<key>wheat</key>
-	<integer>16113331</integer>
+	<integer>0xf5deb3</integer>
 	<key>wheat1</key>
-	<integer>16771002</integer>
+	<integer>0xffe7ba</integer>
 	<key>wheat2</key>
-	<integer>15653038</integer>
+	<integer>0xeed8ae</integer>
 	<key>wheat3</key>
-	<integer>13482646</integer>
+	<integer>0xcdba96</integer>
 	<key>wheat4</key>
-	<integer>9141862</integer>
+	<integer>0x8b7e66</integer>
 	<key>white</key>
-	<integer>16777215</integer>
+	<integer>0xffffff</integer>
 	<key>whitesmoke</key>
-	<integer>16119285</integer>
+	<integer>0xf5f5f5</integer>
 	<key>yellow</key>
-	<integer>16776960</integer>
+	<integer>0xffff00</integer>
 	<key>yellow1</key>
-	<integer>16776960</integer>
+	<integer>0xffff00</integer>
 	<key>yellow2</key>
-	<integer>15658496</integer>
+	<integer>0xeeee00</integer>
 	<key>yellow3</key>
-	<integer>13487360</integer>
+	<integer>0xcdcd00</integer>
 	<key>yellow4</key>
-	<integer>9145088</integer>
+	<integer>0x8b8b00</integer>
 	<key>yellowgreen</key>
-	<integer>10145074</integer>
+	<integer>0x9acd32</integer>
 </dict>
 </plist>
