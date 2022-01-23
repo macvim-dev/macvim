@@ -82,7 +82,7 @@ body:
         - label: by running `vim --clean` (in terminal, other suppliers, e.g. /usr/bin/vim)
   - type: checkboxes
     attributes:
-      label: The both Homebrew vim and MacVim are installed
+      label: Other conditions
       description: This will help us to narrow down the problem more quickly
       options:
-        - label: The both Homebrew vim and MacVim are installed
+        - label: The both Homebrew packages "vim" and "macvim" are installed
