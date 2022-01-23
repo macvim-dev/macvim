@@ -621,12 +621,12 @@ find_imported(char_u *name, size_t len, int load, cctx_T *cctx)
     if (ret == NULL)
 	ret = find_imported_in_script(name, len, current_sctx.sc_sid);
 
-    if (ret != NULL && load && ret->imp_flags == IMP_FLAGS_AUTOLOAD)
+    if (ret != NULL && load && (ret->imp_flags & IMP_FLAGS_AUTOLOAD))
     {
 	scid_T dummy;
 
 	// script found before but not loaded yet
-	ret->imp_flags = 0;
+	ret->imp_flags &= ~IMP_FLAGS_AUTOLOAD;
 	(void)do_source(SCRIPT_ITEM(ret->imp_sid)->sn_name, FALSE,
 							    DOSO_NONE, &dummy);
     }
@@ -2878,7 +2878,7 @@ compile_def_function(
 	if (p == NULL)
 	{
 	    if (cctx.ctx_skip != SKIP_YES)
-		emsg(_(e_ambiguous_use_of_user_defined_command));
+		semsg(_(e_ambiguous_use_of_user_defined_command_str), ea.cmd);
 	    goto erret;
 	}
 

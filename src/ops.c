@@ -529,24 +529,9 @@ block_insert(
 	}
 
 	if (has_mbyte && spaces > 0)
-	{
-	    int off;
+	    // avoid copying part of a multi-byte character
+	    offset -= (*mb_head_off)(oldp, oldp + offset);
 
-	    // Avoid starting halfway a multi-byte character.
-	    if (b_insert)
-	    {
-		off = (*mb_head_off)(oldp, oldp + offset + spaces);
-		spaces -= off;
-		count -= off;
-	    }
-	    else
-	    {
-		// spaces fill the gap, the character that's at the edge moves
-		// right
-		off = (*mb_head_off)(oldp, oldp + offset);
-		offset -= off;
-	    }
-	}
 	if (spaces < 0)  // can happen when the cursor was moved
 	    spaces = 0;
 
@@ -638,6 +623,10 @@ op_delete(oparg_T *oap)
 	emsg(_(e_cannot_make_changes_modifiable_is_off));
 	return FAIL;
     }
+
+    if (VIsual_select && oap->is_VIsual)
+	// use register given with CTRL_R, defaults to zero
+        oap->regname = VIsual_select_reg;
 
 #ifdef FEAT_CLIPBOARD
     adjust_clip_reg(&oap->regname);

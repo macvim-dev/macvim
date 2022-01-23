@@ -417,15 +417,26 @@ eval_diff(
     char_u	*newfile,
     char_u	*outfile)
 {
-    int		err = FALSE;
+    sctx_T	saved_sctx = current_sctx;
+    sctx_T	*ctx;
+    typval_T	*tv;
 
     set_vim_var_string(VV_FNAME_IN, origfile, -1);
     set_vim_var_string(VV_FNAME_NEW, newfile, -1);
     set_vim_var_string(VV_FNAME_OUT, outfile, -1);
-    (void)eval_to_bool(p_dex, &err, NULL, FALSE);
+
+    ctx = get_option_sctx("diffexpr");
+    if (ctx != NULL)
+	current_sctx = *ctx;
+
+    // errors are ignored
+    tv = eval_expr(p_dex, NULL);
+    free_tv(tv);
+
     set_vim_var_string(VV_FNAME_IN, NULL, -1);
     set_vim_var_string(VV_FNAME_NEW, NULL, -1);
     set_vim_var_string(VV_FNAME_OUT, NULL, -1);
+    current_sctx = saved_sctx;
 }
 
     void
@@ -434,15 +445,26 @@ eval_patch(
     char_u	*difffile,
     char_u	*outfile)
 {
-    int		err;
+    sctx_T	saved_sctx = current_sctx;
+    sctx_T	*ctx;
+    typval_T	*tv;
 
     set_vim_var_string(VV_FNAME_IN, origfile, -1);
     set_vim_var_string(VV_FNAME_DIFF, difffile, -1);
     set_vim_var_string(VV_FNAME_OUT, outfile, -1);
-    (void)eval_to_bool(p_pex, &err, NULL, FALSE);
+
+    ctx = get_option_sctx("patchexpr");
+    if (ctx != NULL)
+	current_sctx = *ctx;
+
+    // errors are ignored
+    tv = eval_expr(p_pex, NULL);
+    free_tv(tv);
+
     set_vim_var_string(VV_FNAME_IN, NULL, -1);
     set_vim_var_string(VV_FNAME_DIFF, NULL, -1);
     set_vim_var_string(VV_FNAME_OUT, NULL, -1);
+    current_sctx = saved_sctx;
 }
 # endif
 
@@ -2713,7 +2735,7 @@ eval_variable(
 		else
 		{
 		    if (flags & EVAL_VAR_VERBOSE)
-			emsg(_(e_import_as_name_not_supported_here));
+			semsg(_(e_expected_dot_after_name_str), name);
 		    ret = FAIL;
 		}
 	    }
@@ -3384,22 +3406,20 @@ set_var_const(
     }
     else
     {
-	if (in_vim9script() && SCRIPT_ID_VALID(current_sctx.sc_sid)
-		&& SCRIPT_ITEM(current_sctx.sc_sid)->sn_autoload_prefix != NULL
-		&& is_export)
-	{
-	    scriptitem_T *si = SCRIPT_ITEM(current_sctx.sc_sid);
-	    size_t	 len = STRLEN(name) + STRLEN(si->sn_autoload_prefix) + 1;
+	scriptitem_T *si;
 
+	if (in_vim9script() && is_export
+		&& SCRIPT_ID_VALID(current_sctx.sc_sid)
+		&& (si = SCRIPT_ITEM(current_sctx.sc_sid))
+						   ->sn_autoload_prefix != NULL)
+	{
 	    // In a vim9 autoload script an exported variable is put in the
 	    // global namespace with the autoload prefix.
 	    var_in_autoload = TRUE;
-	    varname = alloc(len);
+	    varname = concat_str(si->sn_autoload_prefix, name);
 	    if (varname == NULL)
 		goto failed;
 	    name_tofree = varname;
-	    vim_snprintf((char *)varname, len, "%s%s",
-						 si->sn_autoload_prefix, name);
 	    ht = &globvarht;
 	}
 	else
@@ -4629,6 +4649,40 @@ copy_callback(callback_T *dest, callback_T *src)
 	dest->cb_name = vim_strsave(src->cb_name);
 	dest->cb_free_name = TRUE;
 	func_ref(src->cb_name);
+    }
+}
+
+/*
+ * When a callback refers to an autoload import, change the function name to
+ * the "path#name" form.  Uses the current script context.
+ * Only works when the name is allocated.
+ */
+    void
+expand_autload_callback(callback_T *cb)
+{
+    char_u	*p;
+    imported_T	*import;
+
+    if (!in_vim9script() || cb->cb_name == NULL || !cb->cb_free_name)
+	return;
+    p = vim_strchr(cb->cb_name, '.');
+    if (p == NULL)
+	return;
+    import = find_imported(cb->cb_name, p - cb->cb_name, FALSE, NULL);
+    if (import != NULL && SCRIPT_ID_VALID(import->imp_sid))
+    {
+	scriptitem_T *si = SCRIPT_ITEM(import->imp_sid);
+
+	if (si->sn_autoload_prefix != NULL)
+	{
+	    char_u *name = concat_str(si->sn_autoload_prefix, p + 1);
+
+	    if (name != NULL)
+	    {
+		vim_free(cb->cb_name);
+		cb->cb_name = name;
+	    }
+	}
     }
 }
 

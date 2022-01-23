@@ -2263,17 +2263,15 @@ typedef enum {
 #endif
 
 # if defined(FEAT_EVAL) \
-	&& (!defined(FEAT_GUI_MSWIN) \
-	     || !(defined(FEAT_MBYTE_IME) || defined(GLOBAL_IME)))
+	&& (!defined(FEAT_GUI_MSWIN) || !defined(FEAT_MBYTE_IME))
 // Whether IME is supported by im_get_status() defined in mbyte.c.
-// For Win32 GUI it's in gui_w32.c when FEAT_MBYTE_IME or GLOBAL_IME is defined.
+// For Win32 GUI it's in gui_w32.c when FEAT_MBYTE_IME is defined.
 # define IME_WITHOUT_XIM
 #endif
 
 #if defined(FEAT_XIM) \
 	|| defined(IME_WITHOUT_XIM) \
-	|| (defined(FEAT_GUI_MSWIN) \
-	    && (defined(FEAT_MBYTE_IME) || defined(GLOBAL_IME)))
+	|| (defined(FEAT_GUI_MSWIN) && defined(FEAT_MBYTE_IME))
 // im_set_active() is available
 # define HAVE_INPUT_METHOD
 #endif
@@ -2643,6 +2641,7 @@ typedef enum {
 #define TFN_READ_ONLY	0x10	// will not change the var
 #define TFN_NO_DECL	0x20	// only used for GLV_NO_DECL
 #define TFN_COMPILING	0x40	// only used for GLV_COMPILING
+#define TFN_NEW_FUNC	0x80	// defining a new function
 
 // Values for get_lval() flags argument:
 #define GLV_QUIET	TFN_QUIET	// no error messages

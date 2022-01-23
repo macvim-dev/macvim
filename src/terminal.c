@@ -3093,6 +3093,8 @@ handle_settermprop(
     switch (prop)
     {
 	case VTERM_PROP_TITLE:
+	    if (disable_vterm_title_for_testing)
+		break;
 	    strval = vim_strnsave((char_u *)value->string.str,
 							    value->string.len);
 	    if (strval == NULL)

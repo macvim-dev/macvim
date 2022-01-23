@@ -875,6 +875,8 @@ EXTERN int	VIsual_active INIT(= FALSE);
 				// whether Visual mode is active
 EXTERN int	VIsual_select INIT(= FALSE);
 				// whether Select mode is active
+EXTERN int	VIsual_select_reg INIT(= 0);
+				// register name for Select mode
 EXTERN int	restart_VIsual_select INIT(= 0);
 				// restart Select mode when next cmd finished
 EXTERN int	VIsual_reselect;
@@ -1646,6 +1648,7 @@ EXTERN int  nfa_fail_for_testing INIT(= FALSE);
 EXTERN int  no_query_mouse_for_testing INIT(= FALSE);
 EXTERN int  ui_delay_for_testing INIT(= 0);
 EXTERN int  reset_term_props_on_termresponse INIT(= FALSE);
+EXTERN int  disable_vterm_title_for_testing INIT(= FALSE);
 EXTERN long override_sysinfo_uptime INIT(= -1);
 EXTERN int  override_autoload INIT(= FALSE);
 

@@ -1567,6 +1567,7 @@ errret:
  * "partialp".
  * If "type" is not NULL and a Vim9 script-local variable is found look up the
  * type of the variable.
+ * If "new_function" is TRUE the name is for a new function.
  * If "found_var" is not NULL and a variable was found set it to TRUE.
  */
     char_u *
@@ -1576,6 +1577,7 @@ deref_func_name(
 	partial_T   **partialp,
 	type_T	    **type,
 	int	    no_autoload,
+	int	    new_function,
 	int	    *found_var)
 {
     dictitem_T	*v;
@@ -1614,7 +1616,10 @@ deref_func_name(
 	if (import != NULL)
 	{
 	    name[len] = NUL;
-	    semsg(_(e_cannot_use_str_itself_it_is_imported), name);
+	    if (new_function)
+		semsg(_(e_redefining_imported_item_str), name);
+	    else
+		semsg(_(e_cannot_use_str_itself_it_is_imported), name);
 	    name[len] = cc;
 	    *lenp = 0;
 	    return (char_u *)"";	// just in case
@@ -1906,6 +1911,12 @@ find_func_with_prefix(char_u *name, int sid)
     {
 	size_t	len = STRLEN(si->sn_autoload_prefix) + STRLEN(name) + 1;
 	char_u	*auto_name;
+	char_u	*namep;
+
+	// skip a "<SNR>99_" prefix
+	namep = untrans_function_name(name);
+	if (namep == NULL)
+	    namep = name;
 
 	// An exported function in an autoload script is stored as
 	// "dir#path#name".
@@ -1916,7 +1927,7 @@ find_func_with_prefix(char_u *name, int sid)
 	if (auto_name != NULL)
 	{
 	    vim_snprintf((char *)auto_name, len, "%s%s",
-						 si->sn_autoload_prefix, name);
+						si->sn_autoload_prefix, namep);
 	    hi = hash_find(&func_hashtab, auto_name);
 	    if (auto_name != buffer)
 		vim_free(auto_name);
@@ -3251,7 +3262,7 @@ call_callback_retnr(
     typval_T	rettv;
     varnumber_T	retval;
 
-    if (call_callback(callback, 0, &rettv, argcount, argvars) == FAIL)
+    if (call_callback(callback, -1, &rettv, argcount, argvars) == FAIL)
 	return -2;
 
     retval = tv_get_number_chk(&rettv, NULL);
@@ -3682,7 +3693,8 @@ trans_function_name(
     // Note that TFN_ flags use the same values as GLV_ flags.
     end = get_lval(start, NULL, &lv, FALSE, skip, flags | GLV_READ_ONLY,
 					      lead > 2 ? 0 : FNE_CHECK_START);
-    if (end == start)
+    if (end == start || (in_vim9script() && end != NULL
+				   && end[-1] == AUTOLOAD_CHAR && *end == '('))
     {
 	if (!skip)
 	    emsg(_(e_function_name_required));
@@ -3751,7 +3763,7 @@ trans_function_name(
     {
 	len = (int)STRLEN(lv.ll_exp_name);
 	name = deref_func_name(lv.ll_exp_name, &len, partial, type,
-						flags & TFN_NO_AUTOLOAD, NULL);
+			  flags & TFN_NO_AUTOLOAD, flags & TFN_NEW_FUNC, NULL);
 	if (name == lv.ll_exp_name)
 	    name = NULL;
     }
@@ -3783,7 +3795,7 @@ trans_function_name(
     {
 	len = (int)(end - *pp);
 	name = deref_func_name(*pp, &len, partial, type,
-						flags & TFN_NO_AUTOLOAD, NULL);
+			  flags & TFN_NO_AUTOLOAD, flags & TFN_NEW_FUNC, NULL);
 	if (name == *pp)
 	    name = NULL;
     }
@@ -4146,7 +4158,7 @@ define_function(exarg_T *eap, char_u *name_arg, garray_T *lines_to_free)
     else
     {
 	name = save_function_name(&p, &is_global, eap->skip,
-						       TFN_NO_AUTOLOAD, &fudi);
+					TFN_NO_AUTOLOAD | TFN_NEW_FUNC, &fudi);
 	paren = (vim_strchr(p, '(') != NULL);
 	if (name == NULL && (fudi.fd_dict == NULL || !paren) && !eap->skip)
 	{
@@ -4170,7 +4182,15 @@ define_function(exarg_T *eap, char_u *name_arg, garray_T *lines_to_free)
 	// is stored with the legacy autoload name "dir#script#FuncName" so
 	// that it can also be found in legacy script.
 	if (is_export && name != NULL)
-	    name = may_prefix_autoload(name);
+	{
+	    char_u *prefixed = may_prefix_autoload(name);
+
+	    if (prefixed != NULL && prefixed != name)
+	    {
+		vim_free(name);
+		name = prefixed;
+	    }
+	}
     }
 
     // An error in a function call during evaluation of an expression in magic
@@ -4442,20 +4462,59 @@ define_function(exarg_T *eap, char_u *name_arg, garray_T *lines_to_free)
     if (fudi.fd_dict == NULL)
     {
 	hashtab_T	*ht;
+	char_u		*find_name = name;
+	int		var_conflict = FALSE;
 
 	v = find_var(name, &ht, TRUE);
-	if (v != NULL && v->di_tv.v_type == VAR_FUNC)
+	if (v != NULL && (in_vim9script() || v->di_tv.v_type == VAR_FUNC))
+	    var_conflict = TRUE;
+
+	if (SCRIPT_ID_VALID(current_sctx.sc_sid))
+	{
+	    scriptitem_T *si = SCRIPT_ITEM(current_sctx.sc_sid);
+
+	    if (si->sn_autoload_prefix != NULL)
+	    {
+		if (is_export)
+		{
+		    find_name = name + STRLEN(si->sn_autoload_prefix);
+		    v = find_var(find_name, &ht, TRUE);
+		    if (v != NULL)
+			var_conflict = TRUE;
+		}
+		else
+		{
+		    char_u *prefixed = may_prefix_autoload(name);
+
+		    if (prefixed != NULL)
+		    {
+			v = find_var(prefixed, &ht, TRUE);
+			if (v != NULL)
+			    var_conflict = TRUE;
+			vim_free(prefixed);
+		    }
+		}
+	    }
+	    else if (vim9script && vim_strchr(name, AUTOLOAD_CHAR) != NULL)
+	    {
+		semsg(_(e_using_autoload_name_in_non_autoload_script_str),
+									 name);
+		goto erret;
+	    }
+	}
+	if (var_conflict)
 	{
 	    emsg_funcname(e_function_name_conflicts_with_variable_str, name);
 	    goto erret;
 	}
 
-	fp = find_func_even_dead(name, is_global);
+	fp = find_func_even_dead(find_name, is_global);
 	if (vim9script)
 	{
 	    char_u *uname = untrans_function_name(name);
 
-	    import = find_imported(uname == NULL ? name : uname, 0, FALSE, NULL);
+	    import = find_imported(uname == NULL ? name : uname, 0,
+								  FALSE, NULL);
 	}
 
 	if (fp != NULL || import != NULL)
@@ -5199,7 +5258,8 @@ ex_call(exarg_T *eap)
     // from trans_function_name().
     len = (int)STRLEN(tofree);
     name = deref_func_name(tofree, &len, partial != NULL ? NULL : &partial,
-	    in_vim9script() && type == NULL ? &type : NULL, FALSE, &found_var);
+	    in_vim9script() && type == NULL ? &type : NULL,
+						     FALSE, FALSE, &found_var);
 
     // Skip white space to allow ":call func ()".  Not good, but required for
     // backward compatibility.

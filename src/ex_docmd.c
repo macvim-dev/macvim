@@ -2620,7 +2620,7 @@ doend:
 
     if (errormsg != NULL && *errormsg != NUL && !did_emsg)
     {
-	if (sourcing)
+	if (sourcing || !KeyTyped)
 	{
 	    if (errormsg != (char *)IObuff)
 	    {

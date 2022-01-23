@@ -197,10 +197,6 @@ gui_mch_set_rendering_options(char_u *s)
 # endif
 # include <windowsx.h>
 
-# ifdef GLOBAL_IME
-#  include "glbl_ime.h"
-# endif
-
 #endif // PROTO
 
 #ifdef FEAT_MENU
@@ -298,7 +294,7 @@ typedef int HCURSOR;
 # define GET_X_LPARAM(lp) ((int)(short)LOWORD(lp))
 #endif
 
-static void _OnPaint( HWND hwnd);
+static void _OnPaint(HWND hwnd);
 static void fill_rect(const RECT *rcp, HBRUSH hbr, COLORREF color);
 static void clear_rect(RECT *rcp);
 
@@ -358,24 +354,18 @@ static int		s_need_activate = FALSE;
 // problems (e.g., while ":s" is working).
 static int allow_scrollbar = FALSE;
 
-#ifdef GLOBAL_IME
-# define MyTranslateMessage(x) global_ime_TranslateMessage(x)
-#else
-# define MyTranslateMessage(x) TranslateMessage(x)
-#endif
-
 #ifndef _DPI_AWARENESS_CONTEXTS_
 typedef HANDLE DPI_AWARENESS_CONTEXT;
 
 typedef enum DPI_AWARENESS {
-    DPI_AWARENESS_INVALID           = -1,
-    DPI_AWARENESS_UNAWARE           = 0,
-    DPI_AWARENESS_SYSTEM_AWARE      = 1,
+    DPI_AWARENESS_INVALID	    = -1,
+    DPI_AWARENESS_UNAWARE	    = 0,
+    DPI_AWARENESS_SYSTEM_AWARE	    = 1,
     DPI_AWARENESS_PER_MONITOR_AWARE = 2
 } DPI_AWARENESS;
 
-# define DPI_AWARENESS_CONTEXT_UNAWARE              ((DPI_AWARENESS_CONTEXT)-1)
-# define DPI_AWARENESS_CONTEXT_SYSTEM_AWARE         ((DPI_AWARENESS_CONTEXT)-2)
+# define DPI_AWARENESS_CONTEXT_UNAWARE		    ((DPI_AWARENESS_CONTEXT)-1)
+# define DPI_AWARENESS_CONTEXT_SYSTEM_AWARE	    ((DPI_AWARENESS_CONTEXT)-2)
 # define DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE    ((DPI_AWARENESS_CONTEXT)-3)
 # define DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 ((DPI_AWARENESS_CONTEXT)-4)
 # define DPI_AWARENESS_CONTEXT_UNAWARE_GDISCALED    ((DPI_AWARENESS_CONTEXT)-5)
@@ -448,9 +438,6 @@ directx_binddc(void)
     }
 }
 #endif
-
-// use of WindowProc depends on Global IME
-static LRESULT WINAPI MyWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 extern int current_font_height;	    // this is in os_mswin.c
 
@@ -561,11 +548,9 @@ static void TrackUserActivity(UINT uMsg);
  *
  * These LOGFONTW used for IME.
  */
-#if defined(FEAT_MBYTE_IME) || defined(GLOBAL_IME)
+#ifdef FEAT_MBYTE_IME
 // holds LOGFONTW for 'guifontwide' if available, otherwise 'guifont'
 static LOGFONTW norm_logfont;
-#endif
-#ifdef FEAT_MBYTE_IME
 // holds LOGFONTW for 'guifont' always.
 static LOGFONTW sub_logfont;
 #endif
@@ -651,7 +636,7 @@ _OnBlinkTimer(
     KillTimer(NULL, idEvent);
 
     // Eat spurious WM_TIMER messages
-    while (pPeekMessage(&msg, hwnd, WM_TIMER, WM_TIMER, PM_REMOVE))
+    while (PeekMessageW(&msg, hwnd, WM_TIMER, WM_TIMER, PM_REMOVE))
 	;
 
     if (blink_state == BLINK_ON)
@@ -680,7 +665,7 @@ gui_mswin_rm_blink_timer(void)
     {
 	KillTimer(NULL, blink_timer);
 	// Eat spurious WM_TIMER messages
-	while (pPeekMessage(&msg, s_hwnd, WM_TIMER, WM_TIMER, PM_REMOVE))
+	while (PeekMessageW(&msg, s_hwnd, WM_TIMER, WM_TIMER, PM_REMOVE))
 	    ;
 	blink_timer = 0;
     }
@@ -741,7 +726,7 @@ _OnTimer(
     s_timed_out = TRUE;
 
     // Eat spurious WM_TIMER messages
-    while (pPeekMessage(&msg, hwnd, WM_TIMER, WM_TIMER, PM_REMOVE))
+    while (PeekMessageW(&msg, hwnd, WM_TIMER, WM_TIMER, PM_REMOVE))
 	;
     if (idEvent == s_wait_timer)
 	s_wait_timer = 0;
@@ -1025,8 +1010,8 @@ _OnMouseButtonDown(
 	{
 	    if (s_button_pending > -1)
 	    {
-		    _OnMouseEvent(s_button_pending, x, y, FALSE, keyFlags);
-		    s_button_pending = -1;
+		_OnMouseEvent(s_button_pending, x, y, FALSE, keyFlags);
+		s_button_pending = -1;
 	    }
 	    // TRACE("Button down at x %d, y %d\n", x, y);
 	    _OnMouseEvent(button, x, y, repeated_click, keyFlags);
@@ -1315,18 +1300,8 @@ _TextAreaWndProc(
 	    return TRUE;
 #endif
 	default:
-	    return MyWindowProc(hwnd, uMsg, wParam, lParam);
+	    return DefWindowProcW(hwnd, uMsg, wParam, lParam);
     }
-}
-
-    static LRESULT WINAPI
-MyWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
-#ifdef GLOBAL_IME
-    return global_ime_DefWindowProc(hwnd, message, wParam, lParam);
-#else
-    return DefWindowProcW(hwnd, message, wParam, lParam);
-#endif
 }
 
 /*
@@ -1844,7 +1819,7 @@ outputDeadKey_rePost(MSG originalMsg)
     deadCharExpel.hwnd    = originalMsg.hwnd;
     deadCharExpel.wParam  = VK_SPACE;
 
-    MyTranslateMessage(&deadCharExpel);
+    TranslateMessage(&deadCharExpel);
 
     // re-generate the current character free of the dead char influence
     PostMessage(originalMsg.hwnd, originalMsg.message, originalMsg.wParam,
@@ -1869,7 +1844,7 @@ process_message(void)
     static char_u k10[] = {K_SPECIAL, 'k', ';', 0};
 #endif
 
-    pGetMessage(&msg, NULL, 0, 0);
+    GetMessageW(&msg, NULL, 0, 0);
 
 #ifdef FEAT_OLE
     // Look after OLE Automation commands
@@ -1880,7 +1855,7 @@ process_message(void)
 	{
 	    // Message can't be ours, forward it.  Fixes problem with Ultramon
 	    // 3.0.4
-	    pDispatchMessage(&msg);
+	    DispatchMessageW(&msg);
 	}
 	else
 	{
@@ -1893,7 +1868,7 @@ process_message(void)
 
 #ifdef MSWIN_FIND_REPLACE
     // Don't process messages used by the dialog
-    if (s_findrep_hwnd != NULL && pIsDialogMessage(s_findrep_hwnd, &msg))
+    if (s_findrep_hwnd != NULL && IsDialogMessageW(s_findrep_hwnd, &msg))
     {
 	HandleMouseHide(msg.message, msg.lParam);
 	return;
@@ -1919,7 +1894,7 @@ process_message(void)
 	 *
 	 * - Before doing something special such as regenerating keypresses to
 	 *   expel the dead character as this could trigger an infinite loop if
-	 *   for some reason MyTranslateMessage() do not trigger a call
+	 *   for some reason TranslateMessage() do not trigger a call
 	 *   immediately to _OnChar() (or _OnSysChar()).
 	 */
 	if (dead_key)
@@ -1939,7 +1914,7 @@ process_message(void)
 	    if ((vk == VK_SPACE || vk == VK_BACK || vk == VK_ESCAPE))
 	    {
 		dead_key = 0;
-		MyTranslateMessage(&msg);
+		TranslateMessage(&msg);
 		return;
 	    }
 	    // In modes where we are not typing, dead keys should behave
@@ -2069,10 +2044,10 @@ process_message(void)
 		    add_to_input_buf(string, 1);
 		}
 		else
-		    MyTranslateMessage(&msg);
+		    TranslateMessage(&msg);
 	    }
 	    else
-		MyTranslateMessage(&msg);
+		TranslateMessage(&msg);
 	}
     }
 #ifdef FEAT_MBYTE_IME
@@ -2080,20 +2055,7 @@ process_message(void)
 	_OnImeNotify(msg.hwnd, (DWORD)msg.wParam, (DWORD)msg.lParam);
     else if (msg.message == WM_KEYUP && im_get_status())
 	// added for non-MS IME (Yasuhiro Matsumoto)
-	MyTranslateMessage(&msg);
-#endif
-#if !defined(FEAT_MBYTE_IME) && defined(GLOBAL_IME)
-// GIME_TEST
-    else if (msg.message == WM_IME_STARTCOMPOSITION)
-    {
-	POINT point;
-
-	global_ime_set_font(&norm_logfont);
-	point.x = FILL_X(gui.col);
-	point.y = FILL_Y(gui.row);
-	MapWindowPoints(s_textArea, s_hwnd, &point, 1);
-	global_ime_set_position(&point);
-    }
+	TranslateMessage(&msg);
 #endif
 
 #ifdef FEAT_MENU
@@ -2103,7 +2065,7 @@ process_message(void)
     if (vk != VK_F10 || check_map(k10, State, FALSE, TRUE, FALSE,
 							  NULL, NULL) == NULL)
 #endif
-	pDispatchMessage(&msg);
+	DispatchMessageW(&msg);
 }
 
 /*
@@ -2118,7 +2080,7 @@ gui_mch_update(void)
     MSG	    msg;
 
     if (!s_busy_processing)
-	while (pPeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE)
+	while (PeekMessageW(&msg, NULL, 0, 0, PM_NOREMOVE)
 						  && !vim_is_input_buf_full())
 	    process_message();
 }
@@ -2133,7 +2095,7 @@ remove_any_timer(void)
 	KillTimer(NULL, s_wait_timer);
 
 	// Eat spurious WM_TIMER messages
-	while (pPeekMessage(&msg, s_hwnd, WM_TIMER, WM_TIMER, PM_REMOVE))
+	while (PeekMessageW(&msg, s_hwnd, WM_TIMER, WM_TIMER, PM_REMOVE))
 	    ;
 	s_wait_timer = 0;
     }
@@ -2201,7 +2163,7 @@ gui_mch_wait_for_chars(int wtime)
 	    if (did_add_timer)
 		break;
 # endif
-	    if (pPeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))
+	    if (PeekMessageW(&msg, NULL, 0, 0, PM_NOREMOVE))
 	    {
 		process_message();
 		break;
@@ -2792,7 +2754,7 @@ gui_mch_find_dialog(exarg_T *eap)
 	if (!IsWindow(s_findrep_hwnd))
 	{
 	    initialise_findrep(eap->arg);
-	    s_findrep_hwnd = FindTextW((LPFINDREPLACEW) &s_findrep_struct);
+	    s_findrep_hwnd = FindTextW(&s_findrep_struct);
 	}
 
 	set_window_title(s_findrep_hwnd, _("Find string"));
@@ -2816,7 +2778,7 @@ gui_mch_replace_dialog(exarg_T *eap)
 	if (!IsWindow(s_findrep_hwnd))
 	{
 	    initialise_findrep(eap->arg);
-	    s_findrep_hwnd = ReplaceTextW((LPFINDREPLACEW) &s_findrep_struct);
+	    s_findrep_hwnd = ReplaceTextW(&s_findrep_struct);
 	}
 
 	set_window_title(s_findrep_hwnd, _("Find & Replace"));
@@ -2947,7 +2909,7 @@ _OnSetFocus(
 {
     gui_focus_change(TRUE);
     s_getting_focus = TRUE;
-    (void)MyWindowProc(hwnd, WM_SETFOCUS, (WPARAM)hwndOldFocus, 0);
+    (void)DefWindowProcW(hwnd, WM_SETFOCUS, (WPARAM)hwndOldFocus, 0);
 }
 
     static void
@@ -2957,7 +2919,7 @@ _OnKillFocus(
 {
     gui_focus_change(FALSE);
     s_getting_focus = FALSE;
-    (void)MyWindowProc(hwnd, WM_KILLFOCUS, (WPARAM)hwndNewFocus, 0);
+    (void)DefWindowProcW(hwnd, WM_KILLFOCUS, (WPARAM)hwndNewFocus, 0);
 }
 
 /*
@@ -2971,7 +2933,7 @@ _OnActivateApp(
 {
     // we call gui_focus_change() in _OnSetFocus()
     // gui_focus_change((int)fActivate);
-    return MyWindowProc(hwnd, WM_ACTIVATEAPP, fActivate, (DWORD)dwThreadId);
+    return DefWindowProcW(hwnd, WM_ACTIVATEAPP, fActivate, (DWORD)dwThreadId);
 }
 
     void
@@ -2990,7 +2952,7 @@ gui_mch_getmouse(int *x, int *y)
     POINT mp;
 
     (void)GetWindowRect(s_textArea, &rct);
-    (void)GetCursorPos((LPPOINT)&mp);
+    (void)GetCursorPos(&mp);
     *x = (int)(mp.x - rct.left);
     *y = (int)(mp.y - rct.top);
 }
@@ -3244,10 +3206,6 @@ gui_mch_exit(int rc UNUSED)
 	destroying = TRUE;	// ignore WM_DESTROY message now
 	DestroyWindow(s_hwnd);
     }
-
-#ifdef GLOBAL_IME
-    global_ime_end();
-#endif
 }
 
     static char_u *
@@ -3398,14 +3356,10 @@ gui_mch_init_font(char_u *font_name, int fontset UNUSED)
 	return FAIL;
 
     if (font_name == NULL)
-	font_name = (char_u *)lf.lfFaceName;
-#if defined(FEAT_MBYTE_IME) || defined(GLOBAL_IME)
+	font_name = (char_u *)"";
+#ifdef FEAT_MBYTE_IME
     norm_logfont = lf;
-#endif
-#ifdef FEAT_MBYTE_IME
     sub_logfont = lf;
-#endif
-#ifdef FEAT_MBYTE_IME
     if (!s_in_dpichanged)
 	update_im_font();
 #endif
@@ -3575,7 +3529,7 @@ mch_set_mouse_shape(int shape)
 	    POINT mp;
 
 	    // Set the position to make it redrawn with the new shape.
-	    (void)GetCursorPos((LPPOINT)&mp);
+	    (void)GetCursorPos(&mp);
 	    (void)SetCursorPos(mp.x, mp.y);
 	    ShowCursor(TRUE);
 	}
@@ -3633,6 +3587,7 @@ gui_mch_browse(
     WCHAR		*initdirp = NULL;
     WCHAR		*filterp;
     char_u		*p, *q;
+    BOOL		ret;
 
     if (dflt == NULL)
 	fileBuf[0] = NUL;
@@ -3701,22 +3656,19 @@ gui_mch_browse(
 	fileStruct.Flags |= OFN_NODEREFERENCELINKS;
 # endif
     if (saving)
-    {
-	if (!GetSaveFileNameW(&fileStruct))
-	    return NULL;
-    }
+	ret = GetSaveFileNameW(&fileStruct);
     else
-    {
-	if (!GetOpenFileNameW(&fileStruct))
-	    return NULL;
-    }
+	ret = GetOpenFileNameW(&fileStruct);
 
     vim_free(filterp);
     vim_free(initdirp);
     vim_free(titlep);
     vim_free(extp);
 
-    // Convert from UCS2 to 'encoding'.
+    if (!ret)
+	return NULL;
+
+    // Convert from UTF-16 to 'encoding'.
     p = utf16_to_enc(fileBuf, NULL);
     if (p == NULL)
 	return NULL;
@@ -4083,42 +4035,6 @@ static UINT_PTR	    BevalTimerId = 0;
 static DWORD	    LastActivity = 0;
 
 
-// cproto fails on missing include files
-# ifndef PROTO
-
-/*
- * excerpts from headers since this may not be presented
- * in the extremely old compilers
- */
-#  include <pshpack1.h>
-
-# endif
-
-typedef struct _DllVersionInfo
-{
-    DWORD cbSize;
-    DWORD dwMajorVersion;
-    DWORD dwMinorVersion;
-    DWORD dwBuildNumber;
-    DWORD dwPlatformID;
-} DLLVERSIONINFO;
-
-# ifndef PROTO
-#  include <poppack.h>
-# endif
-
-typedef struct tagTOOLINFOA_NEW
-{
-    UINT       cbSize;
-    UINT       uFlags;
-    HWND       hwnd;
-    UINT_PTR   uId;
-    RECT       rect;
-    HINSTANCE  hinst;
-    LPSTR      lpszText;
-    LPARAM     lParam;
-} TOOLINFO_NEW;
-
 typedef struct tagNMTTDISPINFO_NEW
 {
     NMHDR      hdr;
@@ -4153,7 +4069,6 @@ typedef struct tagNMTTDISPINFOW_NEW
 } NMTTDISPINFOW_NEW;
 
 
-typedef HRESULT (WINAPI* DLLGETVERSIONPROC)(DLLVERSIONINFO *);
 # ifndef TTM_SETMAXTIPWIDTH
 #  define TTM_SETMAXTIPWIDTH	(WM_USER+24)
 # endif
@@ -4275,7 +4190,6 @@ typedef HANDLE HIMC;
 # endif
 
 static HINSTANCE hLibImm = NULL;
-static LONG (WINAPI *pImmGetCompositionStringA)(HIMC, DWORD, LPVOID, DWORD);
 static LONG (WINAPI *pImmGetCompositionStringW)(HIMC, DWORD, LPVOID, DWORD);
 static HIMC (WINAPI *pImmGetContext)(HWND);
 static HIMC (WINAPI *pImmAssociateContext)(HWND, HIMC);
@@ -4289,7 +4203,6 @@ static BOOL (WINAPI *pImmGetConversionStatus)(HIMC, LPDWORD, LPDWORD);
 static BOOL (WINAPI *pImmSetConversionStatus)(HIMC, DWORD, DWORD);
 static void dyn_imm_load(void);
 #else
-# define pImmGetCompositionStringA ImmGetCompositionStringA
 # define pImmGetCompositionStringW ImmGetCompositionStringW
 # define pImmGetContext		  ImmGetContext
 # define pImmAssociateContext	  ImmAssociateContext
@@ -4552,7 +4465,7 @@ _OnWindowPosChanged(
 	netbeans_frame_moved(x, y);
     }
     // Allow to send WM_SIZE and WM_MOVE
-    FORWARD_WM_WINDOWPOSCHANGED(hwnd, lpwpos, MyWindowProc);
+    FORWARD_WM_WINDOWPOSCHANGED(hwnd, lpwpos, DefWindowProcW);
 }
 #endif
 
@@ -4630,6 +4543,237 @@ _DuringSizing(
     return TRUE;
 }
 
+#ifdef FEAT_GUI_TABLINE
+    static void
+_OnRButtonUp(HWND hwnd, int x, int y, UINT keyFlags)
+{
+    if (gui_mch_showing_tabline())
+    {
+	POINT pt;
+	RECT rect;
+
+	/*
+	 * If the cursor is on the tabline, display the tab menu
+	 */
+	GetCursorPos(&pt);
+	GetWindowRect(s_textArea, &rect);
+	if (pt.y < rect.top)
+	{
+	    show_tabline_popup_menu();
+	    return;
+	}
+    }
+    FORWARD_WM_RBUTTONUP(hwnd, x, y, keyFlags, DefWindowProcW);
+}
+
+    static void
+_OnLButtonDown(HWND hwnd, BOOL fDoubleClick, int x, int y, UINT keyFlags)
+{
+    /*
+     * If the user double clicked the tabline, create a new tab
+     */
+    if (gui_mch_showing_tabline())
+    {
+	POINT pt;
+	RECT rect;
+
+	GetCursorPos(&pt);
+	GetWindowRect(s_textArea, &rect);
+	if (pt.y < rect.top)
+	    send_tabline_menu_event(0, TABLINE_MENU_NEW);
+    }
+    FORWARD_WM_LBUTTONDOWN(hwnd, fDoubleClick, x, y, keyFlags, DefWindowProcW);
+}
+#endif
+
+    static UINT
+_OnNCHitTest(HWND hwnd, int xPos, int yPos)
+{
+    UINT	result;
+    int		x, y;
+
+    result = FORWARD_WM_NCHITTEST(hwnd, xPos, yPos, DefWindowProcW);
+    if (result != HTCLIENT)
+	return result;
+
+#ifdef FEAT_GUI_TABLINE
+    if (gui_mch_showing_tabline())
+    {
+	RECT rct;
+
+	// If the cursor is on the GUI tabline, don't process this event
+	GetWindowRect(s_textArea, &rct);
+	if (yPos < rct.top)
+	    return result;
+    }
+#endif
+    (void)gui_mch_get_winpos(&x, &y);
+    xPos -= x;
+
+    if (xPos < 48) // <VN> TODO should use system metric?
+	return HTBOTTOMLEFT;
+    else
+	return HTBOTTOMRIGHT;
+}
+
+#if defined(FEAT_TOOLBAR) || defined(FEAT_GUI_TABLINE)
+    static LRESULT
+_OnNotify(HWND hwnd, UINT id, NMHDR *hdr)
+{
+    switch (hdr->code)
+    {
+	case TTN_GETDISPINFOW:
+	case TTN_GETDISPINFO:
+	    {
+		char_u		*str = NULL;
+		static void	*tt_text = NULL;
+
+		VIM_CLEAR(tt_text);
+
+# ifdef FEAT_GUI_TABLINE
+		if (gui_mch_showing_tabline()
+			&& hdr->hwndFrom == TabCtrl_GetToolTips(s_tabhwnd))
+		{
+		    POINT	pt;
+		    /*
+		     * Mouse is over the GUI tabline. Display the
+		     * tooltip for the tab under the cursor
+		     *
+		     * Get the cursor position within the tab control
+		     */
+		    GetCursorPos(&pt);
+		    if (ScreenToClient(s_tabhwnd, &pt) != 0)
+		    {
+			TCHITTESTINFO htinfo;
+			int idx;
+
+			/*
+			 * Get the tab under the cursor
+			 */
+			htinfo.pt.x = pt.x;
+			htinfo.pt.y = pt.y;
+			idx = TabCtrl_HitTest(s_tabhwnd, &htinfo);
+			if (idx != -1)
+			{
+			    tabpage_T *tp;
+
+			    tp = find_tabpage(idx + 1);
+			    if (tp != NULL)
+			    {
+				get_tabline_label(tp, TRUE);
+				str = NameBuff;
+			    }
+			}
+		    }
+		}
+# endif
+# ifdef FEAT_TOOLBAR
+#  ifdef FEAT_GUI_TABLINE
+		else
+#  endif
+		{
+		    UINT	idButton;
+		    vimmenu_T	*pMenu;
+
+		    idButton = (UINT) hdr->idFrom;
+		    pMenu = gui_mswin_find_menu(root_menu, idButton);
+		    if (pMenu)
+			str = pMenu->strings[MENU_INDEX_TIP];
+		}
+# endif
+		if (str == NULL)
+		    break;
+
+		// Set the maximum width, this also enables using \n for
+		// line break.
+		SendMessage(hdr->hwndFrom, TTM_SETMAXTIPWIDTH, 0, 500);
+
+		if (hdr->code == TTN_GETDISPINFOW)
+		{
+		    LPNMTTDISPINFOW	lpdi = (LPNMTTDISPINFOW)hdr;
+
+		    tt_text = enc_to_utf16(str, NULL);
+		    lpdi->lpszText = tt_text;
+		    // can't show tooltip if failed
+		}
+		else
+		{
+		    LPNMTTDISPINFO	lpdi = (LPNMTTDISPINFO)hdr;
+
+		    if (STRLEN(str) < sizeof(lpdi->szText)
+			    || ((tt_text = vim_strsave(str)) == NULL))
+			vim_strncpy((char_u *)lpdi->szText, str,
+				sizeof(lpdi->szText) - 1);
+		    else
+			lpdi->lpszText = tt_text;
+		}
+	    }
+	    break;
+
+# ifdef FEAT_GUI_TABLINE
+	case TCN_SELCHANGE:
+	    if (gui_mch_showing_tabline() && (hdr->hwndFrom == s_tabhwnd))
+	    {
+		send_tabline_event(TabCtrl_GetCurSel(s_tabhwnd) + 1);
+		return 0L;
+	    }
+	    break;
+
+	case NM_RCLICK:
+	    if (gui_mch_showing_tabline() && (hdr->hwndFrom == s_tabhwnd))
+	    {
+		show_tabline_popup_menu();
+		return 0L;
+	    }
+	    break;
+# endif
+
+	default:
+	    break;
+    }
+    return DefWindowProcW(hwnd, WM_NOTIFY, (WPARAM)id, (LPARAM)hdr);
+}
+#endif
+
+#if defined(MENUHINTS) && defined(FEAT_MENU)
+    static LRESULT
+_OnMenuSelect(HWND hwnd, WPARAM wParam, LPARAM lParam)
+{
+    if (((UINT) HIWORD(wParam)
+		& (0xffff ^ (MF_MOUSESELECT + MF_BITMAP + MF_POPUP)))
+	    == MF_HILITE
+	    && (State & CMDLINE) == 0)
+    {
+	UINT	    idButton;
+	vimmenu_T   *pMenu;
+	static int  did_menu_tip = FALSE;
+
+	if (did_menu_tip)
+	{
+	    msg_clr_cmdline();
+	    setcursor();
+	    out_flush();
+	    did_menu_tip = FALSE;
+	}
+
+	idButton = (UINT)LOWORD(wParam);
+	pMenu = gui_mswin_find_menu(root_menu, idButton);
+	if (pMenu != NULL && pMenu->strings[MENU_INDEX_TIP] != 0
+		&& GetMenuState(s_menuBar, pMenu->id, MF_BYCOMMAND) != -1)
+	{
+	    ++msg_hist_off;
+	    msg((char *)pMenu->strings[MENU_INDEX_TIP]);
+	    --msg_hist_off;
+	    setcursor();
+	    out_flush();
+	    did_menu_tip = TRUE;
+	}
+	return 0L;
+    }
+    return DefWindowProcW(hwnd, WM_MENUSELECT, wParam, lParam);
+}
+#endif
+
     static LRESULT
 _OnDpiChanged(HWND hwnd, UINT xdpi, UINT ydpi, RECT *rc)
 {
@@ -4698,46 +4842,11 @@ _WndProc(
 #ifdef FEAT_NETBEANS_INTG
 	HANDLE_MSG(hwnd, WM_WINDOWPOSCHANGED, _OnWindowPosChanged);
 #endif
-
 #ifdef FEAT_GUI_TABLINE
-	case WM_RBUTTONUP:
-	{
-	    if (gui_mch_showing_tabline())
-	    {
-		POINT pt;
-		RECT rect;
-
-		/*
-		 * If the cursor is on the tabline, display the tab menu
-		 */
-		GetCursorPos((LPPOINT)&pt);
-		GetWindowRect(s_textArea, &rect);
-		if (pt.y < rect.top)
-		{
-		    show_tabline_popup_menu();
-		    return 0L;
-		}
-	    }
-	    return MyWindowProc(hwnd, uMsg, wParam, lParam);
-	}
-	case WM_LBUTTONDBLCLK:
-	{
-	    /*
-	     * If the user double clicked the tabline, create a new tab
-	     */
-	    if (gui_mch_showing_tabline())
-	    {
-		POINT pt;
-		RECT rect;
-
-		GetCursorPos((LPPOINT)&pt);
-		GetWindowRect(s_textArea, &rect);
-		if (pt.y < rect.top)
-		    send_tabline_menu_event(0, TABLINE_MENU_NEW);
-	    }
-	    return MyWindowProc(hwnd, uMsg, wParam, lParam);
-	}
+	HANDLE_MSG(hwnd, WM_RBUTTONUP,	_OnRButtonUp);
+	HANDLE_MSG(hwnd, WM_LBUTTONDBLCLK,  _OnLButtonDown);
 #endif
+	HANDLE_MSG(hwnd, WM_NCHITTEST,	_OnNCHitTest);
 
     case WM_QUERYENDSESSION:	// System wants to go down.
 	gui_shell_closed();	// Will exit when no changed buffers.
@@ -4775,7 +4884,7 @@ _WndProc(
 	}
 #ifdef FEAT_MENU
 	else
-	    return MyWindowProc(hwnd, uMsg, wParam, lParam);
+	    return DefWindowProcW(hwnd, uMsg, wParam, lParam);
 #endif
 
     case WM_SYSKEYUP:
@@ -4784,7 +4893,7 @@ _WndProc(
 	// that.  But that caused problems when menu is disabled and using
 	// Alt-Tab-Esc: get into a strange state where no mouse-moved events
 	// are received, mouse pointer remains hidden.
-	return MyWindowProc(hwnd, uMsg, wParam, lParam);
+	return DefWindowProcW(hwnd, uMsg, wParam, lParam);
 #else
 	return 0L;
 #endif
@@ -4806,210 +4915,23 @@ _WndProc(
 
 #if defined(FEAT_TOOLBAR) || defined(FEAT_GUI_TABLINE)
     case WM_NOTIFY:
-	switch (((LPNMHDR) lParam)->code)
-	{
-	    case TTN_GETDISPINFOW:
-	    case TTN_GETDISPINFO:
-		{
-		    LPNMHDR		hdr = (LPNMHDR)lParam;
-		    char_u		*str = NULL;
-		    static void		*tt_text = NULL;
-
-		    VIM_CLEAR(tt_text);
-
-# ifdef FEAT_GUI_TABLINE
-		    if (gui_mch_showing_tabline()
-			   && hdr->hwndFrom == TabCtrl_GetToolTips(s_tabhwnd))
-		    {
-			POINT		pt;
-			/*
-			 * Mouse is over the GUI tabline. Display the
-			 * tooltip for the tab under the cursor
-			 *
-			 * Get the cursor position within the tab control
-			 */
-			GetCursorPos(&pt);
-			if (ScreenToClient(s_tabhwnd, &pt) != 0)
-			{
-			    TCHITTESTINFO htinfo;
-			    int idx;
-
-			    /*
-			     * Get the tab under the cursor
-			     */
-			    htinfo.pt.x = pt.x;
-			    htinfo.pt.y = pt.y;
-			    idx = TabCtrl_HitTest(s_tabhwnd, &htinfo);
-			    if (idx != -1)
-			    {
-				tabpage_T *tp;
-
-				tp = find_tabpage(idx + 1);
-				if (tp != NULL)
-				{
-				    get_tabline_label(tp, TRUE);
-				    str = NameBuff;
-				}
-			    }
-			}
-		    }
-# endif
-# ifdef FEAT_TOOLBAR
-#  ifdef FEAT_GUI_TABLINE
-		    else
-#  endif
-		    {
-			UINT		idButton;
-			vimmenu_T	*pMenu;
-
-			idButton = (UINT) hdr->idFrom;
-			pMenu = gui_mswin_find_menu(root_menu, idButton);
-			if (pMenu)
-			    str = pMenu->strings[MENU_INDEX_TIP];
-		    }
-# endif
-		    if (str != NULL)
-		    {
-			if (hdr->code == TTN_GETDISPINFOW)
-			{
-			    LPNMTTDISPINFOW	lpdi = (LPNMTTDISPINFOW)lParam;
-
-			    // Set the maximum width, this also enables using
-			    // \n for line break.
-			    SendMessage(lpdi->hdr.hwndFrom, TTM_SETMAXTIPWIDTH,
-								      0, 500);
-
-			    tt_text = enc_to_utf16(str, NULL);
-			    lpdi->lpszText = tt_text;
-			    // can't show tooltip if failed
-			}
-			else
-			{
-			    LPNMTTDISPINFO	lpdi = (LPNMTTDISPINFO)lParam;
-
-			    // Set the maximum width, this also enables using
-			    // \n for line break.
-			    SendMessage(lpdi->hdr.hwndFrom, TTM_SETMAXTIPWIDTH,
-								      0, 500);
-
-			    if (STRLEN(str) < sizeof(lpdi->szText)
-				    || ((tt_text = vim_strsave(str)) == NULL))
-				vim_strncpy((char_u *)lpdi->szText, str,
-						sizeof(lpdi->szText) - 1);
-			    else
-				lpdi->lpszText = tt_text;
-			}
-		    }
-		}
-		break;
-# ifdef FEAT_GUI_TABLINE
-	    case TCN_SELCHANGE:
-		if (gui_mch_showing_tabline()
-				  && ((LPNMHDR)lParam)->hwndFrom == s_tabhwnd)
-		{
-		    send_tabline_event(TabCtrl_GetCurSel(s_tabhwnd) + 1);
-		    return 0L;
-		}
-		break;
-
-	    case NM_RCLICK:
-		if (gui_mch_showing_tabline()
-			&& ((LPNMHDR)lParam)->hwndFrom == s_tabhwnd)
-		{
-		    show_tabline_popup_menu();
-		    return 0L;
-		}
-		break;
-# endif
-	    default:
-# ifdef FEAT_GUI_TABLINE
-		if (gui_mch_showing_tabline()
-				  && ((LPNMHDR)lParam)->hwndFrom == s_tabhwnd)
-		    return MyWindowProc(hwnd, uMsg, wParam, lParam);
-# endif
-		break;
-	}
-	break;
+	return _OnNotify(hwnd, (UINT)wParam, (NMHDR*)lParam);
 #endif
+
 #if defined(MENUHINTS) && defined(FEAT_MENU)
     case WM_MENUSELECT:
-	if (((UINT) HIWORD(wParam)
-		    & (0xffff ^ (MF_MOUSESELECT + MF_BITMAP + MF_POPUP)))
-		== MF_HILITE
-		&& (State & CMDLINE) == 0)
-	{
-	    UINT	idButton;
-	    vimmenu_T	*pMenu;
-	    static int	did_menu_tip = FALSE;
-
-	    if (did_menu_tip)
-	    {
-		msg_clr_cmdline();
-		setcursor();
-		out_flush();
-		did_menu_tip = FALSE;
-	    }
-
-	    idButton = (UINT)LOWORD(wParam);
-	    pMenu = gui_mswin_find_menu(root_menu, idButton);
-	    if (pMenu != NULL && pMenu->strings[MENU_INDEX_TIP] != 0
-		    && GetMenuState(s_menuBar, pMenu->id, MF_BYCOMMAND) != -1)
-	    {
-		++msg_hist_off;
-		msg((char *)pMenu->strings[MENU_INDEX_TIP]);
-		--msg_hist_off;
-		setcursor();
-		out_flush();
-		did_menu_tip = TRUE;
-	    }
-	    return 0L;
-	}
-	break;
+	return _OnMenuSelect(hwnd, wParam, lParam);
 #endif
-    case WM_NCHITTEST:
-	{
-	    LRESULT	result;
-	    int		x, y;
-	    int		xPos = GET_X_LPARAM(lParam);
-
-	    result = MyWindowProc(hwnd, uMsg, wParam, lParam);
-	    if (result == HTCLIENT)
-	    {
-#ifdef FEAT_GUI_TABLINE
-		if (gui_mch_showing_tabline())
-		{
-		    int  yPos = GET_Y_LPARAM(lParam);
-		    RECT rct;
-
-		    // If the cursor is on the GUI tabline, don't process this
-		    // event
-		    GetWindowRect(s_textArea, &rct);
-		    if (yPos < rct.top)
-			return result;
-		}
-#endif
-		(void)gui_mch_get_winpos(&x, &y);
-		xPos -= x;
-
-		if (xPos < 48) // <VN> TODO should use system metric?
-		    return HTBOTTOMLEFT;
-		else
-		    return HTBOTTOMRIGHT;
-	    }
-	    else
-		return result;
-	}
-	// break; notreached
 
 #ifdef FEAT_MBYTE_IME
     case WM_IME_NOTIFY:
 	if (!_OnImeNotify(hwnd, (DWORD)wParam, (DWORD)lParam))
-	    return MyWindowProc(hwnd, uMsg, wParam, lParam);
+	    return DefWindowProcW(hwnd, uMsg, wParam, lParam);
 	return 1L;
 
     case WM_IME_COMPOSITION:
 	if (!_OnImeComposition(hwnd, wParam, lParam))
-	    return MyWindowProc(hwnd, uMsg, wParam, lParam);
+	    return DefWindowProcW(hwnd, uMsg, wParam, lParam);
 	return 1L;
 #endif
     case WM_DPICHANGED:
@@ -5021,10 +4943,10 @@ _WndProc(
 	if (uMsg == s_findrep_msg && s_findrep_msg != 0)
 	    _OnFindRepl();
 #endif
-	return MyWindowProc(hwnd, uMsg, wParam, lParam);
+	break;
     }
 
-    return DefWindowProc(hwnd, uMsg, wParam, lParam);
+    return DefWindowProcW(hwnd, uMsg, wParam, lParam);
 }
 
 /*
@@ -5368,9 +5290,6 @@ gui_mch_init(void)
     const WCHAR szVimWndClassW[] = VIM_CLASSW;
     const WCHAR szTextAreaClassW[] = L"VimTextArea";
     WNDCLASSW wndclassw;
-#ifdef GLOBAL_IME
-    ATOM	atom;
-#endif
 
     // Return here if the window was already opened (happens when
     // gui_mch_dialog() is called early).
@@ -5414,11 +5333,7 @@ gui_mch_init(void)
 	wndclassw.lpszMenuName = NULL;
 	wndclassw.lpszClassName = szVimWndClassW;
 
-	if ((
-#ifdef GLOBAL_IME
-		    atom =
-#endif
-		    RegisterClassW(&wndclassw)) == 0)
+	if (RegisterClassW(&wndclassw) == 0)
 	    return FAIL;
     }
 
@@ -5491,9 +5406,6 @@ gui_mch_init(void)
 	//TRACE("System DPI: %d, DPI: %d", pGetDpiForSystem(), s_dpi);
     }
 
-#ifdef GLOBAL_IME
-    global_ime_init(atom, s_hwnd);
-#endif
 #if defined(FEAT_MBYTE_IME) && defined(DYNAMIC_IME)
     dyn_imm_load();
 #endif
@@ -5880,56 +5792,6 @@ _OnImeComposition(HWND hwnd, WPARAM dbcs UNUSED, LPARAM param)
 }
 
 /*
- * get the current composition string, in UCS-2; *lenp is the number of
- * *lenp is the number of Unicode characters.
- */
-    static short_u *
-GetCompositionString_inUCS2(HIMC hIMC, DWORD GCS, int *lenp)
-{
-    LONG	    ret;
-    LPWSTR	    wbuf = NULL;
-    char_u	    *buf;
-
-    if (!pImmGetContext)
-	return NULL; // no imm32.dll
-
-    // Try Unicode; this will always work on NT regardless of codepage.
-    ret = pImmGetCompositionStringW(hIMC, GCS, NULL, 0);
-    if (ret == 0)
-	return NULL; // empty
-
-    if (ret > 0)
-    {
-	// Allocate the requested buffer plus space for the NUL character.
-	wbuf = alloc(ret + sizeof(WCHAR));
-	if (wbuf != NULL)
-	{
-	    pImmGetCompositionStringW(hIMC, GCS, wbuf, ret);
-	    *lenp = ret / sizeof(WCHAR);
-	}
-	return (short_u *)wbuf;
-    }
-
-    // ret < 0; we got an error, so try the ANSI version.  This will work
-    // on 9x/ME, but only if the codepage happens to be set to whatever
-    // we're inputting.
-    ret = pImmGetCompositionStringA(hIMC, GCS, NULL, 0);
-    if (ret <= 0)
-	return NULL; // empty or error
-
-    buf = alloc(ret);
-    if (buf == NULL)
-	return NULL;
-    pImmGetCompositionStringA(hIMC, GCS, buf, ret);
-
-    // convert from codepage to UCS-2
-    MultiByteToWideChar_alloc(GetACP(), 0, (LPCSTR)buf, ret, &wbuf, lenp);
-    vim_free(buf);
-
-    return (short_u *)wbuf;
-}
-
-/*
  * void GetResultStr()
  *
  * This handles WM_IME_COMPOSITION with GCS_RESULTSTR flag on.
@@ -5939,16 +5801,26 @@ GetCompositionString_inUCS2(HIMC hIMC, DWORD GCS, int *lenp)
 GetResultStr(HWND hwnd, int GCS, int *lenp)
 {
     HIMC	hIMC;		// Input context handle.
-    short_u	*buf = NULL;
+    LONG	ret;
+    WCHAR	*buf = NULL;
     char_u	*convbuf = NULL;
 
     if (!pImmGetContext || (hIMC = pImmGetContext(hwnd)) == (HIMC)0)
 	return NULL;
 
-    // Reads in the composition string.
-    buf = GetCompositionString_inUCS2(hIMC, GCS, lenp);
+    // Get the length of the composition string.
+    ret = pImmGetCompositionStringW(hIMC, GCS, NULL, 0);
+    if (ret <= 0)
+	return NULL;
+
+    // Allocate the requested buffer plus space for the NUL character.
+    buf = alloc(ret + sizeof(WCHAR));
     if (buf == NULL)
 	return NULL;
+
+    // Reads in the composition string.
+    pImmGetCompositionStringW(hIMC, GCS, buf, ret);
+    *lenp = ret / sizeof(WCHAR);
 
     convbuf = utf16_to_enc(buf, lenp);
     pImmReleaseContext(hwnd, hIMC);
@@ -6104,42 +5976,6 @@ im_get_status(void)
 
 #endif // FEAT_MBYTE_IME
 
-#if !defined(FEAT_MBYTE_IME) && defined(GLOBAL_IME)
-// Win32 with GLOBAL IME
-
-/*
- * Notify cursor position to IM.
- */
-    void
-im_set_position(int row, int col)
-{
-    // Win32 with GLOBAL IME
-    POINT p;
-
-    p.x = FILL_X(col);
-    p.y = FILL_Y(row);
-    MapWindowPoints(s_textArea, s_hwnd, &p, 1);
-    global_ime_set_position(&p);
-}
-
-/*
- * Set IM status on ("active" is TRUE) or off ("active" is FALSE).
- */
-    void
-im_set_active(int active)
-{
-    global_ime_set_status(active);
-}
-
-/*
- * Get IM status.  When IM is on, return not 0.  Else return 0.
- */
-    int
-im_get_status(void)
-{
-    return global_ime_get_status();
-}
-#endif
 
 /*
  * Convert latin9 text "text[len]" to ucs-2 in "unicodebuf".
@@ -6664,7 +6500,7 @@ gui_mch_show_popupmenu(vimmenu_T *menu)
 {
     POINT mp;
 
-    (void)GetCursorPos((LPPOINT)&mp);
+    (void)GetCursorPos(&mp);
     gui_mch_show_popupmenu_at(menu, (int)mp.x, (int)mp.y);
 }
 
@@ -6877,7 +6713,7 @@ gui_mch_menu_grey(
     if (menu->submenu_id == (HMENU)-1)
     {
 	SendMessage(s_toolbarhwnd, TB_ENABLEBUTTON,
-	    (WPARAM)menu->id, (LPARAM) MAKELONG((grey ? FALSE : TRUE), 0) );
+	    (WPARAM)menu->id, (LPARAM) MAKELONG((grey ? FALSE : TRUE), 0));
     }
     else
 # endif
@@ -6910,7 +6746,6 @@ gui_mch_menu_grey(
 
 // define some macros used to make the dialogue creation more readable
 
-#define add_string(s) strcpy((LPSTR)p, s); (LPSTR)p += (strlen((LPSTR)p) + 1)
 #define add_word(x)		*p++ = (x)
 #define add_long(x)		dwp = (DWORD *)p; *dwp++ = (x); p = (WORD *)dwp
 
@@ -7817,7 +7652,7 @@ gui_mch_tearoff(
     if (IsWindow(menu->tearoff_handle))
     {
 	POINT mp;
-	if (GetCursorPos((LPPOINT)&mp))
+	if (GetCursorPos(&mp))
 	{
 	    SetWindowPos(menu->tearoff_handle, NULL, mp.x, mp.y, 0, 0,
 		    SWP_NOACTIVATE | SWP_NOSIZE | SWP_NOZORDER);
@@ -8399,8 +8234,6 @@ dyn_imm_load(void)
     if (hLibImm == NULL)
 	return;
 
-    pImmGetCompositionStringA
-	    = (void *)GetProcAddress(hLibImm, "ImmGetCompositionStringA");
     pImmGetCompositionStringW
 	    = (void *)GetProcAddress(hLibImm, "ImmGetCompositionStringW");
     pImmGetContext
@@ -8424,8 +8257,7 @@ dyn_imm_load(void)
     pImmSetConversionStatus
 	    = (void *)GetProcAddress(hLibImm, "ImmSetConversionStatus");
 
-    if (       pImmGetCompositionStringA == NULL
-	    || pImmGetCompositionStringW == NULL
+    if (       pImmGetCompositionStringW == NULL
 	    || pImmGetContext == NULL
 	    || pImmAssociateContext == NULL
 	    || pImmReleaseContext == NULL
@@ -8628,89 +8460,13 @@ gui_mch_destroy_sign(void *sign)
  * 5) WM_NOTIFY:TTN_POP destroys created tooltip
  */
 
-/*
- * determine whether installed Common Controls support multiline tooltips
- * (i.e. their version is >= 4.70
- */
-    int
-multiline_balloon_available(void)
-{
-    HINSTANCE hDll;
-    static char comctl_dll[] = "comctl32.dll";
-    static int multiline_tip = MAYBE;
-
-    if (multiline_tip != MAYBE)
-	return multiline_tip;
-
-    hDll = GetModuleHandle(comctl_dll);
-    if (hDll != NULL)
-    {
-	DLLGETVERSIONPROC pGetVer;
-	pGetVer = (DLLGETVERSIONPROC)GetProcAddress(hDll, "DllGetVersion");
-
-	if (pGetVer != NULL)
-	{
-	    DLLVERSIONINFO dvi;
-	    HRESULT hr;
-
-	    ZeroMemory(&dvi, sizeof(dvi));
-	    dvi.cbSize = sizeof(dvi);
-
-	    hr = (*pGetVer)(&dvi);
-
-	    if (SUCCEEDED(hr)
-		    && (dvi.dwMajorVersion > 4
-			|| (dvi.dwMajorVersion == 4
-						&& dvi.dwMinorVersion >= 70)))
-	    {
-		multiline_tip = TRUE;
-		return multiline_tip;
-	    }
-	}
-	else
-	{
-	    // there is chance we have ancient CommCtl 4.70
-	    // which doesn't export DllGetVersion
-	    DWORD dwHandle = 0;
-	    DWORD len = GetFileVersionInfoSize(comctl_dll, &dwHandle);
-	    if (len > 0)
-	    {
-		VS_FIXEDFILEINFO *ver;
-		UINT vlen = 0;
-		void *data = alloc(len);
-
-		if ((data != NULL
-			&& GetFileVersionInfo(comctl_dll, 0, len, data)
-			&& VerQueryValue(data, "\\", (void **)&ver, &vlen)
-			&& vlen
-			&& HIWORD(ver->dwFileVersionMS) > 4)
-			|| ((HIWORD(ver->dwFileVersionMS) == 4
-			    && LOWORD(ver->dwFileVersionMS) >= 70)))
-		{
-		    vim_free(data);
-		    multiline_tip = TRUE;
-		    return multiline_tip;
-		}
-		vim_free(data);
-	    }
-	}
-    }
-    multiline_tip = FALSE;
-    return multiline_tip;
-}
-
     static void
 make_tooltip(BalloonEval *beval, char *text, POINT pt)
 {
-    TOOLINFOW	*pti;
-    int		ToolInfoSize;
+    TOOLINFOW_NEW   *pti;
+    RECT	    rect;
 
-    if (multiline_balloon_available())
-	ToolInfoSize = sizeof(TOOLINFOW_NEW);
-    else
-	ToolInfoSize = sizeof(TOOLINFOW);
-
-    pti = alloc(ToolInfoSize);
+    pti = alloc(sizeof(TOOLINFOW_NEW));
     if (pti == NULL)
 	return;
 
@@ -8722,30 +8478,19 @@ make_tooltip(BalloonEval *beval, char *text, POINT pt)
     SetWindowPos(beval->balloon, HWND_TOPMOST, 0, 0, 0, 0,
 	    SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 
-    pti->cbSize = ToolInfoSize;
+    pti->cbSize = sizeof(TOOLINFOW_NEW);
     pti->uFlags = TTF_SUBCLASS;
     pti->hwnd = beval->target;
     pti->hinst = 0; // Don't use string resources
     pti->uId = ID_BEVAL_TOOLTIP;
 
-    if (multiline_balloon_available())
-    {
-	RECT rect;
-	TOOLINFOW_NEW *ptin = (TOOLINFOW_NEW *)pti;
-	pti->lpszText = LPSTR_TEXTCALLBACKW;
-	beval->tofree = enc_to_utf16((char_u*)text, NULL);
-	ptin->lParam = (LPARAM)beval->tofree;
-	// switch multiline tooltips on
-	if (GetClientRect(s_textArea, &rect))
-	    SendMessageW(beval->balloon, TTM_SETMAXTIPWIDTH, 0,
-		    (LPARAM)rect.right);
-    }
-    else
-    {
-	// do this old way
-	beval->tofree = enc_to_utf16((char_u*)text, NULL);
-	pti->lpszText = (LPWSTR)beval->tofree;
-    }
+    pti->lpszText = LPSTR_TEXTCALLBACKW;
+    beval->tofree = enc_to_utf16((char_u*)text, NULL);
+    pti->lParam = (LPARAM)beval->tofree;
+    // switch multiline tooltips on
+    if (GetClientRect(s_textArea, &rect))
+	SendMessageW(beval->balloon, TTM_SETMAXTIPWIDTH, 0,
+		(LPARAM)rect.right);
 
     // Limit ballooneval bounding rect to CursorPos neighbourhood.
     pti->rect.left = pt.x - 3;
