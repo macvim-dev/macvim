@@ -1,17 +1,17 @@
 ---
 name: Bug report
-description: Create a report to help us improve Vim.
+description: Create a report to help us improve MacVim.
 labels: [bug]
 
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for reporting issues of Vim!
+        Thanks for reporting issues of MacVim!
 
         If you want to report a security issue, instead of reporting it here
         you can alternatively disclose it on
-        [huntr.dev](https://huntr.dev/bounties/disclose/?utm_campaign=vim%2Fvim&utm_medium=social&utm_source=github&target=https%3A%2F%2Fgithub.com%2Fvim%2Fvim).
+        [huntr.dev](https://huntr.dev/bounties/disclose/?utm_campaign=macvim-dev%2Fmacvim&utm_medium=social&utm_source=github&target=https%3A%2F%2Fgithub.com%2Fmacvim-dev%2Fmacvim).
         They have rewards in the form of money, swag and CVEs.
         
         To make it easier for us to help you please enter detailed information below.
@@ -33,16 +33,16 @@ body:
       required: true
   - type: input
     attributes:
-      label: Version of Vim
+      label: Version of Vim and architecture
       description: >
-        Including patch level, use ":version" to see it [e.g. 8.2.1234]
+        Including patch level, use ":version" to see it [e.g. 8.2.1234, GUI, arm64]
     validations:
       required: true
   - type: textarea
     attributes:
       label: Environment
       description: >
-        OS [e.g. Ubuntu 21.10], terminal [e.g. GNOME Terminal 3.38.1], value of $TERM, shell [e.g. bash 5.1.8]; anything that might matter
+        OS and architecture [e.g. Big Sur, arm64], terminal [e.g. Apple Terminal/iTerm], value of $TERM, shell [e.g. zsh 5.8]; anything that might matter
       placeholder: |
         Operating system:
         Terminal:
@@ -50,8 +50,39 @@ body:
         Shell:
     validations:
       required: true
+  - type: input
+    attributes:
+      label: How MacVim was installed
+      description: >
+        MacVim has been downloaded from GitHub, installed via Homebrew, MacPorts or builed from git
   - type: textarea
     attributes:
       label: Logs and stack traces
       placeholder: Insert log or other text here (if necessary)
       render: shell
+  - type: input
+    attributes:
+      label: Vim configuration where issue is reproducable
+      description: 'e.g. link to your vimrc configuration: url to file/gist/repo..'
+  - type: checkboxes
+    attributes:
+      label: Issue has been tested with given configuration
+      description: This will help us to narrow down the problem more quickly
+      options:
+        - label: by running MacVim.app from GUI macOS interface
+        - label: by running vim/gvim/etc installed by MacVim
+        - label: by running other versions of vim (e.g. /usr/bin/vim)
+  - type: checkboxes
+    attributes:
+      label: Issue has been tested with no configuration
+      description: This will help us to narrow down the problem more quickly
+      options:
+        - label: by running `mvim --clean` (or `gvim`, supplied by MacVim distribution)
+        - label: by running `vim --clean` (in terminal, supplied by MacVim distribution)
+        - label: by running `vim --clean` (in terminal, other suppliers, e.g. /usr/bin/vim)
+  - type: checkboxes
+    attributes:
+      label: The both Homebrew vim and MacVim are installed
+      description: This will help us to narrow down the problem more quickly
+      options:
+        - label: The both Homebrew vim and MacVim are installed
