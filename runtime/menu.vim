@@ -1299,62 +1299,65 @@ unlet s:cpo_save
 
 
 if has("gui_macvim")
-  "
-  " Set up menu key equivalents (these should always have the 'D' modifier
-  " set), action bindings, and alternate items.
-  "
-  " Note: menu items which should execute an action are bound to <Nop>; the
-  " action message is specified here via the :macmenu command.
-  "
-  macm File.New\ Window				key=<D-n> action=newWindow:
-  macm File.New\ Tab				key=<D-t>
-  macm File.Open…				key=<D-o> action=fileOpen:
-  macm File.Open\ Tab\.\.\.<Tab>:tabnew		key=<D-T>
-  macm File.Open\ Recent			action=recentFilesDummy:
-  macm File.Close\ Window<Tab>:qa		key=<D-W>
-  macm File.Close				key=<D-w> action=performClose:
-  macm File.Save<Tab>:w				key=<D-s>
-  macm File.Save\ All				key=<D-M-s> alt=YES
-  macm File.Save\ As…<Tab>:sav		key=<D-S>
-  macm File.Print				key=<D-p>
+  if !exists("did_install_default_mac_menus")
+    let did_install_default_mac_menus = 1
+    "
+    " Set up menu key equivalents (these should always have the 'D' modifier
+    " set), action bindings, and alternate items.
+    "
+    " Note: menu items which should execute an action are bound to <Nop>; the
+    " action message is specified here via the :macmenu command.
+    "
+    macm File.New\ Window				key=<D-n> action=newWindow:
+    macm File.New\ Tab				key=<D-t>
+    macm File.Open…				key=<D-o> action=fileOpen:
+    macm File.Open\ Tab\.\.\.<Tab>:tabnew		key=<D-T>
+    macm File.Open\ Recent			action=recentFilesDummy:
+    macm File.Close\ Window<Tab>:qa		key=<D-W>
+    macm File.Close				key=<D-w> action=performClose:
+    macm File.Save<Tab>:w				key=<D-s>
+    macm File.Save\ All				key=<D-M-s> alt=YES
+    macm File.Save\ As…<Tab>:sav		key=<D-S>
+    macm File.Print				key=<D-p>
 
-  macm Edit.Undo<Tab>u				key=<D-z> action=undo:
-  macm Edit.Redo<Tab>^R				key=<D-Z> action=redo:
-  macm Edit.Cut<Tab>"+x				key=<D-x> action=cut:
-  macm Edit.Copy<Tab>"+y			key=<D-c> action=copy:
-  macm Edit.Paste<Tab>"+gP			key=<D-v> action=paste:
-  macm Edit.Select\ All<Tab>ggVG		key=<D-a> action=selectAll:
-  macm Edit.Find.Find…			key=<D-f>
-  macm Edit.Find.Find\ Next			key=<D-g> action=findNext:
-  macm Edit.Find.Find\ Previous			key=<D-G> action=findPrevious:
-  macm Edit.Find.Use\ Selection\ for\ Find	key=<D-e> action=useSelectionForFind:
-  macm Edit.Font.Show\ Fonts			action=orderFrontFontPanel:
-  macm Edit.Font.Bigger				key=<D-=> action=fontSizeUp:
-  macm Edit.Font.Smaller			key=<D--> action=fontSizeDown:
+    macm Edit.Undo<Tab>u				key=<D-z> action=undo:
+    macm Edit.Redo<Tab>^R				key=<D-Z> action=redo:
+    macm Edit.Cut<Tab>"+x				key=<D-x> action=cut:
+    macm Edit.Copy<Tab>"+y			key=<D-c> action=copy:
+    macm Edit.Paste<Tab>"+gP			key=<D-v> action=paste:
+    macm Edit.Select\ All<Tab>ggVG		key=<D-a> action=selectAll:
+    macm Edit.Find.Find…			key=<D-f>
+    macm Edit.Find.Find\ Next			key=<D-g> action=findNext:
+    macm Edit.Find.Find\ Previous			key=<D-G> action=findPrevious:
+    macm Edit.Find.Use\ Selection\ for\ Find	key=<D-e> action=useSelectionForFind:
+    macm Edit.Font.Show\ Fonts			action=orderFrontFontPanel:
+    macm Edit.Font.Bigger				key=<D-=> action=fontSizeUp:
+    macm Edit.Font.Smaller			key=<D--> action=fontSizeDown:
 
-  macm Tools.Spelling.To\ Next\ Error<Tab>]s	key=<D-;>
-  macm Tools.Spelling.Suggest\ Corrections<Tab>z=   key=<D-:>
-  macm Tools.Make<Tab>:make			key=<D-b>
-  macm Tools.List\ Errors<Tab>:cl		key=<D-l>
-  macm Tools.Next\ Error<Tab>:cn		key=<D-C-Right>
-  macm Tools.Previous\ Error<Tab>:cp		key=<D-C-Left>
-  macm Tools.Older\ List<Tab>:cold		key=<D-C-Up>
-  macm Tools.Newer\ List<Tab>:cnew		key=<D-C-Down>
+    macm Tools.Spelling.To\ Next\ Error<Tab>]s	key=<D-;>
+    macm Tools.Spelling.Suggest\ Corrections<Tab>z=   key=<D-:>
+    macm Tools.Make<Tab>:make			key=<D-b>
+    macm Tools.List\ Errors<Tab>:cl		key=<D-l>
+    macm Tools.Next\ Error<Tab>:cn		key=<D-C-Right>
+    macm Tools.Previous\ Error<Tab>:cp		key=<D-C-Left>
+    macm Tools.Older\ List<Tab>:cold		key=<D-C-Up>
+    macm Tools.Newer\ List<Tab>:cnew		key=<D-C-Down>
 
-  macm Window.Minimize		key=<D-m>	action=performMiniaturize:
-  macm Window.Minimize\ All	key=<D-M-m>	action=miniaturizeAll:	alt=YES
-  macm Window.Zoom		key=<D-C-z>	action=performZoom:
-  macm Window.Zoom\ All		key=<D-M-C-z>	action=zoomAll:		alt=YES
-  macm Window.Toggle\ Full\ Screen\ Mode	key=<D-C-f>
-  macm Window.Show\ Next\ Tab			key=<D-}>
-  macm Window.Show\ Previous\ Tab		key=<D-{>
-  macm Window.Bring\ All\ To\ Front		action=arrangeInFront:
-  macm Window.Stay\ in\ Front 	action=stayInFront:
-  macm Window.Stay\ in\ Back 	action=stayInBack:
-  macm Window.Stay\ Level\ Normal action=stayLevelNormal:
+    macm Window.Minimize		key=<D-m>	action=performMiniaturize:
+    macm Window.Minimize\ All	key=<D-M-m>	action=miniaturizeAll:	alt=YES
+    macm Window.Zoom		key=<D-C-z>	action=performZoom:
+    macm Window.Zoom\ All		key=<D-M-C-z>	action=zoomAll:		alt=YES
+    macm Window.Toggle\ Full\ Screen\ Mode	key=<D-C-f>
+    macm Window.Show\ Next\ Tab			key=<D-}>
+    macm Window.Show\ Previous\ Tab		key=<D-{>
+    macm Window.Bring\ All\ To\ Front		action=arrangeInFront:
+    macm Window.Stay\ in\ Front 	action=stayInFront:
+    macm Window.Stay\ in\ Back 	action=stayInBack:
+    macm Window.Stay\ Level\ Normal action=stayLevelNormal:
 
-  macm Help.MacVim\ Help			key=<D-?>
-  macm Help.MacVim\ Website			action=openWebsite:
+    macm Help.MacVim\ Help			key=<D-?>
+    macm Help.MacVim\ Website			action=openWebsite:
+  endif
 endif
 
 if has("touchbar")

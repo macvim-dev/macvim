@@ -1,4 +1,4 @@
-*gui_mac.txt*	For Vim version 8.2.  Last change: 2020 Aug 13
+*gui_mac.txt*	For Vim version 8.2.  Last change: 2022 Jan 24
 
 
 		  VIM REFERENCE MANUAL    by Bjorn Winckler
@@ -93,6 +93,18 @@ with the Apple Human Interface Guidelines (HIG).
 
 The Help menu's search can be used to search Vim's documentation.  You can use
 it to quickly find the documentation you want in addition to using |:help|.
+
+If you want to disable configuration of command key equivalents when Vim
+sources |menu.vim| you can add this line to your .vimrc file: >
+  :let did_install_default_mac_menus = 1
+
+This is particularly useful if you have opted to disable generation of the
+default menus themselves (by setting 'did_install_default_menus = 1').
+Otherwise, you may get errors on startup due to missing menus.
+
+Because 'filetype' and 'syntax' both cause Vim to source |menu.vim|, you
+must set 'did_install_default_mac_menus' before executing those commands in
+your .vimrc.
 
 							*macvim-window-title*
 The default window title does not include the argument list because it looks
