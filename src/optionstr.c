@@ -2348,8 +2348,7 @@ ambw_end:
 # ifdef FEAT_POSTSCRIPT
 	    varp == &p_pexpr ||
 # endif
-	    FALSE
-	    )
+	    varp == &p_ccv)
     {
 	char_u	**p_opt = NULL;
 	char_u	*name;
@@ -2388,6 +2387,8 @@ ambw_end:
 	if (varp == &p_pexpr)	// 'printexpr'
 	    p_opt = &p_pexpr;
 # endif
+	if (varp == &p_ccv)	// 'charconvert'
+	    p_opt = &p_ccv;
 
 	if (p_opt != NULL)
 	{

@@ -673,6 +673,74 @@ def Test_use_autoload_import_in_insert_completion()
   &rtp = save_rtp
 enddef
 
+def Test_use_autoload_import_partial_in_opfunc()
+  mkdir('Xdir/autoload', 'p')
+  var save_rtp = &rtp
+  exe 'set rtp^=' .. getcwd() .. '/Xdir'
+
+  var lines =<< trim END
+      vim9script
+      export def Opfunc(..._)
+        g:opfunc_called = 'yes'
+      enddef
+  END
+  writefile(lines, 'Xdir/autoload/opfunc.vim')
+
+  new
+  lines =<< trim END
+      vim9script
+      import autoload 'opfunc.vim'
+      nnoremap <expr> <F3> TheFunc()
+      def TheFunc(): string
+        &operatorfunc = function('opfunc.Opfunc', [0])
+        return 'g@'
+      enddef
+      feedkeys("\<F3>l", 'xt')
+      assert_equal('yes', g:opfunc_called)
+  END
+  CheckScriptSuccess(lines)
+
+  set opfunc=
+  bwipe!
+  delete('Xdir', 'rf')
+  nunmap <F3>
+  &rtp = save_rtp
+enddef
+
+def Test_set_opfunc_to_autoload_func_directly()
+  mkdir('Xdir/autoload', 'p')
+  var save_rtp = &rtp
+  exe 'set rtp^=' .. getcwd() .. '/Xdir'
+
+  var lines =<< trim END
+      vim9script
+      export def Opfunc(..._)
+        g:opfunc_called = 'yes'
+      enddef
+  END
+  writefile(lines, 'Xdir/autoload/opfunc.vim')
+
+  new
+  lines =<< trim END
+      vim9script
+      import autoload 'opfunc.vim'
+      nnoremap <expr> <F3> TheFunc()
+      def TheFunc(): string
+        &operatorfunc = opfunc.Opfunc
+        return 'g@'
+      enddef
+      feedkeys("\<F3>l", 'xt')
+      assert_equal('yes', g:opfunc_called)
+  END
+  CheckScriptSuccess(lines)
+
+  set opfunc=
+  bwipe!
+  delete('Xdir', 'rf')
+  nunmap <F3>
+  &rtp = save_rtp
+enddef
+
 def Test_use_autoload_import_in_fold_expression()
   mkdir('Xdir/autoload', 'p')
   var save_rtp = &rtp
@@ -757,6 +825,7 @@ def Run_Test_import_in_diffexpr()
   diffoff!
   bwipe!
   bwipe!
+  delete('Xdiffexpr')
 enddef
 
 def Test_import_in_patchexpr()
@@ -843,7 +912,7 @@ def Test_import_in_includeexpr()
   bwipe!
   bwipe!
   set includeexpr=
-  delete('Xinclude')
+  delete('Xinclude.vim')
   delete('Xthisfile')
 enddef
 
@@ -872,6 +941,127 @@ def Test_import_in_indentexpr()
   bwipe!
   set indentexpr= debug=
   delete('Xindenter')
+enddef
+
+func Test_import_in_printexpr()
+  CheckFeature postscript
+  call Run_Test_import_in_printexpr()
+endfunc
+
+def Run_Test_import_in_printexpr()
+  var lines =<< trim END
+      vim9script
+      export def PrintFile(): bool
+        g:printed = 'yes'
+        delete('v:fname_in')
+        return false
+      enddef
+  END
+  writefile(lines, 'Xprint.vim')
+
+  lines =<< trim END
+      vim9script
+      import './Xprint.vim'
+      set printexpr=Xprint.PrintFile()
+  END
+  CheckScriptSuccess(lines)
+
+  help
+  hardcopy dummy args
+  assert_equal('yes', g:printed)
+
+  delete('Xprint.vim')
+  set printexpr=
+enddef
+
+def Test_import_in_charconvert()
+  var lines =<< trim END
+      vim9script
+      export def MakeUpper(): bool
+        var data = readfile(v:fname_in)
+        map(data, 'toupper(v:val)')
+        writefile(data, v:fname_out)
+        return false  # success
+      enddef
+  END
+  writefile(lines, 'Xconvert.vim')
+
+  lines =<< trim END
+      vim9script
+      import './Xconvert.vim' as conv
+      set charconvert=conv.MakeUpper()
+  END
+  CheckScriptSuccess(lines)
+
+  writefile(['one', 'two'], 'Xfile')
+  new Xfile
+  write ++enc=ucase Xfile1
+  assert_equal(['ONE', 'TWO'], readfile('Xfile1'))
+
+  delete('Xfile')
+  delete('Xfile1')
+  delete('Xconvert.vim')
+  bwipe!
+  set charconvert&
+enddef
+
+func Test_import_in_spellsuggest_expr()
+  CheckFeature spell
+  call Run_Test_import_in_spellsuggest_expr()
+endfunc
+
+def Run_Test_import_in_spellsuggest_expr()
+  var lines =<< trim END
+      vim9script
+      export def MySuggest(): list<any>
+        return [['Fox', 8], ['Fop', 9]]
+      enddef
+  END
+  writefile(lines, 'Xsuggest.vim')
+
+  lines =<< trim END
+      vim9script
+      import './Xsuggest.vim' as sugg
+      set spell spellsuggest=expr:sugg.MySuggest()
+  END
+  CheckScriptSuccess(lines)
+
+  set verbose=1  # report errors
+  call assert_equal(['Fox', 'Fop'], spellsuggest('Fo', 2))
+
+  delete('Xsuggest.vim')
+  set nospell spellsuggest& verbose=0
+enddef
+
+def Test_export_shadows_global_function()
+  mkdir('Xdir/autoload', 'p')
+  var save_rtp = &rtp
+  exe 'set rtp^=' .. getcwd() .. '/Xdir'
+
+  var lines =<< trim END
+      vim9script
+      export def Shadow(): string
+        return 'Shadow()'
+      enddef
+  END
+  writefile(lines, 'Xdir/autoload/shadow.vim')
+
+  lines =<< trim END
+      vim9script
+
+      def g:Shadow(): string
+        return 'global'
+      enddef
+
+      import autoload 'shadow.vim'
+      assert_equal('Shadow()', shadow.Shadow())
+  END
+  CheckScriptSuccess(lines)
+
+  delfunc g:Shadow
+  bwipe!
+  delete('Xdir', 'rf')
+  &rtp = save_rtp
 enddef
 
 def Test_export_fails()
@@ -1837,7 +2027,7 @@ def Test_autoload_name_wring()
   writefile(lines, 'Xscriptname.vim')
   CheckScriptFailure(lines, 'E1263:')
 
-  delete('Xscriptname')
+  delete('Xscriptname.vim')
 enddef
 
 def Test_import_autoload_postponed()

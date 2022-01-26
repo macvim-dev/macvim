@@ -206,27 +206,17 @@ gui_mch_set_rendering_options(char_u *s)
 // Some parameters for dialog boxes.  All in pixels.
 #define DLG_PADDING_X		10
 #define DLG_PADDING_Y		10
-#define DLG_OLD_STYLE_PADDING_X	5
-#define DLG_OLD_STYLE_PADDING_Y	5
 #define DLG_VERT_PADDING_X	4	// For vertical buttons
 #define DLG_VERT_PADDING_Y	4
 #define DLG_ICON_WIDTH		34
 #define DLG_ICON_HEIGHT		34
 #define DLG_MIN_WIDTH		150
-#define DLG_FONT_NAME		"MS Sans Serif"
+#define DLG_FONT_NAME		"MS Shell Dlg"
 #define DLG_FONT_POINT_SIZE	8
 #define DLG_MIN_MAX_WIDTH	400
 #define DLG_MIN_MAX_HEIGHT	400
 
 #define DLG_NONBUTTON_CONTROL	5000	// First ID of non-button controls
-
-#ifndef WM_XBUTTONDOWN // For Win2K / winME ONLY
-# define WM_XBUTTONDOWN		0x020B
-# define WM_XBUTTONUP		0x020C
-# define WM_XBUTTONDBLCLK	0x020D
-# define MK_XBUTTON1		0x0020
-# define MK_XBUTTON2		0x0040
-#endif
 
 #ifndef WM_DPICHANGED
 # define WM_DPICHANGED		0x02E0
@@ -288,10 +278,6 @@ typedef int WNDPROC;
 typedef int UINT_PTR;
 typedef int COLORREF;
 typedef int HCURSOR;
-#endif
-
-#ifndef GET_X_LPARAM
-# define GET_X_LPARAM(lp) ((int)(short)LOWORD(lp))
 #endif
 
 static void _OnPaint(HWND hwnd);
@@ -968,9 +954,6 @@ _OnMouseButtonDown(
 	button = MOUSE_RIGHT;
     else if (s_uMsg == WM_XBUTTONDOWN || s_uMsg == WM_XBUTTONDBLCLK)
     {
-#ifndef GET_XBUTTON_WPARAM
-# define GET_XBUTTON_WPARAM(wParam)	(HIWORD(wParam))
-#endif
 	button = ((GET_XBUTTON_WPARAM(s_wParam) == 1) ? MOUSE_X1 : MOUSE_X2);
     }
     else if (s_uMsg == WM_CAPTURECHANGED)
@@ -1513,6 +1496,20 @@ update_scrollbar_size(void)
 }
 
 /*
+ * Get the average character size of a font.
+ */
+    static void
+GetAverageFontSize(HDC hdc, SIZE *size)
+{
+    // GetTextMetrics() may not return the right value in tmAveCharWidth
+    // for some fonts.  Do our own average computation.
+    GetTextExtentPoint(hdc,
+	    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+	    52, size);
+    size->cx = (size->cx / 26 + 1) / 2;
+}
+
+/*
  * Get the character size of a font.
  */
     static void
@@ -1525,13 +1522,9 @@ GetFontSize(GuiFont font)
     TEXTMETRIC tm;
 
     GetTextMetrics(hdc, &tm);
-    // GetTextMetrics() may not return the right value in tmAveCharWidth
-    // for some fonts.  Do our own average computation.
-    GetTextExtentPoint(hdc,
-	    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
-	    52, &size);
-    gui.char_width = (size.cx / 26 + 1) / 2 + tm.tmOverhang;
+    GetAverageFontSize(hdc, &size);
 
+    gui.char_width = size.cx + tm.tmOverhang;
     gui.char_height = tm.tmHeight + p_linespace;
 
     SelectFont(hdc, hfntOld);
@@ -2440,10 +2433,6 @@ gui_mch_show_toolbar(int showit)
 
     if (showit)
     {
-# ifndef TB_SETUNICODEFORMAT
-    // For older compilers.  We assume this never changes.
-#  define TB_SETUNICODEFORMAT 0x2005
-# endif
 	// Enable unicode support
 	SendMessage(s_toolbarhwnd, TB_SETUNICODEFORMAT, (WPARAM)TRUE,
 								(LPARAM)0);
@@ -2577,10 +2566,6 @@ gui_mch_update_tabline(void)
     if (s_tabhwnd == NULL)
 	return;
 
-# ifndef CCM_SETUNICODEFORMAT
-    // For older compilers.  We assume this never changes.
-#  define CCM_SETUNICODEFORMAT 0x2005
-# endif
     // Enable unicode support
     SendMessage(s_tabhwnd, CCM_SETUNICODEFORMAT, (WPARAM)TRUE, (LPARAM)0);
 
@@ -3410,10 +3395,6 @@ gui_mch_init_font(char_u *font_name, int fontset UNUSED)
     return OK;
 }
 
-#ifndef WPF_RESTORETOMAXIMIZED
-# define WPF_RESTORETOMAXIMIZED 2   // just in case someone doesn't have it
-#endif
-
 /*
  * Return TRUE if the GUI window is maximized, filling the whole screen.
  * Also return TRUE if the window is snapped.
@@ -3897,113 +3878,6 @@ _OnScroll(
 # include "xpm_w32.h"
 #endif
 
-#ifdef __MINGW32__
-/*
- * Add a lot of missing defines.
- * They are not always missing, we need the #ifndef's.
- */
-# ifndef IsMinimized
-#  define     IsMinimized(hwnd)		IsIconic(hwnd)
-# endif
-# ifndef IsMaximized
-#  define     IsMaximized(hwnd)		IsZoomed(hwnd)
-# endif
-# ifndef SelectFont
-#  define     SelectFont(hdc, hfont)  ((HFONT)SelectObject((hdc), (HGDIOBJ)(HFONT)(hfont)))
-# endif
-# ifndef GetStockBrush
-#  define     GetStockBrush(i)     ((HBRUSH)GetStockObject(i))
-# endif
-# ifndef DeleteBrush
-#  define     DeleteBrush(hbr)     DeleteObject((HGDIOBJ)(HBRUSH)(hbr))
-# endif
-
-# ifndef HANDLE_WM_RBUTTONDBLCLK
-#  define HANDLE_WM_RBUTTONDBLCLK(hwnd, wParam, lParam, fn) \
-    ((fn)((hwnd), TRUE, (int)(short)LOWORD(lParam), (int)(short)HIWORD(lParam), (UINT)(wParam)), 0L)
-# endif
-# ifndef HANDLE_WM_MBUTTONUP
-#  define HANDLE_WM_MBUTTONUP(hwnd, wParam, lParam, fn) \
-    ((fn)((hwnd), (int)(short)LOWORD(lParam), (int)(short)HIWORD(lParam), (UINT)(wParam)), 0L)
-# endif
-# ifndef HANDLE_WM_MBUTTONDBLCLK
-#  define HANDLE_WM_MBUTTONDBLCLK(hwnd, wParam, lParam, fn) \
-    ((fn)((hwnd), TRUE, (int)(short)LOWORD(lParam), (int)(short)HIWORD(lParam), (UINT)(wParam)), 0L)
-# endif
-# ifndef HANDLE_WM_LBUTTONDBLCLK
-#  define HANDLE_WM_LBUTTONDBLCLK(hwnd, wParam, lParam, fn) \
-    ((fn)((hwnd), TRUE, (int)(short)LOWORD(lParam), (int)(short)HIWORD(lParam), (UINT)(wParam)), 0L)
-# endif
-# ifndef HANDLE_WM_RBUTTONDOWN
-#  define HANDLE_WM_RBUTTONDOWN(hwnd, wParam, lParam, fn) \
-    ((fn)((hwnd), FALSE, (int)(short)LOWORD(lParam), (int)(short)HIWORD(lParam), (UINT)(wParam)), 0L)
-# endif
-# ifndef HANDLE_WM_MOUSEMOVE
-#  define HANDLE_WM_MOUSEMOVE(hwnd, wParam, lParam, fn) \
-    ((fn)((hwnd), (int)(short)LOWORD(lParam), (int)(short)HIWORD(lParam), (UINT)(wParam)), 0L)
-# endif
-# ifndef HANDLE_WM_RBUTTONUP
-#  define HANDLE_WM_RBUTTONUP(hwnd, wParam, lParam, fn) \
-    ((fn)((hwnd), (int)(short)LOWORD(lParam), (int)(short)HIWORD(lParam), (UINT)(wParam)), 0L)
-# endif
-# ifndef HANDLE_WM_MBUTTONDOWN
-#  define HANDLE_WM_MBUTTONDOWN(hwnd, wParam, lParam, fn) \
-    ((fn)((hwnd), FALSE, (int)(short)LOWORD(lParam), (int)(short)HIWORD(lParam), (UINT)(wParam)), 0L)
-# endif
-# ifndef HANDLE_WM_LBUTTONUP
-#  define HANDLE_WM_LBUTTONUP(hwnd, wParam, lParam, fn) \
-    ((fn)((hwnd), (int)(short)LOWORD(lParam), (int)(short)HIWORD(lParam), (UINT)(wParam)), 0L)
-# endif
-# ifndef HANDLE_WM_LBUTTONDOWN
-#  define HANDLE_WM_LBUTTONDOWN(hwnd, wParam, lParam, fn) \
-    ((fn)((hwnd), FALSE, (int)(short)LOWORD(lParam), (int)(short)HIWORD(lParam), (UINT)(wParam)), 0L)
-# endif
-# ifndef HANDLE_WM_SYSCHAR
-#  define HANDLE_WM_SYSCHAR(hwnd, wParam, lParam, fn) \
-    ((fn)((hwnd), (TCHAR)(wParam), (int)(short)LOWORD(lParam)), 0L)
-# endif
-# ifndef HANDLE_WM_ACTIVATEAPP
-#  define HANDLE_WM_ACTIVATEAPP(hwnd, wParam, lParam, fn) \
-    ((fn)((hwnd), (BOOL)(wParam), (DWORD)(lParam)), 0L)
-# endif
-# ifndef HANDLE_WM_WINDOWPOSCHANGING
-#  define HANDLE_WM_WINDOWPOSCHANGING(hwnd, wParam, lParam, fn) \
-    (LRESULT)(DWORD)(BOOL)(fn)((hwnd), (LPWINDOWPOS)(lParam))
-# endif
-# ifndef HANDLE_WM_VSCROLL
-#  define HANDLE_WM_VSCROLL(hwnd, wParam, lParam, fn) \
-    ((fn)((hwnd), (HWND)(lParam), (UINT)(LOWORD(wParam)),  (int)(short)HIWORD(wParam)), 0L)
-# endif
-# ifndef HANDLE_WM_SETFOCUS
-#  define HANDLE_WM_SETFOCUS(hwnd, wParam, lParam, fn) \
-    ((fn)((hwnd), (HWND)(wParam)), 0L)
-# endif
-# ifndef HANDLE_WM_KILLFOCUS
-#  define HANDLE_WM_KILLFOCUS(hwnd, wParam, lParam, fn) \
-    ((fn)((hwnd), (HWND)(wParam)), 0L)
-# endif
-# ifndef HANDLE_WM_HSCROLL
-#  define HANDLE_WM_HSCROLL(hwnd, wParam, lParam, fn) \
-    ((fn)((hwnd), (HWND)(lParam), (UINT)(LOWORD(wParam)), (int)(short)HIWORD(wParam)), 0L)
-# endif
-# ifndef HANDLE_WM_DROPFILES
-#  define HANDLE_WM_DROPFILES(hwnd, wParam, lParam, fn) \
-    ((fn)((hwnd), (HDROP)(wParam)), 0L)
-# endif
-# ifndef HANDLE_WM_CHAR
-#  define HANDLE_WM_CHAR(hwnd, wParam, lParam, fn) \
-    ((fn)((hwnd), (TCHAR)(wParam), (int)(short)LOWORD(lParam)), 0L)
-# endif
-# ifndef HANDLE_WM_SYSDEADCHAR
-#  define HANDLE_WM_SYSDEADCHAR(hwnd, wParam, lParam, fn) \
-    ((fn)((hwnd), (TCHAR)(wParam), (int)(short)LOWORD(lParam)), 0L)
-# endif
-# ifndef HANDLE_WM_DEADCHAR
-#  define HANDLE_WM_DEADCHAR(hwnd, wParam, lParam, fn) \
-    ((fn)((hwnd), (TCHAR)(wParam), (int)(short)LOWORD(lParam)), 0L)
-# endif
-#endif // __MINGW32__
-
 
 // Some parameters for tearoff menus.  All in pixels.
 #define TEAROFF_PADDING_X	2
@@ -4013,106 +3887,15 @@ _OnScroll(
 #define TEAROFF_COLUMN_PADDING	3	// # spaces to pad column with.
 
 
-// For the Intellimouse:
-#ifndef WM_MOUSEWHEEL
-# define WM_MOUSEWHEEL	0x20a
-#endif
-
-
 #ifdef FEAT_BEVAL_GUI
 # define ID_BEVAL_TOOLTIP   200
 # define BEVAL_TEXT_LEN	    MAXPATHL
 
-# if (defined(_MSC_VER) && _MSC_VER < 1300) || !defined(MAXULONG_PTR)
-// Work around old versions of basetsd.h which wrongly declares
-// UINT_PTR as unsigned long.
-#  undef  UINT_PTR
-#  define UINT_PTR UINT
-# endif
-
 static BalloonEval  *cur_beval = NULL;
 static UINT_PTR	    BevalTimerId = 0;
 static DWORD	    LastActivity = 0;
-
-
-typedef struct tagNMTTDISPINFO_NEW
-{
-    NMHDR      hdr;
-    LPSTR      lpszText;
-    char       szText[80];
-    HINSTANCE  hinst;
-    UINT       uFlags;
-    LPARAM     lParam;
-} NMTTDISPINFO_NEW;
-
-typedef struct tagTOOLINFOW_NEW
-{
-    UINT       cbSize;
-    UINT       uFlags;
-    HWND       hwnd;
-    UINT_PTR   uId;
-    RECT       rect;
-    HINSTANCE  hinst;
-    LPWSTR     lpszText;
-    LPARAM     lParam;
-    void       *lpReserved;
-} TOOLINFOW_NEW;
-
-typedef struct tagNMTTDISPINFOW_NEW
-{
-    NMHDR      hdr;
-    LPWSTR     lpszText;
-    WCHAR      szText[80];
-    HINSTANCE  hinst;
-    UINT       uFlags;
-    LPARAM     lParam;
-} NMTTDISPINFOW_NEW;
-
-
-# ifndef TTM_SETMAXTIPWIDTH
-#  define TTM_SETMAXTIPWIDTH	(WM_USER+24)
-# endif
-
-# ifndef TTF_DI_SETITEM
-#  define TTF_DI_SETITEM		0x8000
-# endif
-
-# ifndef TTN_GETDISPINFO
-#  define TTN_GETDISPINFO	(TTN_FIRST - 0)
-# endif
-
 #endif // defined(FEAT_BEVAL_GUI)
 
-#if defined(FEAT_TOOLBAR) || defined(FEAT_GUI_TABLINE)
-// Older MSVC compilers don't have LPNMTTDISPINFO[AW] thus we need to define
-// it here if LPNMTTDISPINFO isn't defined.
-// MinGW doesn't define LPNMTTDISPINFO but typedefs it.  Thus we need to check
-// _MSC_VER.
-# if !defined(LPNMTTDISPINFO) && defined(_MSC_VER)
-typedef struct tagNMTTDISPINFOA {
-    NMHDR	hdr;
-    LPSTR	lpszText;
-    char	szText[80];
-    HINSTANCE	hinst;
-    UINT	uFlags;
-    LPARAM	lParam;
-} NMTTDISPINFOA, *LPNMTTDISPINFOA;
-#  define LPNMTTDISPINFO LPNMTTDISPINFOA
-
-typedef struct tagNMTTDISPINFOW {
-    NMHDR	hdr;
-    LPWSTR	lpszText;
-    WCHAR	szText[80];
-    HINSTANCE	hinst;
-    UINT	uFlags;
-    LPARAM	lParam;
-} NMTTDISPINFOW, *LPNMTTDISPINFOW;
-# endif
-#endif
-
-#ifndef TTN_GETDISPINFOW
-# define TTN_GETDISPINFOW	(TTN_FIRST - 10)
-#endif
 
 // Local variables:
 
@@ -4160,7 +3943,6 @@ static int dialog_default_button = -1;
 // Intellimouse support
 static int mouse_scroll_lines = 0;
 
-static int	s_usenewlook;	    // emulate W95/NT4 non-bold dialogs
 #ifdef FEAT_TOOLBAR
 static void initialise_toolbar(void);
 static void update_toolbar_size(void);
@@ -4279,19 +4061,6 @@ gui_mswin_get_menu_height(
     static void
 init_mouse_wheel(void)
 {
-
-#ifndef SPI_GETWHEELSCROLLLINES
-# define SPI_GETWHEELSCROLLLINES    104
-#endif
-#ifndef SPI_SETWHEELSCROLLLINES
-# define SPI_SETWHEELSCROLLLINES    105
-#endif
-
-#define VMOUSEZ_CLASSNAME  "MouseZ"		// hidden wheel window class
-#define VMOUSEZ_TITLE      "Magellan MSWHEEL"	// hidden wheel window title
-#define VMSH_MOUSEWHEEL    "MSWHEEL_ROLLMSG"
-#define VMSH_SCROLL_LINES  "MSH_SCROLL_LINES_MSG"
-
     mouse_scroll_lines = 3;	// reasonable default
 
     // if NT 4.0+ (or Win98) get scroll lines directly from system
@@ -5522,12 +5291,6 @@ gui_mch_init(void)
 #endif
 
 #ifdef FEAT_EVAL
-# if !defined(_MSC_VER) || (_MSC_VER < 1400)
-// Define HandleToLong for old MS and non-MS compilers if not defined.
-#  ifndef HandleToLong
-#   define HandleToLong(h) ((long)(intptr_t)(h))
-#  endif
-# endif
     // set the v:windowid variable
     set_vim_var_nr(VV_WINDOWID, HandleToLong(s_hwnd));
 #endif
@@ -6974,20 +6737,13 @@ gui_mch_dialog(
     }
     else
 # endif
-    font = CreateFont(-DLG_FONT_POINT_SIZE, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		      VARIABLE_PITCH, DLG_FONT_NAME);
-    if (s_usenewlook)
-    {
-	oldFont = SelectFont(hdc, font);
-	dlgPaddingX = DLG_PADDING_X;
-	dlgPaddingY = DLG_PADDING_Y;
-    }
-    else
-    {
-	oldFont = SelectFont(hdc, GetStockObject(SYSTEM_FONT));
-	dlgPaddingX = DLG_OLD_STYLE_PADDING_X;
-	dlgPaddingY = DLG_OLD_STYLE_PADDING_Y;
-    }
+	font = CreateFont(-DLG_FONT_POINT_SIZE, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, VARIABLE_PITCH, DLG_FONT_NAME);
+
+    oldFont = SelectFont(hdc, font);
+    dlgPaddingX = DLG_PADDING_X;
+    dlgPaddingY = DLG_PADDING_Y;
+
     GetTextMetrics(hdc, &fontInfo);
     fontHeight = fontInfo.tmHeight;
 
@@ -7148,10 +6904,7 @@ gui_mch_dialog(
 	dlgwidth = DLG_MIN_WIDTH;	// Don't allow a really thin dialog!
 
     // start to fill in the dlgtemplate information.  addressing by WORDs
-    if (s_usenewlook)
-	lStyle = DS_MODALFRAME | WS_CAPTION |DS_3DLOOK| WS_VISIBLE |DS_SETFONT;
-    else
-	lStyle = DS_MODALFRAME | WS_CAPTION |DS_3DLOOK| WS_VISIBLE;
+    lStyle = DS_MODALFRAME | WS_CAPTION | DS_3DLOOK | WS_VISIBLE | DS_SETFONT;
 
     add_long(lStyle);
     add_long(0);	// (lExtendedStyle)
@@ -7193,26 +6946,23 @@ gui_mch_dialog(
 				   : (LPSTR)("Vim "VIM_VERSION_MEDIUM)), TRUE);
     p += nchar;
 
-    if (s_usenewlook)
-    {
-	// do the font, since DS_3DLOOK doesn't work properly
+    // do the font, since DS_3DLOOK doesn't work properly
 # ifdef USE_SYSMENU_FONT
-	if (use_lfSysmenu)
-	{
-	    // point size
-	    *p++ = -MulDiv(lfSysmenu.lfHeight, 72,
-		    GetDeviceCaps(hdc, LOGPIXELSY));
-	    wcscpy(p, lfSysmenu.lfFaceName);
-	    nchar = (int)wcslen(lfSysmenu.lfFaceName) + 1;
-	}
-	else
-# endif
-	{
-	    *p++ = DLG_FONT_POINT_SIZE;		// point size
-	    nchar = nCopyAnsiToWideChar(p, DLG_FONT_NAME, FALSE);
-	}
-	p += nchar;
+    if (use_lfSysmenu)
+    {
+	// point size
+	*p++ = -MulDiv(lfSysmenu.lfHeight, 72,
+		GetDeviceCaps(hdc, LOGPIXELSY));
+	wcscpy(p, lfSysmenu.lfFaceName);
+	nchar = (int)wcslen(lfSysmenu.lfFaceName) + 1;
     }
+    else
+# endif
+    {
+	*p++ = DLG_FONT_POINT_SIZE;		// point size
+	nchar = nCopyAnsiToWideChar(p, DLG_FONT_NAME, FALSE);
+    }
+    p += nchar;
 
     buttonYpos = msgheight + 2 * dlgPaddingY;
 
@@ -7555,22 +7305,19 @@ tearoff_callback(
 
 
 /*
- * Decide whether to use the "new look" (small, non-bold font) or the "old
- * look" (big, clanky font) for dialogs, and work out a few values for use
- * later accordingly.
+ * Computes the dialog base units based on the current dialog font.
+ * We don't use the GetDialogBaseUnits() API, because we don't use the
+ * (old-style) system font.
  */
     static void
 get_dialog_font_metrics(void)
 {
     HDC		    hdc;
     HFONT	    hfontTools = 0;
-    DWORD	    dlgFontSize;
     SIZE	    size;
 #ifdef USE_SYSMENU_FONT
     LOGFONTW	    lfSysmenu;
 #endif
-
-    s_usenewlook = FALSE;
 
 #ifdef USE_SYSMENU_FONT
     if (gui_w32_get_menu_font(&lfSysmenu) == OK)
@@ -7580,31 +7327,13 @@ get_dialog_font_metrics(void)
 	hfontTools = CreateFont(-DLG_FONT_POINT_SIZE, 0, 0, 0, 0, 0, 0, 0,
 				0, 0, 0, 0, VARIABLE_PITCH, DLG_FONT_NAME);
 
-    if (hfontTools)
-    {
-	hdc = GetDC(s_hwnd);
-	SelectObject(hdc, hfontTools);
-	/*
-	 * GetTextMetrics() doesn't return the right value in
-	 * tmAveCharWidth, so we have to figure out the dialog base units
-	 * ourselves.
-	 */
-	GetTextExtentPoint(hdc,
-		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
-		52, &size);
-	ReleaseDC(s_hwnd, hdc);
+    hdc = GetDC(s_hwnd);
+    SelectObject(hdc, hfontTools);
+    GetAverageFontSize(hdc, &size);
+    ReleaseDC(s_hwnd, hdc);
 
-	s_dlgfntwidth = (WORD)((size.cx / 26 + 1) / 2);
-	s_dlgfntheight = (WORD)size.cy;
-	s_usenewlook = TRUE;
-    }
-
-    if (!s_usenewlook)
-    {
-	dlgFontSize = GetDialogBaseUnits();	// fall back to big old system
-	s_dlgfntwidth = LOWORD(dlgFontSize);
-	s_dlgfntheight = HIWORD(dlgFontSize);
-    }
+    s_dlgfntwidth = (WORD)size.cx;
+    s_dlgfntheight = (WORD)size.cy;
 }
 
 #if defined(FEAT_MENU) && defined(FEAT_TEAROFF)
@@ -7683,12 +7412,10 @@ gui_mch_tearoff(
     }
     else
 # endif
-    font = CreateFont(-DLG_FONT_POINT_SIZE, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		      VARIABLE_PITCH, DLG_FONT_NAME);
-    if (s_usenewlook)
-	oldFont = SelectFont(hdc, font);
-    else
-	oldFont = SelectFont(hdc, GetStockObject(SYSTEM_FONT));
+	font = CreateFont(-DLG_FONT_POINT_SIZE, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, VARIABLE_PITCH, DLG_FONT_NAME);
+
+    oldFont = SelectFont(hdc, font);
 
     // Calculate width of a single space.  Used for padding columns to the
     // right width.
@@ -7745,10 +7472,7 @@ gui_mch_tearoff(
     dlgwidth += 2 * TEAROFF_PADDING_X + TEAROFF_BUTTON_PAD_X;
 
     // start to fill in the dlgtemplate information.  addressing by WORDs
-    if (s_usenewlook)
-	lStyle = DS_MODALFRAME | WS_CAPTION| WS_SYSMENU |DS_SETFONT| WS_VISIBLE;
-    else
-	lStyle = DS_MODALFRAME | WS_CAPTION| WS_SYSMENU | WS_VISIBLE;
+    lStyle = DS_MODALFRAME | WS_CAPTION | WS_SYSMENU | DS_SETFONT | WS_VISIBLE;
 
     lExtendedStyle = WS_EX_TOOLWINDOW|WS_EX_STATICEDGE;
     *p++ = LOWORD(lStyle);
@@ -7778,26 +7502,23 @@ gui_mch_tearoff(
 			    : (LPSTR)("Vim "VIM_VERSION_MEDIUM)), TRUE);
     p += nchar;
 
-    if (s_usenewlook)
-    {
-	// do the font, since DS_3DLOOK doesn't work properly
+    // do the font, since DS_3DLOOK doesn't work properly
 # ifdef USE_SYSMENU_FONT
-	if (use_lfSysmenu)
-	{
-	    // point size
-	    *p++ = -MulDiv(lfSysmenu.lfHeight, 72,
-		    GetDeviceCaps(hdc, LOGPIXELSY));
-	    wcscpy(p, lfSysmenu.lfFaceName);
-	    nchar = (int)wcslen(lfSysmenu.lfFaceName) + 1;
-	}
-	else
-# endif
-	{
-	    *p++ = DLG_FONT_POINT_SIZE;		// point size
-	    nchar = nCopyAnsiToWideChar(p, DLG_FONT_NAME, FALSE);
-	}
-	p += nchar;
+    if (use_lfSysmenu)
+    {
+	// point size
+	*p++ = -MulDiv(lfSysmenu.lfHeight, 72,
+		GetDeviceCaps(hdc, LOGPIXELSY));
+	wcscpy(p, lfSysmenu.lfFaceName);
+	nchar = (int)wcslen(lfSysmenu.lfFaceName) + 1;
     }
+    else
+# endif
+    {
+	*p++ = DLG_FONT_POINT_SIZE;		// point size
+	nchar = nCopyAnsiToWideChar(p, DLG_FONT_NAME, FALSE);
+    }
+    p += nchar;
 
     /*
      * Loop over all the items in the menu.
@@ -7944,11 +7665,6 @@ gui_mch_tearoff(
 
 #if defined(FEAT_TOOLBAR) || defined(PROTO)
 # include "gui_w32_rc.h"
-
-// This not defined in older SDKs
-# ifndef TBSTYLE_FLAT
-#  define TBSTYLE_FLAT		0x0800
-# endif
 
 /*
  * Create the toolbar, initially unpopulated.
@@ -8463,10 +8179,10 @@ gui_mch_destroy_sign(void *sign)
     static void
 make_tooltip(BalloonEval *beval, char *text, POINT pt)
 {
-    TOOLINFOW_NEW   *pti;
-    RECT	    rect;
+    TOOLINFOW	*pti;
+    RECT	rect;
 
-    pti = alloc(sizeof(TOOLINFOW_NEW));
+    pti = alloc(sizeof(TOOLINFOW));
     if (pti == NULL)
 	return;
 
@@ -8478,7 +8194,7 @@ make_tooltip(BalloonEval *beval, char *text, POINT pt)
     SetWindowPos(beval->balloon, HWND_TOPMOST, 0, 0, 0, 0,
 	    SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 
-    pti->cbSize = sizeof(TOOLINFOW_NEW);
+    pti->cbSize = sizeof(TOOLINFOW);
     pti->uFlags = TTF_SUBCLASS;
     pti->hwnd = beval->target;
     pti->hinst = 0; // Don't use string resources
@@ -8670,7 +8386,7 @@ Handle_WM_Notify(HWND hwnd UNUSED, LPNMHDR pnmh)
 	case TTN_GETDISPINFO:
 	    {
 		// if you get there then we have new common controls
-		NMTTDISPINFO_NEW *info = (NMTTDISPINFO_NEW *)pnmh;
+		NMTTDISPINFO *info = (NMTTDISPINFO *)pnmh;
 		info->lpszText = (LPSTR)info->lParam;
 		info->uFlags |= TTF_DI_SETITEM;
 	    }
@@ -8678,7 +8394,7 @@ Handle_WM_Notify(HWND hwnd UNUSED, LPNMHDR pnmh)
 	case TTN_GETDISPINFOW:
 	    {
 		// if we get here then we have new common controls
-		NMTTDISPINFOW_NEW *info = (NMTTDISPINFOW_NEW *)pnmh;
+		NMTTDISPINFOW *info = (NMTTDISPINFOW *)pnmh;
 		info->lpszText = (LPWSTR)info->lParam;
 		info->uFlags |= TTF_DI_SETITEM;
 	    }

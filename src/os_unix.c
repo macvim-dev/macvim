@@ -868,10 +868,11 @@ sig_tstp SIGDEFARG(sigarg)
 	signal(SIGTSTP, ignore_sigtstp ? SIG_IGN : SIG_DFL);
 	raise(sigarg);
     }
+    else
+	got_tstp = TRUE;
 
     // this is not required on all systems, but it doesn't hurt anybody
     signal(SIGTSTP, (RETSIGTYPE (*)())sig_tstp);
-    got_tstp = TRUE;
     SIGRETURN;
 }
 #endif
@@ -1377,7 +1378,14 @@ set_signals(void)
 
 #ifdef SIGTSTP
     // See mch_init() for the conditions under which we ignore SIGTSTP.
-    signal(SIGTSTP, ignore_sigtstp ? SIG_IGN : (RETSIGTYPE (*)())sig_tstp);
+    // In the GUI default TSTP processing is OK.
+    // Checking both gui.in_use and gui.starting because gui.in_use is not set
+    // at this point (set after menus are displayed), but gui.starting is set.
+    signal(SIGTSTP, ignore_sigtstp ? SIG_IGN
+# ifdef FEAT_GUI
+				: gui.in_use || gui.starting ? SIG_DFL
+# endif
+				    : (RETSIGTYPE (*)())sig_tstp);
 #endif
 #if defined(SIGCONT)
     signal(SIGCONT, sigcont_handler);
@@ -6436,6 +6444,7 @@ select_eintr:
 	    if (got_tstp && !in_mch_suspend)
 	    {
 		exarg_T ea;
+
 		ea.forceit = TRUE;
 		ex_stop(&ea);
 		got_tstp = FALSE;

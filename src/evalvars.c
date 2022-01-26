@@ -371,17 +371,25 @@ eval_charconvert(
     char_u	*fname_to)
 {
     int		err = FALSE;
+    sctx_T	saved_sctx = current_sctx;
+    sctx_T	*ctx;
 
     set_vim_var_string(VV_CC_FROM, enc_from, -1);
     set_vim_var_string(VV_CC_TO, enc_to, -1);
     set_vim_var_string(VV_FNAME_IN, fname_from, -1);
     set_vim_var_string(VV_FNAME_OUT, fname_to, -1);
+    ctx = get_option_sctx("charconvert");
+    if (ctx != NULL)
+	current_sctx = *ctx;
+
     if (eval_to_bool(p_ccv, &err, NULL, FALSE))
 	err = TRUE;
+
     set_vim_var_string(VV_CC_FROM, NULL, -1);
     set_vim_var_string(VV_CC_TO, NULL, -1);
     set_vim_var_string(VV_FNAME_IN, NULL, -1);
     set_vim_var_string(VV_FNAME_OUT, NULL, -1);
+    current_sctx = saved_sctx;
 
     if (err)
 	return FAIL;
@@ -393,13 +401,21 @@ eval_charconvert(
 eval_printexpr(char_u *fname, char_u *args)
 {
     int		err = FALSE;
+    sctx_T	saved_sctx = current_sctx;
+    sctx_T	*ctx;
 
     set_vim_var_string(VV_FNAME_IN, fname, -1);
     set_vim_var_string(VV_CMDARG, args, -1);
+    ctx = get_option_sctx("printexpr");
+    if (ctx != NULL)
+	current_sctx = *ctx;
+
     if (eval_to_bool(p_pexpr, &err, NULL, FALSE))
 	err = TRUE;
+
     set_vim_var_string(VV_FNAME_IN, NULL, -1);
     set_vim_var_string(VV_CMDARG, NULL, -1);
+    current_sctx = saved_sctx;
 
     if (err)
     {
@@ -481,12 +497,17 @@ eval_spell_expr(char_u *badword, char_u *expr)
     typval_T	rettv;
     list_T	*list = NULL;
     char_u	*p = skipwhite(expr);
+    sctx_T	saved_sctx = current_sctx;
+    sctx_T	*ctx;
 
     // Set "v:val" to the bad word.
     prepare_vimvar(VV_VAL, &save_val);
     set_vim_var_string(VV_VAL, badword, -1);
     if (p_verbose == 0)
 	++emsg_off;
+    ctx = get_option_sctx("spellsuggest");
+    if (ctx != NULL)
+	current_sctx = *ctx;
 
     if (eval1(&p, &rettv, &EVALARG_EVALUATE) == OK)
     {
@@ -500,6 +521,7 @@ eval_spell_expr(char_u *badword, char_u *expr)
 	--emsg_off;
     clear_tv(get_vim_var_tv(VV_VAL));
     restore_vimvar(VV_VAL, &save_val);
+    current_sctx = saved_sctx;
 
     return list;
 }
@@ -4660,27 +4682,44 @@ copy_callback(callback_T *dest, callback_T *src)
     void
 expand_autload_callback(callback_T *cb)
 {
+    char_u	*name;
     char_u	*p;
     imported_T	*import;
 
-    if (!in_vim9script() || cb->cb_name == NULL || !cb->cb_free_name)
+    if (!in_vim9script() || cb->cb_name == NULL
+	    || (!cb->cb_free_name
+	       && (cb->cb_partial == NULL || cb->cb_partial->pt_name == NULL)))
 	return;
-    p = vim_strchr(cb->cb_name, '.');
+    if (cb->cb_partial != NULL)
+	name = cb->cb_partial->pt_name;
+    else
+	name = cb->cb_name;
+    p = vim_strchr(name, '.');
     if (p == NULL)
 	return;
-    import = find_imported(cb->cb_name, p - cb->cb_name, FALSE, NULL);
+    import = find_imported(name, p - name, FALSE, NULL);
     if (import != NULL && SCRIPT_ID_VALID(import->imp_sid))
     {
 	scriptitem_T *si = SCRIPT_ITEM(import->imp_sid);
 
 	if (si->sn_autoload_prefix != NULL)
 	{
-	    char_u *name = concat_str(si->sn_autoload_prefix, p + 1);
+	    char_u *newname = concat_str(si->sn_autoload_prefix, p + 1);
 
-	    if (name != NULL)
+	    if (newname != NULL)
 	    {
-		vim_free(cb->cb_name);
-		cb->cb_name = name;
+		if (cb->cb_partial != NULL)
+		{
+		    if (cb->cb_name == cb->cb_partial->pt_name)
+			cb->cb_name = newname;
+		    vim_free(cb->cb_partial->pt_name);
+		    cb->cb_partial->pt_name = newname;
+		}
+		else
+		{
+		    vim_free(cb->cb_name);
+		    cb->cb_name = newname;
+		}
 	    }
 	}
     }
