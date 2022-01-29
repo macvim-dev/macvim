@@ -54,37 +54,29 @@ get_y_register(int reg)
 }
 #endif
 
-#if defined(FEAT_CLIPBOARD) || defined(FEAT_VIMINFO) || defined(FEAT_EVAL) || defined(PROTO)
     yankreg_T *
 get_y_current(void)
 {
     return y_current;
 }
-#endif
 
-#if defined(FEAT_CLIPBOARD) || defined(FEAT_VIMINFO) || defined(PROTO)
     yankreg_T *
 get_y_previous(void)
 {
     return y_previous;
 }
-#endif
 
-#if defined(FEAT_CLIPBOARD) || defined(PROTO)
     void
 set_y_current(yankreg_T *yreg)
 {
     y_current = yreg;
 }
-#endif
 
-#if defined(FEAT_CLIPBOARD) || defined(FEAT_VIMINFO) || defined(PROTO)
     void
 set_y_previous(yankreg_T *yreg)
 {
     y_previous = yreg;
 }
-#endif
 
     void
 reset_y_append(void)
@@ -1842,7 +1834,7 @@ do_put(
 	    for (ptr = oldp; vcol < col && *ptr; )
 	    {
 		// Count a tab for what it's worth (if list mode not on)
-		incr = lbr_chartabsize_adv(oldp, &ptr, (colnr_T)vcol);
+		incr = lbr_chartabsize_adv(oldp, &ptr, vcol);
 		vcol += incr;
 	    }
 	    bd.textcol = (colnr_T)(ptr - oldp);

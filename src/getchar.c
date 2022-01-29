@@ -110,6 +110,7 @@ free_buff(buffheader_T *buf)
 	vim_free(p);
     }
     buf->bh_first.b_next = NULL;
+    buf->bh_curr = NULL;
 }
 
 /*
@@ -252,8 +253,11 @@ add_buff(
     static void
 delete_buff_tail(buffheader_T *buf, int slen)
 {
-    int len = (int)STRLEN(buf->bh_curr->b_str);
+    int len;
 
+    if (buf->bh_curr == NULL)
+	return;  // nothing to delete
+    len = (int)STRLEN(buf->bh_curr->b_str);
     if (len >= slen)
     {
 	buf->bh_curr->b_str[len - slen] = NUL;

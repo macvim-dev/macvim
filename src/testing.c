@@ -1153,7 +1153,10 @@ f_test_garbagecollect_now(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
 {
     // This is dangerous, any Lists and Dicts used internally may be freed
     // while still in use.
-    garbage_collect(TRUE);
+    if (!get_vim_var_nr(VV_TESTING))
+	emsg(_(e_calling_test_garbagecollect_now_while_v_testing_is_not_set));
+    else
+	garbage_collect(TRUE);
 }
 
 /*
@@ -1336,6 +1339,40 @@ f_test_gui_mouse_event(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
     mods = tv_get_number(&argvars[4]);
 
     gui_send_mouse_event(button, TEXT_X(col - 1), TEXT_Y(row - 1), repeated_click, mods);
+# endif
+}
+
+    void
+f_test_gui_tabline_event(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
+{
+# ifdef FEAT_GUI_TABLINE
+    int	tabnr;
+
+    if (check_for_number_arg(argvars, 0) == FAIL)
+	return;
+
+    tabnr = tv_get_number(&argvars[0]);
+
+    rettv->v_type = VAR_BOOL;
+    rettv->vval.v_number = send_tabline_event(tabnr);
+# endif
+}
+
+    void
+f_test_gui_tabmenu_event(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
+{
+# ifdef FEAT_GUI_TABLINE
+    int	tabnr;
+    int	event;
+
+    if (check_for_number_arg(argvars, 0) == FAIL
+	    || check_for_number_arg(argvars, 1) == FAIL)
+	return;
+
+    tabnr = tv_get_number(&argvars[0]);
+    event = tv_get_number(&argvars[1]);
+
+    send_tabline_menu_event(tabnr, event);
 # endif
 }
 

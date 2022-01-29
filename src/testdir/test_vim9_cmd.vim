@@ -1396,6 +1396,46 @@ def Test_lockvar()
     lockvar whatever
   endif
 
+  g:lockme = [1, 2, 3]
+  lockvar 1 g:lockme
+  g:lockme[1] = 77
+  assert_equal([1, 77, 3], g:lockme)
+
+  lockvar 2 g:lockme
+  var caught = false
+  try
+    g:lockme[1] = 99
+  catch /E1119:/
+    caught = true
+  endtry
+  assert_true(caught)
+  assert_equal([1, 77, 3], g:lockme)
+  unlet g:lockme
+
+  # also for non-materialized list
+  g:therange = range(3)
+  lockvar 2 g:therange
+  caught = false
+  try
+    g:therange[1] = 99
+  catch /E1119:/
+    caught = true
+  endtry
+  assert_true(caught)
+  assert_equal([0, 1, 2], g:therange)
+  unlet g:therange
+
+  # use exclamation mark for locking deeper
+  g:nestedlist = [1, [2, 3], 4]
+  lockvar! g:nestedlist
+  try
+    g:nestedlist[1][0] = 9
+  catch /E1119:/
+    caught = true
+  endtry
+  assert_true(caught)
+  unlet g:nestedlist
+
   var d = {a: 1, b: 2}
   d.a = 3
   d.b = 4

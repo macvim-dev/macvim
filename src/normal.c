@@ -1054,9 +1054,10 @@ normal_cmd(
 	// be mapped in Insert mode.  Required for ":lmap" to work.
 	len = ins_char_typebuf(vgetc_char, vgetc_mod_mask);
 
-	// When recording the character will be recorded again, remove the
-	// previously recording.
-	ungetchars(len);
+	// When recording and gotchars() was called the character will be
+	// recorded again, remove the previous recording.
+	if (KeyTyped)
+	    ungetchars(len);
 
 	if (restart_edit != 0)
 	    c = 'd';
@@ -2804,8 +2805,9 @@ scroll_redraw(int up, long count)
 }
 
 /*
- * Get the count specified after a 'z' command. Returns TRUE to process
- * the 'z' command and FALSE to skip it.
+ * Get the count specified after a 'z' command. Only the 'z<CR>', 'zl', 'zh',
+ * 'z<Left>', and 'z<Right>' commands accept a count after 'z'.
+ * Returns TRUE to process the 'z' command and FALSE to skip it.
  */
     static int
 nv_z_get_count(cmdarg_T *cap, int *nchar_arg)
@@ -4671,8 +4673,8 @@ nv_bracket_block(cmdarg_T *cap, pos_T *old_pos)
 		    }
 		    // found start/end of other method: go to match
 		    else if ((pos = findmatchlimit(cap->oap, findc,
-				    (cap->cmdchar == '[') ? FM_BACKWARD : FM_FORWARD,
-				    0)) == NULL)
+			      (cap->cmdchar == '[') ? FM_BACKWARD : FM_FORWARD,
+								   0)) == NULL)
 			n = 0;
 		    else
 			curwin->w_cursor = *pos;
@@ -5221,7 +5223,7 @@ nv_replace(cmdarg_T *cap)
 		colnr_T  start = (colnr_T)(curwin->w_cursor.col - cap->count1);
 
 		netbeans_removed(curbuf, curwin->w_cursor.lnum, start,
-							   (long)cap->count1);
+							   cap->count1);
 		netbeans_inserted(curbuf, curwin->w_cursor.lnum, start,
 					       &ptr[start], (int)cap->count1);
 	    }
@@ -7515,6 +7517,8 @@ nv_put_opt(cmdarg_T *cap, int fix_indent)
     int		was_visual = FALSE;
     int		dir;
     int		flags = 0;
+    int		save_unnamed = FALSE;
+    yankreg_T	*old_y_current, *old_y_previous;
 
     if (cap->oap->op_type != OP_NOP)
     {
@@ -7561,6 +7565,7 @@ nv_put_opt(cmdarg_T *cap, int fix_indent)
 	    // overwrites if the old contents is being put.
 	    was_visual = TRUE;
 	    regname = cap->oap->regname;
+	    save_unnamed = cap->cmdchar == 'P';
 #ifdef FEAT_CLIPBOARD
 	    adjust_clip_reg(&regname);
 #endif
@@ -7578,6 +7583,11 @@ nv_put_opt(cmdarg_T *cap, int fix_indent)
 	    }
 
 	    // Now delete the selected text. Avoid messages here.
+	    if (save_unnamed)
+	    {
+		old_y_current = get_y_current();
+		old_y_previous = get_y_previous();
+	    }
 	    cap->cmdchar = 'd';
 	    cap->nchar = NUL;
 	    cap->oap->regname = NUL;
@@ -7586,6 +7596,12 @@ nv_put_opt(cmdarg_T *cap, int fix_indent)
 	    do_pending_operator(cap, 0, FALSE);
 	    empty = (curbuf->b_ml.ml_flags & ML_EMPTY);
 	    --msg_silent;
+
+	    if (save_unnamed)
+	    {
+		set_y_current(old_y_current);
+		set_y_previous(old_y_previous);
+	    }
 
 	    // delete PUT_LINE_BACKWARD;
 	    cap->oap->regname = regname;

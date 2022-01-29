@@ -291,7 +291,7 @@ eval_expr_typval(typval_T *expr, typval_T *argv, int argc, typval_T *rettv)
     }
     else
     {
-	s = tv_get_string_buf_chk(expr, buf);
+	s = tv_get_string_buf_chk_strict(expr, buf, in_vim9script());
 	if (s == NULL)
 	    return FAIL;
 	s = skipwhite(s);
@@ -4089,7 +4089,7 @@ eval_method(
 	    else
 	    {
 		name = deref;
-		len = STRLEN(name);
+		len = (long)STRLEN(name);
 	    }
 	    *paren = '(';
 	}

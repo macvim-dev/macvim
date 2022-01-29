@@ -739,6 +739,26 @@ func Test_record_in_insert_mode()
   bwipe!
 endfunc
 
+func Test_record_in_select_mode()
+  new
+  call setline(1, 'text')
+  sil norm q00
+  sil norm q
+  call assert_equal('0ext', getline(1))
+
+  %delete
+  let @r = ''
+  call setline(1, ['abc', 'abc', 'abc'])
+  smap <F2> <Right><Right>,
+  call feedkeys("qrgh\<F2>Dk\<Esc>q", 'xt')
+  call assert_equal("gh\<F2>Dk\<Esc>", @r)
+  norm j0@rj0@@
+  call assert_equal([',Dk', ',Dk', ',Dk'], getline(1, 3))
+  sunmap <F2>
+
+  bwipe!
+endfunc
+
 " Make sure that y_append is correctly reset
 " and the previous register is working as expected
 func Test_register_y_append_reset()

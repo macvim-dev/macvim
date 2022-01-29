@@ -748,7 +748,10 @@ EXTERN char e_didnt_get_block_nr_one[]
 	INIT(= N_("E298: Didn't get block nr 1?"));
 EXTERN char e_didnt_get_block_nr_two[]
 	INIT(= N_("E298: Didn't get block nr 2?"));
-// E299 unused
+#ifdef FEAT_PERL
+EXTERN char e_perl_evaluation_forbidden_in_sandbox_without_safe_module[]
+	INIT(= N_("E299: Perl evaluation forbidden in sandbox without the Safe module"));
+#endif
 EXTERN char e_swap_file_already_exists_symlink_attack[]
 	INIT(= N_("E300: Swap file already exists (symlink attack?)"));
 EXTERN char e_oops_lost_the_swap_file[]
@@ -2864,10 +2867,10 @@ EXTERN char e_assert_fails_fifth_argument[]
 	INIT(= N_("E1116: \"assert_fails()\" fifth argument must be a string"));
 EXTERN char e_cannot_use_bang_with_nested_def[]
 	INIT(= N_("E1117: Cannot use ! with nested :def"));
-EXTERN char e_cannot_change_list[]
-	INIT(= N_("E1118: Cannot change list"));
-EXTERN char e_cannot_change_list_item[]
-	INIT(= N_("E1119: Cannot change list item"));
+EXTERN char e_cannot_change_locked_list[]
+	INIT(= N_("E1118: Cannot change locked list"));
+EXTERN char e_cannot_change_locked_list_item[]
+	INIT(= N_("E1119: Cannot change locked list item"));
 EXTERN char e_cannot_change_dict[]
 	INIT(= N_("E1120: Cannot change dict"));
 EXTERN char e_cannot_change_dict_item[]
@@ -2914,7 +2917,8 @@ EXTERN char e_for_argument_must_be_sequence_of_lists[]
 	INIT(= N_("E1140: :for argument must be a sequence of lists"));
 EXTERN char e_indexable_type_required[]
 	INIT(= N_("E1141: Indexable type required"));
-// E1142 unused
+EXTERN char e_calling_test_garbagecollect_now_while_v_testing_is_not_set[]
+	INIT(= N_("E1142: Calling test_garbagecollect_now() while v:testing is not set"));
 EXTERN char e_empty_expression_str[]
 	INIT(= N_("E1143: Empty expression: \"%s\""));
 EXTERN char e_command_str_not_followed_by_white_space_str[]
@@ -2948,7 +2952,7 @@ EXTERN char e_cannot_change_arglist_recursively[]
 EXTERN char e_missing_return_type[]
 	INIT(= N_("E1157: Missing return type"));
 EXTERN char e_cannot_use_flatten_in_vim9_script[]
-	INIT(= N_("E1158: Cannot use flatten() in Vim9 script"));
+	INIT(= N_("E1158: Cannot use flatten() in Vim9 script, use flattennew()"));
 #endif
 EXTERN char e_cannot_split_window_when_closing_buffer[]
 	INIT(= N_("E1159: Cannot split a window when closing the buffer"));
