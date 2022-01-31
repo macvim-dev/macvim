@@ -1,4 +1,4 @@
-*builtin.txt*	For Vim version 8.2.  Last change: 2022 Jan 22
+*builtin.txt*	For Vim version 8.2.  Last change: 2022 Jan 28
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -292,6 +292,7 @@ inputrestore()			Number	restore typeahead
 inputsave()			Number	save and clear typeahead
 inputsecret({prompt} [, {text}]) String	like input() but hiding the text
 insert({object}, {item} [, {idx}]) List	insert {item} in {object} [before {idx}]
+internal_get_nv_cmdchar({idx})	Number	command character at this index
 interrupt()			none	interrupt script execution
 invert({expr})			Number	bitwise invert
 isdirectory({directory})	Number	|TRUE| if {directory} is a directory
@@ -641,13 +642,7 @@ test_feedinput({string})	none	add key sequence to input buffer
 test_garbagecollect_now()	none	free memory right now for testing
 test_garbagecollect_soon()	none	free memory soon for testing
 test_getvalue({string})		any	get value of an internal variable
-test_gui_drop_files({list}, {row}, {col}, {mods})
-				none	drop a list of files in a window
-test_gui_mouse_event({button}, {row}, {col}, {repeated}, {mods})
-				none	add a mouse event to the input buffer
-test_gui_tabline_event({tabnr}) Bool	add a tabline event to the input buffer
-test_gui_tabmenu_event({tabnr}, {event})
-				none	add a tabmenu event to the input buffer
+test_gui_event({event}, {args})	bool	generate a GUI event for testing
 test_ignore_error({expr})	none	ignore a specific error
 test_null_blob()		Blob	null value for testing
 test_null_channel()		Channel	null value for testing
@@ -2085,6 +2080,22 @@ exists({expr})	The result is a Number, which is |TRUE| if {expr} is defined,
 		For checking if a file exists use |filereadable()|.
 
 		The {expr} argument is a string, which contains one of these:
+			varname		internal variable (see
+			dict.key	|internal-variables|).  Also works
+			list[i]		for |curly-braces-names|, |Dictionary|
+			import.Func	entries, |List| items, imported
+					items,etc.
+					Does not work for local variables in a
+					compiled `:def` function.
+					Beware that evaluating an index may
+					cause an error message for an invalid
+					expression.  E.g.: >
+					   :let l = [1, 2, 3]
+					   :echo exists("l[5]")
+<					   0 >
+					   :echo exists("l[xx]")
+<					   E121: Undefined variable: xx
+					   0
 			&option-name	Vim option (only checks if it exists,
 					not if it really works)
 			+option-name	Vim option that works.
@@ -2099,21 +2110,6 @@ exists({expr})	The result is a Number, which is |TRUE| if {expr} is defined,
 			?funcname	built-in function that could be
 					implemented; to be used to check if
 					"funcname" is valid
-			varname		internal variable (see
-					|internal-variables|).  Also works
-					for |curly-braces-names|, |Dictionary|
-					entries, |List| items, etc.
-					Does not work for local variables in a
-					compiled `:def` function.
-					Beware that evaluating an index may
-					cause an error message for an invalid
-					expression.  E.g.: >
-					   :let l = [1, 2, 3]
-					   :echo exists("l[5]")
-<					   0 >
-					   :echo exists("l[xx]")
-<					   E121: Undefined variable: xx
-					   0
 			:cmdname	Ex command: built-in command, user
 					command or command modifier |:command|.
 					Returns:
@@ -2538,7 +2534,7 @@ flatten({list} [, {maxdepth}])					*flatten()*
 		The {list} is changed in place, use |flattennew()| if you do
 		not want that.
 		In Vim9 script flatten() cannot be used, you must always use
-		|flattennew()|.
+		|flattennew()|. *E1158*
 								*E900*
 		{maxdepth} means how deep in nested lists changes are made.
 		{list} is not modified when {maxdepth} is 0.
@@ -4622,6 +4618,11 @@ insert({object}, {item} [, {idx}])			*insert()*
 
 		Can also be used as a |method|: >
 			mylist->insert(item)
+<
+						*internal_get_nv_cmdchar()*
+internal_get_nv_cmdchar({idx})
+		Return the normal/visual mode command character at the
+		specified index. To be used only during the Vim build process.
 
 interrupt()						*interrupt()*
 		Interrupt script execution.  It works more or less like the
@@ -6534,7 +6535,7 @@ reduce({object}, {func} [, {initial}])			*reduce()* *E998*
 		{func} is called for every item in {object}, which can be a
 		|String|, |List| or a |Blob|.  {func} is called with two
 		arguments: the result so far and current item.  After
-		processing all items the result is returned.
+		processing all items the result is returned. *E1132*
 
 		{initial} is the initial result.  When omitted, the first item
 		in {object} is used and {func} is first called for the second
@@ -7393,7 +7394,7 @@ setcellwidths({list})					*setcellwidths()*
 		   setcellwidths([[0xad, 0xad, 1],
 				\ [0x2194, 0x2199, 2]])
 
-<					*E1109* *E1110* *E1111* *E1112* *E1113*
+<				*E1109* *E1110* *E1111* *E1112* *E1113* *E1114*
 		The {list} argument is a list of lists with each three
 		numbers. These three numbers are [low, high, width].  "low"
 		and "high" can be the same, in which case this refers to one

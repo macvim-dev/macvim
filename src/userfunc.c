@@ -1902,7 +1902,7 @@ find_func_with_prefix(char_u *name, int sid)
     char_u	    buffer[200];
     scriptitem_T    *si;
 
-    if (vim_strchr(name, AUTOLOAD_CHAR) != 0)
+    if (vim_strchr(name, AUTOLOAD_CHAR) != NULL)
 	return NULL;	// already has the prefix
     if (!SCRIPT_ID_VALID(sid))
 	return NULL;	// not in a script
@@ -2002,6 +2002,17 @@ find_func(char_u *name, int is_global)
 func_is_global(ufunc_T *ufunc)
 {
     return ufunc->uf_name[0] != K_SPECIAL;
+}
+
+/*
+ * Return TRUE if "ufunc" must be called with a g: prefix in Vim9 script.
+ */
+    int
+func_requires_g_prefix(ufunc_T *ufunc)
+{
+    return ufunc->uf_name[0] != K_SPECIAL
+	    && (ufunc->uf_flags & FC_LAMBDA) == 0
+	    && vim_strchr(ufunc->uf_name, AUTOLOAD_CHAR) == NULL;
 }
 
 /*
@@ -3442,7 +3453,14 @@ call_func(
 	     * User defined function.
 	     */
 	    if (fp == NULL)
+	    {
 		fp = find_func(rfname, is_global);
+		if (fp != NULL && !is_global && in_vim9script()
+						 && func_requires_g_prefix(fp))
+		    // In Vim9 script g: is required to find a global
+		    // non-autoload function.
+		    fp = NULL;
+	    }
 
 	    // Trigger FuncUndefined event, may load the function.
 	    if (fp == NULL
@@ -3672,6 +3690,7 @@ trans_function_name(
     char_u	sid_buf[20];
     int		len;
     int		extra = 0;
+    int		prefix_g = FALSE;
     lval_T	lv;
     int		vim9script;
 
@@ -3789,7 +3808,7 @@ trans_function_name(
 	    sid_buf[1] = KS_EXTRA;
 	    sid_buf[2] = (int)KE_SNR;
 	    vim_snprintf((char *)sid_buf + 3, sizeof(sid_buf) - 3,
-					    "%ld_", (long)current_sctx.sc_sid);
+						      "%ld_", (long)lv.ll_sid);
 	    name = concat_str(sid_buf, lv.ll_name);
 	}
 	*lv.ll_name_end = cc;
@@ -3837,8 +3856,20 @@ trans_function_name(
 	// skip over "s:" and "g:"
 	if (lead == 2 || (lv.ll_name[0] == 'g' && lv.ll_name[1] == ':'))
 	{
-	    if (is_global != NULL && lv.ll_name[0] == 'g')
-		*is_global = TRUE;
+	    if (lv.ll_name[0] == 'g')
+	    {
+		if (is_global != NULL)
+		{
+		    *is_global = TRUE;
+		}
+		else
+		{
+		    // dropping "g:" without setting "is_global" won't work in
+		    // Vim9script, put it back later
+		    prefix_g = TRUE;
+		    extra = 2;
+		}
+	    }
 	    lv.ll_name += 2;
 	}
 	len = (int)(end - lv.ll_name);
@@ -3918,6 +3949,11 @@ trans_function_name(
 	    name[2] = (int)KE_SNR;
 	    if (vim9script || lead > 3)	// If it's "<SID>"
 		STRCPY(name + 3, sid_buf);
+	}
+	else if (prefix_g)
+	{
+	    name[0] = 'g';
+	    name[1] = ':';
 	}
 	mch_memmove(name + lead + extra, lv.ll_name, (size_t)len);
 	name[lead + extra + len] = NUL;
@@ -4068,7 +4104,7 @@ define_function(exarg_T *eap, char_u *name_arg, garray_T *lines_to_free)
 {
     int		j;
     int		c;
-    int		saved_did_emsg;
+    int		saved_did_emsg = FALSE;
     char_u	*name = name_arg;
     int		is_global = FALSE;
     char_u	*p;
@@ -4195,6 +4231,11 @@ define_function(exarg_T *eap, char_u *name_arg, garray_T *lines_to_free)
 		vim_free(name);
 		name = prefixed;
 	    }
+	}
+	else if (vim9script && vim_strchr(name, AUTOLOAD_CHAR) != NULL)
+	{
+	    emsg(_(e_cannot_use_name_with_hash_in_vim9_script_use_export_instead));
+	    goto ret_free;
 	}
     }
 
@@ -4503,12 +4544,6 @@ define_function(exarg_T *eap, char_u *name_arg, garray_T *lines_to_free)
 			vim_free(prefixed);
 		    }
 		}
-	    }
-	    else if (vim9script && vim_strchr(name, AUTOLOAD_CHAR) != NULL)
-	    {
-		semsg(_(e_using_autoload_name_in_non_autoload_script_str),
-									 name);
-		goto erret;
 	    }
 	}
 	if (var_conflict)

@@ -1315,64 +1315,187 @@ f_test_setmouse(typval_T *argvars, typval_T *rettv UNUSED)
     mouse_col = (time_t)tv_get_number(&argvars[1]) - 1;
 }
 
-    void
-f_test_gui_mouse_event(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
-{
 # ifdef FEAT_GUI
+    static int
+test_gui_drop_files(dict_T *args UNUSED)
+{
+#  if defined(HAVE_DROP_FILE)
+    int		row;
+    int		col;
+    int_u	mods;
+    char_u	**fnames;
+    int		count = 0;
+    typval_T	t;
+    list_T	*l;
+    listitem_T	*li;
+
+    if (dict_find(args, (char_u *)"files", -1) == NULL
+	    || dict_find(args, (char_u *)"row", -1) == NULL
+	    || dict_find(args, (char_u *)"col", -1) == NULL
+	    || dict_find(args, (char_u *)"modifiers", -1) == NULL)
+	return FALSE;
+
+    (void)dict_get_tv(args, (char_u *)"files", &t);
+    row = (int)dict_get_number(args, (char_u *)"row");
+    col = (int)dict_get_number(args, (char_u *)"col");
+    mods = (int)dict_get_number(args, (char_u *)"modifiers");
+
+    if (t.v_type != VAR_LIST || list_len(t.vval.v_list) == 0)
+	return FALSE;
+
+    l = t.vval.v_list;
+    fnames = ALLOC_MULT(char_u *, list_len(l));
+    if (fnames == NULL)
+	return FALSE;
+
+    FOR_ALL_LIST_ITEMS(l, li)
+    {
+	// ignore non-string items
+	if (li->li_tv.v_type != VAR_STRING
+		|| li->li_tv.vval.v_string == NULL)
+	    continue;
+
+	fnames[count] = vim_strsave(li->li_tv.vval.v_string);
+	if (fnames[count] == NULL)
+	{
+	    while (--count >= 0)
+		vim_free(fnames[count]);
+	    vim_free(fnames);
+	    return FALSE;
+	}
+	count++;
+    }
+
+    if (count > 0)
+	gui_handle_drop(TEXT_X(col - 1), TEXT_Y(row - 1), mods, fnames, count);
+    else
+	vim_free(fnames);
+#  endif
+
+    return TRUE;
+}
+
+    static int
+test_gui_find_repl(dict_T *args)
+{
+    int		flags;
+    char_u	*find_text;
+    char_u	*repl_text;
+    int		forward;
+    int		retval;
+
+    if (dict_find(args, (char_u *)"find_text", -1) == NULL
+	    || dict_find(args, (char_u *)"repl_text", -1) == NULL
+	    || dict_find(args, (char_u *)"flags", -1) == NULL
+	    || dict_find(args, (char_u *)"forward", -1) == NULL)
+	return FALSE;
+
+    find_text = dict_get_string(args, (char_u *)"find_text", TRUE);
+    repl_text = dict_get_string(args, (char_u *)"repl_text", TRUE);
+    flags = (int)dict_get_number(args, (char_u *)"flags");
+    forward = (int)dict_get_number(args, (char_u *)"forward");
+
+    retval = gui_do_findrepl(flags, find_text, repl_text, forward);
+    vim_free(find_text);
+    vim_free(repl_text);
+
+    return retval;
+}
+
+    static int
+test_gui_mouse_event(dict_T *args)
+{
     int		button;
     int		row;
     int		col;
     int		repeated_click;
     int_u	mods;
 
-    if (check_for_number_arg(argvars, 0) == FAIL
-	    || check_for_number_arg(argvars, 1) == FAIL
-	    || check_for_number_arg(argvars, 2) == FAIL
-	    || check_for_number_arg(argvars, 3) == FAIL
-	    || check_for_number_arg(argvars, 4) == FAIL)
-	return;
+    if (dict_find(args, (char_u *)"button", -1) == NULL
+	    || dict_find(args, (char_u *)"row", -1) == NULL
+	    || dict_find(args, (char_u *)"col", -1) == NULL
+	    || dict_find(args, (char_u *)"multiclick", -1) == NULL
+	    || dict_find(args, (char_u *)"modifiers", -1) == NULL)
+	return FALSE;
 
-    button = tv_get_number(&argvars[0]);
-    row = tv_get_number(&argvars[1]);
-    col = tv_get_number(&argvars[2]);
-    repeated_click = tv_get_number(&argvars[3]);
-    mods = tv_get_number(&argvars[4]);
+    button = (int)dict_get_number(args, (char_u *)"button");
+    row = (int)dict_get_number(args, (char_u *)"row");
+    col = (int)dict_get_number(args, (char_u *)"col");
+    repeated_click = (int)dict_get_number(args, (char_u *)"multiclick");
+    mods = (int)dict_get_number(args, (char_u *)"modifiers");
 
-    gui_send_mouse_event(button, TEXT_X(col - 1), TEXT_Y(row - 1), repeated_click, mods);
-# endif
+    gui_send_mouse_event(button, TEXT_X(col - 1), TEXT_Y(row - 1),
+							repeated_click, mods);
+    return TRUE;
 }
 
-    void
-f_test_gui_tabline_event(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
+    static int
+test_gui_tabline_event(dict_T *args UNUSED)
 {
-# ifdef FEAT_GUI_TABLINE
+#  ifdef FEAT_GUI_TABLINE
+    int		tabnr;
+
+    if (dict_find(args, (char_u *)"tabnr", -1) == NULL)
+	return FALSE;
+
+    tabnr = (int)dict_get_number(args, (char_u *)"tabnr");
+
+    return send_tabline_event(tabnr);
+#  else
+    return FALSE;
+#  endif
+}
+
+    static int
+test_gui_tabmenu_event(dict_T *args UNUSED)
+{
+#  ifdef FEAT_GUI_TABLINE
     int	tabnr;
+    int	item;
 
-    if (check_for_number_arg(argvars, 0) == FAIL)
-	return;
+    if (dict_find(args, (char_u *)"tabnr", -1) == NULL
+	    || dict_find(args, (char_u *)"item", -1) == NULL)
+	return FALSE;
 
-    tabnr = tv_get_number(&argvars[0]);
+    tabnr = (int)dict_get_number(args, (char_u *)"tabnr");
+    item = (int)dict_get_number(args, (char_u *)"item");
+
+    send_tabline_menu_event(tabnr, item);
+#  endif
+    return TRUE;
+}
+# endif
+
+    void
+f_test_gui_event(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
+{
+# ifdef FEAT_GUI
+    char_u	*event;
 
     rettv->v_type = VAR_BOOL;
-    rettv->vval.v_number = send_tabline_event(tabnr);
-# endif
-}
+    rettv->vval.v_number = FALSE;
 
-    void
-f_test_gui_tabmenu_event(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
-{
-# ifdef FEAT_GUI_TABLINE
-    int	tabnr;
-    int	event;
-
-    if (check_for_number_arg(argvars, 0) == FAIL
-	    || check_for_number_arg(argvars, 1) == FAIL)
+    if (check_for_string_arg(argvars, 0) == FAIL
+	    || check_for_dict_arg(argvars, 1) == FAIL
+	    || argvars[1].vval.v_dict == NULL)
 	return;
 
-    tabnr = tv_get_number(&argvars[0]);
-    event = tv_get_number(&argvars[1]);
-
-    send_tabline_menu_event(tabnr, event);
+    event = tv_get_string(&argvars[0]);
+    if (STRCMP(event, "dropfiles") == 0)
+	rettv->vval.v_number = test_gui_drop_files(argvars[1].vval.v_dict);
+    else if (STRCMP(event, "findrepl") == 0)
+	rettv->vval.v_number = test_gui_find_repl(argvars[1].vval.v_dict);
+    else if (STRCMP(event, "mouse") == 0)
+	rettv->vval.v_number = test_gui_mouse_event(argvars[1].vval.v_dict);
+    else if (STRCMP(event, "tabline") == 0)
+	rettv->vval.v_number = test_gui_tabline_event(argvars[1].vval.v_dict);
+    else if (STRCMP(event, "tabmenu") == 0)
+	rettv->vval.v_number = test_gui_tabmenu_event(argvars[1].vval.v_dict);
+    else
+    {
+	semsg(_(e_invalid_argument_str), event);
+	return;
+    }
 # endif
 }
 
@@ -1383,60 +1506,6 @@ f_test_settime(typval_T *argvars, typval_T *rettv UNUSED)
 	return;
 
     time_for_testing = (time_t)tv_get_number(&argvars[0]);
-}
-
-    void
-f_test_gui_drop_files(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
-{
-#if defined(HAVE_DROP_FILE)
-    int		row;
-    int		col;
-    int_u	mods;
-    char_u	**fnames;
-    int		count = 0;
-    list_T	*l;
-    listitem_T	*li;
-
-    if (check_for_list_arg(argvars, 0) == FAIL
-	    || check_for_number_arg(argvars, 1) == FAIL
-	    || check_for_number_arg(argvars, 2) == FAIL
-	    || check_for_number_arg(argvars, 3) == FAIL)
-	return;
-
-    row = tv_get_number(&argvars[1]);
-    col = tv_get_number(&argvars[2]);
-    mods = tv_get_number(&argvars[3]);
-
-    l = argvars[0].vval.v_list;
-    if (list_len(l) == 0)
-	return;
-
-    fnames = ALLOC_MULT(char_u *, list_len(l));
-    if (fnames == NULL)
-	return;
-
-    FOR_ALL_LIST_ITEMS(l, li)
-    {
-	// ignore non-string items
-	if (li->li_tv.v_type != VAR_STRING)
-	    continue;
-
-	fnames[count] = vim_strsave(li->li_tv.vval.v_string);
-	if (fnames[count] == NULL)
-	{
-	    while (--count >= 0)
-		vim_free(fnames[count]);
-	    vim_free(fnames);
-	    return;
-	}
-	count++;
-    }
-
-    if (count > 0)
-	gui_handle_drop(TEXT_X(col - 1), TEXT_Y(row - 1), mods, fnames, count);
-    else
-	vim_free(fnames);
-# endif
 }
 
 #endif // defined(FEAT_EVAL)

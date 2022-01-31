@@ -2,7 +2,7 @@
 
 source screendump.vim
 source check.vim
-source vim9.vim
+import './vim9.vim' as v9
 
 " Test for insert expansion
 func Test_ins_complete()
@@ -148,7 +148,7 @@ func Test_omni_autoload()
 
   let lines =<< trim END
       vim9script
-      def omni#func(findstart: bool, base: string): any
+      export def Func(findstart: bool, base: string): any
           if findstart
               return 1
           else
@@ -162,7 +162,7 @@ func Test_omni_autoload()
   call writefile(lines, dir .. '/omni.vim')
 
   new
-  setlocal omnifunc=omni#func
+  setlocal omnifunc=omni#Func
   call feedkeys("i\<C-X>\<C-O>\<Esc>", 'xt')
 
   bwipe!
@@ -1359,7 +1359,7 @@ func Test_completefunc_callback()
     bw!
 
     #" Test for using a lambda function with set
-    VAR optval = "LSTART a, b LMIDDLE CompleteFunc1(16, a, b) LEND"
+    VAR optval = "LSTART a, b LMIDDLE g:CompleteFunc1(16, a, b) LEND"
     LET optval = substitute(optval, ' ', '\\ ', 'g')
     exe "set completefunc=" .. optval
     new
@@ -1370,7 +1370,7 @@ func Test_completefunc_callback()
     bw!
 
     #" Set 'completefunc' to a lambda expression
-    LET &completefunc = LSTART a, b LMIDDLE CompleteFunc1(17, a, b) LEND
+    LET &completefunc = LSTART a, b LMIDDLE g:CompleteFunc1(17, a, b) LEND
     new
     call setline(1, 'six')
     LET g:CompleteFunc1Args = []
@@ -1379,7 +1379,7 @@ func Test_completefunc_callback()
     bw!
 
     #" Set 'completefunc' to string(lambda_expression)
-    LET &completefunc = 'LSTART a, b LMIDDLE CompleteFunc1(18, a, b) LEND'
+    LET &completefunc = 'LSTART a, b LMIDDLE g:CompleteFunc1(18, a, b) LEND'
     new
     call setline(1, 'six')
     LET g:CompleteFunc1Args = []
@@ -1388,7 +1388,7 @@ func Test_completefunc_callback()
     bw!
 
     #" Set 'completefunc' to a variable with a lambda expression
-    VAR Lambda = LSTART a, b LMIDDLE CompleteFunc1(19, a, b) LEND
+    VAR Lambda = LSTART a, b LMIDDLE g:CompleteFunc1(19, a, b) LEND
     LET &completefunc = Lambda
     new
     call setline(1, 'seven')
@@ -1398,7 +1398,7 @@ func Test_completefunc_callback()
     bw!
 
     #" Set 'completefunc' to a string(variable with a lambda expression)
-    LET Lambda = LSTART a, b LMIDDLE CompleteFunc1(20, a, b) LEND
+    LET Lambda = LSTART a, b LMIDDLE g:CompleteFunc1(20, a, b) LEND
     LET &completefunc = string(Lambda)
     new
     call setline(1, 'seven')
@@ -1422,7 +1422,7 @@ func Test_completefunc_callback()
     call assert_fails("set completefunc=funcref('abc')", "E700:")
 
     #" set 'completefunc' to a non-existing function
-    set completefunc=CompleteFunc2
+    set completefunc=g:CompleteFunc2
     call setline(1, 'five')
     call assert_fails("set completefunc=function('NonExistingFunc')", 'E700:')
     call assert_fails("LET &completefunc = function('NonExistingFunc')", 'E700:')
@@ -1431,7 +1431,7 @@ func Test_completefunc_callback()
     call assert_equal([[1, ''], [0, 'five']], g:CompleteFunc2Args)
     bw!
   END
-  call CheckLegacyAndVim9Success(lines)
+  call v9.CheckLegacyAndVim9Success(lines)
 
   " Test for using a script-local function name
   func s:CompleteFunc3(findstart, base)
@@ -1460,7 +1460,7 @@ func Test_completefunc_callback()
   call feedkeys("A\<C-X>\<C-U>\<Esc>", 'x')
 
   " Using Vim9 lambda expression in legacy context should fail
-  set completefunc=(a,\ b)\ =>\ CompleteFunc1(21,\ a,\ b)
+  set completefunc=(a,\ b)\ =>\ g:CompleteFunc1(21,\ a,\ b)
   new | only
   let g:CompleteFunc1Args = []
   call assert_fails('call feedkeys("A\<C-X>\<C-U>\<Esc>", "x")', 'E117:')
@@ -1526,7 +1526,7 @@ func Test_completefunc_callback()
     assert_equal([[1, ''], [0, 'three']], g:LocalCompleteFuncArgs)
     bw!
   END
-  call CheckScriptSuccess(lines)
+  call v9.CheckScriptSuccess(lines)
 
   " cleanup
   set completefunc&
@@ -1616,7 +1616,7 @@ func Test_omnifunc_callback()
     bw!
 
     #" Test for using a lambda function with set
-    VAR optval = "LSTART a, b LMIDDLE OmniFunc1(16, a, b) LEND"
+    VAR optval = "LSTART a, b LMIDDLE g:OmniFunc1(16, a, b) LEND"
     LET optval = substitute(optval, ' ', '\\ ', 'g')
     exe "set omnifunc=" .. optval
     new
@@ -1627,7 +1627,7 @@ func Test_omnifunc_callback()
     bw!
 
     #" Set 'omnifunc' to a lambda expression
-    LET &omnifunc = LSTART a, b LMIDDLE OmniFunc1(17, a, b) LEND
+    LET &omnifunc = LSTART a, b LMIDDLE g:OmniFunc1(17, a, b) LEND
     new
     call setline(1, 'six')
     LET g:OmniFunc1Args = []
@@ -1636,7 +1636,7 @@ func Test_omnifunc_callback()
     bw!
 
     #" Set 'omnifunc' to a string(lambda_expression)
-    LET &omnifunc = 'LSTART a, b LMIDDLE OmniFunc1(18, a, b) LEND'
+    LET &omnifunc = 'LSTART a, b LMIDDLE g:OmniFunc1(18, a, b) LEND'
     new
     call setline(1, 'six')
     LET g:OmniFunc1Args = []
@@ -1645,7 +1645,7 @@ func Test_omnifunc_callback()
     bw!
 
     #" Set 'omnifunc' to a variable with a lambda expression
-    VAR Lambda = LSTART a, b LMIDDLE OmniFunc1(19, a, b) LEND
+    VAR Lambda = LSTART a, b LMIDDLE g:OmniFunc1(19, a, b) LEND
     LET &omnifunc = Lambda
     new
     call setline(1, 'seven')
@@ -1655,7 +1655,7 @@ func Test_omnifunc_callback()
     bw!
 
     #" Set 'omnifunc' to a string(variable with a lambda expression)
-    LET Lambda = LSTART a, b LMIDDLE OmniFunc1(20, a, b) LEND
+    LET Lambda = LSTART a, b LMIDDLE g:OmniFunc1(20, a, b) LEND
     LET &omnifunc = string(Lambda)
     new
     call setline(1, 'seven')
@@ -1679,7 +1679,7 @@ func Test_omnifunc_callback()
     call assert_fails("set omnifunc=funcref('abc')", "E700:")
 
     #" set 'omnifunc' to a non-existing function
-    set omnifunc=OmniFunc2
+    set omnifunc=g:OmniFunc2
     call setline(1, 'nine')
     call assert_fails("set omnifunc=function('NonExistingFunc')", 'E700:')
     call assert_fails("LET &omnifunc = function('NonExistingFunc')", 'E700:')
@@ -1688,7 +1688,7 @@ func Test_omnifunc_callback()
     call assert_equal([[1, ''], [0, 'nine']], g:OmniFunc2Args)
     bw!
   END
-  call CheckLegacyAndVim9Success(lines)
+  call v9.CheckLegacyAndVim9Success(lines)
 
   " Test for using a script-local function name
   func s:OmniFunc3(findstart, base)
@@ -1783,7 +1783,7 @@ func Test_omnifunc_callback()
     assert_equal([[1, ''], [0, 'three']], g:LocalOmniFuncArgs)
     bw!
   END
-  call CheckScriptSuccess(lines)
+  call v9.CheckScriptSuccess(lines)
 
   " cleanup
   set omnifunc&
@@ -1873,7 +1873,7 @@ func Test_thesaurusfunc_callback()
     bw!
 
     #" Test for using a lambda function
-    VAR optval = "LSTART a, b LMIDDLE TsrFunc1(16, a, b) LEND"
+    VAR optval = "LSTART a, b LMIDDLE g:TsrFunc1(16, a, b) LEND"
     LET optval = substitute(optval, ' ', '\\ ', 'g')
     exe "set thesaurusfunc=" .. optval
     new
@@ -1884,7 +1884,7 @@ func Test_thesaurusfunc_callback()
     bw!
 
     #" Test for using a lambda function with set
-    LET &thesaurusfunc = LSTART a, b LMIDDLE TsrFunc1(17, a, b) LEND
+    LET &thesaurusfunc = LSTART a, b LMIDDLE g:TsrFunc1(17, a, b) LEND
     new
     call setline(1, 'six')
     LET g:TsrFunc1Args = []
@@ -1893,7 +1893,7 @@ func Test_thesaurusfunc_callback()
     bw!
 
     #" Set 'thesaurusfunc' to a string(lambda expression)
-    LET &thesaurusfunc = 'LSTART a, b LMIDDLE TsrFunc1(18, a, b) LEND'
+    LET &thesaurusfunc = 'LSTART a, b LMIDDLE g:TsrFunc1(18, a, b) LEND'
     new
     call setline(1, 'six')
     LET g:TsrFunc1Args = []
@@ -1902,7 +1902,7 @@ func Test_thesaurusfunc_callback()
     bw!
 
     #" Set 'thesaurusfunc' to a variable with a lambda expression
-    VAR Lambda = LSTART a, b LMIDDLE TsrFunc1(19, a, b) LEND
+    VAR Lambda = LSTART a, b LMIDDLE g:TsrFunc1(19, a, b) LEND
     LET &thesaurusfunc = Lambda
     new
     call setline(1, 'seven')
@@ -1912,7 +1912,7 @@ func Test_thesaurusfunc_callback()
     bw!
 
     #" Set 'thesaurusfunc' to a string(variable with a lambda expression)
-    LET Lambda = LSTART a, b LMIDDLE TsrFunc1(20, a, b) LEND
+    LET Lambda = LSTART a, b LMIDDLE g:TsrFunc1(20, a, b) LEND
     LET &thesaurusfunc = string(Lambda)
     new
     call setline(1, 'seven')
@@ -1936,7 +1936,7 @@ func Test_thesaurusfunc_callback()
     call assert_fails("set thesaurusfunc=funcref('abc')", "E700:")
 
     #" set 'thesaurusfunc' to a non-existing function
-    set thesaurusfunc=TsrFunc2
+    set thesaurusfunc=g:TsrFunc2
     call setline(1, 'ten')
     call assert_fails("set thesaurusfunc=function('NonExistingFunc')", 'E700:')
     call assert_fails("LET &thesaurusfunc = function('NonExistingFunc')", 'E700:')
@@ -1968,7 +1968,7 @@ func Test_thesaurusfunc_callback()
     call assert_equal([[22, 1, ''], [22, 0, 'sun']], g:TsrFunc1Args)
     :%bw!
   END
-  call CheckLegacyAndVim9Success(lines)
+  call v9.CheckLegacyAndVim9Success(lines)
 
   " Test for using a script-local function name
   func s:TsrFunc3(findstart, base)
@@ -2076,7 +2076,7 @@ func Test_thesaurusfunc_callback()
     assert_equal([[1, ''], [0, 'three']], g:LocalTsrFuncArgs)
     bw!
   END
-  call CheckScriptSuccess(lines)
+  call v9.CheckScriptSuccess(lines)
 
   " cleanup
   set thesaurusfunc&
