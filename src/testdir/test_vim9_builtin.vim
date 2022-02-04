@@ -77,7 +77,12 @@ enddef
 
 def Test_add()
   v9.CheckDefAndScriptFailure(['add({}, 1)'], ['E1013: Argument 1: type mismatch, expected list<any> but got dict<unknown>', 'E1226: List or Blob required for argument 1'])
-  v9.CheckDefFailure(['add([1], "a")'], 'E1012: Type mismatch; expected number but got string')
+  v9.CheckDefExecFailure([
+        'var ln: list<number> = [1]',
+        'add(ln, "a")'],
+        'E1012: Type mismatch; expected number but got string')
+  assert_equal([1, 'a'], add([1], 'a'))
+  assert_equal(0z1234, add(0z12, 0x34))
 
   var lines =<< trim END
     vim9script
@@ -715,6 +720,31 @@ def Test_copy_return_type()
   res->assert_equal(6)
 
   dl = deepcopy([1, 2, 3], true)
+
+  # after a copy() the type can change, but not the item itself
+  var nl: list<number> = [1, 2]
+  assert_equal([1, 2, 'x'], nl->copy()->extend(['x']))
+
+  var lines =<< trim END
+      var nll: list<list<number>> = [[1, 2]]
+      nll->copy()[0]->extend(['x'])
+  END
+  v9.CheckDefExecAndScriptFailure(lines, 'E1013: Argument 2: type mismatch, expected list<number> but got list<string> in extend()')
+
+  var nd: dict<number> = {a: 1, b: 2}
+  assert_equal({a: 1, b: 2, c: 'x'}, nd->copy()->extend({c: 'x'}))
+  lines =<< trim END
+      var ndd: dict<dict<number>> = {a: {x: 1, y: 2}}
+      ndd->copy()['a']->extend({z: 'x'})
+  END
+  v9.CheckDefExecAndScriptFailure(lines, 'E1013: Argument 2: type mismatch, expected dict<number> but got dict<string> in extend()')
+
+  # after a deepcopy() the item type can also change
+  var nll: list<list<number>> = [[1, 2]]
+  assert_equal([1, 2, 'x'], nll->deepcopy()[0]->extend(['x']))
+
+  var ndd: dict<dict<number>> = {a: {x: 1, y: 2}}
+  assert_equal({x: 1, y: 2, z: 'x'}, ndd->deepcopy()['a']->extend({z: 'x'}))
 enddef
 
 def Test_count()
@@ -2804,6 +2834,9 @@ def Test_range()
   v9.CheckDefAndScriptFailure(['range("a")'], ['E1013: Argument 1: type mismatch, expected number but got string', 'E1210: Number required for argument 1'])
   v9.CheckDefAndScriptFailure(['range(10, "b")'], ['E1013: Argument 2: type mismatch, expected number but got string', 'E1210: Number required for argument 2'])
   v9.CheckDefAndScriptFailure(['range(10, 20, "c")'], ['E1013: Argument 3: type mismatch, expected number but got string', 'E1210: Number required for argument 3'])
+
+  # returns a list<number> but it's not declared as such
+  assert_equal(['x', 'x'], range(2)->map((i, v) => 'x'))
 enddef
 
 def Test_readdir()
@@ -2980,6 +3013,10 @@ def Test_remove()
   var d2: any = {1: 'a', 2: 'b', 3: 'c'}
   remove(d2, 2)
   assert_equal({1: 'a', 3: 'c'}, d2)
+
+  # using declared type
+  var x: string = range(2)->extend(['x'])->remove(2)
+  assert_equal('x', x)
 enddef
 
 def Test_remove_return_type()
@@ -4087,13 +4124,6 @@ enddef
 def Test_test_override()
   v9.CheckDefAndScriptFailure(['test_override(1, 1)'], ['E1013: Argument 1: type mismatch, expected string but got number', 'E1174: String required for argument 1'])
   v9.CheckDefAndScriptFailure(['test_override("a", "x")'], ['E1013: Argument 2: type mismatch, expected number but got string', 'E1210: Number required for argument 2'])
-enddef
-
-def Test_test_scrollbar()
-  CheckGui
-  v9.CheckDefAndScriptFailure(['test_scrollbar(1, 2, 3)'], ['E1013: Argument 1: type mismatch, expected string but got number', 'E1174: String required for argument 1'])
-  v9.CheckDefAndScriptFailure(['test_scrollbar("a", "b", 3)'], ['E1013: Argument 2: type mismatch, expected number but got string', 'E1210: Number required for argument 2'])
-  v9.CheckDefAndScriptFailure(['test_scrollbar("a", 2, "c")'], ['E1013: Argument 3: type mismatch, expected number but got string', 'E1210: Number required for argument 3'])
 enddef
 
 def Test_test_setmouse()

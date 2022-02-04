@@ -1253,50 +1253,6 @@ f_test_void(typval_T *argvars UNUSED, typval_T *rettv)
     rettv->v_type = VAR_VOID;
 }
 
-#ifdef FEAT_GUI
-    void
-f_test_scrollbar(typval_T *argvars, typval_T *rettv UNUSED)
-{
-    char_u	*which;
-    long	value;
-    int		dragging;
-    scrollbar_T *sb = NULL;
-
-    if (check_for_string_arg(argvars, 0) == FAIL
-	    || check_for_number_arg(argvars, 1) == FAIL
-	    || check_for_number_arg(argvars, 2) == FAIL)
-	return;
-
-    if (argvars[0].v_type != VAR_STRING
-	    || (argvars[1].v_type) != VAR_NUMBER
-	    || (argvars[2].v_type) != VAR_NUMBER)
-    {
-	emsg(_(e_invalid_argument));
-	return;
-    }
-    which = tv_get_string(&argvars[0]);
-    value = tv_get_number(&argvars[1]);
-    dragging = tv_get_number(&argvars[2]);
-
-    if (STRCMP(which, "left") == 0)
-	sb = &curwin->w_scrollbars[SBAR_LEFT];
-    else if (STRCMP(which, "right") == 0)
-	sb = &curwin->w_scrollbars[SBAR_RIGHT];
-    else if (STRCMP(which, "hor") == 0)
-	sb = &gui.bottom_sbar;
-    if (sb == NULL)
-    {
-	semsg(_(e_invalid_argument_str), which);
-	return;
-    }
-    gui_drag_scrollbar(sb, value, dragging);
-# ifndef USE_ON_FLY_SCROLL
-    // need to loop through normal_cmd() to handle the scroll events
-    exec_normal(FALSE, TRUE, FALSE);
-# endif
-}
-#endif
-
     void
 f_test_setmouse(typval_T *argvars, typval_T *rettv UNUSED)
 {
@@ -1375,6 +1331,7 @@ test_gui_drop_files(dict_T *args UNUSED)
     return TRUE;
 }
 
+#if defined(FIND_REPLACE_DIALOG)
     static int
 test_gui_find_repl(dict_T *args)
 {
@@ -1401,6 +1358,7 @@ test_gui_find_repl(dict_T *args)
 
     return retval;
 }
+#endif
 
     static int
 test_gui_mouse_event(dict_T *args)
@@ -1426,6 +1384,43 @@ test_gui_mouse_event(dict_T *args)
 
     gui_send_mouse_event(button, TEXT_X(col - 1), TEXT_Y(row - 1),
 							repeated_click, mods);
+    return TRUE;
+}
+
+    static int
+test_gui_scrollbar(dict_T *args)
+{
+    char_u	*which;
+    long	value;
+    int		dragging;
+    scrollbar_T *sb = NULL;
+
+    if (dict_find(args, (char_u *)"which", -1) == NULL
+	    || dict_find(args, (char_u *)"value", -1) == NULL
+	    || dict_find(args, (char_u *)"dragging", -1) == NULL)
+	return FALSE;
+
+    which = dict_get_string(args, (char_u *)"which", FALSE);
+    value = (long)dict_get_number(args, (char_u *)"value");
+    dragging = (int)dict_get_number(args, (char_u *)"dragging");
+
+    if (STRCMP(which, "left") == 0)
+	sb = &curwin->w_scrollbars[SBAR_LEFT];
+    else if (STRCMP(which, "right") == 0)
+	sb = &curwin->w_scrollbars[SBAR_RIGHT];
+    else if (STRCMP(which, "hor") == 0)
+	sb = &gui.bottom_sbar;
+    if (sb == NULL)
+    {
+	semsg(_(e_invalid_argument_str), which);
+	return FALSE;
+    }
+    gui_drag_scrollbar(sb, value, dragging);
+#  ifndef USE_ON_FLY_SCROLL
+    // need to loop through normal_cmd() to handle the scroll events
+    exec_normal(FALSE, TRUE, FALSE);
+#  endif
+
     return TRUE;
 }
 
@@ -1483,10 +1478,14 @@ f_test_gui_event(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
     event = tv_get_string(&argvars[0]);
     if (STRCMP(event, "dropfiles") == 0)
 	rettv->vval.v_number = test_gui_drop_files(argvars[1].vval.v_dict);
+#  if defined(FIND_REPLACE_DIALOG)
     else if (STRCMP(event, "findrepl") == 0)
 	rettv->vval.v_number = test_gui_find_repl(argvars[1].vval.v_dict);
+#  endif
     else if (STRCMP(event, "mouse") == 0)
 	rettv->vval.v_number = test_gui_mouse_event(argvars[1].vval.v_dict);
+    else if (STRCMP(event, "scrollbar") == 0)
+	rettv->vval.v_number = test_gui_scrollbar(argvars[1].vval.v_dict);
     else if (STRCMP(event, "tabline") == 0)
 	rettv->vval.v_number = test_gui_tabline_event(argvars[1].vval.v_dict);
     else if (STRCMP(event, "tabmenu") == 0)

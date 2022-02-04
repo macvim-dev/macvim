@@ -1110,7 +1110,6 @@ Testing:				    *test-functions*
 	assert_nobeep()		assert that a command does not cause a beep
 	assert_fails()		assert that a command fails
 	assert_report()		report a test failure
-	internal_get_nv_cmdchar()  normal/visual command character at an index
 	test_alloc_fail()	make memory allocation fail
 	test_autochdir()	enable 'autochdir' during startup
 	test_override()		test with Vim internal overrides
@@ -1131,7 +1130,6 @@ Testing:				    *test-functions*
 	test_setmouse()		set the mouse position
 	test_feedinput()	add key sequence to input buffer
 	test_option_not_set()	reset flag indicating option was set
-	test_scrollbar()	simulate scrollbar movement in the GUI
 	test_refcount()		return an expression's reference count
 	test_srand_seed()	set the seed value for srand()
 	test_unknown()		return a value with unknown type

@@ -484,7 +484,7 @@ def Test_assign_linebreak()
           ->copy()
           ->copy()
   END
-  v9.CheckDefFailure(lines, 'E1012:', 2)
+  v9.CheckDefExecFailure(lines, 'E1012:', 4)
 
   lines =<< trim END
       var x: any
@@ -1247,6 +1247,15 @@ def Test_assignment_var_list()
       assert_equal('win', w:winvar)
   END
   v9.CheckScriptSuccess(lines)
+enddef
+
+def Test_assignment_empty_list()
+  var lines =<< trim END
+      var l2: list<any> = []
+      var l: list<string>
+      l = l2
+  END
+  v9.CheckDefAndScriptSuccess(lines)
 enddef
 
 def Test_assignment_vim9script()

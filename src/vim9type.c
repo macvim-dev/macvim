@@ -102,6 +102,71 @@ free_type(type_T *type)
     vim_free(type);
 }
 
+/*
+ * Return TRUE if "type" is to be recursed into for setting the type.
+ */
+    static int
+set_tv_type_recurse(type_T *type)
+{
+    return type->tt_member != NULL
+		&& (type->tt_member->tt_type == VAR_DICT
+				       || type->tt_member->tt_type == VAR_LIST)
+		&& type->tt_member->tt_member != NULL
+		&& type->tt_member->tt_member != &t_any
+		&& type->tt_member->tt_member != &t_unknown;
+}
+
+/*
+ * Set the type of "tv" to "type" if it is a list or dict.
+ */
+    void
+set_tv_type(typval_T *tv, type_T *type)
+{
+    if (tv->v_type == VAR_DICT && tv->vval.v_dict != NULL)
+    {
+	dict_T *d = tv->vval.v_dict;
+
+	if (d->dv_type != type)
+	{
+	    free_type(d->dv_type);
+	    d->dv_type = alloc_type(type);
+	    if (set_tv_type_recurse(type))
+	    {
+		int		todo = (int)d->dv_hashtab.ht_used;
+		hashitem_T	*hi;
+		dictitem_T	*di;
+
+		for (hi = d->dv_hashtab.ht_array; todo > 0; ++hi)
+		{
+		    if (!HASHITEM_EMPTY(hi))
+		    {
+			--todo;
+			di = HI2DI(hi);
+			set_tv_type(&di->di_tv, type->tt_member);
+		    }
+		}
+	    }
+	}
+    }
+    else if (tv->v_type == VAR_LIST && tv->vval.v_list != NULL)
+    {
+	list_T *l = tv->vval.v_list;
+
+	if (l->lv_type != type)
+	{
+	    free_type(l->lv_type);
+	    l->lv_type = alloc_type(type);
+	    if (l->lv_first != &range_list_item && set_tv_type_recurse(type))
+	    {
+		listitem_T	*li;
+
+		FOR_ALL_LIST_ITEMS(l, li)
+		    set_tv_type(&li->li_tv, type->tt_member);
+	    }
+	}
+    }
+}
+
     type_T *
 get_list_type(type_T *member_type, garray_T *type_gap)
 {
@@ -279,7 +344,11 @@ typval2type_int(typval_T *tv, int copyID, garray_T *type_gap, int flags)
 	list_T	    *l = tv->vval.v_list;
 	listitem_T  *li;
 
-	if (l == NULL || (l->lv_first == NULL && l->lv_type == NULL))
+	// An empty list has type list<unknown>, unless the type was specified
+	// and is not list<any>.  This matters when assigning to a variable
+	// with a specific list type.
+	if (l == NULL || (l->lv_first == NULL
+		   && (l->lv_type == NULL || l->lv_type->tt_member == &t_any)))
 	    return &t_list_empty;
 	if ((flags & TVTT_DO_MEMBER) == 0)
 	    return &t_list_any;
@@ -357,8 +426,10 @@ typval2type_int(typval_T *tv, int copyID, garray_T *type_gap, int flags)
 
 	    if (idx >= 0)
 	    {
+		type_T *decl_type;  // unused
+
 		internal_func_get_argcount(idx, &argcount, &min_argcount);
-		member_type = internal_func_ret_type(idx, 0, NULL);
+		member_type = internal_func_ret_type(idx, 0, NULL, &decl_type);
 	    }
 	    else
 		ufunc = find_func(name, FALSE);
@@ -1244,7 +1315,8 @@ set_type_on_stack(cctx_T *cctx, type_T *type, int offset)
 }
 
 /*
- * Get the type from the type stack.  If "offset" is zero the one at the top,
+ * Get the current type from the type stack.  If "offset" is zero the one at
+ * the top,
  * if "offset" is one the type above that, etc.
  * Returns &t_unknown if there is no such stack entry.
  */
@@ -1257,6 +1329,23 @@ get_type_on_stack(cctx_T *cctx, int offset)
 	return &t_unknown;
     return (((type2_T *)stack->ga_data) + stack->ga_len - offset - 1)
 								   ->type_curr;
+}
+
+/*
+ * Get the declared type from the type stack.  If "offset" is zero the one at
+ * the top,
+ * if "offset" is one the type above that, etc.
+ * Returns &t_unknown if there is no such stack entry.
+ */
+    type_T *
+get_decl_type_on_stack(cctx_T *cctx, int offset)
+{
+    garray_T	*stack = &cctx->ctx_type_stack;
+
+    if (offset + 1 > stack->ga_len)
+	return &t_unknown;
+    return (((type2_T *)stack->ga_data) + stack->ga_len - offset - 1)
+								   ->type_decl;
 }
 
 /*

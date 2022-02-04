@@ -372,12 +372,12 @@ repeat:
 	    {
 		if (GetLongPathNameW(wfname, buf, _MAX_PATH))
 		{
-		    char_u *p = utf16_to_enc(buf, NULL);
+		    char_u *q = utf16_to_enc(buf, NULL);
 
-		    if (p != NULL)
+		    if (q != NULL)
 		    {
 			vim_free(*bufp);    // free any allocated file name
-			*bufp = *fnamep = p;
+			*bufp = *fnamep = q;
 		    }
 		}
 		vim_free(wfname);
@@ -2208,16 +2208,7 @@ f_tempname(typval_T *argvars UNUSED, typval_T *rettv)
 	else if (x == '9')
 	    x = 'A';
 	else
-	{
-#ifdef EBCDIC
-	    if (x == 'I')
-		x = 'J';
-	    else if (x == 'R')
-		x = 'S';
-	    else
-#endif
-		++x;
-	}
+	    ++x;
     } while (x == 'I' || x == 'O');
 }
 

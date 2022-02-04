@@ -466,6 +466,8 @@ RUBY_PLATFORM = i586-mswin32
 RUBY_PLATFORM = i386-mingw32
   else ifneq ($(wildcard $(RUBY)/lib/ruby/$(RUBY_API_VER_LONG)/x64-mingw32),)
 RUBY_PLATFORM = x64-mingw32
+  else ifneq ($(wildcard $(RUBY)/lib/ruby/$(RUBY_API_VER_LONG)/x64-mingw-ucrt),)
+RUBY_PLATFORM = x64-mingw-ucrt
   else
 RUBY_PLATFORM = i386-mswin32
   endif
@@ -479,7 +481,9 @@ RUBY_INSTALL_NAME = mswin32-ruby$(RUBY_API_VER)
 # Base name of msvcrXX.dll which is used by ruby's dll.
 RUBY_MSVCRT_NAME = msvcrt
    endif
-   ifeq ($(ARCH),x86-64)
+   ifeq ($(RUBY_PLATFORM),x64-mingw-ucrt)
+RUBY_INSTALL_NAME = x64-ucrt-ruby$(RUBY_API_VER)
+   else ifeq ($(ARCH),x86-64)
 RUBY_INSTALL_NAME = x64-$(RUBY_MSVCRT_NAME)-ruby$(RUBY_API_VER)
    else
 RUBY_INSTALL_NAME = $(RUBY_MSVCRT_NAME)-ruby$(RUBY_API_VER)
@@ -1145,17 +1149,17 @@ endif
 # If this fails because you don't have Vim yet, first build and install Vim
 # without changes.
 cmdidxs: ex_cmds.h
-	vim --clean -X --not-a-term -u create_cmdidxs.vim
+	vim --clean -N -X --not-a-term -u create_cmdidxs.vim -c quit
 
 # Run vim script to generate the normal/visual mode command lookup table.
 # This only needs to be run when a new normal/visual mode command has been
 # added.  If this fails because you don't have Vim yet:
-#   - change nv_cmds[] in normal.c to add the new normal/visual mode command.
-#   - build Vim
-#   - run "make nvcmdidxs" using the new Vim to generate nv_cmdidxs.h
-#   - rebuild Vim to use the newly generated nv_cmdidxs.h file.
-nvcmdidxs: normal.c
-	./$(TARGET) --clean -X --not-a-term -u create_nvcmdidxs.vim
+#   - change nv_cmds[] in nv_cmds.h to add the new normal/visual mode command.
+#   - run "make nvcmdidxs" to generate nv_cmdidxs.h
+nvcmdidxs: nv_cmds.h
+	$(CC) $(CFLAGS) -o create_nvcmdidxs.exe create_nvcmdidxs.c $(LIB)
+	vim --clean -N -X --not-a-term -u create_nvcmdidxs.vim -c quit
+	-$(DEL) create_nvcmdidxs.exe
 
 ###########################################################################
 INCL =	vim.h alloc.h ascii.h ex_cmds.h feature.h errors.h globals.h \
@@ -1219,7 +1223,7 @@ $(OUTDIR)/hardcopy.o: hardcopy.c $(INCL) version.h
 
 $(OUTDIR)/misc1.o: misc1.c $(INCL) version.h
 
-$(OUTDIR)/normal.o: normal.c $(INCL) nv_cmdidxs.h
+$(OUTDIR)/normal.o: normal.c $(INCL) nv_cmdidxs.h nv_cmds.h
 
 $(OUTDIR)/netbeans.o: netbeans.c $(INCL) version.h
 

@@ -3779,10 +3779,7 @@ mch_setmouse(int on)
 #ifdef FEAT_MOUSE_URXVT
     if (ttym_flags == TTYM_URXVT)
     {
-	out_str_nf((char_u *)
-		   (on
-		   ? IF_EB("\033[?1015h", ESC_STR "[?1015h")
-		   : IF_EB("\033[?1015l", ESC_STR "[?1015l")));
+	out_str_nf((char_u *)(on ? "\033[?1015h" : "\033[?1015l"));
 	mouse_ison = on;
     }
 #endif
@@ -3790,10 +3787,7 @@ mch_setmouse(int on)
     if (ttym_flags == TTYM_SGR)
     {
 	// SGR mode supports columns above 223
-	out_str_nf((char_u *)
-		   (on
-		   ? IF_EB("\033[?1006h", ESC_STR "[?1006h")
-		   : IF_EB("\033[?1006l", ESC_STR "[?1006l")));
+	out_str_nf((char_u *)(on ? "\033[?1006h" : "\033[?1006l"));
 	mouse_ison = on;
     }
 
@@ -3803,8 +3797,7 @@ mch_setmouse(int on)
 	bevalterm_ison = (p_bevalterm && on);
 	if (xterm_mouse_vers > 1 && !bevalterm_ison)
 	    // disable mouse movement events, enabling is below
-	    out_str_nf((char_u *)
-			(IF_EB("\033[?1003l", ESC_STR "[?1003l")));
+	    out_str_nf((char_u *)("\033[?1003l"));
     }
 #endif
 
@@ -3815,16 +3808,13 @@ mch_setmouse(int on)
 		       (xterm_mouse_vers > 1
 			? (
 #ifdef FEAT_BEVAL_TERM
-			    bevalterm_ison
-			       ? IF_EB("\033[?1003h", ESC_STR "[?1003h") :
+			    bevalterm_ison ? "\033[?1003h" :
 #endif
-			      IF_EB("\033[?1002h", ESC_STR "[?1002h"))
-			: IF_EB("\033[?1000h", ESC_STR "[?1000h")));
+			      "\033[?1002h")
+			: "\033[?1000h"));
 	else	// disable mouse events, could probably always send the same
 	    out_str_nf((char_u *)
-		       (xterm_mouse_vers > 1
-			? IF_EB("\033[?1002l", ESC_STR "[?1002l")
-			: IF_EB("\033[?1000l", ESC_STR "[?1000l")));
+		       (xterm_mouse_vers > 1 ? "\033[?1002l" : "\033[?1000l"));
 	mouse_ison = on;
     }
 
@@ -3892,18 +3882,15 @@ mch_setmouse(int on)
 	    //	  5 = Windows UP Arrow
 # ifdef JSBTERM_MOUSE_NONADVANCED
 	    // Disables full feedback of pointer movements
-	    out_str_nf((char_u *)IF_EB("\033[0~ZwLMRK1Q\033\\",
-					 ESC_STR "[0~ZwLMRK1Q" ESC_STR "\\"));
+	    out_str_nf((char_u *)"\033[0~ZwLMRK1Q\033\\");
 # else
-	    out_str_nf((char_u *)IF_EB("\033[0~ZwLMRK+1Q\033\\",
-					ESC_STR "[0~ZwLMRK+1Q" ESC_STR "\\"));
+	    out_str_nf((char_u *)"\033[0~ZwLMRK+1Q\033\\");
 # endif
 	    mouse_ison = TRUE;
 	}
 	else
 	{
-	    out_str_nf((char_u *)IF_EB("\033[0~ZwQ\033\\",
-					      ESC_STR "[0~ZwQ" ESC_STR "\\"));
+	    out_str_nf((char_u *)"\033[0~ZwQ\033\\");
 	    mouse_ison = FALSE;
 	}
     }
@@ -3949,8 +3936,7 @@ check_mouse_termcode(void)
 	    )
     {
 	set_mouse_termcode(KS_MOUSE, (char_u *)(term_is_8bit(T_NAME)
-		    ? IF_EB("\233M", CSI_STR "M")
-		    : IF_EB("\033[M", ESC_STR "[M")));
+							? "\233M" : "\033[M"));
 	if (*p_mouse != NUL)
 	{
 	    // force mouse off and maybe on to send possibly new mouse
@@ -3969,8 +3955,7 @@ check_mouse_termcode(void)
 	    && !gui.in_use
 #  endif
 	    )
-	set_mouse_termcode(KS_GPM_MOUSE,
-				      (char_u *)IF_EB("\033MG", ESC_STR "MG"));
+	set_mouse_termcode(KS_GPM_MOUSE, (char_u *)"\033MG");
     else
 	del_mouse_termcode(KS_GPM_MOUSE);
 # endif
@@ -3981,7 +3966,7 @@ check_mouse_termcode(void)
 	    && !gui.in_use
 #  endif
 	    )
-	set_mouse_termcode(KS_MOUSE, (char_u *)IF_EB("\033MS", ESC_STR "MS"));
+	set_mouse_termcode(KS_MOUSE, (char_u *)"\033MS");
 # endif
 
 # ifdef FEAT_MOUSE_JSB
@@ -3991,8 +3976,7 @@ check_mouse_termcode(void)
 	    && !gui.in_use
 #  endif
 	    )
-	set_mouse_termcode(KS_JSBTERM_MOUSE,
-			       (char_u *)IF_EB("\033[0~zw", ESC_STR "[0~zw"));
+	set_mouse_termcode(KS_JSBTERM_MOUSE, (char_u *)"\033[0~zw");
     else
 	del_mouse_termcode(KS_JSBTERM_MOUSE);
 # endif
@@ -4005,8 +3989,7 @@ check_mouse_termcode(void)
 	    && !gui.in_use
 #  endif
 	    )
-	set_mouse_termcode(KS_NETTERM_MOUSE,
-				       (char_u *)IF_EB("\033}", ESC_STR "}"));
+	set_mouse_termcode(KS_NETTERM_MOUSE, (char_u *)"\033}");
     else
 	del_mouse_termcode(KS_NETTERM_MOUSE);
 # endif
@@ -4019,7 +4002,7 @@ check_mouse_termcode(void)
 #  endif
 	    )
 	set_mouse_termcode(KS_DEC_MOUSE, (char_u *)(term_is_8bit(T_NAME)
-		     ? IF_EB("\233", CSI_STR) : IF_EB("\033[", ESC_STR "[")));
+							  ? "\233" : "\033["));
     else
 	del_mouse_termcode(KS_DEC_MOUSE);
 # endif
@@ -4030,8 +4013,7 @@ check_mouse_termcode(void)
 	    && !gui.in_use
 #  endif
 	    )
-	set_mouse_termcode(KS_PTERM_MOUSE,
-				      (char_u *) IF_EB("\033[", ESC_STR "["));
+	set_mouse_termcode(KS_PTERM_MOUSE, (char_u *)"\033[");
     else
 	del_mouse_termcode(KS_PTERM_MOUSE);
 # endif
@@ -4043,8 +4025,7 @@ check_mouse_termcode(void)
 	    )
     {
 	set_mouse_termcode(KS_URXVT_MOUSE, (char_u *)(term_is_8bit(T_NAME)
-		    ? IF_EB("\233*M", CSI_STR "*M")
-		    : IF_EB("\033[*M", ESC_STR "[*M")));
+						      ? "\233*M" : "\033[*M"));
 
 	if (*p_mouse != NUL)
 	{
@@ -4062,12 +4043,10 @@ check_mouse_termcode(void)
 	    )
     {
 	set_mouse_termcode(KS_SGR_MOUSE, (char_u *)(term_is_8bit(T_NAME)
-		    ? IF_EB("\233<*M", CSI_STR "<*M")
-		    : IF_EB("\033[<*M", ESC_STR "[<*M")));
+						    ? "\233<*M" : "\033[<*M"));
 
 	set_mouse_termcode(KS_SGR_MOUSE_RELEASE, (char_u *)(term_is_8bit(T_NAME)
-		    ? IF_EB("\233<*m", CSI_STR "<*m")
-		    : IF_EB("\033[<*m", ESC_STR "[<*m")));
+						    ? "\233<*m" : "\033[<*m"));
 
 	if (*p_mouse != NUL)
 	{
@@ -6126,7 +6105,7 @@ WaitForCharOrMouse(long msec, int *interrupted, int ignore_input)
     {
 	WantQueryMouse = FALSE;
 	if (!no_query_mouse_for_testing)
-	    mch_write((char_u *)IF_EB("\033[1'|", ESC_STR "[1'|"), 5);
+	    mch_write((char_u *)"\033[1'|", 5);
     }
 #endif
 
@@ -8229,114 +8208,3 @@ xsmp_close(void)
     }
 }
 #endif // USE_XSMP
-
-
-#ifdef EBCDIC
-// Translate character to its CTRL- value
-char CtrlTable[] =
-{
-/* 00 - 5E */
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-/* ^ */ 0x1E,
-/* - */ 0x1F,
-/* 61 - 6C */
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-/* _ */ 0x1F,
-/* 6E - 80 */
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-/* a */ 0x01,
-/* b */ 0x02,
-/* c */ 0x03,
-/* d */ 0x37,
-/* e */ 0x2D,
-/* f */ 0x2E,
-/* g */ 0x2F,
-/* h */ 0x16,
-/* i */ 0x05,
-/* 8A - 90 */
-	0, 0, 0, 0, 0, 0, 0,
-/* j */ 0x15,
-/* k */ 0x0B,
-/* l */ 0x0C,
-/* m */ 0x0D,
-/* n */ 0x0E,
-/* o */ 0x0F,
-/* p */ 0x10,
-/* q */ 0x11,
-/* r */ 0x12,
-/* 9A - A1 */
-	0, 0, 0, 0, 0, 0, 0, 0,
-/* s */ 0x13,
-/* t */ 0x3C,
-/* u */ 0x3D,
-/* v */ 0x32,
-/* w */ 0x26,
-/* x */ 0x18,
-/* y */ 0x19,
-/* z */ 0x3F,
-/* AA - AC */
-	0, 0, 0,
-/* [ */ 0x27,
-/* AE - BC */
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-/* ] */ 0x1D,
-/* BE - C0 */ 0, 0, 0,
-/* A */ 0x01,
-/* B */ 0x02,
-/* C */ 0x03,
-/* D */ 0x37,
-/* E */ 0x2D,
-/* F */ 0x2E,
-/* G */ 0x2F,
-/* H */ 0x16,
-/* I */ 0x05,
-/* CA - D0 */ 0, 0, 0, 0, 0, 0, 0,
-/* J */ 0x15,
-/* K */ 0x0B,
-/* L */ 0x0C,
-/* M */ 0x0D,
-/* N */ 0x0E,
-/* O */ 0x0F,
-/* P */ 0x10,
-/* Q */ 0x11,
-/* R */ 0x12,
-/* DA - DF */ 0, 0, 0, 0, 0, 0,
-/* \ */ 0x1C,
-/* E1 */ 0,
-/* S */ 0x13,
-/* T */ 0x3C,
-/* U */ 0x3D,
-/* V */ 0x32,
-/* W */ 0x26,
-/* X */ 0x18,
-/* Y */ 0x19,
-/* Z */ 0x3F,
-/* EA - FF*/ 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-};
-
-char MetaCharTable[]=
-{//   0   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F
-      0,  0,  0,  0,'\\', 0,'F',  0,'W','M','N',  0,  0,  0,  0,  0,
-      0,  0,  0,  0,']',  0,  0,'G',  0,  0,'R','O',  0,  0,  0,  0,
-    '@','A','B','C','D','E',  0,  0,'H','I','J','K','L',  0,  0,  0,
-    'P','Q',  0,'S','T','U','V',  0,'X','Y','Z','[',  0,  0,'^',  0
-};
-
-
-// TODO: Use characters NOT numbers!!!
-char CtrlCharTable[]=
-{//   0   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F
-    124,193,194,195,  0,201,  0,  0,  0,  0,  0,210,211,212,213,214,
-    215,216,217,226,  0,209,200,  0,231,232,  0,  0,224,189, 95,109,
-      0,  0,  0,  0,  0,  0,230,173,  0,  0,  0,  0,  0,197,198,199,
-      0,  0,229,  0,  0,  0,  0,196,  0,  0,  0,  0,227,228,  0,233,
-};
-
-
-#endif

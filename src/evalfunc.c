@@ -933,7 +933,6 @@ static argcheck_T arg3_string_any_string[] = {arg_string, NULL, arg_string};
 static argcheck_T arg3_string_bool_bool[] = {arg_string, arg_bool, arg_bool};
 static argcheck_T arg3_string_bool_dict[] = {arg_string, arg_bool, arg_dict_any};
 static argcheck_T arg3_string_number_bool[] = {arg_string, arg_number, arg_bool};
-static argcheck_T arg3_string_number_number[] = {arg_string, arg_number, arg_number};
 static argcheck_T arg3_string_string_bool[] = {arg_string, arg_string, arg_bool};
 static argcheck_T arg3_string_string_dict[] = {arg_string, arg_string, arg_dict_any};
 static argcheck_T arg3_string_string_number[] = {arg_string, arg_string, arg_number};
@@ -993,127 +992,236 @@ static argcheck_T arg24_match_func[] = {arg_string_or_list_any, arg_string, arg_
  * Note that "argtypes" is NULL if "argcount" is zero.
  */
     static type_T *
-ret_void(int argcount UNUSED, type2_T *argtypes UNUSED)
+ret_void(int argcount UNUSED,
+	type2_T *argtypes UNUSED,
+	type_T	**decl_type UNUSED)
 {
     return &t_void;
 }
     static type_T *
-ret_any(int argcount UNUSED, type2_T *argtypes UNUSED)
+ret_any(int	argcount UNUSED,
+	type2_T *argtypes UNUSED,
+	type_T	**decl_type UNUSED)
 {
     return &t_any;
 }
     static type_T *
-ret_bool(int argcount UNUSED, type2_T *argtypes UNUSED)
+ret_bool(int argcount UNUSED,
+	type2_T *argtypes UNUSED,
+	type_T	**decl_type UNUSED)
 {
     return &t_bool;
 }
     static type_T *
-ret_number_bool(int argcount UNUSED, type2_T *argtypes UNUSED)
+ret_number_bool(int argcount UNUSED,
+	type2_T *argtypes UNUSED,
+	type_T	**decl_type UNUSED)
 {
     return &t_number_bool;
 }
     static type_T *
-ret_number(int argcount UNUSED, type2_T *argtypes UNUSED)
+ret_number(int argcount UNUSED,
+	type2_T *argtypes UNUSED,
+	type_T	**decl_type UNUSED)
 {
     return &t_number;
 }
     static type_T *
-ret_float(int argcount UNUSED, type2_T *argtypes UNUSED)
+ret_float(int argcount UNUSED,
+	type2_T *argtypes UNUSED,
+	type_T	**decl_type UNUSED)
 {
     return &t_float;
 }
     static type_T *
-ret_string(int argcount UNUSED, type2_T *argtypes UNUSED)
+ret_string(int argcount UNUSED,
+	type2_T *argtypes UNUSED,
+	type_T	**decl_type UNUSED)
 {
     return &t_string;
 }
     static type_T *
-ret_list_any(int argcount UNUSED, type2_T *argtypes UNUSED)
+ret_list_any(int argcount UNUSED,
+	type2_T *argtypes UNUSED,
+	type_T	**decl_type UNUSED)
 {
     return &t_list_any;
 }
     static type_T *
-ret_list_number(int argcount UNUSED, type2_T *argtypes UNUSED)
+ret_list_number(int argcount UNUSED,
+	type2_T *argtypes UNUSED,
+	type_T	**decl_type UNUSED)
 {
     return &t_list_number;
 }
     static type_T *
-ret_list_string(int argcount UNUSED, type2_T *argtypes UNUSED)
+ret_range(int argcount UNUSED,
+	type2_T *argtypes UNUSED,
+	type_T	**decl_type)
+{
+    // returning a list<number>, but it's not declared as such
+    *decl_type = &t_list_any;
+    return &t_list_number;
+}
+    static type_T *
+ret_list_string(int argcount UNUSED,
+	type2_T *argtypes UNUSED,
+	type_T	**decl_type UNUSED)
 {
     return &t_list_string;
 }
     static type_T *
-ret_list_dict_any(int argcount UNUSED, type2_T *argtypes UNUSED)
+ret_list_dict_any(int argcount UNUSED,
+	type2_T *argtypes UNUSED,
+	type_T	**decl_type UNUSED)
 {
     return &t_list_dict_any;
 }
     static type_T *
-ret_list_items(int argcount UNUSED, type2_T *argtypes UNUSED)
+ret_list_items(int argcount UNUSED,
+	type2_T *argtypes UNUSED,
+	type_T	**decl_type UNUSED)
 {
     return &t_list_list_any;
 }
 
     static type_T *
-ret_list_string_items(int argcount UNUSED, type2_T *argtypes UNUSED)
+ret_list_string_items(int argcount UNUSED,
+	type2_T *argtypes UNUSED,
+	type_T	**decl_type UNUSED)
 {
     return &t_list_list_string;
 }
     static type_T *
-ret_dict_any(int argcount UNUSED, type2_T *argtypes UNUSED)
+ret_dict_any(int argcount UNUSED,
+	type2_T *argtypes UNUSED,
+	type_T	**decl_type UNUSED)
 {
     return &t_dict_any;
 }
     static type_T *
-ret_job_info(int argcount, type2_T *argtypes UNUSED)
+ret_job_info(int argcount,
+	type2_T *argtypes UNUSED,
+	type_T	**decl_type UNUSED)
 {
     if (argcount == 0)
 	return &t_list_job;
     return &t_dict_any;
 }
     static type_T *
-ret_dict_number(int argcount UNUSED, type2_T *argtypes UNUSED)
+ret_dict_number(int argcount UNUSED,
+	type2_T *argtypes UNUSED,
+	type_T	**decl_type UNUSED)
 {
     return &t_dict_number;
 }
     static type_T *
-ret_dict_string(int argcount UNUSED, type2_T *argtypes UNUSED)
+ret_dict_string(int argcount UNUSED,
+	type2_T *argtypes UNUSED,
+	type_T	**decl_type UNUSED)
 {
     return &t_dict_string;
 }
     static type_T *
-ret_blob(int argcount UNUSED, type2_T *argtypes UNUSED)
+ret_blob(int argcount UNUSED,
+	type2_T *argtypes UNUSED,
+	type_T	**decl_type UNUSED)
 {
     return &t_blob;
 }
     static type_T *
-ret_func_any(int argcount UNUSED, type2_T *argtypes UNUSED)
+ret_func_any(int argcount UNUSED,
+	type2_T *argtypes UNUSED,
+	type_T	**decl_type UNUSED)
 {
     return &t_func_any;
 }
     static type_T *
-ret_func_unknown(int argcount UNUSED, type2_T *argtypes UNUSED)
+ret_func_unknown(int argcount UNUSED,
+	type2_T *argtypes UNUSED,
+	type_T	**decl_type UNUSED)
 {
     return &t_func_unknown;
 }
     static type_T *
-ret_channel(int argcount UNUSED, type2_T *argtypes UNUSED)
+ret_channel(int argcount UNUSED,
+	type2_T *argtypes UNUSED,
+	type_T	**decl_type UNUSED)
 {
     return &t_channel;
 }
     static type_T *
-ret_job(int argcount UNUSED, type2_T *argtypes UNUSED)
+ret_job(int argcount UNUSED,
+	type2_T *argtypes UNUSED,
+	type_T	**decl_type UNUSED)
 {
     return &t_job;
 }
     static type_T *
-ret_first_arg(int argcount, type2_T *argtypes)
+ret_first_arg(int argcount,
+	type2_T *argtypes,
+	type_T	**decl_type)
 {
     if (argcount > 0)
+    {
+	*decl_type = argtypes[0].type_decl;
 	return argtypes[0].type_curr;
+    }
     return &t_void;
 }
     static type_T *
-ret_repeat(int argcount, type2_T *argtypes)
+ret_copy(int argcount,
+	type2_T *argtypes,
+	type_T	**decl_type)
+{
+    if (argcount > 0)
+    {
+	if (argtypes[0].type_decl != NULL)
+	{
+	    if (argtypes[0].type_decl->tt_type == VAR_LIST)
+		*decl_type = &t_list_any;
+	    else if (argtypes[0].type_decl->tt_type == VAR_DICT)
+		*decl_type = &t_dict_any;
+	    else
+		*decl_type = argtypes[0].type_decl;
+	}
+	if (argtypes[0].type_curr != NULL)
+	{
+	    if (argtypes[0].type_curr->tt_type == VAR_LIST)
+		return &t_list_any;
+	    else if (argtypes[0].type_curr->tt_type == VAR_DICT)
+		return &t_dict_any;
+	}
+	return argtypes[0].type_curr;
+    }
+    return &t_void;
+}
+    static type_T *
+ret_extend(int argcount,
+	type2_T *argtypes,
+	type_T	**decl_type)
+{
+    if (argcount > 0)
+    {
+	*decl_type = argtypes[0].type_decl;
+	// if the second argument has a different current type then the current
+	// type is "any"
+	if (argcount > 1 && !equal_type(argtypes[0].type_curr,
+						     argtypes[1].type_curr, 0))
+	{
+	    if (argtypes[0].type_curr->tt_type == VAR_LIST)
+		return &t_list_any;
+	    if (argtypes[0].type_curr->tt_type == VAR_DICT)
+		return &t_dict_any;
+	}
+	return argtypes[0].type_curr;
+    }
+    return &t_void;
+}
+    static type_T *
+ret_repeat(int argcount,
+	type2_T *argtypes,
+	type_T	**decl_type UNUSED)
 {
     if (argcount == 0)
 	return &t_any;
@@ -1123,7 +1231,9 @@ ret_repeat(int argcount, type2_T *argtypes)
 }
 // for map(): returns first argument but item type may differ
     static type_T *
-ret_first_cont(int argcount, type2_T *argtypes)
+ret_first_cont(int argcount,
+	type2_T *argtypes,
+	type_T	**decl_type UNUSED)
 {
     if (argcount > 0)
     {
@@ -1138,13 +1248,17 @@ ret_first_cont(int argcount, type2_T *argtypes)
 }
 // for getline()
     static type_T *
-ret_getline(int argcount, type2_T *argtypes UNUSED)
+ret_getline(int argcount,
+	type2_T *argtypes UNUSED,
+	type_T	**decl_type UNUSED)
 {
     return argcount == 1 ? &t_string : &t_list_string;
 }
 // for finddir()
     static type_T *
-ret_finddir(int argcount, type2_T *argtypes UNUSED)
+ret_finddir(int argcount,
+	type2_T *argtypes UNUSED,
+	type_T	**decl_type UNUSED)
 {
     if (argcount < 3)
 	return &t_string;
@@ -1157,7 +1271,9 @@ ret_finddir(int argcount, type2_T *argtypes UNUSED)
  * one.
  */
     static type_T *
-ret_list_or_dict_0(int argcount, type2_T *argtypes UNUSED)
+ret_list_or_dict_0(int argcount,
+	type2_T *argtypes UNUSED,
+	type_T	**decl_type UNUSED)
 {
     if (argcount > 0)
 	return &t_dict_any;
@@ -1169,7 +1285,9 @@ ret_list_or_dict_0(int argcount, type2_T *argtypes UNUSED)
  * are two.
  */
     static type_T *
-ret_list_or_dict_1(int argcount, type2_T *argtypes UNUSED)
+ret_list_or_dict_1(int argcount,
+	type2_T *argtypes UNUSED,
+	type_T	**decl_type UNUSED)
 {
     if (argcount > 1)
 	return &t_dict_any;
@@ -1177,7 +1295,9 @@ ret_list_or_dict_1(int argcount, type2_T *argtypes UNUSED)
 }
 
     static type_T *
-ret_argv(int argcount, type2_T *argtypes UNUSED)
+ret_argv(int argcount,
+	type2_T *argtypes UNUSED,
+	type_T	**decl_type UNUSED)
 {
     // argv() returns list of strings
     if (argcount == 0)
@@ -1188,13 +1308,20 @@ ret_argv(int argcount, type2_T *argtypes UNUSED)
 }
 
     static type_T *
-ret_remove(int argcount, type2_T *argtypes)
+ret_remove(int argcount,
+	type2_T *argtypes,
+	type_T	**decl_type UNUSED)
 {
     if (argcount > 0)
     {
 	if (argtypes[0].type_curr->tt_type == VAR_LIST
 		|| argtypes[0].type_curr->tt_type == VAR_DICT)
+	{
+	    if (argtypes[0].type_curr->tt_type
+					     == argtypes[0].type_decl->tt_type)
+		*decl_type = argtypes[0].type_decl->tt_member;
 	    return argtypes[0].type_curr->tt_member;
+	}
 	if (argtypes[0].type_curr->tt_type == VAR_BLOB)
 	    return &t_number;
     }
@@ -1202,7 +1329,9 @@ ret_remove(int argcount, type2_T *argtypes)
 }
 
     static type_T *
-ret_getreg(int argcount, type2_T *argtypes UNUSED)
+ret_getreg(int argcount,
+	type2_T *argtypes UNUSED,
+	type_T	**decl_type UNUSED)
 {
     // Assume that if the third argument is passed it's non-zero
     if (argcount == 3)
@@ -1211,7 +1340,9 @@ ret_getreg(int argcount, type2_T *argtypes UNUSED)
 }
 
     static type_T *
-ret_maparg(int argcount, type2_T *argtypes UNUSED)
+ret_maparg(int argcount,
+	type2_T *argtypes UNUSED,
+	type_T	**decl_type UNUSED)
 {
     // Assume that if the fourth argument is passed it's non-zero
     if (argcount == 4)
@@ -1230,7 +1361,8 @@ typedef struct
     char	f_max_argc;	// maximal number of arguments
     char	f_argtype;	// for method: FEARG_ values
     argcheck_T	*f_argcheck;	// list of functions to check argument types
-    type_T	*(*f_retfunc)(int argcount, type2_T *argtypes);
+    type_T	*(*f_retfunc)(int argcount, type2_T *argtypes,
+							   type_T **decl_type);
 				// return type function
     void	(*f_func)(typval_T *args, typval_T *rvar);
 				// implementation of function
@@ -1466,7 +1598,7 @@ static funcentry_T global_functions[] =
     {"confirm",		1, 4, FEARG_1,	    arg4_string_string_number_string,
 			ret_number,	    f_confirm},
     {"copy",		1, 1, FEARG_1,	    NULL,
-			ret_first_arg,	    f_copy},
+			ret_copy,	    f_copy},
     {"cos",		1, 1, FEARG_1,	    arg1_float_or_nr,
 			ret_float,	    FLOAT_FUNC(f_cos)},
     {"cosh",		1, 1, FEARG_1,	    arg1_float_or_nr,
@@ -1486,7 +1618,7 @@ static funcentry_T global_functions[] =
 #endif
 			},
     {"deepcopy",	1, 2, FEARG_1,	    arg12_deepcopy,
-			ret_first_arg,	    f_deepcopy},
+			ret_copy,	    f_deepcopy},
     {"delete",		1, 2, FEARG_1,	    arg2_string,
 			ret_number_bool,    f_delete},
     {"deletebufline",	2, 3, FEARG_1,	    arg3_buffer_lnum_lnum,
@@ -1534,7 +1666,7 @@ static funcentry_T global_functions[] =
     {"expandcmd",	1, 1, FEARG_1,	    arg1_string,
 			ret_string,	    f_expandcmd},
     {"extend",		2, 3, FEARG_1,	    arg23_extend,
-			ret_first_arg,	    f_extend},
+			ret_extend,	    f_extend},
     {"extendnew",	2, 3, FEARG_1,	    arg23_extendnew,
 			ret_first_cont,	    f_extendnew},
     {"feedkeys",	1, 2, FEARG_1,	    arg2_string,
@@ -1735,8 +1867,6 @@ static funcentry_T global_functions[] =
 			ret_string,	    f_inputsecret},
     {"insert",		2, 3, FEARG_1,	    arg23_insert,
 			ret_first_arg,	    f_insert},
-    {"internal_get_nv_cmdchar",	1, 1, FEARG_1,    arg1_number,
-			ret_number,	    f_internal_get_nv_cmdchar},
     {"interrupt",	0, 0, 0,	    NULL,
 			ret_void,	    f_interrupt},
     {"invert",		1, 1, FEARG_1,	    arg1_number,
@@ -1994,7 +2124,7 @@ static funcentry_T global_functions[] =
     {"rand",		0, 1, FEARG_1,	    arg1_list_number,
 			ret_number,	    f_rand},
     {"range",		1, 3, FEARG_1,	    arg3_number,
-			ret_list_number,    f_range},
+			ret_range,	    f_range},
     {"readblob",	1, 1, FEARG_1,	    arg1_string,
 			ret_blob,	    f_readblob},
     {"readdir",		1, 3, FEARG_1,	    arg3_string_any_dict,
@@ -2361,14 +2491,6 @@ static funcentry_T global_functions[] =
 			ret_void,	    f_test_override},
     {"test_refcount",	1, 1, FEARG_1,	    NULL,
 			ret_number,	    f_test_refcount},
-    {"test_scrollbar",	3, 3, FEARG_2,	    arg3_string_number_number,
-			ret_void,
-#ifdef FEAT_GUI
-	f_test_scrollbar
-#else
-	NULL
-#endif
-			},
     {"test_setmouse",	2, 2, 0,	    arg2_number,
 			ret_void,	    f_test_setmouse},
     {"test_settime",	1, 1, FEARG_1,	    arg1_number,
@@ -2468,33 +2590,6 @@ static funcentry_T global_functions[] =
     {"xor",		2, 2, FEARG_1,	    arg2_number,
 			ret_number,	    f_xor},
 };
-
-#if defined(EBCDIC) || defined(PROTO)
-/*
- * Compare funcentry_T by function name.
- */
-    static int
-compare_func_name(const void *s1, const void *s2)
-{
-    funcentry_T *p1 = (funcentry_T *)s1;
-    funcentry_T *p2 = (funcentry_T *)s2;
-
-    return STRCMP(p1->f_name, p2->f_name);
-}
-
-/*
- * Sort the function table by function name.
- * The sorting of the table above is ASCII dependent.
- * On machines using EBCDIC we have to sort it.
- */
-    void
-sortFunctions(void)
-{
-    size_t	funcCnt = ARRAY_LENGTH(global_functions);
-
-    qsort(global_functions, funcCnt, sizeof(funcentry_T), compare_func_name);
-}
-#endif
 
 /*
  * Function given to ExpandGeneric() to obtain the list of internal
@@ -2660,14 +2755,25 @@ internal_func_get_argcount(int idx, int *argcount, int *min_argcount)
 
 /*
  * Call the "f_retfunc" function to obtain the return type of function "idx".
+ * "decl_type" is set to the declared type.
  * "argtypes" is the list of argument types or NULL when there are no
  * arguments.
  * "argcount" may be less than the actual count when only getting the type.
  */
     type_T *
-internal_func_ret_type(int idx, int argcount, type2_T *argtypes)
+internal_func_ret_type(
+	int	    idx,
+	int	    argcount,
+	type2_T	    *argtypes,
+	type_T	    **decl_type)
 {
-    return global_functions[idx].f_retfunc(argcount, argtypes);
+    type_T *ret;
+
+    *decl_type = NULL;
+    ret = global_functions[idx].f_retfunc(argcount, argtypes, decl_type);
+    if (*decl_type == NULL)
+	*decl_type = ret;
+    return ret;
 }
 
 /*
@@ -3218,7 +3324,7 @@ f_confirm(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
     static void
 f_copy(typval_T *argvars, typval_T *rettv)
 {
-    item_copy(&argvars[0], rettv, FALSE, 0);
+    item_copy(&argvars[0], rettv, FALSE, TRUE, 0);
 }
 
 /*
@@ -3360,7 +3466,7 @@ f_deepcopy(typval_T *argvars, typval_T *rettv)
     else
     {
 	copyID = get_copyID();
-	item_copy(&argvars[0], rettv, TRUE, noref == 0 ? copyID : 0);
+	item_copy(&argvars[0], rettv, TRUE, TRUE, noref == 0 ? copyID : 0);
     }
 }
 
@@ -5103,13 +5209,7 @@ f_has(typval_T *argvars, typval_T *rettv)
 		0
 #endif
 		},
-	{"ebcdic",
-#ifdef EBCDIC
-		1
-#else
-		0
-#endif
-		},
+	{"ebcdic", 0 },
 	{"fname_case",
 #ifndef CASE_INSENSITIVE_FILENAME
 		1

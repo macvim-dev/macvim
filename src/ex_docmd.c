@@ -2715,7 +2715,7 @@ ex_range_without_command(exarg_T *eap)
 /*
  * Check for an Ex command with optional tail.
  * If there is a match advance "pp" to the argument and return TRUE.
- * If "noparen" is TRUE do not recognize the command followed by "(".
+ * If "noparen" is TRUE do not recognize the command followed by "(" or ".".
  */
     static int
 checkforcmd_opt(
@@ -2729,8 +2729,8 @@ checkforcmd_opt(
     for (i = 0; cmd[i] != NUL; ++i)
 	if (((char_u *)cmd)[i] != (*pp)[i])
 	    break;
-    if (i >= len && !isalpha((*pp)[i])
-			   && (*pp)[i] != '_' && (!noparen || (*pp)[i] != '('))
+    if (i >= len && !isalpha((*pp)[i]) && (*pp)[i] != '_'
+			 && (!noparen || ((*pp)[i] != '(' && (*pp)[i] != '.')))
     {
 	*pp = skipwhite(*pp + i);
 	return TRUE;
@@ -2752,7 +2752,7 @@ checkforcmd(
 }
 
 /*
- * Check for an Ex command with optional tail, not followed by "(".
+ * Check for an Ex command with optional tail, not followed by "(" or ".".
  * If there is a match advance "pp" to the argument and return TRUE.
  */
     int
@@ -7366,7 +7366,8 @@ changedir_func(
 {
     char_u	*pdir = NULL;
     int		dir_differs;
-    int		retval = FALSE;
+    char_u	*acmd_fname;
+    char_u	**pp;
 
     if (new_dir == NULL || allbuf_locked())
 	return FALSE;
@@ -7423,38 +7424,32 @@ changedir_func(
     {
 	emsg(_(e_command_failed));
 	vim_free(pdir);
+	return FALSE;
     }
+
+    if (scope == CDSCOPE_WINDOW)
+	pp = &curwin->w_prevdir;
+    else if (scope == CDSCOPE_TABPAGE)
+	pp = &curtab->tp_prevdir;
     else
+	pp = &prev_dir;
+    vim_free(*pp);
+    *pp = pdir;
+
+    post_chdir(scope);
+
+    if (dir_differs)
     {
-	char_u  *acmd_fname;
-	char_u	**pp;
-
 	if (scope == CDSCOPE_WINDOW)
-	    pp = &curwin->w_prevdir;
+	    acmd_fname = (char_u *)"window";
 	else if (scope == CDSCOPE_TABPAGE)
-	    pp = &curtab->tp_prevdir;
+	    acmd_fname = (char_u *)"tabpage";
 	else
-	    pp = &prev_dir;
-	vim_free(*pp);
-	*pp = pdir;
-
-	post_chdir(scope);
-
-	if (dir_differs)
-	{
-	    if (scope == CDSCOPE_WINDOW)
-		acmd_fname = (char_u *)"window";
-	    else if (scope == CDSCOPE_TABPAGE)
-		acmd_fname = (char_u *)"tabpage";
-	    else
-		acmd_fname = (char_u *)"global";
-	    apply_autocmds(EVENT_DIRCHANGED, acmd_fname, new_dir, FALSE,
-								curbuf);
-	}
-	retval = TRUE;
+	    acmd_fname = (char_u *)"global";
+	apply_autocmds(EVENT_DIRCHANGED, acmd_fname, new_dir, FALSE,
+							    curbuf);
     }
-
-    return retval;
+    return TRUE;
 }
 
 /*

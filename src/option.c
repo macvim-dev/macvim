@@ -269,7 +269,7 @@ set_init_1(int clean_arg)
     }
 #endif
 
-#if defined(FEAT_POSTSCRIPT) && (defined(MSWIN) || defined(VMS) || defined(EBCDIC) || defined(MAC) || defined(hpux))
+#if defined(FEAT_POSTSCRIPT) && (defined(MSWIN) || defined(VMS) || defined(MAC) || defined(hpux))
     // Set print encoding on platforms that don't default to latin1
     set_string_default("penc",
 # if defined(MSWIN)
@@ -278,14 +278,10 @@ set_init_1(int clean_arg)
 #  ifdef VMS
 		       (char_u *)"dec-mcs"
 #  else
-#   ifdef EBCDIC
-		       (char_u *)"ebcdic-uk"
-#   else
-#    ifdef MAC
+#   ifdef MAC
 		       (char_u *)"mac-roman"
-#    else // HPUX
+#   else // HPUX
 		       (char_u *)"hp-roman8"
-#    endif
 #   endif
 #  endif
 # endif
@@ -313,6 +309,17 @@ set_init_1(int clean_arg)
      * value.  Also set the global value for local options.
      */
     set_options_default(0);
+
+#ifdef UNIX
+    // Force restricted-mode on for "nologin" or "false" $SHELL
+    p = get_isolated_shell_name();
+    if (p != NULL)
+    {
+	if (fnamecmp(p, "nologin") == 0 || fnamecmp(p, "false") == 0)
+	    restricted = TRUE;
+	vim_free(p);
+    }
+#endif
 
 #ifdef CLEAN_RUNTIMEPATH
     if (clean_arg)
@@ -4028,11 +4035,7 @@ findoption(char_u *arg)
     /*
      * Check for name starting with an illegal character.
      */
-#ifdef EBCDIC
-    if (!islower(arg[0]))
-#else
     if (arg[0] < 'a' || arg[0] > 'z')
-#endif
 	return -1;
 
     is_term_opt = (arg[0] == 't' && arg[1] == '_');

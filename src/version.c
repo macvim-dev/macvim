@@ -231,11 +231,7 @@ static char *(features[]) =
 #else
 	"-dnd",
 #endif
-#ifdef EBCDIC
-	"+ebcdic",
-#else
 	"-ebcdic",
-#endif
 #ifdef FEAT_EMACS_TAGS
 	"+emacs_tags",
 #else
@@ -765,6 +761,60 @@ static char *(features[]) =
 
 static int included_patches[] =
 {   /* Add new patch number below this line */
+/**/
+    4293,
+/**/
+    4292,
+/**/
+    4291,
+/**/
+    4290,
+/**/
+    4289,
+/**/
+    4288,
+/**/
+    4287,
+/**/
+    4286,
+/**/
+    4285,
+/**/
+    4284,
+/**/
+    4283,
+/**/
+    4282,
+/**/
+    4281,
+/**/
+    4280,
+/**/
+    4279,
+/**/
+    4278,
+/**/
+    4277,
+/**/
+    4276,
+/**/
+    4275,
+/**/
+    4274,
+/**/
+    4273,
+/**/
+    4272,
+/**/
+    4271,
+/**/
+    4270,
+/**/
+    4269,
+/**/
+    4268,
+/**/
+    4267,
 /**/
     4266,
 /**/
@@ -9443,7 +9493,7 @@ list_in_columns(char_u **items, int size, int current)
     // The rightmost column doesn't need a separator.
     // Sacrifice it to fit in one more column if possible.
     ncol = (int) (Columns + 1) / width;
-    nrow = item_count / ncol + (item_count % ncol ? 1 : 0);
+    nrow = item_count / ncol + ((item_count % ncol) ? 1 : 0);
 
     // "i" counts columns then rows.  "idx" counts rows then columns.
     for (i = 0; !got_int && i < nrow * ncol; ++i)

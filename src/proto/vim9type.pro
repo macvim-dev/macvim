@@ -2,6 +2,7 @@
 void clear_type_list(garray_T *gap);
 type_T *alloc_type(type_T *type);
 void free_type(type_T *type);
+void set_tv_type(typval_T *tv, type_T *type);
 type_T *get_list_type(type_T *member_type, garray_T *type_gap);
 type_T *get_dict_type(type_T *member_type, garray_T *type_gap);
 type_T *alloc_func_type(type_T *ret_type, int argcount, garray_T *type_gap);
@@ -25,6 +26,7 @@ int push_type_stack(cctx_T *cctx, type_T *type);
 int push_type_stack2(cctx_T *cctx, type_T *type, type_T *decl_type);
 void set_type_on_stack(cctx_T *cctx, type_T *type, int offset);
 type_T *get_type_on_stack(cctx_T *cctx, int offset);
+type_T *get_decl_type_on_stack(cctx_T *cctx, int offset);
 type_T *get_member_type_from_stack(int count, int skip, type_T **decl_type, cctx_T *cctx);
 char *vartype_name(vartype_T type);
 char *type_name(type_T *type, char **tofree);

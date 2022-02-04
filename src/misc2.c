@@ -1208,11 +1208,7 @@ get_special_key_name(int c, int modifiers)
 	}
 	if (table_idx < 0 && !vim_isprintc(c) && c < ' ')
 	{
-#ifdef EBCDIC
-	    c = CtrlChar(c);
-#else
 	    c += '@';
-#endif
 	    modifiers |= MOD_MASK_CTRL;
 	}
     }
@@ -1567,16 +1563,7 @@ extract_modifiers(int key, int *modp, int simplify, int *did_simplify)
 	key = TOUPPER_ASC(key);
 
     if (simplify && (modifiers & MOD_MASK_CTRL)
-#ifdef EBCDIC
-	    // TODO: EBCDIC Better use:
-	    // && (Ctrl_chr(key) || key == '?')
-	    // ???
-	    && strchr("?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_", key)
-						       != NULL
-#else
-	    && ((key >= '?' && key <= '_') || ASCII_ISALPHA(key))
-#endif
-	    )
+	    && ((key >= '?' && key <= '_') || ASCII_ISALPHA(key)))
     {
 	key = Ctrl_chr(key);
 	modifiers &= ~MOD_MASK_CTRL;
@@ -1923,7 +1910,6 @@ vim_chdirfile(char_u *fname, char *trigger_autocmd)
 {
     char_u	old_dir[MAXPATHL];
     char_u	new_dir[MAXPATHL];
-    int		res;
 
     if (mch_dirname(old_dir, MAXPATHL) != OK)
 	*old_dir = NUL;
@@ -1933,16 +1919,15 @@ vim_chdirfile(char_u *fname, char *trigger_autocmd)
 
     if (pathcmp((char *)old_dir, (char *)new_dir, -1) == 0)
 	// nothing to do
-	res = OK;
-    else
-    {
-	res = mch_chdir((char *)new_dir) == 0 ? OK : FAIL;
+	return OK;
 
-	if (res == OK && trigger_autocmd != NULL)
-	    apply_autocmds(EVENT_DIRCHANGED, (char_u *)trigger_autocmd,
+    if (mch_chdir((char *)new_dir) != 0)
+	return FAIL;
+
+    if (trigger_autocmd != NULL)
+	apply_autocmds(EVENT_DIRCHANGED, (char_u *)trigger_autocmd,
 						       new_dir, FALSE, curbuf);
-    }
-    return res;
+    return OK;
 }
 #endif
 
