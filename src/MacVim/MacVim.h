@@ -32,6 +32,9 @@
 #ifndef MAC_OS_X_VERSION_10_12_2
 # define MAC_OS_X_VERSION_10_12_2 101202
 #endif
+#ifndef MAC_OS_X_VERSION_10_13
+# define MAC_OS_X_VERSION_10_13 101300
+#endif
 #ifndef MAC_OS_X_VERSION_10_14
 # define MAC_OS_X_VERSION_10_14 101400
 #endif

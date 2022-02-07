@@ -375,34 +375,6 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         }
 
         NSBundle *mainBundle = [NSBundle mainBundle];
-#if 0
-        OSStatus status;
-        FSRef ref;
-
-        // Launch MacVim using Launch Services (NSWorkspace would be nicer, but
-        // the API to pass Apple Event parameters is broken on 10.4).
-        NSString *path = [mainBundle bundlePath];
-        status = FSPathMakeRef((const UInt8 *)[path UTF8String], &ref, NULL);
-        if (noErr == status) {
-            // Pass parameter to the 'Open' Apple Event that tells MacVim not
-            // to open an untitled window.
-            NSAppleEventDescriptor *desc =
-                    [NSAppleEventDescriptor recordDescriptor];
-            [desc setParamDescriptor:
-                    [NSAppleEventDescriptor descriptorWithBoolean:NO]
-                          forKeyword:keyMMUntitledWindow];
-
-            LSLaunchFSRefSpec spec = { &ref, 0, NULL, [desc aeDesc],
-                    kLSLaunchDefaults, NULL };
-            status = LSOpenFromRefSpec(&spec, NULL);
-        }
-
-        if (noErr != status) {
-        ASLogCrit(@"Failed to launch MacVim (path=%@).%@",
-                  path, MMSymlinkWarningString);
-            return NO;
-        }
-#else
         // Launch MacVim using NSTask.  For some reason the above code using
         // Launch Services sometimes fails on LSOpenFromRefSpec() (when it
         // fails, the dock icon starts bouncing and never stops).  It seems
@@ -412,8 +384,8 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         // NOTE!  Using NSTask to launch the GUI has the negative side-effect
         // that the GUI won't be activated (or raised) so there is a hack in
         // MMAppController which raises the app when a new window is opened.
-        NSMutableArray *args = [NSMutableArray arrayWithObjects:
-            [NSString stringWithFormat:@"-%@", MMNoWindowKey], @"yes", nil];
+        NSArray *args = @[
+                [NSString stringWithFormat:@"-%@", MMNoWindowKey], @"yes"];
         NSString *exeName = [[mainBundle infoDictionary]
                 objectForKey:@"CFBundleExecutable"];
         NSString *path = [mainBundle pathForAuxiliaryExecutable:exeName];
@@ -428,27 +400,27 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         task.standardInput = NSFileHandle.fileHandleWithNullDevice;
         task.standardOutput = NSFileHandle.fileHandleWithNullDevice;
         task.standardError = NSFileHandle.fileHandleWithNullDevice;
-# if MAC_OS_X_VERSION_MAX_ALLOWED >= 101300
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_13
         if (@available(macos 10.13, *)) {
             task.executableURL = [NSURL fileURLWithPath:path];
             [task launchAndReturnError:nil];
         } else
-# endif
+#endif
         {
             task.launchPath = path;
             [task launch];
         }
-#endif
 
         // HACK!  Poll the mach bootstrap server until it returns a valid
         // connection to detect that MacVim has finished launching.  Also set a
         // time-out date so that we don't get stuck doing this forever.
         NSDate *timeOutDate = [NSDate dateWithTimeIntervalSinceNow:10];
         while (![self connection] &&
-                NSOrderedDescending == [timeOutDate compare:[NSDate date]])
+                NSOrderedDescending == [timeOutDate compare:[NSDate date]]) {
             [[NSRunLoop currentRunLoop]
                     runMode:NSDefaultRunLoopMode
                  beforeDate:[NSDate dateWithTimeIntervalSinceNow:.1]];
+        }
 
         // NOTE: [self connection] will set 'connection' as a side-effect.
         if (!connection) {
