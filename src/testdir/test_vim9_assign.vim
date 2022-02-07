@@ -692,6 +692,16 @@ def Test_extend_list()
   END
   v9.CheckDefExecAndScriptFailure(lines, 'E1013: Argument 2: type mismatch, expected list<number> but got list<string>', 4)
   unlet g:myList
+
+  lines =<< trim END
+      vim9script
+      var lds = [1, 2, 3]
+      def Func()
+          echo lds->extend(['x'])
+      enddef
+      defcompile
+  END
+  v9.CheckScriptFailure(lines, 'E1013:')
 enddef
 
 def Test_extend_dict()
@@ -1992,6 +2002,12 @@ def Test_unlet()
   unlet s:somevar
   assert_false(exists('s:somevar'))
   unlet! s:somevar
+
+  if 0
+    unlet g:does_not_exist
+  endif
+
+  v9.CheckDefExecFailure(['unlet v:notfound.key'], 'E1001:')
 
   v9.CheckDefExecFailure([
     'var dd = 111',

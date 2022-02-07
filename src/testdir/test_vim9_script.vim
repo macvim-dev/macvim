@@ -1227,6 +1227,12 @@ def Test_vim9script_fails()
   v9.CheckScriptFailure(['vim9script', 'const str = "asdf"', 'str = "xxx"'], 'E46:')
 
   assert_fails('vim9script', 'E1038:')
+  v9.CheckDefFailure(['vim9script'], 'E1038:')
+
+  # no error when skipping
+  if has('nothing')
+    vim9script
+  endif
 enddef
 
 def Test_script_var_shadows_function()
@@ -1578,6 +1584,14 @@ def Test_if_const_expr()
   if false | echo burp 234 'asd' | endif
   if false
     burp
+  endif
+
+  if 0
+    if 1
+      echo nothing
+    elseif 1
+      echo still nothing
+    endif
   endif
 
   # expression with line breaks skipped

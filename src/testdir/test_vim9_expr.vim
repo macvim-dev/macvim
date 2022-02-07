@@ -1500,6 +1500,12 @@ def Test_expr5_list_add()
       assert_equal([[1, 2]], lln)
   END
   v9.CheckDefAndScriptSuccess(lines)
+
+  lines =<< trim END
+      var ln: list<number> = [0]
+      var lln: list<list<number>> = [ln + []]
+  END
+  v9.CheckDefAndScriptSuccess(lines)
 enddef
 
 " test multiply, divide, modulo
@@ -1827,6 +1833,7 @@ def Test_expr8_string()
 
   v9.CheckDefAndScriptFailure(['var x = "abc'], 'E114:', 1)
   v9.CheckDefAndScriptFailure(["var x = 'abc"], 'E115:', 1)
+  v9.CheckDefFailure(["if 0", "echo 'xx", "endif"], 'E115', 2)
 enddef
 
 def Test_expr8_vimvar()

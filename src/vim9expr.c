@@ -182,6 +182,9 @@ compile_member(int is_slice, int *keeping_dict, cctx_T *cctx)
 		     vartype == VAR_LIST ?  ISN_LISTSLICE : ISN_ANYSLICE,
 							    2) == FAIL)
 		return FAIL;
+	    // a copy is made so the member type is no longer declared
+	    if (typep->type_decl->tt_type == VAR_LIST)
+		typep->type_decl = &t_list_any;
 	}
 	else
 	{
@@ -2824,8 +2827,10 @@ compile_expr1(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
     // Ignore all kinds of errors when not producing code.
     if (cctx->ctx_skip == SKIP_YES)
     {
+	int		prev_did_emsg = did_emsg;
+
 	skip_expr_cctx(arg, cctx);
-	return OK;
+	return did_emsg == prev_did_emsg ? OK : FAIL;
     }
 
     // Evaluate the first expression.
