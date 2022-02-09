@@ -516,6 +516,12 @@ handle_import(
 	goto erret;
     }
 
+    if (sid == current_sctx.sc_sid)
+    {
+	emsg(_(e_script_cannot_import_itself));
+	goto erret;
+    }
+
     import_gap = gap != NULL ? gap : &SCRIPT_ITEM(import_sid)->sn_imports;
     for (i = 0; i < import_gap->ga_len; ++i)
     {
@@ -594,7 +600,8 @@ handle_import(
 	    goto erret;
 	}
 	else if (imported == NULL
-		&& check_defined(as_name, STRLEN(as_name), cctx, FALSE) == FAIL)
+		&& check_defined(as_name, STRLEN(as_name), cctx, NULL,
+								FALSE) == FAIL)
 	    goto erret;
 
 	if (imported == NULL)
@@ -642,6 +649,7 @@ ex_import(exarg_T *eap)
 
 /*
  * Find an exported item in "sid" matching "name".
+ * Either "cctx" or "cstack" is NULL.
  * When it is a variable return the index.
  * When it is a user function return "*ufunc".
  * When not found returns -1 and "*ufunc" is NULL.
@@ -653,6 +661,7 @@ find_exported(
 	ufunc_T	    **ufunc,
 	type_T	    **type,
 	cctx_T	    *cctx,
+	cstack_T    *cstack,
 	int	    verbose)
 {
     int		idx = -1;
@@ -660,7 +669,7 @@ find_exported(
     scriptitem_T *script = SCRIPT_ITEM(sid);
 
     // Find name in "script".
-    idx = get_script_item_idx(sid, name, 0, cctx);
+    idx = get_script_item_idx(sid, name, 0, cctx, cstack);
     if (idx >= 0)
     {
 	sv = ((svar_T *)script->sn_var_vals.ga_data) + idx;

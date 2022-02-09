@@ -256,7 +256,7 @@ compile_load_scriptvar(
     if (!SCRIPT_ID_VALID(current_sctx.sc_sid))
 	return FAIL;
     si = SCRIPT_ITEM(current_sctx.sc_sid);
-    idx = get_script_item_idx(current_sctx.sc_sid, name, 0, cctx);
+    idx = get_script_item_idx(current_sctx.sc_sid, name, 0, cctx, NULL);
     if (idx >= 0)
     {
 	svar_T		*sv = ((svar_T *)si->sn_var_vals.ga_data) + idx;
@@ -316,7 +316,7 @@ compile_load_scriptvar(
 	else
 	{
 	    idx = find_exported(import->imp_sid, exp_name, &ufunc, &type,
-								   cctx, TRUE);
+							    cctx, NULL, TRUE);
 	}
 	*p = cc;
 	*end = p;
@@ -501,7 +501,7 @@ compile_load(
 	    {
 		// "var" can be script-local even without using "s:" if it
 		// already exists in a Vim9 script or when it's imported.
-		if (script_var_exists(*arg, len, cctx) == OK
+		if (script_var_exists(*arg, len, cctx, NULL) == OK
 			|| find_imported(name, 0, FALSE, cctx) != NULL)
 		   res = compile_load_scriptvar(cctx, name, *arg, &end, FALSE);
 

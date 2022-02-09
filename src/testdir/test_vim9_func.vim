@@ -97,7 +97,7 @@ def Test_wrong_function_name()
         echo 'foo'
       endfunc
   END
-  v9.CheckScriptFailure(lines, 'E128:')
+  v9.CheckScriptFailure(lines, 'E1267:')
 
   lines =<< trim END
       vim9script
@@ -105,7 +105,7 @@ def Test_wrong_function_name()
         echo 'foo'
       enddef
   END
-  v9.CheckScriptFailure(lines, 'E128:')
+  v9.CheckScriptFailure(lines, 'E1267:')
 enddef
 
 def Test_autoload_name_mismatch()
@@ -679,6 +679,46 @@ def Test_nested_function()
   assert_equal('ok', g:result)
   unlet g:result
 
+  lines =<< trim END
+      vim9script
+      def Outer()
+        def _Inner()
+          echo 'bad'
+        enddef
+        _Inner()
+      enddef
+      defcompile
+  END
+  v9.CheckScriptFailure(lines, 'E1267:')
+
+  lines =<< trim END
+      vim9script
+      def Outer()
+        def g:inner()
+          echo 'bad'
+        enddef
+        g:inner()
+      enddef
+      defcompile
+  END
+  v9.CheckScriptFailure(lines, 'E1267:')
+
+  lines =<< trim END
+      vim9script
+      def g:_Func()
+        echo 'bad'
+      enddef
+  END
+  v9.CheckScriptFailure(lines, 'E1267:')
+
+  lines =<< trim END
+      vim9script
+      def s:_Func()
+        echo 'bad'
+      enddef
+  END
+  v9.CheckScriptFailure(lines, 'E1267:')
+
   # nested function inside conditional
   lines =<< trim END
       vim9script
@@ -988,10 +1028,71 @@ def Test_call_wrong_args()
     vim9script
     var name = 'piet'
     def FuncOne(name: string)
-      echo nr
+      echo name
     enddef
   END
   v9.CheckScriptFailure(lines, 'E1168:')
+
+  # same, inside the same block
+  lines =<< trim END
+    vim9script
+    if true
+      var name = 'piet'
+      def FuncOne(name: string)
+        echo name
+      enddef
+    endif
+  END
+  v9.CheckScriptFailure(lines, 'E1168:')
+
+  # variable in other block is OK
+  lines =<< trim END
+    vim9script
+    if true
+      var name = 'piet'
+    endif
+    def FuncOne(name: string)
+      echo name
+    enddef
+  END
+  v9.CheckScriptSuccess(lines)
+
+  # with another variable in another block
+  lines =<< trim END
+    vim9script
+    if true
+      var name = 'piet'
+      # define a function so that the variable isn't cleared
+      def GetItem(): string
+        return item
+      enddef
+    endif
+    if true
+      var name = 'peter'
+      def FuncOne(name: string)
+        echo name
+      enddef
+    endif
+  END
+  v9.CheckScriptFailure(lines, 'E1168:')
+
+  # only variable in another block is OK
+  lines =<< trim END
+    vim9script
+    if true
+      var name = 'piet'
+      # define a function so that the variable isn't cleared
+      def GetItem(): string
+        return item
+      enddef
+    endif
+    if true
+      def FuncOne(name: string)
+        echo name
+      enddef
+    endif
+  END
+  v9.CheckScriptSuccess(lines)
 
   # argument name declared later is only found when compiling
   lines =<< trim END
@@ -2748,7 +2849,7 @@ def Test_nested_inline_lambda()
   lines =<< trim END
       vim9script
 
-      def s:func()
+      def s:Func()
         range(10)
           ->mapnew((_, _) => ({
             key: range(10)->mapnew((_, _) => {
@@ -3135,11 +3236,11 @@ func Test_partial_call_fails()
       def Iter(container: any): any
         var idx = -1
         var obj = {state: container}
-        def g:__NextItem__(self: dict<any>): any
+        def g:NextItem__(self: dict<any>): any
           ++idx
           return self.state[idx]
         enddef
-        obj.__next__ = function('g:__NextItem__', [obj])
+        obj.__next__ = function('g:NextItem__', [obj])
         return obj
       enddef
 
@@ -3453,6 +3554,47 @@ def Test_nested_lambda_in_closure()
   endif
   assert_equal(['Done'], readfile('XnestedDone'))
   delete('XnestedDone')
+enddef
+
+def Test_nested_closure_funcref()
+  var lines =<< trim END
+      vim9script
+      def Func()
+          var n: number
+          def Nested()
+              ++n
+          enddef
+          Nested()
+          g:result_one = n
+          var Ref = function(Nested)
+          Ref()
+          g:result_two = n
+      enddef
+      Func()
+  END
+  v9.CheckScriptSuccess(lines)
+  assert_equal(1, g:result_one)
+  assert_equal(2, g:result_two)
+  unlet g:result_one g:result_two
+enddef
+
+def Test_nested_closure_in_dict()
+  var lines =<< trim END
+      vim9script
+      def Func(): dict<any>
+        var n: number
+        def Inc(): number
+          ++n
+          return n
+        enddef
+        return {inc: function(Inc)}
+      enddef
+      disas Func
+      var d = Func()
+      assert_equal(1, d.inc())
+      assert_equal(2, d.inc())
+  END
+  v9.CheckScriptSuccess(lines)
 enddef
 
 def Test_check_func_arg_types()

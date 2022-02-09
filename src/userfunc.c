@@ -55,6 +55,7 @@ func_tbl_get(void)
  * If "argtypes" is not NULL also get the type: "arg: type" (:def function).
  * If "types_optional" is TRUE a missing type is OK, use "any".
  * If "evalarg" is not NULL use it to check for an already declared name.
+ * If "eap" is not NULL use it to check for an already declared name.
  * Return a pointer to after the type.
  * When something is wrong return "arg".
  */
@@ -65,6 +66,7 @@ one_function_arg(
 	garray_T    *argtypes,
 	int	    types_optional,
 	evalarg_T   *evalarg,
+	exarg_T	    *eap,
 	int	    is_vararg,
 	int	    skip)
 {
@@ -87,7 +89,8 @@ one_function_arg(
     // Vim9 script: cannot use script var name for argument. In function: also
     // check local vars and arguments.
     if (!skip && argtypes != NULL && check_defined(arg, p - arg,
-		    evalarg == NULL ? NULL : evalarg->eval_cctx, TRUE) == FAIL)
+			       evalarg == NULL ? NULL : evalarg->eval_cctx,
+			       eap == NULL ? NULL : eap->cstack, TRUE) == FAIL)
 	return arg;
 
     if (newargs != NULL && ga_grow(newargs, 1) == FAIL)
@@ -210,7 +213,7 @@ get_function_args(
     int		*varargs,
     garray_T	*default_args,
     int		skip,
-    exarg_T	*eap,
+    exarg_T	*eap,		// can be NULL
     garray_T	*lines_to_free)
 {
     int		mustend = FALSE;
@@ -279,7 +282,7 @@ get_function_args(
 
 		arg = p;
 		p = one_function_arg(p, newargs, argtypes, types_optional,
-							  evalarg, TRUE, skip);
+						     evalarg, eap, TRUE, skip);
 		if (p == arg)
 		    break;
 		if (*skipwhite(p) == '=')
@@ -295,7 +298,7 @@ get_function_args(
 
 	    arg = p;
 	    p = one_function_arg(p, newargs, argtypes, types_optional,
-							 evalarg, FALSE, skip);
+						    evalarg, eap, FALSE, skip);
 	    if (p == arg)
 		break;
 
@@ -3884,15 +3887,6 @@ trans_function_name(
     // In Vim9 script a user function is script-local by default, unless it
     // starts with a lower case character: dict.func().
     vim9script = ASCII_ISUPPER(*start) && in_vim9script();
-    if (vim9script)
-    {
-	char_u *p;
-
-	// SomeScript#func() is a global function.
-	for (p = start; *p != NUL && *p != '('; ++p)
-	    if (*p == AUTOLOAD_CHAR)
-		vim9script = FALSE;
-    }
 
     /*
      * Copy the function name to allocated memory.
@@ -3904,7 +3898,17 @@ trans_function_name(
     else if (lead > 0 || vim9script)
     {
 	if (!vim9script)
+	{
+	    if (in_vim9script() && lead == 2 && !ASCII_ISUPPER(*lv.ll_name))
+	    {
+		semsg(_(in_vim9script()
+			   ? e_function_name_must_start_with_capital_str
+			   : e_function_name_must_start_with_capital_or_s_str),
+									start);
+		goto theend;
+	    }
 	    lead = 3;
+	}
 	if (vim9script || (lv.ll_exp_name != NULL
 					     && eval_fname_sid(lv.ll_exp_name))
 						       || eval_fname_sid(*pp))
@@ -3925,7 +3929,10 @@ trans_function_name(
     else if (!(flags & TFN_INT) && (builtin_function(lv.ll_name, len)
 				   || (in_vim9script() && *lv.ll_name == '_')))
     {
-	semsg(_(e_function_name_must_start_with_capital_or_s_str), start);
+	semsg(_(in_vim9script()
+			   ? e_function_name_must_start_with_capital_str
+			   : e_function_name_must_start_with_capital_or_s_str),
+									start);
 	goto theend;
     }
     if (!skip && !(flags & TFN_QUIET) && !(flags & TFN_NO_DEREF))

@@ -4454,6 +4454,12 @@ common_function(typval_T *argvars, typval_T *rettv, int is_funcref)
 		    pt->pt_name = name;
 		    func_ref(name);
 		}
+
+		if (arg_pt != NULL)
+		{
+		    pt->pt_outer_partial = arg_pt;
+		    ++arg_pt->pt_refcount;
+		}
 	    }
 	    rettv->v_type = VAR_PARTIAL;
 	    rettv->vval.v_partial = pt;
@@ -10365,7 +10371,7 @@ f_visualmode(typval_T *argvars, typval_T *rettv)
 f_wildmenumode(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
 {
 #ifdef FEAT_WILDMENU
-    if (wild_menu_showing)
+    if (wild_menu_showing || ((State & CMDLINE) && cmdline_pum_active()))
 	rettv->vval.v_number = 1;
 #endif
 }

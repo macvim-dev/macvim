@@ -629,10 +629,10 @@ eval_expr(char_u *arg, exarg_T *eap)
  */
     static char_u *
 deref_function_name(
-	    char_u **arg,
-	    char_u **tofree,
-	    evalarg_T *evalarg,
-	    int verbose)
+	    char_u	**arg,
+	    char_u	**tofree,
+	    evalarg_T	*evalarg,
+	    int		verbose)
 {
     typval_T	ref;
     char_u	*name = *arg;
@@ -975,7 +975,7 @@ get_lval(
 	    cc = *p;
 	    *p = NUL;
 	    if (find_exported(import->imp_sid, lp->ll_name, &ufunc, &type,
-							     NULL, TRUE) == -1)
+						       NULL, NULL, TRUE) == -1)
 	    {
 		*p = cc;
 		return NULL;
@@ -2955,7 +2955,7 @@ eval_addlist(typval_T *tv1, typval_T *tv2)
 
 /*
  * Handle fourth level expression:
- *	+	number addition
+ *	+	number addition, concatenation of list or blob
  *	-	number subtraction
  *	.	string concatenation (if script version is 1)
  *	..	string concatenation
@@ -4526,6 +4526,9 @@ partial_free(partial_T *pt)
     // "out_up" is no longer used, decrement refcount on partial that owns it.
     partial_unref(pt->pt_outer.out_up_partial);
 
+    // Using pt_outer from another partial.
+    partial_unref(pt->pt_outer_partial);
+
     // Decrease the reference count for the context of a closure.  If down
     // to the minimum it may be time to free it.
     if (pt->pt_funcstack != NULL)
@@ -6053,7 +6056,7 @@ handle_subscript(
 	    **arg = NUL;
 
 	    idx = find_exported(rettv->vval.v_number, exp_name, &ufunc, &type,
-						  evalarg->eval_cctx, verbose);
+			    evalarg->eval_cctx, evalarg->eval_cstack, verbose);
 	    **arg = cc;
 
 	    if (idx < 0 && ufunc == NULL)

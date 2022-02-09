@@ -817,6 +817,8 @@ extern int (*dyn_libintl_wputenv)(const wchar_t *envstring);
 #define WILD_ALL		6
 #define WILD_LONGEST		7
 #define WILD_ALL_KEEP		8
+#define WILD_CANCEL		9
+#define WILD_APPLY		10
 
 #define WILD_LIST_NOTFOUND	    0x01
 #define WILD_HOME_REPLACE	    0x02
@@ -1585,10 +1587,10 @@ typedef UINT32_TYPEDEF UINT32_T;
 #endif
 
 /*
- * EMX doesn't have a global way of making open() use binary I/O.
+ * Cygwin doesn't have a global way of making open() use binary I/O.
  * Use O_BINARY for all open() calls.
  */
-#if defined(__CYGWIN32__)
+#ifdef __CYGWIN__
 # define O_EXTRA    O_BINARY
 #else
 # define O_EXTRA    0
