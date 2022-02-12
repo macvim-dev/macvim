@@ -1,4 +1,4 @@
-*vim9.txt*	For Vim version 8.2.  Last change: 2022 Feb 04
+*vim9.txt*	For Vim version 8.2.  Last change: 2022 Feb 11
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -57,13 +57,13 @@ rewrite old scripts, they keep working as before.  You may want to use a few
 `:def` functions for code that needs to be fast.
 
 :vim9[cmd] {cmd}				*:vim9* *:vim9cmd* *E1164*
-		Execute {cmd} using Vim9 script syntax and semantics.
-		Useful when typing a command and in a legacy script or
-		function.
+		Evaluate and execute {cmd} using Vim9 script syntax and
+		semantics.  Useful when typing a command and in a legacy
+		script or function.
 
 :leg[acy] {cmd}					*:leg* *:legacy* *E1189* *E1234*
-		Execute {cmd} using legacy script syntax and semantics.  Only
-		useful in a Vim9 script or a :def function.
+		Evaluate and execute {cmd} using legacy script syntax and
+		semantics.  Only useful in a Vim9 script or a :def function.
 		Note that {cmd} cannot use local variables, since it is parsed
 		with legacy expression syntax.
 
@@ -219,20 +219,18 @@ be given.
 Functions and variables are script-local by default ~
 							*vim9-scopes*
 When using `:function` or `:def` to specify a new function at the script level
-in a Vim9 script, the function is local to the script, as if "s:" was
-prefixed.  Using the "s:" prefix is optional.  To define a global function or
-variable the "g:" prefix must be used.  For functions in an autoload script
-the "name#" prefix is sufficient. >
+in a Vim9 script, the function is local to the script.  Like prefixing "s:" in
+legacy script.  To define a global function or variable the "g:" prefix must
+be used.  For functions in a script that is to be imported and in an autoload
+script "export" needs to be used. >
 	def ThisFunction()          # script-local
-	def s:ThisFunction()        # script-local
 	def g:ThatFunction()        # global
-	def scriptname#function()   # autoload
+	export def Function()       # for import and import autoload
 <						*E1058* *E1075*
 When using `:function` or `:def` to specify a nested function inside a `:def`
 function and no namespace was given, this nested function is local to the code
-block it is defined in.  In a `:def` function it is not possible to define a
-script-local function.  It is possible to define a global function by using
-the "g:" prefix.
+block it is defined in.  It is not possible to define a script-local function.
+It is possible to define a global function by using the "g:" prefix.
 
 When referring to a function and no "s:" or "g:" prefix is used, Vim will
 search for the function:
@@ -244,6 +242,13 @@ start with an upper case letter even when using the "s:" prefix.  In legacy
 script "s:funcref" could be used, because it could not be referred to with
 "funcref".  In Vim9 script it can, therefore "s:Funcref" must be used to avoid
 that the name interferes with builtin functions.
+							*vim9-s-namespace*
+The use of the "s:" prefix is not supported at the Vim9 script level.  All
+functions and variables without a prefix are script-local.
+In :def functions the use of "s:" is optional.  This is because in legacy
+script the "s:" might be needed.  Disallowing the use of "s:" only in a :def
+function in Vim9 script would be a bit confusing.
+In legacy functions the use of "s:" for script items is required, as before.
 
 In all cases the function must be defined before used.  That is when it is
 called, when `:defcompile` causes it to be compiled, or when code that calls
@@ -280,7 +285,9 @@ You want to use this in scripts that use a `finish` command to bail out at
 some point when loaded again.  E.g. when a buffer local option is set: >
 	vim9script noclear
 	setlocal completefunc=SomeFunc
-	if exists('*g:SomeFunc') | finish | endif
+	if exists('*g:SomeFunc')
+	  finish
+	endif
 	def g:SomeFunc()
 	....
 
@@ -1398,13 +1405,23 @@ Results in:
 For script-local variables in Vim9 script the type is checked, also when the
 variable was declared in a legacy function.
 
-When a type has been declared this is attached to a list or string.  When
+When a type has been declared this is attached to a List or Dictionary.  When
 later some expression attempts to change the type an error will be given: >
 	var ll: list<number> = [1, 2, 3]
 	ll->extend(['x'])  # Error, 'x' is not a number
 
-If the type is inferred then the type is allowed to change: >
+If the type is not declared then it is allowed to change: >
 	[1, 2, 3]->extend(['x'])  # result: [1, 2, 3, 'x']
+
+For a variable declaration an inferred type matters: >
+	var ll = [1, 2, 3]
+	ll->extend(['x'])  # Error, 'x' is not a number
+That is because the declaration looks like a list of numbers, thus is
+equivalent to: >
+	var ll: list<number> = [1, 2, 3]
+If you do want a more permissive list you need to declare the type: >
+	var ll: list<any = [1, 2, 3]
+	ll->extend(['x'])  # OK
 
 
 Stricter type checking ~

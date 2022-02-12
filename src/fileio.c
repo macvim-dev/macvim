@@ -2697,7 +2697,7 @@ readfile_linenr(
 }
 
 /*
- * Fill "*eap" to force the 'fileencoding', 'fileformat' and 'binary to be
+ * Fill "*eap" to force the 'fileencoding', 'fileformat' and 'binary' to be
  * equal to the buffer "buf".  Used for calling readfile().
  * Returns OK or FAIL.
  */
@@ -4051,7 +4051,11 @@ buf_check_timestamp(
     char	*mesg = NULL;
     char	*mesg2 = "";
     int		helpmesg = FALSE;
-    int		reload = FALSE;
+    enum {
+	RELOAD_NONE,
+	RELOAD_NORMAL,
+	RELOAD_DETECT
+    }		reload = RELOAD_NONE;
     char	*reason;
 #if defined(FEAT_CON_DIALOG) || defined(FEAT_GUI_DIALOG)
     int		can_reload = FALSE;
@@ -4127,7 +4131,7 @@ buf_check_timestamp(
 	 */
 	else if ((buf->b_p_ar >= 0 ? buf->b_p_ar : p_ar)
 				       && !bufIsChanged(buf) && stat_res >= 0)
-	    reload = TRUE;
+	    reload = RELOAD_NORMAL;
 	else
 	{
 	    if (stat_res < 0)
@@ -4168,7 +4172,9 @@ buf_check_timestamp(
 #ifdef FEAT_EVAL
 		s = get_vim_var_str(VV_FCS_CHOICE);
 		if (STRCMP(s, "reload") == 0 && *reason != 'd')
-		    reload = TRUE;
+		    reload = RELOAD_NORMAL;
+		else if (STRCMP(s, "edit") == 0)
+		    reload = RELOAD_DETECT;
 		else if (STRCMP(s, "ask") == 0)
 		    n = FALSE;
 		else
@@ -4258,9 +4264,9 @@ buf_check_timestamp(
 		else
 		{
 		    switch (do_dialog(VIM_WARNING, (char_u *)_("Warning"),
-					  (char_u *)tbuf,
-					(char_u *)_("&OK\n&Load File\nLoad &All\n&Ignore All"),
-								1, NULL, TRUE))
+			(char_u *)tbuf,
+			(char_u *)_("&OK\n&Load File\nLoad &All\n&Ignore All"),
+			1, NULL, TRUE))
 		    {
 			case 3:
 			    default_reload_choice = 2;
@@ -4273,10 +4279,18 @@ buf_check_timestamp(
 		    }
 		}
 # else
-		if (do_dialog(VIM_WARNING, (char_u *)_("Warning"),
-			    (char_u *)tbuf,
-			  (char_u *)_("&OK\n&Load File"), 1, NULL, TRUE) == 2)
-		    reload = TRUE;
+		switch (do_dialog(VIM_WARNING, (char_u *)_("Warning"),
+			(char_u *)tbuf,
+			(char_u *)_("&OK\n&Load File\nLoad File &and Options"),
+			1, NULL, TRUE))
+		{
+		    case 2:
+			reload = RELOAD_NORMAL;
+			break;
+		    case 3:
+			reload = RELOAD_DETECT;
+			break;
+		}
 # endif
 	    }
 	    else
@@ -4322,10 +4336,10 @@ buf_check_timestamp(
 	}
     }
 
-    if (reload)
+    if (reload != RELOAD_NONE)
     {
 	// Reload the buffer.
-	buf_reload(buf, orig_mode);
+	buf_reload(buf, orig_mode, reload == RELOAD_DETECT);
 #ifdef FEAT_PERSISTENT_UNDO
 	if (buf->b_p_udf && buf->b_ffname != NULL)
 	{
@@ -4361,7 +4375,7 @@ buf_check_timestamp(
  * buf->b_orig_mode may have been reset already.
  */
     void
-buf_reload(buf_T *buf, int orig_mode)
+buf_reload(buf_T *buf, int orig_mode, int reload_options)
 {
     exarg_T	ea;
     pos_T	old_cursor;
@@ -4372,14 +4386,20 @@ buf_reload(buf_T *buf, int orig_mode)
     int		saved = OK;
     aco_save_T	aco;
     int		flags = READ_NEW;
+    int		prepped = OK;
 
     // set curwin/curbuf for "buf" and save some things
     aucmd_prepbuf(&aco, buf);
 
-    // We only want to read the text from the file, not reset the syntax
-    // highlighting, clear marks, diff status, etc.  Force the fileformat
-    // and encoding to be the same.
-    if (prep_exarg(&ea, buf) == OK)
+    // Unless reload_options is set, we only want to read the text from the
+    // file, not reset the syntax highlighting, clear marks, diff status, etc.
+    // Force the fileformat and encoding to be the same.
+    if (reload_options)
+	memset(&ea, 0, sizeof(ea));
+    else
+	prepped = prep_exarg(&ea, buf);
+
+    if (prepped == OK)
     {
 	old_cursor = curwin->w_cursor;
 	old_topline = curwin->w_topline;

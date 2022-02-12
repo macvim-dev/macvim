@@ -1,20 +1,28 @@
-" Vim support file to switch on loading plugins for file types
-"
-" Maintainer:	Bram Moolenaar <Bram@vim.org>
-" Last change:	2022 Feb 04
+vim9script noclear
 
-if exists("did_load_ftplugin")
+# Vim support file to switch on loading plugins for file types
+#
+# Maintainer:	Bram Moolenaar <Bram@vim.org>
+# Last change:	2022 Feb 11
+
+if exists("g:did_load_ftplugin")
   finish
 endif
-let did_load_ftplugin = 1
+g:did_load_ftplugin = 1
 
 augroup filetypeplugin
-  au FileType * call s:LoadFTPlugin()
+  au FileType * call LoadFTPlugin()
 augroup END
 
-def s:LoadFTPlugin()
+if exists('*LoadFTPlugin')
+  # No need to define the function again.
+  finish
+endif
+
+def LoadFTPlugin()
   if exists("b:undo_ftplugin")
-    exe b:undo_ftplugin
+    # We assume b:undo_ftplugin is using legacy script syntax
+    legacy exe b:undo_ftplugin
     unlet! b:undo_ftplugin b:did_ftplugin
   endif
 
