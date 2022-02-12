@@ -4256,29 +4256,36 @@ buf_check_timestamp(
 		    STRCAT(tbuf, mesg2);
 		}
 # ifdef FEAT_GUI_MACVIM
-		if (default_reload_choice > 0)
+		if (gui.in_use)
 		{
-		    if (default_reload_choice == 2)
-			reload = TRUE;
-		}
-		else
-		{
-		    switch (do_dialog(VIM_WARNING, (char_u *)_("Warning"),
-			(char_u *)tbuf,
-			(char_u *)_("&OK\n&Load File\nLoad &All\n&Ignore All"),
-			1, NULL, TRUE))
+		    if (default_reload_choice > 0)
 		    {
-			case 3:
-			    default_reload_choice = 2;
-			case 2:
-			    reload = TRUE;
-			    break;
-			case 4:
-			    default_reload_choice = 1;
-			    break;
+			if (default_reload_choice == 1)
+			    reload = RELOAD_NORMAL;
+		    }
+		    else
+		    {
+			switch (do_dialog(VIM_WARNING, (char_u *)_("Warning"),
+			    (char_u *)tbuf,
+			    (char_u *)_("&OK\n&Load File\nLoad &File and Options\nLoad &All\n&Ignore All"),
+			    1, NULL, TRUE))
+			{
+			    case 4:
+				default_reload_choice = 1;
+			    case 2:
+				reload = RELOAD_NORMAL;
+				break;
+			    case 3:
+				reload = RELOAD_DETECT;
+				break;
+			    case 5:
+				default_reload_choice = 2;
+				break;
+			}
 		    }
 		}
-# else
+		else
+# endif
 		switch (do_dialog(VIM_WARNING, (char_u *)_("Warning"),
 			(char_u *)tbuf,
 			(char_u *)_("&OK\n&Load File\nLoad File &and Options"),
@@ -4291,7 +4298,6 @@ buf_check_timestamp(
 			reload = RELOAD_DETECT;
 			break;
 		}
-# endif
 	    }
 	    else
 #endif
