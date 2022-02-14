@@ -106,6 +106,32 @@ def Test_cmdmod_execute()
   unlet b:undo
   unlet g:undone
   unlet g:undtwo
+
+  # "legacy" does not apply to a loaded script
+  lines =<< trim END
+      vim9script
+      export var exported = 'x'
+  END
+  writefile(lines, 'Xvim9import.vim')
+  lines =<< trim END
+      legacy exe "import './Xvim9import.vim'"
+  END
+  v9.CheckScriptSuccess(lines)
+  delete('Xvim9import.vim')
+
+  # "legacy" does not aply to a called function
+  lines =<< trim END
+      vim9script
+
+      def g:TheFunc()
+        if exists('something')
+          echo 'yes'
+        endif
+      enddef
+      legacy exe 'call g:TheFunc()'
+  END
+  v9.CheckScriptSuccess(lines)
+  delfunc g:TheFunc
 enddef
 
 def Test_edit_wildcards()
@@ -1706,7 +1732,12 @@ def Test_var_not_cmd()
   lines =<< trim END
       s:notexist:repl
   END
-  v9.CheckDefAndScriptFailure(lines, ['E488: Trailing characters: :repl', 'E121: Undefined variable: s:notexist'], 1)
+  v9.CheckDefAndScriptFailure(lines, ['E488: Trailing characters: :repl', 'E1268:'], 1)
+
+  lines =<< trim END
+      notexist:repl
+  END
+  v9.CheckDefAndScriptFailure(lines, ['E476:', 'E492:'], 1)
 
   lines =<< trim END
       s-pat-repl

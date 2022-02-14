@@ -281,7 +281,7 @@ variable_exists(char_u *name, size_t len, cctx_T *cctx)
 		&& (lookup_local(name, len, NULL, cctx) == OK
 		    || arg_exists(name, len, NULL, NULL, NULL, cctx) == OK))
 	    || script_var_exists(name, len, cctx, NULL) == OK
-	    || find_imported(name, len, FALSE, cctx) != NULL;
+	    || find_imported(name, len, FALSE) != NULL;
 }
 
 /*
@@ -291,27 +291,7 @@ variable_exists(char_u *name, size_t len, cctx_T *cctx)
     static int
 item_exists(char_u *name, size_t len, int cmd UNUSED, cctx_T *cctx)
 {
-    int	    is_global;
-    char_u  *p;
-
-    if (variable_exists(name, len, cctx))
-	return TRUE;
-
-    // This is similar to what is in lookup_scriptitem():
-    // Find a function, so that a following "->" works.
-    // Require "(" or "->" to follow, "Cmd" is a user command while "Cmd()" is
-    // a function call.
-    p = skipwhite(name + len);
-
-    if (name[len] == '(' || (p[0] == '-' && p[1] == '>'))
-    {
-	// Do not check for an internal function, since it might also be a
-	// valid command, such as ":split" versus "split()".
-	// Skip "g:" before a function name.
-	is_global = (name[0] == 'g' && name[1] == ':');
-	return find_func(is_global ? name + 2 : name, is_global) != NULL;
-    }
-    return FALSE;
+    return variable_exists(name, len, cctx);
 }
 
 /*
@@ -349,7 +329,7 @@ check_defined(
     if ((cctx != NULL
 		&& (lookup_local(p, len, NULL, cctx) == OK
 		    || arg_exists(p, len, NULL, NULL, NULL, cctx) == OK))
-	    || find_imported(p, len, FALSE, cctx) != NULL
+	    || find_imported(p, len, FALSE) != NULL
 	    || (ufunc = find_func_even_dead(p, 0)) != NULL)
     {
 	// A local or script-local function can shadow a global function.
@@ -614,36 +594,18 @@ find_imported_in_script(char_u *name, size_t len, int sid)
 }
 
 /*
- * Find "name" in imported items of the current script or in "cctx" if not
- * NULL.
+ * Find "name" in imported items of the current script.
  * If "load" is TRUE and the script was not loaded yet, load it now.
  */
     imported_T *
-find_imported(char_u *name, size_t len, int load, cctx_T *cctx)
+find_imported(char_u *name, size_t len, int load)
 {
-    int		    idx;
-    imported_T	    *ret = NULL;
+    imported_T	    *ret;
 
     if (!SCRIPT_ID_VALID(current_sctx.sc_sid))
 	return NULL;
-    if (cctx != NULL)
-	for (idx = 0; idx < cctx->ctx_imports.ga_len; ++idx)
-	{
-	    imported_T *import = ((imported_T *)cctx->ctx_imports.ga_data)
-									 + idx;
 
-	    if (len == 0 ? STRCMP(name, import->imp_name) == 0
-			 : STRLEN(import->imp_name) == len
-				  && STRNCMP(name, import->imp_name, len) == 0)
-	    {
-		ret = import;
-		break;
-	    }
-	}
-
-    if (ret == NULL)
-	ret = find_imported_in_script(name, len, current_sctx.sc_sid);
-
+    ret = find_imported_in_script(name, len, current_sctx.sc_sid);
     if (ret != NULL && load && (ret->imp_flags & IMP_FLAGS_AUTOLOAD))
     {
 	scid_T dummy;
@@ -654,23 +616,6 @@ find_imported(char_u *name, size_t len, int load, cctx_T *cctx)
 							    DOSO_NONE, &dummy);
     }
     return ret;
-}
-
-/*
- * Free all imported variables.
- */
-    static void
-free_imported(cctx_T *cctx)
-{
-    int idx;
-
-    for (idx = 0; idx < cctx->ctx_imports.ga_len; ++idx)
-    {
-	imported_T *import = ((imported_T *)cctx->ctx_imports.ga_data) + idx;
-
-	vim_free(import->imp_name);
-    }
-    ga_clear(&cctx->ctx_imports);
 }
 
 /*
@@ -1384,7 +1329,7 @@ compile_lhs(
 			  : script_var_exists(var_start, lhs->lhs_varlen,
 							    cctx, NULL)) == OK;
 		imported_T  *import =
-			find_imported(var_start, lhs->lhs_varlen, FALSE, cctx);
+			      find_imported(var_start, lhs->lhs_varlen, FALSE);
 
 		if (script_namespace || script_var || import != NULL)
 		{
@@ -1394,7 +1339,7 @@ compile_lhs(
 		    if (is_decl)
 		    {
 			if (script_namespace)
-			    semsg(_(e_cannot_declare_script_variable_in_function),
+			    semsg(_(e_cannot_declare_script_variable_in_function_str),
 								lhs->lhs_name);
 			else
 			    semsg(_(e_variable_already_declared_in_script_str),
@@ -2620,7 +2565,6 @@ compile_def_function(
     ga_init2(&cctx.ctx_locals, sizeof(lvar_T), 10);
     // Each entry on the type stack consists of two type pointers.
     ga_init2(&cctx.ctx_type_stack, sizeof(type2_T), 50);
-    ga_init2(&cctx.ctx_imports, sizeof(imported_T), 10);
     cctx.ctx_type_list = &ufunc->uf_type_list;
     ga_init2(&cctx.ctx_instr, sizeof(isn_T), 50);
     instr = &cctx.ctx_instr;
@@ -3311,7 +3255,6 @@ erret:
 	estack_pop();
 
     ga_clear_strings(&lines_to_free);
-    free_imported(&cctx);
     free_locals(&cctx);
     ga_clear(&cctx.ctx_type_stack);
     return ret;
