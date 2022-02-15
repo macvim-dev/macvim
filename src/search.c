@@ -329,6 +329,8 @@ static spat_T	    saved_last_search_spat;
 static int	    did_save_last_search_spat = 0;
 static int	    saved_last_idx = 0;
 static int	    saved_no_hlsearch = 0;
+static int	    saved_search_match_endcol;
+static int	    saved_search_match_lines;
 
 /*
  * Save and restore the search pattern for incremental highlight search
@@ -372,6 +374,25 @@ restore_last_search_pattern(void)
 # endif
     last_idx = saved_last_idx;
     set_no_hlsearch(saved_no_hlsearch);
+}
+
+/*
+ * Save and restore the incsearch highlighting variables.
+ * This is required so that calling searchcount() at does not invalidate the
+ * incsearch highlighting.
+ */
+    static void
+save_incsearch_state(void)
+{
+    saved_search_match_endcol = search_match_endcol;
+    saved_search_match_lines  = search_match_lines;
+}
+
+    static void
+restore_incsearch_state(void)
+{
+    search_match_endcol = saved_search_match_endcol;
+    search_match_lines  = saved_search_match_lines;
 }
 
     char_u *
@@ -4197,6 +4218,9 @@ f_searchcount(typval_T *argvars, typval_T *rettv)
     }
 
     save_last_search_pattern();
+#ifdef FEAT_SEARCH_EXTRA
+    save_incsearch_state();
+#endif
     if (pattern != NULL)
     {
 	if (*pattern == NUL)
@@ -4217,6 +4241,9 @@ f_searchcount(typval_T *argvars, typval_T *rettv)
 
 the_end:
     restore_last_search_pattern();
+#ifdef FEAT_SEARCH_EXTRA
+    restore_incsearch_state();
+#endif
 }
 
 /*
