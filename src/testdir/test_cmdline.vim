@@ -53,9 +53,13 @@ func Test_complete_list()
     set completeslash=backslash
     call feedkeys(":e Xtest\<Tab>\<C-B>\"\<CR>", 'xt')
     call assert_equal('"e Xtest\', @:)
+    call feedkeys(":e Xtest/\<Tab>\<C-B>\"\<CR>", 'xt')
+    call assert_equal('"e Xtest\a.', @:)
     set completeslash=slash
     call feedkeys(":e Xtest\<Tab>\<C-B>\"\<CR>", 'xt')
     call assert_equal('"e Xtest/', @:)
+    call feedkeys(":e Xtest\\\<Tab>\<C-B>\"\<CR>", 'xt')
+    call assert_equal('"e Xtest/a.', @:)
     set completeslash&
   endif
 
@@ -139,6 +143,7 @@ func Test_complete_wildmenu()
   call assert_equal('"e Xtestfile3 Xtestfile4', @:)
   cd -
 
+  " test for wildmenumode()
   cnoremap <expr> <F2> wildmenumode()
   call feedkeys(":cd Xdir\<Tab>\<F2>\<C-B>\"\<CR>", 'tx')
   call assert_equal('"cd Xdir1/0', @:)
@@ -148,12 +153,7 @@ func Test_complete_wildmenu()
 
   " cleanup
   %bwipe
-  call delete('Xdir1/Xdir2/Xtestfile4')
-  call delete('Xdir1/Xdir2/Xtestfile3')
-  call delete('Xdir1/Xtestfile2')
-  call delete('Xdir1/Xtestfile1')
-  call delete('Xdir1/Xdir2', 'd')
-  call delete('Xdir1', 'd')
+  call delete('Xdir1', 'rf')
   set nowildmenu
 endfunc
 
@@ -264,9 +264,11 @@ endfunc
 func Test_match_completion()
   hi Aardig ctermfg=green
   call feedkeys(":match \<Tab>\<Home>\"\<CR>", 'xt')
-  call assert_equal('"match Aardig', getreg(':'))
+  call assert_equal('"match Aardig', @:)
   call feedkeys(":match \<S-Tab>\<Home>\"\<CR>", 'xt')
-  call assert_equal('"match none', getreg(':'))
+  call assert_equal('"match none', @:)
+  call feedkeys(":match | chist\<Tab>\<C-B>\"\<CR>", 'xt')
+  call assert_equal('"match | chistory', @:)
 endfunc
 
 func Test_highlight_completion()
@@ -387,6 +389,11 @@ func Test_getcompletion()
   let l = getcompletion('run', 'file', 1)
   call assert_true(index(l, 'runtest.vim') < 0)
   set wildignore&
+  " Directory name with space character
+  call mkdir('Xdir with space')
+  call assert_equal(['Xdir with space/'], getcompletion('Xdir\ w', 'shellcmd'))
+  call assert_equal(['./Xdir with space/'], getcompletion('./Xdir', 'shellcmd'))
+  call delete('Xdir with space', 'd')
 
   let l = getcompletion('ha', 'filetype')
   call assert_true(index(l, 'hamster') >= 0)
@@ -608,7 +615,7 @@ func Test_expand_star_star()
   call mkdir('a/b', 'p')
   call writefile(['asdfasdf'], 'a/b/fileXname')
   call feedkeys(":find **/fileXname\<Tab>\<CR>", 'xt')
-  call assert_equal('find a/b/fileXname', getreg(':'))
+  call assert_equal('find a/b/fileXname', @:)
   bwipe!
   call delete('a', 'rf')
 endfunc
@@ -742,6 +749,12 @@ func Test_cmdline_complete_user_cmd()
   call assert_equal('"Foo blue', @:)
   call feedkeys(":Foo b\<Tab>\<Home>\"\<cr>", 'tx')
   call assert_equal('"Foo blue', @:)
+  call feedkeys(":Foo a b\<Tab>\<Home>\"\<cr>", 'tx')
+  call assert_equal('"Foo a blue', @:)
+  call feedkeys(":Foo b\\\<Tab>\<Home>\"\<cr>", 'tx')
+  call assert_equal('"Foo b\', @:)
+  call feedkeys(":Foo b\\x\<Tab>\<Home>\"\<cr>", 'tx')
+  call assert_equal('"Foo b\x', @:)
   delcommand Foo
 endfunc
 
@@ -953,14 +966,6 @@ func Test_cmdline_complete_various()
   call feedkeys(":match Search /pat/\<C-A>\<C-B>\"\<CR>", 'xt')
   call assert_equal("\"match Search /pat/\<C-A>", @:)
 
-  " completion for the :s command
-  call feedkeys(":s/from/to/g\<C-A>\<C-B>\"\<CR>", 'xt')
-  call assert_equal("\"s/from/to/g\<C-A>", @:)
-
-  " completion for the :dlist command
-  call feedkeys(":dlist 10 /pat/ a\<C-A>\<C-B>\"\<CR>", 'xt')
-  call assert_equal("\"dlist 10 /pat/ a\<C-A>", @:)
-
   " completion for the :doautocmd command
   call feedkeys(":doautocmd User MyCmd a.c\<C-A>\<C-B>\"\<CR>", 'xt')
   call assert_equal("\"doautocmd User MyCmd a.c\<C-A>", @:)
@@ -1068,6 +1073,12 @@ func Test_cmdline_complete_various()
   call feedkeys(":1,10 | chist\t\<C-B>\"\<CR>", 'xt')
   call assert_equal('"1,10 | chistory', @:)
 
+  " completion after a :global command
+  call feedkeys(":g/a/chist\t\<C-B>\"\<CR>", 'xt')
+  call assert_equal('"g/a/chistory', @:)
+  call feedkeys(":g/a\\/chist\t\<C-B>\"\<CR>", 'xt')
+  call assert_equal("\"g/a\\/chist\t", @:)
+
   " use <Esc> as the 'wildchar' for completion
   set wildchar=<Esc>
   call feedkeys(":g/a\\xb/clearj\<Esc>\<C-B>\"\<CR>", 'xt')
@@ -1077,12 +1088,22 @@ func Test_cmdline_complete_various()
   call assert_equal('"g/a\xb/clearjumps', @:)
   set wildchar&
 
-  " should be able to complete a file name that starts with a '~'.
   if has('unix')
+    " should be able to complete a file name that starts with a '~'.
     call writefile([], '~Xtest')
     call feedkeys(":e \\~X\<Tab>\<C-B>\"\<CR>", 'xt')
     call assert_equal('"e \~Xtest', @:)
     call delete('~Xtest')
+
+    " should be able to complete a file name that has a '*'
+    call writefile([], 'Xx*Yy')
+    call feedkeys(":e Xx\*\<Tab>\<C-B>\"\<CR>", 'xt')
+    call assert_equal('"e Xx\*Yy', @:)
+    call delete('Xx*Yy')
+
+    " use a literal star
+    call feedkeys(":e \\*\<Tab>\<C-B>\"\<CR>", 'xt')
+    call assert_equal('"e \*', @:)
   endif
 
   call feedkeys(":py3f\<Tab>\<C-B>\"\<CR>", 'xt')
@@ -1097,6 +1118,10 @@ func Test_cmdline_wildignorecase()
   call feedkeys(":e xt\<Tab>\<C-B>\"\<CR>", 'xt')
   call assert_equal('"e XTEST', @:)
   call assert_equal(['XTEST'], getcompletion('xt', 'file'))
+  let g:Sline = ''
+  call feedkeys(":e xt\<C-d>\<F4>\<C-B>\"\<CR>", 'xt')
+  call assert_equal('"e xt', @:)
+  call assert_equal('XTEST', g:Sline)
   set wildignorecase&
   call delete('XTEST')
 endfunc
@@ -1153,7 +1178,7 @@ func Test_tick_mark_in_range()
   " If only the tick is passed as a range and no command is specified, there
   " should not be an error
   call feedkeys(":'\<CR>", 'xt')
-  call assert_equal("'", getreg(':'))
+  call assert_equal("'", @:)
   call assert_fails("',print", 'E78:')
 endfunc
 
@@ -1725,6 +1750,26 @@ func Wildmode_tests()
   call assert_equal('"e a1b2y3z4', @:)
   set wildmenu&
 
+  " Test for longest file name completion with 'fileignorecase'
+  " On MS-Windows, file names are case insensitive.
+  if has('unix')
+    call writefile([], 'XTESTfoo')
+    call writefile([], 'Xtestbar')
+    set nofileignorecase
+    call feedkeys(":e XT\<Tab>\<C-B>\"\<CR>", 'xt')
+    call assert_equal('"e XTESTfoo', @:)
+    call feedkeys(":e Xt\<Tab>\<C-B>\"\<CR>", 'xt')
+    call assert_equal('"e Xtestbar', @:)
+    set fileignorecase
+    call feedkeys(":e XT\<Tab>\<C-B>\"\<CR>", 'xt')
+    call assert_equal('"e Xtest', @:)
+    call feedkeys(":e Xt\<Tab>\<C-B>\"\<CR>", 'xt')
+    call assert_equal('"e Xtest', @:)
+    set fileignorecase&
+    call delete('XTESTfoo')
+    call delete('Xtestbar')
+  endif
+
   %argdelete
   delcommand MyCmd
   delfunc T
@@ -1759,6 +1804,14 @@ func Test_interrupt_compl()
   let interrupted = 0
   try
     call feedkeys(":Tcmd tw\<Tab>\<C-B>\"\<CR>", 'xt')
+  catch /^Vim:Interrupt$/
+    let interrupted = 1
+  endtry
+  call assert_equal(1, interrupted)
+
+  let interrupted = 0
+  try
+    call feedkeys(":Tcmd tw\<C-d>\<C-B>\"\<CR>", 'xt')
   catch /^Vim:Interrupt$/
     let interrupted = 1
   endtry
@@ -1956,28 +2009,34 @@ endfunc
 func Test_wildmenu_dirstack()
   CheckUnix
   %bw!
-  call mkdir('Xdir1/dir2/dir3', 'p')
+  call mkdir('Xdir1/dir2/dir3/dir4', 'p')
   call writefile([], 'Xdir1/file1_1.txt')
   call writefile([], 'Xdir1/file1_2.txt')
   call writefile([], 'Xdir1/dir2/file2_1.txt')
   call writefile([], 'Xdir1/dir2/file2_2.txt')
   call writefile([], 'Xdir1/dir2/dir3/file3_1.txt')
   call writefile([], 'Xdir1/dir2/dir3/file3_2.txt')
-  cd Xdir1/dir2/dir3
+  call writefile([], 'Xdir1/dir2/dir3/dir4/file4_1.txt')
+  call writefile([], 'Xdir1/dir2/dir3/dir4/file4_2.txt')
   set wildmenu
 
+  cd Xdir1/dir2/dir3/dir4
   call feedkeys(":e \<Tab>\<C-B>\"\<CR>", 'xt')
-  call assert_equal('"e file3_1.txt', @:)
+  call assert_equal('"e file4_1.txt', @:)
   call feedkeys(":e \<Tab>\<Up>\<C-B>\"\<CR>", 'xt')
-  call assert_equal('"e ../dir3/', @:)
+  call assert_equal('"e ../dir4/', @:)
   call feedkeys(":e \<Tab>\<Up>\<Up>\<C-B>\"\<CR>", 'xt')
-  call assert_equal('"e ../../dir2/', @:)
+  call assert_equal('"e ../../dir3/', @:)
+  call feedkeys(":e \<Tab>\<Up>\<Up>\<Up>\<C-B>\"\<CR>", 'xt')
+  call assert_equal('"e ../../../dir2/', @:)
   call feedkeys(":e \<Tab>\<Up>\<Up>\<Down>\<C-B>\"\<CR>", 'xt')
-  call assert_equal('"e ../../dir2/dir3/', @:)
+  call assert_equal('"e ../../dir3/dir4/', @:)
   call feedkeys(":e \<Tab>\<Up>\<Up>\<Down>\<Down>\<C-B>\"\<CR>", 'xt')
-  call assert_equal('"e ../../dir2/dir3/file3_1.txt', @:)
-
+  call assert_equal('"e ../../dir3/dir4/file4_1.txt', @:)
   cd -
+  call feedkeys(":e Xdir1/\<Tab>\<Down>\<Down>\<Down>\<C-B>\"\<CR>", 'xt')
+  call assert_equal('"e Xdir1/dir2/dir3/dir4/file4_1.txt', @:)
+
   call delete('Xdir1', 'rf')
   set wildmenu&
 endfunc
@@ -2334,6 +2393,49 @@ func Test_wildmenumode_with_pum()
   call assert_equal('"sign define0', @:)
   set nowildmenu wildoptions&
   cunmap <F2>
+endfunc
+
+" Test for completion after a :substitute command followed by a pipe (|)
+" character
+func Test_cmdline_complete_substitute()
+  call feedkeys(":s | \t\<C-B>\"\<CR>", 'xt')
+  call assert_equal("\"s | \t", @:)
+  call feedkeys(":s/ | \t\<C-B>\"\<CR>", 'xt')
+  call assert_equal("\"s/ | \t", @:)
+  call feedkeys(":s/one | \t\<C-B>\"\<CR>", 'xt')
+  call assert_equal("\"s/one | \t", @:)
+  call feedkeys(":s/one/ | \t\<C-B>\"\<CR>", 'xt')
+  call assert_equal("\"s/one/ | \t", @:)
+  call feedkeys(":s/one/two | \t\<C-B>\"\<CR>", 'xt')
+  call assert_equal("\"s/one/two | \t", @:)
+  call feedkeys(":s/one/two/ | chist\t\<C-B>\"\<CR>", 'xt')
+  call assert_equal('"s/one/two/ | chistory', @:)
+  call feedkeys(":s/one/two/g \t\<C-B>\"\<CR>", 'xt')
+  call assert_equal("\"s/one/two/g \t", @:)
+  call feedkeys(":s/one/two/g | chist\t\<C-B>\"\<CR>", 'xt')
+  call assert_equal("\"s/one/two/g | chistory", @:)
+  call feedkeys(":s/one/t\\/ | \t\<C-B>\"\<CR>", 'xt')
+  call assert_equal("\"s/one/t\\/ | \t", @:)
+  call feedkeys(":s/one/t\"o/ | chist\t\<C-B>\"\<CR>", 'xt')
+  call assert_equal('"s/one/t"o/ | chistory', @:)
+  call feedkeys(":s/one/t|o/ | chist\t\<C-B>\"\<CR>", 'xt')
+  call assert_equal('"s/one/t|o/ | chistory', @:)
+  call feedkeys(":&\t\<C-B>\"\<CR>", 'xt')
+  call assert_equal("\"&\t", @:)
+endfunc
+
+" Test for the :dlist command completion
+func Test_cmdline_complete_dlist()
+  call feedkeys(":dlist 10 /pat/ a\<C-A>\<C-B>\"\<CR>", 'xt')
+  call assert_equal("\"dlist 10 /pat/ a\<C-A>", @:)
+  call feedkeys(":dlist 10 /pat/ \t\<C-B>\"\<CR>", 'xt')
+  call assert_equal("\"dlist 10 /pat/ \t", @:)
+  call feedkeys(":dlist 10 /pa\\t/\t\<C-B>\"\<CR>", 'xt')
+  call assert_equal("\"dlist 10 /pa\\t/\t", @:)
+  call feedkeys(":dlist 10 /pat\\\t\<C-B>\"\<CR>", 'xt')
+  call assert_equal("\"dlist 10 /pat\\\t", @:)
+  call feedkeys(":dlist 10 /pat/ | chist\<Tab>\<C-B>\"\<CR>", 'xt')
+  call assert_equal("\"dlist 10 /pat/ | chistory", @:)
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

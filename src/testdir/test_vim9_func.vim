@@ -3226,6 +3226,14 @@ def Test_partial_call()
   v9.CheckScriptFailure(lines, 'E1235:')
 enddef
 
+def Test_partial_double_nested()
+  var idx = 123
+  var Get = () => idx
+  var Ref = function(Get, [])
+  var RefRef = function(Ref, [])
+  assert_equal(123, RefRef())
+enddef
+
 " Using "idx" from a legacy global function does not work.
 " This caused a crash when called from legacy context.
 func Test_partial_call_fails()
@@ -3762,7 +3770,15 @@ def Test_go_beyond_end_of_cmd()
   v9.CheckScriptFailure(lines, 'E476:')
 enddef
 
+" The following messes up syntax highlight, keep near the end.
 if has('python3')
+  def Test_python3_command()
+    py3 import vim
+    py3 vim.command("g:done = 'yes'")
+    assert_equal('yes', g:done)
+    unlet g:done
+  enddef
+
   def Test_python3_heredoc()
     py3 << trim EOF
       import vim
@@ -3778,7 +3794,6 @@ if has('python3')
   enddef
 endif
 
-" This messes up syntax highlight, keep near the end.
 if has('lua')
   def Test_lua_heredoc()
     g:d = {}

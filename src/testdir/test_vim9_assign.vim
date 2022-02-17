@@ -1359,7 +1359,8 @@ def Test_assignment_failure()
   v9.CheckDefFailure(['var null = 1'], 'E1034:')
   v9.CheckDefFailure(['var this = 1'], 'E1034:')
 
-  v9.CheckDefFailure(['[a; b; c] = g:list'], 'E452:')
+  v9.CheckDefFailure(['[a; b; c] = g:list'], 'E1001:')
+  v9.CheckDefFailure(['var [a; b; c] = g:list'], 'E1080:')
   v9.CheckDefExecFailure(['var a: number',
                        '[a] = test_null_list()'], 'E1093:')
   v9.CheckDefExecFailure(['var a: number',
@@ -1883,6 +1884,19 @@ def Test_var_declaration_fails()
   v9.CheckDefFailure(['var foo.bar = 2'], 'E1087:')
   v9.CheckDefFailure(['var foo[3] = 2'], 'E1087:')
   v9.CheckDefFailure(['const foo: number'], 'E1021:')
+enddef
+
+def Test_var_declaration_inferred()
+  # check that type is set on the list so that extend() fails
+  var lines =<< trim END
+      vim9script
+      def GetList(): list<number>
+        var l = [1, 2, 3]
+        return l
+      enddef
+      echo GetList()->extend(['x'])
+  END
+  v9.CheckScriptFailure(lines, 'E1013:', 6)
 enddef
 
 def Test_script_local_in_legacy()

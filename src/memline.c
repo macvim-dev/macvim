@@ -227,7 +227,7 @@ static linenr_T	lowest_marked = 0;
 #define ML_INSERT	0x12	    // insert line
 #define ML_FIND		0x13	    // just find the line
 #define ML_FLUSH	0x02	    // flush locked block
-#define ML_SIMPLE(x)	(x & 0x10)  // DEL, INS or FIND
+#define ML_SIMPLE(x)	((x) & 0x10)  // DEL, INS or FIND
 
 // argument for ml_upd_block0()
 typedef enum {
@@ -2619,9 +2619,12 @@ ml_get_buf(
 	    siemsg(_(e_ml_get_invalid_lnum_nr), lnum);
 	    --recursive;
 	}
+	ml_flush_line(buf);
+	buf->b_ml.ml_flags &= ~ML_LINE_DIRTY;
 errorret:
 	STRCPY(questions, "???");
 	buf->b_ml.ml_line_len = 4;
+	buf->b_ml.ml_line_lnum = lnum;
 	return questions;
     }
     if (lnum <= 0)			// pretend line 0 is line 1
