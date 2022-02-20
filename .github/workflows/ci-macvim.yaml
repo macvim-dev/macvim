@@ -5,12 +5,12 @@ on:
   pull_request:
 
 env:
-  MACOSX_DEPLOYMENT_TARGET: "10.9"
+  MACOSX_DEPLOYMENT_TARGET: '10.9'
 
   CC: clang
 
-  VERSIONER_PERL_VERSION: "5.18"
-  VERSIONER_PYTHON_VERSION: "2.7"
+  VERSIONER_PERL_VERSION: '5.18'
+  VERSIONER_PYTHON_VERSION: '2.7'
   vi_cv_path_python: /usr/bin/python
   vi_cv_path_python3: /usr/local/bin/python3
   vi_cv_path_plain_lua: /usr/local/bin/lua
@@ -39,10 +39,10 @@ jobs:
       matrix:
         include:
           - os: macos-10.15
-            xcode: "11.7"
+            xcode: '11.7'
           - os: macos-10.15
           - os: macos-11
-            xcode: "13.0"
+            xcode: '13.0'
             publish: true
 
     runs-on: ${{ matrix.os }}
@@ -65,69 +65,19 @@ jobs:
 
       - name: Set up gettext
         if: matrix.publish
-        run: |
-          # Patch the official Homebrew gettext formula to explicitly build for min deployment target
-          cp /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/gettext.rb gettext.rb
-
-          cat << EOF > gettext_diff.patch
-          --- gettext_orig.rb
-          +++ gettext.rb
-          @@ -24,2 +24,3 @@
-             def install
-          +    ENV["MACOSX_DEPLOYMENT_TARGET"] = "${MACOSX_DEPLOYMENT_TARGET}"
-               args = [
-          EOF
-
-          patch gettext.rb gettext_diff.patch
-
-          # Uninstall the already installed gettext because we want to build our own
-          brew uninstall --ignore-dependencies gettext
-
-      - name: Cache gettext
-        id: cache-gettext
-        if: matrix.publish
-        uses: actions/cache@v2
+        uses: ./.github/actions/universal-package
         with:
-          path: /usr/local/Cellar/gettext
-          key: gettext-homebrew-cache-patched-unified-${{ hashFiles('gettext.rb') }}
+          formula: gettext
+          contents: lib/libintl.a,lib/libintl.dylib
 
-      - name: Install gettext
+      # Set up, install, and cache libsodium library for encryption.
+
+      - name: Set up libsodium
         if: matrix.publish
-        env:
-          HOMEBREW_NO_AUTO_UPDATE: 1
-        run: |
-          # This will be a no-op if gettext was cached
-          brew install --formula -s ./gettext.rb
-          # If gettext was cached, this step is necessary to relink it to /usr/local/
-          brew link gettext
-
-      - name: Create universal gettext with arm64 bottle
-        if: matrix.publish && steps.cache-gettext.outputs.cache-hit != 'true'
-        env:
-          HOMEBREW_NO_AUTO_UPDATE: 1
-        run: |
-          set -o verbose
-
-          # Manually download and extract gettext bottle for arm64
-          source /dev/stdin <<<"$(brew info --json gettext | jq -r '"gettext_url=\(.[0].bottle.stable.files.arm64_big_sur.url)", "gettext_ver=\(.[0].versions.stable)"')"
-
-          mkdir gettext_download
-          cd gettext_download
-          wget --no-verbose --header 'Authorization: Bearer QQ==' -O gettext.tar.gz ${gettext_url}
-          tar xf gettext.tar.gz
-
-          # Just for diagnostics, print out the old archs. This should be a thin binary (x86_64)
-          lipo -info /usr/local/lib/libintl.a
-          lipo -info /usr/local/lib/libintl.dylib
-
-          # Create a universal binary by patching the custom built x86_64 one with the downloaded arm64 one.
-          # Modify the actual binaries in /usr/local/Cellar instead of the symlinks to allow caching to work.
-          lipo -create -output /usr/local/Cellar/gettext/${gettext_ver}/lib/libintl.a /usr/local/Cellar/gettext/${gettext_ver}/lib/libintl.a ./gettext/${gettext_ver}/lib/libintl.a
-          lipo -create -output /usr/local/Cellar/gettext/${gettext_ver}/lib/libintl.dylib /usr/local/Cellar/gettext/${gettext_ver}/lib/libintl.dylib ./gettext/${gettext_ver}/lib/libintl.dylib
-
-          # Print out the new archs and verify they are universal with 2 archs.
-          lipo -info /usr/local/lib/libintl.a | grep 'x86_64 arm64'
-          lipo -info /usr/local/lib/libintl.dylib | grep 'x86_64 arm64'
+        uses: ./.github/actions/universal-package
+        with:
+          formula: libsodium
+          contents: lib/libsodium.a,lib/libsodium.dylib
 
       # Set up remaining packages and tools
 

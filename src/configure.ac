@@ -4053,6 +4053,19 @@ if test "$enable_libsodium" = "yes"; then
      printf("%d", sodium_init()); ],
        AC_MSG_RESULT(yes); AC_DEFINE(HAVE_SODIUM),
        AC_MSG_RESULT(no; try installing libsodium-dev); CFLAGS="$ac_save_CFLAGS"; LIBS="$ac_save_LIBS")
+
+  # MacVim: Hack to statically link against libsodium instead of dynamic link, as we can't distribute app bundles with
+  # external linkage dependencies. Clang doesn't support any way to specify static linkage as it prefers dynamic
+  # linkage if a dylib exists in the same folder, and as such we have to manually specify the library path instead
+  # of using -l<lib> syntax. This also means it won't work with AC_TRY_LINK as specifying full lib path only works
+  # if you have separate compile/link stages but AC_TRY_LINK just compiles/link in one command.
+  AC_MSG_CHECKING([for libsodium.a])
+  if test -f ${local_dir}/lib/libsodium.a; then
+    LIBS="$ac_save_LIBS ${local_dir}/lib/libsodium.a"
+    AC_MSG_RESULT([Using ${local_dir}/lib/libsodium.a instead of -lsodium]);
+  else
+    AC_MSG_RESULT([libsodium.a not found - keeping using -lsodium]);
+  fi
 fi
 
 dnl fstatfs() can take 2 to 4 arguments, try to use st_blksize if possible

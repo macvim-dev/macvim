@@ -1,0 +1,84 @@
+name: Universal package
+description: Create universal Homebrew package which contains x86_64 and arm64
+inputs:
+  formula:
+    description: Formura name
+    required: true
+  contents:
+    description: Path for contents in package's keg
+    required: true
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up formula
+      shell: bash
+      run: |
+        echo '::group::Set up formula'
+        set -o pipefail
+        formula=${{ inputs.formula }}
+
+        # Patch the official Homebrew formula to explicitly build for min deployment target
+        brew cat ${formula} | \
+          sed '/^[[:blank:]]*def install$/a\'$'\n    ENV["MACOSX_DEPLOYMENT_TARGET"] = "'${MACOSX_DEPLOYMENT_TARGET}$'"\n' >${formula}.rb
+
+        # Uninstall the already installed formula because we want to build our own
+        brew uninstall --ignore-dependencies ${formula} || true
+        echo '::endgroup::'
+
+    - name: Cache keg
+      id: cache-keg
+      uses: actions/cache@v2
+      with:
+        path: /usr/local/Cellar/${{ inputs.formula }}
+        key: ${{ inputs.formula }}-homebrew-cache-patched-unified-${{ hashFiles(format('{0}.rb', inputs.formula)) }}
+
+    - name: Install formula
+      shell: bash
+      env:
+        HOMEBREW_NO_AUTO_UPDATE: '1'
+      run: |
+        echo '::group::Install formula'
+        formula=${{ inputs.formula }}
+
+        # This will be a no-op if formula was cached
+        brew install --formula -s ./${formula}.rb
+
+        # If formula was cached, this step is necessary to relink it to /usr/local/
+        brew unlink ${formula} && brew link ${formula}
+        echo '::endgroup::'
+
+    - name: Create universal binaries with arm64 bottle
+      if: steps.cache-keg.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        echo '::group::Create universal binaries with arm64 bottle'
+        set -o verbose
+        formula=${{ inputs.formula }}
+        contents=($(IFS=,; for x in ${{ inputs.contents }}; do echo ${x}; done))
+
+        # Manually download and extract a bottle for arm64
+        source /dev/stdin <<<"$(brew info --json ${formula} | \
+          jq -r '.[0] | "bottle_url=\(.bottle.stable.files.arm64_big_sur.url)", "formula_ver=\(.versions.stable)", "formula_rev=\(.revision)"')"
+        if [[ ${formula_rev} -ne 0 ]]; then
+          formula_ver=${formula_ver}_${formula_rev}
+        fi
+
+        workdir=${formula}_download
+        mkdir ${workdir}
+        cd ${workdir}
+        wget --no-verbose --header 'Authorization: Bearer QQ==' -O ${formula}.tar.gz ${bottle_url}
+        tar xf ${formula}.tar.gz
+
+        for content in "${contents[@]}"; do
+          # Just for diagnostics, print out the old archs. This should be a thin binary (x86_64)
+          lipo -info /usr/local/${content}
+
+          # Create a universal binary by patching the custom built x86_64 one with the downloaded arm64 one.
+          # Modify the actual binaries in /usr/local/Cellar instead of the symlinks to allow caching to work.
+          lipo -create -output /usr/local/Cellar/${formula}/${formula_ver}/${content} \
+            /usr/local/Cellar/${formula}/${formula_ver}/${content} ./${formula}/${formula_ver}/${content}
+
+          # Print out the new archs and verify they are universal with 2 archs.
+          lipo -info /usr/local/${content} | grep 'x86_64 arm64'
+        done
+        echo '::endgroup::'
