@@ -517,7 +517,7 @@ arg_filter_func(type_T *type, type_T *decl_type UNUSED, argcontext_T *context)
 }
 
 /*
- * Check second argument of map().
+ * Check second argument of map(), the function.
  */
     static int
 arg_map_func(type_T *type, type_T *decl_type UNUSED, argcontext_T *context)
@@ -530,34 +530,67 @@ arg_map_func(type_T *type, type_T *decl_type UNUSED, argcontext_T *context)
 
     if (type->tt_type == VAR_FUNC)
     {
-	if (type->tt_member != &t_any && type->tt_member != &t_unknown)
+	type_T *expected_ret = NULL;
+	type_T *(args[2]);
+	type_T t_func_exp = {VAR_FUNC, 2, 0, 0, NULL, args};
+
+	if (context->arg_types[0].type_curr->tt_type == VAR_LIST
+		|| context->arg_types[0].type_curr->tt_type == VAR_DICT)
 	{
-	    type_T *expected = NULL;
+	    // Use the declared type if possible, so that an error is given if
+	    // a declared list changes type, but not if a constant list changes
+	    // type.
+	    if (context->arg_types[0].type_decl->tt_type == VAR_LIST
+		    || context->arg_types[0].type_decl->tt_type == VAR_DICT)
+		expected_ret = context->arg_types[0].type_decl->tt_member;
+	    else
+		expected_ret = context->arg_types[0].type_curr->tt_member;
+	}
+	else if (context->arg_types[0].type_curr->tt_type == VAR_STRING)
+	    expected_ret = &t_string;
+	else if (context->arg_types[0].type_curr->tt_type == VAR_BLOB)
+	    expected_ret = &t_number;
 
-	    if (context->arg_types[0].type_curr->tt_type == VAR_LIST
-		    || context->arg_types[0].type_curr->tt_type == VAR_DICT)
+	args[0] = NULL;
+	args[1] = &t_unknown;
+	if (type->tt_argcount != -1)
+	{
+	    if (!(type->tt_argcount == 2 || (type->tt_argcount == 1
+					&& (type->tt_flags & TTFLAG_VARARGS))))
 	    {
-		// Use the declared type, so that an error is given if a
-		// declared list changes type, but not if a constant list
-		// changes type.
-		if (context->arg_types[0].type_decl->tt_type == VAR_LIST
-			|| context->arg_types[0].type_decl->tt_type == VAR_DICT)
-		    expected = context->arg_types[0].type_decl->tt_member;
-		else
-		    expected = context->arg_types[0].type_curr->tt_member;
+		emsg(_(e_invalid_number_of_arguments));
+		return FAIL;
 	    }
-	    else if (context->arg_types[0].type_curr->tt_type == VAR_STRING)
-		expected = &t_string;
-	    else if (context->arg_types[0].type_curr->tt_type == VAR_BLOB)
-		expected = &t_number;
-	    if (expected != NULL)
+	    if (type->tt_flags & TTFLAG_VARARGS)
+		// check the argument types at runtime
+		t_func_exp.tt_argcount = -1;
+	    else
 	    {
-		type_T t_func_exp = {VAR_FUNC, -1, 0, TTFLAG_STATIC,
-								   NULL, NULL};
+		if (context->arg_types[0].type_curr->tt_type == VAR_STRING
+			|| context->arg_types[0].type_curr->tt_type == VAR_BLOB
+			|| context->arg_types[0].type_curr->tt_type == VAR_LIST)
+		    args[0] = &t_number;
+		else if (context->arg_types[0].type_decl->tt_type == VAR_DICT)
+		    args[0] = &t_string;
+		if (args[0] != NULL)
+		    args[1] = expected_ret;
+	    }
+	}
 
-		t_func_exp.tt_member = expected;
-		return check_arg_type(&t_func_exp, type, context);
-	    }
+	if ((type->tt_member != &t_any && type->tt_member != &t_unknown)
+		|| args[0] != NULL)
+	{
+	    where_T where = WHERE_INIT;
+
+	    t_func_exp.tt_member = expected_ret == NULL
+					|| type->tt_member == &t_any
+					|| type->tt_member == &t_unknown
+				    ? &t_any : expected_ret;
+	    if (args[0] == NULL)
+		args[0] = &t_unknown;
+
+	    where.wt_index = 2;
+	    return check_type(&t_func_exp, type, TRUE, where);
 	}
     }
     else
@@ -4332,6 +4365,8 @@ common_function(typval_T *argvars, typval_T *rettv, int is_funcref)
 	    // would also work, but some plugins depend on the name being
 	    // printable text.
 	    name = get_scriptlocal_funcname(s);
+	else if (trans_name != NULL && *trans_name == K_SPECIAL)
+	    name = alloc_printable_func_name(trans_name);
 	else
 	    name = vim_strsave(s);
 

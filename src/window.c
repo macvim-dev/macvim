@@ -111,6 +111,21 @@ log_frame_layout(frame_T *frame)
 #endif
 
 /*
+ * Return the current window, unless in the cmdline window and "prevwin" is
+ * set, then return "prevwin".
+ */
+    win_T *
+prevwin_curwin(void)
+{
+    return
+#ifdef FEAT_CMDWIN
+	// In cmdwin, the alternative buffer should be used.
+	is_in_cmdwin() && prevwin != NULL ? prevwin :
+#endif
+	curwin;
+}
+
+/*
  * All CTRL-W window commands are handled here, called from normal_cmd().
  */
     void
@@ -3932,6 +3947,14 @@ win_new_tabpage(int after)
     tabpage_T	*newtp;
     int		n;
 
+#ifdef FEAT_CMDWIN
+    if (cmdwin_type != 0)
+    {
+	emsg(_(e_invalid_in_cmdline_window));
+	return FAIL;
+    }
+#endif
+
     newtp = alloc_tabpage();
     if (newtp == NULL)
 	return FAIL;
@@ -4373,6 +4396,9 @@ goto_tabpage_tp(
     int		trigger_enter_autocmds,
     int		trigger_leave_autocmds)
 {
+    if (trigger_enter_autocmds || trigger_leave_autocmds)
+	CHECK_CMDWIN;
+
     // Don't repeat a message in another tab page.
     set_keep_msg(NULL, 0);
 

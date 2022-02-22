@@ -3463,7 +3463,8 @@ find_ex_command(
 	char_u *pskip = skip_option_env_lead(eap->cmd);
 
 	if (vim_strchr((char_u *)"{('[\"@&$", *p) != NULL
-	       || ((p = to_name_const_end(pskip)) > eap->cmd && *p != NUL))
+	       || ((p = to_name_const_end(pskip)) > eap->cmd && *p != NUL)
+	       || (p[0] == '0' && p[1] == 'z'))
 	{
 	    int	    oplen;
 	    int	    heredoc;
@@ -3508,6 +3509,8 @@ find_ex_command(
 			    *eap->cmd == '{'
 			    // "'string'->func()" is an expression.
 			 || *eap->cmd == '\''
+			    // '"string"->func()' is an expression.
+			 || (eap->cmd[0] == '0' && eap->cmd[1] == 'z')
 			    // '"string"->func()' is an expression.
 			 || *eap->cmd == '"'
 			    // "g:varname" is an expression.
