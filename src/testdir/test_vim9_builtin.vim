@@ -427,6 +427,21 @@ def Test_call_call()
   call('reverse', [l])
   l->assert_equal([1, 2, 3])
 
+  var lines =<< trim END
+      vim9script
+      def Outer()
+        def g:Inner()
+          g:done = 'Inner'
+        enddef
+        call(g:Inner, [])
+      enddef
+      Outer()
+      assert_equal('Inner', g:done)
+      unlet g:done
+  END
+  v9.CheckScriptSuccess(lines)
+  delfunc g:Inner
+
   v9.CheckDefExecAndScriptFailure(['call(123, [2])'], 'E1256: String or function required for argument 1')
   v9.CheckDefExecAndScriptFailure(['call(true, [2])'], 'E1256: String or function required for argument 1')
   v9.CheckDefAndScriptFailure(['call("reverse", 2)'], ['E1013: Argument 2: type mismatch, expected list<any> but got number', 'E1211: List required for argument 2'])
@@ -1315,17 +1330,6 @@ def Wrong_dict_key_type(items: list<number>): list<number>
 enddef
 
 def Test_filter()
-  v9.CheckDefAndScriptFailure(['filter(1.1, "1")'], ['E1013: Argument 1: type mismatch, expected list<any> but got float', 'E1251: List, Dictionary, Blob or String required for argument 1'])
-  v9.CheckDefAndScriptFailure(['filter([1, 2], 4)'], ['E1256: String or function required for argument 2', 'E1024: Using a Number as a String'])
-
-  var lines =<< trim END
-    def F(i: number, v: any): string
-      return 'bad'
-    enddef
-    echo filter([1, 2, 3], F)
-  END
-  v9.CheckDefAndScriptFailure(lines, ['E1013: Argument 2: type mismatch, expected func(...): bool', 'E1135: Using a String as a Bool:'])
-
   assert_equal([], filter([1, 2, 3], '0'))
   assert_equal([1, 2, 3], filter([1, 2, 3], '1'))
   assert_equal({b: 20}, filter({a: 10, b: 20}, 'v:val == 20'))
@@ -1335,6 +1339,72 @@ def Test_filter()
     return range(3)->filter(Odd)
   enddef
   assert_equal([1], GetFiltered())
+
+  var lines =<< trim END
+      vim9script
+      def Func(): list<string>
+        var MatchWord: func: bool = (_, v) => true
+        var l = ['xxx']
+        return l->filter(MatchWord)
+      enddef
+      assert_equal(['xxx'], Func())
+  END
+  v9.CheckScriptSuccess(lines)
+
+  v9.CheckDefAndScriptFailure(['filter(1.1, "1")'], ['E1013: Argument 1: type mismatch, expected list<any> but got float', 'E1251: List, Dictionary, Blob or String required for argument 1'])
+  v9.CheckDefAndScriptFailure(['filter([1, 2], 4)'], ['E1256: String or function required for argument 2', 'E1024: Using a Number as a String'])
+
+  lines =<< trim END
+    def F(i: number, v: any): string
+      return 'bad'
+    enddef
+    echo filter([1, 2, 3], F)
+  END
+  v9.CheckDefAndScriptFailure(lines, ['E1013: Argument 2: type mismatch, expected func(?number, ?any): bool but got func(number, any): string', 'E1135: Using a String as a Bool:'])
+
+  # check first function argument type
+  lines =<< trim END
+    var l = [1, 2, 3]
+    filter(l, (i: string, v: number) => true)
+  END
+  v9.CheckDefAndScriptFailure(lines, ['E1013: Argument 2: type mismatch, expected func(?number, ?number): bool but got func(string, number): bool', 'E1013: Argument 1: type mismatch, expected string but got number'])
+  lines =<< trim END
+    var d = {a: 1}
+    filter(d, (i: number, v: number) => true)
+  END
+  v9.CheckDefAndScriptFailure(lines, ['E1013: Argument 2: type mismatch, expected func(?string, ?number): bool but got func(number, number): bool', 'E1013: Argument 1: type mismatch, expected number but got string'])
+  lines =<< trim END
+    var b = 0z1122
+    filter(b, (i: string, v: number) => true)
+  END
+  v9.CheckDefAndScriptFailure(lines, ['E1013: Argument 2: type mismatch, expected func(?number, ?number): bool but got func(string, number): bool', 'E1013: Argument 1: type mismatch, expected string but got number'])
+  lines =<< trim END
+    var s = 'text'
+    filter(s, (i: string, v: string) => true)
+  END
+  v9.CheckDefAndScriptFailure(lines, ['E1013: Argument 2: type mismatch, expected func(?number, ?string): bool but got func(string, string): bool', 'E1013: Argument 1: type mismatch, expected string but got number'])
+
+  # check second function argument type
+  lines =<< trim END
+    var l = [1, 2, 3]
+    filter(l, (i: number, v: string) => true)
+  END
+  v9.CheckDefAndScriptFailure(lines, ['E1013: Argument 2: type mismatch, expected func(?number, ?number): bool but got func(number, string): bool', 'E1013: Argument 2: type mismatch, expected string but got number'])
+  lines =<< trim END
+    var d = {a: 1}
+    filter(d, (i: string, v: string) => true)
+  END
+  v9.CheckDefAndScriptFailure(lines, ['E1013: Argument 2: type mismatch, expected func(?string, ?number): bool but got func(string, string): bool', 'E1013: Argument 2: type mismatch, expected string but got number'])
+  lines =<< trim END
+    var b = 0z1122
+    filter(b, (i: number, v: string) => true)
+  END
+  v9.CheckDefAndScriptFailure(lines, ['E1013: Argument 2: type mismatch, expected func(?number, ?number): bool but got func(number, string): bool', 'E1013: Argument 2: type mismatch, expected string but got number'])
+  lines =<< trim END
+    var s = 'text'
+    filter(s, (i: number, v: number) => true)
+  END
+  v9.CheckDefAndScriptFailure(lines, ['E1013: Argument 2: type mismatch, expected func(?number, ?string): bool but got func(number, number): bool', 'E1013: Argument 2: type mismatch, expected number but got string'])
 enddef
 
 def Test_filter_wrong_dict_key_type()
@@ -3737,19 +3807,52 @@ def Test_sort_argument()
     assert_equal([1, 2, 3, 4, 5, 6, 7, 8], l)
   END
   v9.CheckDefAndScriptSuccess(lines)
-  v9.CheckDefAndScriptFailure(['sort("a")'], ['E1013: Argument 1: type mismatch, expected list<any> but got string', 'E1211: List required for argument 1'])
-  v9.CheckDefAndScriptFailure(['sort([1], "", [1])'], ['E1013: Argument 3: type mismatch, expected dict<any> but got list<number>', 'E1206: Dictionary required for argument 3'])
+
+  lines =<< trim END
+      sort([1, 2, 3], (a: any, b: any) => 1)
+  END
+  v9.CheckDefAndScriptSuccess(lines)
+
+  lines =<< trim END
+      vim9script
+      def SortedList(): list<number>
+        var Lambda: func: number = (a, b): number => a - b
+        var l = [3, 2, 1]
+        return l->sort(Lambda)
+      enddef
+      SortedList()->assert_equal([1, 2, 3])
+  END
+  v9.CheckScriptSuccess(lines)
 enddef
 
 def Test_sort_compare_func_fails()
+  v9.CheckDefAndScriptFailure(['sort("a")'], ['E1013: Argument 1: type mismatch, expected list<any> but got string', 'E1211: List required for argument 1'])
+  v9.CheckDefAndScriptFailure(['sort([1], "", [1])'], ['E1013: Argument 3: type mismatch, expected dict<any> but got list<number>', 'E1206: Dictionary required for argument 3'])
+
   var lines =<< trim END
     vim9script
     echo ['a', 'b', 'c']->sort((a: number, b: number) => 0)
   END
   writefile(lines, 'Xbadsort')
   assert_fails('source Xbadsort', ['E1013:', 'E702:'])
-
   delete('Xbadsort')
+
+  lines =<< trim END
+      var l = [1, 2, 3]
+      sort(l, (a: string, b: number) => 1)
+  END
+  v9.CheckDefAndScriptFailure(lines, ['E1013: Argument 2: type mismatch, expected func(?number, ?number): number but got func(string, number): number', 'E1013: Argument 1: type mismatch, expected string but got number'])
+
+  lines =<< trim END
+      var l = ['a', 'b', 'c']
+      sort(l, (a: string, b: number) => 1)
+  END
+  v9.CheckDefAndScriptFailure(lines, ['E1013: Argument 2: type mismatch, expected func(?string, ?string): number but got func(string, number): number', 'E1013: Argument 2: type mismatch, expected number but got string'])
+
+  lines =<< trim END
+      sort([1, 2, 3], (a: number, b: number) => true)
+  END
+  v9.CheckDefAndScriptFailure(lines, ['E1013: Argument 2: type mismatch, expected func(?number, ?number): number but got func(number, number): bool', 'E1138: Using a Bool as a Number'])
 enddef
 
 def Test_spellbadword()

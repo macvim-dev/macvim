@@ -831,7 +831,11 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx, garray_T *lines_to_free)
     {
 	if (!ends_excmd2(name_start, name_end))
 	{
-	    semsg(_(e_invalid_command_str), eap->cmd);
+	    if (*skipwhite(name_end) == '.')
+		semsg(_(e_cannot_define_dict_func_in_vim9_script_str),
+								     eap->cmd);
+	    else
+		semsg(_(e_invalid_command_str), eap->cmd);
 	    return NULL;
 	}
 
@@ -1331,6 +1335,12 @@ compile_lhs(
 		    char_u	*rawname = lhs->lhs_name
 					   + (lhs->lhs_name[1] == ':' ? 2 : 0);
 
+		    if (script_namespace && current_script_is_vim9())
+		    {
+			semsg(_(e_cannot_use_s_colon_in_vim9_script_str),
+								    var_start);
+			return FAIL;
+		    }
 		    if (is_decl)
 		    {
 			if (script_namespace)

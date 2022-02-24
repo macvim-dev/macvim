@@ -380,7 +380,11 @@ static char *(features[]) =
 	"-mouse_dec",
 # endif
 # ifdef FEAT_MOUSE_GPM
+#  ifdef DYNAMIC_GPM
+	"+mouse_gpm/dyn",
+#  else
 	"+mouse_gpm",
+#  endif
 # else
 	"-mouse_gpm",
 # endif
@@ -765,6 +769,54 @@ static char *(features[]) =
 
 static int included_patches[] =
 {   /* Add new patch number below this line */
+/**/
+    4460,
+/**/
+    4459,
+/**/
+    4458,
+/**/
+    4457,
+/**/
+    4456,
+/**/
+    4455,
+/**/
+    4454,
+/**/
+    4453,
+/**/
+    4452,
+/**/
+    4451,
+/**/
+    4450,
+/**/
+    4449,
+/**/
+    4448,
+/**/
+    4447,
+/**/
+    4446,
+/**/
+    4445,
+/**/
+    4444,
+/**/
+    4443,
+/**/
+    4442,
+/**/
+    4441,
+/**/
+    4440,
+/**/
+    4439,
+/**/
+    4438,
+/**/
+    4437,
 /**/
     4436,
 /**/
