@@ -3,7 +3,7 @@ vim9script
 # Vim functions for file type detection
 #
 # Maintainer:	Bram Moolenaar <Bram@vim.org>
-# Last Change:	2022 Feb 05
+# Last Change:	2022 Feb 22
 
 # These functions are moved here from runtime/filetype.vim to make startup
 # faster.
@@ -206,6 +206,10 @@ export def EuphoriaCheck()
 enddef
 
 export def DtraceCheck()
+  if did_filetype()
+    # Filetype was already detected
+    return
+  endif
   var lines = getline(1, min([line("$"), 100]))
   if match(lines, '^module\>\|^import\>') > -1
     # D files often start with a module and/or import statement.

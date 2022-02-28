@@ -4964,7 +4964,7 @@ buf_jump_open_win(buf_T *buf)
 
 /*
  * Jump to the first open window in any tab page that contains buffer "buf",
- * if one exists.
+ * if one exists. First search in the windows present in the current tab page.
  * Returns a pointer to the window found, otherwise NULL.
  */
     win_T *
