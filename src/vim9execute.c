@@ -1027,7 +1027,7 @@ call_by_name(
     {
 	int func_idx = find_internal_func(name);
 
-	if (func_idx < 0)
+	if (func_idx < 0)  // Impossible?
 	    return FAIL;
 	if (check_internal_func(func_idx, argcount) < 0)
 	    return FAIL;
@@ -1452,8 +1452,6 @@ get_split_sourceline(
     char_u		*p;
     char_u		*line;
 
-    if (*sp->nextline == NUL)
-	return NULL;
     p = vim_strchr(sp->nextline, '\n');
     if (p == NULL)
     {
@@ -1911,11 +1909,11 @@ execute_storerange(isn_T *iptr, ectx_T *ectx)
 	    else
 		n2 = (long)tv_get_number_chk(tv_idx2, &error);
 	    if (error)
-		status = FAIL;
+		status = FAIL; // cannot happen?
 	    else
 	    {
 		listitem_T *li1 = check_range_index_one(
-			tv_dest->vval.v_list, &n1, FALSE);
+					     tv_dest->vval.v_list, &n1, FALSE);
 
 		if (li1 == NULL)
 		    status = FAIL;
@@ -3876,6 +3874,25 @@ exec_instructions(ectx_T *ectx)
 			default: res = 0; break;
 		    }
 
+		    --ectx->ec_stack.ga_len;
+		    tv1->v_type = VAR_BOOL;
+		    tv1->vval.v_number = res ? VVAL_TRUE : VVAL_FALSE;
+		}
+		break;
+
+	    case ISN_COMPARENULL:
+		{
+		    typval_T	*tv1 = STACK_TV_BOT(-2);
+		    typval_T	*tv2 = STACK_TV_BOT(-1);
+		    int		res;
+
+		    res = typval_compare_null(tv1, tv2);
+		    if (res == MAYBE)
+			goto on_error;
+		    if (iptr->isn_arg.op.op_type == EXPR_NEQUAL)
+			res = !res;
+		    clear_tv(tv1);
+		    clear_tv(tv2);
 		    --ectx->ec_stack.ga_len;
 		    tv1->v_type = VAR_BOOL;
 		    tv1->vval.v_number = res ? VVAL_TRUE : VVAL_FALSE;
@@ -5903,6 +5920,7 @@ list_instructions(char *pfx, isn_T *instr, int instr_count, ufunc_T *ufunc)
 
 	    case ISN_COMPAREBOOL:
 	    case ISN_COMPARESPECIAL:
+	    case ISN_COMPARENULL:
 	    case ISN_COMPARENR:
 	    case ISN_COMPAREFLOAT:
 	    case ISN_COMPARESTRING:
@@ -5938,6 +5956,7 @@ list_instructions(char *pfx, isn_T *instr, int instr_count, ufunc_T *ufunc)
 			   case ISN_COMPAREBOOL: type = "COMPAREBOOL"; break;
 			   case ISN_COMPARESPECIAL:
 						 type = "COMPARESPECIAL"; break;
+			   case ISN_COMPARENULL: type = "COMPARENULL"; break;
 			   case ISN_COMPARENR: type = "COMPARENR"; break;
 			   case ISN_COMPAREFLOAT: type = "COMPAREFLOAT"; break;
 			   case ISN_COMPARESTRING:
