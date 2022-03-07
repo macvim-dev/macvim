@@ -1347,7 +1347,8 @@ EXTERN char e_comma_required[]
 EXTERN char e_commentstring_must_be_empty_or_contain_str[]
 	INIT(= N_("E537: 'commentstring' must be empty or contain %s"));
 #endif
-// E538 unused
+EXTERN char e_pattern_found_in_every_line_str[]
+	INIT(= N_("E538: Pattern found in every line: %s"));
 EXTERN char e_illegal_character_str[]
 	INIT(= N_("E539: Illegal character <%s>"));
 #ifdef FEAT_STL_OPT
@@ -2765,8 +2766,9 @@ EXTERN char e_type_mismatch_for_v_variable[]
 #endif
 EXTERN char e_yank_register_changed_while_using_it[]
 	INIT(= N_("E1064: Yank register changed while using it"));
+EXTERN char e_command_cannot_be_shortened_str[]
+	INIT(= N_("E1065: Command cannot be shortened: %s"));
 #ifdef FEAT_EVAL
-// E1065 unused
 EXTERN char e_cannot_declare_a_register_str[]
 	INIT(= N_("E1066: Cannot declare a register: %s"));
 EXTERN char e_separator_mismatch_str[]
@@ -2785,14 +2787,18 @@ EXTERN char e_no_white_space_allowed_after_dot[]
 	INIT(= N_("E1074: No white space allowed after dot"));
 EXTERN char e_namespace_not_supported_str[]
 	INIT(= N_("E1075: Namespace not supported: %s"));
-#ifndef FEAT_FLOAT
+# ifndef FEAT_FLOAT
 EXTERN char e_this_vim_is_not_compiled_with_float_support[]
 	INIT(= N_("E1076: This Vim is not compiled with float support"));
-#endif
+# endif
 EXTERN char e_missing_argument_type_for_str[]
 	INIT(= N_("E1077: Missing argument type for %s"));
-// E1078 unused
-// E1079 unused
+#endif
+EXTERN char e_invalid_command_nested_did_you_mean_plusplus_nested[]
+	INIT(= N_("E1078: Invalid command \"nested\", did you mean \"++nested\"?"));
+#ifdef FEAT_EVAL
+EXTERN char e_cannot_declare_variable_on_command_line[]
+	INIT(= N_("E1079: Cannot declare a variable on the command line"));
 EXTERN char e_invalid_assignment[]
 	INIT(= N_("E1080: Invalid assignment"));
 EXTERN char e_cannot_unlet_str[]
@@ -3246,3 +3252,5 @@ EXTERN char e_cannot_use_s_colon_in_vim9_script_str[]
 EXTERN char e_cannot_create_vim9_script_variable_in_function_str[]
 	INIT(= N_("E1269: Cannot create a Vim9 script variable in a function: %s"));
 #endif
+EXTERN char e_cannot_use_s_backslash_in_vim9_script[]
+	INIT(= N_("E1270: Cannot use :s\\/sub/ in Vim9 script"));

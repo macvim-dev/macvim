@@ -1883,7 +1883,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
     lhs_T	lhs;
     long	start_lnum = SOURCING_LNUM;
 
-    // Skip over the "var" or "[var, var]" to get to any "=".
+    // Skip over the "varname" or "[varname, varname]" to get to any "=".
     p = skip_var_list(arg, TRUE, &var_count, &semicolon, TRUE);
     if (p == NULL)
 	return *arg == '[' ? arg : NULL;

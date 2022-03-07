@@ -756,9 +756,18 @@ heredoc_get(exarg_T *eap, char_u *cmd, int script_get)
     void
 ex_var(exarg_T *eap)
 {
+    char_u *p = eap->cmd;
+    int	    has_var;
+
     if (!in_vim9script())
     {
 	semsg(_(e_str_cannot_be_used_in_legacy_vim_script), ":var");
+	return;
+    }
+    has_var = checkforcmd_noparen(&p, "var", 3);
+    if (current_sctx.sc_sid == 0 && has_var)
+    {
+	emsg(_(e_cannot_declare_variable_on_command_line));
 	return;
     }
     ex_let(eap);
@@ -3442,7 +3451,7 @@ set_var_const(
 	if (in_vim9script() && is_export
 		&& SCRIPT_ID_VALID(current_sctx.sc_sid)
 		&& (si = SCRIPT_ITEM(current_sctx.sc_sid))
-						   ->sn_autoload_prefix != NULL)
+						  ->sn_autoload_prefix != NULL)
 	{
 	    // In a vim9 autoload script an exported variable is put in the
 	    // global namespace with the autoload prefix.

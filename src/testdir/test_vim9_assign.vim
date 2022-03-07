@@ -1965,6 +1965,11 @@ def Test_var_declaration_fails()
   v9.CheckDefFailure(['var foo.bar = 2'], 'E1087:')
   v9.CheckDefFailure(['var foo[3] = 2'], 'E1087:')
   v9.CheckDefFailure(['const foo: number'], 'E1021:')
+
+  lines =<< trim END
+      va foo = 123
+  END
+  v9.CheckDefAndScriptFailure(lines, 'E1065:', 1)
 enddef
 
 def Test_var_declaration_inferred()
@@ -2478,23 +2483,6 @@ def Test_abort_after_error()
   assert_fails('so Xtestscript', [expected, expected], 3)
 
   delete('Xtestscript')
-enddef
-
-func Test_declare_command_line()
-  CheckRunVimInTerminal
-  call Run_Test_declare_command_line()
-endfunc
-
-def Run_Test_declare_command_line()
-  # On the command line the type is parsed but not used.
-  # To get rid of the script context have to run this in another Vim instance.
-  var buf = g:RunVimInTerminal('', {'rows': 6})
-  term_sendkeys(buf, ":vim9 var abc: list<list<number>> = [ [1, 2, 3], [4, 5, 6] ]\<CR>")
-  g:TermWait(buf)
-  term_sendkeys(buf, ":echo abc\<CR>")
-  g:TermWait(buf)
-  g:WaitForAssert(() => assert_match('\[\[1, 2, 3\], \[4, 5, 6\]\]', term_getline(buf, 6)))
-  g:StopVimInTerminal(buf)
 enddef
 
 def Test_using_s_var_in_function()

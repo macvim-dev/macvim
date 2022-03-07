@@ -606,6 +606,24 @@ func Test_pum_with_preview_win()
   call delete('Xpreviewscript')
 endfunc
 
+func Test_scrollbar_on_wide_char()
+  CheckScreendump
+
+  let lines =<< trim END
+    call setline(1, ['a', '            啊啊啊',
+                        \ '             哦哦哦',
+                        \ '              呃呃呃'])
+    call setline(5, range(10)->map({i, v -> 'aa' .. v .. 'bb'}))
+  END
+  call writefile(lines, 'Xwidescript')
+  let buf = RunVimInTerminal('-S Xwidescript', #{rows: 10})
+  call term_sendkeys(buf, "A\<C-N>")
+  call VerifyScreenDump(buf, 'Test_scrollbar_on_wide_char', {})
+
+  call StopVimInTerminal(buf)
+  call delete('Xwidescript')
+endfunc
+
 " Test for inserting the tag search pattern in insert mode
 func Test_ins_compl_tag_sft()
   call writefile([
@@ -1276,7 +1294,18 @@ func Test_z1_complete_no_history()
   exe "normal owh\<C-X>\<C-K>"
   exe "normal owh\<C-N>"
   call assert_equal(currmess, execute('messages'))
-  close!
+  bwipe!
+endfunc
+
+" A mapping is not used for the key after CTRL-X.
+func Test_no_mapping_for_ctrl_x_key()
+  new
+  inoremap <C-K> <Cmd>let was_mapped = 'yes'<CR>
+  setlocal dictionary=README.txt
+  call feedkeys("aexam\<C-X>\<C-K> ", 'xt')
+  call assert_equal('example ', getline(1))
+  call assert_false(exists('was_mapped'))
+  bwipe!
 endfunc
 
 " Test for different ways of setting the 'completefunc' option

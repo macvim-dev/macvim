@@ -460,7 +460,7 @@ def Test_try_catch_throw()
     endtry
   catch /wrong/
     add(l, 'caught')
-  fina
+  finally
     add(l, 'finally')
   endtry
   assert_equal(['1', 'caught', 'finally'], l)
@@ -763,6 +763,30 @@ def Test_try_catch_throw()
   v9.CheckDefAndScriptSuccess(lines)
 enddef
 
+def Test_try_var_decl()
+  var lines =<< trim END
+      vim9script
+      try
+        var in_try = 1
+        assert_equal(1, get(s:, 'in_try', -1))
+        throw "getout"
+      catch
+        var in_catch = 2
+        assert_equal(-1, get(s:, 'in_try', -1))
+        assert_equal(2, get(s:, 'in_catch', -1))
+      finally
+        var in_finally = 3
+        assert_equal(-1, get(s:, 'in_try', -1))
+        assert_equal(-1, get(s:, 'in_catch', -1))
+        assert_equal(3, get(s:, 'in_finally', -1))
+      endtry
+      assert_equal(-1, get(s:, 'in_try', -1))
+      assert_equal(-1, get(s:, 'in_catch', -1))
+      assert_equal(-1, get(s:, 'in_finally', -1))
+  END
+  v9.CheckScriptSuccess(lines)
+enddef
+
 def Test_try_ends_in_return()
   var lines =<< trim END
       vim9script
@@ -980,7 +1004,7 @@ enddef
 def s:ReturnFinally(): string
   try
     return 'intry'
-  finall
+  finally
     g:in_finally = 'finally'
   endtry
   return 'end'
@@ -3302,34 +3326,111 @@ enddef
 func Test_no_redraw_when_restoring_cpo()
   CheckScreendump
   CheckFeature timers
+  call Run_test_no_redraw_when_restoring_cpo()
+endfunc
 
-  let lines =<< trim END
+def Run_test_no_redraw_when_restoring_cpo()
+  var lines =<< trim END
     vim9script
     export def Func()
     enddef
   END
-  call mkdir('Xdir/autoload', 'p')
-  call writefile(lines, 'Xdir/autoload/script.vim')
+  mkdir('Xdir/autoload', 'p')
+  writefile(lines, 'Xdir/autoload/script.vim')
 
-  let lines =<< trim END
+  lines =<< trim END
       vim9script
       set cpo+=M
       exe 'set rtp^=' .. getcwd() .. '/Xdir'
       au CmdlineEnter : ++once timer_start(0, (_) => script#Func())
       setline(1, 'some text')
   END
-  call writefile(lines, 'XTest_redraw_cpo')
-  let buf = g:RunVimInTerminal('-S XTest_redraw_cpo', {'rows': 6})
-  call term_sendkeys(buf, "V:")
-  call VerifyScreenDump(buf, 'Test_vim9_no_redraw', {})
+  writefile(lines, 'XTest_redraw_cpo')
+  var buf = g:RunVimInTerminal('-S XTest_redraw_cpo', {'rows': 6})
+  term_sendkeys(buf, "V:")
+  g:VerifyScreenDump(buf, 'Test_vim9_no_redraw', {})
 
-  " clean up
-  call term_sendkeys(buf, "\<Esc>u")
-  call g:StopVimInTerminal(buf)
-  call delete('XTest_redraw_cpo')
-  call delete('Xdir', 'rf')
+  # clean up
+  term_sendkeys(buf, "\<Esc>u")
+  g:StopVimInTerminal(buf)
+  delete('XTest_redraw_cpo')
+  delete('Xdir', 'rf')
+enddef
+
+func Test_reject_declaration()
+  CheckScreendump
+  call Run_test_reject_declaration()
 endfunc
 
+def Run_test_reject_declaration()
+  var buf = g:RunVimInTerminal('', {'rows': 6})
+  term_sendkeys(buf, ":vim9cmd var x: number\<CR>")
+  g:VerifyScreenDump(buf, 'Test_vim9_reject_declaration_1', {})
+  term_sendkeys(buf, ":\<CR>")
+  term_sendkeys(buf, ":vim9cmd g:foo = 123 | echo g:foo\<CR>")
+  g:VerifyScreenDump(buf, 'Test_vim9_reject_declaration_2', {})
+
+  # clean up
+  g:StopVimInTerminal(buf)
+enddef
+
+def Test_minimal_command_name_length()
+  var names = [
+       'cons',
+       'brea',
+       'cat',
+       'catc',
+       'con',
+       'cont',
+       'conti',
+       'contin',
+       'continu',
+       'el',
+       'els',
+       'elsei',
+       'endfo',
+       'en',
+       'end',
+       'endi',
+       'endw',
+       'endt',
+       'endtr',
+       'exp',
+       'expo',
+       'expor',
+       'fina',
+       'finall',
+       'fini',
+       'finis',
+       'imp',
+       'impo',
+       'impor',
+       'retu',
+       'retur',
+       'th',
+       'thr',
+       'thro',
+       'wh',
+       'whi',
+       'whil',
+      ]
+  for name in names
+    v9.CheckDefAndScriptFailure([name .. ' '], 'E1065:')
+  endfor
+
+  var lines =<< trim END
+      vim9script
+      def SomeFunc()
+      endd
+  END
+  v9.CheckScriptFailure(lines, 'E1065:')
+  lines =<< trim END
+      vim9script
+      def SomeFunc()
+      endde
+  END
+  v9.CheckScriptFailure(lines, 'E1065:')
+enddef
 
 def Test_unset_any_variable()
   var lines =<< trim END
@@ -3549,32 +3650,37 @@ def Test_unsupported_commands()
   var lines =<< trim END
       ka
   END
-  v9.CheckDefFailure(lines, 'E476:')
-  v9.CheckScriptFailure(['vim9script'] + lines, 'E492:')
+  v9.CheckDefAndScriptFailure(lines, ['E476:', 'E492:'])
 
   lines =<< trim END
       :1ka
   END
-  v9.CheckDefFailure(lines, 'E476:')
-  v9.CheckScriptFailure(['vim9script'] + lines, 'E492:')
+  v9.CheckDefAndScriptFailure(lines, ['E476:', 'E492:'])
 
   lines =<< trim END
     t
   END
-  v9.CheckDefFailure(lines, 'E1100:')
-  v9.CheckScriptFailure(['vim9script'] + lines, 'E1100:')
+  v9.CheckDefAndScriptFailure(lines, 'E1100:')
 
   lines =<< trim END
     x
   END
-  v9.CheckDefFailure(lines, 'E1100:')
-  v9.CheckScriptFailure(['vim9script'] + lines, 'E1100:')
+  v9.CheckDefAndScriptFailure(lines, 'E1100:')
 
   lines =<< trim END
     xit
   END
-  v9.CheckDefFailure(lines, 'E1100:')
-  v9.CheckScriptFailure(['vim9script'] + lines, 'E1100:')
+  v9.CheckDefAndScriptFailure(lines, 'E1100:')
+
+  lines =<< trim END
+    Print
+  END
+  v9.CheckDefAndScriptFailure(lines, ['E476: Invalid command: Print', 'E492: Not an editor command: Print'])
+
+  lines =<< trim END
+    mode 4
+  END
+  v9.CheckDefAndScriptFailure(lines, ['E476: Invalid command: mode 4', 'E492: Not an editor command: mode 4'])
 enddef
 
 def Test_mapping_line_number()
