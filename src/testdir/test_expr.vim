@@ -157,12 +157,60 @@ endfunc
 
 func Test_loop_over_null_list()
   let lines =<< trim END
-      VAR null_list = test_null_list()
-      for i in null_list
+      VAR nulllist = test_null_list()
+      for i in nulllist
         call assert_report('should not get here')
       endfor
   END
   call v9.CheckLegacyAndVim9Success(lines)
+
+  let lines =<< trim END
+      var nulllist = null_list
+      for i in nulllist
+        call assert_report('should not get here')
+      endfor
+  END
+  call v9.CheckDefAndScriptSuccess(lines)
+
+  let lines =<< trim END
+      let nulllist = null_list
+      for i in nulllist
+        call assert_report('should not get here')
+      endfor
+  END
+  call v9.CheckScriptFailure(lines, 'E121: Undefined variable: null_list')
+endfunc
+
+func Test_compare_with_null()
+  let s:value = v:null
+  call assert_true(s:value == v:null)
+  let s:value = v:true
+  call assert_false(s:value == v:null)
+  let s:value = v:none
+  call assert_false(s:value == v:null)
+  let s:value = 0
+  call assert_true(s:value == v:null)
+  if has('float')
+    let s:value = 0.0
+    call assert_true(s:value == v:null)
+  endif
+  let s:value = ''
+  call assert_false(s:value == v:null)
+  let s:value = 0z
+  call assert_false(s:value == v:null)
+  let s:value = []
+  call assert_false(s:value == v:null)
+  let s:value = {}
+  call assert_false(s:value == v:null)
+  let s:value = function('len')
+  call assert_false(s:value == v:null)
+  if has('job')
+    let s:value = test_null_job()
+    call assert_true(s:value == v:null)
+    let s:value = test_null_channel()
+    call assert_true(s:value == v:null)
+  endif
+  unlet s:value
 endfunc
 
 func Test_setreg_null_list()

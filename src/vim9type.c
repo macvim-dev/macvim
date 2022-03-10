@@ -420,6 +420,8 @@ typval2type_int(typval_T *tv, int copyID, garray_T *type_gap, int flags)
 	}
 	else
 	    name = tv->vval.v_string;
+	if (name == NULL && ufunc == NULL)
+	    return &t_func_unknown;
 	if (name != NULL)
 	{
 	    int idx = find_internal_func(name);
@@ -567,22 +569,19 @@ check_typval_type(type_T *expected, typval_T *actual_tv, where_T where)
 
     if (expected == NULL)
 	return OK;  // didn't expect anything.
+		    //
+    ga_init2(&type_list, sizeof(type_T *), 10);
 
-    // For some values there is no type, assume an error will be given later
-    // for an invalid value.
+    // A null_function and null_partial are special cases, they can be used to
+    // clear a variable.
     if ((actual_tv->v_type == VAR_FUNC && actual_tv->vval.v_string == NULL)
 	    || (actual_tv->v_type == VAR_PARTIAL
 					 && actual_tv->vval.v_partial == NULL))
-    {
-	emsg(_(e_function_reference_is_not_set));
-	return FAIL;
-    }
-
-    ga_init2(&type_list, sizeof(type_T *), 10);
-
-    // When the actual type is list<any> or dict<any> go through the values to
-    // possibly get a more specific type.
-    actual_type = typval2type(actual_tv, get_copyID(), &type_list,
+	actual_type = &t_func_unknown;
+    else
+	// When the actual type is list<any> or dict<any> go through the values
+	// to possibly get a more specific type.
+	actual_type = typval2type(actual_tv, get_copyID(), &type_list,
 					  TVTT_DO_MEMBER | TVTT_MORE_SPECIFIC);
     if (actual_type != NULL)
     {

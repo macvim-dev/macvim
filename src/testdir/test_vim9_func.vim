@@ -3326,7 +3326,7 @@ def Test_partial_call()
       var Expr: func(dict<any>): dict<any>
       const Call = Foo(Expr)
   END
-  v9.CheckScriptFailure(lines, 'E1235:')
+  v9.CheckScriptFailure(lines, 'E1031:')
 enddef
 
 def Test_partial_double_nested()
@@ -3335,6 +3335,15 @@ def Test_partial_double_nested()
   var Ref = function(Get, [])
   var RefRef = function(Ref, [])
   assert_equal(123, RefRef())
+enddef
+
+def Test_partial_null_function()
+  var lines =<< trim END
+      var d: dict<func> = {f: null_function}
+      var Ref = d.f
+      assert_equal('func(...): unknown', typename(Ref))
+  END
+  v9.CheckDefAndScriptSuccess(lines)
 enddef
 
 " Using "idx" from a legacy global function does not work.

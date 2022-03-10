@@ -5730,22 +5730,35 @@ func_has_abort(
 make_partial(dict_T *selfdict_in, typval_T *rettv)
 {
     char_u	*fname;
-    char_u	*tofree = NULL;
-    ufunc_T	*fp;
+    ufunc_T	*fp = NULL;
     char_u	fname_buf[FLEN_FIXED + 1];
     int		error;
     dict_T	*selfdict = selfdict_in;
 
-    if (rettv->v_type == VAR_PARTIAL && rettv->vval.v_partial->pt_func != NULL)
+    if (rettv->v_type == VAR_PARTIAL  && rettv->vval.v_partial != NULL
+				     && rettv->vval.v_partial->pt_func != NULL)
 	fp = rettv->vval.v_partial->pt_func;
     else
     {
 	fname = rettv->v_type == VAR_FUNC ? rettv->vval.v_string
+					 : rettv->vval.v_partial == NULL ? NULL
 					      : rettv->vval.v_partial->pt_name;
-	// Translate "s:func" to the stored function name.
-	fname = fname_trans_sid(fname, fname_buf, &tofree, &error);
-	fp = find_func(fname, FALSE);
-	vim_free(tofree);
+	if (fname == NULL)
+	{
+	    // There is no point binding a dict to a NULL function, just create
+	    // a function reference.
+	    rettv->v_type = VAR_FUNC;
+	    rettv->vval.v_string = NULL;
+	}
+	else
+	{
+	    char_u	*tofree = NULL;
+
+	    // Translate "s:func" to the stored function name.
+	    fname = fname_trans_sid(fname, fname_buf, &tofree, &error);
+	    fp = find_func(fname, FALSE);
+	    vim_free(tofree);
+	}
     }
 
     if (fp != NULL && (fp->uf_flags & FC_DICT))
