@@ -811,11 +811,11 @@ endfunc
 
 " Test for an unsorted tags file
 func Test_tag_sort()
-  call writefile([
+  let l = [
         \ "first\tXfoo\t1",
         \ "ten\tXfoo\t3",
-        \ "six\tXfoo\t2"],
-        \ 'Xtags')
+        \ "six\tXfoo\t2"]
+  call writefile(l, 'Xtags')
   set tags=Xtags
   let code =<< trim [CODE]
     int first() {}
@@ -826,7 +826,14 @@ func Test_tag_sort()
 
   call assert_fails('tag first', 'E432:')
 
+  " When multiple tag files are not sorted, then message should be displayed
+  " multiple times
+  call writefile(l, 'Xtags2')
+  set tags=Xtags,Xtags2
+  call assert_fails('tag first', ['E432:', 'E432:'])
+
   call delete('Xtags')
+  call delete('Xtags2')
   call delete('Xfoo')
   set tags&
   %bwipe
@@ -1570,6 +1577,15 @@ func Test_tagbsearch()
   call assert_equal('Xfoo', bufname())
   call assert_equal(3, line('.'))
   %bw!
+
+  " Binary search fails on EOF
+  call writefile([
+        \ "!_TAG_FILE_ENCODING\tutf-8\t//",
+        \ "!_TAG_FILE_SORTED\t1\t/0=unsorted, 1=sorted, 2=foldcase/",
+        \ "bar\tXfoo\t1",
+        \ "foo\tXfoo\t2"],
+        \ 'Xtags')
+  call assert_fails('tag bbb', 'E426:')
 
   call delete('Xtags')
   call delete('Xfoo')
