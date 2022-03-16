@@ -762,6 +762,7 @@ fill_exarg_from_cctx(exarg_T *eap, cctx_T *cctx)
 {
     eap->getline = exarg_getline;
     eap->cookie = cctx;
+    eap->skip = cctx->ctx_skip == SKIP_YES;
 }
 
 /*
@@ -855,7 +856,8 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx, garray_T *lines_to_free)
 	semsg(_(e_namespace_not_supported_str), name_start);
 	return NULL;
     }
-    if (check_defined(name_start, name_end - name_start, cctx,
+    if (cctx->ctx_skip != SKIP_YES
+	    && check_defined(name_start, name_end - name_start, cctx,
 							  NULL, FALSE) == FAIL)
 	return NULL;
     if (!ASCII_ISUPPER(is_global ? name_start[2] : name_start[0]))
@@ -911,7 +913,7 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx, garray_T *lines_to_free)
 	}
     }
 
-    compile_type = COMPILE_TYPE(ufunc);
+    compile_type = get_compile_type(ufunc);
 #ifdef FEAT_PROFILE
     // If the outer function is profiled, also compile the nested function for
     // profiling.
@@ -2472,6 +2474,30 @@ check_args_shadowing(ufunc_T *ufunc, cctx_T *cctx)
     return r;
 }
 
+/*
+ * Get the compilation type that should be used for "ufunc".
+ * Keep in sync with INSTRUCTIONS().
+ */
+    compiletype_T
+get_compile_type(ufunc_T *ufunc)
+{
+    // Update uf_has_breakpoint if needed.
+    update_has_breakpoint(ufunc);
+
+    if (debug_break_level > 0 || may_break_in_function(ufunc))
+	return CT_DEBUG;
+#ifdef FEAT_PROFILE
+    if (do_profiling == PROF_YES)
+    {
+	if (!ufunc->uf_profiling && has_profiling(FALSE, ufunc->uf_name, NULL))
+	    func_do_profile(ufunc);
+	if (ufunc->uf_profiling)
+	    return CT_PROFILE;
+    }
+#endif
+    return CT_NONE;
+}
+
 
 /*
  * Add a function to the list of :def functions.
@@ -2575,6 +2601,13 @@ compile_def_function(
 	if (add_def_function(ufunc) == FAIL)
 	    return FAIL;
 	new_def_function = TRUE;
+    }
+
+    if ((ufunc->uf_flags & FC_CLOSURE) && outer_cctx == NULL)
+    {
+	semsg(_(e_compiling_closure_without_context_str),
+						   printable_func_name(ufunc));
+	return FAIL;
     }
 
     ufunc->uf_def_status = UF_COMPILING;

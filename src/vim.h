@@ -808,7 +808,8 @@ extern int (*dyn_libintl_wputenv)(const wchar_t *envstring);
 #define EXPAND_ARGLIST		48
 #define EXPAND_DIFF_BUFFERS	49
 #define EXPAND_DISASSEMBLE	50
-#define EXPAND_MACACTION	51
+#define EXPAND_BREAKPOINT	51
+#define EXPAND_MACACTION	52
 
 // Values for exmode_active (0 is no exmode)
 #define EXMODE_NORMAL		1
@@ -1846,20 +1847,6 @@ typedef enum {
     CT_PROFILE,	    // use df_instr_prof
     CT_DEBUG	    // use df_instr_debug, overrules CT_PROFILE
 } compiletype_T;
-
-// Keep in sync with INSTRUCTIONS().
-#ifdef FEAT_PROFILE
-# define COMPILE_TYPE(ufunc) (debug_break_level > 0 \
-	|| may_break_in_function(ufunc) \
-		? CT_DEBUG \
-		: do_profiling == PROF_YES && (ufunc)->uf_profiling \
-			? CT_PROFILE : CT_NONE)
-#else
-# define COMPILE_TYPE(ufunc) debug_break_level > 0 \
-	|| may_break_in_function(ufunc) \
-		? CT_DEBUG \
-		: CT_NONE
-#endif
 
 /*
  * When compiling with 32 bit Perl time_t is 32 bits in the Perl code but 64

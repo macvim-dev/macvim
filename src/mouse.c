@@ -3072,7 +3072,7 @@ mouse_find_win(int *rowp, int *colp, mouse_find_T popup UNUSED)
 }
 
 #if defined(NEED_VCOL2COL) || defined(FEAT_BEVAL) || defined(FEAT_PROP_POPUP) \
-	|| defined(PROTO)
+	|| defined(FEAT_EVAL) || defined(PROTO)
 /*
  * Convert a virtual (screen) column to a character column.
  * The first column is one.
@@ -3106,7 +3106,7 @@ f_getmousepos(typval_T *argvars UNUSED, typval_T *rettv)
     varnumber_T winid = 0;
     varnumber_T winrow = 0;
     varnumber_T wincol = 0;
-    linenr_T	line = 0;
+    linenr_T	lnum = 0;
     varnumber_T column = 0;
 
     if (rettv_dict_alloc(rettv) != OK)
@@ -3140,17 +3140,8 @@ f_getmousepos(typval_T *argvars UNUSED, typval_T *rettv)
 	    col -= left_off;
 	    if (row >= 0 && row < wp->w_height && col >= 0 && col < wp->w_width)
 	    {
-		char_u	*p;
-		int	count;
-
-		mouse_comp_pos(wp, &row, &col, &line, NULL);
-
-		// limit to text length plus one
-		p = ml_get_buf(wp->w_buffer, line, FALSE);
-		count = (int)STRLEN(p);
-		if (col > count)
-		    col = count;
-
+		(void)mouse_comp_pos(wp, &row, &col, &lnum, NULL);
+		col = vcol2col(wp, lnum, col);
 		column = col + 1;
 	    }
 	}
@@ -3158,7 +3149,7 @@ f_getmousepos(typval_T *argvars UNUSED, typval_T *rettv)
     dict_add_number(d, "winid", winid);
     dict_add_number(d, "winrow", winrow);
     dict_add_number(d, "wincol", wincol);
-    dict_add_number(d, "line", (varnumber_T)line);
+    dict_add_number(d, "line", (varnumber_T)lnum);
     dict_add_number(d, "column", column);
 }
 #endif

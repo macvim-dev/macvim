@@ -397,20 +397,8 @@ get_compare_isn(
 			       vartype_name(vartype1), vartype_name(vartype2));
 	    return ISN_DROP;
 	}
-	switch (vartype1 == VAR_SPECIAL ? vartype2 : vartype1)
-	{
-	    case VAR_BLOB: break;
-	    case VAR_CHANNEL: break;
-	    case VAR_DICT: break;
-	    case VAR_FUNC: break;
-	    case VAR_JOB: break;
-	    case VAR_LIST: break;
-	    case VAR_PARTIAL: break;
-	    case VAR_STRING: break;
-	    default: semsg(_(e_cannot_compare_str_with_str),
-			       vartype_name(vartype1), vartype_name(vartype2));
-		     return ISN_DROP;
-	}
+	// although comparing null with number, float or bool is not useful, we
+	// allow it
 	isntype = ISN_COMPARENULL;
     }
 
@@ -1207,8 +1195,10 @@ generate_FUNCREF(cctx_T *cctx, ufunc_T *ufunc)
     cctx->ctx_has_closure = 1;
 
     // If the referenced function is a closure, it may use items further up in
-    // the nested context, including this one.
-    if (ufunc->uf_flags & FC_CLOSURE)
+    // the nested context, including this one.  But not a function defined at
+    // the script level.
+    if ((ufunc->uf_flags & FC_CLOSURE)
+			       && func_name_refcount(cctx->ctx_ufunc->uf_name))
 	cctx->ctx_ufunc->uf_flags |= FC_CLOSURE;
 
     type = ufunc->uf_func_type == NULL ? &t_func_any : ufunc->uf_func_type;
@@ -1487,6 +1477,7 @@ generate_CALL(cctx_T *cctx, ufunc_T *ufunc, int pushed_argcount)
 	    && ufunc->uf_def_status != UF_COMPILE_ERROR)
     {
 	int		i;
+	compiletype_T	compile_type;
 
 	for (i = 0; i < argcount; ++i)
 	{
@@ -1519,9 +1510,10 @@ generate_CALL(cctx_T *cctx, ufunc_T *ufunc, int pushed_argcount)
 		return FAIL;
 	    }
 	}
-	if (func_needs_compiling(ufunc, COMPILE_TYPE(ufunc))
+	compile_type = get_compile_type(ufunc);
+	if (func_needs_compiling(ufunc, compile_type)
 		&& compile_def_function(ufunc, ufunc->uf_ret_type == NULL,
-					    COMPILE_TYPE(ufunc), NULL) == FAIL)
+						   compile_type, NULL) == FAIL)
 	    return FAIL;
     }
     if (ufunc->uf_def_status == UF_COMPILE_ERROR)
