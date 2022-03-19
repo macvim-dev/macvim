@@ -2253,6 +2253,13 @@ def Test_for_loop_unpack()
         res->add(n)
       endfor
       assert_equal([2, 5], res)
+
+      var text: list<string> = ["hello there", "goodbye now"]
+      var splitted = ''
+      for [first; next] in mapnew(text, (i, v) => split(v))
+          splitted ..= string(first) .. string(next) .. '/'
+      endfor
+      assert_equal("'hello'['there']/'goodbye'['now']/", splitted)
   END
   v9.CheckDefAndScriptSuccess(lines)
 
@@ -3942,10 +3949,6 @@ def Test_profile_with_lambda()
       enddef
 
       def Profile()
-        profile start Xprofile.log
-        profile func ProfiledWithLambda
-        # mark ProfiledNested for profiling to avoid E1271
-        profile func ProfiledNested
         ProfiledWithLambda()
         ProfiledNested()
 
@@ -3957,8 +3960,20 @@ def Test_profile_with_lambda()
         profdel func *
         profile pause
       enddef
-      Profile()
-      writefile(['done'], 'Xdidprofile')
+
+      var result = 'done'
+      try
+        # mark functions for profiling now to avoid E1271
+        profile start Xprofile.log
+        profile func ProfiledWithLambda
+        profile func ProfiledNested
+
+        Profile()
+      catch
+        result = 'failed: ' .. v:exception
+      finally
+        writefile([result], 'Xdidprofile')
+      endtry
   END
   writefile(lines, 'Xprofile.vim')
   call system(g:GetVimCommand()
@@ -3972,6 +3987,21 @@ def Test_profile_with_lambda()
   delete('Xdidprofile')
   delete('Xprofile.log')
   delete('Xprofile.vim')
+enddef
+
+func Test_misplaced_type()
+  CheckRunVimInTerminal
+  call Run_Test_misplaced_type()
+endfunc
+
+def Run_Test_misplaced_type()
+  writefile(['let g:somevar = "asdf"'], 'XTest_misplaced_type')
+  var buf = g:RunVimInTerminal('-S XTest_misplaced_type', {'rows': 6})
+  term_sendkeys(buf, ":vim9cmd echo islocked('g:somevar: string')\<CR>")
+  g:VerifyScreenDump(buf, 'Test_misplaced_type', {})
+
+  g:StopVimInTerminal(buf)
+  delete('XTest_misplaced_type')
 enddef
 
 " Keep this last, it messes up highlighting.

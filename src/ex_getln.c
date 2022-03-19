@@ -1606,6 +1606,7 @@ getcmdline_int(
     cmdline_info_T save_ccline;
     int		did_save_ccline = FALSE;
     int		cmdline_type;
+    int		wild_type;
 
     if (ccline.cmdbuff != NULL)
     {
@@ -1757,6 +1758,7 @@ getcmdline_int(
     for (;;)
     {
 	int trigger_cmdlinechanged = TRUE;
+	int end_wildmenu;
 
 	redir_off = TRUE;	// Don't redirect the typed command.
 				// Repeated, because a ":redir" inside
@@ -1866,10 +1868,7 @@ getcmdline_int(
 	    // text.
 	    if (c == Ctrl_E || c == Ctrl_Y)
 	    {
-		int	wild_type;
-
 		wild_type = (c == Ctrl_E) ? WILD_CANCEL : WILD_APPLY;
-
 		if (nextwild(&xpc, wild_type, WILD_NO_BEEP,
 							firstc != '@') == FAIL)
 		    break;
@@ -1878,10 +1877,21 @@ getcmdline_int(
 	}
 #endif
 
+	// The wildmenu is cleared if the pressed key is not used for
+	// navigating the wild menu (i.e. the key is not 'wildchar' or
+	// 'wildcharm' or Ctrl-N or Ctrl-P or Ctrl-A or Ctrl-L).
+	// If the popup menu is displayed, then PageDown and PageUp keys are
+	// also used to navigate the menu.
+	end_wildmenu = (!(c == p_wc && KeyTyped) && c != p_wcm
+		&& c != Ctrl_N && c != Ctrl_P && c != Ctrl_A && c != Ctrl_L);
+#ifdef FEAT_WILDMENU
+	end_wildmenu = end_wildmenu && (!cmdline_pum_active() ||
+			    (c != K_PAGEDOWN && c != K_PAGEUP
+			     && c != K_KPAGEDOWN && c != K_KPAGEUP));
+#endif
+
 	// free expanded names when finished walking through matches
-	if (!(c == p_wc && KeyTyped) && c != p_wcm
-		&& c != Ctrl_N && c != Ctrl_P && c != Ctrl_A
-		&& c != Ctrl_L)
+	if (end_wildmenu)
 	{
 #ifdef FEAT_WILDMENU
 	    if (cmdline_pum_active())
@@ -2301,8 +2311,8 @@ getcmdline_int(
 	case Ctrl_P:	    // previous match
 		if (xpc.xp_numfiles > 0)
 		{
-		    if (nextwild(&xpc, (c == Ctrl_P) ? WILD_PREV : WILD_NEXT,
-						    0, firstc != '@') == FAIL)
+		    wild_type = (c == Ctrl_P) ? WILD_PREV : WILD_NEXT;
+		    if (nextwild(&xpc, wild_type, 0, firstc != '@') == FAIL)
 			break;
 		    goto cmdline_not_changed;
 		}
@@ -2315,12 +2325,30 @@ getcmdline_int(
 	case K_KPAGEUP:
 	case K_PAGEDOWN:
 	case K_KPAGEDOWN:
-		res = cmdline_browse_history(c, firstc, &lookfor, histype,
-			&hiscnt, &xpc);
-		if (res == CMDLINE_CHANGED)
-		    goto cmdline_changed;
-		else if (res == GOTO_NORMAL_MODE)
-		    goto returncmd;
+#ifdef FEAT_WILDMENU
+		if (cmdline_pum_active()
+			&& (c == K_PAGEUP || c == K_PAGEDOWN ||
+			    c == K_KPAGEUP || c == K_KPAGEDOWN))
+		{
+		    // If the popup menu is displayed, then PageUp and PageDown
+		    // are used to scroll the menu.
+		    wild_type = WILD_PAGEUP;
+		    if (c == K_PAGEDOWN || c == K_KPAGEDOWN)
+			wild_type = WILD_PAGEDOWN;
+		    if (nextwild(&xpc, wild_type, 0, firstc != '@') == FAIL)
+			break;
+		    goto cmdline_not_changed;
+		}
+		else
+#endif
+		{
+		    res = cmdline_browse_history(c, firstc, &lookfor, histype,
+			    &hiscnt, &xpc);
+		    if (res == CMDLINE_CHANGED)
+			goto cmdline_changed;
+		    else if (res == GOTO_NORMAL_MODE)
+			goto returncmd;
+		}
 		goto cmdline_not_changed;
 
 #ifdef FEAT_SEARCH_EXTRA
