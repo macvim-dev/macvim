@@ -2048,9 +2048,6 @@ execute_unletindex(isn_T *iptr, ectx_T *ectx)
 		    semsg(_(e_list_index_out_of_range_nr), n);
 		    status = FAIL;
 		}
-		else if (value_check_lock(li->li_tv.v_lock,
-						  NULL, FALSE))
-		    status = FAIL;
 		else
 		    listitem_remove(l, li);
 	    }
@@ -2133,11 +2130,9 @@ execute_unletrange(isn_T *iptr, ectx_T *ectx)
 		    semsg(_(e_list_index_out_of_range_nr), n2);
 		    status = FAIL;
 		}
-		if (status != FAIL
-			&& list_unlet_range(l, li, NULL, n1,
-			    tv_idx2->v_type != VAR_SPECIAL, n2)
-						       == FAIL)
-		    status = FAIL;
+		if (status != FAIL)
+		    list_unlet_range(l, li, n1,
+					   tv_idx2->v_type != VAR_SPECIAL, n2);
 	    }
 	}
     }
@@ -2616,8 +2611,10 @@ exec_instructions(ectx_T *ectx)
 
 	    case ISN_CEXPR_AUCMD:
 #ifdef FEAT_QUICKFIX
+		force_abort = TRUE;
 		if (trigger_cexpr_autocmd(iptr->isn_arg.number) == FAIL)
 		    goto on_error;
+		force_abort = FALSE;
 #endif
 		break;
 
@@ -3045,7 +3042,9 @@ exec_instructions(ectx_T *ectx)
 			s = tv2string(tv, &tofree, numbuf, 0);
 			if (s == NULL || *s == NUL)
 			{
+			    // cannot happen?
 			    clear_tv(tv);
+			    vim_free(tofree);
 			    goto on_error;
 			}
 		    }
@@ -3275,17 +3274,13 @@ exec_instructions(ectx_T *ectx)
 		    case ISN_PUSHCHANNEL:
 #ifdef FEAT_JOB_CHANNEL
 			tv->v_type = VAR_CHANNEL;
-			tv->vval.v_channel = iptr->isn_arg.channel;
-			if (tv->vval.v_channel != NULL)
-			    ++tv->vval.v_channel->ch_refcount;
+			tv->vval.v_channel = NULL;
 #endif
 			break;
 		    case ISN_PUSHJOB:
 #ifdef FEAT_JOB_CHANNEL
 			tv->v_type = VAR_JOB;
-			tv->vval.v_job = iptr->isn_arg.job;
-			if (tv->vval.v_job != NULL)
-			    ++tv->vval.v_job->jv_refcount;
+			tv->vval.v_job = NULL;
 #endif
 			break;
 		    default:
@@ -5649,26 +5644,12 @@ list_instructions(char *pfx, isn_T *instr, int instr_count, ufunc_T *ufunc)
 		break;
 	    case ISN_PUSHCHANNEL:
 #ifdef FEAT_JOB_CHANNEL
-		{
-		    channel_T *channel = iptr->isn_arg.channel;
-
-		    smsg("%s%4d PUSHCHANNEL %d", pfx, current,
-					 channel == NULL ? 0 : channel->ch_id);
-		}
+		smsg("%s%4d PUSHCHANNEL 0", pfx, current);
 #endif
 		break;
 	    case ISN_PUSHJOB:
 #ifdef FEAT_JOB_CHANNEL
-		{
-		    typval_T	tv;
-		    char_u	*name;
-		    char_u	buf[NUMBUFLEN];
-
-		    tv.v_type = VAR_JOB;
-		    tv.vval.v_job = iptr->isn_arg.job;
-		    name = job_to_string_buf(&tv, buf);
-		    smsg("%s%4d PUSHJOB \"%s\"", pfx, current, name);
-		}
+		smsg("%s%4d PUSHJOB \"no process\"", pfx, current);
 #endif
 		break;
 	    case ISN_PUSHEXC:
