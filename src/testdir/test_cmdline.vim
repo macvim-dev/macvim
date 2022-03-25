@@ -552,6 +552,22 @@ func Test_getcompletion()
   call assert_fails('call getcompletion("abc", [])', 'E475:')
 endfunc
 
+" Test for getcompletion() with "fuzzy" in 'wildoptions'
+func Test_getcompletion_wildoptions()
+  let save_wildoptions = &wildoptions
+  set wildoptions&
+  let l = getcompletion('space', 'option')
+  call assert_equal([], l)
+  let l = getcompletion('ier', 'command')
+  call assert_equal([], l)
+  set wildoptions=fuzzy
+  let l = getcompletion('space', 'option')
+  call assert_true(index(l, 'backspace') >= 0)
+  let l = getcompletion('ier', 'command')
+  call assert_true(index(l, 'compiler') >= 0)
+  let &wildoptions = save_wildoptions
+endfunc
+
 func Test_complete_autoload_error()
   let save_rtp = &rtp
   let lines =<< trim END
@@ -3239,6 +3255,33 @@ func Test_cmdline_complete_breakdel()
   call assert_equal("\"breakdel   here   Xtest", @:)
   call feedkeys(":breakdel here \<Tab>\<C-B>\"\<CR>", 'tx')
   call assert_equal("\"breakdel here ", @:)
+endfunc
+
+" Test for :scriptnames argument completion
+func Test_cmdline_complete_scriptnames()
+  set wildmenu
+  call writefile(['let a = 1'], 'Xa1b2c3.vim')
+  source Xa1b2c3.vim
+  call feedkeys(":script \<Tab>\<Left>\<Left>\<C-B>\"\<CR>", 'tx')
+  call assert_match("\"script .*Xa1b2c3.vim$", @:)
+  call feedkeys(":script    \<Tab>\<Left>\<Left>\<C-B>\"\<CR>", 'tx')
+  call assert_match("\"script .*Xa1b2c3.vim$", @:)
+  call feedkeys(":script b2c3\<Tab>\<C-B>\"\<CR>", 'tx')
+  call assert_equal("\"script b2c3", @:)
+  call feedkeys(":script 2\<Tab>\<C-B>\"\<CR>", 'tx')
+  call assert_match("\"script 2\<Tab>$", @:)
+  call feedkeys(":script \<Tab>\<Left>\<Left> \<Tab>\<C-B>\"\<CR>", 'tx')
+  call assert_match("\"script .*Xa1b2c3.vim $", @:)
+  call feedkeys(":script \<Tab>\<Left>\<C-B>\"\<CR>", 'tx')
+  call assert_equal("\"script ", @:)
+  call assert_match('Xa1b2c3.vim$', getcompletion('.*Xa1b2.*', 'scriptnames')[0])
+  call assert_equal([], getcompletion('Xa1b2', 'scriptnames'))
+  new
+  call feedkeys(":script \<Tab>\<Left>\<Left>\<CR>", 'tx')
+  call assert_equal('Xa1b2c3.vim', fnamemodify(@%, ':t'))
+  bw!
+  call delete('Xa1b2c3.vim')
+  set wildmenu&
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

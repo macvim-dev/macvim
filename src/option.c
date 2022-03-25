@@ -2804,11 +2804,6 @@ set_bool_option(
 	p_lrm = !p_lnr;
 #endif
 
-#ifdef FEAT_SYN_HL
-    else if ((int *)varp == &curwin->w_p_cul && !value && old_value)
-	reset_cursorline();
-#endif
-
 #ifdef FEAT_PERSISTENT_UNDO
     // 'undofile'
     else if ((int *)varp == &curbuf->b_p_udf || (int *)varp == &p_udf)

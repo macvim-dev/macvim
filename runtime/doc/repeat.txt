@@ -198,10 +198,35 @@ For writing a Vim script, see chapter 41 of the user manual |usr_41.txt|.
 			start with a ":".
 			Triggers the |SourcePre| autocommand.
 
-:[range]so[urce] 	Read Ex commands from the [range] of lines in the
-			current buffer.  When sourcing commands from the
-			current buffer, the same script-ID |<SID>| is used
-			even if the buffer is sourced multiple times.
+:[range]so[urce] [++clear]
+			Read Ex commands from the [range] of lines in the
+			current buffer.
+
+			When sourcing commands from the current buffer, the
+			same script-ID |<SID>| is used even if the buffer is
+			sourced multiple times. If a buffer is sourced more
+			than once, then the functions in the buffer are
+			defined again.
+
+			To source a range of lines that doesn't start with the
+			|:vim9script| command in Vim9 script context, the
+			|:vim9cmd| modifier can be used.
+
+			When a range of lines in a buffer is sourced in the
+			Vim9 script context, the previously defined
+			script-local variables and functions are not cleared.
+			This works like the range started with the
+			":vim9script noclear" command.  The "++clear" argument
+			can be used to clear the script-local variables and
+			functions before sourcing the script. This works like
+			the range started with the |:vimscript| command
+			without the "noclear" argument. See |vim9-reload| for
+			more information.
+			Examples: >
+
+				:4,5source
+				:vim9cmd :'<,'>source
+				:10,18source ++clear
 
 							*:source!*
 :so[urce]! {file}	Read Vim commands from {file}.  These are commands
@@ -425,10 +450,10 @@ An alternative is to put the commands in a file, and execute them with the
 ':source!' command.  Useful for long command sequences.  Can be combined with
 the ':map' command to put complicated commands under a function key.
 
-The ':source' command reads Ex commands from a file line by line.  You will
-have to type any needed keyboard input.  The ':source!' command reads from a
-script file character by character, interpreting each character as if you
-typed it.
+The ':source' command reads Ex commands from a file or a buffer line by line.
+You will have to type any needed keyboard input.  The ':source!' command reads
+from a script file character by character, interpreting each character as if
+you typed it.
 
 Example: When you give the ":!ls" command you get the |hit-enter| prompt.  If
 you ':source' a file with the line "!ls" in it, you will have to type the
