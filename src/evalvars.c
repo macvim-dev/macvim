@@ -2818,11 +2818,14 @@ eval_variable(
 		    type = sv->sv_type;
 	    }
 
-	    // If a list or dict variable wasn't initialized, do it now.
-	    // Not for global variables, they are not declared.
+	    // If a list or dict variable wasn't initialized and has meaningful
+	    // type, do it now.  Not for global variables, they are not
+	    // declared.
 	    if (ht != &globvarht)
 	    {
-		if (tv->v_type == VAR_DICT && tv->vval.v_dict == NULL)
+		if (tv->v_type == VAR_DICT && tv->vval.v_dict == NULL
+			  && ((type != NULL && type != &t_dict_empty)
+							   || !in_vim9script()))
 		{
 		    tv->vval.v_dict = dict_alloc();
 		    if (tv->vval.v_dict != NULL)
@@ -2831,7 +2834,9 @@ eval_variable(
 			tv->vval.v_dict->dv_type = alloc_type(type);
 		    }
 		}
-		else if (tv->v_type == VAR_LIST && tv->vval.v_list == NULL)
+		else if (tv->v_type == VAR_LIST && tv->vval.v_list == NULL
+				    && ((type != NULL && type != &t_list_empty)
+							  || !in_vim9script()))
 		{
 		    tv->vval.v_list = list_alloc();
 		    if (tv->vval.v_list != NULL)
@@ -2839,12 +2844,6 @@ eval_variable(
 			++tv->vval.v_list->lv_refcount;
 			tv->vval.v_list->lv_type = alloc_type(type);
 		    }
-		}
-		else if (tv->v_type == VAR_BLOB && tv->vval.v_blob == NULL)
-		{
-		    tv->vval.v_blob = blob_alloc();
-		    if (tv->vval.v_blob != NULL)
-			++tv->vval.v_blob->bv_refcount;
 		}
 	    }
 	    copy_tv(tv, rettv);
