@@ -384,6 +384,48 @@ mark_imports_for_reload(int sid)
 }
 
 /*
+ * Part of "import" that handles a relative or absolute file name/
+ * Returns OK or FAIL.
+ */
+    static int
+handle_import_fname(char_u *fname, int is_autoload, int *sid)
+{
+    if (is_autoload)
+    {
+	scriptitem_T	*si;
+
+	*sid = find_script_by_name(fname);
+	if (*sid < 0)
+	{
+	    int error = OK;
+
+	    // Script does not exist yet, check name and create a new
+	    // scriptitem.
+	    if (!file_is_readable(fname))
+	    {
+		semsg(_(mch_isdir(fname) ? e_str_is_directory
+					  : e_cannot_read_from_str_2), fname);
+		return FAIL;
+	    }
+	    *sid = get_new_scriptitem_for_fname(&error, fname);
+	    if (error == FAIL)
+		return FAIL;
+	}
+
+	si = SCRIPT_ITEM(*sid);
+	si->sn_import_autoload = TRUE;
+
+	if (si->sn_autoload_prefix == NULL)
+	    si->sn_autoload_prefix = get_autoload_prefix(si);
+
+	// with testing override: load autoload script right away
+	if (!override_autoload || si->sn_state != SN_STATE_NOT_LOADED)
+	    return OK;
+    }
+    return do_source(fname, FALSE, DOSO_NONE, sid);
+}
+
+/*
  * Handle an ":import" command and add the resulting imported_T to "gap", when
  * not NULL, or script "import_sid" sn_imports.
  * "cctx" is NULL at the script level.
@@ -442,25 +484,18 @@ handle_import(
 	char_u		*tail = gettail(si->sn_name);
 	char_u		*from_name;
 
-	if (is_autoload)
-	    res = FAIL;
-	else
-	{
+	// Relative to current script: "./name.vim", "../../name.vim".
+	len = STRLEN(si->sn_name) - STRLEN(tail) + STRLEN(tv.vval.v_string) + 2;
+	from_name = alloc((int)len);
+	if (from_name == NULL)
+	    goto erret;
+	vim_strncpy(from_name, si->sn_name, tail - si->sn_name);
+	add_pathsep(from_name);
+	STRCAT(from_name, tv.vval.v_string);
+	simplify_filename(from_name);
 
-	    // Relative to current script: "./name.vim", "../../name.vim".
-	    len = STRLEN(si->sn_name) - STRLEN(tail)
-						+ STRLEN(tv.vval.v_string) + 2;
-	    from_name = alloc((int)len);
-	    if (from_name == NULL)
-		goto erret;
-	    vim_strncpy(from_name, si->sn_name, tail - si->sn_name);
-	    add_pathsep(from_name);
-	    STRCAT(from_name, tv.vval.v_string);
-	    simplify_filename(from_name);
-
-	    res = do_source(from_name, FALSE, DOSO_NONE, &sid);
-	    vim_free(from_name);
-	}
+	res = handle_import_fname(from_name, is_autoload, &sid);
+	vim_free(from_name);
     }
     else if (mch_isFullName(tv.vval.v_string)
 #ifdef BACKSLASH_IN_FILENAME
@@ -471,10 +506,7 @@ handle_import(
 	    )
     {
 	// Absolute path: "/tmp/name.vim"
-	if (is_autoload)
-	    res = FAIL;
-	else
-	    res = do_source(tv.vval.v_string, FALSE, DOSO_NONE, &sid);
+	res = handle_import_fname(tv.vval.v_string, is_autoload, &sid);
     }
     else if (is_autoload)
     {
@@ -677,6 +709,12 @@ find_exported(
     svar_T	*sv;
     scriptitem_T *script = SCRIPT_ITEM(sid);
 
+    if (script->sn_import_autoload && script->sn_state == SN_STATE_NOT_LOADED)
+    {
+	if (do_source(script->sn_name, FALSE, DOSO_NONE, NULL) == FAIL)
+	    return -1;
+    }
+
     // Find name in "script".
     idx = get_script_item_idx(sid, name, 0, cctx, cstack);
     if (idx >= 0)
@@ -822,7 +860,7 @@ vim9_declare_scriptvar(exarg_T *eap, char_u *arg)
 	init_tv.v_type = VAR_NUMBER;
     else
 	init_tv.v_type = type->tt_type;
-    set_var_const(name, 0, type, &init_tv, FALSE, 0, 0);
+    set_var_const(name, 0, type, &init_tv, FALSE, ASSIGN_INIT, 0);
 
     vim_free(name);
     return p;
@@ -925,6 +963,13 @@ update_vim9_script_var(
 	if (*type == NULL)
 	    *type = typval2type(tv, get_copyID(), &si->sn_type_list,
 					       do_member ? TVTT_DO_MEMBER : 0);
+	else if ((flags & ASSIGN_INIT) == 0
+		&& (*type)->tt_type == VAR_BLOB && tv->v_type == VAR_BLOB
+						    && tv->vval.v_blob == NULL)
+	{
+	    // "var b: blob = null_blob" has a different type.
+	    *type = &t_blob_null;
+	}
 	if (sv->sv_type_allocated)
 	    free_type(sv->sv_type);
 	if (*type != NULL && ((*type)->tt_type == VAR_FUNC

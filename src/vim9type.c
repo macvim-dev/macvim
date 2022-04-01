@@ -337,7 +337,11 @@ typval2type_int(typval_T *tv, int copyID, garray_T *type_gap, int flags)
     if (tv->v_type == VAR_STRING)
 	return &t_string;
     if (tv->v_type == VAR_BLOB)
+    {
+	if (tv->vval.v_blob == NULL)
+	    return &t_blob_null;
 	return &t_blob;
+    }
 
     if (tv->v_type == VAR_LIST)
     {
@@ -776,12 +780,12 @@ check_argument_types(
 	return OK;  // just in case
     if (totcount < type->tt_min_argcount - varargs)
     {
-	semsg(_(e_not_enough_arguments_for_function_str), name);
+	emsg_funcname(e_not_enough_arguments_for_function_str, name);
 	return FAIL;
     }
     if (!varargs && type->tt_argcount >= 0 && totcount > type->tt_argcount)
     {
-	semsg(_(e_too_many_arguments_for_function_str), name);
+	emsg_funcname(e_too_many_arguments_for_function_str, name);
 	return FAIL;
     }
     if (type->tt_args == NULL)

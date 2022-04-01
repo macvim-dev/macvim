@@ -527,6 +527,28 @@ set_ufunc_name(ufunc_T *fp, char_u *name)
 }
 
 /*
+ * If "name" starts with K_SPECIAL and "buf[bufsize]" is big enough
+ * return "buf" filled with a readable function name.
+ * Otherwise just return "name", thus the return value can always be used.
+ * "name" and "buf" may be equal.
+ */
+    char_u *
+make_ufunc_name_readable(char_u *name, char_u *buf, size_t bufsize)
+{
+    size_t len;
+
+    if (name[0] != K_SPECIAL)
+	return name;
+    len = STRLEN(name);
+    if (len + 3 > bufsize)
+	return name;
+
+    mch_memmove(buf + 5, name + 3, len + 1);
+    mch_memmove(buf, "<SNR>", 5);
+    return buf;
+}
+
+/*
  * Get a name for a lambda.  Returned in static memory.
  */
     char_u *
@@ -1884,23 +1906,33 @@ fname_trans_sid(char_u *name, char_u *fname_buf, char_u **tofree, int *error)
 }
 
 /*
+ * Concatenate the script ID and function name into  "<SNR>99_name".
+ * "buffer" must have size MAX_FUNC_NAME_LEN.
+ */
+    void
+func_name_with_sid(char_u *name, int sid, char_u *buffer)
+{
+    // A script-local function is stored as "<SNR>99_name".
+    buffer[0] = K_SPECIAL;
+    buffer[1] = KS_EXTRA;
+    buffer[2] = (int)KE_SNR;
+    vim_snprintf((char *)buffer + 3, MAX_FUNC_NAME_LEN - 3, "%ld_%s",
+							      (long)sid, name);
+}
+
+/*
  * Find a function "name" in script "sid".
  */
     static ufunc_T *
 find_func_with_sid(char_u *name, int sid)
 {
     hashitem_T	    *hi;
-    char_u	    buffer[200];
+    char_u	    buffer[MAX_FUNC_NAME_LEN];
 
     if (!SCRIPT_ID_VALID(sid))
 	return NULL;	// not in a script
 
-    // A script-local function is stored as "<SNR>99_name".
-    buffer[0] = K_SPECIAL;
-    buffer[1] = KS_EXTRA;
-    buffer[2] = (int)KE_SNR;
-    vim_snprintf((char *)buffer + 3, sizeof(buffer) - 3, "%ld_%s",
-							      (long)sid, name);
+    func_name_with_sid(name, sid, buffer);
     hi = hash_find(&func_hashtab, buffer);
     if (!HASHITEM_EMPTY(hi))
 	return HI2UF(hi);
@@ -1914,7 +1946,7 @@ find_func_with_sid(char_u *name, int sid)
 find_func_with_prefix(char_u *name, int sid)
 {
     hashitem_T	    *hi;
-    char_u	    buffer[200];
+    char_u	    buffer[MAX_FUNC_NAME_LEN];
     scriptitem_T    *si;
 
     if (vim_strchr(name, AUTOLOAD_CHAR) != NULL)
@@ -3344,13 +3376,12 @@ user_func_error(int error, char_u *name, funcexe_T *funcexe)
     {
 	case FCERR_UNKNOWN:
 		if (funcexe->fe_found_var)
-		    semsg(_(e_not_callable_type_str), name);
+		    emsg_funcname(e_not_callable_type_str, name);
 		else
 		    emsg_funcname(e_unknown_function_str, name);
 		break;
 	case FCERR_NOTMETHOD:
-		emsg_funcname(
-			N_(e_cannot_use_function_as_method_str), name);
+		emsg_funcname(e_cannot_use_function_as_method_str, name);
 		break;
 	case FCERR_DELETED:
 		emsg_funcname(e_function_was_deleted_str, name);
@@ -3362,8 +3393,7 @@ user_func_error(int error, char_u *name, funcexe_T *funcexe)
 		emsg_funcname(e_not_enough_arguments_for_function_str, name);
 		break;
 	case FCERR_SCRIPT:
-		emsg_funcname(
-		    e_using_sid_not_in_script_context_str, name);
+		emsg_funcname(e_using_sid_not_in_script_context_str, name);
 		break;
 	case FCERR_DICT:
 		emsg_funcname(e_calling_dict_function_without_dictionary_str,
@@ -3603,9 +3633,7 @@ theend:
      * cancelled due to an aborting error, an interrupt, or an exception.
      */
     if (!aborting())
-    {
 	user_func_error(error, (name != NULL) ? name : funcname, funcexe);
-    }
 
     // clear the copies made from the partial
     while (argv_clear > 0)

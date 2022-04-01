@@ -1833,7 +1833,7 @@ typedef struct {
  */
 typedef struct
 {
-    char_u	*sn_name;
+    char_u	*sn_name;	    // full path of script file
     int		sn_script_seq;	    // latest sctx_T sc_seq value
 
     // "sn_vars" stores the s: variables currently valid.  When leaving a block
@@ -1864,8 +1864,12 @@ typedef struct
     char_u	*sn_save_cpo;	// 'cpo' value when :vim9script found
     char	sn_is_vimrc;	// .vimrc file, do not restore 'cpo'
 
-    // for "vim9script autoload" this is "dir#scriptname#"
+    // for a Vim9 script under "rtp/autoload/" this is "dir#scriptname#"
     char_u	*sn_autoload_prefix;
+
+    // TRUE for a script used with "import autoload './dirname/script.vim'"
+    // For "../autoload/script.vim" sn_autoload_prefix is also set.
+    int		sn_import_autoload;
 
 # ifdef FEAT_PROFILE
     int		sn_prof_on;	// TRUE when script is/was profiled
@@ -2193,6 +2197,7 @@ typedef enum
     MODE_RAW,
     MODE_JSON,
     MODE_JS,
+    MODE_LSP			// Language Server Protocol (http + json)
 } ch_mode_T;
 
 typedef enum {
@@ -3476,6 +3481,9 @@ struct window_S
     linenr_T	w_old_visual_lnum;  // last known start of visual part
     colnr_T	w_old_visual_col;   // last known start of visual part
     colnr_T	w_old_curswant;	    // last known value of Curswant
+
+    linenr_T    w_last_cursor_lnum_rnu;  // cursor lnum when 'rnu' was last
+					 // redrawn
 
     lcs_chars_T	w_lcs_chars;	    // 'listchars' characters
 

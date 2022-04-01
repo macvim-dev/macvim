@@ -1580,6 +1580,9 @@ typedef UINT32_TYPEDEF UINT32_T;
  */
 #define MAXMAPLEN   50
 
+// maximum length of a function name, including SID and NUL
+#define MAX_FUNC_NAME_LEN   200
+
 // Size in bytes of the hash used in the undo file.
 #define UNDO_HASH_SIZE 32
 
@@ -2240,6 +2243,7 @@ typedef enum {
 #define ASSIGN_UNPACK	0x10  // using [a, b] = list
 #define ASSIGN_NO_MEMBER_TYPE 0x20 // use "any" for list and dict member type
 #define ASSIGN_FOR_LOOP 0x40 // assigning to loop variable
+#define ASSIGN_INIT	0x80 // not assigning a value, just a declaration
 
 #include "ex_cmds.h"	    // Ex command defines
 #include "spell.h"	    // spell checking stuff

@@ -298,26 +298,53 @@ compile_load_scriptvar(
 	*p = NUL;
 
 	si = SCRIPT_ITEM(import->imp_sid);
-	if (si->sn_autoload_prefix != NULL
-					&& si->sn_state == SN_STATE_NOT_LOADED)
-	{
-	    char_u  *auto_name = concat_str(si->sn_autoload_prefix, exp_name);
+	if (si->sn_import_autoload && si->sn_state == SN_STATE_NOT_LOADED)
+	    // "import autoload './dir/script.vim'" or
+	    // "import autoload './autoload/script.vim'" - load script first
+	    res = generate_SOURCE(cctx, import->imp_sid);
 
-	    // autoload script must be loaded later, access by the autoload
-	    // name.  If a '(' follows it must be a function.  Otherwise we
-	    // don't know, it can be "script.Func".
-	    if (cc == '(' || paren_follows_after_expr)
-		res = generate_PUSHFUNC(cctx, auto_name, &t_func_any);
-	    else
-		res = generate_AUTOLOAD(cctx, auto_name, &t_any);
-	    vim_free(auto_name);
-	    done = TRUE;
-	}
-	else
+	if (res == OK)
 	{
-	    idx = find_exported(import->imp_sid, exp_name, &ufunc, &type,
-							    cctx, NULL, TRUE);
+	    if (si->sn_autoload_prefix != NULL
+					&& si->sn_state == SN_STATE_NOT_LOADED)
+	    {
+		char_u  *auto_name =
+				  concat_str(si->sn_autoload_prefix, exp_name);
+
+		// autoload script must be loaded later, access by the autoload
+		// name.  If a '(' follows it must be a function.  Otherwise we
+		// don't know, it can be "script.Func".
+		if (cc == '(' || paren_follows_after_expr)
+		    res = generate_PUSHFUNC(cctx, auto_name, &t_func_any);
+		else
+		    res = generate_AUTOLOAD(cctx, auto_name, &t_any);
+		vim_free(auto_name);
+		done = TRUE;
+	    }
+	    else if (si->sn_import_autoload
+					&& si->sn_state == SN_STATE_NOT_LOADED)
+	    {
+		// If a '(' follows it must be a function.  Otherwise we don't
+		// know, it can be "script.Func".
+		if (cc == '(' || paren_follows_after_expr)
+		{
+		    char_u sid_name[MAX_FUNC_NAME_LEN];
+
+		    func_name_with_sid(exp_name, import->imp_sid, sid_name);
+		    res = generate_PUSHFUNC(cctx, sid_name, &t_func_any);
+		}
+		else
+		    res = generate_OLDSCRIPT(cctx, ISN_LOADEXPORT, exp_name,
+						      import->imp_sid, &t_any);
+		done = TRUE;
+	    }
+	    else
+	    {
+		idx = find_exported(import->imp_sid, exp_name, &ufunc, &type,
+							     cctx, NULL, TRUE);
+	    }
 	}
+
 	*p = cc;
 	*end = p;
 	if (done)
@@ -671,7 +698,7 @@ compile_call(
     char_u	*name = *arg;
     char_u	*p;
     int		argcount = argcount_init;
-    char_u	namebuf[100];
+    char_u	namebuf[MAX_FUNC_NAME_LEN];
     char_u	fname_buf[FLEN_FIXED + 1];
     char_u	*tofree = NULL;
     int		error = FCERR_NONE;
@@ -791,7 +818,7 @@ compile_call(
 		res = generate_BCALL(cctx, idx, argcount, argcount_init == 1);
 	}
 	else
-	    semsg(_(e_unknown_function_str), namebuf);
+	    emsg_funcname(e_unknown_function_str, namebuf);
 	goto theend;
     }
 
@@ -816,7 +843,7 @@ compile_call(
 			  && vim_strchr(ufunc->uf_name, AUTOLOAD_CHAR) == NULL)
 	    {
 		// A function name without g: prefix must be found locally.
-		semsg(_(e_unknown_function_str), namebuf);
+		emsg_funcname(e_unknown_function_str, namebuf);
 		goto theend;
 	    }
 	}
@@ -847,7 +874,7 @@ compile_call(
     if (has_g_namespace || is_autoload)
 	res = generate_UCALL(cctx, name, argcount);
     else
-	semsg(_(e_unknown_function_str), namebuf);
+	emsg_funcname(e_unknown_function_str, namebuf);
 
 theend:
     vim_free(tofree);
