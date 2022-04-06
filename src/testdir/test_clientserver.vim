@@ -9,10 +9,10 @@ endif
 
 CheckFeature clientserver
 
-if has('gui_macvim') && !has('gui_running')
+if has('gui_macvim')
   " MacVim currently doesn't support client_server for non-gui.
   " See https://github.com/macvim-dev/macvim/issues/657
-  finish
+  CheckGui
 endif
 
 source shared.vim

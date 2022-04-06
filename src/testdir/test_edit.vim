@@ -1209,8 +1209,8 @@ endfunc
 
 func Test_edit_MOUSE()
   " This is a simple test, since we not really using the mouse here
-  if (has("gui_macvim") && has("gui_running"))
-    return
+  if has("gui_macvim")
+    CheckNotGui
   endif
   CheckFeature mouse
   10new

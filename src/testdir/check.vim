@@ -111,6 +111,14 @@ func CheckNotBSD()
   endif
 endfunc
 
+" Command to check for not running on a MacVim.
+command CheckNotMacVim call CheckNotMacVim()
+func CheckNotMacVim()
+  if has('gui_macvim')
+    throw 'Skipped: does not work on MacVim'
+  endif
+endfunc
+
 " Command to check that making screendumps is supported.
 " Caller must source screendump.vim
 command CheckScreendump call CheckScreendump()
