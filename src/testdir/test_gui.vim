@@ -1200,6 +1200,8 @@ func Test_gui_mouse_event()
 endfunc
 
 func Test_gui_mouse_move_event()
+  " NOTE: MacVim does not support mouse move events properly yet.
+  CheckNotMacVim
   let args = #{move: 1, button: 0, multiclick: 0, modifiers: 0}
 
   " default, do not generate mouse move events
