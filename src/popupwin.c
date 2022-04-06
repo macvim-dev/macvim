@@ -1149,6 +1149,8 @@ popup_adjust_position(win_T *wp)
     linenr_T	lnum;
     int		wrapped = 0;
     int		maxwidth;
+    int		maxwidth_no_scrollbar;
+    int		width_with_scrollbar = 0;
     int		used_maxwidth = FALSE;
     int		margin_width = 0;
     int		maxspace;
@@ -1421,6 +1423,7 @@ popup_adjust_position(win_T *wp)
 	// Terminal window never has a scrollbar, adjusts to window height.
 	wp->w_has_scrollbar = FALSE;
 #endif
+    maxwidth_no_scrollbar = maxwidth;
     if (wp->w_has_scrollbar)
     {
 	++right_extra;
@@ -1447,7 +1450,27 @@ popup_adjust_position(win_T *wp)
 	if (wp->w_width > maxspace && !wp->w_p_wrap)
 	    // some columns cut off on the right
 	    wp->w_popup_rightoff = wp->w_width - maxspace;
-	wp->w_width = maxwidth;
+
+	// If the window doesn't fit because 'minwidth' is set then the
+	// scrollbar is at the far right of the screen, use the size without
+	// the scrollbar.
+	if (wp->w_has_scrollbar && wp->w_minwidth > 0)
+	{
+	    int off = wp->w_width - maxwidth;
+
+	    if (off > right_extra)
+		extra_width -= right_extra;
+	    else
+		extra_width -= off;
+	    wp->w_width = maxwidth_no_scrollbar;
+	}
+	else
+	{
+	    wp->w_width = maxwidth;
+
+	    // when adding a scrollbar below need to adjust the width
+	    width_with_scrollbar = maxwidth_no_scrollbar - right_extra;
+	}
     }
     if (center_hor)
     {
@@ -1535,7 +1558,8 @@ popup_adjust_position(win_T *wp)
     else if (wp->w_popup_pos == POPPOS_TOPRIGHT
 		|| wp->w_popup_pos == POPPOS_TOPLEFT)
     {
-	if (wantline + (wp->w_height + extra_height) - 1 > Rows
+	if (wp != popup_dragwin
+		&& wantline + (wp->w_height + extra_height) - 1 > Rows
 		&& wantline * 2 > Rows
 		&& (wp->w_popup_flags & POPF_POSINVERT))
 	{
@@ -1565,7 +1589,11 @@ popup_adjust_position(win_T *wp)
 #ifdef FEAT_TERMINAL
 	if (wp->w_buffer->b_term == NULL)
 #endif
+	{
 	    wp->w_has_scrollbar = TRUE;
+	    if (width_with_scrollbar > 0)
+		wp->w_width = width_with_scrollbar;
+	}
     }
 
     // make sure w_winrow is valid
@@ -1929,7 +1957,7 @@ popup_create(typval_T *argvars, typval_T *rettv, create_type_T type)
 
     if (d != NULL)
     {
-	if (dict_find(d, (char_u *)"tabpage", -1) != NULL)
+	if (dict_has_key(d, "tabpage"))
 	    tabnr = (int)dict_get_number(d, (char_u *)"tabpage");
 	else if (type == TYPE_NOTIFICATION)
 	    tabnr = -1;  // notifications are global by default
@@ -1961,7 +1989,9 @@ popup_create(typval_T *argvars, typval_T *rettv, create_type_T type)
 	new_buffer = FALSE;
 	win_init_popup_win(wp, buf);
 	set_local_options_default(wp, FALSE);
+	swap_exists_action = SEA_READONLY;
 	buffer_ensure_loaded(buf);
+	swap_exists_action = SEA_NONE;
     }
     else
     {
@@ -1969,7 +1999,10 @@ popup_create(typval_T *argvars, typval_T *rettv, create_type_T type)
 	new_buffer = TRUE;
 	buf = buflist_new(NULL, NULL, (linenr_T)0, BLN_NEW|BLN_DUMMY|BLN_REUSE);
 	if (buf == NULL)
+	{
+	    win_free_popup(wp);
 	    return NULL;
+	}
 	ml_open(buf);
 
 	win_init_popup_win(wp, buf);
@@ -3894,7 +3927,7 @@ update_popups(void (*win_update)(win_T *wp))
 	    wp->w_flags |= WFLAG_WROW_OFF_ADDED;
 	}
 
-	total_width = popup_width(wp);
+	total_width = popup_width(wp) - wp->w_popup_rightoff;
 	total_height = popup_height(wp);
 	popup_attr = get_wcr_attr(wp);
 
@@ -3989,7 +4022,7 @@ update_popups(void (*win_update)(win_T *wp))
 					     ? border_char[4] : border_char[0],
 			border_char[0], border_attr[0]);
 	    }
-	    if (wp->w_popup_border[1] > 0 && wp->w_popup_rightoff == 0)
+	    if (wp->w_popup_border[1] > 0)
 	    {
 		buf[mb_char2bytes(border_char[5], buf)] = NUL;
 		screen_puts(buf, wp->w_winrow,
@@ -4039,7 +4072,7 @@ update_popups(void (*win_update)(win_T *wp))
 		--sb_thumb_height;  // scrolled, no full thumb
 	    if (sb_thumb_height == 0)
 		sb_thumb_height = 1;
-	    if (linecount <= wp->w_height)
+	    if (linecount <= wp->w_height || wp->w_height == 0)
 		// it just fits, avoid divide by zero
 		sb_thumb_top = 0;
 	    else

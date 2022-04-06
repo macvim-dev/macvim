@@ -1640,6 +1640,7 @@ nfa_regatom(void)
 			long_u	n = 0;
 			int	cmp = c;
 			int	cur = FALSE;
+			int	got_digit = FALSE;
 
 			if (c == '<' || c == '>')
 			    c = getchr();
@@ -1654,7 +1655,7 @@ nfa_regatom(void)
 
 			    if (cur)
 			    {
-				semsg(_(e_regexp_number_after_dot_pos_search),
+				semsg(_(e_regexp_number_after_dot_pos_search_chr),
 								  no_Magic(c));
 				return FAIL;
 			    }
@@ -1668,11 +1669,18 @@ nfa_regatom(void)
 			    }
 			    n = tmp;
 			    c = getchr();
+			    got_digit = TRUE;
 			}
 			if (c == 'l' || c == 'c' || c == 'v')
 			{
 			    long_u limit = INT_MAX;
 
+			    if (!cur && !got_digit)
+			    {
+				semsg(_(e_nfa_regexp_missing_value_in_chr),
+								  no_Magic(c));
+				return FAIL;
+			    }
 			    if (c == 'l')
 			    {
 				if (cur)

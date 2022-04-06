@@ -44,11 +44,18 @@
 # define sock_write(sd, buf, len) send((SOCKET)sd, buf, len, 0)
 # define sock_read(sd, buf, len) recv((SOCKET)sd, buf, len, 0)
 # define sock_close(sd) closesocket((SOCKET)sd)
+// Support for Unix-domain sockets was added in Windows SDK 17061.
+# define UNIX_PATH_MAX 108
+typedef struct sockaddr_un {
+    ADDRESS_FAMILY sun_family;
+    char sun_path[UNIX_PATH_MAX];
+} SOCKADDR_UN, *PSOCKADDR_UN;
 #else
 # include <netdb.h>
 # include <netinet/in.h>
 # include <arpa/inet.h>
 # include <sys/socket.h>
+# include <sys/un.h>
 # ifdef HAVE_LIBGEN_H
 #  include <libgen.h>
 # endif
@@ -948,6 +955,67 @@ channel_connect(
 }
 
 /*
+ * Open a socket channel to the UNIX socket at "path".
+ * Returns the channel for success.
+ * Returns NULL for failure.
+ */
+    static channel_T *
+channel_open_unix(
+	const char *path,
+	void (*nb_close_cb)(void))
+{
+    channel_T		*channel = NULL;
+    int			sd = -1;
+    size_t		path_len = STRLEN(path);
+    struct sockaddr_un	server;
+    size_t		server_len;
+    int			waittime = -1;
+
+    if (*path == NUL || path_len >= sizeof(server.sun_path))
+    {
+	semsg(_(e_invalid_argument_str), path);
+	return NULL;
+    }
+
+    channel = add_channel();
+    if (channel == NULL)
+    {
+	ch_error(NULL, "Cannot allocate channel.");
+	return NULL;
+    }
+
+    CLEAR_FIELD(server);
+    server.sun_family = AF_UNIX;
+    STRNCPY(server.sun_path, path, sizeof(server.sun_path) - 1);
+
+    ch_log(channel, "Trying to connect to %s", path);
+
+    server_len = offsetof(struct sockaddr_un, sun_path) + path_len + 1;
+    sd = channel_connect(channel, (struct sockaddr *)&server, (int)server_len,
+								   &waittime);
+
+    if (sd < 0)
+    {
+	channel_free(channel);
+	return NULL;
+    }
+
+    ch_log(channel, "Connection made");
+
+    channel->CH_SOCK_FD = (sock_T)sd;
+    channel->ch_nb_close_cb = nb_close_cb;
+    channel->ch_hostname = (char *)vim_strsave((char_u *)path);
+    channel->ch_port = 0;
+    channel->ch_to_be_closed |= (1U << PART_SOCK);
+
+#ifdef FEAT_GUI
+    channel_gui_register_one(channel, PART_SOCK);
+#endif
+
+    return channel;
+}
+
+/*
  * Open a socket channel to "hostname":"port".
  * "waittime" is the time in msec to wait for the connection.
  * When negative wait forever.
@@ -1320,8 +1388,9 @@ channel_open_func(typval_T *argvars)
     char_u	*address;
     char_u	*p;
     char	*rest;
-    int		port;
+    int		port = 0;
     int		is_ipv6 = FALSE;
+    int		is_unix = FALSE;
     jobopt_T    opt;
     channel_T	*channel = NULL;
 
@@ -1338,8 +1407,18 @@ channel_open_func(typval_T *argvars)
 	return NULL;
     }
 
-    // parse address
-    if (*address == '[')
+    if (*address == NUL)
+    {
+	semsg(_(e_invalid_argument_str), address);
+	return NULL;
+    }
+
+    if (!STRNCMP(address, "unix:", 5))
+    {
+	is_unix = TRUE;
+	address += 5;
+    }
+    else if (*address == '[')
     {
 	// ipv6 address
 	is_ipv6 = TRUE;
@@ -1352,6 +1431,7 @@ channel_open_func(typval_T *argvars)
     }
     else
     {
+	// ipv4 address
 	p = vim_strchr(address, ':');
 	if (p == NULL)
 	{
@@ -1359,27 +1439,32 @@ channel_open_func(typval_T *argvars)
 	    return NULL;
 	}
     }
-    port = strtol((char *)(p + 1), &rest, 10);
-    if (*address == NUL || port <= 0 || port >= 65536 || *rest != NUL)
+
+    if (!is_unix)
     {
-	semsg(_(e_invalid_argument_str), address);
-	return NULL;
+	port = strtol((char *)(p + 1), &rest, 10);
+	if (port <= 0 || port >= 65536 || *rest != NUL)
+	{
+	    semsg(_(e_invalid_argument_str), address);
+	    return NULL;
+	}
+	if (is_ipv6)
+	{
+	    // strip '[' and ']'
+	    ++address;
+	    *(p - 1) = NUL;
+	}
+	else
+	    *p = NUL;
     }
-    if (is_ipv6)
-    {
-	// strip '[' and ']'
-	++address;
-	*(p - 1) = NUL;
-    }
-    else
-	*p = NUL;
 
     // parse options
     clear_job_options(&opt);
     opt.jo_mode = MODE_JSON;
     opt.jo_timeout = 2000;
     if (get_job_options(&argvars[1], &opt,
-	    JO_MODE_ALL + JO_CB_ALL + JO_WAITTIME + JO_TIMEOUT_ALL, 0) == FAIL)
+	    JO_MODE_ALL + JO_CB_ALL + JO_TIMEOUT_ALL
+		+ (is_unix? 0 : JO_WAITTIME), 0) == FAIL)
 	goto theend;
     if (opt.jo_timeout < 0)
     {
@@ -1387,7 +1472,10 @@ channel_open_func(typval_T *argvars)
 	goto theend;
     }
 
-    channel = channel_open((char *)address, port, opt.jo_waittime, NULL);
+    if (is_unix)
+	channel = channel_open_unix((char *)address, NULL);
+    else
+	channel = channel_open((char *)address, port, opt.jo_waittime, NULL);
     if (channel != NULL)
     {
 	opt.jo_set = JO_ALL;
@@ -3294,8 +3382,14 @@ channel_info(channel_T *channel, dict_T *dict)
 
     if (channel->ch_hostname != NULL)
     {
-	dict_add_string(dict, "hostname", (char_u *)channel->ch_hostname);
-	dict_add_number(dict, "port", channel->ch_port);
+	if (channel->ch_port)
+	{
+	    dict_add_string(dict, "hostname", (char_u *)channel->ch_hostname);
+	    dict_add_number(dict, "port", channel->ch_port);
+	}
+	else
+	    // Unix-domain socket.
+	    dict_add_string(dict, "path", (char_u *)channel->ch_hostname);
 	channel_part_info(channel, dict, "sock", PART_SOCK);
     }
     else
@@ -3929,6 +4023,11 @@ channel_read_json_block(
 	    if (channel_parse_messages())
 		continue;
 
+	    // channel_parse_messages() may fill the queue with new data to
+	    // process.
+	    if (channel_has_readahead(channel, part))
+		continue;
+
 	    // Wait for up to the timeout.  If there was an incomplete message
 	    // use the deadline for that.
 	    timeout = timeout_arg;
@@ -4523,8 +4622,7 @@ ch_expr_common(typval_T *argvars, typval_T *rettv, int eval)
 	}
 
 	if (argvars[2].v_type == VAR_DICT)
-	    if (dict_find(argvars[2].vval.v_dict, (char_u *)"callback", -1)
-									!= NULL)
+	    if (dict_has_key(argvars[2].vval.v_dict, "callback"))
 		callback_present = TRUE;
 
 	if (eval || callback_present)
@@ -4545,7 +4643,7 @@ ch_expr_common(typval_T *argvars, typval_T *rettv, int eval)
 	    if (di != NULL)
 		id = di->di_tv.vval.v_number;
 	}
-	if (dict_find(d, (char_u *)"jsonrpc", -1) == NULL)
+	if (!dict_has_key(d, "jsonrpc"))
 	    dict_add_string(d, "jsonrpc", (char_u *)"2.0");
 	text = json_encode_lsp_msg(&argvars[1]);
     }

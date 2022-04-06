@@ -616,6 +616,50 @@ func Test_popup_drag()
   call delete('XtestPopupDrag')
 endfunc
 
+func Test_popup_drag_minwidth()
+  CheckScreendump
+
+  " create a popup that does not fit
+  let lines =<< trim END
+      call range(40)
+	      \ ->map({_,i -> string(i)})
+	      \ ->popup_create({
+	      \   'drag': 1,
+	      \   'wrap': 0,
+	      \   'border': [],
+	      \   'scrollbar': 1,
+	      \   'minwidth': 100,
+	      \   'filter': {w, k -> k ==# 'q' ? len([popup_close(w)]) : 0},
+	      \ })
+	func DragitDown()
+	  map <silent> <F3> :call test_setmouse(1, 10)<CR>
+	  map <silent> <F4> :call test_setmouse(5, 40)<CR>
+	  call feedkeys("\<F3>\<LeftMouse>\<F4>\<LeftDrag>\<LeftRelease>", "xt")
+	endfunc
+	func DragitUp()
+	  map <silent> <F3> :call test_setmouse(5, 40)<CR>
+	  map <silent> <F4> :call test_setmouse(4, 40)<CR>
+	  map <silent> <F5> :call test_setmouse(3, 40)<CR>
+	  call feedkeys("\<F3>\<LeftMouse>\<F4>\<LeftDrag>\<F5>\<LeftDrag>\<LeftRelease>", "xt")
+	endfunc
+  END
+  call writefile(lines, 'XtestPopupDrag')
+  let buf = RunVimInTerminal('-S XtestPopupDrag', #{rows: 10})
+  call VerifyScreenDump(buf, 'Test_popupwin_drag_minwidth_1', {})
+
+  call term_sendkeys(buf, ":call DragitDown()\<CR>")
+  call VerifyScreenDump(buf, 'Test_popupwin_drag_minwidth_2', {})
+
+  call term_sendkeys(buf, ":call DragitUp()\<CR>")
+  call VerifyScreenDump(buf, 'Test_popupwin_drag_minwidth_3', {})
+
+  call term_sendkeys(buf, 'q')
+
+  " clean up
+  call StopVimInTerminal(buf)
+  call delete('XtestPopupDrag')
+endfunc
+
 func Test_popup_drag_termwin()
   CheckUnix
   CheckScreendump
@@ -2729,6 +2773,26 @@ func Test_popupwin_with_buffer()
   redraw
   call popup_close(winid)
   call delete('XsomeFile')
+endfunc
+
+func Test_popupwin_buffer_with_swapfile()
+  call writefile(['some text', 'in a buffer'], 'XopenFile')
+  call writefile([''], '.XopenFile.swp')
+  let g:ignoreSwapExists = 1
+
+  let bufnr = bufadd('XopenFile')
+  call assert_equal(0, bufloaded(bufnr))
+  let winid = popup_create(bufnr, {'hidden': 1})
+  call assert_equal(1, bufloaded(bufnr))
+  call popup_close(winid)
+
+  exe 'buffer ' .. bufnr
+  call assert_equal(1, &readonly)
+  bwipe!
+
+  call delete('XopenFile')
+  call delete('.XopenFile.swp')
+  unlet g:ignoreSwapExists
 endfunc
 
 func Test_popupwin_terminal_buffer()

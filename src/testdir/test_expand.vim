@@ -78,10 +78,11 @@ func Test_expandcmd()
   edit a1a2a3.rb
   call assert_equal('make b1b2b3.rb a1a2a3 Xfile.o', expandcmd('make %:gs?a?b? %< #<.o'))
 
-  call assert_fails('call expandcmd("make <afile>")', 'E495:')
-  call assert_fails('call expandcmd("make <afile>")', 'E495:')
+  call assert_equal('make <afile>', expandcmd("make <afile>"))
+  call assert_equal('make <amatch>', expandcmd("make <amatch>"))
+  call assert_equal('make <abuf>', expandcmd("make <abuf>"))
   enew
-  call assert_fails('call expandcmd("make %")', 'E499:')
+  call assert_equal('make %', expandcmd("make %"))
   let $FOO="blue\tsky"
   call setline(1, "$FOO")
   call assert_equal("grep pat blue\tsky", expandcmd('grep pat <cfile>'))
@@ -89,10 +90,27 @@ func Test_expandcmd()
   " Test for expression expansion `=
   let $FOO= "blue"
   call assert_equal("blue sky", expandcmd("`=$FOO .. ' sky'`"))
+  let x = expandcmd("`=axbycz`")
+  call assert_equal('`=axbycz`', x)
+  call assert_fails('let x = expandcmd("`=axbycz`", #{errmsg: 1})', 'E121:')
+  let x = expandcmd("`=axbycz`", #{abc: []})
+  call assert_equal('`=axbycz`', x)
 
   " Test for env variable with spaces
   let $FOO= "foo bar baz"
   call assert_equal("e foo bar baz", expandcmd("e $FOO"))
+
+  if has('unix') && executable('bash')
+    " test for using the shell to expand a command argument.
+    " only bash supports the {..} syntax
+    set shell=bash
+    let x = expandcmd('{1..4}')
+    call assert_equal('{1..4}', x)
+    call assert_fails("let x = expandcmd('{1..4}', #{errmsg: v:true})", 'E77:')
+    let x = expandcmd('{1..4}', #{error: v:true})
+    call assert_equal('{1..4}', x)
+    set shell&
+  endif
 
   unlet $FOO
   close!
@@ -101,14 +119,14 @@ endfunc
 " Test for expanding <sfile>, <slnum> and <sflnum> outside of sourcing a script
 func Test_source_sfile()
   let lines =<< trim [SCRIPT]
-    :call assert_fails('echo expandcmd("<sfile>")', 'E498:')
-    :call assert_fails('echo expandcmd("<slnum>")', 'E842:')
-    :call assert_fails('echo expandcmd("<sflnum>")', 'E961:')
-    :call assert_fails('call expandcmd("edit <cfile>")', 'E446:')
-    :call assert_fails('call expandcmd("edit #")', 'E194:')
-    :call assert_fails('call expandcmd("edit #<2")', 'E684:')
-    :call assert_fails('call expandcmd("edit <cword>")', 'E348:')
-    :call assert_fails('call expandcmd("edit <cexpr>")', 'E348:')
+    :call assert_equal('<sfile>', expandcmd("<sfile>"))
+    :call assert_equal('<slnum>', expandcmd("<slnum>"))
+    :call assert_equal('<sflnum>', expandcmd("<sflnum>"))
+    :call assert_equal('edit <cfile>', expandcmd("edit <cfile>"))
+    :call assert_equal('edit #', expandcmd("edit #"))
+    :call assert_equal('edit #<2', expandcmd("edit #<2"))
+    :call assert_equal('edit <cword>', expandcmd("edit <cword>"))
+    :call assert_equal('edit <cexpr>', expandcmd("edit <cexpr>"))
     :call assert_fails('autocmd User MyCmd echo "<sfile>"', 'E498:')
     :call writefile(v:errors, 'Xresult')
     :qall!

@@ -1605,6 +1605,16 @@ def Test_if_elseif_else_fails()
       endif
   END
   v9.CheckDefFailure(lines, 'E488:')
+
+  lines =<< trim END
+      var cond = true
+      if cond
+        echo 'true'
+      elseif
+        echo 'false'
+      endif
+  END
+  v9.CheckDefAndScriptFailure(lines, ['E1143:', 'E15:'], 4)
 enddef
 
 let g:bool_true = v:true
@@ -2003,6 +2013,19 @@ def Test_for_skipped_block()
       assert_equal([3, 4], result)
     enddef
     DefFalse()
+
+    def BuildDiagrams()
+      var diagrams: list<any>
+      if false
+        var max = 0
+        for v in diagrams
+          var l = 3
+          if max < l | max = l | endif
+          v->add(l)
+        endfor
+      endif
+    enddef
+    BuildDiagrams()
   END
   v9.CheckDefAndScriptSuccess(lines)
 enddef
@@ -2106,6 +2129,17 @@ def Test_for_loop()
         res ..= c .. '-'
       endfor
       assert_equal('', res)
+
+      total = 0
+      for c in null_list
+        total += 1
+      endfor
+      assert_equal(0, total)
+
+      for c in null_blob
+        total += 1
+      endfor
+      assert_equal(0, total)
 
       var foo: list<dict<any>> = [
               {a: 'Cat'}

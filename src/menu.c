@@ -610,10 +610,6 @@ add_menu_path(
 #ifdef FEAT_BEVAL_TIP
 	    menu->tip = NULL;
 #endif
-#ifdef FEAT_GUI_ATHENA
-	    menu->image = None;		    // X-Windows definition for NULL
-#endif
-
 	    /*
 	     * Add after menu that has lower priority.
 	     */
@@ -2080,10 +2076,7 @@ gui_update_menus_recurse(vimmenu_T *menu, int mode)
 	    grey = FALSE;
 	else
 	    grey = TRUE;
-# ifdef FEAT_GUI_ATHENA
-	// Hiding menus doesn't work for Athena, it can cause a crash.
-	gui_mch_menu_grey(menu, grey);
-# else
+
 	// Never hide a toplevel menu, it may make the menubar resize or
 	// disappear. Same problem for ToolBar items.
 	if (vim_strchr(p_go, GO_GREY) != NULL || menu->parent == NULL
@@ -2094,7 +2087,6 @@ gui_update_menus_recurse(vimmenu_T *menu, int mode)
 	    gui_mch_menu_grey(menu, grey);
 	else
 	    gui_mch_menu_hidden(menu, grey);
-# endif
 	gui_update_menus_recurse(menu->children, mode);
 	menu = menu->next;
     }

@@ -288,6 +288,12 @@ def Test_assign_concat()
     s ..= {a: 2}
   END
   v9.CheckDefAndScriptFailure(lines, ['E1105: Cannot convert dict to string', 'E734: Wrong variable type for .='], 2)
+
+  lines =<< trim END
+      var ls: list<string> = []
+      ls[-1] ..= 'foo'
+  END
+  v9.CheckDefExecAndScriptFailure(lines, 'E684: list index out of range: -1', 2)
 enddef
 
 def Test_assign_register()
@@ -734,6 +740,7 @@ def Test_init_in_for_loop()
 enddef
 
 def Test_extend_list()
+  # using uninitilaized list assigns empty list
   var lines =<< trim END
       var l1: list<number>
       var l2 = l1
@@ -751,7 +758,7 @@ def Test_extend_list()
   END
   v9.CheckDefAndScriptSuccess(lines)
 
-  # appending to NULL list from a function
+  # appending to uninitialzed list from a function works
   lines =<< trim END
       vim9script
       var list: list<string>
@@ -773,13 +780,30 @@ def Test_extend_list()
   END
   v9.CheckScriptSuccess(lines)
 
+  # initialized to null, with type, does not default to empty list
   lines =<< trim END
       vim9script
       var l: list<string> = test_null_list()
       extend(l, ['x'])
-      assert_equal(['x'], l)
   END
-  v9.CheckScriptSuccess(lines)
+  v9.CheckScriptFailure(lines, 'E1134:', 3)
+
+  # initialized to null, without type, does not default to empty list
+  lines =<< trim END
+      vim9script
+      var l = null_list
+      extend(l, ['x'])
+  END
+  v9.CheckScriptFailure(lines, 'E1134:', 3)
+
+  # assigned null, does not default to empty list
+  lines =<< trim END
+      vim9script
+      var l: list<string>
+      l = null_list
+      extend(l, ['x'])
+  END
+  v9.CheckScriptFailure(lines, 'E1134:', 4)
 
   lines =<< trim END
       vim9script
@@ -832,9 +856,8 @@ def Test_extend_dict()
       vim9script
       var d: dict<string> = test_null_dict()
       extend(d, {a: 'x'})
-      assert_equal({a: 'x'}, d)
   END
-  v9.CheckScriptSuccess(lines)
+  v9.CheckScriptFailure(lines, 'E1133:', 3)
 
   lines =<< trim END
       vim9script

@@ -1363,7 +1363,12 @@ def Test_command_not_recognized()
   var lines =<< trim END
     d.key = 'asdf'
   END
-  v9.CheckDefFailure(lines, 'E1146:', 1)
+  v9.CheckDefFailure(lines, 'E1089: Unknown variable: d', 1)
+
+  lines =<< trim END
+    d['key'] = 'asdf'
+  END
+  v9.CheckDefFailure(lines, 'E1089: Unknown variable: d', 1)
 
   lines =<< trim END
     if 0
@@ -1371,11 +1376,6 @@ def Test_command_not_recognized()
     endif
   END
   v9.CheckDefSuccess(lines)
-
-  lines =<< trim END
-    d['key'] = 'asdf'
-  END
-  v9.CheckDefFailure(lines, 'E1146:', 1)
 enddef
 
 def Test_magic_not_used()
@@ -1538,6 +1538,14 @@ def Test_lockvar()
   d.a = 7
   assert_equal({a: 7, b: 5}, d)
 
+  caught = false
+  try
+    lockvar d.c
+  catch /E716/
+    caught = true
+  endtry
+  assert_true(caught)
+
   var lines =<< trim END
       vim9script
       g:bl = 0z1122
@@ -1642,6 +1650,23 @@ def Test_lockvar()
       LockIt()
   END
   v9.CheckScriptFailure(lines, 'E1246', 1)
+
+  lines =<< trim END
+      vim9script
+      const name = 'john'
+      unlockvar name
+  END
+  v9.CheckScriptFailure(lines, 'E46', 3)
+
+  lines =<< trim END
+      vim9script
+      const name = 'john'
+      def UnLockIt()
+        unlockvar name
+      enddef
+      UnLockIt()
+  END
+  v9.CheckScriptFailure(lines, 'E46', 1)
 enddef
 
 def Test_substitute_expr()

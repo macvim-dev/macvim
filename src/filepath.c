@@ -1605,7 +1605,7 @@ readdirex_dict_arg(typval_T *tv, int *cmp)
 	return FAIL;
     }
 
-    if (dict_find(tv->vval.v_dict, (char_u *)"sort", -1) != NULL)
+    if (dict_has_key(tv->vval.v_dict, "sort"))
 	compare = dict_get_string(tv->vval.v_dict, (char_u *)"sort", FALSE);
     else
     {
@@ -3945,13 +3945,13 @@ gen_expand_wildcards(
 	    }
 
 	    /*
-	     * If there are wildcards: Expand file names and add each match to
-	     * the list.  If there is no match, and EW_NOTFOUND is given, add
-	     * the pattern.
-	     * If there are no wildcards: Add the file name if it exists or
-	     * when EW_NOTFOUND is given.
+	     * If there are wildcards or case-insensitive expansion is
+	     * required: Expand file names and add each match to the list.  If
+	     * there is no match, and EW_NOTFOUND is given, add the pattern.
+	     * Otherwise: Add the file name if it exists or when EW_NOTFOUND is
+	     * given.
 	     */
-	    if (mch_has_exp_wildcard(p))
+	    if (mch_has_exp_wildcard(p) || (flags & EW_ICASE))
 	    {
 #if defined(FEAT_SEARCHPATH)
 		if ((flags & EW_PATH)
@@ -3999,7 +3999,7 @@ gen_expand_wildcards(
 
     // When returning FAIL the array must be freed here.
     if (retval == FAIL)
-	ga_clear(&ga);
+	ga_clear_strings(&ga);
 
     *num_file = ga.ga_len;
     *file = (ga.ga_data != NULL) ? (char_u **)ga.ga_data

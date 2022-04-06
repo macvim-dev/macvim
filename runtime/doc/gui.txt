@@ -26,7 +26,7 @@ Other GUI documentation:
 
 First you must make sure you actually have a version of Vim with the GUI code
 included.  You can check this with the ":version" command, it says "with xxx
-GUI", where "xxx" is MacVim, X11-Motif, X11-Athena, Photon, GTK2, GTK3, etc., or
+GUI", where "xxx" is MacVim, X11-Motif, Photon, GTK2, GTK3, etc., or
 "MS-Windows 32 bit GUI version".
 
 How to start the GUI depends on the system used.  Mostly you can run the
@@ -109,7 +109,7 @@ There are a number of options which only have meaning in the GUI version of
 Vim.  These are 'guicursor', 'guifont', 'guipty' and 'guioptions'.  They are
 documented in |options.txt| with all the other options.
 
-If using the Motif or Athena version of the GUI (but not for the GTK+ or
+If using the Motif version of the GUI (but not for the GTK+ or
 Win32 version), a number of X resources are available.  See |gui-resources|.
 
 Another way to set the colors for different occasions is with highlight
@@ -237,7 +237,7 @@ takes too much time or you don't like the cursor jumping to another line,
 include the 'h' flag in 'guioptions'.  Then the scrolling is limited by the
 text of the current cursor line.
 
-							*athena-intellimouse*
+							*motif-intellimouse*
 If you have an Intellimouse and an X server that supports using the wheel,
 then you can use the wheel to scroll the text up and down in gvim.  This works
 with XFree86 4.0 and later, and with some older versions when you add patches.
@@ -262,6 +262,7 @@ Other options that are relevant:
 'mousefocus'	window focus follows mouse pointer |gui-mouse-focus|
 'mousemodel'	what mouse button does which action
 'mousehide'	hide mouse pointer while typing text
+'mousemoveevent' enable mouse move events so that <MouseMove> can be mapped
 'selectmode'	whether to start Select mode or Visual mode
 
 A quick way to set these is with the ":behave" command.
@@ -406,6 +407,9 @@ The mouse events, complete with modifiers, may be mapped.  Eg: >
 These mappings make selection work the way it probably should in a Motif
 application, with shift-left mouse allowing for extending the visual area
 rather than the right mouse button.
+
+<MouseMove> may be mapped, but 'mousemoveevent' must be enabled to use the
+mapping.
 
 Mouse mapping with modifiers does not work for modeless selection.
 
@@ -743,8 +747,8 @@ because the item will never be selected.  Use a single colon to keep it
 simple.
 
 							*gui-toolbar*
-The toolbar is currently available in the MacVim, Win32, Athena, Motif, GTK+
-(X11), and Photon GUI.  It should turn up in other GUIs in due course.  The
+The toolbar is currently available in the MacVim, Win32, Motif, GTK+ (X11),
+and Photon GUI.  It should turn up in other GUIs in due course.  The
 default toolbar is setup in menu.vim.  (Note: The MacVim toolbar is modified
 in "$VIM/gvimrc".)
 The display of the toolbar is controlled by the 'guioptions' letter 'T'.  You
@@ -860,7 +864,7 @@ The window toolbar uses the ToolbarLine and ToolbarButton highlight groups.
 When splitting the window the window toolbar is not copied to the new window.
 
 							*popup-menu*
-In the Win32, MacVim, GTK+, Motif, Athena and Photon GUI, you can define the
+In the Win32, MacVim, GTK+, Motif, and Photon GUI, you can define the
 special menu "PopUp".  This is the menu that is displayed when the right mouse
 button is pressed, if 'mousemodel' is set to popup or popup_setpos.
 Example: >

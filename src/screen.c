@@ -3675,9 +3675,9 @@ win_rest_invalid(win_T *wp)
 
 /*
  * insert lines on the screen and update ScreenLines[]
- * 'end' is the line after the scrolled part. Normally it is Rows.
- * When scrolling region used 'off' is the offset from the top for the region.
- * 'row' and 'end' are relative to the start of the region.
+ * "end" is the line after the scrolled part. Normally it is Rows.
+ * When scrolling region used "off" is the offset from the top for the region.
+ * "row" and "end" are relative to the start of the region.
  *
  * return FAIL for failure, OK for success.
  */
@@ -3702,14 +3702,15 @@ screen_ins_lines(
     /*
      * FAIL if
      * - there is no valid screen
-     * - the screen has to be redrawn completely
      * - the line count is less than one
      * - the line count is more than 'ttyscroll'
+     * - "end" is more than "Rows" (safety check, should not happen)
      * - redrawing for a callback and there is a modeless selection
      * - there is a popup window
      */
      if (!screen_valid(TRUE)
 	     || line_count <= 0 || line_count > p_ttyscroll
+	     || end > Rows
 #ifdef FEAT_CLIPBOARD
 	     || (clip_star.state != SELECT_CLEARED
 						 && redrawing_for_callback > 0)
@@ -3747,7 +3748,15 @@ screen_ins_lines(
      */
     result_empty = (row + line_count >= end);
     if (wp != NULL && wp->w_width != Columns && *T_CSV == NUL)
+    {
+	// Avoid that lines are first cleared here and then redrawn, which
+	// results in many characters updated twice.  This happens with CTRL-F
+	// in a vertically split window.  With line-by-line scrolling
+	// USE_REDRAW should be faster.
+	if (line_count > 3)
+	    return FAIL;
 	type = USE_REDRAW;
+    }
     else if (can_clear(T_CD) && result_empty)
 	type = USE_T_CD;
     else if (*T_CAL != NUL && (line_count > 1 || *T_AL == NUL))
@@ -3919,7 +3928,7 @@ screen_del_lines(
     int		end,
     int		force,		// even when line_count > p_ttyscroll
     int		clear_attr,	// used for clearing lines
-    win_T	*wp UNUSED)	// NULL or window to use width from
+    win_T	*wp)		// NULL or window to use width from
 {
     int		j;
     int		i;
@@ -3937,13 +3946,15 @@ screen_del_lines(
      * - the screen has to be redrawn completely
      * - the line count is less than one
      * - the line count is more than 'ttyscroll'
+     * - "end" is more than "Rows" (safety check, should not happen)
      * - redrawing for a callback and there is a modeless selection
      */
-    if (!screen_valid(TRUE) || line_count <= 0
-					|| (!force && line_count > p_ttyscroll)
+    if (!screen_valid(TRUE)
+	    || line_count <= 0
+	    || (!force && line_count > p_ttyscroll)
+	    || end > Rows
 #ifdef FEAT_CLIPBOARD
-	     || (clip_star.state != SELECT_CLEARED
-						 && redrawing_for_callback > 0)
+	    || (clip_star.state != SELECT_CLEARED && redrawing_for_callback > 0)
 #endif
        )
 	return FAIL;
@@ -3972,7 +3983,15 @@ screen_del_lines(
      * 6. redraw the characters from ScreenLines[].
      */
     if (wp != NULL && wp->w_width != Columns && *T_CSV == NUL)
+    {
+	// Avoid that lines are first cleared here and then redrawn, which
+	// results in many characters updated twice.  This happens with CTRL-F
+	// in a vertically split window.  With line-by-line scrolling
+	// USE_REDRAW should be faster.
+	if (line_count > 3)
+	    return FAIL;
 	type = USE_REDRAW;
+    }
     else if (can_clear(T_CD) && result_empty)
 	type = USE_T_CD;
     else if (row == 0 && (

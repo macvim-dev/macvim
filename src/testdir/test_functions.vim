@@ -2242,6 +2242,15 @@ func Test_delete_rf()
   call assert_equal(0, delete('Xdir', 'rf'))
   call assert_false(filereadable('Xdir/foo.txt'))
   call assert_false(filereadable('Xdir/[a-1]/foo.txt'))
+
+  if has('unix')
+    call mkdir('Xdir/Xdir2', 'p')
+    silent !chmod 555 Xdir
+    call assert_equal(-1, delete('Xdir/Xdir2', 'rf'))
+    call assert_equal(-1, delete('Xdir', 'rf'))
+    silent !chmod 755 Xdir
+    call assert_equal(0, delete('Xdir', 'rf'))
+  endif
 endfunc
 
 func Test_call()
@@ -2821,6 +2830,8 @@ func Test_glob()
   " Sort output of glob() otherwise we end up with different
   " ordering depending on whether file system is case-sensitive.
   call assert_equal(['XGLOB2', 'Xglob1'], sort(glob('Xglob[12]', 0, 1)))
+  " wildignorecase shall be applied even when the pattern contains no wildcards.
+  call assert_equal('XGLOB2', glob('xglob2'))
   set wildignorecase&
 
   call delete('Xglob1')
