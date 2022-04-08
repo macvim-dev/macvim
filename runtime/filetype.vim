@@ -951,6 +951,11 @@ au BufNewFile,BufRead *.jl			setf julia
 " Kixtart
 au BufNewFile,BufRead *.kix			setf kix
 
+" Kuka Robot Language
+au BufNewFile,BufRead *.src\c			call dist#ft#FTsrc()
+au BufNewFile,BufRead *.dat\c			call dist#ft#FTdat()
+au BufNewFile,BufRead *.sub\c			setf krl
+
 " Kimwitu[++]
 au BufNewFile,BufRead *.k			setf kwt
 
@@ -1347,9 +1352,10 @@ au BufNewFile,BufRead *.pm
 au BufNewFile,BufRead *.pod			setf pod
 
 " Php, php3, php4, etc.
-" Also Phtml (was used for PHP 2 in the past)
-" Also .ctp for Cake template file
-au BufNewFile,BufRead *.php,*.php\d,*.phtml,*.ctp	setf php
+" Also Phtml (was used for PHP 2 in the past).
+" Also .ctp for Cake template file.
+" Also .phpt for php tests.
+au BufNewFile,BufRead *.php,*.php\d,*.phtml,*.ctp,*.phpt	setf php
 
 " PHP config
 au BufNewFile,BufRead php.ini-*			setf dosini
