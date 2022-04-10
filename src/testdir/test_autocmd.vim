@@ -3,6 +3,7 @@
 source shared.vim
 source check.vim
 source term_util.vim
+source screendump.vim
 import './vim9.vim' as v9
 
 func s:cleanup_buffers() abort
@@ -307,6 +308,60 @@ func Test_win_tab_autocmd()
     au!
   augroup END
   unlet g:record
+endfunc
+
+func Test_WinScrolled()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+	set nowrap scrolloff=0
+        for ii in range(1, 18)
+          call setline(ii, repeat(nr2char(96 + ii), ii * 2))
+        endfor
+        let win_id = win_getid()
+        let g:matched = v:false
+        execute 'au WinScrolled' win_id 'let g:matched = v:true'
+        let g:scrolled = 0
+        au WinScrolled * let g:scrolled += 1
+        au WinScrolled * let g:amatch = str2nr(expand('<amatch>'))
+        au WinScrolled * let g:afile = str2nr(expand('<afile>'))
+  END
+  call writefile(lines, 'Xtest_winscrolled')
+  let buf = RunVimInTerminal('-S Xtest_winscrolled', {'rows': 6})
+
+  call term_sendkeys(buf, ":echo g:scrolled\<CR>")
+  call WaitForAssert({-> assert_match('^0 ', term_getline(buf, 6))}, 1000)
+
+  " Scroll left/right in Normal mode.
+  call term_sendkeys(buf, "zlzh:echo g:scrolled\<CR>")
+  call WaitForAssert({-> assert_match('^2 ', term_getline(buf, 6))}, 1000)
+
+  " Scroll up/down in Normal mode.
+  call term_sendkeys(buf, "\<c-e>\<c-y>:echo g:scrolled\<CR>")
+  call WaitForAssert({-> assert_match('^4 ', term_getline(buf, 6))}, 1000)
+
+  " Scroll up/down in Insert mode.
+  call term_sendkeys(buf, "Mi\<c-x>\<c-e>\<Esc>i\<c-x>\<c-y>\<Esc>")
+  call term_sendkeys(buf, ":echo g:scrolled\<CR>")
+  call WaitForAssert({-> assert_match('^6 ', term_getline(buf, 6))}, 1000)
+
+  " Scroll the window horizontally to focus the last letter of the third line
+  " containing only six characters. Moving to the previous and shorter lines
+  " should trigger another autocommand as Vim has to make them visible.
+  call term_sendkeys(buf, "5zl2k")
+  call term_sendkeys(buf, ":echo g:scrolled\<CR>")
+  call WaitForAssert({-> assert_match('^8 ', term_getline(buf, 6))}, 1000)
+
+  " Ensure the command was triggered for the specified window ID.
+  call term_sendkeys(buf, ":echo g:matched\<CR>")
+  call WaitForAssert({-> assert_match('^v:true ', term_getline(buf, 6))}, 1000)
+
+  " Ensure the expansion of <amatch> and <afile> matches the window ID.
+  call term_sendkeys(buf, ":echo g:amatch == win_id && g:afile == win_id\<CR>")
+  call WaitForAssert({-> assert_match('^v:true ', term_getline(buf, 6))}, 1000)
+
+  call StopVimInTerminal(buf)
+  call delete('Xtest_winscrolled')
 endfunc
 
 func Test_WinClosed()
@@ -1876,28 +1931,48 @@ func Test_TextYankPost()
 
   norm "ayiw
   call assert_equal(
-    \{'regcontents': ['foo'], 'regname': 'a', 'operator': 'y', 'regtype': 'v', 'visual': v:false},
-    \g:event)
+        \ #{regcontents: ['foo'], regname: 'a', operator: 'y',
+        \   regtype: 'v', visual: v:false, inclusive: v:true},
+        \ g:event)
   norm y_
   call assert_equal(
-    \{'regcontents': ['foo'], 'regname': '',  'operator': 'y', 'regtype': 'V', 'visual': v:false},
-    \g:event)
+        \ #{regcontents: ['foo'], regname: '',  operator: 'y', regtype: 'V',
+        \   visual: v:false, inclusive: v:false},
+        \ g:event)
   norm Vy
   call assert_equal(
-    \{'regcontents': ['foo'], 'regname': '',  'operator': 'y', 'regtype': 'V', 'visual': v:true},
-    \g:event)
+        \ #{regcontents: ['foo'], regname: '',  operator: 'y', regtype: 'V',
+        \   visual: v:true, inclusive: v:true},
+        \ g:event)
   call feedkeys("\<C-V>y", 'x')
   call assert_equal(
-    \{'regcontents': ['f'], 'regname': '',  'operator': 'y', 'regtype': "\x161", 'visual': v:true},
-    \g:event)
+        \ #{regcontents: ['f'], regname: '',  operator: 'y', regtype: "\x161",
+        \   visual: v:true, inclusive: v:true},
+        \ g:event)
   norm "xciwbar
   call assert_equal(
-    \{'regcontents': ['foo'], 'regname': 'x', 'operator': 'c', 'regtype': 'v', 'visual': v:false},
-    \g:event)
+        \ #{regcontents: ['foo'], regname: 'x', operator: 'c', regtype: 'v',
+        \   visual: v:false, inclusive: v:true},
+        \ g:event)
   norm "bdiw
   call assert_equal(
-    \{'regcontents': ['bar'], 'regname': 'b', 'operator': 'd', 'regtype': 'v', 'visual': v:false},
-    \g:event)
+        \ #{regcontents: ['bar'], regname: 'b', operator: 'd', regtype: 'v',
+        \   visual: v:false, inclusive: v:true},
+        \ g:event)
+
+  call setline(1, 'foobar')
+  " exclusive motion
+  norm $"ay0
+  call assert_equal(
+        \ #{regcontents: ['fooba'], regname: 'a', operator: 'y', regtype: 'v',
+        \   visual: v:false, inclusive: v:false},
+        \ g:event)
+  " inclusive motion
+  norm 0"ay$
+  call assert_equal(
+        \ #{regcontents: ['foobar'], regname: 'a', operator: 'y', regtype: 'v',
+        \   visual: v:false, inclusive: v:true},
+        \ g:event)
 
   call assert_equal({}, v:event)
 
@@ -1910,15 +1985,17 @@ func Test_TextYankPost()
     set clipboard=autoselect
     exe "norm! ggviw\<Esc>"
     call assert_equal(
-        \{'regcontents': ['foobar'], 'regname': '*', 'operator': 'y', 'regtype': 'v', 'visual': v:true},
-        \g:event)
+          \ #{regcontents: ['foobar'], regname: '*', operator: 'y',
+          \   regtype: 'v', visual: v:true, inclusive: v:false},
+          \ g:event)
 
     let @+ = ''
     set clipboard=autoselectplus
     exe "norm! ggviw\<Esc>"
     call assert_equal(
-        \{'regcontents': ['foobar'], 'regname': '+', 'operator': 'y', 'regtype': 'v', 'visual': v:true},
-        \g:event)
+          \ #{regcontents: ['foobar'], regname: '+', operator: 'y',
+          \   regtype: 'v', visual: v:true, inclusive: v:false},
+          \ g:event)
 
     set clipboard&vim
   endif
