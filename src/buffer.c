@@ -3080,6 +3080,8 @@ buflist_setfpos(
 	wip->wi_fpos.lnum = lnum;
 	wip->wi_fpos.col = col;
     }
+    if (win != NULL)
+	wip->wi_changelistidx = win->w_changelistidx;
     if (copy_options && win != NULL)
     {
 	// Save the window-specific option values.
@@ -3214,6 +3216,8 @@ get_winopts(buf_T *buf)
     }
     else
 	copy_winopt(&curwin->w_allbuf_opt, &curwin->w_onebuf_opt);
+    if (wip != NULL)
+	curwin->w_changelistidx = wip->wi_changelistidx;
 
 #ifdef FEAT_FOLDING
     // Set 'foldlevel' to 'foldlevelstart' if it's not negative.

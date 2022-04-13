@@ -4065,7 +4065,6 @@ f_expand(typval_T *argvars, typval_T *rettv)
 {
     char_u	*s;
     int		len;
-    char	*errormsg;
     int		options = WILD_SILENT|WILD_USE_NL|WILD_LIST_NOTFOUND;
     expand_T	xpc;
     int		error = FALSE;
@@ -4096,9 +4095,15 @@ f_expand(typval_T *argvars, typval_T *rettv)
     s = tv_get_string(&argvars[0]);
     if (*s == '%' || *s == '#' || *s == '<')
     {
-	++emsg_off;
+	char	*errormsg = NULL;
+
+	if (p_verbose == 0)
+	    ++emsg_off;
 	result = eval_vars(s, s, &len, NULL, &errormsg, NULL);
-	--emsg_off;
+	if (p_verbose == 0)
+	    --emsg_off;
+	else if (errormsg != NULL)
+	    emsg(errormsg);
 	if (rettv->v_type == VAR_LIST)
 	{
 	    if (rettv_list_alloc(rettv) != FAIL && result != NULL)
@@ -4724,6 +4729,7 @@ f_getchangelist(typval_T *argvars, typval_T *rettv)
     int		i;
     list_T	*l;
     dict_T	*d;
+    int		changelistindex;
 
     if (rettv_list_alloc(rettv) != OK)
 	return;
@@ -4745,13 +4751,25 @@ f_getchangelist(typval_T *argvars, typval_T *rettv)
     if (list_append_list(rettv->vval.v_list, l) == FAIL)
 	return;
     /*
-     * The current window change list index tracks only the position in the
-     * current buffer change list. For other buffers, use the change list
-     * length as the current index.
+     * The current window change list index tracks only the position for the
+     * current buffer. For other buffers use the stored index for the current
+     * window, or, if that's not available, the change list length.
      */
-    list_append_number(rettv->vval.v_list,
-	    (varnumber_T)((buf == curwin->w_buffer)
-		? curwin->w_changelistidx : buf->b_changelistlen));
+    if (buf == curwin->w_buffer)
+    {
+	changelistindex = curwin->w_changelistidx;
+    }
+    else
+    {
+	wininfo_T	*wip;
+
+	FOR_ALL_BUF_WININFO(buf, wip)
+	    if (wip->wi_win == curwin)
+		break;
+	changelistindex = wip != NULL ? wip->wi_changelistidx
+							: buf->b_changelistlen;
+    }
+    list_append_number(rettv->vval.v_list, (varnumber_T)changelistindex);
 
     for (i = 0; i < buf->b_changelistlen; ++i)
     {

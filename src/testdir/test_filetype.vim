@@ -931,6 +931,7 @@ func Test_dat_file()
   call assert_equal('dat', &filetype)
   bwipe!
   call delete('datfile.DAT')
+  unlet g:filetype_dat
 
   filetype off
 endfunc
@@ -1525,6 +1526,7 @@ func Test_src_file()
   call assert_equal('src', &filetype)
   bwipe!
   call delete('srcfile.SRC')
+  unlet g:filetype_src
 
   filetype off
 endfunc

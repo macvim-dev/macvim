@@ -1537,7 +1537,7 @@ ins_redraw(int ready)	    // not busy with something
     }
 
     if (ready)
-	may_trigger_winscrolled(curwin);
+	may_trigger_winscrolled();
 
     // Trigger SafeState if nothing is pending.
     may_trigger_safestate(ready

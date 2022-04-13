@@ -128,13 +128,21 @@ func Test_source_sfile()
     :call assert_equal('edit <cword>', expandcmd("edit <cword>"))
     :call assert_equal('edit <cexpr>', expandcmd("edit <cexpr>"))
     :call assert_fails('autocmd User MyCmd echo "<sfile>"', 'E498:')
+    :
+    :call assert_equal('', expand('<script>'))
+    :verbose echo expand('<script>')
+    :call add(v:errors, v:errmsg)
+    :verbose echo expand('<sfile>')
+    :call add(v:errors, v:errmsg)
     :call writefile(v:errors, 'Xresult')
     :qall!
-
   [SCRIPT]
   call writefile(lines, 'Xscript')
   if RunVim([], [], '--clean -s Xscript')
-    call assert_equal([], readfile('Xresult'))
+    call assert_equal([
+          \ 'E1274: No script file name to substitute for "<script>"',
+          \ 'E498: no :source file name to substitute for "<sfile>"'],
+          \ readfile('Xresult'))
   endif
   call delete('Xscript')
   call delete('Xresult')
@@ -157,6 +165,56 @@ endfunc
 func Test_expandcmd_shell_nonomatch()
   CheckNotMSWindows
   call assert_equal('$*', expandcmd('$*'))
+endfunc
+
+func Test_expand_script_source()
+  let lines0 =<< trim [SCRIPT]
+    let g:script_level[0] = expand('<script>:t')
+    so Xscript1
+    func F0()
+      let g:func_level[0] = expand('<script>:t')
+    endfunc
+  [SCRIPT]
+
+  let lines1 =<< trim [SCRIPT]
+    let g:script_level[1] = expand('<script>:t')
+    so Xscript2
+    func F1()
+      let g:func_level[1] = expand('<script>:t')
+    endfunc
+  [SCRIPT]
+
+  let lines2 =<< trim [SCRIPT]
+    let g:script_level[2] = expand('<script>:t')
+    func F2()
+      let g:func_level[2] = expand('<script>:t')
+    endfunc
+  [SCRIPT]
+
+  call writefile(lines0, 'Xscript0')
+  call writefile(lines1, 'Xscript1')
+  call writefile(lines2, 'Xscript2')
+
+  " Check the expansion of <script> at script and function level.
+  let g:script_level = ['', '', '']
+  let g:func_level = ['', '', '']
+
+  so Xscript0
+  call F0()
+  call F1()
+  call F2()
+
+  call assert_equal(['Xscript0', 'Xscript1', 'Xscript2'], g:script_level)
+  call assert_equal(['Xscript0', 'Xscript1', 'Xscript2'], g:func_level)
+
+  unlet g:script_level g:func_level
+  delfunc F0
+  delfunc F1
+  delfunc F2
+
+  call delete('Xscript0')
+  call delete('Xscript1')
+  call delete('Xscript2')
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

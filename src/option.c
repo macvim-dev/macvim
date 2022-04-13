@@ -4571,6 +4571,7 @@ get_encoding_default(void)
     return (char_u *)NULL;
 }
 
+#if defined(FEAT_QUICKFIX) || defined(PROTO)
     int
 is_option_allocated(char *name)
 {
@@ -4578,6 +4579,7 @@ is_option_allocated(char *name)
 
     return idx >= 0 && (options[idx].flags & P_ALLOCED);
 }
+#endif
 
 /*
  * Translate a string like "t_xx", "<t_xx>" or "<S-Tab>" to a key number.
@@ -7293,6 +7295,7 @@ get_bkc_value(buf_T *buf)
     return buf->b_bkc_flags ? buf->b_bkc_flags : bkc_flags;
 }
 
+#if defined(FEAT_LINEBREAK) || defined(PROTO)
 /*
  * Get the local or global value of 'formatlistpat'.
  */
@@ -7303,6 +7306,7 @@ get_flp_value(buf_T *buf)
 	return p_flp;
     return buf->b_p_flp;
 }
+#endif
 
 /*
  * Get the local or global value of the 'virtualedit' flags.

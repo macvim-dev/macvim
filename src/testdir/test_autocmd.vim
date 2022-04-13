@@ -314,17 +314,17 @@ func Test_WinScrolled()
   CheckRunVimInTerminal
 
   let lines =<< trim END
-	set nowrap scrolloff=0
-        for ii in range(1, 18)
-          call setline(ii, repeat(nr2char(96 + ii), ii * 2))
-        endfor
-        let win_id = win_getid()
-        let g:matched = v:false
-        execute 'au WinScrolled' win_id 'let g:matched = v:true'
-        let g:scrolled = 0
-        au WinScrolled * let g:scrolled += 1
-        au WinScrolled * let g:amatch = str2nr(expand('<amatch>'))
-        au WinScrolled * let g:afile = str2nr(expand('<afile>'))
+    set nowrap scrolloff=0
+    for ii in range(1, 18)
+      call setline(ii, repeat(nr2char(96 + ii), ii * 2))
+    endfor
+    let win_id = win_getid()
+    let g:matched = v:false
+    execute 'au WinScrolled' win_id 'let g:matched = v:true'
+    let g:scrolled = 0
+    au WinScrolled * let g:scrolled += 1
+    au WinScrolled * let g:amatch = str2nr(expand('<amatch>'))
+    au WinScrolled * let g:afile = str2nr(expand('<afile>'))
   END
   call writefile(lines, 'Xtest_winscrolled')
   let buf = RunVimInTerminal('-S Xtest_winscrolled', {'rows': 6})
@@ -362,6 +362,30 @@ func Test_WinScrolled()
 
   call StopVimInTerminal(buf)
   call delete('Xtest_winscrolled')
+endfunc
+
+func Test_WinScrolled_close_curwin()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+    set nowrap scrolloff=0
+    call setline(1, ['aaa', 'bbb'])
+    vsplit
+    au WinScrolled * close
+    au VimLeave * call writefile(['123456'], 'Xtestout')
+  END
+  call writefile(lines, 'Xtest_winscrolled_close_curwin')
+  let buf = RunVimInTerminal('-S Xtest_winscrolled_close_curwin', {'rows': 6})
+
+  " This was using freed memory
+  call term_sendkeys(buf, "\<C-E>")
+  call TermWait(buf)
+  call StopVimInTerminal(buf)
+
+  call assert_equal(['123456'], readfile('Xtestout'))
+
+  call delete('Xtest_winscrolled_close_curwin')
+  call delete('Xtestout')
 endfunc
 
 func Test_WinClosed()
@@ -3115,6 +3139,24 @@ func Test_bufwipeout_changes_window()
   unlet g:window_id
   au! BufWipeout
   %bwipe!
+endfunc
+
+func Test_v_event_readonly()
+  autocmd CompleteChanged * let v:event.width = 0
+  call assert_fails("normal! i\<C-X>\<C-V>", 'E46:')
+  au! CompleteChanged
+
+  autocmd DirChangedPre * let v:event.directory = ''
+  call assert_fails('cd .', 'E46:')
+  au! DirChangedPre
+
+  autocmd ModeChanged * let v:event.new_mode = ''
+  call assert_fails('normal! cc', 'E46:')
+  au! ModeChanged
+
+  autocmd TextYankPost * let v:event.operator = ''
+  call assert_fails('normal! yy', 'E46:')
+  au! TextYankPost
 endfunc
 
 
