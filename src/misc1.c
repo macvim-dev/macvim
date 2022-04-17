@@ -1102,11 +1102,10 @@ beep_flush(void)
 }
 
 /*
- * Give a warning for an error.
+ * Give a warning for an error. "val" is one of the BO_ values, e.g., BO_OPER.
  */
     void
-vim_beep(
-    unsigned val) // one of the BO_ values, e.g., BO_OPER
+vim_beep(unsigned val)
 {
 #ifdef FEAT_EVAL
     called_vim_beep = TRUE;
@@ -1584,7 +1583,7 @@ expand_env_esc(
 		c = (int)STRLEN(var);
 		// if var[] ends in a path separator and tail[] starts
 		// with it, skip a character
-		if (*var != NUL && after_pathsep(dst, dst + c)
+		if (after_pathsep(dst, dst + c)
 #if defined(BACKSLASH_IN_FILENAME) || defined(AMIGA)
 			&& dst[-1] != ':'
 #endif
@@ -1907,7 +1906,6 @@ vim_getenv(char_u *name, int *mustfree)
     return p;
 }
 
-#if defined(FEAT_EVAL) || defined(PROTO)
     void
 vim_unsetenv(char_u *var)
 {
@@ -1918,7 +1916,22 @@ vim_unsetenv(char_u *var)
 #endif
 }
 
+/*
+ * Removes environment variable "name" and take care of side effects.
+ */
+    void
+vim_unsetenv_ext(char_u *var)
+{
+    vim_unsetenv(var);
 
+    // "homedir" is not cleared, keep using the old value until $HOME is set.
+    if (STRICMP(var, "VIM") == 0)
+	didset_vim = FALSE;
+    else if (STRICMP(var, "VIMRUNTIME") == 0)
+	didset_vimruntime = FALSE;
+}
+
+#if defined(FEAT_EVAL) || defined(PROTO)
 /*
  * Set environment variable "name" and take care of side effects.
  */
@@ -1930,8 +1943,7 @@ vim_setenv_ext(char_u *name, char_u *val)
 	init_homedir();
     else if (didset_vim && STRICMP(name, "VIM") == 0)
 	didset_vim = FALSE;
-    else if (didset_vimruntime
-	    && STRICMP(name, "VIMRUNTIME") == 0)
+    else if (didset_vimruntime && STRICMP(name, "VIMRUNTIME") == 0)
 	didset_vimruntime = FALSE;
 }
 #endif
