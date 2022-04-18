@@ -4612,7 +4612,8 @@ ch_expr_common(typval_T *argvars, typval_T *rettv, int eval)
 	dictitem_T	*di;
 
 	// return an empty dict by default
-	rettv_dict_alloc(rettv);
+	if (rettv_dict_alloc(rettv) == FAIL)
+	    return;
 
 	if (argvars[1].v_type != VAR_DICT)
 	{
