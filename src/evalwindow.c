@@ -395,6 +395,9 @@ get_win_info(win_T *wp, short tpnr, short winnr)
     if (dict == NULL)
 	return NULL;
 
+    // make sure w_botline is valid
+    validate_botline_win(wp);
+
     dict_add_number(dict, "tabnr", tpnr);
     dict_add_number(dict, "winnr", winnr);
     dict_add_number(dict, "winid", wp->w_id);
@@ -817,6 +820,9 @@ f_win_gotoid(typval_T *argvars, typval_T *rettv)
     FOR_ALL_TAB_WINDOWS(tp, wp)
 	if (wp->w_id == id)
 	{
+	    // When jumping to another buffer stop Visual mode.
+	    if (VIsual_active && wp->w_buffer != curbuf)
+		end_visual_mode();
 	    goto_tabpage_win(tp, wp);
 	    rettv->vval.v_number = 1;
 	    return;

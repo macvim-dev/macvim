@@ -686,7 +686,7 @@ eval_all_expr_in_str(char_u *str)
     list_T *
 heredoc_get(exarg_T *eap, char_u *cmd, int script_get)
 {
-    char_u	*theline;
+    char_u	*theline = NULL;
     char_u	*marker;
     list_T	*l;
     char_u	*p;
@@ -778,6 +778,7 @@ heredoc_get(exarg_T *eap, char_u *cmd, int script_get)
 	int	mi = 0;
 	int	ti = 0;
 
+	vim_free(theline);
 	theline = eap->getline(NUL, eap->cookie, 0, FALSE);
 	if (theline == NULL)
 	{
@@ -791,18 +792,12 @@ heredoc_get(exarg_T *eap, char_u *cmd, int script_get)
 		&& STRNCMP(theline, *eap->cmdlinep, marker_indent_len) == 0)
 	    mi = marker_indent_len;
 	if (STRCMP(marker, theline + mi) == 0)
-	{
-	    vim_free(theline);
 	    break;
-	}
 
 	// If expression evaluation failed in the heredoc, then skip till the
 	// end marker.
 	if (eval_failed)
-	{
-	    vim_free(theline);
 	    continue;
-	}
 
 	if (text_indent_len == -1 && *theline != NUL)
 	{
@@ -829,7 +824,6 @@ heredoc_get(exarg_T *eap, char_u *cmd, int script_get)
 	    if (str == NULL)
 	    {
 		// expression evaluation failed
-		vim_free(theline);
 		eval_failed = TRUE;
 		continue;
 	    }
@@ -839,8 +833,8 @@ heredoc_get(exarg_T *eap, char_u *cmd, int script_get)
 
 	if (list_append_string(l, str, -1) == FAIL)
 	    break;
-	vim_free(theline);
     }
+    vim_free(theline);
     vim_free(text_indent);
 
     if (eval_failed)
