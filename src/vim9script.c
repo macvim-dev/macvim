@@ -710,10 +710,15 @@ find_exported(
     svar_T	*sv;
     scriptitem_T *script = SCRIPT_ITEM(sid);
 
+    *ufunc = NULL;
+
     if (script->sn_import_autoload && script->sn_state == SN_STATE_NOT_LOADED)
     {
 	if (do_source(script->sn_name, FALSE, DOSO_NONE, NULL) == FAIL)
+	{
+	    semsg(_(e_cant_open_file_str), script->sn_name);
 	    return -1;
+	}
     }
 
     // Find name in "script".
@@ -721,7 +726,6 @@ find_exported(
     if (idx >= 0)
     {
 	sv = ((svar_T *)script->sn_var_vals.ga_data) + idx;
-	*ufunc = NULL;
 	if ((sv->sv_flags & SVFLAG_EXPORTED) == 0)
 	{
 	    if (verbose)

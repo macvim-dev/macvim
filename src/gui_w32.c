@@ -818,19 +818,61 @@ char_to_string(int ch, char_u *string, int slen, int had_alt)
     return len;
 }
 
+    static int
+get_active_modifiers(void)
+{
+    int modifiers = 0;
+
+    if (GetKeyState(VK_CONTROL) & 0x8000)
+	modifiers |= MOD_MASK_CTRL;
+    if (GetKeyState(VK_SHIFT) & 0x8000)
+	modifiers |= MOD_MASK_SHIFT;
+    if (GetKeyState(VK_MENU) & 0x8000)
+	modifiers |= MOD_MASK_ALT;
+    // Windows handles Ctrl + Alt as AltGr, in that case no modifier is actually
+    // pressed.
+    if ((modifiers & (MOD_MASK_CTRL | MOD_MASK_ALT)) ==
+	    (MOD_MASK_CTRL | MOD_MASK_ALT))
+	modifiers &= ~(MOD_MASK_CTRL | MOD_MASK_ALT);
+
+    return modifiers;
+}
+
 /*
  * Key hit, add it to the input buffer.
  */
     static void
 _OnChar(
     HWND hwnd UNUSED,
-    UINT ch,
+    UINT cch,
     int cRepeat UNUSED)
 {
     char_u	string[40];
     int		len = 0;
+    int		modifiers;
+    int		ch = cch;   // special keys are negative
 
     dead_key = 0;
+
+    modifiers = get_active_modifiers();
+
+    ch = simplify_key(ch, &modifiers);
+    // remove the SHIFT modifier for keys where it's already included, e.g.,
+    // '(' and '*'
+    modifiers = may_remove_shift_modifier(modifiers, ch);
+
+    // Unify modifiers somewhat.  No longer use ALT to set the 8th bit.
+    ch = extract_modifiers(ch, &modifiers, FALSE, NULL);
+    if (ch == CSI)
+	ch = K_CSI;
+
+    if (modifiers)
+    {
+	string[0] = CSI;
+	string[1] = KS_MODIFIER;
+	string[2] = modifiers;
+	add_to_input_buf(string, 3);
+    }
 
     len = char_to_string(ch, string, 40, FALSE);
     if (len == 1 && string[0] == Ctrl_C && ctrl_c_interrupts)
@@ -858,18 +900,11 @@ _OnSysChar(
 
     dead_key = 0;
 
-    // TRACE("OnSysChar(%d, %c)\n", ch, ch);
-
     // OK, we have a character key (given by ch) which was entered with the
     // ALT key pressed. Eg, if the user presses Alt-A, then ch == 'A'. Note
     // that the system distinguishes Alt-a and Alt-A (Alt-Shift-a unless
     // CAPSLOCK is pressed) at this point.
-    modifiers = MOD_MASK_ALT;
-    if (GetKeyState(VK_SHIFT) & 0x8000)
-	modifiers |= MOD_MASK_SHIFT;
-    if (GetKeyState(VK_CONTROL) & 0x8000)
-	modifiers |= MOD_MASK_CTRL;
-
+    modifiers = get_active_modifiers();
     ch = simplify_key(ch, &modifiers);
     // remove the SHIFT modifier for keys where it's already included, e.g.,
     // '(' and '*'
@@ -1816,7 +1851,6 @@ outputDeadKey_rePost(MSG originalMsg)
 							  originalMsg.lParam);
 }
 
-
 /*
  * Process a single Windows message.
  * If one is not available we hang until one is.
@@ -1833,6 +1867,7 @@ process_message(void)
 #ifdef FEAT_MENU
     static char_u k10[] = {K_SPECIAL, 'k', ';', 0};
 #endif
+    BYTE	keyboard_state[256];
 
     GetMessageW(&msg, NULL, 0, 0);
 
@@ -1926,6 +1961,13 @@ process_message(void)
 	    add_to_input_buf(string, 1);
 	}
 
+	// This is an IME event or a synthetic keystroke, let Windows handle it.
+	if (vk == VK_PROCESSKEY || vk == VK_PACKET)
+	{
+	    TranslateMessage(&msg);
+	    return;
+	}
+
 	for (i = 0; special_keys[i].key_sym != 0; i++)
 	{
 	    // ignore VK_SPACE when ALT key pressed: system menu
@@ -1954,21 +1996,7 @@ process_message(void)
 							  NULL, NULL) == NULL)
 		    break;
 #endif
-		if (GetKeyState(VK_SHIFT) & 0x8000)
-		    modifiers |= MOD_MASK_SHIFT;
-		/*
-		 * Don't use caps-lock as shift, because these are special keys
-		 * being considered here, and we only want letters to get
-		 * shifted -- webb
-		 */
-		/*
-		if (GetKeyState(VK_CAPITAL) & 0x0001)
-		    modifiers ^= MOD_MASK_SHIFT;
-		*/
-		if (GetKeyState(VK_CONTROL) & 0x8000)
-		    modifiers |= MOD_MASK_CTRL;
-		if (GetKeyState(VK_MENU) & 0x8000)
-		    modifiers |= MOD_MASK_ALT;
+		modifiers = get_active_modifiers();
 
 		if (special_keys[i].vim_code1 == NUL)
 		    key = special_keys[i].vim_code0;
@@ -2005,39 +2033,55 @@ process_message(void)
 		break;
 	    }
 	}
+
+	// Not a special key.
 	if (special_keys[i].key_sym == 0)
 	{
-	    // Some keys need C-S- where they should only need C-.
-	    // Ignore 0xff, Windows XP sends it when NUMLOCK has changed since
-	    // system startup (Helmut Stiegler, 2003 Oct 3).
-	    if (vk != 0xff
-		    && (GetKeyState(VK_CONTROL) & 0x8000)
-		    && !(GetKeyState(VK_SHIFT) & 0x8000)
-		    && !(GetKeyState(VK_MENU) & 0x8000))
+	    WCHAR	ch[8];
+	    int		len;
+	    int		i;
+	    UINT	scan_code;
+
+	    // Construct the state table with only a few modifiers, we don't
+	    // really care about the presence of Ctrl/Alt as those modifiers are
+	    // handled by Vim separately.
+	    memset(keyboard_state, 0, 256);
+	    if (GetKeyState(VK_SHIFT) & 0x8000)
+		keyboard_state[VK_SHIFT] = 0x80;
+	    if (GetKeyState(VK_CAPITAL) & 0x0001)
+		keyboard_state[VK_CAPITAL] = 0x01;
+	    // Alt-Gr is synthesized as Alt + Ctrl.
+	    if ((GetKeyState(VK_MENU) & 0x8000) &&
+		    (GetKeyState(VK_CONTROL) & 0x8000))
 	    {
-		// CTRL-6 is '^'; Japanese keyboard maps '^' to vk == 0xDE
-		if (vk == '6' || MapVirtualKey(vk, 2) == (UINT)'^')
-		{
-		    string[0] = Ctrl_HAT;
-		    add_to_input_buf(string, 1);
-		}
-		// vk == 0xBD AZERTY for CTRL-'-', but CTRL-[ for * QWERTY!
-		else if (vk == 0xBD)	// QWERTY for CTRL-'-'
-		{
-		    string[0] = Ctrl__;
-		    add_to_input_buf(string, 1);
-		}
-		// CTRL-2 is '@'; Japanese keyboard maps '@' to vk == 0xC0
-		else if (vk == '2' || MapVirtualKey(vk, 2) == (UINT)'@')
-		{
-		    string[0] = Ctrl_AT;
-		    add_to_input_buf(string, 1);
-		}
-		else
-		    TranslateMessage(&msg);
+		keyboard_state[VK_MENU] = 0x80;
+		keyboard_state[VK_CONTROL] = 0x80;
+	    }
+
+	    // Translate the virtual key according to the current keyboard
+	    // layout.
+	    scan_code = MapVirtualKey(vk, MAPVK_VK_TO_VSC);
+	    // Convert the scan-code into a sequence of zero or more unicode
+	    // codepoints.
+	    // If this is a dead key ToUnicode returns a negative value.
+	    len = ToUnicode(vk, scan_code, keyboard_state, ch, ARRAY_LENGTH(ch),
+		    0);
+	    dead_key = len < 0;
+
+	    if (len <= 0)
+		return;
+
+	    // Post the message as TranslateMessage would do.
+	    if (msg.message == WM_KEYDOWN)
+	    {
+		for (i = 0; i < len; i++)
+		    PostMessageW(msg.hwnd, WM_CHAR, ch[i], msg.lParam);
 	    }
 	    else
-		TranslateMessage(&msg);
+	    {
+		for (i = 0; i < len; i++)
+		    PostMessageW(msg.hwnd, WM_SYSCHAR, ch[i], msg.lParam);
+	    }
 	}
     }
 #ifdef FEAT_MBYTE_IME
@@ -3728,8 +3772,6 @@ _OnDropFiles(
     POINT   pt;
     int_u   modifiers = 0;
 
-    // TRACE("_OnDropFiles: %d files dropped\n", cFiles);
-
     // Obtain dropped position
     DragQueryPoint(hDrop, &pt);
     MapWindowPoints(s_hwnd, s_textArea, &pt, 1);
@@ -3754,11 +3796,13 @@ _OnDropFiles(
 
     if (fnames != NULL)
     {
-	if ((GetKeyState(VK_SHIFT) & 0x8000) != 0)
+	int kbd_modifiers = get_active_modifiers();
+
+	if ((kbd_modifiers & MOD_MASK_SHIFT) != 0)
 	    modifiers |= MOUSE_SHIFT;
-	if ((GetKeyState(VK_CONTROL) & 0x8000) != 0)
+	if ((kbd_modifiers & MOD_MASK_CTRL) != 0)
 	    modifiers |= MOUSE_CTRL;
-	if ((GetKeyState(VK_MENU) & 0x8000) != 0)
+	if ((kbd_modifiers & MOD_MASK_ALT) != 0)
 	    modifiers |= MOUSE_ALT;
 
 	gui_handle_drop(pt.x, pt.y, modifiers, fnames, cFiles);
@@ -4580,10 +4624,8 @@ _WndProc(
     WPARAM wParam,
     LPARAM lParam)
 {
-    /*
-    TRACE("WndProc: hwnd = %08x, msg = %x, wParam = %x, lParam = %x\n",
-	  hwnd, uMsg, wParam, lParam);
-    */
+    // TRACE("WndProc: hwnd = %08x, msg = %x, wParam = %x, lParam = %x\n",
+    //       hwnd, uMsg, wParam, lParam);
 
     HandleMouseHide(uMsg, lParam);
 
@@ -4634,20 +4676,6 @@ _WndProc(
 	    return 0L;
 	}
 	break;
-
-    case WM_KEYUP:
-	// handle CTRL-/
-	if ((GetKeyState(VK_CONTROL) & 0x8000) != 0 && wParam == 0xBF)
-	{
-	    char_u string[4];
-
-	    string[0] = CSI;
-	    string[1] = KS_MODIFIER;
-	    string[2] = MOD_MASK_CTRL;
-	    string[3] = 0x2F;
-	    add_to_input_buf(string, 4);
-	}
-	return 0L;
 
     case WM_CHAR:
 	// Don't use HANDLE_MSG() for WM_CHAR, it truncates wParam to a single
