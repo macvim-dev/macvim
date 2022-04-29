@@ -1,7 +1,7 @@
 " Vim support file to detect file types
 "
 " Maintainer:	Bram Moolenaar <Bram@vim.org>
-" Last Change:	2022 Apr 13
+" Last Change:	2022 Apr 25
 
 " Listen very carefully, I will say this only once
 if exists("did_load_filetypes")
@@ -821,6 +821,7 @@ au BufNewFile,BufRead *.t.html			setf tilde
 
 " HTML (.shtml and .stm for server side)
 au BufNewFile,BufRead *.html,*.htm,*.shtml,*.stm  call dist#ft#FThtml()
+au BufNewFile,BufRead *.cshtml			setf html
 
 " HTML with Ruby - eRuby
 au BufNewFile,BufRead *.erb,*.rhtml		setf eruby

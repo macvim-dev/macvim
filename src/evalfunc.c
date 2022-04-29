@@ -1871,8 +1871,6 @@ static funcentry_T global_functions[] =
 			ret_getline,	    f_getline},
     {"getloclist",	1, 2, 0,	    arg2_number_dict_any,
 			ret_list_or_dict_1, f_getloclist},
-    {"getmappings",		0, 0, 0,	    NULL,
-			ret_list_dict_any,  f_getmappings},
     {"getmarklist",	0, 1, FEARG_1,	    arg1_buffer,
 			ret_list_dict_any,  f_getmarklist},
     {"getmatches",	0, 1, 0,	    arg1_number,
@@ -1971,6 +1969,8 @@ static funcentry_T global_functions[] =
 			ret_void,	    f_interrupt},
     {"invert",		1, 1, FEARG_1,	    arg1_number,
 			ret_number,	    f_invert},
+    {"isabsolutepath",	1, 1, FEARG_1,	    arg1_string,
+			ret_number_bool,    f_isabsolutepath},
     {"isdirectory",	1, 1, FEARG_1,	    arg1_string,
 			ret_number_bool,    f_isdirectory},
     {"isinf",		1, 1, FEARG_1,	    arg1_float_or_nr,
@@ -2049,6 +2049,8 @@ static funcentry_T global_functions[] =
 			ret_maparg,	    f_maparg},
     {"mapcheck",	1, 3, FEARG_1,	    arg3_string_string_bool,
 			ret_string,	    f_mapcheck},
+    {"maplist",		0, 1, 0,	    arg1_bool,
+			ret_list_dict_any,  f_maplist},
     {"mapnew",		2, 2, FEARG_1,	    arg2_mapnew,
 			ret_first_cont,	    f_mapnew},
     {"mapset",		3, 3, FEARG_1,	    arg3_string_bool_dict,
@@ -4103,7 +4105,7 @@ f_expand(typval_T *argvars, typval_T *rettv)
 
 	if (p_verbose == 0)
 	    ++emsg_off;
-	result = eval_vars(s, s, &len, NULL, &errormsg, NULL);
+	result = eval_vars(s, s, &len, NULL, &errormsg, NULL, FALSE);
 	if (p_verbose == 0)
 	    --emsg_off;
 	else if (errormsg != NULL)

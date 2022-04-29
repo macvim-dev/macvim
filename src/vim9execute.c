@@ -120,6 +120,48 @@ ufunc_argcount(ufunc_T *ufunc)
 }
 
 /*
+ * Create a new string from "count" items at the bottom of the stack.
+ * A trailing NUL is appended.
+ * When "count" is zero an empty string is added to the stack.
+ */
+    static int
+exe_concat(int count, ectx_T *ectx)
+{
+    int		idx;
+    int		len = 0;
+    typval_T	*tv;
+    garray_T	ga;
+
+    ga_init2(&ga, sizeof(char), 1);
+    // Preallocate enough space for the whole string to avoid having to grow
+    // and copy.
+    for (idx = 0; idx < count; ++idx)
+    {
+	tv = STACK_TV_BOT(idx - count);
+	if (tv->vval.v_string != NULL)
+	    len += (int)STRLEN(tv->vval.v_string);
+    }
+
+    if (ga_grow(&ga, len + 1) == FAIL)
+	return FAIL;
+
+    for (idx = 0; idx < count; ++idx)
+    {
+	tv = STACK_TV_BOT(idx - count);
+	ga_concat(&ga, tv->vval.v_string);
+	clear_tv(tv);
+    }
+
+    // add a terminating NUL
+    ga_append(&ga, NUL);
+
+    ectx->ec_stack.ga_len -= count - 1;
+    STACK_TV_BOT(-1)->vval.v_string = ga.ga_data;
+
+    return OK;
+}
+
+/*
  * Create a new list from "count" items at the bottom of the stack.
  * When "count" is zero an empty list is added to the stack.
  * When "count" is -1 a NULL list is added to the stack.
@@ -3130,6 +3172,7 @@ exec_instructions(ectx_T *ectx)
 			    int idx = get_script_item_idx(sid, name, 0,
 								   NULL, NULL);
 
+			    // can this ever fail?
 			    if (idx >= 0)
 			    {
 				svar_T	*sv = ((svar_T *)SCRIPT_ITEM(sid)
@@ -3536,6 +3579,11 @@ exec_instructions(ectx_T *ectx)
 		}
 		break;
 
+	    case ISN_CONCAT:
+		if (exe_concat(iptr->isn_arg.number, ectx) == FAIL)
+		    goto theend;
+		break;
+
 	    // create a partial with NULL value
 	    case ISN_NEWPARTIAL:
 		if (GA_GROW_FAILS(&ectx->ec_stack, 1))
@@ -3740,9 +3788,7 @@ exec_instructions(ectx_T *ectx)
 			}
 			else
 			    jump = tv2bool(tv);
-			if (when == JUMP_IF_FALSE
-					     || when == JUMP_AND_KEEP_IF_FALSE
-					     || when == JUMP_IF_COND_FALSE)
+			if (when == JUMP_IF_FALSE || when == JUMP_IF_COND_FALSE)
 			    jump = !jump;
 			if (when == JUMP_IF_FALSE || !jump)
 			{
@@ -3815,15 +3861,14 @@ exec_instructions(ectx_T *ectx)
 	    case ISN_CATCH:
 		{
 		    garray_T	*trystack = &ectx->ec_trystack;
+		    trycmd_T    *trycmd;
 
 		    may_restore_cmdmod(&ectx->ec_funclocal);
-		    if (trystack->ga_len > 0)
-		    {
-			trycmd_T    *trycmd = ((trycmd_T *)trystack->ga_data)
+		    trycmd = ((trycmd_T *)trystack->ga_data)
 							+ trystack->ga_len - 1;
-			trycmd->tcd_caught = TRUE;
-			trycmd->tcd_did_throw = FALSE;
-		    }
+		    trycmd->tcd_caught = TRUE;
+		    trycmd->tcd_did_throw = FALSE;
+
 		    did_emsg = got_int = did_throw = FALSE;
 		    force_abort = need_rethrow = FALSE;
 		    catch_exception(current_exception);
@@ -3877,38 +3922,33 @@ exec_instructions(ectx_T *ectx)
 	    case ISN_ENDTRY:
 		{
 		    garray_T	*trystack = &ectx->ec_trystack;
+		    trycmd_T    *trycmd;
 
-		    if (trystack->ga_len > 0)
+		    --trystack->ga_len;
+		    --trylevel;
+		    trycmd = ((trycmd_T *)trystack->ga_data) + trystack->ga_len;
+		    if (trycmd->tcd_did_throw)
+			did_throw = TRUE;
+		    if (trycmd->tcd_caught && current_exception != NULL)
 		    {
-			trycmd_T    *trycmd;
-
-			--trystack->ga_len;
-			--trylevel;
-			trycmd = ((trycmd_T *)trystack->ga_data)
-							    + trystack->ga_len;
-			if (trycmd->tcd_did_throw)
-			    did_throw = TRUE;
-			if (trycmd->tcd_caught && current_exception != NULL)
-			{
-			    // discard the exception
-			    if (caught_stack == current_exception)
-				caught_stack = caught_stack->caught;
-			    discard_current_exception();
-			}
-
-			if (trycmd->tcd_return)
-			    goto func_return;
-
-			while (ectx->ec_stack.ga_len > trycmd->tcd_stack_len)
-			{
-			    --ectx->ec_stack.ga_len;
-			    clear_tv(STACK_TV_BOT(0));
-			}
-			if (trycmd->tcd_cont != 0)
-			    // handling :continue: jump to outer try block or
-			    // start of the loop
-			    ectx->ec_iidx = trycmd->tcd_cont - 1;
+			// discard the exception
+			if (caught_stack == current_exception)
+			    caught_stack = caught_stack->caught;
+			discard_current_exception();
 		    }
+
+		    if (trycmd->tcd_return)
+			goto func_return;
+
+		    while (ectx->ec_stack.ga_len > trycmd->tcd_stack_len)
+		    {
+			--ectx->ec_stack.ga_len;
+			clear_tv(STACK_TV_BOT(0));
+		    }
+		    if (trycmd->tcd_cont != 0)
+			// handling :continue: jump to outer try block or
+			// start of the loop
+			ectx->ec_iidx = trycmd->tcd_cont - 1;
 		}
 		break;
 
@@ -3974,12 +4014,10 @@ exec_instructions(ectx_T *ectx)
 		    varnumber_T arg2 = tv2->vval.v_number;
 		    int		res;
 
-		    switch (iptr->isn_arg.op.op_type)
-		    {
-			case EXPR_EQUAL: res = arg1 == arg2; break;
-			case EXPR_NEQUAL: res = arg1 != arg2; break;
-			default: res = 0; break;
-		    }
+		    if (iptr->isn_arg.op.op_type == EXPR_EQUAL)
+			res = arg1 == arg2;
+		    else
+			res = arg1 != arg2;
 
 		    --ectx->ec_stack.ga_len;
 		    tv1->v_type = VAR_BOOL;
@@ -4343,20 +4381,6 @@ exec_instructions(ectx_T *ectx)
 		}
 		break;
 
-	    case ISN_CONCAT:
-		{
-		    char_u *str1 = STACK_TV_BOT(-2)->vval.v_string;
-		    char_u *str2 = STACK_TV_BOT(-1)->vval.v_string;
-		    char_u *res;
-
-		    res = concat_str(str1, str2);
-		    clear_tv(STACK_TV_BOT(-2));
-		    clear_tv(STACK_TV_BOT(-1));
-		    --ectx->ec_stack.ga_len;
-		    STACK_TV_BOT(-1)->vval.v_string = res;
-		}
-		break;
-
 	    case ISN_STRINDEX:
 	    case ISN_STRSLICE:
 		{
@@ -4625,20 +4649,6 @@ exec_instructions(ectx_T *ectx)
 		    tv->vval.v_number = -tv->vval.v_number;
 		break;
 
-	    case ISN_CHECKNR:
-		{
-		    int		error = FALSE;
-
-		    tv = STACK_TV_BOT(-1);
-		    SOURCING_LNUM = iptr->isn_lnum;
-		    if (check_not_string(tv) == FAIL)
-			goto on_error;
-		    (void)tv_get_number_chk(tv, &error);
-		    if (error)
-			goto on_error;
-		}
-		break;
-
 	    case ISN_CHECKTYPE:
 		{
 		    checktype_T *ct = &iptr->isn_arg.type;
@@ -4745,10 +4755,7 @@ exec_instructions(ectx_T *ectx)
 		    tv = STACK_TV_BOT(-1);
 		    tv->v_type = VAR_NUMBER;
 		    tv->v_lock = 0;
-		    if (ea.addr_count == 0)
-			tv->vval.v_number = curwin->w_cursor.lnum;
-		    else
-			tv->vval.v_number = ea.line2;
+		    tv->vval.v_number = ea.line2;
 		}
 		break;
 
@@ -5562,7 +5569,7 @@ list_instructions(char *pfx, isn_T *instr, int instr_count, ufunc_T *ufunc)
 		break;
 	    case ISN_LOADOUTER:
 		{
-		    if (iptr->isn_arg.number < 0)
+		    if (iptr->isn_arg.outer.outer_idx < 0)
 			smsg("%s%4d LOADOUTER level %d arg[%d]", pfx, current,
 				iptr->isn_arg.outer.outer_depth,
 				iptr->isn_arg.outer.outer_idx
@@ -5653,16 +5660,9 @@ list_instructions(char *pfx, isn_T *instr, int instr_count, ufunc_T *ufunc)
 							 iptr->isn_arg.number);
 		break;
 	    case ISN_STOREOUTER:
-		{
-		if (iptr->isn_arg.number < 0)
-		    smsg("%s%4d STOREOUTEr level %d arg[%d]", pfx, current,
-			    iptr->isn_arg.outer.outer_depth,
-			    iptr->isn_arg.outer.outer_idx + STACK_FRAME_SIZE);
-		else
-		    smsg("%s%4d STOREOUTER level %d $%d", pfx, current,
-			    iptr->isn_arg.outer.outer_depth,
-			    iptr->isn_arg.outer.outer_idx);
-		}
+		smsg("%s%4d STOREOUTER level %d $%d", pfx, current,
+			iptr->isn_arg.outer.outer_depth,
+			iptr->isn_arg.outer.outer_idx);
 		break;
 	    case ISN_STOREV:
 		smsg("%s%4d STOREV v:%s", pfx, current,
@@ -5926,9 +5926,6 @@ list_instructions(char *pfx, isn_T *instr, int instr_count, ufunc_T *ufunc)
 			case JUMP_IF_FALSE:
 			    when = "JUMP_IF_FALSE";
 			    break;
-			case JUMP_AND_KEEP_IF_FALSE:
-			    when = "JUMP_AND_KEEP_IF_FALSE";
-			    break;
 			case JUMP_IF_COND_FALSE:
 			    when = "JUMP_IF_COND_FALSE";
 			    break;
@@ -6083,7 +6080,10 @@ list_instructions(char *pfx, isn_T *instr, int instr_count, ufunc_T *ufunc)
 	    case ISN_ADDBLOB: smsg("%s%4d ADDBLOB", pfx, current); break;
 
 	    // expression operations
-	    case ISN_CONCAT: smsg("%s%4d CONCAT", pfx, current); break;
+	    case ISN_CONCAT:
+		smsg("%s%4d CONCAT size %lld", pfx, current,
+					    (varnumber_T)(iptr->isn_arg.number));
+		break;
 	    case ISN_STRINDEX: smsg("%s%4d STRINDEX", pfx, current); break;
 	    case ISN_STRSLICE: smsg("%s%4d STRSLICE", pfx, current); break;
 	    case ISN_BLOBINDEX: smsg("%s%4d BLOBINDEX", pfx, current); break;
@@ -6108,7 +6108,6 @@ list_instructions(char *pfx, isn_T *instr, int instr_count, ufunc_T *ufunc)
 
 	    case ISN_NEGATENR: smsg("%s%4d NEGATENR", pfx, current); break;
 
-	    case ISN_CHECKNR: smsg("%s%4d CHECKNR", pfx, current); break;
 	    case ISN_CHECKTYPE:
 		  {
 		      checktype_T *ct = &iptr->isn_arg.type;

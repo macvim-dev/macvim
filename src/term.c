@@ -4511,7 +4511,9 @@ is_mouse_topline(win_T *wp)
 #endif
 
 /*
- * Put "string[new_slen]" in typebuf, or in "buf[bufsize]" if "buf" is not NULL.
+ * If "buf" is NULL put "string[new_slen]" in typebuf; "buflen" is not used.
+ * If "buf" is not NULL put "string[new_slen]" in "buf[bufsize]" and adjust
+ * "buflen".
  * Remove "slen" bytes.
  * Returns FAIL for error.
  */
@@ -4535,7 +4537,9 @@ put_string_in_typebuf(
 	    del_typebuf(-extra, offset);
 	else if (extra > 0)
 	    // insert the extra space we need
-	    ins_typebuf(string + slen, REMAP_YES, offset, FALSE, FALSE);
+	    if (ins_typebuf(string + slen, REMAP_YES, offset, FALSE, FALSE)
+								       == FAIL)
+		return FAIL;
 
 	// Careful: del_typebuf() and ins_typebuf() may have reallocated
 	// typebuf.tb_buf[]!
@@ -4697,7 +4701,7 @@ handle_version_response(int first, int *arg, int argc, char_u *tp)
     if (version > 20000)
 	version = 0;
 
-    // Figure out more if the reeponse is CSI > 99 ; 99 ; 99 c
+    // Figure out more if the response is CSI > 99 ; 99 ; 99 c
     if (first == '>' && argc == 3)
     {
 	int need_flush = FALSE;
@@ -4842,7 +4846,7 @@ handle_version_response(int first, int *arg, int argc, char_u *tp)
 	if (*T_8U != NUL && write_t_8u_state == MAYBE)
 	    // Did skip writing t_8u, a complete redraw is needed.
 	    redraw_later_clear();
-	write_t_8u_state = OK;  // can otuput t_8u now
+	write_t_8u_state = OK;  // can output t_8u now
 
 	// Only set 'ttymouse' automatically if it was not set
 	// by the user already.

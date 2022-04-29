@@ -4930,7 +4930,7 @@ expand_filename(
 	 * Try to find a match at this position.
 	 */
 	repl = eval_vars(p, eap->arg, &srclen, &(eap->do_ecmd_lnum),
-							 errormsgp, &escaped);
+						    errormsgp, &escaped, TRUE);
 	if (*errormsgp != NULL)		// error detected
 	    return FAIL;
 	if (repl == NULL)		// no match found
@@ -9061,8 +9061,9 @@ eval_vars(
     int		*usedlen,	// characters after src that are used
     linenr_T	*lnump,		// line number for :e command, or NULL
     char	**errormsg,	// pointer to error message
-    int		*escaped)	// return value has escaped white space (can
+    int		*escaped,	// return value has escaped white space (can
 				// be NULL)
+    int		empty_is_error)	// empty result is considered an error
 {
     int		i;
     char_u	*s;
@@ -9366,10 +9367,13 @@ eval_vars(
 
     if (resultlen == 0 || valid != VALID_HEAD + VALID_PATH)
     {
-	if (valid != VALID_HEAD + VALID_PATH)
-	    *errormsg = _(e_empty_file_name_for_percent_or_hash_only_works_with_ph);
-	else
-	    *errormsg = _(e_evaluates_to_an_empty_string);
+	if (empty_is_error)
+	{
+	    if (valid != VALID_HEAD + VALID_PATH)
+		*errormsg = _(e_empty_file_name_for_percent_or_hash_only_works_with_ph);
+	    else
+		*errormsg = _(e_evaluates_to_an_empty_string);
+	}
 	result = NULL;
     }
     else
@@ -9405,7 +9409,7 @@ expand_sfile(char_u *arg)
 	else
 	{
 	    // replace "<sfile>" with the sourced file name, and do ":" stuff
-	    repl = eval_vars(p, result, &srclen, NULL, &errormsg, NULL);
+	    repl = eval_vars(p, result, &srclen, NULL, &errormsg, NULL, TRUE);
 	    if (errormsg != NULL)
 	    {
 		if (*errormsg)

@@ -1417,6 +1417,18 @@ f_isdirectory(typval_T *argvars, typval_T *rettv)
 }
 
 /*
+ * "isabsolutepath()" function
+ */
+    void
+f_isabsolutepath(typval_T *argvars, typval_T *rettv)
+{
+    if (in_vim9script() && check_for_string_arg(argvars, 0) == FAIL)
+	return;
+
+    rettv->vval.v_number = mch_isFullName(tv_get_string_strict(&argvars[0]));
+}
+
+/*
  * Create the directory in which "dir" is located, and higher levels when
  * needed.
  * Return OK or FAIL.
@@ -3085,7 +3097,7 @@ expand_wildcards_eval(
     {
 	++emsg_off;
 	eval_pat = eval_vars(exp_pat, exp_pat, &usedlen,
-						    NULL, &ignored_msg, NULL);
+					       NULL, &ignored_msg, NULL, TRUE);
 	--emsg_off;
 	if (eval_pat != NULL)
 	    exp_pat = concat_str(eval_pat, exp_pat + usedlen);

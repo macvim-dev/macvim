@@ -1,4 +1,4 @@
-*usr_41.txt*	For Vim version 8.2.  Last change: 2022 Feb 11
+*usr_41.txt*	For Vim version 8.2.  Last change: 2022 Apr 25
 
 		     VIM USER MANUAL - by Bram Moolenaar
 
@@ -904,6 +904,7 @@ System functions and manipulation of files:
 	getfperm()		get the permissions of a file
 	setfperm()		set the permissions of a file
 	getftype()		get the kind of a file
+	isabsolutepath()	check if a path is absolute
 	isdirectory()		check if a directory exists
 	getfsize()		get the size of a file
 	getcwd()		get the current working directory
@@ -1089,10 +1090,10 @@ Mappings and Menus:			    *mapping-functions*
 	digraph_getlist()	get all |digraph|s
 	digraph_set()		register |digraph|
 	digraph_setlist()	register multiple |digraph|s
-	getmappings()		get list of all mappings
 	hasmapto()		check if a mapping exists
 	mapcheck()		check if a matching mapping exists
 	maparg()		get rhs of a mapping
+	maplist()		get list of all mappings
 	mapset()		restore a mapping
 	menu_info()		get information about a menu item
 	wildmenumode()		check if the wildmode is active

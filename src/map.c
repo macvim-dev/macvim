@@ -508,6 +508,7 @@ do_map(
     {
 	int	did_it = FALSE;
 	int	did_local = FALSE;
+	int	keyround1_simplified = keyround == 1 && did_simplify;
 	int	round;
 	int	hash;
 	int	new_hash;
@@ -725,8 +726,9 @@ do_map(
 				    mpp = &(mp->m_next);
 				    continue;
 				}
-				if (did_simplify && keyround == 1
-							  && !mp->m_simplified)
+				// In keyround for simplified keys, don't unmap
+				// a mapping without m_simplified flag.
+				if (keyround1_simplified && !mp->m_simplified)
 				    break;
 				// We reset the indicated mode bits. If nothing
 				// is left the entry is deleted below.
@@ -779,8 +781,7 @@ do_map(
 				    mp->m_nowait = nowait;
 				    mp->m_silent = silent;
 				    mp->m_mode = mode;
-				    mp->m_simplified =
-						 did_simplify && keyround == 1;
+				    mp->m_simplified = keyround1_simplified;
 #ifdef FEAT_EVAL
 				    mp->m_expr = expr;
 				    mp->m_script_ctx = current_sctx;
@@ -818,7 +819,7 @@ do_map(
 	    // delete entry
 	    if (!did_it)
 	    {
-		if (!did_simplify || keyround == 2)
+		if (!keyround1_simplified)
 		    retval = 2;		// no match
 	    }
 	    else if (*keys == Ctrl_C)
@@ -854,7 +855,7 @@ do_map(
 #ifdef FEAT_EVAL
 		    expr, /* sid */ -1, /* scriptversion */ 0, /* lnum */ 0,
 #endif
-		    did_simplify && keyround == 1) == FAIL)
+		    keyround1_simplified) == FAIL)
 	{
 	    retval = 4;	    // no mem
 	    goto theend;
@@ -2324,8 +2325,7 @@ get_maparg(typval_T *argvars, typval_T *rettv, int exact)
     int		mode;
     int		abbr = FALSE;
     int		get_dict = FALSE;
-    mapblock_T	*mp;
-    mapblock_T	*mp_simplified = NULL;
+    mapblock_T	*mp = NULL;
     int		buffer_local;
     int		flags = REPTERM_FROM_PART | REPTERM_DO_LT;
 
@@ -2361,8 +2361,6 @@ get_maparg(typval_T *argvars, typval_T *rettv, int exact)
     {
 	// When the lhs is being simplified the not-simplified keys are
 	// preferred for printing, like in do_map().
-	// The "rhs" and "buffer_local" values are not expected to change.
-	mp_simplified = mp;
 	(void)replace_termcodes(keys, &alt_keys_buf,
 					flags | REPTERM_NO_SIMPLIFY, NULL);
 	rhs = check_map(alt_keys_buf, mode, exact, FALSE, abbr, &mp,
@@ -2383,17 +2381,17 @@ get_maparg(typval_T *argvars, typval_T *rettv, int exact)
     }
     else if (rettv_dict_alloc(rettv) != FAIL && rhs != NULL)
 	mapblock2dict(mp, rettv->vval.v_dict,
-		    did_simplify ? mp_simplified->m_keys : NULL, buffer_local);
+			  did_simplify ? keys_simplified : NULL, buffer_local);
 
     vim_free(keys_buf);
     vim_free(alt_keys_buf);
 }
 
 /*
- * "getmappings()" function
+ * "maplist()" function
  */
     void
-f_getmappings(typval_T *argvars UNUSED, typval_T *rettv)
+f_maplist(typval_T *argvars UNUSED, typval_T *rettv)
 {
     dict_T	*d;
     mapblock_T	*mp;
@@ -2403,6 +2401,12 @@ f_getmappings(typval_T *argvars UNUSED, typval_T *rettv)
     int		hash;
     char_u	*lhs;
     const int	flags = REPTERM_FROM_PART | REPTERM_DO_LT;
+    int		abbr = FALSE;
+
+    if (in_vim9script() && check_for_opt_bool_arg(argvars, 0) == FAIL)
+	return;
+    if (argvars[0].v_type != VAR_UNKNOWN)
+	abbr = tv_get_bool(&argvars[0]);
 
     if (rettv_list_alloc(rettv) != OK)
 	return;
@@ -2414,7 +2418,16 @@ f_getmappings(typval_T *argvars UNUSED, typval_T *rettv)
     {
 	for (hash = 0; hash < 256; ++hash)
 	{
-	    if (buffer_local)
+	    if (abbr)
+	    {
+		if (hash > 0)		// there is only one abbr list
+		    break;
+		if (buffer_local)
+		    mp = curbuf->b_first_abbr;
+		else
+		    mp = first_abbr;
+	    }
+	    else if (buffer_local)
 		mp = curbuf->b_maphash[hash];
 	    else
 		mp = maphash[hash];
