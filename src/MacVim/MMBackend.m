@@ -1361,7 +1361,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 {
     // TODO: This method should share code with clip_mch_request_selection().
 
-    if (VIsual_active && (State & NORMAL) && clip_star.available) {
+    if (VIsual_active && (State & MODE_NORMAL) && clip_star.available) {
         // If there is no pasteboard, return YES to indicate that there is text
         // to copy.
         if (!pboard)
@@ -2505,7 +2505,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     if (!(filenames && [filenames count] > 0)) return;
 
 #ifdef FEAT_DND
-    if (!forceOpen && (State & CMDLINE)) {
+    if (!forceOpen && (State & MODE_CMDLINE)) {
         // HACK!  If Vim is in command line mode then the files names
         // should be added to the command line, instead of opening the
         // files in tabs (unless forceOpen is set).  This is taken care of by
@@ -3226,7 +3226,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
     // HACK! The cursor is not put back at the command line by the above
     // "redraw commands".  The following test seems to do the trick though.
-    if (State & CMDLINE)
+    if (State & MODE_CMDLINE)
         redrawcmdline();
 }
 
@@ -3250,7 +3250,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
 - (void)useSelectionForFind
 {
-    if (VIsual_active && (State & NORMAL)) {
+    if (VIsual_active && (State & MODE_NORMAL)) {
 		// This happens when Cmd-E is pressed and is supposed to be consistent
 		// with normal macOS apps, so it always writes to the system find
 		// pasteboard, unlike normal searches where it could be turned off via

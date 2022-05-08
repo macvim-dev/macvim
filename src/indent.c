@@ -828,7 +828,7 @@ get_number_indent(linenr_T lnum)
     pos.lnum = 0;
 
     // In format_lines() (i.e. not insert mode), fo+=q is needed too...
-    if ((State & INSERT) || has_format_option(FO_Q_COMS))
+    if ((State & MODE_INSERT) || has_format_option(FO_Q_COMS))
 	lead_len = get_leader_len(ml_get(lnum), NULL, FALSE, TRUE);
 
     regmatch.regprog = vim_regcomp(curbuf->b_p_flp, RE_MAGIC);
@@ -866,6 +866,7 @@ briopt_check(win_T *wp)
     long	bri_min = 20;
     int		bri_sbr = FALSE;
     int		bri_list = 0;
+    int		bri_vcol = 0;
 
     p = wp->w_p_briopt;
     while (*p != NUL)
@@ -891,6 +892,11 @@ briopt_check(win_T *wp)
 	    p += 5;
 	    bri_list = getdigits(&p);
 	}
+	else if (STRNCMP(p, "column:", 7) == 0)
+	{
+	    p += 7;
+	    bri_vcol = getdigits(&p);
+	}
 	if (*p != ',' && *p != NUL)
 	    return FAIL;
 	if (*p == ',')
@@ -901,6 +907,7 @@ briopt_check(win_T *wp)
     wp->w_briopt_min   = bri_min;
     wp->w_briopt_sbr   = bri_sbr;
     wp->w_briopt_list  = bri_list;
+    wp->w_briopt_vcol  = bri_vcol;
 
     return OK;
 }
@@ -953,11 +960,13 @@ get_breakindent_win(
 	prev_tick = CHANGEDTICK(wp->w_buffer);
 # ifdef FEAT_VARTABS
 	prev_vts = wp->w_buffer->b_p_vts_array;
-	prev_indent = get_indent_str_vtab(line,
+	if (wp->w_briopt_vcol == 0)
+	    prev_indent = get_indent_str_vtab(line,
 				     (int)wp->w_buffer->b_p_ts,
 				    wp->w_buffer->b_p_vts_array, wp->w_p_list);
 # else
-	prev_indent = get_indent_str(line,
+	if (wp->w_briopt_vcol == 0)
+	    prev_indent = get_indent_str(line,
 				     (int)wp->w_buffer->b_p_ts, wp->w_p_list);
 # endif
 	prev_listopt = wp->w_briopt_list;
@@ -965,7 +974,7 @@ get_breakindent_win(
 	vim_free(prev_flp);
 	prev_flp = vim_strsave(get_flp_value(wp->w_buffer));
 	// add additional indent for numbered lists
-	if (wp->w_briopt_list != 0)
+	if (wp->w_briopt_list != 0 && wp->w_briopt_vcol == 0)
 	{
 	    regmatch_T	    regmatch;
 
@@ -986,7 +995,14 @@ get_breakindent_win(
 	    }
 	}
     }
-    bri = prev_indent + wp->w_briopt_shift;
+    if (wp->w_briopt_vcol != 0)
+    {
+	// column value has priority
+	bri = wp->w_briopt_vcol;
+	prev_list = 0;
+    }
+    else
+	bri = prev_indent + wp->w_briopt_shift;
 
     // Add offset for number column, if 'n' is in 'cpoptions'
     bri += win_col_off2(wp);
@@ -1260,7 +1276,7 @@ change_indent(
     colnr_T	orig_col = 0;		// init for GCC
     char_u	*new_line, *orig_line = NULL;	// init for GCC
 
-    // VREPLACE mode needs to know what the line was like before changing
+    // MODE_VREPLACE state needs to know what the line was like before changing
     if (State & VREPLACE_FLAG)
     {
 	orig_line = vim_strsave(ml_get_curline());  // Deal with NULL below
@@ -1302,7 +1318,7 @@ change_indent(
 
 	// Avoid being called recursively.
 	if (State & VREPLACE_FLAG)
-	    State = INSERT;
+	    State = MODE_INSERT;
 	shift_line(type == INDENT_DEC, round, 1, call_changed_bytes);
 	State = save_State;
     }
@@ -1323,7 +1339,7 @@ change_indent(
 	    insstart_less = MAXCOL;
 	new_cursor_col += curwin->w_cursor.col;
     }
-    else if (!(State & INSERT))
+    else if (!(State & MODE_INSERT))
 	new_cursor_col = curwin->w_cursor.col;
     else
     {
@@ -1381,7 +1397,7 @@ change_indent(
     changed_cline_bef_curs();
 
     // May have to adjust the start of the insert.
-    if (State & INSERT)
+    if (State & MODE_INSERT)
     {
 	if (curwin->w_cursor.lnum == Insstart.lnum && Insstart.col != 0)
 	{
@@ -1396,9 +1412,9 @@ change_indent(
 	    ai_col -= insstart_less;
     }
 
-    // For REPLACE mode, may have to fix the replace stack, if it's possible.
-    // If the number of characters before the cursor decreased, need to pop a
-    // few characters from the replace stack.
+    // For MODE_REPLACE state, may have to fix the replace stack, if it's
+    // possible.  If the number of characters before the cursor decreased, need
+    // to pop a few characters from the replace stack.
     // If the number of characters before the cursor increased, need to push a
     // few NULs onto the replace stack.
     if (REPLACE_NORMAL(State) && start_col >= 0)
@@ -1420,9 +1436,9 @@ change_indent(
 	}
     }
 
-    // For VREPLACE mode, we also have to fix the replace stack.  In this case
-    // it is always possible because we backspace over the whole line and then
-    // put it back again the way we wanted it.
+    // For MODE_VREPLACE state, we also have to fix the replace stack.  In this
+    // case it is always possible because we backspace over the whole line and
+    // then put it back again the way we wanted it.
     if (State & VREPLACE_FLAG)
     {
 	// If orig_line didn't allocate, just return.  At least we did the job,
@@ -1878,7 +1894,7 @@ get_expr_indent(void)
     // Pretend to be in Insert mode, allow cursor past end of line for "o"
     // command.
     save_State = State;
-    State = INSERT;
+    State = MODE_INSERT;
     curwin->w_cursor = save_pos;
     curwin->w_curswant = save_curswant;
     curwin->w_set_curswant = save_set_curswant;

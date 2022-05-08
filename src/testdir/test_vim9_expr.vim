@@ -1463,10 +1463,12 @@ func Test_expr4_fails()
   call v9.CheckDefAndScriptFailure(["var x = [13] =~ [88]"], 'Cannot compare list with list', 1)
   call v9.CheckDefAndScriptFailure(["var x = [13] !~ [88]"], 'Cannot compare list with list', 1)
 
-  call v9.CheckDefAndScriptFailure(['var j: job', 'var chan: channel', 'var r = j == chan'], 'Cannot compare job with channel', 3)
-  call v9.CheckDefAndScriptFailure(['var j: job', 'var x: list<any>', 'var r = j == x'], 'Cannot compare job with list', 3)
-  call v9.CheckDefAndScriptFailure(['var j: job', 'var Xx: func', 'var r = j == Xx'], 'Cannot compare job with func', 3)
-  call v9.CheckDefAndScriptFailure(['var j: job', 'var Xx: func', 'var r = j == Xx'], 'Cannot compare job with func', 3)
+  if has('job')
+    call v9.CheckDefAndScriptFailure(['var j: job', 'var chan: channel', 'var r = j == chan'], 'Cannot compare job with channel', 3)
+    call v9.CheckDefAndScriptFailure(['var j: job', 'var x: list<any>', 'var r = j == x'], 'Cannot compare job with list', 3)
+    call v9.CheckDefAndScriptFailure(['var j: job', 'var Xx: func', 'var r = j == Xx'], 'Cannot compare job with func', 3)
+    call v9.CheckDefAndScriptFailure(['var j: job', 'var Xx: func', 'var r = j == Xx'], 'Cannot compare job with func', 3)
+  endif
 endfunc
 
 " test addition, subtraction, concatenation
@@ -3114,7 +3116,7 @@ def Test_expr8_any_index_slice()
   v9.CheckDefExecAndScriptFailure(['echo g:testblob[2]'], 'E979:', 1)
   v9.CheckDefExecAndScriptFailure(['echo g:testblob[-3]'], 'E979:', 1)
 
-  v9.CheckDefExecAndScriptFailure(['echo g:testlist[4]'], 'E684: list index out of range: 4', 1)
+  v9.CheckDefExecAndScriptFailure(['echo g:testlist[4]'], 'E684: List index out of range: 4', 1)
   v9.CheckDefExecAndScriptFailure(['echo g:testlist[-5]'], 'E684:', 1)
 
   v9.CheckDefExecAndScriptFailure(['echo g:testdict["a" : "b"]'], 'E719:', 1)

@@ -1002,6 +1002,7 @@ func Test_gui_mouse_event()
   call assert_equal(['one two abc three', 'four five posix'], getline(1, '$'))
 
   %d _
+  set scrolloff=0
   call setline(1, range(1, 100))
   " scroll up
   let args = #{button: 0x200, row: 2, col: 1, multiclick: 0, modifiers: 0}
@@ -1017,6 +1018,7 @@ func Test_gui_mouse_event()
   call test_gui_event('mouse', args)
   call feedkeys("H", 'Lx!')
   call assert_equal(4, line('.'))
+  set scrolloff&
 
   %d _
   set nowrap
@@ -1565,6 +1567,12 @@ func Test_gui_findrepl()
   call assert_false(test_gui_event('findrepl', args))
 
   bw!
+endfunc
+
+func Test_gui_CTRL_SHIFT_V()
+  call feedkeys(":let g:str = '\<*C-S-V>\<*C-S-I>\<*C-S-V>\<*C-S-@>'\<CR>", 'tx')
+  call assert_equal('<C-S-I><C-S-@>', g:str)
+  unlet g:str
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

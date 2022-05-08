@@ -482,6 +482,26 @@ func Test_list_mappings()
   call assert_match("\tLast set from .*/test_mapping.vim line \\d\\+$",
         \ execute('verbose map ,n')->trim()->split("\n")[1])
 
+  " character with K_SPECIAL byte in rhs
+  nmap foo …
+  call assert_equal(['n  foo           …'],
+        \ execute('nmap foo')->trim()->split("\n"))
+
+  " modified character with K_SPECIAL byte in rhs
+  nmap foo <M-…>
+  call assert_equal(['n  foo           <M-…>'],
+        \ execute('nmap foo')->trim()->split("\n"))
+
+  " character with K_SPECIAL byte in lhs
+  nmap … foo
+  call assert_equal(['n  …             foo'],
+        \ execute('nmap …')->trim()->split("\n"))
+
+  " modified character with K_SPECIAL byte in lhs
+  nmap <M-…> foo
+  call assert_equal(['n  <M-…>         foo'],
+        \ execute('nmap <M-…>')->trim()->split("\n"))
+
   " map to CTRL-V
   exe "nmap ,k \<C-V>"
   call assert_equal(['n  ,k            <Nop>'],
@@ -1641,6 +1661,21 @@ func Test_unmap_simplifiable()
   unmap <Tab>
   " This should not error
   unmap <C-I>
+endfunc
+
+func Test_expr_map_escape_special()
+  nnoremap … <Cmd>let g:got_ellipsis += 1<CR>
+  func Func()
+    return '…'
+  endfunc
+  nmap <expr> <F2> Func()
+  let g:got_ellipsis = 0
+  call feedkeys("\<F2>", 'xt')
+  call assert_equal(1, g:got_ellipsis)
+  delfunc Func
+  nunmap <F2>
+  unlet g:got_ellipsis
+  nunmap …
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

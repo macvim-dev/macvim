@@ -1346,7 +1346,7 @@ ungetchars(int len)
     static void
 may_sync_undo(void)
 {
-    if ((!(State & (INSERT + CMDLINE)) || arrow_used)
+    if ((!(State & (MODE_INSERT | MODE_CMDLINE)) || arrow_used)
 					       && scriptin[curscript] == NULL)
 	u_sync(FALSE);
 }
@@ -1533,7 +1533,7 @@ openscript(
 	int	save_finish_op = finish_op;
 	int	save_msg_scroll = msg_scroll;
 
-	State = NORMAL;
+	State = MODE_NORMAL;
 	msg_scroll = FALSE;	// no msg scrolling in Normal mode
 	restart_edit = 0;	// don't go to Insert mode
 	p_im = FALSE;		// don't use 'insertmode'
@@ -2355,10 +2355,10 @@ typedef enum {
 
 /*
  * Check if the bytes at the start of the typeahead buffer are a character used
- * in CTRL-X mode.  This includes the form with a CTRL modifier.
+ * in Insert mode completion.  This includes the form with a CTRL modifier.
  */
     static int
-at_ctrl_x_key(void)
+at_ins_compl_key(void)
 {
     char_u  *p = typebuf.tb_buf + typebuf.tb_off;
     int	    c = *p;
@@ -2368,7 +2368,8 @@ at_ctrl_x_key(void)
 	    && p[1] == KS_MODIFIER
 	    && (p[2] & MOD_MASK_CTRL))
 	c = p[3] & 0x1f;
-    return vim_is_ctrl_x_key(c);
+    return (ctrl_x_mode_not_default() && vim_is_ctrl_x_key(c))
+		|| (compl_status_local() && (c == Ctrl_N || c == Ctrl_P));
 }
 
 /*
@@ -2495,13 +2496,11 @@ handle_mapping(
 		|| (p_remap
 		    && (typebuf.tb_noremap[typebuf.tb_off]
 				    & (RM_NONE|RM_ABBR)) == 0))
-	    && !(p_paste && (State & (INSERT + CMDLINE)))
-	    && !(State == HITRETURN && (tb_c1 == CAR || tb_c1 == ' '))
-	    && State != ASKMORE
-	    && State != CONFIRM
-	    && !((ctrl_x_mode_not_default() && at_ctrl_x_key())
-		    || (compl_status_local()
-			&& (tb_c1 == Ctrl_N || tb_c1 == Ctrl_P))))
+	    && !(p_paste && (State & (MODE_INSERT | MODE_CMDLINE)))
+	    && !(State == MODE_HITRETURN && (tb_c1 == CAR || tb_c1 == ' '))
+	    && State != MODE_ASKMORE
+	    && State != MODE_CONFIRM
+	    && !at_ins_compl_key())
     {
 #ifdef FEAT_GUI
 	if (gui.in_use && tb_c1 == CSI && typebuf.tb_len >= 2
@@ -2517,8 +2516,8 @@ handle_mapping(
 	    nolmaplen = 2;
 	else
 	{
-	    LANGMAP_ADJUST(tb_c1, (State & (CMDLINE | INSERT)) == 0
-					    && get_real_state() != SELECTMODE);
+	    LANGMAP_ADJUST(tb_c1, (State & (MODE_CMDLINE | MODE_INSERT)) == 0
+					   && get_real_state() != MODE_SELECT);
 	    nolmaplen = 0;
 	}
 #endif
@@ -2551,7 +2550,7 @@ handle_mapping(
 		    && (mp->m_mode & local_State)
 		    && !(mp->m_simplified && seenModifyOtherKeys
 						     && typebuf.tb_maplen == 0)
-		    && ((mp->m_mode & LANGMAP) == 0 || typebuf.tb_maplen == 0))
+		    && ((mp->m_mode & MODE_LANGMAP) == 0 || typebuf.tb_maplen == 0))
 	    {
 #ifdef FEAT_LANGMAP
 		int	nomap = nolmaplen;
@@ -2658,7 +2657,7 @@ handle_mapping(
     /*
      * Check for match with 'pastetoggle'
      */
-    if (*p_pt != NUL && mp == NULL && (State & (INSERT|NORMAL)))
+    if (*p_pt != NUL && mp == NULL && (State & (MODE_INSERT | MODE_NORMAL)))
     {
 	for (mlen = 0; mlen < typebuf.tb_len && p_pt[mlen]; ++mlen)
 	    if (p_pt[mlen] != typebuf.tb_buf[typebuf.tb_off + mlen])
@@ -2673,7 +2672,7 @@ handle_mapping(
 	    del_typebuf(mlen, 0); // remove the chars
 	    set_option_value_give_err((char_u *)"paste",
 						      (long)!p_paste, NULL, 0);
-	    if (!(State & INSERT))
+	    if (!(State & MODE_INSERT))
 	    {
 		msg_col = 0;
 		msg_row = Rows - 1;
@@ -2806,7 +2805,7 @@ handle_mapping(
 		    // to Visual mode temporarily.  Append K_SELECT to switch
 		    // back to Select mode.
 		    if (VIsual_active && VIsual_select
-					     && (current_menu->modes & VISUAL))
+					&& (current_menu->modes & MODE_VISUAL))
 		    {
 			VIsual_select = FALSE;
 			(void)ins_typebuf(K_SELECT_STRING,
@@ -2862,7 +2861,7 @@ handle_mapping(
 	if (++*mapdepth >= p_mmd)
 	{
 	    emsg(_(e_recursive_mapping));
-	    if (State & CMDLINE)
+	    if (State & MODE_CMDLINE)
 		redrawcmdline();
 	    else
 		setcursor();
@@ -2876,7 +2875,7 @@ handle_mapping(
 	 * In Select mode and a Visual mode mapping is used: Switch to Visual
 	 * mode temporarily.  Append K_SELECT to switch back to Select mode.
 	 */
-	if (VIsual_active && VIsual_select && (mp->m_mode & VISUAL))
+	if (VIsual_active && VIsual_select && (mp->m_mode & MODE_VISUAL))
 	{
 	    VIsual_select = FALSE;
 	    (void)ins_typebuf(K_SELECT_STRING, REMAP_NONE, 0, TRUE, FALSE);
@@ -2927,7 +2926,7 @@ handle_mapping(
 		buf[2] = KE_IGNORE;
 		buf[3] = NUL;
 		map_str = vim_strsave(buf);
-		if (State & CMDLINE)
+		if (State & MODE_CMDLINE)
 		{
 		    // redraw the command below the error
 		    msg_didout = TRUE;
@@ -3153,7 +3152,7 @@ vgetorpeek(int advance)
 		     * really insert a CTRL-C.
 		     */
 		    if ((c || typebuf.tb_maplen)
-					      && (State & (INSERT + CMDLINE)))
+				     && (State & (MODE_INSERT | MODE_CMDLINE)))
 			c = ESC;
 		    else
 			c = Ctrl_C;
@@ -3237,7 +3236,7 @@ vgetorpeek(int advance)
 			&& !no_mapping
 			&& ex_normal_busy == 0
 			&& typebuf.tb_maplen == 0
-			&& (State & INSERT)
+			&& (State & MODE_INSERT)
 			&& (p_timeout
 			    || (keylen == KEYLEN_PART_KEY && p_ttimeout))
 			&& (c = inchar(typebuf.tb_buf + typebuf.tb_off
@@ -3253,12 +3252,12 @@ vgetorpeek(int advance)
 		    }
 #ifdef FEAT_GUI
 		    // may show a different cursor shape
-		    if (gui.in_use && State != NORMAL && !cmd_silent)
+		    if (gui.in_use && State != MODE_NORMAL && !cmd_silent)
 		    {
 			int	    save_State;
 
 			save_State = State;
-			State = NORMAL;
+			State = MODE_NORMAL;
 			gui_update_cursor(TRUE, FALSE);
 			State = save_State;
 			shape_changed = TRUE;
@@ -3367,13 +3366,13 @@ vgetorpeek(int advance)
 		    // For the cmdline window: Alternate between ESC and
 		    // CTRL-C: ESC for most situations and CTRL-C to close the
 		    // cmdline window.
-		    if (p_im && (State & INSERT))
+		    if (p_im && (State & MODE_INSERT))
 			c = Ctrl_L;
 #ifdef FEAT_TERMINAL
 		    else if (terminal_is_active())
 			c = K_CANCEL;
 #endif
-		    else if ((State & CMDLINE)
+		    else if ((State & MODE_CMDLINE)
 #ifdef FEAT_CMDWIN
 			    || (cmdwin_type > 0 && tc == ESC)
 #endif
@@ -3404,8 +3403,9 @@ vgetorpeek(int advance)
 		// changed text so far. Also for when 'lazyredraw' is set and
 		// redrawing was postponed because there was something in the
 		// input buffer (e.g., termresponse).
-		if (((State & INSERT) != 0 || p_lz) && (State & CMDLINE) == 0
-			  && advance && must_redraw != 0 && !need_wait_return)
+		if (((State & MODE_INSERT) != 0 || p_lz)
+			&& (State & MODE_CMDLINE) == 0
+			&& advance && must_redraw != 0 && !need_wait_return)
 		{
 		    update_screen(0);
 		    setcursor(); // put cursor back where it belongs
@@ -3422,11 +3422,12 @@ vgetorpeek(int advance)
 		c1 = 0;
 		if (typebuf.tb_len > 0 && advance && !exmode_active)
 		{
-		    if (((State & (NORMAL | INSERT)) || State == LANGMAP)
-			    && State != HITRETURN)
+		    if (((State & (MODE_NORMAL | MODE_INSERT))
+						      || State == MODE_LANGMAP)
+			    && State != MODE_HITRETURN)
 		    {
 			// this looks nice when typing a dead character map
-			if (State & INSERT
+			if (State & MODE_INSERT
 			    && ptr2cells(typebuf.tb_buf + typebuf.tb_off
 						   + typebuf.tb_len - 1) == 1)
 			{
@@ -3453,7 +3454,7 @@ vgetorpeek(int advance)
 		    }
 
 		    // this looks nice when typing a dead character map
-		    if ((State & CMDLINE)
+		    if ((State & MODE_CMDLINE)
 #if defined(FEAT_CRYPT) || defined(FEAT_EVAL)
 			    && cmdline_star == 0
 #endif
@@ -3500,9 +3501,9 @@ vgetorpeek(int advance)
 #endif
 		if (c1 == 1)
 		{
-		    if (State & INSERT)
+		    if (State & MODE_INSERT)
 			edit_unputchar();
-		    if (State & CMDLINE)
+		    if (State & MODE_CMDLINE)
 			unputcmdline();
 		    else
 			setcursor();	// put cursor back where it belongs
@@ -3543,7 +3544,7 @@ vgetorpeek(int advance)
      *	 if we return an ESC to exit insert mode, the message is deleted
      *	 if we don't return an ESC but deleted the message before, redisplay it
      */
-    if (advance && p_smd && msg_silent == 0 && (State & INSERT))
+    if (advance && p_smd && msg_silent == 0 && (State & MODE_INSERT))
     {
 	if (c == ESC && !mode_deleted && !no_mapping && mode_displayed)
 	{
@@ -3631,7 +3632,7 @@ inchar(
      * recursive loop may result (write error in swapfile, hit-return, timeout
      * on char wait, flush swapfile, write error....).
      */
-    if (State != HITRETURN)
+    if (State != MODE_HITRETURN)
     {
 	did_outofmem_msg = FALSE;   // display out of memory message (again)
 	did_swapwrite_msg = FALSE;  // display swap file write error again

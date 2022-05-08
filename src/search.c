@@ -2869,7 +2869,7 @@ showmatch(
 	    save_dollar_vcol = dollar_vcol;
 #ifdef CURSOR_SHAPE
 	    save_state = State;
-	    State = SHOWMATCH;
+	    State = MODE_SHOWMATCH;
 	    ui_cursor_shape();		// may show different cursor shape
 #endif
 	    curwin->w_cursor = mpos;	// move to matching char

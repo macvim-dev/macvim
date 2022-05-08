@@ -360,6 +360,20 @@ tv_get_float(typval_T *varp)
 #endif
 
 /*
+ * Give an error and return FAIL unless "args[idx]" is unknown
+ */
+    int
+check_for_unknown_arg(typval_T *args, int idx)
+{
+    if (args[idx].v_type != VAR_UNKNOWN)
+    {
+	semsg(_(e_too_many_arguments), idx + 1);
+	return FAIL;
+    }
+    return OK;
+}
+
+/*
  * Give an error and return FAIL unless "args[idx]" is a string.
  */
     int
@@ -2069,11 +2083,10 @@ eval_string(char_u **arg, typval_T *rettv, int evaluate)
 	{
 	    ++p;
 	    // A "\<x>" form occupies at least 4 characters, and produces up
-	    // to 21 characters (3 * 6 for the char and 3 for a modifier):
-	    // reserve space for 18 extra.
-	    // Each byte in the char could be encoded as K_SPECIAL K_EXTRA x.
+	    // to 9 characters (6 for the char and 3 for a modifier):
+	    // reserve space for 5 extra.
 	    if (*p == '<')
-		extra += 18;
+		extra += 5;
 	}
     }
 
@@ -2168,7 +2181,7 @@ eval_string(char_u **arg, typval_T *rettv, int evaluate)
 
 			      if (p[1] != '*')
 				  flags |= FSK_SIMPLIFY;
-			      extra = trans_special(&p, end, flags, NULL);
+			      extra = trans_special(&p, end, flags, FALSE, NULL);
 			      if (extra != 0)
 			      {
 				  end += extra;
@@ -2251,6 +2264,32 @@ eval_lit_string(char_u **arg, typval_T *rettv, int evaluate)
     *arg = p + 1;
 
     return OK;
+}
+
+    int
+eval_interp_string(char_u **arg, typval_T *rettv, int evaluate)
+{
+    typval_T	tv;
+    int		ret;
+
+    // *arg is on the '$' character.
+    (*arg)++;
+
+    rettv->v_type = VAR_STRING;
+
+    if (**arg == '"')
+	ret = eval_string(arg, &tv, evaluate);
+    else
+	ret = eval_lit_string(arg, &tv, evaluate);
+
+    if (ret == FAIL || !evaluate)
+	return ret;
+
+    rettv->vval.v_string = eval_all_expr_in_str(tv.vval.v_string);
+
+    clear_tv(&tv);
+
+    return rettv->vval.v_string != NULL ? OK : FAIL;
 }
 
 /*

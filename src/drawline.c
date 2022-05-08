@@ -1963,7 +1963,7 @@ win_line(
 			// In Insert mode only highlight a word that
 			// doesn't touch the cursor.
 			if (spell_hlf != HLF_COUNT
-				&& (State & INSERT) != 0
+				&& (State & MODE_INSERT)
 				&& wp->w_cursor.lnum == lnum
 				&& wp->w_cursor.col >=
 						    (colnr_T)(prev_ptr - line)
@@ -2597,7 +2597,7 @@ win_line(
 		&& xic != NULL
 # endif
 		&& lnum == wp->w_cursor.lnum
-		&& (State & INSERT)
+		&& (State & MODE_INSERT)
 # ifndef FEAT_GUI_MACVIM
 		&& !p_imdisable
 # endif

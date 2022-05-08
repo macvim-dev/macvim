@@ -620,16 +620,17 @@ makeopens(
     int		only_save_windows = TRUE;
     int		nr;
     int		restore_size = TRUE;
+    int		restore_height_width = FALSE;
     win_T	*wp;
     char_u	*sname;
     win_T	*edited_win = NULL;
-    int		tabnr;
     int		restore_stal = FALSE;
     win_T	*tab_firstwin;
     frame_T	*tab_topframe;
     int		cur_arg_idx = 0;
     int		next_arg_idx = 0;
     int		ret = FAIL;
+    tabpage_T	*tp;
 #ifdef FEAT_TERMINAL
     hashtab_T	terminal_bufs;
 
@@ -763,18 +764,11 @@ makeopens(
 	restore_stal = TRUE;
     }
 
-    // May repeat putting Windows for each tab, when "tabpages" is in
-    // 'sessionoptions'.
-    // Don't use goto_tabpage(), it may change directory and trigger
-    // autocommands.
-    tab_firstwin = firstwin;	// first window in tab page "tabnr"
-    tab_topframe = topframe;
     if ((ssop_flags & SSOP_TABPAGES))
     {
-	tabpage_T *tp;
-
-	// Similar to ses_win_rec() below, populate the tab pages first so
-	// later local options won't be copied to the new tabs.
+	// "tabpages" is in 'sessionoptions': Similar to ses_win_rec() below,
+	// populate the tab pages first so later local options won't be copied
+	// to the new tabs.
 	FOR_ALL_TABPAGES(tp)
 	    // Use `bufhidden=wipe` to remove empty "placeholder" buffers once
 	    // they are not needed. This prevents creating extra buffers (see
@@ -785,18 +779,20 @@ makeopens(
 	if (first_tabpage->tp_next != NULL && put_line(fd, "tabrewind") == FAIL)
 	    goto fail;
     }
-    for (tabnr = 1; ; ++tabnr)
+
+    // Assume "tabpages" is in 'sessionoptions'.  If not then we only do
+    // "curtab" and bail out of the loop.
+    FOR_ALL_TABPAGES(tp)
     {
-	tabpage_T *tp = NULL;
 	int	need_tabnext = FALSE;
 	int	cnr = 1;
 
+	// May repeat putting Windows for each tab, when "tabpages" is in
+	// 'sessionoptions'.
+	// Don't use goto_tabpage(), it may change directory and trigger
+	// autocommands.
 	if ((ssop_flags & SSOP_TABPAGES))
 	{
-	    tp = find_tabpage(tabnr);
-
-	    if (tp == NULL)
-		break;		// done all tab pages
 	    if (tp == curtab)
 	    {
 		tab_firstwin = firstwin;
@@ -807,8 +803,14 @@ makeopens(
 		tab_firstwin = tp->tp_firstwin;
 		tab_topframe = tp->tp_topframe;
 	    }
-	    if (tabnr > 1)
+	    if (tp != first_tabpage)
 		need_tabnext = TRUE;
+	}
+	else
+	{
+	    tp = curtab;
+	    tab_firstwin = firstwin;
+	    tab_topframe = topframe;
 	}
 
 	// Before creating the window layout, try loading one file.  If this
@@ -894,6 +896,7 @@ makeopens(
 		    || put_line(fd, "set winminwidth=0") == FAIL
 		    || put_line(fd, "set winwidth=1") == FAIL)
 		goto fail;
+	    restore_height_width = TRUE;
 	}
 	if (nr > 1 && ses_winsizes(fd, restore_size, tab_firstwin) == FAIL)
 	    goto fail;
@@ -901,11 +904,11 @@ makeopens(
 	// Restore the tab-local working directory if specified
 	// Do this before the windows, so that the window-local directory can
 	// override the tab-local directory.
-	if (tp != NULL && tp->tp_localdir != NULL && ssop_flags & SSOP_CURDIR)
+	if ((ssop_flags & SSOP_CURDIR) && tp->tp_localdir != NULL)
 	{
 	    if (fputs("tcd ", fd) < 0
-		    || ses_put_fname(fd, tp->tp_localdir, &ssop_flags) == FAIL
-		    || put_eol(fd) == FAIL)
+		     || ses_put_fname(fd, tp->tp_localdir, &ssop_flags) == FAIL
+		     || put_eol(fd) == FAIL)
 		goto fail;
 	    did_lcd = TRUE;
 	}
@@ -986,7 +989,7 @@ makeopens(
             goto fail;
     }
 
-    if (tab_firstwin->w_next != NULL)
+    if (restore_height_width)
     {
 	// Restore 'winminheight' and 'winminwidth'.
 	if (put_line(fd, "let &winminheight = s:save_winminheight") == FAIL

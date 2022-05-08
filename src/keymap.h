@@ -276,12 +276,13 @@ enum key_extra
     , KE_CANCEL = 102		// return from vgetc()
     , KE_COMMAND = 103		// <Cmd> special key
     , KE_SCRIPT_COMMAND = 104	// <ScriptCmd> special key
+    , KE_S_BS = 105	        // shift + <BS>
 #ifdef FEAT_GUI_MACVIM
-    , KE_SWIPELEFT = 105	// Swipe trackpad left
-    , KE_SWIPERIGHT = 106	// Swipe trackpad right
-    , KE_SWIPEUP = 107		// Swipe trackpad up
-    , KE_SWIPEDOWN = 108	// Swipe trackpad down
-    , KE_FORCECLICK = 109	// Force click on trackpad
+    , KE_SWIPELEFT = 106	// Swipe trackpad left
+    , KE_SWIPERIGHT = 107	// Swipe trackpad right
+    , KE_SWIPEUP = 108		// Swipe trackpad up
+    , KE_SWIPEDOWN = 109	// Swipe trackpad down
+    , KE_FORCECLICK = 110	// Force click on trackpad
 #endif
 };
 
@@ -306,6 +307,7 @@ enum key_extra
 #define K_C_END		TERMCAP2KEY(KS_EXTRA, KE_C_END)
 #define K_TAB		TERMCAP2KEY(KS_EXTRA, KE_TAB)
 #define K_S_TAB		TERMCAP2KEY('k', 'B')
+#define K_S_BS		TERMCAP2KEY(KS_EXTRA, KE_S_BS)
 
 // extra set of function keys F1-F4, for vt100 compatible xterm
 #define K_XF1		TERMCAP2KEY(KS_EXTRA, KE_XF1)
