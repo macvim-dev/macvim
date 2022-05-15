@@ -1169,6 +1169,22 @@ preprocs_left(void)
 
 #ifdef FEAT_SMARTINDENT
 /*
+ * Return TRUE if the conditions are OK for smart indenting.
+ */
+    int
+may_do_si()
+{
+    return curbuf->b_p_si
+# ifdef FEAT_CINDENT
+	&& !curbuf->b_p_cin
+# endif
+# ifdef FEAT_EVAL
+	&& *curbuf->b_p_inde == NUL
+# endif
+	&& !p_paste;
+}
+
+/*
  * Try to do some very smart auto-indenting.
  * Used when inserting a "normal" character.
  */
@@ -1181,7 +1197,8 @@ ins_try_si(int c)
     int		temp;
 
     // do some very smart indenting when entering '{' or '}'
-    if (((did_si || can_si_back) && c == '{') || (can_si && c == '}'))
+    if (((did_si || can_si_back) && c == '{')
+	    || (can_si && c == '}' && inindent(0)))
     {
 	// for '}' set indent equal to indent of line containing matching '{'
 	if (c == '}' && (pos = findmatch(NULL, '{')) != NULL)
@@ -1235,7 +1252,7 @@ ins_try_si(int c)
     }
 
     // set indent of '#' always to 0
-    if (curwin->w_cursor.col > 0 && can_si && c == '#')
+    if (curwin->w_cursor.col > 0 && can_si && c == '#' && inindent(0))
     {
 	// remember current indent for next line
 	old_indent = get_indent();

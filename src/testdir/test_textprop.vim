@@ -635,6 +635,18 @@ func Test_prop_open_line()
   call assert_equal(expected, prop_list(2))
   call DeletePropTypes()
 
+  " split at the space character with 'ai' active, the leading space is removed
+  " in the second line and the prop is shifted accordingly.
+  let expected = SetupOneLine() " 'xonex xtwoxx'
+  set ai
+  exe "normal 6|i\<CR>\<Esc>"
+  call assert_equal('xonex', getline(1))
+  call assert_equal('xtwoxx', getline(2))
+  let expected[1].col -= 6
+  call assert_equal(expected, prop_list(1) + prop_list(2))
+  set ai&
+  call DeletePropTypes()
+
   bwipe!
   set bs&
 endfunc
@@ -1886,6 +1898,108 @@ func Test_prop_find_prev_on_same_line()
   call assert_equal(expected[1], result)
 
   call prop_type_delete('misspell')
+  bwipe!
+endfunc
+
+func Test_prop_spell()
+  new
+  set spell
+  call AddPropTypes()
+
+  call setline(1, ["helo world", "helo helo helo"])
+  call prop_add(1, 1, #{type: 'one', length: 4})
+  call prop_add(1, 6, #{type: 'two', length: 5})
+  call prop_add(2, 1, #{type: 'three', length: 4})
+  call prop_add(2, 6, #{type: 'three', length: 4})
+  call prop_add(2, 11, #{type: 'three', length: 4})
+
+  " The first prop over 'helo' increases its length after the word is corrected
+  " to 'Hello', the second one is shifted to the right.
+  let expected = [
+      \ {'id': 0, 'col': 1, 'type_bufnr': 0, 'end': 1, 'type': 'one',
+      \ 'length': 5, 'start': 1},
+      \ {'id': 0, 'col': 7, 'type_bufnr': 0, 'end': 1, 'type': 'two',
+      \ 'length': 5, 'start': 1}
+      \ ]
+  call feedkeys("z=1\<CR>", 'xt')
+
+  call assert_equal('Hello world', getline(1))
+  call assert_equal(expected, prop_list(1))
+
+  " Repeat the replacement done by z=
+  spellrepall
+
+  let expected = [
+      \ {'id': 0, 'col': 1, 'type_bufnr': 0, 'end': 1, 'type': 'three',
+      \ 'length': 5, 'start': 1},
+      \ {'id': 0, 'col': 7, 'type_bufnr': 0, 'end': 1, 'type': 'three',
+      \ 'length': 5, 'start': 1},
+      \ {'id': 0, 'col': 13, 'type_bufnr': 0, 'end': 1, 'type': 'three',
+      \ 'length': 5, 'start': 1}
+      \ ]
+  call assert_equal('Hello Hello Hello', getline(2))
+  call assert_equal(expected, prop_list(2))
+
+  call DeletePropTypes()
+  set spell&
+  bwipe!
+endfunc
+
+func Test_prop_shift_block()
+  new
+  call AddPropTypes()
+
+  call setline(1, ['some     highlighted text']->repeat(2))
+  call prop_add(1, 10, #{type: 'one', length: 11})
+  call prop_add(2, 10, #{type: 'two', length: 11})
+
+  call cursor(1, 1)
+  call feedkeys("5l\<c-v>>", 'nxt')
+  call cursor(2, 1)
+  call feedkeys("5l\<c-v><", 'nxt')
+
+  let expected = [
+      \ {'lnum': 1, 'id': 0, 'col': 8, 'type_bufnr': 0, 'end': 1, 'type': 'one',
+      \ 'length': 11, 'start' : 1},
+      \ {'lnum': 2, 'id': 0, 'col': 6, 'type_bufnr': 0, 'end': 1, 'type': 'two',
+      \ 'length': 11, 'start' : 1}
+      \ ]
+  call assert_equal(expected, prop_list(1, #{end_lnum: 2}))
+
+  call DeletePropTypes()
+  bwipe!
+endfunc
+
+func Test_prop_insert_multiline()
+  new
+  call AddPropTypes()
+
+  call setline(1, ['foobar', 'barbaz'])
+  call prop_add(1, 4, #{end_lnum: 2, end_col: 4, type: 'one'})
+
+  call feedkeys("1Goquxqux\<Esc>", 'nxt')
+  call feedkeys("2GOquxqux\<Esc>", 'nxt')
+
+  let lines =<< trim END
+      foobar
+      quxqux
+      quxqux
+      barbaz
+  END
+  call assert_equal(lines, getline(1, '$'))
+  let expected = [
+      \ {'lnum': 1, 'id': 0, 'col': 4, 'type_bufnr': 0, 'end': 0, 'type': 'one',
+      \ 'length': 4 ,'start': 1},
+      \ {'lnum': 2, 'id': 0, 'col': 1, 'type_bufnr': 0, 'end': 0, 'type': 'one',
+      \ 'length': 7, 'start': 0},
+      \ {'lnum': 3, 'id': 0, 'col': 1, 'type_bufnr': 0, 'end': 0, 'type': 'one',
+      \ 'length': 7, 'start': 0},
+      \ {'lnum': 4, 'id': 0, 'col': 1, 'type_bufnr': 0, 'end': 1, 'type': 'one',
+      \ 'length': 3, 'start': 0}
+      \ ]
+  call assert_equal(expected, prop_list(1, #{end_lnum: 10}))
+
+  call DeletePropTypes()
   bwipe!
 endfunc
 
