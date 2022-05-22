@@ -84,9 +84,7 @@ static int	last_insert_skip; // nr of chars in front of previous insert
 static int	new_insert_skip;  // nr of chars in front of current insert
 static int	did_restart_edit;	// "restart_edit" when calling edit()
 
-#ifdef FEAT_CINDENT
 static int	can_cindent;		// may do cindenting on this line
-#endif
 
 #ifdef FEAT_RIGHTLEFT
 static int	revins_on;		// reverse insert mode on
@@ -134,9 +132,7 @@ edit(
     static linenr_T o_lnum = 0;
     int		i;
     int		did_backspace = TRUE;	    // previous char was backspace
-#ifdef FEAT_CINDENT
     int		line_is_white = FALSE;	    // line is empty before insert
-#endif
     linenr_T	old_topline = 0;	    // topline before insertion
 #ifdef FEAT_DIFF
     int		old_topfill = -1;
@@ -387,9 +383,7 @@ edit(
     ins_need_undo = TRUE;
 
     where_paste_started.lnum = 0;
-#ifdef FEAT_CINDENT
     can_cindent = TRUE;
-#endif
 #ifdef FEAT_FOLDING
     // The cursor line is not in a closed fold, unless 'insertmode' is set or
     // restarting.
@@ -742,7 +736,6 @@ edit(
 	    continue;
 	}
 
-#ifdef FEAT_CINDENT
 	if (cindent_on() && ctrl_x_mode_none())
 	{
 	    // A key name preceded by a bang means this key is not to be
@@ -756,7 +749,6 @@ edit(
 							&& stop_arrow() == OK)
 		do_c_expr_indent();
 	}
-#endif
 
 #ifdef FEAT_RIGHTLEFT
 	if (curwin->w_p_rl)
@@ -1303,9 +1295,7 @@ docomplete:
 	    disable_fold_update--;
 #endif
 	    compl_busy = FALSE;
-#ifdef FEAT_SMARTINDENT
 	    can_si = may_do_si(); // allow smartindenting
-#endif
 	    break;
 
 	case Ctrl_Y:	// copy from previous line or scroll down
@@ -1355,18 +1345,14 @@ normalchar:
 		    break;
 	    }
 #endif
-#ifdef FEAT_SMARTINDENT
 	    // Try to perform smart-indenting.
 	    ins_try_si(c);
-#endif
 
 	    if (c == ' ')
 	    {
 		inserted_space = TRUE;
-#ifdef FEAT_CINDENT
 		if (inindent(0))
 		    can_cindent = FALSE;
-#endif
 		if (Insstart_blank_vcol == MAXCOL
 			&& curwin->w_cursor.lnum == Insstart.lnum)
 		    Insstart_blank_vcol = get_nolist_virtcol();
@@ -1411,7 +1397,6 @@ normalchar:
 	if (arrow_used)
 	    inserted_space = FALSE;
 
-#ifdef FEAT_CINDENT
 	if (can_cindent && cindent_on() && ctrl_x_mode_normal())
 	{
 force_cindent:
@@ -1425,7 +1410,6 @@ force_cindent:
 		    do_c_expr_indent();
 	    }
 	}
-#endif // FEAT_CINDENT
 
     }	// for (;;)
     // NOTREACHED
@@ -2203,11 +2187,9 @@ insertchar(
     end_comment_pending = NUL;
 
     did_ai = FALSE;
-#ifdef FEAT_SMARTINDENT
     did_si = FALSE;
     can_si = FALSE;
     can_si_back = FALSE;
-#endif
 
     /*
      * If there's any pending input, grab up to INPUT_BUFLEN at once.
@@ -2229,9 +2211,7 @@ insertchar(
 	    && !has_insertcharpre()
 	    && vpeekc() != NUL
 	    && !(State & REPLACE_FLAG)
-#ifdef FEAT_CINDENT
 	    && !cindent_on()
-#endif
 #ifdef FEAT_RIGHTLEFT
 	    && !p_ri
 #endif
@@ -2555,11 +2535,9 @@ stop_insert(
 	}
     }
     did_ai = FALSE;
-#ifdef FEAT_SMARTINDENT
     did_si = FALSE;
     can_si = FALSE;
     can_si_back = FALSE;
-#endif
 
     // Set '[ and '] to the inserted text.  When end_insert_pos is NULL we are
     // now in a different buffer.
@@ -3907,14 +3885,10 @@ ins_shift(int c, int lastc)
 
     if (did_ai && *skipwhite(ml_get_curline()) != NUL)
 	did_ai = FALSE;
-#ifdef FEAT_SMARTINDENT
     did_si = FALSE;
     can_si = FALSE;
     can_si_back = FALSE;
-#endif
-#ifdef FEAT_CINDENT
     can_cindent = FALSE;	// no cindenting after ^D or ^T
-#endif
 }
 
     static void
@@ -3944,11 +3918,9 @@ ins_del(void)
     else if (del_char(FALSE) == FAIL)  // delete char under cursor
 	vim_beep(BO_BS);
     did_ai = FALSE;
-#ifdef FEAT_SMARTINDENT
     did_si = FALSE;
     can_si = FALSE;
     can_si_back = FALSE;
-#endif
     AppendCharToRedobuff(K_DEL);
 }
 
@@ -3991,9 +3963,7 @@ ins_bs(
     int		in_indent;
     int		oldState;
     int		cpc[MAX_MCO];	    // composing characters
-#if defined(FEAT_LISP) || defined(FEAT_CINDENT)
     int		call_fix_indent = FALSE;
-#endif
 
     /*
      * can't delete anything in an empty file
@@ -4025,10 +3995,8 @@ ins_bs(
     if (stop_arrow() == FAIL)
 	return FALSE;
     in_indent = inindent(0);
-#ifdef FEAT_CINDENT
     if (in_indent)
 	can_cindent = FALSE;
-#endif
     end_comment_pending = NUL;	// After BS, don't auto-end comment
 #ifdef FEAT_RIGHTLEFT
     if (revins_on)	    // put cursor after last inserted char
@@ -4162,11 +4130,7 @@ ins_bs(
 	mincol = 0;
 						// keep indent
 	if (mode == BACKSPACE_LINE
-		&& (curbuf->b_p_ai
-#ifdef FEAT_CINDENT
-		    || cindent_on()
-#endif
-		   )
+		&& (curbuf->b_p_ai || cindent_on())
 #ifdef FEAT_RIGHTLEFT
 		&& !revins_on
 #endif
@@ -4177,10 +4141,8 @@ ins_bs(
 	    if (curwin->w_cursor.col < save_col)
 	    {
 		mincol = curwin->w_cursor.col;
-#if defined(FEAT_LISP) || defined(FEAT_CINDENT)
 		// should now fix the indent to match with the previous line
 		call_fix_indent = TRUE;
-#endif
 	    }
 	    curwin->w_cursor.col = save_col;
 	}
@@ -4346,18 +4308,14 @@ ins_bs(
 	}
 	did_backspace = TRUE;
     }
-#ifdef FEAT_SMARTINDENT
     did_si = FALSE;
     can_si = FALSE;
     can_si_back = FALSE;
-#endif
     if (curwin->w_cursor.col <= 1)
 	did_ai = FALSE;
 
-#if defined(FEAT_LISP) || defined(FEAT_CINDENT)
     if (call_fix_indent)
 	fix_indent();
-#endif
 
     /*
      * It's a little strange to put backspaces into the redo
@@ -4506,9 +4464,7 @@ ins_tabline(int c)
     {
 	undisplay_dollar();
 	start_arrow(&curwin->w_cursor);
-# ifdef FEAT_CINDENT
 	can_cindent = TRUE;
-# endif
     }
 
     if (c == K_TABLINE)
@@ -4532,9 +4488,7 @@ ins_scroll(void)
     if (gui_do_scroll())
     {
 	start_arrow(&tpos);
-# ifdef FEAT_CINDENT
 	can_cindent = TRUE;
-# endif
     }
 }
 
@@ -4548,9 +4502,7 @@ ins_horscroll(void)
     if (gui_do_horiz_scroll(scrollbar_value, FALSE))
     {
 	start_arrow(&tpos);
-# ifdef FEAT_CINDENT
 	can_cindent = TRUE;
-# endif
     }
 }
 #endif
@@ -4757,9 +4709,7 @@ ins_up(
 		)
 	    redraw_later(VALID);
 	start_arrow(&tpos);
-#ifdef FEAT_CINDENT
 	can_cindent = TRUE;
-#endif
     }
     else
 	vim_beep(BO_CRSR);
@@ -4787,9 +4737,7 @@ ins_pageup(void)
     if (onepage(BACKWARD, 1L) == OK)
     {
 	start_arrow(&tpos);
-#ifdef FEAT_CINDENT
 	can_cindent = TRUE;
-#endif
     }
     else
 	vim_beep(BO_CRSR);
@@ -4818,9 +4766,7 @@ ins_down(
 		)
 	    redraw_later(VALID);
 	start_arrow(&tpos);
-#ifdef FEAT_CINDENT
 	can_cindent = TRUE;
-#endif
     }
     else
 	vim_beep(BO_CRSR);
@@ -4848,9 +4794,7 @@ ins_pagedown(void)
     if (onepage(FORWARD, 1L) == OK)
     {
 	start_arrow(&tpos);
-#ifdef FEAT_CINDENT
 	can_cindent = TRUE;
-#endif
     }
     else
 	vim_beep(BO_CRSR);
@@ -4881,10 +4825,8 @@ ins_tab(void)
 	return FALSE;
 
     ind = inindent(0);
-#ifdef FEAT_CINDENT
     if (ind)
 	can_cindent = FALSE;
-#endif
 
     /*
      * When nothing special, insert TAB like a normal character.
@@ -4910,11 +4852,9 @@ ins_tab(void)
 	return TRUE;
 
     did_ai = FALSE;
-#ifdef FEAT_SMARTINDENT
     did_si = FALSE;
     can_si = FALSE;
     can_si_back = FALSE;
-#endif
     AppendToRedobuff((char_u *)"\t");
 
 #ifdef FEAT_VARTABS
@@ -5182,9 +5122,7 @@ ins_eol(int c)
 	    has_format_option(FO_RET_COMS) ? OPENLINE_DO_COM : 0, old_indent,
 	    NULL);
     old_indent = 0;
-#ifdef FEAT_CINDENT
     can_cindent = TRUE;
-#endif
 #ifdef FEAT_FOLDING
     // When inserting a line the cursor line must never be in a closed fold.
     foldOpenCursor();
@@ -5436,7 +5374,6 @@ do_insert_char_pre(int c)
 }
 #endif
 
-#if defined(FEAT_CINDENT) || defined(PROTO)
     int
 get_can_cindent(void)
 {
@@ -5448,7 +5385,6 @@ set_can_cindent(int val)
 {
     can_cindent = val;
 }
-#endif
 
 /*
  * Trigger "event" and take care of fixing undo.
