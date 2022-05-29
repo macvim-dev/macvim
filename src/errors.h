@@ -1185,7 +1185,7 @@ EXTERN char e_invalid_argument_str[]
 	INIT(= N_("E475: Invalid argument: %s"));
 EXTERN char e_invalid_value_for_argument_str[]
 	INIT(= N_("E475: Invalid value for argument %s"));
-#if defined(FEAT_JOB_CHANNEL) || defined(FEAT_PROP_POPUP)
+#if defined(FEAT_JOB_CHANNEL) || defined(FEAT_PROP_POPUP) || defined(FEAT_EVAL)
 EXTERN char e_invalid_value_for_argument_str_str[]
 	INIT(= N_("E475: Invalid value for argument %s: %s"));
 #endif
@@ -1459,8 +1459,7 @@ EXTERN char e_nonr_missing_gt[]
 EXTERN char e_illegal_register_name[]
 	INIT(= N_("Illegal register name"));
 #endif
-EXTERN char e_not_allowed_to_change_text_here[]
-	INIT(= N_("E578: Not allowed to change text here"));
+// E578 unused
 #ifdef FEAT_EVAL
 EXTERN char e_if_nesting_too_deep[]
 	INIT(= N_("E579: :if nesting too deep"));
@@ -1959,10 +1958,10 @@ EXTERN char e_eval_feature_not_available[]
 #ifdef FEAT_QUICKFIX
 EXTERN char e_no_location_list[]
 	INIT(= N_("E776: No location list"));
-# ifdef FEAT_EVAL
+#endif
+#ifdef FEAT_EVAL
 EXTERN char e_string_or_list_expected[]
 	INIT(= N_("E777: String or List expected"));
-# endif
 #endif
 #ifdef FEAT_SPELL
 EXTERN char e_this_does_not_look_like_sug_file_str[]
@@ -3286,7 +3285,7 @@ EXTERN char e_atom_engine_must_be_at_start_of_pattern[]
 	INIT(= N_("E1281: Atom '\\%%#=%c' must be at the start of the pattern"));
 #ifdef FEAT_EVAL
 EXTERN char e_bitshift_ops_must_be_number[]
-	INIT(= N_("E1282: bitshift operands must be numbers"));
+	INIT(= N_("E1282: Bitshift operands must be numbers"));
 EXTERN char e_bitshift_ops_must_be_postive[]
-	INIT(= N_("E1283: bitshift amount must be a positive number"));
+	INIT(= N_("E1283: Bitshift amount must be a positive number"));
 #endif
