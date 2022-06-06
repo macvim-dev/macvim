@@ -1776,10 +1776,6 @@ start_search_hl(void)
 	end_search_hl();  // just in case it wasn't called before
 	last_pat_prog(&screen_search_hl.rm);
 	screen_search_hl.attr = HL_ATTR(HLF_L);
-# ifdef FEAT_RELTIME
-	// Set the time limit to 'redrawtime'.
-	profile_setlimit(p_rdt, &screen_search_hl.tm);
-# endif
     }
 }
 
@@ -5070,4 +5066,3 @@ set_chars_option(win_T *wp, char_u **varp)
 
     return NULL;	// no error
 }
-
