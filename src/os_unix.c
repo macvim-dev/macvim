@@ -8269,7 +8269,7 @@ xsmp_close(void)
 #endif // USE_XSMP
 
 #if defined(FEAT_RELTIME) || defined(PROTO)
-# if defined(HAVE_TIMER_CREATE) || defined(MACOS_X)
+# if defined(HAVE_TIMER_CREATE)
 /*
  * Implement timeout with timer_create() and timer_settime().
  */
@@ -8444,7 +8444,7 @@ start_timeout(long msec)
     if (ret == 0)
     {
 	alarm_pending = sigismember(&sigs, SIGALRM);
-	ret = ret == 0 ? sigprocmask(SIG_SETMASK, &saved_sigs, NULL) : ret;
+	ret = sigprocmask(SIG_SETMASK, &saved_sigs, NULL);
     }
     if (unlikely(ret != 0 || alarm_pending < 0))
     {

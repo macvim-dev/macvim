@@ -1886,7 +1886,7 @@ msg_prt_line(char_u *s, int list)
 		--trail;
 	}
 	// find end of leading whitespace
-	if (curwin->w_lcs_chars.lead)
+	if (curwin->w_lcs_chars.lead || curwin->w_lcs_chars.leadmultispace != NULL)
 	{
 	    lead = s;
 	    while (VIM_ISWHITE(lead[0]))
@@ -1998,7 +1998,15 @@ msg_prt_line(char_u *s, int list)
 	    }
 	    else if (c == ' ')
 	    {
-		if (lead != NULL && s <= lead)
+		if (list && lead != NULL && s <= lead && in_multispace
+			&& curwin->w_lcs_chars.leadmultispace != NULL)
+		{
+		    c = curwin->w_lcs_chars.leadmultispace[multispace_pos++];
+		    if (curwin->w_lcs_chars.leadmultispace[multispace_pos] == NUL)
+			multispace_pos = 0;
+		    attr = HL_ATTR(HLF_8);
+		}
+		else if (lead != NULL && s <= lead && curwin->w_lcs_chars.lead)
 		{
 		    c = curwin->w_lcs_chars.lead;
 		    attr = HL_ATTR(HLF_8);
@@ -2006,6 +2014,14 @@ msg_prt_line(char_u *s, int list)
 		else if (trail != NULL && s > trail)
 		{
 		    c = curwin->w_lcs_chars.trail;
+		    attr = HL_ATTR(HLF_8);
+		}
+		else if (list && lead != NULL && s <= lead && in_multispace
+			&& curwin->w_lcs_chars.leadmultispace != NULL)
+		{
+		    c = curwin->w_lcs_chars.leadmultispace[multispace_pos++];
+		    if (curwin->w_lcs_chars.leadmultispace[multispace_pos] == NUL)
+			multispace_pos = 0;
 		    attr = HL_ATTR(HLF_8);
 		}
 		else if (list && in_multispace
