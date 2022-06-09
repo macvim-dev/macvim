@@ -45,9 +45,9 @@
 #define DRAW_WIDE                 0x80    /* draw wide text */
 #define DRAW_COMP                 0x100   /* drawing composing char */
 
-#if MAC_OS_X_VERSION_MIN_REQUIRED < 101300
+#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_13
 typedef NSString * NSAttributedStringKey;
-#endif // MAC_OS_X_VERSION_MIN_REQUIRED < 101300
+#endif // MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_13
 
 #if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_8
 #define kCTFontOrientationDefault kCTFontDefaultOrientation
