@@ -4945,6 +4945,7 @@ set_chars_option(win_T *wp, char_u **varp)
 	    {
 		lcs_chars.tab1 = NUL;
 		lcs_chars.tab3 = NUL;
+
 		if (multispace_len > 0)
 		{
 		    lcs_chars.multispace = ALLOC_MULT(int, multispace_len + 1);
@@ -5069,7 +5070,8 @@ set_chars_option(win_T *wp, char_u **varp)
 		    s = p + len2 + 1;
 		    if (round == 0)
 		    {
-			// Get length of lcsmultispace string in first round
+			// get length of lcs-leadmultispace string in first
+			// round
 			last_lmultispace = p;
 			lead_multispace_len = 0;
 			while (*s != NUL && *s != ',')
@@ -5080,7 +5082,7 @@ set_chars_option(win_T *wp, char_u **varp)
 			    ++lead_multispace_len;
 			}
 			if (lead_multispace_len == 0)
-			    // lcsmultispace cannot be an empty string
+			    // lcs-leadmultispace cannot be an empty string
 			    return e_invalid_argument;
 			p = s;
 		    }
@@ -5107,10 +5109,8 @@ set_chars_option(win_T *wp, char_u **varp)
     }
     if (tab == lcstab)
     {
-	if (wp->w_lcs_chars.multispace != NULL)
-	    vim_free(wp->w_lcs_chars.multispace);
-	if (wp->w_lcs_chars.leadmultispace != NULL)
-	    vim_free(wp->w_lcs_chars.leadmultispace);
+	vim_free(wp->w_lcs_chars.multispace);
+	vim_free(wp->w_lcs_chars.leadmultispace);
 	wp->w_lcs_chars = lcs_chars;
     }
 
