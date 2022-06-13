@@ -7533,6 +7533,7 @@ changedir_func(
     int		dir_differs;
     char_u	*acmd_fname = NULL;
     char_u	**pp;
+    char_u	*tofree;
 
     if (new_dir == NULL || allbuf_locked())
 	return FALSE;
@@ -7609,13 +7610,14 @@ changedir_func(
 	pp = &curtab->tp_prevdir;
     else
 	pp = &prev_dir;
-    vim_free(*pp);
+    tofree = *pp;  // new_dir may use this
     *pp = pdir;
 
     post_chdir(scope);
 
     if (dir_differs)
 	apply_autocmds(EVENT_DIRCHANGED, acmd_fname, new_dir, FALSE, curbuf);
+    vim_free(tofree);
     return TRUE;
 }
 

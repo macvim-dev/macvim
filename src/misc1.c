@@ -1358,6 +1358,9 @@ expand_env_esc(
     int		mustfree;	// var was allocated, need to free it later
     int		at_start = TRUE; // at start of a name
     int		startstr_len = 0;
+#if defined(BACKSLASH_IN_FILENAME) || defined(AMIGA)
+    char_u	*save_dst = dst;
+#endif
 
     if (startstr != NULL)
 	startstr_len = (int)STRLEN(startstr);
@@ -1582,7 +1585,7 @@ expand_env_esc(
 		// with it, skip a character
 		if (after_pathsep(dst, dst + c)
 #if defined(BACKSLASH_IN_FILENAME) || defined(AMIGA)
-			&& dst[-1] != ':'
+			&& (dst == save_dst || dst[-1] != ':')
 #endif
 			&& vim_ispathsep(*tail))
 		    ++tail;
