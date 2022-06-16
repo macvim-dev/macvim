@@ -3063,6 +3063,8 @@ f_autocmd_get(typval_T *argvars, typval_T *rettv)
     char_u	*name = NULL;
     int		group = AUGROUP_ALL;
 
+    if (rettv_list_alloc(rettv) == FAIL)
+	return;
     if (check_for_opt_dict_arg(argvars, 0) == FAIL)
 	return;
 
@@ -3129,8 +3131,6 @@ f_autocmd_get(typval_T *argvars, typval_T *rettv)
 	}
     }
 
-    if (rettv_list_alloc(rettv) == FAIL)
-	return;
     event_list = rettv->vval.v_list;
 
     // iterate through all the autocmd events

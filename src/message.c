@@ -1925,8 +1925,9 @@ msg_prt_line(char_u *s, int list)
 		    && (mb_ptr2char(s) == 160
 			|| mb_ptr2char(s) == 0x202f))
 	    {
-		mb_char2bytes(curwin->w_lcs_chars.nbsp, buf);
-		buf[(*mb_ptr2len)(buf)] = NUL;
+		int len = mb_char2bytes(curwin->w_lcs_chars.nbsp, buf);
+
+		buf[len] = NUL;
 	    }
 	    else
 	    {
@@ -3803,7 +3804,11 @@ do_dialog(
     // When GUI is running and 'c' not in 'guioptions', use the GUI dialog
     if (gui.in_use && vim_strchr(p_go, GO_CONDIALOG) == NULL)
     {
-	c = gui_mch_dialog(type, title, message, buttons, dfltbutton,
+	// --gui-dialog-file: write text to a file
+	if (gui_dialog_log(title, message))
+	    c = dfltbutton;
+	else
+	    c = gui_mch_dialog(type, title, message, buttons, dfltbutton,
 							   textfield, ex_cmd);
 	// avoid a hit-enter prompt without clearing the cmdline
 	need_wait_return = FALSE;
