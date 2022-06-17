@@ -3732,7 +3732,7 @@ f_environ(typval_T *argvars UNUSED, typval_T *rettv)
     extern char		**environ;
 # endif
 
-    if (rettv_dict_alloc(rettv) != OK)
+    if (rettv_dict_alloc(rettv) == FAIL)
 	return;
 
 # ifdef MSWIN
@@ -4159,7 +4159,7 @@ f_expand(typval_T *argvars, typval_T *rettv)
 	    emsg(errormsg);
 	if (rettv->v_type == VAR_LIST)
 	{
-	    if (rettv_list_alloc(rettv) != FAIL && result != NULL)
+	    if (rettv_list_alloc(rettv) == OK && result != NULL)
 		list_append_string(rettv->vval.v_list, result, -1);
 	    vim_free(result);
 	}
@@ -4182,7 +4182,7 @@ f_expand(typval_T *argvars, typval_T *rettv)
 	    if (rettv->v_type == VAR_STRING)
 		rettv->vval.v_string = ExpandOne(&xpc, s, NULL,
 							   options, WILD_ALL);
-	    else if (rettv_list_alloc(rettv) != FAIL)
+	    else if (rettv_list_alloc(rettv) == OK)
 	    {
 		int i;
 
@@ -4784,7 +4784,7 @@ f_getchangelist(typval_T *argvars, typval_T *rettv)
     dict_T	*d;
     int		changelistindex;
 
-    if (rettv_list_alloc(rettv) != OK)
+    if (rettv_list_alloc(rettv) == FAIL)
 	return;
 
     if (in_vim9script() && check_for_opt_buffer_arg(argvars, 0) == FAIL)
@@ -4929,7 +4929,7 @@ f_getcharpos(typval_T *argvars UNUSED, typval_T *rettv)
     static void
 f_getcharsearch(typval_T *argvars UNUSED, typval_T *rettv)
 {
-    if (rettv_dict_alloc(rettv) != FAIL)
+    if (rettv_dict_alloc(rettv) == OK)
     {
 	dict_T *dict = rettv->vval.v_dict;
 
@@ -5016,7 +5016,7 @@ f_getjumplist(typval_T *argvars, typval_T *rettv)
     list_T	*l;
     dict_T	*d;
 
-    if (rettv_list_alloc(rettv) != OK)
+    if (rettv_list_alloc(rettv) == FAIL)
 	return;
 
     if (in_vim9script()
@@ -5221,7 +5221,7 @@ f_gettagstack(typval_T *argvars, typval_T *rettv)
 {
     win_T	*wp = curwin;			// default is current window
 
-    if (rettv_dict_alloc(rettv) != OK)
+    if (rettv_dict_alloc(rettv) == FAIL)
 	return;
 
     if (in_vim9script() && check_for_opt_number_arg(argvars, 0) == FAIL)
@@ -7879,7 +7879,7 @@ f_printf(typval_T *argvars, typval_T *rettv)
     static void
 f_pum_getpos(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
 {
-    if (rettv_dict_alloc(rettv) != OK)
+    if (rettv_dict_alloc(rettv) == FAIL)
 	return;
     pum_set_event_info(rettv->vval.v_dict);
 }
@@ -8168,7 +8168,7 @@ f_range(typval_T *argvars, typval_T *rettv)
     varnumber_T	stride = 1;
     int		error = FALSE;
 
-    if (rettv_list_alloc(rettv) != OK)
+    if (rettv_list_alloc(rettv) == FAIL)
 	return;
 
     if (in_vim9script()
@@ -9010,6 +9010,10 @@ do_searchpair(
     if (skip != NULL)
 	use_skip = eval_expr_valid_arg(skip);
 
+#ifdef FEAT_RELTIME
+    if (time_limit > 0)
+	init_regexp_timeout(time_limit);
+#endif
     save_cursor = curwin->w_cursor;
     pos = curwin->w_cursor;
     CLEAR_POS(&firstpos);
@@ -9021,9 +9025,6 @@ do_searchpair(
 
 	CLEAR_FIELD(sia);
 	sia.sa_stop_lnum = lnum_stop;
-#ifdef FEAT_RELTIME
-	sia.sa_tm = time_limit;
-#endif
 	n = searchit(curwin, curbuf, &pos, NULL, dir, pat, 1L,
 						     options, RE_SEARCH, &sia);
 	if (n == FAIL || (firstpos.lnum != 0 && EQUAL_POS(pos, firstpos)))
@@ -9109,6 +9110,9 @@ do_searchpair(
 	curwin->w_cursor = save_cursor;
 
 theend:
+#ifdef FEAT_RELTIME
+    disable_regexp_timeout();
+#endif
     vim_free(pat2);
     vim_free(pat3);
     if (p_cpo == empty_option)
@@ -10232,7 +10236,7 @@ f_synconcealed(typval_T *argvars UNUSED, typval_T *rettv)
 
     CLEAR_FIELD(str);
 
-    if (rettv_list_alloc(rettv) != FAIL)
+    if (rettv_list_alloc(rettv) == OK)
     {
 	if (lnum >= 1 && lnum <= curbuf->b_ml.ml_line_count
 	    && col >= 0 && col <= (long)STRLEN(ml_get(lnum))
@@ -10293,7 +10297,7 @@ f_synstack(typval_T *argvars UNUSED, typval_T *rettv)
 
     if (lnum >= 1 && lnum <= curbuf->b_ml.ml_line_count
 	    && col >= 0 && col <= (long)STRLEN(ml_get(lnum))
-	    && rettv_list_alloc(rettv) != FAIL)
+	    && rettv_list_alloc(rettv) == OK)
     {
 	(void)syn_get_id(curwin, lnum, col, FALSE, NULL, TRUE);
 	for (i = 0; ; ++i)
@@ -10328,7 +10332,7 @@ f_tabpagebuflist(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
 	if (tp != NULL)
 	    wp = (tp == curtab) ? firstwin : tp->tp_firstwin;
     }
-    if (wp != NULL && rettv_list_alloc(rettv) != FAIL)
+    if (wp != NULL && rettv_list_alloc(rettv) == OK)
     {
 	for (; wp != NULL; wp = wp->w_next)
 	    if (list_append_number(rettv->vval.v_list,
