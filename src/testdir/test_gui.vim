@@ -1608,7 +1608,12 @@ func Test_gui_dialog_file()
   execute prefix .. GetVimCommand() .. ' -g -f --clean --gui-dialog-file Xdialog -S Xlines'
 
   call WaitForAssert({-> assert_true(filereadable('Xdialog'))})
-  call assert_match('Question: Save changes to "Xfile"?', readfile('Xdialog')->join('<NL>'))
+  if has('gui_macvim')
+    call assert_match('Do you want to save the changes you made in the document "Xfile"?: ' ..
+          \ 'Your changes will be lost if you don''t save them.', readfile('Xdialog')->join('<NL>'))
+  else
+    call assert_match('Question: Save changes to "Xfile"?', readfile('Xdialog')->join('<NL>'))
+  endif
 
   call delete('Xdialog')
   call delete('Xfile')
