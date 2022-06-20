@@ -355,6 +355,37 @@ func Test_searchpair_timeout()
   bwipe!
 endfunc
 
+func SearchpairSkip()
+  let id = synID(line('.'), col('.'), 0)
+  let attr = synIDattr(id, 'name')
+  return attr !~ 'comment'
+endfunc
+
+func Test_searchpair_timeout_with_skip()
+  let g:test_is_flaky = 1
+
+  edit ../evalfunc.c
+  if has('win32')
+    " Windows timeouts are rather coarse grained, about 16ms.
+    let ms = 20
+    let min_time = 0.016
+    let max_time = min_time * 10.0
+  else
+    let ms = 1
+    let min_time = 0.001
+    let max_time = min_time * 10.0
+    if RunningWithValgrind()
+      let max_time += 0.04  " this can be slow with valgrind
+    endif
+  endif
+  let start = reltime()
+  let found = searchpair('(', '', ')', 'crnm', 'SearchpairSkip()', 0, ms)
+  let elapsed = reltimefloat(reltime(start))
+  call assert_inrange(min_time, max_time, elapsed)
+
+  bwipe!
+endfunc
+
 func Test_searchpairpos()
   new
   call setline(1, ['other code', 'here [', ' [', ' " cursor here', ' ]]'])
@@ -1576,10 +1607,17 @@ endfunc
 
 func Test_search_timeout()
   new
+  " use a complicated pattern that should be slow with the BT engine
   let pattern = '\%#=1a*.*X\@<=b*'
-  let search_timeout = 0.02
+
+  " use a timeout of 50 msec
+  let search_timeout = 0.05
+
+  " fill the buffer so that it takes 15 times the timeout to search
   let slow_target_timeout = search_timeout * 15.0
 
+  " Fill the buffer with more and more text until searching takes more time
+  " than slow_target_timeout.
   for n in range(40, 400, 30)
       call setline(1, ['aaa', repeat('abc ', n), 'ccc'])
       let start = reltime()
@@ -1591,11 +1629,14 @@ func Test_search_timeout()
   endfor
   call assert_true(elapsed > slow_target_timeout)
 
+  " Check that the timeout kicks in, the time should be less than half of what
+  " we measured without the timeout.  This is permissive, because the timer is
+  " known to overrun, especially when using valgrind.
   let max_time = elapsed / 2.0
   let start = reltime()
   call search(pattern, '', 0, float2nr(search_timeout * 1000))
   let elapsed = reltimefloat(reltime(start))
-  call assert_true(elapsed < max_time)
+  call assert_inrange(search_timeout * 0.9, max_time, elapsed)
 
   bwipe!
 endfunc

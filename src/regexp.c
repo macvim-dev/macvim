@@ -22,7 +22,7 @@
 
 #ifdef FEAT_RELTIME
 static int dummy_timeout_flag = 0;
-static const int *timeout_flag = &dummy_timeout_flag;
+static volatile int *timeout_flag = &dummy_timeout_flag;
 #endif
 
 /*
@@ -61,6 +61,7 @@ init_regexp_timeout(long msec)
 disable_regexp_timeout(void)
 {
     stop_timeout();
+    timeout_flag = &dummy_timeout_flag;
 }
 #endif
 

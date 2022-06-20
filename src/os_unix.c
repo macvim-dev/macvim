@@ -8273,7 +8273,7 @@ xsmp_close(void)
 /*
  * Implement timeout with timer_create() and timer_settime().
  */
-static int	timeout_flag = FALSE;
+static volatile int timeout_flag = FALSE;
 static timer_t	timer_id;
 static int	timer_created = FALSE;
 
@@ -8318,7 +8318,7 @@ stop_timeout(void)
  * This function is not expected to fail, but if it does it will still return a
  * valid flag pointer; the flag will remain stuck as FALSE .
  */
-    const int *
+    volatile int *
 start_timeout(long msec)
 {
     struct itimerspec interval = {
@@ -8329,7 +8329,6 @@ start_timeout(long msec)
     // This is really the caller's responsibility, but let's make sure the
     // previous timer has been stopped.
     stop_timeout();
-    timeout_flag = FALSE;
 
     if (!timer_created)
     {
@@ -8346,6 +8345,8 @@ start_timeout(long msec)
 	timer_created = TRUE;
     }
 
+    ch_log(NULL, "setting timeout timer to %d sec %ld nsec",
+	       (int)interval.it_value.tv_sec, (long)interval.it_value.tv_nsec);
     ret = timer_settime(timer_id, 0, &interval, NULL);
     if (ret < 0)
 	semsg(_(e_could_not_set_timeout_str), strerror(errno));
@@ -8373,7 +8374,7 @@ delete_timer(void)
  */
 static struct itimerval prev_interval;
 static struct sigaction prev_sigaction;
-static int		timeout_flag         = FALSE;
+static volatile int	timeout_flag         = FALSE;
 static int		timer_active         = FALSE;
 static int		timer_handler_active = FALSE;
 static int		alarm_pending        = FALSE;
@@ -8431,7 +8432,7 @@ stop_timeout(void)
  * This function is not expected to fail, but if it does it will still return a
  * valid flag pointer; the flag will remain stuck as FALSE .
  */
-    const int *
+    volatile int *
 start_timeout(long msec)
 {
     struct itimerval	interval = {

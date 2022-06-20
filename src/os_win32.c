@@ -8335,7 +8335,7 @@ static int      timer_active = FALSE;
  * timeouts.
  */
 static int      timeout_flags[2];
-static int      flag_idx = 0;
+static int      timeout_flag_idx = 0;
 static int      *timeout_flag = &timeout_flags[0];
 
 
@@ -8378,12 +8378,12 @@ stop_timeout(void)
  * This function is not expected to fail, but if it does it still returns a
  * valid flag pointer; the flag will remain stuck at zero.
  */
-    const int *
+    volatile int *
 start_timeout(long msec)
 {
     BOOL ret;
 
-    timeout_flag = &timeout_flags[flag_idx];
+    timeout_flag = &timeout_flags[timeout_flag_idx];
 
     stop_timeout();
     ret = CreateTimerQueueTimer(
@@ -8395,7 +8395,7 @@ start_timeout(long msec)
     }
     else
     {
-	flag_idx = (flag_idx + 1) % 2;
+	timeout_flag_idx = (timeout_flag_idx + 1) % 2;
 	timer_active = TRUE;
 	*timeout_flag = FALSE;
     }
