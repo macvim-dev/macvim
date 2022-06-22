@@ -333,6 +333,7 @@ endfunc
 
 func Test_searchpair_timeout()
   CheckFeature reltime
+  let g:test_is_flaky = 1
 
   func Waitabit()
     sleep 20m
@@ -352,6 +353,7 @@ func Test_searchpair_timeout()
   let elapsed = reltime(starttime)->reltimefloat()
   call assert_inrange(0.09, 0.300, elapsed)
 
+  delfunc Waitabit
   bwipe!
 endfunc
 
@@ -1606,6 +1608,7 @@ func Test_search_errors()
 endfunc
 
 func Test_search_timeout()
+  let g:test_is_flaky = 1
   new
   " use a complicated pattern that should be slow with the BT engine
   let pattern = '\%#=1a*.*X\@<=b*'
