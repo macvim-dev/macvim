@@ -13,6 +13,7 @@
  * Vim originated from Stevie version 3.6 (Fish disk 217) by GRWalter (Fred)
  * It has been changed beyond recognition since then.
  *
+ * Differences between version 8.2 and 9.0 can be found with ":help version9".
  * Differences between version 7.4 and 8.x can be found with ":help version8".
  * Differences between version 6.4 and 7.x can be found with ":help version7".
  * Differences between version 5.8 and 6.x can be found with ":help version6".
@@ -749,6 +750,20 @@ static char *(features[]) =
 
 static int included_patches[] =
 {   /* Add new patch number below this line */
+/**/
+    5154,
+/**/
+    5153,
+/**/
+    5152,
+/**/
+    5151,
+/**/
+    5150,
+/**/
+    5149,
+/**/
+    5148,
 /**/
     5147,
 /**/
@@ -11542,7 +11557,7 @@ intro_message(
         // TODO: Don't steal the show from version8 help?
 	N_("type  :help macvim<Enter>     for MacVim help "),
 #else
-	N_("type  :help version8<Enter>   for version info"),
+	N_("type  :help version9<Enter>   for version info"),
 #endif
 	NULL,
 	"",
