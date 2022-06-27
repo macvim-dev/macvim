@@ -3592,8 +3592,8 @@ msgstr "オンラインヘルプは     :help<Enter> か <F1>   "
 msgid "type  :help macvim<Enter>     for MacVim help "
 msgstr "MacVim のオンラインヘルプは     :help macvim<Enter>             "
 
-msgid "type  :help version8<Enter>   for version info"
-msgstr "バージョン情報は       :help version8<Enter>  "
+msgid "type  :help version9<Enter>   for version info"
+msgstr "バージョン情報は       :help version9<Enter>  "
 
 msgid "Running in Vi compatible mode"
 msgstr "Vi互換モードで動作中"

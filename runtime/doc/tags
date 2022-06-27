@@ -8766,6 +8766,7 @@ new-argument-list	version6.txt	/*new-argument-list*
 new-buftype	version6.txt	/*new-buftype*
 new-cmdwin	version6.txt	/*new-cmdwin*
 new-color-schemes	version6.txt	/*new-color-schemes*
+new-colorschemes-9	version9.txt	/*new-colorschemes-9*
 new-commands	version5.txt	/*new-commands*
 new-commands-5.4	version5.txt	/*new-commands-5.4*
 new-conceal	version7.txt	/*new-conceal*
@@ -8815,6 +8816,7 @@ new-other-8.2	version8.txt	/*new-other-8.2*
 new-perl-python	version5.txt	/*new-perl-python*
 new-persistent-undo	version7.txt	/*new-persistent-undo*
 new-plugins	version6.txt	/*new-plugins*
+new-popup-compl	version9.txt	/*new-popup-compl*
 new-popup-window	version8.txt	/*new-popup-window*
 new-posix	version7.txt	/*new-posix*
 new-print-multibyte	version7.txt	/*new-print-multibyte*
@@ -9794,6 +9796,7 @@ subscribe-maillist	intro.txt	/*subscribe-maillist*
 subscript	eval.txt	/*subscript*
 substitute()	builtin.txt	/*substitute()*
 substitute-CR	version6.txt	/*substitute-CR*
+substring	eval.txt	/*substring*
 suffixes	cmdline.txt	/*suffixes*
 suspend	starting.txt	/*suspend*
 swap-exists-choices	usr_11.txt	/*swap-exists-choices*

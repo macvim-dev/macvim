@@ -4801,8 +4801,8 @@ msgstr "線上說明請輸入                :help<Enter>         "
 msgid "type  :help macvim<Enter>     for MacVim help "
 msgstr "MacVim 線上說明請輸入                :help<Enter>               "
 
-msgid "type  :help version8<Enter>   for version info"
-msgstr "新版本資訊請輸入              :help version8<Enter>"
+msgid "type  :help version9<Enter>   for version info"
+msgstr "新版本資訊請輸入              :help version9<Enter>"
 
 msgid "Running in Vi compatible mode"
 msgstr "Vi 相容模式"
