@@ -75,7 +75,6 @@ static void f_getregtype(typval_T *argvars, typval_T *rettv);
 static void f_gettagstack(typval_T *argvars, typval_T *rettv);
 static void f_gettext(typval_T *argvars, typval_T *rettv);
 static void f_haslocaldir(typval_T *argvars, typval_T *rettv);
-static void f_hasmapto(typval_T *argvars, typval_T *rettv);
 static void f_hlID(typval_T *argvars, typval_T *rettv);
 static void f_hlexists(typval_T *argvars, typval_T *rettv);
 static void f_hostname(typval_T *argvars, typval_T *rettv);
@@ -6689,40 +6688,6 @@ f_haslocaldir(typval_T *argvars, typval_T *rettv)
 }
 
 /*
- * "hasmapto()" function
- */
-    static void
-f_hasmapto(typval_T *argvars, typval_T *rettv)
-{
-    char_u	*name;
-    char_u	*mode;
-    char_u	buf[NUMBUFLEN];
-    int		abbr = FALSE;
-
-    if (in_vim9script()
-	    && (check_for_string_arg(argvars, 0) == FAIL
-		|| check_for_opt_string_arg(argvars, 1) == FAIL
-		|| (argvars[1].v_type != VAR_UNKNOWN
-		    && check_for_opt_bool_arg(argvars, 2) == FAIL)))
-	return;
-
-    name = tv_get_string(&argvars[0]);
-    if (argvars[1].v_type == VAR_UNKNOWN)
-	mode = (char_u *)"nvo";
-    else
-    {
-	mode = tv_get_string_buf(&argvars[1], buf);
-	if (argvars[2].v_type != VAR_UNKNOWN)
-	    abbr = (int)tv_get_bool(&argvars[2]);
-    }
-
-    if (map_to_exists(name, mode, abbr))
-	rettv->vval.v_number = TRUE;
-    else
-	rettv->vval.v_number = FALSE;
-}
-
-/*
  * "highlightID(name)" function
  */
     static void
@@ -10174,14 +10139,27 @@ f_synIDattr(typval_T *argvars UNUSED, typval_T *rettv)
 		break;
 
 	case 'u':
-		if (TOLOWER_ASC(what[1]) == 'l')	// ul
-		    p = highlight_color(id, what, modec);
-		else if (STRLEN(what) <= 5 || TOLOWER_ASC(what[5]) != 'c')
+		if (STRLEN(what) >= 9)
+		{
+		    if (TOLOWER_ASC(what[5]) == 'l')
 							// underline
-		    p = highlight_has_attr(id, HL_UNDERLINE, modec);
-		else
+			p = highlight_has_attr(id, HL_UNDERLINE, modec);
+		    else if (TOLOWER_ASC(what[5]) != 'd')
 							// undercurl
-		    p = highlight_has_attr(id, HL_UNDERCURL, modec);
+			p = highlight_has_attr(id, HL_UNDERCURL, modec);
+		    else if (TOLOWER_ASC(what[6]) != 'o')
+							// underdashed
+			p = highlight_has_attr(id, HL_UNDERDASHED, modec);
+		    else if (TOLOWER_ASC(what[7]) == 'u')
+							// underdouble
+			p = highlight_has_attr(id, HL_UNDERDOUBLE, modec);
+		    else
+							// underdotted
+			p = highlight_has_attr(id, HL_UNDERDOTTED, modec);
+		}
+		else
+							// ul
+		    p = highlight_color(id, what, modec);
 		break;
     }
 

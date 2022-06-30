@@ -789,6 +789,9 @@ au BufNewFile,BufRead *.hsm			setf hamster
 " Handlebars
 au BufNewFile,BufRead *.hbs			setf handlebars
 
+" Hare
+au BufNewFile,BufRead *.ha			setf hare
+
 " Haskell
 au BufNewFile,BufRead *.hs,*.hsc,*.hs-boot,*.hsig setf haskell
 au BufNewFile,BufRead *.lhs			setf lhaskell
@@ -1795,16 +1798,11 @@ au BufNewFile,BufRead *.il,*.ils,*.cdf		setf skill
 au BufNewFile,BufRead .slrnrc			setf slrnrc
 au BufNewFile,BufRead *.score			setf slrnsc
 
-" Smalltalk (and TeX)
+" Smalltalk
 au BufNewFile,BufRead *.st			setf st
-au BufNewFile,BufRead *.cls
-	\ if getline(1) =~ '^%' |
-	\  setf tex |
-	\ elseif getline(1)[0] == '#' && getline(1) =~ 'rexx' |
-	\  setf rexx |
-	\ else |
-	\  setf st |
-	\ endif
+
+" Smalltalk (and Rexx, TeX, and Visual Basic)
+au BufNewFile,BufRead *.cls                     call dist#ft#FTcls()
 
 " Smarty templates
 au BufNewFile,BufRead *.tpl			setf smarty
