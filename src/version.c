@@ -751,6 +751,52 @@ static char *(features[]) =
 static int included_patches[] =
 {   /* Add new patch number below this line */
 /**/
+    32,
+/**/
+    31,
+/**/
+    30,
+/**/
+    29,
+/**/
+    28,
+/**/
+    27,
+/**/
+    26,
+/**/
+    25,
+/**/
+    24,
+/**/
+    23,
+/**/
+    22,
+/**/
+    21,
+/**/
+    20,
+/**/
+    19,
+/**/
+    18,
+/**/
+    17,
+/**/
+    16,
+/**/
+    15,
+/**/
+    14,
+/**/
+    13,
+/**/
+    12,
+/**/
+    11,
+/**/
+    10,
+/**/
     9,
 /**/
     8,
@@ -804,11 +850,13 @@ has_patch(int n)
     // Perform a binary search.
     l = 0;
     h = (int)ARRAY_LENGTH(included_patches) - 1;
-    while (l < h)
+    for (;;)
     {
 	m = (l + h) / 2;
 	if (included_patches[m] == n)
 	    return TRUE;
+	if (l == h)
+	    break;
 	if (included_patches[m] < n)
 	    h = m;
 	else
