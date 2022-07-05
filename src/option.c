@@ -2455,10 +2455,10 @@ didset_options2(void)
     check_opt_wim();
 
     // Parse default for 'listchars'.
-    (void)set_chars_option(curwin, &curwin->w_p_lcs);
+    (void)set_chars_option(curwin, &curwin->w_p_lcs, TRUE);
 
     // Parse default for 'fillchars'.
-    (void)set_chars_option(curwin, &p_fcs);
+    (void)set_chars_option(curwin, &curwin->w_p_fcs, TRUE);
 
 #ifdef FEAT_CLIPBOARD
     // Parse default for 'clipboard'
@@ -5312,7 +5312,12 @@ unset_global_local_option(char_u *name, void *from)
 	    break;
 	case PV_LCS:
 	    clear_string_option(&((win_T *)from)->w_p_lcs);
-	    set_chars_option((win_T *)from, &((win_T *)from)->w_p_lcs);
+	    set_chars_option((win_T *)from, &((win_T *)from)->w_p_lcs, TRUE);
+	    redraw_later(NOT_VALID);
+	    break;
+	case PV_FCS:
+	    clear_string_option(&((win_T *)from)->w_p_fcs);
+	    set_chars_option((win_T *)from, &((win_T *)from)->w_p_fcs, TRUE);
 	    redraw_later(NOT_VALID);
 	    break;
 	case PV_VE:
@@ -5380,6 +5385,7 @@ get_varp_scope(struct vimoption *p, int scope)
 	    case PV_BKC:  return (char_u *)&(curbuf->b_p_bkc);
 	    case PV_MENC: return (char_u *)&(curbuf->b_p_menc);
 	    case PV_LCS:  return (char_u *)&(curwin->w_p_lcs);
+	    case PV_FCS:  return (char_u *)&(curwin->w_p_fcs);
 	    case PV_VE:	  return (char_u *)&(curwin->w_p_ve);
 
 	}
@@ -5483,6 +5489,8 @@ get_varp(struct vimoption *p)
 	case PV_LIST:	return (char_u *)&(curwin->w_p_list);
 	case PV_LCS:	return *curwin->w_p_lcs != NUL
 				    ? (char_u *)&(curwin->w_p_lcs) : p->var;
+	case PV_FCS:	return *curwin->w_p_fcs != NUL
+				    ? (char_u *)&(curwin->w_p_fcs) : p->var;
 	case PV_VE:	return *curwin->w_p_ve != NUL
 				    ? (char_u *)&(curwin->w_p_ve) : p->var;
 #ifdef FEAT_SPELL
@@ -5710,7 +5718,16 @@ after_copy_winopt(win_T *wp)
     fill_culopt_flags(NULL, wp);
     check_colorcolumn(wp);
 #endif
-    set_chars_option(wp, &wp->w_p_lcs);
+    set_chars_option(wp, &wp->w_p_lcs, TRUE);
+    set_chars_option(wp, &wp->w_p_fcs, TRUE);
+}
+
+    static char_u *
+copy_option_val(char_u *val)
+{
+    if (val == empty_option)
+	return empty_option;  // no need to allocate memory
+    return vim_strsave(val);
 }
 
 /*
@@ -5726,23 +5743,24 @@ copy_winopt(winopt_T *from, winopt_T *to)
     to->wo_arab = from->wo_arab;
 #endif
     to->wo_list = from->wo_list;
-    to->wo_lcs = vim_strsave(from->wo_lcs);
+    to->wo_lcs = copy_option_val(from->wo_lcs);
+    to->wo_fcs = copy_option_val(from->wo_fcs);
     to->wo_nu = from->wo_nu;
     to->wo_rnu = from->wo_rnu;
-    to->wo_ve = vim_strsave(from->wo_ve);
+    to->wo_ve = copy_option_val(from->wo_ve);
     to->wo_ve_flags = from->wo_ve_flags;
 #ifdef FEAT_LINEBREAK
     to->wo_nuw = from->wo_nuw;
 #endif
 #ifdef FEAT_RIGHTLEFT
     to->wo_rl  = from->wo_rl;
-    to->wo_rlc = vim_strsave(from->wo_rlc);
+    to->wo_rlc = copy_option_val(from->wo_rlc);
 #endif
 #ifdef FEAT_LINEBREAK
-    to->wo_sbr = vim_strsave(from->wo_sbr);
+    to->wo_sbr = copy_option_val(from->wo_sbr);
 #endif
 #ifdef FEAT_STL_OPT
-    to->wo_stl = vim_strsave(from->wo_stl);
+    to->wo_stl = copy_option_val(from->wo_stl);
 #endif
     to->wo_wrap = from->wo_wrap;
 #ifdef FEAT_DIFF
@@ -5751,9 +5769,9 @@ copy_winopt(winopt_T *from, winopt_T *to)
 #ifdef FEAT_LINEBREAK
     to->wo_lbr = from->wo_lbr;
     to->wo_bri = from->wo_bri;
-    to->wo_briopt = vim_strsave(from->wo_briopt);
+    to->wo_briopt = copy_option_val(from->wo_briopt);
 #endif
-    to->wo_wcr = vim_strsave(from->wo_wcr);
+    to->wo_wcr = copy_option_val(from->wo_wcr);
     to->wo_scb = from->wo_scb;
     to->wo_scb_save = from->wo_scb_save;
     to->wo_crb = from->wo_crb;
@@ -5764,42 +5782,42 @@ copy_winopt(winopt_T *from, winopt_T *to)
 #ifdef FEAT_SYN_HL
     to->wo_cuc = from->wo_cuc;
     to->wo_cul = from->wo_cul;
-    to->wo_culopt = vim_strsave(from->wo_culopt);
-    to->wo_cc = vim_strsave(from->wo_cc);
+    to->wo_culopt = copy_option_val(from->wo_culopt);
+    to->wo_cc = copy_option_val(from->wo_cc);
 #endif
 #ifdef FEAT_DIFF
     to->wo_diff = from->wo_diff;
     to->wo_diff_saved = from->wo_diff_saved;
 #endif
 #ifdef FEAT_CONCEAL
-    to->wo_cocu = vim_strsave(from->wo_cocu);
+    to->wo_cocu = copy_option_val(from->wo_cocu);
     to->wo_cole = from->wo_cole;
 #endif
 #ifdef FEAT_TERMINAL
-    to->wo_twk = vim_strsave(from->wo_twk);
-    to->wo_tws = vim_strsave(from->wo_tws);
+    to->wo_twk = copy_option_val(from->wo_twk);
+    to->wo_tws = copy_option_val(from->wo_tws);
 #endif
 #ifdef FEAT_FOLDING
     to->wo_fdc = from->wo_fdc;
     to->wo_fdc_save = from->wo_fdc_save;
     to->wo_fen = from->wo_fen;
     to->wo_fen_save = from->wo_fen_save;
-    to->wo_fdi = vim_strsave(from->wo_fdi);
+    to->wo_fdi = copy_option_val(from->wo_fdi);
     to->wo_fml = from->wo_fml;
     to->wo_fdl = from->wo_fdl;
     to->wo_fdl_save = from->wo_fdl_save;
-    to->wo_fdm = vim_strsave(from->wo_fdm);
+    to->wo_fdm = copy_option_val(from->wo_fdm);
     to->wo_fdm_save = from->wo_diff_saved
-			      ? vim_strsave(from->wo_fdm_save) : empty_option;
+			       ? vim_strsave(from->wo_fdm_save) : empty_option;
     to->wo_fdn = from->wo_fdn;
 # ifdef FEAT_EVAL
-    to->wo_fde = vim_strsave(from->wo_fde);
-    to->wo_fdt = vim_strsave(from->wo_fdt);
+    to->wo_fde = copy_option_val(from->wo_fde);
+    to->wo_fdt = copy_option_val(from->wo_fdt);
 # endif
-    to->wo_fmr = vim_strsave(from->wo_fmr);
+    to->wo_fmr = copy_option_val(from->wo_fmr);
 #endif
 #ifdef FEAT_SIGNS
-    to->wo_scl = vim_strsave(from->wo_scl);
+    to->wo_scl = copy_option_val(from->wo_scl);
 #endif
 
 #ifdef FEAT_EVAL
@@ -5864,6 +5882,7 @@ check_winopt(winopt_T *wop UNUSED)
 #endif
     check_string_option(&wop->wo_wcr);
     check_string_option(&wop->wo_lcs);
+    check_string_option(&wop->wo_fcs);
     check_string_option(&wop->wo_ve);
 }
 
@@ -5911,6 +5930,7 @@ clear_winopt(winopt_T *wop UNUSED)
     clear_string_option(&wop->wo_tws);
 #endif
     clear_string_option(&wop->wo_lcs);
+    clear_string_option(&wop->wo_fcs);
     clear_string_option(&wop->wo_ve);
 }
 

@@ -14,6 +14,8 @@ func TearDown()
   call delete('Xtest.latin1.add.spl')
   call delete('Xtest.latin1.spl')
   call delete('Xtest.latin1.sug')
+  " set 'encoding' to clear the word list
+  set encoding=utf-8
 endfunc
 
 func Test_wrap_search()
@@ -281,6 +283,18 @@ func Test_spellreall()
   call assert_fails('spellrepall', 'E753:')
   set spell&
   bwipe!
+endfunc
+
+func Test_spell_dump_word_length()
+  " this was running over MAXWLEN
+  new
+  noremap 0 0a0zW0000000
+  sil! norm 0z=0
+  sil norm 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+  sil! norm 0z=0
+
+  bwipe!
+  nunmap 0
 endfunc
 
 " Test spellsuggest({word} [, {max} [, {capital}]])
@@ -781,6 +795,10 @@ func Test_zz_sal_and_addition()
   set spl=Xtest_ca.latin1.spl
   call assert_equal("elequint", FirstSpellWord())
   call assert_equal("elekwint", SecondSpellWord())
+
+  bwipe!
+  set spellfile=
+  set spl&
 endfunc
 
 func Test_spellfile_value()
@@ -864,9 +882,6 @@ func Test_spell_good_word_invalid()
   sil! norm z=
 
   bwipe!
-  " clear the internal word list
-  set enc=latin1
-  set enc=utf-8
 endfunc
 
 func LoadAffAndDic(aff_contents, dic_contents)
