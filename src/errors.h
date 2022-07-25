@@ -3308,4 +3308,10 @@ EXTERN char e_could_not_check_for_pending_sigalrm_str[]
 #ifdef FEAT_EVAL
 EXTERN char e_substitute_nesting_too_deep[]
 	INIT(= N_("E1290: substitute nesting too deep"));
+EXTERN char e_invalid_argument_nr[]
+	INIT(= N_("E1291: Invalid argument: %ld"));
+#endif
+#ifdef FEAT_CMDWIN
+EXTERN char e_cmdline_window_already_open[]
+	INIT(= N_("E1292: Command-line window is already open"));
 #endif
