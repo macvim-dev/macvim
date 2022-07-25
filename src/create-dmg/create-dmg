@@ -5,7 +5,7 @@
 # Bail out on any unhandled errors
 set -e;
 
-CDMG_VERSION='1.0.8'
+CDMG_VERSION='1.1.0'
 
 # The full path to the "support/" directory this script is using
 # (This will be set up by code later in the script.)
@@ -23,7 +23,11 @@ ADD_FILE_TARGETS=()
 IMAGEKEY=""
 HDIUTIL_VERBOSITY=""
 SANDBOX_SAFE=0
+BLESS=0
 SKIP_JENKINS=0
+MAXIMUM_UNMOUNTING_ATTEMPTS=3
+SIGNATURE=""
+NOTARIZE=""
 
 function pure_version() {
 	echo "$CDMG_VERSION"
@@ -62,8 +66,6 @@ Options:
       set position of the file's icon
   --hide-extension <file_name>
       hide the extension of file
-  --custom-icon <file_name> <custom_icon_or_sample_file> <x> <y>
-      set position and custom icon
   --app-drop-link <x> <y>
       make a drop link to Applications, at location x,y
   --ql-drop-link <x> <y>
@@ -73,7 +75,7 @@ Options:
   --no-internet-enable
       disable automatic mount & copy
   --format <format>
-      specify the final image format (default is UDZO)
+      specify the final disk image format (UDZO|UDBZ|ULFO|ULMO) (default is UDZO)
   --add-file <target_name> <file>|<folder> <x> <y>
       add additional file or folder (can be used multiple times)
   --disk-image-size <x>
@@ -82,10 +84,14 @@ Options:
       execute hdiutil in verbose mode
   --hdiutil-quiet
       execute hdiutil in quiet mode
+  --bless
+      bless the mount folder (deprecated, needs macOS 12.2.1 or older)
+  --codesign <signature>
+      codesign the disk image with the specified signature
+  --notarize <credentials>
+      notarize the disk image (waits and staples) with the keychain stored credentials
   --sandbox-safe
       execute hdiutil with sandbox compatibility and do not bless
-  --rez <rez_path>
-      use custom path to Rez tool
   --version
 	    show create-dmg version number
   -h, --help
@@ -131,8 +137,6 @@ while [[ "${1:0:1}" = "-" ]]; do
 			HIDING_CLAUSE="${HIDING_CLAUSE}set the extension hidden of item \"$2\" to true
 			"
 			shift; shift;;
-		--custom-icon)
-			shift; shift; shift; shift; shift;;
 		-h | --help)
 			usage;;
 		--version)
@@ -173,12 +177,21 @@ while [[ "${1:0:1}" = "-" ]]; do
 			shift;;
 		--hdiutil-quiet)
 			HDIUTIL_VERBOSITY='-quiet'
-			shift;; 
+			shift;;
+		--codesign)
+			SIGNATURE="$2"
+			shift; shift;;
+		--notarize)
+			NOTARIZE="$2"
+			shift; shift;;
 		--sandbox-safe)
 			SANDBOX_SAFE=1
-			shift;; 
+			shift;;
+		--bless)
+			BLESS=1
+			shift;;
 		--rez)
-			REZ_PATH="$2"
+			echo "REZ is no more directly used. You can remove the --rez argument."
 			shift; shift;;
 		--skip-jenkins)
 			SKIP_JENKINS=1
@@ -192,8 +205,12 @@ while [[ "${1:0:1}" = "-" ]]; do
 			IMAGEKEY="-imagekey zlib-level=9";;
 		UDBZ)
 			IMAGEKEY="-imagekey bzip2-level=9";;
+		ULFO)
+			;;
+		ULMO)
+			;;
 		*)
-			echo >&2 "Unknown format: $FORMAT"
+			echo >&2 "Unknown disk image format: $FORMAT"
 			exit 1;;
 	esac
 done
@@ -205,6 +222,13 @@ fi
 
 DMG_PATH="$1"
 SRC_FOLDER="$(cd "$2" > /dev/null; pwd)"
+
+# Argument validation checks
+
+if [[ "${DMG_PATH: -4}" != ".dmg" ]]; then
+	echo "Output file name must end with a .dmg extension. Run 'create-dmg --help' for help."
+	exit 1
+fi
 
 # Main script logic
 
@@ -283,7 +307,7 @@ if [[ $SANDBOX_SAFE -eq 1 ]] && [[ ! -z "$DISK_IMAGE_SIZE_CUSTOM" ]] && [[ $DISK
 	DISK_IMAGE_SIZE=$DISK_IMAGE_SIZE_CUSTOM
 fi
 
-# Estimate the additional soruces size
+# Estimate the additional sources size
 if [[ -n "$ADD_FILE_SOURCES" ]]; then
 	for i in "${!ADD_FILE_SOURCES[@]}"; do
 		SOURCE_SIZE=$(get_size "${ADD_FILE_SOURCES[$i]}")
@@ -293,6 +317,12 @@ fi
 
 # Add extra space for additional resources
 DISK_IMAGE_SIZE=$(expr $DISK_IMAGE_SIZE + 20)
+
+# Make sure target image size is within limits
+MIN_DISK_IMAGE_SIZE=$(hdiutil resize -limits "${DMG_TEMP_NAME}" | awk 'NR=1{print int($1/2048+1)}')
+if [ $MIN_DISK_IMAGE_SIZE -gt $DISK_IMAGE_SIZE ]; then
+       DISK_IMAGE_SIZE=$MIN_DISK_IMAGE_SIZE
+fi
 
 # Resize the image for the extra stuff
 hdiutil resize ${HDIUTIL_VERBOSITY} -size ${DISK_IMAGE_SIZE}m "${DMG_TEMP_NAME}"
@@ -304,18 +334,18 @@ MOUNT_DIR="/Volumes/${VOLUME_NAME}"
 # Unmount leftover dmg if it was mounted previously (e.g. developer mounted dmg, installed app and forgot to unmount it)
 if [[ -d "${MOUNT_DIR}" ]]; then
 	echo "Unmounting old disk image from $MOUNT_DIR..."
-	DEV_NAME=$(hdiutil info | egrep --color=never '^/dev/' | sed 1q | awk '{print $1}')
+	DEV_NAME=$(hdiutil info | grep -E --color=never '^/dev/' | sed 1q | awk '{print $1}')
 	hdiutil detach "${DEV_NAME}"
 fi
 
 echo "Mounting disk image..."
 
 echo "Mount directory: $MOUNT_DIR"
-DEV_NAME=$(hdiutil attach -readwrite -noverify -noautoopen "${DMG_TEMP_NAME}" | egrep --color=never '^/dev/' | sed 1q | awk '{print $1}')
+DEV_NAME=$(hdiutil attach -readwrite -noverify -noautoopen "${DMG_TEMP_NAME}" | grep -E --color=never '^/dev/' | sed 1q | awk '{print $1}')
 echo "Device name:     $DEV_NAME"
 
 if [[ -n "$BACKGROUND_FILE" ]]; then
-	echo "Copying background file..."
+	echo "Copying background file '$BACKGROUND_FILE'..."
 	[[ -d "$MOUNT_DIR/.background" ]] || mkdir "$MOUNT_DIR/.background"
 	cp "$BACKGROUND_FILE" "$MOUNT_DIR/.background/$BACKGROUND_FILE_NAME"
 fi
@@ -384,7 +414,7 @@ chmod -Rf go-w "${MOUNT_DIR}" &> /dev/null || true
 echo "Done fixing permissions"
 
 # Make the top window open itself on mount:
-if [[ $SANDBOX_SAFE -eq 0 ]]; then
+if [[ $BLESS -eq 1 && $SANDBOX_SAFE -eq 0 ]]; then
 	echo "Blessing started"
 	bless --folder "${MOUNT_DIR}" --openfolder "${MOUNT_DIR}"
 	echo "Blessing finished"
@@ -397,9 +427,27 @@ if [[ -n "$VOLUME_ICON_FILE" ]]; then
 	SetFile -a C "$MOUNT_DIR"
 fi
 
+# Delete unnecessary file system events log if possible
+echo "Deleting .fseventsd"
+rm -rf "${MOUNT_DIR}/.fseventsd" || true
+
 # Unmount
-echo "Unmounting disk image..."
-hdiutil detach "${DEV_NAME}"
+unmounting_attempts=0
+until
+  echo "Unmounting disk image..."
+  (( unmounting_attempts++ ))
+  hdiutil detach "${DEV_NAME}"
+	exit_code=$?
+	(( exit_code ==  0 )) && break            # nothing goes wrong
+	(( exit_code != 16 )) && exit $exit_code  # exit with the original exit code
+	# The above statement returns 1 if test failed (exit_code == 16).
+	#   It can make the code in the {do... done} block to be executed
+do
+  (( unmounting_attempts == MAXIMUM_UNMOUNTING_ATTEMPTS )) && exit 16  # patience exhausted, exit with code EBUSY
+	echo "Wait a moment..."
+  sleep $(( 1 * (2 ** unmounting_attempts) ))
+done
+unset unmounting_attempts
 
 # Compress image
 echo "Compressing disk image..."
@@ -409,15 +457,35 @@ rm -f "${DMG_TEMP_NAME}"
 # Adding EULA resources
 if [[ -n "${EULA_RSRC}" && "${EULA_RSRC}" != "-null-" ]]; then
 	echo "Adding EULA resources..."
-	REZ_ARG=""
-	if [[ -n "${REZ_PATH}" && "${REZ_PATH}" != "-null-" ]]; then
-		REZ_ARG="--rez ${REZ_PATH}"
+	#
+	# Use udifrez instead flatten/rez/unflatten
+	# https://github.com/create-dmg/create-dmg/issues/109
+	#
+	# Based on a thread from dawn2dusk & peterguy
+	# https://developer.apple.com/forums/thread/668084
+	#
+	EULA_RESOURCES_FILE=$(mktemp -t createdmg.tmp.XXXXXXXXXX)
+	EULA_FORMAT=$(file -b ${EULA_RSRC})
+	if [[ ${EULA_FORMAT} == 'Rich Text Format data'* ]] ; then
+		EULA_FORMAT='RTF '
 	else
-		xcode_path=$(xcode-select -p)
-		default_rez="$xcode_path/Tools/Rez"
-		REZ_ARG="--rez ${default_rez}"
+		EULA_FORMAT='TEXT'
 	fi
-	"${CDMG_SUPPORT_DIR}/licenseDMG.py" "${DMG_DIR}/${DMG_NAME}" "${EULA_RSRC}" ${REZ_ARG}
+	# Encode the EULA to base64
+	# Replace 'openssl base64' with 'base64' if Mac OS X 10.6 support is no more needed
+	# EULA_DATA="$(base64 -b 52 "${EULA_RSRC}" | sed s$'/^\(.*\)$/\t\t\t\\1/')"
+	EULA_DATA="$(openssl base64 -in "${EULA_RSRC}" | tr -d '\n' | awk '{gsub(/.{52}/,"&\n")}1' | sed s$'/^\(.*\)$/\t\t\t\\1/')"
+	# Fill the template with the custom EULA contents
+	eval "cat > \"${EULA_RESOURCES_FILE}\" <<EOF                                                                                                                  
+	$(<${CDMG_SUPPORT_DIR}/eula-resources-template.xml)
+	EOF
+	"
+	# Apply the resources
+	hdiutil udifrez -xml "${EULA_RESOURCES_FILE}" '' -quiet "${DMG_DIR}/${DMG_NAME}" || {
+		echo "Failed to add the EULA license"
+		exit 1
+	}
+	echo "Successfully added the EULA license"
 fi
 
 # Enable "internet", whatever that is
@@ -430,6 +498,32 @@ else
 		hdiutil internet-enable -yes "${DMG_DIR}/${DMG_NAME}"
 	else
 		echo "hdiutil does not support internet-enable. Note it was removed in macOS 10.15."
+	fi
+fi
+
+if [[ -n "${SIGNATURE}" && "${SIGNATURE}" != "-null-" ]]; then
+	echo "Codesign started"	
+	codesign -s "${SIGNATURE}" "${DMG_DIR}/${DMG_NAME}"
+	dmgsignaturecheck="$(codesign --verify --deep --verbose=2 --strict "${DMG_DIR}/${DMG_NAME}" 2>&1 >/dev/null)"
+	if [ $? -eq 0 ]; then
+		echo "The disk image is now codesigned"
+	else
+		echo "The signature seems invalid${NC}"
+		exit 1
+	fi
+fi
+
+if [[ -n "${NOTARIZE}" && "${NOTARIZE}" != "-null-" ]]; then
+	echo "Notarization started"	
+	xcrun notarytool submit "${DMG_DIR}/${DMG_NAME}" --keychain-profile "${NOTARIZE}" --wait
+	echo "Stapling the notarization ticket"
+	staple="$(xcrun stapler staple "${DMG_DIR}/${DMG_NAME}")"
+	if [ $? -eq 0 ]; then
+		echo "The disk image is now notarized"
+	else
+		echo "$staple"
+		echo "The notarization failed with error $?"
+		exit 1
 	fi
 fi
 

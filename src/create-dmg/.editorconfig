@@ -1,0 +1,19 @@
+# EditorConfig for create-dmg project
+# EditorConfig is awesome: https://EditorConfig.org
+
+root = true
+
+[*]
+end_of_line = lf
+insert_final_newline = true
+charset = utf-8
+
+# We use tabs in our own code
+[{create-dmg,*.applescript,*.sh}]
+indent_style = tab
+indent_size = 2
+
+# But the Python code we pull in from pyhacker uses spaces
+[*.py]
+indent_style = space
+indent_size = 4
