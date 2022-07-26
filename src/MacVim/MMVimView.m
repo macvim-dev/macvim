@@ -25,6 +25,7 @@
 #import "MMVimView.h"
 #import "MMWindowController.h"
 #import <PSMTabBarControl/PSMTabBarControl.h>
+#import <PSMTabBarControl/PSMRolloverButton.h>
 
 
 
@@ -171,20 +172,6 @@ enum {
 - (void)dealloc
 {
     ASLogDebug(@"");
-
-    [tabBarControl release];  tabBarControl = nil;
-    [tabView release];  tabView = nil;
-    [scrollbars release];  scrollbars = nil;
-
-    // HACK! The text storage is the principal owner of the text system, but we
-    // keep only a reference to the text view, so release the text storage
-    // first (unless we are using the CoreText renderer).
-    if ([textView isKindOfClass:[MMTextView class]])
-        [[textView textStorage] release];
-
-    [textView release];  textView = nil;
-
-    [super dealloc];
 }
 
 - (BOOL)isOpaque
@@ -356,8 +343,6 @@ enum {
                 default:
                     ASLogWarn(@"Unknown tab info for index: %d", i);
             }
-
-            [val release];
         }
     }
 
@@ -412,8 +397,6 @@ enum {
     [[self tabView] addTabViewItem:tvi];
     vimTaskSelectedTab = NO;
 
-    [tvi autorelease];
-
     return tvi;
 }
 
@@ -426,7 +409,6 @@ enum {
 
     [self addSubview:scroller];
     [scrollbars addObject:scroller];
-    [scroller release];
     
     self.pendingPlaceScrollbars = YES;
 }

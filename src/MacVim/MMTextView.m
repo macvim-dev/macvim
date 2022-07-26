@@ -62,12 +62,10 @@
     if ([typesetterString isEqual:@"MMTypesetter"]) {
         NSTypesetter *typesetter = [[MMTypesetter alloc] init];
         [lm setTypesetter:typesetter];
-        [typesetter release];
 #if MM_USE_ROW_CACHE
     } else if ([typesetterString isEqual:@"MMTypesetter2"]) {
         NSTypesetter *typesetter = [[MMTypesetter2 alloc] init];
         [lm setTypesetter:typesetter];
-        [typesetter release];
 #endif // MM_USE_ROW_CACHE
     } else {
         // Only MMTypesetter supports different cell width multipliers.
@@ -86,17 +84,7 @@
     [textStorage addLayoutManager:lm];
     [lm addTextContainer:tc];
 
-    // The text storage retains the layout manager which in turn retains
-    // the text container.
-    [tc autorelease];
-    [lm autorelease];
-
-    // NOTE: This will make the text storage the principal owner of the text
-    // system.  Releasing the text storage will in turn release the layout
-    // manager, the text container, and finally the text view (self).  This
-    // complicates deallocation somewhat, see -[MMVimView dealloc].
     if (!(self = [super initWithFrame:frame textContainer:tc])) {
-        [textStorage release];
         return nil;
     }
 
@@ -121,9 +109,6 @@
     }
 
     [helper setTextView:nil];
-    [helper release];  helper = nil;
-
-    [super dealloc];
 }
 
 - (BOOL)shouldDrawInsertionPoint
@@ -227,7 +212,6 @@
                     backgroundColor:[NSColor colorWithArgbInt:bg]
                        specialColor:[NSColor colorWithRgbInt:sp]];
 
-            [string release];
         } else if (InsertLinesDrawType == type) {
             unsigned color = *((unsigned*)bytes);  bytes += sizeof(unsigned);
             int row = *((int*)bytes);  bytes += sizeof(int);

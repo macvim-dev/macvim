@@ -75,7 +75,7 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
         backingStore = [[NSTextStorage alloc] init];
         // NOTE!  It does not matter which font is set here, Vim will set its
         // own font on startup anyway.  Just set some bogus values.
-        font = [[NSFont userFixedPitchFontOfSize:0] retain];
+        font = [NSFont userFixedPitchFontOfSize:0];
         cellSize.height = 16.0;
         cellSize.width = 6.0;
     }
@@ -90,22 +90,8 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
 #if MM_USE_ROW_CACHE
     if (rowCache) {
         free(rowCache);
-        rowCache = NULL;
     }
 #endif
-    [emptyRowString release];  emptyRowString = nil;
-    [boldItalicFontWide release];  boldItalicFontWide = nil;
-    [italicFontWide release];  italicFontWide = nil;
-    [boldFontWide release];  boldFontWide = nil;
-    [fontWide release];  fontWide = nil;
-    [boldItalicFont release];  boldItalicFont = nil;
-    [italicFont release];  italicFont = nil;
-    [boldFont release];  boldFont = nil;
-    [font release];  font = nil;
-    [defaultBackgroundColor release];  defaultBackgroundColor = nil;
-    [defaultForegroundColor release];  defaultForegroundColor = nil;
-    [backingStore release];  backingStore = nil;
-    [super dealloc];
 }
 
 - (NSString *)string
@@ -636,28 +622,17 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
 - (void)setDefaultColorsBackground:(NSColor *)bgColor
                         foreground:(NSColor *)fgColor
 {
-    if (defaultBackgroundColor != bgColor) {
-        [defaultBackgroundColor release];
-        defaultBackgroundColor = bgColor ? [bgColor retain] : nil;
-    }
+    defaultBackgroundColor = bgColor;
 
     // NOTE: The default foreground color isn't actually used for anything, but
     // other class instances might want to be able to access it so it is stored
     // here.
-    if (defaultForegroundColor != fgColor) {
-        [defaultForegroundColor release];
-        defaultForegroundColor = fgColor ? [fgColor retain] : nil;
-    }
+    defaultForegroundColor = fgColor;
 }
 
 - (void)setFont:(NSFont*)newFont
 {
     if (newFont && font != newFont) {
-        [boldItalicFont release];  boldItalicFont = nil;
-        [italicFont release];  italicFont = nil;
-        [boldFont release];  boldFont = nil;
-        [font release];  font = nil;
-
         // NOTE! When setting a new font we make sure that the advancement of
         // each glyph is fixed.
 
@@ -681,7 +656,6 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
         NSFontDescriptor *desc = [newFont fontDescriptor];
         desc = [desc fontDescriptorByAddingAttributes:dict];
         font = [NSFont fontWithDescriptor:desc size:pointSize];
-        [font retain];
 
         NSLayoutManager *lm = [[self layoutManagers] objectAtIndex:0];
         if (lm) {
@@ -701,21 +675,18 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
         desc = [boldFont fontDescriptor];
         desc = [desc fontDescriptorByAddingAttributes:dict];
         boldFont = [NSFont fontWithDescriptor:desc size:pointSize];
-        [boldFont retain];
 
         italicFont = [[NSFontManager sharedFontManager]
             convertFont:font toHaveTrait:NSItalicFontMask];
         desc = [italicFont fontDescriptor];
         desc = [desc fontDescriptorByAddingAttributes:dict];
         italicFont = [NSFont fontWithDescriptor:desc size:pointSize];
-        [italicFont retain];
 
         boldItalicFont = [[NSFontManager sharedFontManager]
             convertFont:italicFont toHaveTrait:NSBoldFontMask];
         desc = [boldItalicFont fontDescriptor];
         desc = [desc fontDescriptorByAddingAttributes:dict];
         boldItalicFont = [NSFont fontWithDescriptor:desc size:pointSize];
-        [boldItalicFont retain];
     }
 }
 
@@ -726,11 +697,6 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
         // very well include wide characters.)
         if (font) [self setWideFont:font];
     } else if (newFont != fontWide) {
-        [boldItalicFontWide release];  boldItalicFontWide = nil;
-        [italicFontWide release];  italicFontWide = nil;
-        [boldFontWide release];  boldFontWide = nil;
-        [fontWide release];  fontWide = nil;
-
         float pointSize = [newFont pointSize];
         NSFontDescriptor *desc = [newFont fontDescriptor];
         NSDictionary *dictWide = [NSDictionary
@@ -739,28 +705,24 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
 
         desc = [desc fontDescriptorByAddingAttributes:dictWide];
         fontWide = [NSFont fontWithDescriptor:desc size:pointSize];
-        [fontWide retain];
 
         boldFontWide = [[NSFontManager sharedFontManager]
             convertFont:fontWide toHaveTrait:NSBoldFontMask];
         desc = [boldFontWide fontDescriptor];
         desc = [desc fontDescriptorByAddingAttributes:dictWide];
         boldFontWide = [NSFont fontWithDescriptor:desc size:pointSize];
-        [boldFontWide retain];
 
         italicFontWide = [[NSFontManager sharedFontManager]
             convertFont:fontWide toHaveTrait:NSItalicFontMask];
         desc = [italicFontWide fontDescriptor];
         desc = [desc fontDescriptorByAddingAttributes:dictWide];
         italicFontWide = [NSFont fontWithDescriptor:desc size:pointSize];
-        [italicFontWide retain];
 
         boldItalicFontWide = [[NSFontManager sharedFontManager]
             convertFont:italicFontWide toHaveTrait:NSBoldFontMask];
         desc = [boldItalicFontWide fontDescriptor];
         desc = [desc fontDescriptorByAddingAttributes:dictWide];
         boldItalicFontWide = [NSFont fontWithDescriptor:desc size:pointSize];
-        [boldItalicFontWide retain];
     }
 }
 
@@ -986,11 +948,9 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
     }
     [rowString appendString:@"\n"];
 
-    [emptyRowString release];
     emptyRowString = [[NSAttributedString alloc] initWithString:rowString
                                                      attributes:dict];
 
-    [backingStore release];
     backingStore = [[NSTextStorage alloc] init];
     for (i=0; i<maxRows; ++i) {
 #if MM_USE_ROW_CACHE
@@ -1209,8 +1169,8 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
     unsigned end;
 
     if (!invalidCharacterSet)
-        invalidCharacterSet = [[NSCharacterSet characterSetWithRange:
-            NSMakeRange(0x2028, 2)] retain];
+        invalidCharacterSet = [NSCharacterSet characterSetWithRange:
+            NSMakeRange(0x2028, 2)];
 
     // HACK! Replace characters that the text system can't handle (currently
     // LINE SEPARATOR U+2028 and PARAGRAPH SEPARATOR U+2029) with space.

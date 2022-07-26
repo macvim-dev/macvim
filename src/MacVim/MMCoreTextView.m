@@ -114,7 +114,6 @@ defaultLineHeightForFont(NSFont *font)
     // temporarily.
     NSLayoutManager *lm = [[NSLayoutManager alloc] init];
     float height = [lm defaultLineHeightForFont:font];
-    [lm release];
 
     return height;
 }
@@ -157,7 +156,7 @@ typedef struct {
     unsigned fg;
     unsigned sp;
     int textFlags;
-    NSString* string; // Owned by characterStrings.
+    __unsafe_unretained NSString* string; // Owned by characterStrings.
 } GridCell;
 
 typedef struct {
@@ -191,14 +190,14 @@ static void grid_resize(Grid *grid, int rows, int cols) {
         size_t newSize = rows * cols;
         grid->cells = realloc(grid->cells, newSize * sizeof(GridCell));
         if (newSize > oldSize)
-            bzero(grid->cells + oldSize, (newSize - oldSize) * sizeof(GridCell));
+            bzero((void*)grid->cells + oldSize, (newSize - oldSize) * sizeof(GridCell));
     } else {
         // Otherwise, allocate a new buffer.
         GridCell *oldCells = grid->cells;
         grid->cells = calloc(rows * cols, sizeof(GridCell));
         if (oldCells) {
             for (int r = 1; r < MIN(grid->rows, rows); r++)
-                memcpy(grid->cells + cols * r, oldCells + grid->cols * r, MIN(grid->cols, cols) * sizeof(GridCell));
+                memcpy((void*)grid->cells + cols * r, oldCells + grid->cols * r, MIN(grid->cols, cols) * sizeof(GridCell));
             free(oldCells);
         }
     }
@@ -247,20 +246,8 @@ static void grid_free(Grid *grid) {
 
 - (void)dealloc
 {
-    [font release];  font = nil;
-    [fontWide release];  fontWide = nil;
-    [defaultBackgroundColor release];  defaultBackgroundColor = nil;
-    [defaultForegroundColor release];  defaultForegroundColor = nil;
-    [fontVariants release];  fontVariants = nil;
-    [characterStrings release];  characterStrings = nil;
-    [characterLines release];  characterLines = nil;
-    
     [helper setTextView:nil];
-    [helper release];  helper = nil;
-
     grid_free(&grid);
-
-    [super dealloc];
 }
 
 - (int)maxRows
@@ -290,8 +277,7 @@ static void grid_free(Grid *grid) {
                         foreground:(NSColor *)fgColor
 {
     if (defaultBackgroundColor != bgColor) {
-        [defaultBackgroundColor release];
-        defaultBackgroundColor = bgColor ? [bgColor retain] : nil;
+        defaultBackgroundColor = bgColor;
         self.needsDisplay = YES;
     }
 
@@ -299,8 +285,7 @@ static void grid_free(Grid *grid) {
     // other class instances might want to be able to access it so it is stored
     // here.
     if (defaultForegroundColor != fgColor) {
-        [defaultForegroundColor release];
-        defaultForegroundColor = fgColor ? [fgColor retain] : nil;
+        defaultForegroundColor = fgColor;
     }
     [self setNeedsDisplay:YES];
 }
@@ -408,7 +393,6 @@ static void grid_free(Grid *grid) {
     const BOOL preserveLineHeight = [[NSUserDefaults standardUserDefaults]
                                      boolForKey:MMFontPreserveLineSpacingKey];
 
-    [font release];
     if (!preserveLineHeight) {
         double pt = round([newFont pointSize]);
 
@@ -418,9 +402,9 @@ static void grid_free(Grid *grid) {
         if (!fontRef) {
             ASLogInfo(@"CTFontCreateWithFontDescriptor failed (preserveLineHeight == false, fontName: %@), pt: %f", [newFont fontName], pt);
         }
-        font = (NSFont*)fontRef;
+        font = (NSFont*)CFBridgingRelease(fontRef);
     } else {
-        font = [newFont retain];
+        font = newFont;
     }
     fontDescent = ceil(CTFontGetDescent((CTFontRef)font));
 
@@ -447,8 +431,7 @@ static void grid_free(Grid *grid) {
             return;
         }
     } else if (newFont != fontWide) {
-        [fontWide release];
-        fontWide = [newFont retain];
+        fontWide = newFont;
     }
 
     [self clearAll];
@@ -796,7 +779,7 @@ static void grid_free(Grid *grid) {
                 ASLogDebug(@"CTLineGetGlyphRuns no glyphs for: %@", lineString);
             }
             for (id obj in glyphRuns) {
-                CTRunRef run = (CTRunRef)obj;
+                CTRunRef run = (__bridge CTRunRef)obj;
                 CFIndex glyphCount = CTRunGetGlyphCount(run);
                 CFIndex indices[glyphCount];
                 CGPoint positions[glyphCount];
@@ -893,7 +876,6 @@ static void grid_free(Grid *grid) {
                 c++;
         }
         flushLineString();
-        [lineString release];
         CGContextRestoreGState(ctx);
     }
     if (thinStrokes) {
@@ -1136,9 +1118,9 @@ static void grid_free(Grid *grid) {
     NSNumber *key = @(cacheFlags);
     NSCache<NSString *,id> *strCache = characterLines[key];
     if (!strCache){
-        strCache = characterLines[key] = [[[NSCache alloc] init] autorelease];
+        strCache = characterLines[key] = [[NSCache alloc] init];
     }
-    CTLineRef line = (CTLineRef)[[strCache objectForKey:string] retain];
+    CTLineRef line = (CTLineRef)CFBridgingRetain([strCache objectForKey:string]);
     if (!line) {
         NSAttributedString *attrString = [[NSAttributedString alloc]
             initWithString:string
@@ -1148,10 +1130,10 @@ static void grid_free(Grid *grid) {
                 (NSString *)kCTForegroundColorFromContextAttributeName: @YES,
             }];
         line = CTLineCreateWithAttributedString((CFAttributedStringRef)attrString);
-        [attrString release];
-        [strCache setObject:(id)line forKey:[[string copy] autorelease]];
+        [strCache setObject:(__bridge id)line forKey:[string copy]];
     }
-    return (CTLineRef)[(id)line autorelease];
+    CFAutorelease(line);
+    return line;
 }
 
 @end // MMCoreTextView (Private)
@@ -1459,8 +1441,6 @@ static int ReadDrawCmd(const void **bytesRef, struct DrawCmd *drawCmd)
             foregroundColor:cmd->fg
             backgroundColor:cmd->bg
                specialColor:cmd->sp];
-
-            [sref release];
         } else if (InsertLinesDrawType == type) {
             struct DrawCmdInsertLines *cmd = &drawCmd.drawCmdInsertLines;
 #if MM_DEBUG_DRAWING

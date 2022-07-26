@@ -42,6 +42,7 @@
 #import "MMVimController.h"
 #import "MMWindowController.h"
 #import "MMTextView.h"
+#import "MMVimView.h"
 #import "Miscellaneous.h"
 #import "Sparkle.framework/Headers/Sparkle.h"
 #import <unistd.h>
@@ -297,7 +298,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
              [[NSBundle mainBundle] bundlePath]];
     if (![connection registerName:name]) {
         ASLogCrit(@"Failed to register connection with name '%@'", name);
-        [connection release];  connection = nil;
+        connection = nil;
     }
 
     // Register help search handler to support search Vim docs via the Help menu
@@ -315,22 +316,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 - (void)dealloc
 {
     ASLogDebug(@"");
-
-    [connection release];  connection = nil;
-    [inputQueues release];  inputQueues = nil;
-    [pidArguments release];  pidArguments = nil;
-    [vimControllers release];  vimControllers = nil;
-    [cachedVimControllers release];  cachedVimControllers = nil;
-    [openSelectionString release];  openSelectionString = nil;
-    [recentFilesMenuItem release];  recentFilesMenuItem = nil;
-    [defaultMainMenu release];  defaultMainMenu = nil;
-    currentMainMenu = nil;
-    [appMenuItemTemplate release];  appMenuItemTemplate = nil;
-#if !DISABLE_SPARKLE
-    [updater release];  updater = nil;
-#endif
-
-    [super dealloc];
 }
 
 - (void)applicationWillFinishLaunching:(NSNotification *)notification
@@ -342,7 +327,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
     // Remember the default menu so that it can be restored if the user closes
     // all editor windows.
-    defaultMainMenu = [[NSApp mainMenu] retain];
+    defaultMainMenu = [NSApp mainMenu];
 
     // Store a copy of the default app menu so we can use this as a template
     // for all other menus.  We make a copy here because the "Services" menu
@@ -368,14 +353,12 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         int idx = [fileMenu indexOfItemWithAction:@selector(fileOpen:)];
         if (idx >= 0 && idx+1 < [fileMenu numberOfItems])
 
-        recentFilesMenuItem = [fileMenu itemWithTag:15432];
-        [[recentFilesMenuItem submenu] performSelector:@selector(_setMenuName:)
-                                        withObject:@"NSRecentDocumentsMenu"];
-
         // Note: The "Recent Files" menu must be moved around since there is no
         // -[NSApp setRecentFilesMenu:] method.  We keep a reference to it to
         // facilitate this move (see setMainMenu: below).
-        [recentFilesMenuItem retain];
+        recentFilesMenuItem = [fileMenu itemWithTag:15432];
+        [[recentFilesMenuItem submenu] performSelector:@selector(_setMenuName:)
+                                        withObject:@"NSRecentDocumentsMenu"];
     }
 
 #if MM_HANDLE_XCODE_MOD_EVENT
@@ -568,8 +551,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
         if ([alert runModal] != NSAlertFirstButtonReturn)
             reply = NSTerminateCancel;
-
-        [alert release];
     } else if (![[NSUserDefaults standardUserDefaults]
                                 boolForKey:MMSuppressTerminationAlertKey]) {
         // No unmodified buffers, but give a warning if there are multiple
@@ -627,7 +608,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
                             setBool:YES forKey:MMSuppressTerminationAlertKey];
             }
 
-            [alert release];
         }
     }
 
@@ -747,10 +727,8 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         return;
     }
 
-    [controller retain];
     [vimControllers removeObjectAtIndex:idx];
     [controller cleanup];
-    [controller release];
 
     if (![vimControllers count]) {
         // The last editor window just closed so restore the main menu back to
@@ -861,7 +839,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         // There is some text to paste into this window as a result of the
         // services menu "Open selection ..." being used.
         [[windowController vimController] dropString:openSelectionString];
-        [openSelectionString release];
         openSelectionString = nil;
     }
 
@@ -908,7 +885,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     // of Screen" to the Window menu, and on repeated calls it will keep adding
     // the same item over and over again, without resolving for duplicates. Using
     // copies help keep the source menu clean.
-    NSMenu *mainMenu = [[currentMainMenu copy] autorelease];
+    NSMenu *mainMenu = [currentMainMenu copy];
 
     // If the new menu has a "Recent Files" dummy item, then swap the real item
     // for the dummy.  We are forced to do this since Cocoa initializes the
@@ -919,19 +896,17 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         int dummyIdx =
             [fileMenu indexOfItemWithAction:@selector(recentFilesDummy:)];
         if (dummyIdx >= 0) {
-            NSMenuItem *dummyItem = [[fileMenu itemAtIndex:dummyIdx] retain];
+            NSMenuItem *dummyItem = [fileMenu itemAtIndex:dummyIdx];
             [fileMenu removeItemAtIndex:dummyIdx];
 
             NSMenu *recentFilesParentMenu = [recentFilesMenuItem menu];
             int idx = [recentFilesParentMenu indexOfItem:recentFilesMenuItem];
             if (idx >= 0) {
-                [[recentFilesMenuItem retain] autorelease];
                 [recentFilesParentMenu removeItemAtIndex:idx];
                 [recentFilesParentMenu insertItem:dummyItem atIndex:idx];
             }
 
             [fileMenu insertItem:recentFilesMenuItem atIndex:dummyIdx];
-            [dummyItem release];
         }
     }
 
@@ -977,7 +952,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     // arguments for each launching process can be looked up by its PID (in the
     // pidArguments dictionary).
 
-    NSMutableDictionary *arguments = (args ? [[args mutableCopy] autorelease]
+    NSMutableDictionary *arguments = (args ? [args mutableCopy]
                                            : [NSMutableDictionary dictionary]);
 
     filenames = normalizeFilenames(filenames);
@@ -1078,7 +1053,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
             // NOTE: We have to copy the args since we'll mutate them in the
             // next loop and the below call may retain the arguments while
             // waiting for a process to start.
-            NSDictionary *args = [[arguments copy] autorelease];
+            NSDictionary *args = [arguments copy];
 
             openOk = [self openVimControllerWithArguments:args];
             if (!openOk) break;
@@ -1387,8 +1362,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
                                 modes:[NSArray arrayWithObject:
                                        NSDefaultRunLoopMode]];
 
-    [vc release];
-
     return [vc vimControllerId];
 }
 
@@ -1470,7 +1443,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
     @synchronized (self) {
         if (!parsed) {
-            parsedLineComponents = [[NSMutableArray alloc]init];
+            parsedLineComponents = [NSMutableArray array];
             
             NSString *tagsFilePath = [[[NSBundle mainBundle] resourcePath]
                                       stringByAppendingPathComponent:@"vim/runtime/doc/tags"];
@@ -1493,7 +1466,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     // substring in the tag. Don't do fuzzy matching or regex for simplicity for now.
     NSArray<NSString *> *searchStrings = [searchString componentsSeparatedByString:@" "];
 
-    NSMutableArray *ret = [[[NSMutableArray alloc]init] autorelease];
+    NSMutableArray *ret = [NSMutableArray array];
     for (NSArray<NSString *> *line in parsedLineComponents) {
         BOOL found = YES;
         for (NSString *curSearchString in searchStrings) {
@@ -1565,7 +1538,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         // Save the text, open a new window, and paste the text when the next
         // window opens.  (If this is called several times in a row, then all
         // but the last call may be ignored.)
-        if (openSelectionString) [openSelectionString release];
         openSelectionString = [[pboard stringForType:NSStringPboardType] copy];
 
         [self newWindow:self];
@@ -1784,7 +1756,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         [alert setAlertStyle:NSAlertStyleWarning];
 
         [alert runModal];
-        [alert release];
 
         [NSApp replyToOpenOrPrint:NSApplicationDelegateReplyFailure];
     }
@@ -1819,7 +1790,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         NSIndexSet *idxSet = [NSIndexSet indexSetWithVimList:eval];
         if ([idxSet count] > 0) {
             [dict setObject:[files objectsAtIndexes:idxSet]
-                     forKey:[NSValue valueWithPointer:vc]];
+                     forKey:[NSValue valueWithPointer:(__bridge void *)vc]];
 
             // Remove all the files that were open in this Vim process and
             // create a new expression to evaluate.
@@ -1833,7 +1804,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     if (openFiles != nil)
         *openFiles = dict;
 
-    return [files autorelease];
+    return files;
 }
 
 #if MM_HANDLE_XCODE_MOD_EVENT
@@ -1985,7 +1956,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
                     [alert setAlertStyle:NSAlertStyleWarning];
                     [alert runModal];
-                    [alert release];
                 }
             } else {
                 NSAlert *alert = [[NSAlert alloc] init];
@@ -2001,7 +1971,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
                 [alert setAlertStyle:NSAlertStyleWarning];
                 [alert runModal];
-                [alert release];
             }
         }
     } else {
@@ -2019,7 +1988,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
         [alert setAlertStyle:NSAlertStyleWarning];
         [alert runModal];
-        [alert release];
     }
 }
 
@@ -2338,7 +2306,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     NSArray *pathsToWatch = [NSArray arrayWithObject:path];
 
     fsEventStream = FSEventStreamCreate(NULL, &fsEventCallback, NULL,
-            (CFArrayRef)pathsToWatch, kFSEventStreamEventIdSinceNow,
+            (__bridge CFArrayRef)pathsToWatch, kFSEventStreamEventIdSinceNow,
             MMEventStreamLatency, kFSEventStreamCreateFlagNone);
 
     FSEventStreamScheduleWithRunLoop(fsEventStream,
@@ -2545,8 +2513,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         }
     }
 
-    [queues release];
-
     // If new input arrived while we were processing it would have been
     // blocked so we have to schedule it to be processed again.
     if (processingFlag < 0)
@@ -2612,7 +2578,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         return args;
 
     NSMutableArray *a = [NSMutableArray array];
-    NSMutableDictionary *d = [[args mutableCopy] autorelease];
+    NSMutableDictionary *d = [args mutableCopy];
 
     // Search for text and highlight it (this Vim script avoids warnings in
     // case there is no match for the search text).

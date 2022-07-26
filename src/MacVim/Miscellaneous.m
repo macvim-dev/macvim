@@ -260,8 +260,8 @@ showHiddenFilesView()
     // could be displayed at once.
     // If the accessory view should get more complex, it should probably be
     // loaded from a nib file.
-    NSButton *button = [[[NSButton alloc]
-        initWithFrame:NSMakeRect(0, 0, 140, 18)] autorelease];
+    NSButton *button = [[NSButton alloc]
+        initWithFrame:NSMakeRect(0, 0, 140, 18)];
     [button setTitle:
         NSLocalizedString(@"Show Hidden Files", @"Show Hidden Files Checkbox")];
     [button setButtonType:NSSwitchButton];

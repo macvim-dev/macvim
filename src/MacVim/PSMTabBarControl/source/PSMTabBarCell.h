@@ -34,7 +34,7 @@
     NSString            *_toolTip;
 }
 
-@property(assign) PSMTabBarControl* controlView;
+@property(weak) PSMTabBarControl* controlView;
 
 // creation/destruction
 - (id)initWithControlView:(PSMTabBarControl *)controlView;

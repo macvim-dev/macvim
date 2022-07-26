@@ -9,6 +9,8 @@
 //
 
 #import "PSMMojaveTabStyle.h"
+#import "PSMRolloverButton.h"
+
 
 #if HAS_MOJAVE_TAB_STYLE
 
@@ -23,19 +25,6 @@ void MojaveNSDrawWindowBackground(NSRect rect, NSColor *color)
 
 @implementation PSMMojaveTabStyle
 
-- (void)dealloc
-{
-    [closeButton release];
-    [closeButtonDown release];
-    [closeButtonOver release];
-    [closeButtonOverDark release];
-    [_addTabButtonImage release];
-
-    [truncatingTailParagraphStyle release];
-    [centeredParagraphStyle release];
-
-    [super dealloc];
-}
 
 #pragma mark -
 #pragma mark Initializers
@@ -45,12 +34,12 @@ void MojaveNSDrawWindowBackground(NSRect rect, NSColor *color)
     self = [super init];
     if (!self) return nil;
 
-    closeButton = [[self createCloseButtonImage:16.0 color:[NSColor secondaryLabelColor] backgroundColor:nil] retain];
-    closeButtonDown = [[self createCloseButtonImage:16.0 color:[NSColor secondaryLabelColor] backgroundColor:[NSColor grayColor]] retain];
-    closeButtonOver = [[self createCloseButtonImage:16.0 color:[NSColor secondaryLabelColor] backgroundColor:[NSColor grayColor]] retain];
-    closeButtonOverDark = [[self createCloseButtonImage:16.0 color:[NSColor secondaryLabelColor] backgroundColor:[NSColor darkGrayColor]] retain];
+    closeButton = [self createCloseButtonImage:16.0 color:[NSColor secondaryLabelColor] backgroundColor:nil];
+    closeButtonDown = [self createCloseButtonImage:16.0 color:[NSColor secondaryLabelColor] backgroundColor:[NSColor grayColor]];
+    closeButtonOver = [self createCloseButtonImage:16.0 color:[NSColor secondaryLabelColor] backgroundColor:[NSColor grayColor]];
+    closeButtonOverDark = [self createCloseButtonImage:16.0 color:[NSColor secondaryLabelColor] backgroundColor:[NSColor darkGrayColor]];
 
-    _addTabButtonImage = [[NSImage imageNamed:NSImageNameAddTemplate] retain];
+    _addTabButtonImage = [NSImage imageNamed:NSImageNameAddTemplate];
 
     return self;
 }
@@ -296,12 +285,12 @@ void MojaveNSDrawWindowBackground(NSRect rect, NSColor *color)
 {
     NSMutableAttributedString *attrStr;
     NSFontManager *fm = [NSFontManager sharedFontManager];
-    NSNumberFormatter *nf = [[[NSNumberFormatter alloc] init] autorelease];
+    NSNumberFormatter *nf = [[NSNumberFormatter alloc] init];
     [nf setLocalizesFormat:YES];
     [nf setFormat:@"0"];
     [nf setHasThousandSeparators:YES];
     NSString *contents = [nf stringFromNumber:[NSNumber numberWithInt:[cell count]]];
-    attrStr = [[[NSMutableAttributedString alloc] initWithString:contents] autorelease];
+    attrStr = [[NSMutableAttributedString alloc] initWithString:contents];
     NSRange range = NSMakeRange(0, [contents length]);
 
     // Add font attribute
@@ -315,7 +304,7 @@ void MojaveNSDrawWindowBackground(NSRect rect, NSColor *color)
 {
     NSMutableAttributedString *attrStr;
     NSString *contents = [cell stringValue];
-    attrStr = [[[NSMutableAttributedString alloc] initWithString:contents] autorelease];
+    attrStr = [[NSMutableAttributedString alloc] initWithString:contents];
     NSRange range = NSMakeRange(0, [contents length]);
 
     // Add font attribute
@@ -336,7 +325,7 @@ void MojaveNSDrawWindowBackground(NSRect rect, NSColor *color)
 
     // Paragraph Style for Truncating Long Text
     if (!truncatingTailParagraphStyle) {
-        truncatingTailParagraphStyle = [[[NSParagraphStyle defaultParagraphStyle] mutableCopy] retain];
+        truncatingTailParagraphStyle = [[NSParagraphStyle defaultParagraphStyle] mutableCopy];
         [truncatingTailParagraphStyle setLineBreakMode:NSLineBreakByTruncatingHead];
         [truncatingTailParagraphStyle setAlignment:NSTextAlignmentCenter];
     }
@@ -508,11 +497,11 @@ void MojaveNSDrawWindowBackground(NSRect rect, NSColor *color)
         labelRect.origin.y += 4.0;
         NSMutableAttributedString *attrStr;
         NSString *contents = @"PSMTabBarControl";
-        attrStr = [[[NSMutableAttributedString alloc] initWithString:contents] autorelease];
+        attrStr = [[NSMutableAttributedString alloc] initWithString:contents];
         NSRange range = NSMakeRange(0, [contents length]);
         [attrStr addAttribute:NSFontAttributeName value:[NSFont systemFontOfSize:11.0] range:range];
         if (!centeredParagraphStyle) {
-            centeredParagraphStyle = [[[NSParagraphStyle defaultParagraphStyle] mutableCopy] retain];
+            centeredParagraphStyle = [[NSParagraphStyle defaultParagraphStyle] mutableCopy];
             [centeredParagraphStyle setAlignment:NSTextAlignmentCenter];
         }
         [attrStr addAttribute:NSParagraphStyleAttributeName value:centeredParagraphStyle range:range];
@@ -547,11 +536,11 @@ void MojaveNSDrawWindowBackground(NSRect rect, NSColor *color)
 - (id)initWithCoder:(NSCoder *)aDecoder
 {
     if ([aDecoder allowsKeyedCoding]) {
-        closeButton = [[aDecoder decodeObjectForKey:@"metalCloseButton"] retain];
-        closeButtonDown = [[aDecoder decodeObjectForKey:@"metalCloseButtonDown"] retain];
-        closeButtonOver = [[aDecoder decodeObjectForKey:@"metalCloseButtonOver"] retain];
-        closeButtonOverDark = [[aDecoder decodeObjectForKey:@"metalCloseButtonOverDark"] retain];
-        _addTabButtonImage = [[aDecoder decodeObjectForKey:@"addTabButtonImage"] retain];
+        closeButton = [aDecoder decodeObjectForKey:@"metalCloseButton"];
+        closeButtonDown = [aDecoder decodeObjectForKey:@"metalCloseButtonDown"];
+        closeButtonOver = [aDecoder decodeObjectForKey:@"metalCloseButtonOver"];
+        closeButtonOverDark = [aDecoder decodeObjectForKey:@"metalCloseButtonOverDark"];
+        _addTabButtonImage = [aDecoder decodeObjectForKey:@"addTabButtonImage"];
     }
 
     return self;
