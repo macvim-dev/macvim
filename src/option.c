@@ -1734,8 +1734,6 @@ do_set(
 #endif
 			unsigned  newlen;
 			int	  comma;
-			int	  new_value_alloced;	// new string option
-							// was allocated
 
 			// When using ":set opt=val" for a global option
 			// with a local value the local value will be
@@ -1803,13 +1801,11 @@ do_set(
 				    s = newval;
 				newval = vim_strsave(s);
 			    }
-			    new_value_alloced = TRUE;
 			}
 			else if (nextchar == '<')	// set to global val
 			{
 			    newval = vim_strsave(*(char_u **)get_varp_scope(
 					     &(options[opt_idx]), OPT_GLOBAL));
-			    new_value_alloced = TRUE;
 			}
 			else
 			{
@@ -2078,7 +2074,6 @@ do_set(
 
 			    if (save_arg != NULL)   // number for 'whichwrap'
 				arg = save_arg;
-			    new_value_alloced = TRUE;
 			}
 
 			/*
@@ -2127,8 +2122,7 @@ do_set(
 			    // 'syntax' or 'filetype' autocommands may be
 			    // triggered that can cause havoc.
 			    errmsg = did_set_string_option(
-				    opt_idx, (char_u **)varp,
-				    new_value_alloced, oldval, errbuf,
+				    opt_idx, (char_u **)varp, oldval, errbuf,
 				    opt_flags, &value_checked);
 
 			    secure = secure_saved;
@@ -4583,6 +4577,20 @@ is_option_allocated(char *name)
     int idx = findoption((char_u *)name);
 
     return idx >= 0 && (options[idx].flags & P_ALLOCED);
+}
+#endif
+
+#if defined(FEAT_EVAL) || defined(PROTO)
+/*
+ * Return TRUE if "name" is a string option.
+ * Returns FALSE if option "name" does not exist.
+ */
+    int
+is_string_option(char_u *name)
+{
+    int idx = findoption(name);
+
+    return idx >= 0 && (options[idx].flags & P_STRING);
 }
 #endif
 
