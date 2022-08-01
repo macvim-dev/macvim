@@ -953,7 +953,7 @@ msg_may_trunc(int force, char_u *s)
     // just in case.
     room = (int)(Rows - cmdline_row - 1) * Columns + sc_col - 1;
     if (room > 0 && (force || (shortmess(SHM_TRUNC) && !exmode_active))
-	    && (n = (int)STRLEN(s) - room) > 0)
+	    && (n = (int)STRLEN(s) - room) > 0 && p_ch > 0)
     {
 	if (has_mbyte)
 	{
@@ -1435,7 +1435,7 @@ msg_start(void)
     }
 
 #ifdef FEAT_EVAL
-    if (need_clr_eos)
+    if (need_clr_eos || p_ch == 0)
     {
 	// Halfway an ":echo" command and getting an (error) message: clear
 	// any text from the command.
@@ -1453,7 +1453,7 @@ msg_start(void)
 #endif
 	    0;
     }
-    else if (msg_didout)		    // start message on next line
+    else if (msg_didout || p_ch == 0)	    // start message on next line
     {
 	msg_putchar('\n');
 	did_return = TRUE;
@@ -2540,6 +2540,7 @@ store_sb_text(
 	    || do_clear_sb_text == SB_CLEAR_CMDLINE_DONE)
     {
 	clear_sb_text(do_clear_sb_text == SB_CLEAR_ALL);
+	msg_sb_eol();  // prevent messages from overlapping
 	do_clear_sb_text = SB_CLEAR_NONE;
     }
 
@@ -2584,23 +2585,58 @@ may_clear_sb_text(void)
 }
 
 /*
- * Starting to edit the command line, do not clear messages now.
+ * Starting to edit the command line: do not clear messages now.
  */
     void
 sb_text_start_cmdline(void)
 {
-    do_clear_sb_text = SB_CLEAR_CMDLINE_BUSY;
-    msg_sb_eol();
+    if (do_clear_sb_text == SB_CLEAR_CMDLINE_BUSY)
+	// Invoking command line recursively: the previous-level command line
+	// doesn't need to be remembered as it will be redrawn when returning
+	// to that level.
+	sb_text_restart_cmdline();
+    else
+    {
+	msg_sb_eol();
+	do_clear_sb_text = SB_CLEAR_CMDLINE_BUSY;
+    }
 }
 
 /*
- * Ending to edit the command line.  Clear old lines but the last one later.
+ * Redrawing the command line: clear the last unfinished line.
+ */
+    void
+sb_text_restart_cmdline(void)
+{
+    msgchunk_T *tofree;
+
+    // Needed when returning from nested command line.
+    do_clear_sb_text = SB_CLEAR_CMDLINE_BUSY;
+
+    if (last_msgchunk == NULL || last_msgchunk->sb_eol)
+	// No unfinished line: don't clear anything.
+	return;
+
+    tofree = msg_sb_start(last_msgchunk);
+    last_msgchunk = tofree->sb_prev;
+    if (last_msgchunk != NULL)
+	last_msgchunk->sb_next = NULL;
+    while (tofree != NULL)
+    {
+	msgchunk_T *tofree_next = tofree->sb_next;
+
+	vim_free(tofree);
+	tofree = tofree_next;
+    }
+}
+
+/*
+ * Ending to edit the command line: clear old lines but the last one later.
  */
     void
 sb_text_end_cmdline(void)
 {
     do_clear_sb_text = SB_CLEAR_CMDLINE_DONE;
-    msg_sb_eol();
 }
 
 /*
@@ -3429,7 +3465,7 @@ msg_clr_eos_force(void)
 		out_str(T_CE);	// clear to end of line
 	}
     }
-    else
+    else if (p_ch > 0)
     {
 #ifdef FEAT_RIGHTLEFT
 	if (cmdmsg_rl)

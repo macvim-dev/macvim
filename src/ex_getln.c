@@ -1611,6 +1611,22 @@ getcmdline_int(
     int		did_save_ccline = FALSE;
     int		cmdline_type;
     int		wild_type;
+    int		cmdheight0 = p_ch == 0;
+
+    if (cmdheight0)
+    {
+	int  save_so = lastwin->w_p_so;
+
+	// If cmdheight is 0, cmdheight must be set to 1 when we enter the
+	// command line.  Set "made_cmdheight_nonzero" and reset 'scrolloff' to
+	// avoid scrolling the last window.
+	made_cmdheight_nonzero = TRUE;
+	lastwin->w_p_so = 0;
+	set_option_value((char_u *)"ch", 1L, NULL, 0);
+	update_screen(VALID);                 // redraw the screen NOW
+	made_cmdheight_nonzero = FALSE;
+	lastwin->w_p_so = save_so;
+    }
 
     // one recursion level deeper
     ++depth;
@@ -2603,6 +2619,15 @@ returncmd:
 theend:
     {
 	char_u *p = ccline.cmdbuff;
+
+	if (cmdheight0)
+	{
+	    made_cmdheight_nonzero = TRUE;
+	    set_option_value((char_u *)"ch", 0L, NULL, 0);
+	    // Redraw is needed for command line completion
+	    redraw_all_later(CLEAR);
+	    made_cmdheight_nonzero = FALSE;
+	}
 
 	--depth;
 	if (did_save_ccline)
@@ -3904,6 +3929,7 @@ redrawcmd(void)
 	return;
     }
 
+    sb_text_restart_cmdline();
     msg_start();
     redrawcmdprompt();
 
@@ -4118,7 +4144,7 @@ get_cmdline_info(void)
 
 #if defined(FEAT_EVAL) || defined(FEAT_CMDWIN) || defined(PROTO)
 /*
- * Get pointer to the command line info to use. save_ccline() may clear
+ * Get pointer to the command line info to use. save_cmdline() may clear
  * ccline and put the previous value in prev_ccline.
  */
     static cmdline_info_T *

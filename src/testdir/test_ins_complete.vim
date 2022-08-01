@@ -397,7 +397,7 @@ func Test_CompleteDone_modify()
         \ 'user_data': '',
         \ }
   let v:completed_item = value
-  call assert_equal(v:completed_item, value)
+  call assert_equal(value, v:completed_item)
 endfunc
 
 func CompleteTest(findstart, query)
@@ -2142,5 +2142,13 @@ func Test_ins_complete_add()
   bwipe!
 endfunc
 
+func Test_ins_complete_end_of_line()
+  " this was reading past the end of the line
+  new  
+  norm 8oý 
+  sil! norm o
+
+  bwipe!
+endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

@@ -464,7 +464,10 @@ diff_mark_adjust_tp(
 		    for (i = 0; i < DB_COUNT; ++i)
 			if (tp->tp_diffbuf[i] != NULL && i != idx)
 			{
-			    dp->df_lnum[i] -= off;
+			    if (dp->df_lnum[i] > off)
+				dp->df_lnum[i] -= off;
+			    else
+				dp->df_lnum[i] = 1;
 			    dp->df_count[i] += n;
 			}
 		}
@@ -675,34 +678,36 @@ diff_redraw(
 
     need_diff_redraw = FALSE;
     FOR_ALL_WINDOWS(wp)
+    {
 	// when closing windows or wiping buffers skip invalid window
-	if (wp->w_p_diff && buf_valid(wp->w_buffer))
-	{
-	    redraw_win_later(wp, SOME_VALID);
-	    if (wp != curwin)
-		wp_other = wp;
+	if (!wp->w_p_diff || !buf_valid(wp->w_buffer))
+	    continue;
+
+	redraw_win_later(wp, SOME_VALID);
+	if (wp != curwin)
+	    wp_other = wp;
 #ifdef FEAT_FOLDING
-	    if (dofold && foldmethodIsDiff(wp))
-		foldUpdateAll(wp);
+	if (dofold && foldmethodIsDiff(wp))
+	    foldUpdateAll(wp);
 #endif
-	    // A change may have made filler lines invalid, need to take care
-	    // of that for other windows.
-	    n = diff_check(wp, wp->w_topline);
-	    if ((wp != curwin && wp->w_topfill > 0) || n > 0)
+	// A change may have made filler lines invalid, need to take care of
+	// that for other windows.
+	n = diff_check(wp, wp->w_topline);
+	if ((wp != curwin && wp->w_topfill > 0) || n > 0)
+	{
+	    if (wp->w_topfill > n)
+		wp->w_topfill = (n < 0 ? 0 : n);
+	    else if (n > 0 && n > wp->w_topfill)
 	    {
-		if (wp->w_topfill > n)
-		    wp->w_topfill = (n < 0 ? 0 : n);
-		else if (n > 0 && n > wp->w_topfill)
-		{
-		    wp->w_topfill = n;
-		    if (wp == curwin)
-			used_max_fill_curwin = TRUE;
-		    else if (wp_other != NULL)
-			used_max_fill_other = TRUE;
-		}
-		check_topfill(wp, FALSE);
+		wp->w_topfill = n;
+		if (wp == curwin)
+		    used_max_fill_curwin = TRUE;
+		else if (wp_other != NULL)
+		    used_max_fill_other = TRUE;
 	    }
+	    check_topfill(wp, FALSE);
 	}
+    }
 
     if (wp_other != NULL && curwin->w_p_scb)
     {
@@ -2863,8 +2868,8 @@ ex_diffgetput(exarg_T *eap)
 	    {
 		// remember deleting the last line of the buffer
 		buf_empty = curbuf->b_ml.ml_line_count == 1;
-		ml_delete(lnum);
-		--added;
+		if (ml_delete(lnum) == OK)
+		    --added;
 	    }
 	    for (i = 0; i < dp->df_count[idx_from] - start_skip - end_skip; ++i)
 	    {
