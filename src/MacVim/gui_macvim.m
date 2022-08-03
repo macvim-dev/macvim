@@ -2118,9 +2118,10 @@ serverPeekReply(int port, char_u **str)
  * Return -1 on error.
  */
     int
-serverReadReply(int port, char_u **str)
+serverReadReply(int port, char_u **str, int timeout)
 {
-    NSString *reply = [[MMBackend sharedInstance] waitForReplyOnPort:port];
+    NSString *reply = [[MMBackend sharedInstance] waitForReplyOnPort:port
+							     timeout:timeout];
     if (reply && str) {
         *str = [reply vimStringSave];
         return 0;

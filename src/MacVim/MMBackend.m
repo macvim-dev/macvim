@@ -1582,7 +1582,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     return nil;
 }
 
-- (NSString *)waitForReplyOnPort:(int)port
+- (NSString *)waitForReplyOnPort:(int)port timeout:(NSTimeInterval)timeout
 {
     ASLogDebug(@"port=%d", port);
     
@@ -1593,13 +1593,16 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     NSNumber *key = [NSNumber numberWithInt:port];
     NSMutableArray *replies = nil;
     NSString *reply = nil;
+    NSDate *limitDate = timeout > 0
+        ? [NSDate dateWithTimeIntervalSinceNow:timeout] : [NSDate distantFuture];
 
     // Wait for reply as long as the connection to the server is valid (unless
     // user interrupts wait with Ctrl-C).
     while (!got_int && [conn isValid] &&
-            !(replies = [serverReplyDict objectForKey:key])) {
+            !(replies = [serverReplyDict objectForKey:key]) &&
+            (timeout <= 0 || [limitDate timeIntervalSinceNow] > 0)) {
         [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
-                                 beforeDate:[NSDate distantFuture]];
+                                 beforeDate:limitDate];
     }
 
     if (replies) {
