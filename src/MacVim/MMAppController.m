@@ -250,6 +250,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         [NSNumber numberWithBool:YES],    MMNativeFullScreenKey,
         [NSNumber numberWithDouble:0.0],  MMFullScreenFadeTimeKey,
         [NSNumber numberWithBool:NO],     MMNonNativeFullScreenShowMenuKey,
+        [NSNumber numberWithInt:0],       MMNonNativeFullScreenSafeAreaBehaviorKey,
         [NSNumber numberWithBool:YES],    MMShareFindPboardKey,
         nil];
 
