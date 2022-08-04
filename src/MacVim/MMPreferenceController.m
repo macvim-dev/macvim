@@ -133,4 +133,34 @@
     [[MMAppController sharedInstance] refreshAllFonts];
 }
 
+-(IBAction)lastWindowClosedChanged:(id)sender
+{
+    // Sanity checking for terminate when last window closed + not opening an untitled window.
+    // This results in a potentially awkward situation wehre MacVim will close itself since it
+    // doesn't have any window opened when launched.
+    // Note that the potentially bad behavior is already protected against for in applicationShouldTerminateAfterLastWindowClosed:,
+    // but this sanity checking is to make sure the user can see that in an explicit fashion.
+    NSUserDefaults* defaults = [NSUserDefaults standardUserDefaults];
+    if ([defaults integerForKey:MMLastWindowClosedBehaviorKey] == MMTerminateWhenLastWindowClosed) {
+        if ([defaults integerForKey:MMUntitledWindowKey] == MMUntitledWindowNever) {
+            [defaults setInteger:MMUntitledWindowOnOpen forKey:MMUntitledWindowKey];
+        }
+    }
+}
+
+-(IBAction)openUntitledWindowChanged:(id)sender
+{
+    // Sanity checking for terminate when last window closed + not opening an untitled window.
+    // This results in a potentially awkward situation wehre MacVim will close itself since it
+    // doesn't have any window opened when launched.
+    // Note that the potentially bad behavior is already protected against for in applicationShouldTerminateAfterLastWindowClosed:,
+    // but this sanity checking is to make sure the user can see that in an explicit fashion.
+    NSUserDefaults* defaults = [NSUserDefaults standardUserDefaults];
+    if ([defaults integerForKey:MMLastWindowClosedBehaviorKey] == MMTerminateWhenLastWindowClosed) {
+        if ([defaults integerForKey:MMUntitledWindowKey] == MMUntitledWindowNever) {
+            [defaults setInteger:MMHideWhenLastWindowClosed forKey:MMLastWindowClosedBehaviorKey];
+        }
+    }
+}
+
 @end
