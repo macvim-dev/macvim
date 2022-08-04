@@ -2533,3 +2533,14 @@ gui_macvim_set_background(int dark)
 {
     [[MMBackend sharedInstance] setBackground:dark];
 }
+
+
+// -- Netbeans Integration Support -------------------------------------------
+
+#if defined(FEAT_NETBEANS_INTG) || defined(PROTO)
+    void
+netbeans_draw_multisign_indicator(int row UNUSED)
+{
+    // NOP
+}
+#endif // FEAT_NETBEANS_INTG

@@ -2327,7 +2327,9 @@ gui_outstr_nowrap(
     guicolor_T	sp_color;
 #if !defined(FEAT_GUI_GTK)
     GuiFont	font = NOFONT;
+# if !defined(FEAT_GUI_MACVIM)
     GuiFont	wide_font = NOFONT;
+# endif
 # ifdef FEAT_XFONTSET
     GuiFontset	fontset = NOFONTSET;
 # endif
@@ -2431,7 +2433,7 @@ gui_outstr_nowrap(
 	}
 	else
 	    font = gui.norm_font;
-
+# if !defined(FEAT_GUI_MACVIM)
 	/*
 	 * Choose correct wide_font by font.  wide_font should be set with font
 	 * at same time in above block.  But it will make many "ifdef" nasty
@@ -2445,6 +2447,7 @@ gui_outstr_nowrap(
 	    wide_font = gui.wide_ital_font;
 	else if (font == gui.norm_font && gui.wide_font)
 	    wide_font = gui.wide_font;
+# endif
     }
 # ifdef FEAT_XFONTSET
     if (fontset != NOFONTSET)
@@ -2701,6 +2704,7 @@ gui_outstr_nowrap(
 	// Draw the sign on top of the spaces.
 	gui_mch_drawsign(gui.row, signcol, gui.highlight_mask);
 # if defined(FEAT_NETBEANS_INTG) && (defined(FEAT_GUI_X11) \
+	|| defined(FEAT_GUI_MACVIM) \
 	|| defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MSWIN))
     if (multi_sign)
 	netbeans_draw_multisign_indicator(gui.row);

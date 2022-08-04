@@ -133,3 +133,5 @@ void gui_mch_destroy_sign(void *sign);
 
 void *gui_macvim_new_autoreleasepool();
 void gui_macvim_release_autoreleasepool(void *pool);
+
+void netbeans_draw_multisign_indicator(int row);
