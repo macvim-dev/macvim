@@ -264,6 +264,9 @@ KEY				VALUE ~
 *MMLoginShellCommand*		which shell to use to launch Vim [string]
 *MMNativeFullScreen*		use native full screen mode [bool]
 *MMNonNativeFullScreenShowMenu*	show menus when in non-native full screen [bool]
+*MMNonNativeFullScreenSafeAreaBehavior*
+				behavior for non-native full sreen regarding
+				the safe area (aka the "notch") [int]
 *MMNoFontSubstitution*		disable automatic font substitution [bool]
 				(Deprecated: Non-CoreText renderer only)
 *MMFontPreserveLineSpacing*	use the line-spacing as specified by font [bool]
@@ -330,7 +333,10 @@ There are two types of full screen modes.  By default, MacVim uses macOS'
 native full screen functionality, which creates a separate space in Mission
 Control.  MacVim also provides a non-native full screen mode, which can be set
 by disabling native full screen in the preference panel, or by setting
-|MMNativeFullScreen| to `NO` manually.
+|MMNativeFullScreen| to `NO` manually.  If you have a MacBook with a "notch"
+at the top of the screen, you can set |MMNonNativeFullScreenShowMenu| to `NO`
+and |MMNonNativeFullScreenSafeAreaBehavior| to 1 to utilitize the whole screen
+(this will cause some of the content to be obscured by the notch).
 
 ==============================================================================
 5. Special colors					*macvim-colors*

@@ -376,14 +376,33 @@ enum {
     [self setFrame:[screen frame] display:NO];
 }
 
-/// Get the view vertical offset to allow us space to show the menu bar and what not.
-- (CGFloat) viewOffset {
+/// Get the view offset to allow us space to show the menu bar, or account for "safe area" (a.k.a. notch) in certain MacBook Pro's.
+- (NSEdgeInsets) viewOffset {
+    NSEdgeInsets offset = NSEdgeInsetsMake(0, 0, 0, 0);
+
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_VERSION_12_0)
+    // Account for newer MacBook Pro's which have a notch, which can be queried using the safe area API.
+    if ([NSScreen instancesRespondToSelector:@selector(safeAreaInsets)]) {
+        const int safeAreaBehavior = [[NSUserDefaults standardUserDefaults]
+                                      integerForKey:MMNonNativeFullScreenSafeAreaBehaviorKey];
+
+        // The safe area utilization is configuration. Right now, we only have two choices.
+        // In the future there may be more, e.g. showing tabs in the safe area.
+        if (safeAreaBehavior == 0) {
+            offset = [[self screen] safeAreaInsets];
+        }
+    }
+#endif
+
     if ([[NSUserDefaults standardUserDefaults]
           boolForKey:MMNonNativeFullScreenShowMenuKey]) {
-        return [[[NSApplication sharedApplication] mainMenu] menuBarHeight]-1;
-    } else {
-        return 0;
+        const CGFloat menuBarHeight = [[[NSApplication sharedApplication] mainMenu] menuBarHeight];
+        if (menuBarHeight > offset.top) {
+            offset.top = menuBarHeight;
+        }
     }
+
+    return offset;
 }
 
 /// Returns the desired frame of the Vim view, which takes fuopts into account
@@ -395,16 +414,18 @@ enum {
 - (NSRect)getDesiredFrame;
 {
     NSRect windowFrame = [self frame];
+    const NSEdgeInsets viewOffset = [self viewOffset];
+    windowFrame.size.height -= (viewOffset.top + viewOffset.bottom);
+    windowFrame.size.width -= (viewOffset.left + viewOffset.right);
     NSSize desiredFrameSize = windowFrame.size;
-    desiredFrameSize.height -= [self viewOffset];
 
     if (!(options & FUOPT_MAXVERT))
         desiredFrameSize.height = MIN(desiredFrameSize.height, nonFuVimViewSize.height);
     if (!(options & FUOPT_MAXHORZ))
         desiredFrameSize.width = MIN(desiredFrameSize.width, nonFuVimViewSize.width);
 
-    NSPoint origin = { floor((windowFrame.size.width - desiredFrameSize.width)/2),
-                       floor((windowFrame.size.height - desiredFrameSize.height)/2 - [self viewOffset] / 2) };
+    NSPoint origin = { floor((windowFrame.size.width - desiredFrameSize.width)/2) + viewOffset.left,
+                       floor((windowFrame.size.height - desiredFrameSize.height)/2) + viewOffset.bottom };
 
     return NSMakeRect(origin.x, origin.y, desiredFrameSize.width, desiredFrameSize.height);
 }
