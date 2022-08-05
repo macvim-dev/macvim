@@ -225,7 +225,8 @@ buf_init_chartab(
 			    }
 			    else
 			    {
-				g_chartab[c] = (g_chartab[c] & ~CT_CELL_MASK) + 1;
+				g_chartab[c] = (g_chartab[c] & ~CT_CELL_MASK)
+									   + 1;
 				g_chartab[c] |= CT_PRINT_CHAR;
 			    }
 			}
@@ -654,6 +655,9 @@ char2cells(int c)
     int
 ptr2cells(char_u *p)
 {
+    if (!has_mbyte)
+	return byte2cells(*p);
+
     // For UTF-8 we need to look at more bytes if the first byte is >= 0x80.
     if (enc_utf8 && *p >= 0x80)
 	return utf_ptr2cells(p);
@@ -681,16 +685,13 @@ vim_strnsize(char_u *s, int len)
     int		size = 0;
 
     while (*s != NUL && --len >= 0)
-	if (has_mbyte)
-	{
-	    int	    l = (*mb_ptr2len)(s);
+    {
+	int	    l = (*mb_ptr2len)(s);
 
-	    size += ptr2cells(s);
-	    s += l;
-	    len -= l - 1;
-	}
-	else
-	    size += byte2cells(*s++);
+	size += ptr2cells(s);
+	s += l;
+	len -= l - 1;
+    }
 
     return size;
 }
@@ -846,13 +847,25 @@ vim_iswordp_buf(char_u *p, buf_T *buf)
 }
 
 /*
- * return TRUE if 'c' is a valid file-name character
+ * Return TRUE if 'c' is a valid file-name character as specified with the
+ * 'isfname' option.
  * Assume characters above 0x100 are valid (multi-byte).
+ * To be used for commands like "gf".
  */
     int
 vim_isfilec(int c)
 {
     return (c >= 0x100 || (c > 0 && (g_chartab[c] & CT_FNAME_CHAR)));
+}
+
+/*
+ * Return TRUE if 'c' is a valid file-name character, including characters left
+ * out of 'isfname' to make "gf" work, such as comma, space, '@', etc.
+ */
+    int
+vim_is_fname_char(int c)
+{
+    return vim_isfilec(c) || c == ',' || c == ' ' || c == '@';
 }
 
 /*
@@ -912,15 +925,13 @@ init_chartabsize_arg(
 	char_u		*line,
 	char_u		*ptr)
 {
+    CLEAR_POINTER(cts);
     cts->cts_win = wp;
     cts->cts_lnum = lnum;
     cts->cts_vcol = col;
     cts->cts_line = line;
     cts->cts_ptr = ptr;
 #ifdef FEAT_PROP_POPUP
-    cts->cts_text_prop_count = 0;
-    cts->cts_has_prop_with_text = FALSE;
-    cts->cts_cur_text_width = 0;
     if (lnum > 0)
     {
 	char_u *prop_start;
@@ -950,7 +961,7 @@ init_chartabsize_arg(
 		if (!cts->cts_has_prop_with_text)
 		{
 		    // won't use the text properties, free them
-		    vim_free(cts->cts_text_props);
+		    VIM_CLEAR(cts->cts_text_props);
 		    cts->cts_text_prop_count = 0;
 		}
 	    }
@@ -968,8 +979,8 @@ clear_chartabsize_arg(chartabsize_T *cts UNUSED)
 #ifdef FEAT_PROP_POPUP
     if (cts->cts_text_prop_count > 0)
     {
-	vim_free(cts->cts_text_props);
-	cts->cts_text_prop_count = 0;  // avoid double free
+	VIM_CLEAR(cts->cts_text_props);
+	cts->cts_text_prop_count = 0;
     }
 #endif
 }
@@ -1014,6 +1025,40 @@ lbr_chartabsize_adv(chartabsize_T *cts)
     MB_PTR_ADV(cts->cts_ptr);
     return retval;
 }
+
+#if defined(FEAT_PROP_POPUP) || defined(PROTO)
+/*
+ * Return the cell size of virtual text after truncation.
+ */
+    int
+textprop_size_after_trunc(
+	win_T	*wp,
+	int	below,
+	int	added,
+	char_u	*text,
+	int	*n_used_ptr)
+{
+    int	space = below ? wp->w_width : added;
+    int len = (int)STRLEN(text);
+    int strsize = 0;
+    int n_used;
+
+    // if the remaining size is to small wrap
+    // anyway and use the next line
+    if (space < PROP_TEXT_MIN_CELLS)
+	space += wp->w_width;
+    for (n_used = 0; n_used < len; n_used += (*mb_ptr2len)(text + n_used))
+    {
+	int clen = ptr2cells(text + n_used);
+
+	if (strsize + clen > space)
+	    break;
+	strsize += clen;
+    }
+    *n_used_ptr = n_used;
+    return strsize;
+}
+#endif
 
 /*
  * Return the screen size of the character indicated by "cts".
@@ -1099,17 +1144,28 @@ win_lbr_chartabsize(
 	    {
 		char_u *p = ((char_u **)wp->w_buffer->b_textprop_text.ga_data)[
 							       -tp->tp_id - 1];
-		int len = (int)STRLEN(p);
+		int	cells = vim_strsize(p);
 
-		// TODO: count screen cells
+		added = wp->w_width - (vcol + size) % wp->w_width;
 		if (tp->tp_col == MAXCOL)
 		{
-		    // TODO: truncating
-		    if (tp->tp_flags & TP_FLAG_ALIGN_BELOW)
-			len += wp->w_width - (vcol + size) % wp->w_width;
+		    int below = (tp->tp_flags & TP_FLAG_ALIGN_BELOW);
+		    int	wrap = (tp->tp_flags & TP_FLAG_WRAP);
+		    int len = (int)STRLEN(p);
+		    int n_used = len;
+
+		    // Keep in sync with where textprop_size_after_trunc() is
+		    // called in win_line().
+		    if (!wrap)
+			cells = textprop_size_after_trunc(wp,
+						     below, added, p, &n_used);
+		    // right-aligned does not really matter here, same as
+		    // "after"
+		    if (below)
+			cells += wp->w_width - (vcol + size) % wp->w_width;
 		}
-		cts->cts_cur_text_width += len;
-		size += len;
+		cts->cts_cur_text_width += cells;
+		size += cells;
 	    }
 	    if (tp->tp_col - 1 > col)
 		break;
@@ -1456,8 +1512,9 @@ getvcol(
     if (cursor != NULL)
     {
 #ifdef FEAT_PROP_POPUP
-	// cursor is after inserted text
-	vcol += cts.cts_cur_text_width;
+	if ((State & MODE_INSERT) == 0)
+	    // cursor is after inserted text
+	    vcol += cts.cts_cur_text_width;
 #endif
 	if (*ptr == TAB
 		&& (State & MODE_NORMAL)

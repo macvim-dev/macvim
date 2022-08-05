@@ -1611,6 +1611,23 @@ func Test_prop_one_line_window()
   bwipe!
 endfunc
 
+def Test_prop_column_zero_error()
+  prop_type_add('proptype', {highlight: 'Search'})
+  var caught = false
+  try
+    popup_create([{
+            text: 'a',
+            props: [{col: 0, length: 1, type: 'type'}],
+     }], {})
+  catch /E964:/
+    caught = true
+  endtry
+  assert_true(caught)
+
+  popup_clear()
+  prop_type_delete('proptype')
+enddef
+
 " This was calling ml_append_int() and copy a text property from a previous
 " line at the wrong moment.  Exact text length matters.
 def Test_prop_splits_data_block()
@@ -2197,10 +2214,13 @@ func Test_prop_inserts_text()
       call prop_type_add('otherprop', #{highlight: 'Search'})
       call prop_type_add('moreprop', #{highlight: 'DiffAdd'})
       call prop_add(1, 18, #{type: 'someprop', text: 'SOME '})
-      call prop_add(1, 38, #{type: 'otherprop', text: 'OTHER '})
+      call prop_add(1, 38, #{type: 'otherprop', text: "OTHER\t"})
       call prop_add(1, 69, #{type: 'moreprop', text: 'MORE '})
-      redraw
       normal $
+
+      call setline(2, 'prepost')
+      call prop_type_add('multibyte', #{highlight: 'Visual'})
+      call prop_add(2, 4, #{type: 'multibyte', text: 'söme和平téxt'})
   END
   call writefile(lines, 'XscriptPropsWithText')
   let buf = RunVimInTerminal('-S XscriptPropsWithText', #{rows: 6, cols: 60})
@@ -2222,8 +2242,15 @@ func Test_props_with_text_after()
       call prop_type_add('afterprop', #{highlight: 'Search'})
       call prop_type_add('belowprop', #{highlight: 'DiffAdd'})
       call prop_add(1, 0, #{type: 'rightprop', text: ' RIGHT ', text_align: 'right'})
-      call prop_add(1, 0, #{type: 'afterprop', text: ' AFTER ', text_align: 'after'})
+      call prop_add(1, 0, #{type: 'afterprop', text: "\tAFTER\t", text_align: 'after'})
       call prop_add(1, 0, #{type: 'belowprop', text: ' BELOW ', text_align: 'below'})
+
+      call setline(2, 'Last line.')
+      call prop_add(2, 0, #{type: 'afterprop', text: ' After Last ', text_align: 'after'})
+      normal G$
+
+      call setline(3, 'right here')
+      call prop_add(3, 0, #{type: 'rightprop', text: 'söme和平téxt', text_align: 'right'})
   END
   call writefile(lines, 'XscriptPropsWithTextAfter')
   let buf = RunVimInTerminal('-S XscriptPropsWithTextAfter', #{rows: 6, cols: 60})
@@ -2231,6 +2258,96 @@ func Test_props_with_text_after()
 
   call StopVimInTerminal(buf)
   call delete('XscriptPropsWithTextAfter')
+endfunc
+
+func Test_props_with_text_after_joined()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+      call setline(1, ['one', 'two', 'three', 'four'])
+      call prop_type_add('afterprop', #{highlight: 'Search'})
+      call prop_add(1, 0, #{type: 'afterprop', text: ' ONE', text_align: 'after'})
+      call prop_add(4, 0, #{type: 'afterprop', text: ' FOUR', text_align: 'after'})
+      normal ggJ
+      normal GkJ
+
+      call setline(3, ['a', 'b', 'c', 'd', 'e', 'f'])
+      call prop_add(3, 0, #{type: 'afterprop', text: ' AAA', text_align: 'after'})
+      call prop_add(5, 0, #{type: 'afterprop', text: ' CCC', text_align: 'after'})
+      call prop_add(7, 0, #{type: 'afterprop', text: ' EEE', text_align: 'after'})
+      call prop_add(8, 0, #{type: 'afterprop', text: ' FFF', text_align: 'after'})
+      normal 3G6J
+  END
+  call writefile(lines, 'XscriptPropsWithTextAfterJoined')
+  let buf = RunVimInTerminal('-S XscriptPropsWithTextAfterJoined', #{rows: 6, cols: 60})
+  call VerifyScreenDump(buf, 'Test_prop_with_text_after_joined_1', {})
+
+  call StopVimInTerminal(buf)
+  call delete('XscriptPropsWithTextAfterJoined')
+endfunc
+
+func Test_props_with_text_after_truncated()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+      call setline(1, ['one two three four five six seven'])
+      call prop_type_add('afterprop', #{highlight: 'Search'})
+      call prop_add(1, 0, #{type: 'afterprop', text: ' ONE and TWO and THREE and FOUR and FIVE'})
+
+      call setline(2, ['one two three four five six seven'])
+      call prop_add(2, 0, #{type: 'afterprop', text: ' one AND two AND three AND four AND five', text_align: 'right'})
+
+      call setline(3, ['one two three four five six seven'])
+      call prop_add(3, 0, #{type: 'afterprop', text: ' one AND two AND three AND four AND five lets wrap after some more text', text_align: 'below'})
+
+      call setline(4, ['cursor here'])
+      normal 4Gfh
+  END
+  call writefile(lines, 'XscriptPropsWithTextAfterTrunc')
+  let buf = RunVimInTerminal('-S XscriptPropsWithTextAfterTrunc', #{rows: 9, cols: 60})
+  call VerifyScreenDump(buf, 'Test_prop_with_text_after_trunc_1', {})
+
+  call term_sendkeys(buf, ":37vsp\<CR>gg")
+  call VerifyScreenDump(buf, 'Test_prop_with_text_after_trunc_2', {})
+
+  call term_sendkeys(buf, ":36wincmd |\<CR>")
+  call term_sendkeys(buf, "2G$")
+  call VerifyScreenDump(buf, 'Test_prop_with_text_after_trunc_3', {})
+
+  call term_sendkeys(buf, ":33wincmd |\<CR>")
+  call VerifyScreenDump(buf, 'Test_prop_with_text_after_trunc_4', {})
+
+  call term_sendkeys(buf, ":18wincmd |\<CR>")
+  call term_sendkeys(buf, "0fx")
+  call VerifyScreenDump(buf, 'Test_prop_with_text_after_trunc_5', {})
+
+  call StopVimInTerminal(buf)
+  call delete('XscriptPropsWithTextAfterTrunc')
+endfunc
+
+func Test_props_with_text_after_wraps()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+      call setline(1, ['one two three four five six seven'])
+      call prop_type_add('afterprop', #{highlight: 'Search'})
+      call prop_add(1, 0, #{type: 'afterprop', text: ' ONE and TWO and THREE and FOUR and FIVE', text_wrap: 'wrap'})
+
+      call setline(2, ['one two three four five six seven'])
+      call prop_add(2, 0, #{type: 'afterprop', text: ' one AND two AND three AND four AND five', text_align: 'right', text_wrap: 'wrap'})
+
+      call setline(3, ['one two three four five six seven'])
+      call prop_add(3, 0, #{type: 'afterprop', text: ' one AND two AND three AND four AND five lets wrap after some more text', text_align: 'below', text_wrap: 'wrap'})
+
+      call setline(4, ['cursor here'])
+      normal 4Gfh
+  END
+  call writefile(lines, 'XscriptPropsWithTextAfterWraps')
+  let buf = RunVimInTerminal('-S XscriptPropsWithTextAfterWraps', #{rows: 9, cols: 60})
+  call VerifyScreenDump(buf, 'Test_prop_with_text_after_wraps_1', {})
+
+  call StopVimInTerminal(buf)
+  call delete('XscriptPropsWithTextAfterWraps')
 endfunc
 
 func Test_removed_prop_with_text_cleans_up_array()
@@ -2251,5 +2368,21 @@ func Test_removed_prop_with_text_cleans_up_array()
   call prop_type_delete('some')
   bwipe!
 endfunc
+
+def Test_insert_text_before_virtual_text()
+  new foobar
+  setline(1, '12345678')
+  prop_type_add('test', {highlight: 'Search'})
+  prop_add(1, 5, {
+    type: 'test',
+    text: ' virtual text '
+    })
+  normal! f4axyz
+  normal! f5iXYZ
+  assert_equal('1234xyzXYZ5678', getline(1))
+
+  prop_type_delete('test')
+  bwipe!
+enddef
 
 " vim: shiftwidth=2 sts=2 expandtab
