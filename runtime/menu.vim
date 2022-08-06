@@ -108,8 +108,8 @@ endif
 if has("gui_macvim")
   " Run vimtutor in GUI mode. Need to make sure to override the PATH so we use
   " this app instead of accidentally opening another installed Vim/MacVim.
-  an 9999.5 &Help.Vim\ Tutor       :silent !PATH="$VIM/../../bin":/usr/bin:/bin:/usr/sbin:/sbin $VIM/../../bin/vimtutor -g&<CR>
-  tln 9999.5 &Help.Vim\ Tutor      <C-W>:silent !PATH="$VIM/../../bin":/usr/bin:/bin:/usr/sbin:/sbin $VIM/../../bin/vimtutor -g&<CR>
+  an 9999.5 &Help.Vim\ Tutor       :silent call system('PATH="$VIM/../../bin":/usr/bin:/bin:/usr/sbin:/sbin $VIM/../../bin/vimtutor -g&')<CR>
+  tln 9999.5 &Help.Vim\ Tutor      <C-W>:silent call system('PATH="$VIM/../../bin":/usr/bin:/bin:/usr/sbin:/sbin $VIM/../../bin/vimtutor -g&')<CR>
   an 9999.6 &Help.-sep-vim-tutor-  <Nop>
 endif
 an 9999.10 &Help.&Overview<Tab><F1>	:help<CR>
