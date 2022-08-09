@@ -734,7 +734,12 @@ static void grid_free(Grid *grid) {
 - (void)drawRect:(NSRect)rect
 {
     NSGraphicsContext *context = [NSGraphicsContext currentContext];
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_10
     CGContextRef ctx = context.CGContext;
+#else
+    CGContextRef ctx = [context graphicsPort];
+#endif
+
     [context setShouldAntialias:antialias];
     {
         CGColorSpaceRef colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceSRGB);

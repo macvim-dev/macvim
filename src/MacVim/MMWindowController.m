@@ -571,8 +571,12 @@
     // has selected as a preference.
     
     // Transparent title bar setting
-    decoratedWindow.titlebarAppearsTransparent = [[NSUserDefaults standardUserDefaults]
-                                                  boolForKey:MMTitlebarAppearsTransparentKey];
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_10
+    if (@available(macos 10.10, *)) {
+        decoratedWindow.titlebarAppearsTransparent = [[NSUserDefaults standardUserDefaults]
+                                                      boolForKey:MMTitlebarAppearsTransparentKey];
+    }
+#endif
     
     // No title bar setting
     if ([[NSUserDefaults standardUserDefaults]
