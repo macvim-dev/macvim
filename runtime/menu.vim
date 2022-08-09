@@ -1238,60 +1238,6 @@ enddef
 
 endif
 
-endif " !exists("did_install_default_menus")
-
-" Define these items always, so that syntax can be switched on when it wasn't.
-" But skip them when the Syntax menu was disabled by the user.
-if !exists("did_install_syntax_menu")
-  an 50.212 &Syntax.&Manual		:syn manual<CR>
-  an 50.214 &Syntax.A&utomatic		:syn on<CR>
-  an <silent> 50.216 &Syntax.On/Off\ for\ &This\ File :call <SID>SynOnOff()<CR>
-  if !exists("*s:SynOnOff")
-    def s:SynOnOff()
-      if has("syntax_items")
-	syn clear
-      else
-	if !exists("g:syntax_on")
-	  syn manual
-	endif
-	set syn=ON
-      endif
-    enddef
-  endif
-endif
-
-
-" Install the Syntax menu only when filetype.vim has been loaded or when
-" manual syntax highlighting is enabled.
-" Avoid installing the Syntax menu twice.
-if (exists("did_load_filetypes") || exists("syntax_on"))
-	\ && !exists("did_install_syntax_menu")
-  let did_install_syntax_menu = 1
-
-" Skip setting up the individual syntax selection menus unless
-" do_syntax_sel_menu is defined (it takes quite a bit of time).
-if exists("do_syntax_sel_menu")
-  runtime! synmenu.vim
-else
-  an <silent> 50.10 &Syntax.&Show\ File\ Types\ in\ Menu	:let do_syntax_sel_menu = 1<Bar>runtime! synmenu.vim<Bar>aunmenu &Syntax.&Show\ File\ Types\ in\ Menu<CR>
-  an 50.195 &Syntax.-SEP1-		<Nop>
-endif
-
-an 50.210 &Syntax.&Off			:syn off<CR>
-an 50.700 &Syntax.-SEP3-		<Nop>
-an 50.710 &Syntax.Co&lor\ Test		:sp $VIMRUNTIME/syntax/colortest.vim<Bar>so %<CR>
-an 50.720 &Syntax.&Highlight\ Test	:runtime syntax/hitest.vim<CR>
-an 50.730 &Syntax.&Convert\ to\ HTML	:runtime syntax/2html.vim<CR>
-
-" Uncomment the next line to compile the functions early to find any mistakes
-" defcompile
-
-endif " !exists("did_install_syntax_menu")
-
-" Restore the previous value of 'cpoptions'.
-let &cpo = s:cpo_save
-unlet s:cpo_save
-
 
 if has("gui_macvim")
   "
@@ -1350,7 +1296,62 @@ if has("gui_macvim")
 
   macm Help.MacVim\ Help			key=<D-?>
   macm Help.MacVim\ Website			action=openWebsite:
+endif " if has("gui_macvim")
+
+endif " !exists("did_install_default_menus")
+
+" Define these items always, so that syntax can be switched on when it wasn't.
+" But skip them when the Syntax menu was disabled by the user.
+if !exists("did_install_syntax_menu")
+  an 50.212 &Syntax.&Manual		:syn manual<CR>
+  an 50.214 &Syntax.A&utomatic		:syn on<CR>
+  an <silent> 50.216 &Syntax.On/Off\ for\ &This\ File :call <SID>SynOnOff()<CR>
+  if !exists("*s:SynOnOff")
+    def s:SynOnOff()
+      if has("syntax_items")
+	syn clear
+      else
+	if !exists("g:syntax_on")
+	  syn manual
+	endif
+	set syn=ON
+      endif
+    enddef
+  endif
 endif
+
+
+" Install the Syntax menu only when filetype.vim has been loaded or when
+" manual syntax highlighting is enabled.
+" Avoid installing the Syntax menu twice.
+if (exists("did_load_filetypes") || exists("syntax_on"))
+	\ && !exists("did_install_syntax_menu")
+  let did_install_syntax_menu = 1
+
+" Skip setting up the individual syntax selection menus unless
+" do_syntax_sel_menu is defined (it takes quite a bit of time).
+if exists("do_syntax_sel_menu")
+  runtime! synmenu.vim
+else
+  an <silent> 50.10 &Syntax.&Show\ File\ Types\ in\ Menu	:let do_syntax_sel_menu = 1<Bar>runtime! synmenu.vim<Bar>aunmenu &Syntax.&Show\ File\ Types\ in\ Menu<CR>
+  an 50.195 &Syntax.-SEP1-		<Nop>
+endif
+
+an 50.210 &Syntax.&Off			:syn off<CR>
+an 50.700 &Syntax.-SEP3-		<Nop>
+an 50.710 &Syntax.Co&lor\ Test		:sp $VIMRUNTIME/syntax/colortest.vim<Bar>so %<CR>
+an 50.720 &Syntax.&Highlight\ Test	:runtime syntax/hitest.vim<CR>
+an 50.730 &Syntax.&Convert\ to\ HTML	:runtime syntax/2html.vim<CR>
+
+" Uncomment the next line to compile the functions early to find any mistakes
+" defcompile
+
+endif " !exists("did_install_syntax_menu")
+
+" Restore the previous value of 'cpoptions'.
+let &cpo = s:cpo_save
+unlet s:cpo_save
+
 
 if has("touchbar")
   " Set up default Touch Bar buttons.
