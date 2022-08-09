@@ -9,21 +9,6 @@
 
 /*
  * Text properties implementation.  See ":help text-properties".
- *
- * TODO:
- * - Adjust text property column and length when text is inserted/deleted.
- *   -> a :substitute with a multi-line match
- *   -> search for changed_bytes() from misc1.c
- *   -> search for mark_col_adjust()
- * - Perhaps we only need TP_FLAG_CONT_NEXT and can drop TP_FLAG_CONT_PREV?
- * - Add an array for global_proptypes, to quickly lookup a prop type by ID
- * - Add an array for b_proptypes, to quickly lookup a prop type by ID
- * - Checking the text length to detect text properties is slow.  Use a flag in
- *   the index, like DB_MARKED?
- * - Also test line2byte() with many lines, so that ml_updatechunk() is taken
- *   into account.
- * - Perhaps have a window-local option to disable highlighting from text
- *   properties?
  */
 
 #include "vim.h"
@@ -43,6 +28,7 @@
 
 // The global text property types.
 static hashtab_T *global_proptypes = NULL;
+static proptype_T **global_proparray = NULL;
 
 // The last used text property type ID.
 static int proptype_id = 0;
@@ -52,7 +38,7 @@ static int proptype_id = 0;
  * Returns NULL if the item can't be found.
  */
     static hashitem_T *
-find_prop_hi(char_u *name, buf_T *buf)
+find_prop_type_hi(char_u *name, buf_T *buf)
 {
     hashtab_T	*ht;
     hashitem_T	*hi;
@@ -73,12 +59,12 @@ find_prop_hi(char_u *name, buf_T *buf)
 }
 
 /*
- * Like find_prop_hi() but return the property type.
+ * Like find_prop_type_hi() but return the property type.
  */
     static proptype_T *
-find_prop(char_u *name, buf_T *buf)
+find_prop_type(char_u *name, buf_T *buf)
 {
-    hashitem_T	*hi = find_prop_hi(name, buf);
+    hashitem_T	*hi = find_prop_type_hi(name, buf);
 
     if (hi == NULL)
 	return NULL;
@@ -92,7 +78,7 @@ find_prop(char_u *name, buf_T *buf)
     int
 find_prop_type_id(char_u *name, buf_T *buf)
 {
-    proptype_T *pt = find_prop(name, buf);
+    proptype_T *pt = find_prop_type(name, buf);
 
     if (pt == NULL)
 	return 0;
@@ -107,10 +93,10 @@ find_prop_type_id(char_u *name, buf_T *buf)
     static proptype_T *
 lookup_prop_type(char_u *name, buf_T *buf)
 {
-    proptype_T *type = find_prop(name, buf);
+    proptype_T *type = find_prop_type(name, buf);
 
     if (type == NULL)
-	type = find_prop(name, NULL);
+	type = find_prop_type(name, NULL);
     if (type == NULL)
 	semsg(_(e_type_not_exist), name);
     return type;
@@ -238,9 +224,10 @@ prop_add_one(
 	    goto theend;
 	((char_u **)gap->ga_data)[gap->ga_len++] = text;
 
-	// change any Tab to a Space to make it simpler to compute the size
+	// change any control character (Tab, Newline, etc.) to a Space to make
+	// it simpler to compute the size
 	for (p = text; *p != NUL; MB_PTR_ADV(p))
-	    if (*p == TAB)
+	    if (*p < ' ')
 		*p = ' ';
 	text = NULL;
     }
@@ -584,20 +571,46 @@ get_text_props(buf_T *buf, linenr_T lnum, char_u **props, int will_change)
     text = ml_get_buf(buf, lnum, will_change);
     textlen = STRLEN(text) + 1;
     proplen = buf->b_ml.ml_line_len - textlen;
+    if (proplen == 0)
+	return 0;
     if (proplen % sizeof(textprop_T) != 0)
     {
 	iemsg(_(e_text_property_info_corrupted));
 	return 0;
     }
-    if (proplen > 0)
-	*props = text + textlen;
+    *props = text + textlen;
     return (int)(proplen / sizeof(textprop_T));
+}
+
+/*
+ * Return the number of text properties with "below" alignment in line "lnum".
+ */
+    int
+prop_count_below(buf_T *buf, linenr_T lnum)
+{
+    char_u	*props;
+    int		count = get_text_props(buf, lnum, &props, FALSE);
+    int		result = 0;
+    textprop_T	prop;
+    int		i;
+
+    if (count == 0)
+	return 0;
+    for (i = 0; i < count; ++i)
+    {
+	mch_memmove(&prop, props + i * sizeof(prop), sizeof(prop));
+	if (prop.tp_col == MAXCOL && (prop.tp_flags & TP_FLAG_ALIGN_BELOW))
+	    ++result;
+    }
+    return result;
 }
 
 /**
  * Return the number of text properties on line "lnum" in the current buffer.
  * When "only_starting" is true only text properties starting in this line will
  * be considered.
+ * When "last_line" is FALSE then text properties after the line are not
+ * counted.
  */
     int
 count_props(linenr_T lnum, int only_starting, int last_line)
@@ -611,7 +624,7 @@ count_props(linenr_T lnum, int only_starting, int last_line)
     for (i = 0; i < proplen; ++i)
     {
 	mch_memmove(&prop, props + i * sizeof(prop), sizeof(prop));
-	// A prop is droppend when in the first line and it continues from the
+	// A prop is dropped when in the first line and it continues from the
 	// previous line, or when not in the last line and it is virtual text
 	// after the line.
 	if ((only_starting && (prop.tp_flags & TP_FLAG_CONT_PREV))
@@ -682,29 +695,85 @@ set_text_props(linenr_T lnum, char_u *props, int len)
     curbuf->b_ml.ml_flags |= ML_LINE_DIRTY;
 }
 
-    static proptype_T *
-find_type_by_id(hashtab_T *ht, int id)
+/*
+ * Add "text_props" with "text_prop_count" text properties to line "lnum".
+ */
+    void
+add_text_props(linenr_T lnum, textprop_T *text_props, int text_prop_count)
 {
-    long	todo;
-    hashitem_T	*hi;
+    char_u  *text;
+    char_u  *newtext;
+    int	    proplen = text_prop_count * (int)sizeof(textprop_T);
 
-    if (ht == NULL)
+    text = ml_get(lnum);
+    newtext = alloc(curbuf->b_ml.ml_line_len + proplen);
+    if (newtext == NULL)
+	return;
+    mch_memmove(newtext, text, curbuf->b_ml.ml_line_len);
+    mch_memmove(newtext + curbuf->b_ml.ml_line_len, text_props, proplen);
+    if (curbuf->b_ml.ml_flags & (ML_LINE_DIRTY | ML_ALLOCATED))
+	vim_free(curbuf->b_ml.ml_line_ptr);
+    curbuf->b_ml.ml_line_ptr = newtext;
+    curbuf->b_ml.ml_line_len += proplen;
+    curbuf->b_ml.ml_flags |= ML_LINE_DIRTY;
+}
+
+/*
+ * Function passed to qsort() for sorting proptype_T on pt_id.
+ */
+    static int
+compare_pt(const void *s1, const void *s2)
+{
+    proptype_T	*tp1 = *(proptype_T **)s1;
+    proptype_T	*tp2 = *(proptype_T **)s2;
+
+    return tp1->pt_id == tp2->pt_id ? 0 : tp1->pt_id < tp2->pt_id ? -1 : 1;
+}
+
+    static proptype_T *
+find_type_by_id(hashtab_T *ht, proptype_T ***array, int id)
+{
+    int low = 0;
+    int high;
+
+    if (ht == NULL || ht->ht_used == 0)
 	return NULL;
 
-    // TODO: Make this faster by keeping a list of types sorted on ID and use
-    // a binary search.
-
-    todo = (long)ht->ht_used;
-    for (hi = ht->ht_array; todo > 0; ++hi)
+    // Make the loopup faster by creating an array with pointers to
+    // hashtable entries, sorted on pt_id.
+    if (*array == NULL)
     {
-	if (!HASHITEM_EMPTY(hi))
-	{
-	    proptype_T *prop = HI2PT(hi);
+	long	    todo;
+	hashitem_T  *hi;
+	int	    i = 0;
 
-	    if (prop->pt_id == id)
-		return prop;
-	    --todo;
+	*array = ALLOC_MULT(proptype_T *, ht->ht_used);
+	if (*array == NULL)
+	    return NULL;
+	todo = (long)ht->ht_used;
+	for (hi = ht->ht_array; todo > 0; ++hi)
+	{
+	    if (!HASHITEM_EMPTY(hi))
+	    {
+		(*array)[i++] = HI2PT(hi);
+		--todo;
+	    }
 	}
+	qsort((void *)*array, ht->ht_used, sizeof(proptype_T *), compare_pt);
+    }
+
+    // binary search in the sorted array
+    high = ht->ht_used;
+    while (high > low)
+    {
+	int m = (high + low) / 2;
+
+	if ((*array)[m]->pt_id == id)
+	    return (*array)[m];
+	if ((*array)[m]->pt_id > id)
+	    high = m;
+	else
+	    low = m + 1;
     }
     return NULL;
 }
@@ -724,10 +793,11 @@ prop_fill_dict(dict_T *dict, textprop_T *prop, buf_T *buf)
     dict_add_number(dict, "start", !(prop->tp_flags & TP_FLAG_CONT_PREV));
     dict_add_number(dict, "end", !(prop->tp_flags & TP_FLAG_CONT_NEXT));
 
-    pt = find_type_by_id(buf->b_proptypes, prop->tp_type);
+    pt = find_type_by_id(buf->b_proptypes, &buf->b_proparray, prop->tp_type);
     if (pt == NULL)
     {
-	pt = find_type_by_id(global_proptypes, prop->tp_type);
+	pt = find_type_by_id(global_proptypes, &global_proparray,
+								prop->tp_type);
 	buflocal = FALSE;
     }
     if (pt != NULL)
@@ -748,9 +818,9 @@ text_prop_type_by_id(buf_T *buf, int id)
 {
     proptype_T *type;
 
-    type = find_type_by_id(buf->b_proptypes, id);
+    type = find_type_by_id(buf->b_proptypes, &buf->b_proparray, id);
     if (type == NULL)
-	type = find_type_by_id(global_proptypes, id);
+	type = find_type_by_id(global_proptypes, &global_proparray, id);
     return type;
 }
 
@@ -1475,7 +1545,7 @@ prop_type_set(typval_T *argvars, int add)
 	return;
     dict = argvars[1].vval.v_dict;
 
-    prop = find_prop(name, buf);
+    prop = find_prop_type(name, buf);
     if (add)
     {
 	hashtab_T **htp;
@@ -1491,7 +1561,16 @@ prop_type_set(typval_T *argvars, int add)
 	STRCPY(prop->pt_name, name);
 	prop->pt_id = ++proptype_id;
 	prop->pt_flags = PT_FLAG_COMBINE;
-	htp = buf == NULL ? &global_proptypes : &buf->b_proptypes;
+	if (buf == NULL)
+	{
+	    htp = &global_proptypes;
+	    VIM_CLEAR(global_proparray);
+	}
+	else
+	{
+	    htp = &buf->b_proptypes;
+	    VIM_CLEAR(buf->b_proparray);
+	}
 	if (*htp == NULL)
 	{
 	    *htp = ALLOC_ONE(hashtab_T);
@@ -1540,6 +1619,15 @@ prop_type_set(typval_T *argvars, int add)
 		prop->pt_flags |= PT_FLAG_COMBINE;
 	    else
 		prop->pt_flags &= ~PT_FLAG_COMBINE;
+	}
+
+	di = dict_find(dict, (char_u *)"override", -1);
+	if (di != NULL)
+	{
+	    if (tv_get_bool(&di->di_tv))
+		prop->pt_flags |= PT_FLAG_OVERRIDE;
+	    else
+		prop->pt_flags &= ~PT_FLAG_OVERRIDE;
 	}
 
 	di = dict_find(dict, (char_u *)"priority", -1);
@@ -1612,16 +1700,22 @@ f_prop_type_delete(typval_T *argvars, typval_T *rettv UNUSED)
 	    return;
     }
 
-    hi = find_prop_hi(name, buf);
+    hi = find_prop_type_hi(name, buf);
     if (hi != NULL)
     {
 	hashtab_T	*ht;
 	proptype_T	*prop = HI2PT(hi);
 
 	if (buf == NULL)
+	{
 	    ht = global_proptypes;
+	    VIM_CLEAR(global_proparray);
+	}
 	else
+	{
 	    ht = buf->b_proptypes;
+	    VIM_CLEAR(buf->b_proparray);
+	}
 	hash_remove(ht, hi);
 	vim_free(prop);
     }
@@ -1657,7 +1751,7 @@ f_prop_type_get(typval_T *argvars, typval_T *rettv)
 		return;
 	}
 
-	prop = find_prop(name, buf);
+	prop = find_prop_type(name, buf);
 	if (prop != NULL)
 	{
 	    dict_T *d = rettv->vval.v_dict;
@@ -1761,6 +1855,7 @@ clear_global_prop_types(void)
 {
     clear_ht_prop_types(global_proptypes);
     global_proptypes = NULL;
+    VIM_CLEAR(global_proparray);
 }
 #endif
 
@@ -1772,6 +1867,7 @@ clear_buf_prop_types(buf_T *buf)
 {
     clear_ht_prop_types(buf->b_proptypes);
     buf->b_proptypes = NULL;
+    VIM_CLEAR(buf->b_proparray);
 }
 
 // Struct used to return two values from adjust_prop().
@@ -1976,8 +2072,9 @@ adjust_props_for_split(
 	pt = text_prop_type_by_id(curbuf, prop.tp_type);
 	start_incl = (pt != NULL && (pt->pt_flags & PT_FLAG_INS_START_INCL));
 	end_incl = (pt != NULL && (pt->pt_flags & PT_FLAG_INS_END_INCL));
-	cont_prev = prop.tp_col + !start_incl <= kept;
-	cont_next = skipped <= prop.tp_col + prop.tp_len - !end_incl;
+	cont_prev = prop.tp_col != MAXCOL && prop.tp_col + !start_incl <= kept;
+	cont_next = prop.tp_col != MAXCOL
+			   && skipped <= prop.tp_col + prop.tp_len - !end_incl;
 
 	if (cont_prev && ga_grow(&prevprop, 1) == OK)
 	{
@@ -1993,17 +2090,22 @@ adjust_props_for_split(
 
 	// Only add the property to the next line if the length is bigger than
 	// zero.
-	if (cont_next && ga_grow(&nextprop, 1) == OK)
+	if ((cont_next || prop.tp_col == MAXCOL)
+						&& ga_grow(&nextprop, 1) == OK)
 	{
 	    textprop_T *p = ((textprop_T *)nextprop.ga_data) + nextprop.ga_len;
+
 	    *p = prop;
 	    ++nextprop.ga_len;
-	    if (p->tp_col > skipped)
-		p->tp_col -= skipped - 1;
-	    else
+	    if (p->tp_col != MAXCOL)
 	    {
-		p->tp_len -= skipped - p->tp_col;
-		p->tp_col = 1;
+		if (p->tp_col > skipped)
+		    p->tp_col -= skipped - 1;
+		else
+		{
+		    p->tp_len -= skipped - p->tp_col;
+		    p->tp_col = 1;
+		}
 	    }
 	    if (cont_prev)
 		p->tp_flags |= TP_FLAG_CONT_PREV;
