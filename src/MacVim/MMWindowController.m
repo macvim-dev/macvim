@@ -245,11 +245,13 @@
     ASLogDebug(@"");
 
     [decoratedWindow release];  decoratedWindow = nil;
+    [fullScreenWindow release]; fullScreenWindow = nil;
     [windowAutosaveKey release];  windowAutosaveKey = nil;
     [vimView release];  vimView = nil;
     [toolbar release];  toolbar = nil;
     // in case processAfterWindowPresentedQueue wasn't called
     [afterWindowPresentedQueue release];  afterWindowPresentedQueue = nil;
+    [lastSetTitle release]; lastSetTitle = nil;
 
     [super dealloc];
 }
@@ -461,8 +463,9 @@
 - (void)setTitle:(NSString *)title
 {
     // Save the original title, if we haven't already.
+    [title retain]; // retain the title first before release lastSetTitle, since you can call setTitle on lastSetTitle itself.
     [lastSetTitle release];
-    lastSetTitle = [title retain];
+    lastSetTitle = title;
     
     // While in live resize the window title displays the dimensions of the
     // window so don't clobber this with the new title. We have already set
@@ -934,10 +937,6 @@
         // Enter custom full-screen mode.
         ASLogInfo(@"Enter custom full-screen");
 
-        // fullScreenWindow could be non-nil here if this is called multiple
-        // times during startup.
-        [fullScreenWindow release];
-
         NSColor *fullscreenBg = back;
 
         // See setDefaultColorsBackground: for why set a transparent
@@ -945,6 +944,10 @@
         if ([fullscreenBg alphaComponent] != 1) {
             fullscreenBg = [fullscreenBg colorWithAlphaComponent:0.001];
         }
+
+        // fullScreenWindow could be non-nil here if this is called multiple
+        // times during startup.
+        [fullScreenWindow release];
 
         fullScreenWindow = [[MMFullScreenWindow alloc]
             initWithWindow:decoratedWindow view:vimView backgroundColor:fullscreenBg];
