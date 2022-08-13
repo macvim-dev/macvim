@@ -1,0 +1,20 @@
+name: Close inactive issues
+on:
+  schedule:
+    - cron: "45 3 * * *" # 3:45 am UTC. Just a random time intentionally picked to be not during busy hours.
+
+jobs:
+  close-issues:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/stale@v4
+        with:
+          any-of-labels: "Response Needed"
+          days-before-stale: 45
+          days-before-close: 7
+          stale-issue-message: "This issue is stale because it has been waiting for a response for 45 days with no activity."
+          stale-pr-message: "This pull request is stale because it has been waiting for a response for 45 days with no activity."
+          close-issue-reason: "not_planned"
