@@ -2947,7 +2947,7 @@ give_up:
     screen_Rows = Rows;
     screen_Columns = Columns;
 
-    must_redraw = CLEAR;	// need to clear the screen later
+    must_redraw = UPD_CLEAR;	// need to clear the screen later
     if (doclear)
 	screenclear2();
 #ifdef FEAT_GUI
@@ -3069,8 +3069,8 @@ screenclear2(void)
     win_rest_invalid(firstwin);
     redraw_cmdline = TRUE;
     redraw_tabline = TRUE;
-    if (must_redraw == CLEAR)	// no need to clear again
-	must_redraw = NOT_VALID;
+    if (must_redraw == UPD_CLEAR)	// no need to clear again
+	must_redraw = UPD_NOT_VALID;
     compute_cmdrow();
     msg_row = cmdline_row;	// put cursor on last line for messages
     msg_col = 0;
@@ -3693,7 +3693,7 @@ win_rest_invalid(win_T *wp)
 {
     while (wp != NULL)
     {
-	redraw_win_later(wp, NOT_VALID);
+	redraw_win_later(wp, UPD_NOT_VALID);
 	wp->w_redr_status = TRUE;
 	wp = wp->w_next;
     }
@@ -5195,4 +5195,29 @@ set_chars_option(win_T *wp, char_u **varp, int apply)
     }
 
     return NULL;	// no error
+}
+
+/*
+ * Check all global and local values of 'listchars' and 'fillchars'.
+ * Return an untranslated error messages if any of them is invalid, NULL
+ * otherwise.
+ */
+    char *
+check_chars_options(void)
+{
+    tabpage_T   *tp;
+    win_T	    *wp;
+
+    if (set_chars_option(curwin, &p_lcs, FALSE) != NULL)
+	return e_conflicts_with_value_of_listchars;
+    if (set_chars_option(curwin, &p_fcs, FALSE) != NULL)
+	return e_conflicts_with_value_of_fillchars;
+    FOR_ALL_TAB_WINDOWS(tp, wp)
+    {
+	if (set_chars_option(wp, &wp->w_p_lcs, FALSE) != NULL)
+	    return e_conflicts_with_value_of_listchars;
+	if (set_chars_option(wp, &wp->w_p_fcs, FALSE) != NULL)
+	    return e_conflicts_with_value_of_fillchars;
+    }
+    return NULL;
 }

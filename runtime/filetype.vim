@@ -172,6 +172,9 @@ au BufNewFile,BufRead *.asm,*.[sS],*.[aA],*.mac,*.lst	call dist#ft#FTasm()
 " Assembly - Macro (VAX)
 au BufNewFile,BufRead *.mar			setf vmasm
 
+" Astro
+au BufNewFile,BufRead *.astro			setf astro
+
 " Atlas
 au BufNewFile,BufRead *.atl,*.as		setf atlas
 
@@ -1160,6 +1163,7 @@ au BufNewFile,BufRead *.mf			setf mf
 
 " MetaPost
 au BufNewFile,BufRead *.mp			setf mp
+au BufNewFile,BufRead *.mpxl,*.mpiv,*.mpvi	let b:mp_metafun = 1 | setf mp
 
 " MGL
 au BufNewFile,BufRead *.mgl			setf mgl
@@ -1530,6 +1534,9 @@ au BufNewFile,BufRead *.ptl,*.pyi,SConstruct		   setf python
 
 " QL
 au BufRead,BufNewFile *.ql,*.qll		setf ql
+
+" Quarto
+au BufRead,BufNewFile *.qmd     setf quarto
 
 " Radiance
 au BufNewFile,BufRead *.rad,*.mat		setf radiance

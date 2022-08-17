@@ -911,6 +911,18 @@ def Test_nested_function()
   v9.CheckScriptFailure(lines, 'E1173: Text found after enddef: burp', 3)
 enddef
 
+def Test_nested_function_fails()
+  var lines =<< trim END
+      def T()
+        def Func(g: string):string
+        enddef
+        Func()
+      enddef
+      silent! defcompile
+  END
+  v9.CheckScriptFailure(lines, 'E1069:')
+enddef
+
 def Test_not_nested_function()
   echo printf('%d',
       function('len')('xxx'))
@@ -1955,6 +1967,45 @@ def Test_call_funcref()
     Funcref(17, 18, 1, 2, 3)->assert_equal(17)
     g:optarg->assert_equal(18)
     g:listarg->assert_equal([1, 2, 3])
+  END
+  v9.CheckScriptSuccess(lines)
+
+  lines =<< trim END
+    function s:func(num)
+      return a:num * 2
+    endfunction
+
+    def s:CallFuncref()
+      var Funcref = function('s:func')
+      Funcref(3)->assert_equal(6)
+    enddef
+    call s:CallFuncref()
+  END
+  v9.CheckScriptSuccess(lines)
+
+  lines =<< trim END
+    function s:func(num)
+      return a:num * 2
+    endfunction
+
+    def s:CallFuncref()
+      var Funcref = function(s:func)
+      Funcref(3)->assert_equal(6)
+    enddef
+    call s:CallFuncref()
+  END
+  v9.CheckScriptSuccess(lines)
+
+  lines =<< trim END
+    function s:func(num)
+      return a:num * 2
+    endfunction
+
+    def s:CallFuncref()
+      var Funcref = s:func
+      Funcref(3)->assert_equal(6)
+    enddef
+    call s:CallFuncref()
   END
   v9.CheckScriptSuccess(lines)
 enddef

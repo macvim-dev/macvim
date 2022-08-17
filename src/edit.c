@@ -1755,8 +1755,9 @@ edit_unputchar(void)
  * Only works when cursor is in the line that changes.
  */
     void
-display_dollar(colnr_T col)
+display_dollar(colnr_T col_arg)
 {
+    colnr_T col = col_arg < 0 ? 0 : col_arg;
     colnr_T save_col;
 
     if (!redrawing())
@@ -4710,7 +4711,7 @@ ins_up(
 		|| old_topfill != curwin->w_topfill
 #endif
 		)
-	    redraw_later(VALID);
+	    redraw_later(UPD_VALID);
 	start_arrow(&tpos);
 	can_cindent = TRUE;
     }
@@ -4767,7 +4768,7 @@ ins_down(
 		|| old_topfill != curwin->w_topfill
 #endif
 		)
-	    redraw_later(VALID);
+	    redraw_later(UPD_VALID);
 	start_arrow(&tpos);
 	can_cindent = TRUE;
     }
@@ -5292,7 +5293,7 @@ ins_ctrl_ey(int tc)
 	    scrolldown_clamp();
 	else
 	    scrollup_clamp();
-	redraw_later(VALID);
+	redraw_later(UPD_VALID);
     }
     else
     {

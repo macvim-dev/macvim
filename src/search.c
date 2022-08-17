@@ -257,7 +257,7 @@ save_re_pat(int idx, char_u *pat, int magic)
 #ifdef FEAT_SEARCH_EXTRA
 	// If 'hlsearch' set and search pat changed: need redraw.
 	if (p_hls)
-	    redraw_all_later(SOME_VALID);
+	    redraw_all_later(UPD_SOME_VALID);
 	set_no_hlsearch(FALSE);
 #endif
     }
@@ -586,7 +586,7 @@ set_last_search_pat(
 # ifdef FEAT_SEARCH_EXTRA
     // If 'hlsearch' set and search pat changed: need redraw.
     if (p_hls && idx == last_idx && !no_hlsearch)
-	redraw_all_later(SOME_VALID);
+	redraw_all_later(UPD_SOME_VALID);
 # endif
 }
 #endif
@@ -1293,7 +1293,7 @@ do_search(
      */
     if (no_hlsearch && !(options & SEARCH_KEEP))
     {
-	redraw_all_later(SOME_VALID);
+	redraw_all_later(UPD_SOME_VALID);
 	set_no_hlsearch(FALSE);
     }
 #endif
@@ -2809,7 +2809,7 @@ showmatch(
 	    if (dollar_vcol >= 0 && dollar_vcol == curwin->w_virtcol)
 		dollar_vcol = -1;
 	    ++curwin->w_virtcol;	// do display ')' just before "$"
-	    update_screen(VALID);	// show the new char first
+	    update_screen(UPD_VALID);	// show the new char first
 
 	    save_dollar_vcol = dollar_vcol;
 #ifdef CURSOR_SHAPE
@@ -3065,7 +3065,7 @@ current_search(
     // end are still the same, and the selection needs to be owned
     clip_star.vmode = NUL;
 #endif
-    redraw_curbuf_later(INVERTED);
+    redraw_curbuf_later(UPD_INVERTED);
     showmode();
 
     return OK;
@@ -3886,7 +3886,7 @@ search_line:
 		{
 		    // Return cursor to where we were
 		    validate_cursor();
-		    redraw_later(VALID);
+		    redraw_later(UPD_VALID);
 		    win_enter(curwin_save, TRUE);
 		}
 # ifdef FEAT_PROP_POPUP

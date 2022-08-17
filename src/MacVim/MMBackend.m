@@ -2940,7 +2940,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
             // Force screen redraw (does it have to be this complicated?).
             // (This code was taken from the end of gui_handle_drop().)
-            update_screen(NOT_VALID);
+            update_screen(UPD_NOT_VALID);
             setcursor();
             out_flush();
             gui_update_cursor(FALSE, FALSE);
@@ -3087,7 +3087,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     vim_free(filename_vim);
 
     // Force screen redraw (see handleOpenWithArguments:).
-    update_screen(NOT_VALID);
+    update_screen(UPD_NOT_VALID);
     setcursor();
     out_flush();
     gui_update_cursor(FALSE, FALSE);
@@ -3132,7 +3132,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     vim_free(path_vim);
 
     // Force screen redraw (see handleOpenWithArguments:).
-    update_screen(NOT_VALID);
+    update_screen(UPD_NOT_VALID);
     setcursor();
     out_flush();
     gui_update_cursor(FALSE, FALSE);
@@ -3218,8 +3218,8 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 - (void)redrawScreen
 {
     // Force screen redraw (does it have to be this complicated?).
-    redraw_all_later(CLEAR);
-    update_screen(NOT_VALID);
+    redraw_all_later(UPD_CLEAR);
+    update_screen(UPD_NOT_VALID);
     setcursor();
     out_flush();
     gui_update_cursor(FALSE, FALSE);
