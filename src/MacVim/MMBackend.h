@@ -143,7 +143,7 @@
               silent:(BOOL)silent;
 - (NSArray *)serverList;
 - (NSString *)peekForReplyOnPort:(int)port;
-- (NSString *)waitForReplyOnPort:(int)port;
+- (NSString *)waitForReplyOnPort:(int)port timeout:(NSTimeInterval)timeout;
 - (BOOL)sendReply:(NSString *)reply toPort:(int)port;
 
 - (BOOL)waitForAck;

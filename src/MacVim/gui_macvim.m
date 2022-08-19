@@ -2118,9 +2118,10 @@ serverPeekReply(int port, char_u **str)
  * Return -1 on error.
  */
     int
-serverReadReply(int port, char_u **str)
+serverReadReply(int port, char_u **str, int timeout)
 {
-    NSString *reply = [[MMBackend sharedInstance] waitForReplyOnPort:port];
+    NSString *reply = [[MMBackend sharedInstance] waitForReplyOnPort:port
+							     timeout:timeout];
     if (reply && str) {
         *str = [reply vimStringSave];
         return 0;
@@ -2532,3 +2533,14 @@ gui_macvim_set_background(int dark)
 {
     [[MMBackend sharedInstance] setBackground:dark];
 }
+
+
+// -- Netbeans Integration Support -------------------------------------------
+
+#if defined(FEAT_NETBEANS_INTG) || defined(PROTO)
+    void
+netbeans_draw_multisign_indicator(int row UNUSED)
+{
+    // NOP
+}
+#endif // FEAT_NETBEANS_INTG

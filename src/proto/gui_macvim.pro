@@ -91,7 +91,7 @@ int serverSendToVim(char_u *name, char_u *cmd, char_u **result, int *server, int
 char_u *serverGetVimNames(void);
 int serverStrToPort(char_u *str);
 int serverPeekReply(int port, char_u **str);
-int serverReadReply(int port, char_u **str);
+int serverReadReply(int port, char_u **str, int timeout);
 int serverSendReply(char_u *serverid, char_u *str);
 
 void gui_mch_enter_fullscreen(guicolor_T bg);
@@ -133,3 +133,5 @@ void gui_mch_destroy_sign(void *sign);
 
 void *gui_macvim_new_autoreleasepool();
 void gui_macvim_release_autoreleasepool(void *pool);
+
+void netbeans_draw_multisign_indicator(int row);

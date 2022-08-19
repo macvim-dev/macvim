@@ -17,8 +17,8 @@ env:
   vi_cv_path_ruby: /usr/local/opt/ruby/bin/ruby
   vi_cv_dll_name_perl: /System/Library/Perl/5.18/darwin-thread-multi-2level/CORE/libperl.dylib
   vi_cv_dll_name_python: /System/Library/Frameworks/Python.framework/Versions/2.7/Python
-  vi_cv_dll_name_python3: /usr/local/Frameworks/Python.framework/Versions/3.9/Python
-  vi_cv_dll_name_python3_arm64: /opt/homebrew/Frameworks/Python.framework/Versions/3.9/Python
+  vi_cv_dll_name_python3: /usr/local/Frameworks/Python.framework/Versions/3.10/Python
+  vi_cv_dll_name_python3_arm64: /opt/homebrew/Frameworks/Python.framework/Versions/3.10/Python
   vi_cv_dll_name_ruby: /usr/local/opt/ruby/lib/libruby.dylib
   vi_cv_dll_name_ruby_arm64: /opt/homebrew/opt/ruby/lib/libruby.dylib
   vi_cv_dll_name_lua_arm64: /opt/homebrew/lib/liblua.dylib
@@ -33,17 +33,16 @@ jobs:
   # Builds and test MacVim
   build-and-test:
 
-    # Test on macOS 10.15 / 11.x, and also older version of Xcode for compatibility testing.
+    # Test on macOS 11.x / 12.x, and also older version of Xcode for compatibility testing.
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: macos-10.15
-            xcode: '11.7'
-          - os: macos-10.15
           - os: macos-11
             xcode: '13.0'
             publish: true
+          - os: macos-11
+          - os: macos-12
 
     runs-on: ${{ matrix.os }}
 
