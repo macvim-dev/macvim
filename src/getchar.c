@@ -3069,7 +3069,10 @@ vgetorpeek(int advance)
     ++vgetc_busy;
 
     if (advance)
+    {
 	KeyStuffed = FALSE;
+	typebuf_was_empty = FALSE;
+    }
 
     init_typebuf();
     start_stuff();
@@ -3374,6 +3377,10 @@ vgetorpeek(int advance)
 #ifdef FEAT_CMDWIN
 		    tc = c;
 #endif
+		    // set a flag to indicate this wasn't a normal char
+		    if (advance)
+			typebuf_was_empty = TRUE;
+
 		    // return from main_loop()
 		    if (pending_exmode_active)
 			exmode_active = EXMODE_NORMAL;

@@ -600,8 +600,12 @@ EXTERN int	diff_need_scrollbind INIT(= FALSE);
 #endif
 
 // While redrawing the screen this flag is set.  It means the screen size
-// ('lines' and 'rows') must not be changed.
+// ('lines' and 'rows') must not be changed and prevents recursive updating.
 EXTERN int	updating_screen INIT(= FALSE);
+
+// While computing a statusline and the like we do not want any w_redr_type or
+// must_redraw to be set.
+EXTERN int	redraw_not_allowed INIT(= FALSE);
 
 #ifdef MESSAGE_QUEUE
 // While closing windows or buffers messages should not be handled to avoid
@@ -1208,6 +1212,10 @@ EXTERN typebuf_T typebuf		// typeahead buffer
 		    = {NULL, NULL, 0, 0, 0, 0, 0, 0, 0}
 #endif
 		    ;
+// Flag used to indicate that vgetorpeek() returned a char like Esc when the
+// :normal argument was exhausted.
+EXTERN int	typebuf_was_empty INIT(= FALSE);
+
 EXTERN int	ex_normal_busy INIT(= 0);   // recursiveness of ex_normal()
 #ifdef FEAT_EVAL
 EXTERN int	in_feedkeys INIT(= 0);	    // ex_normal_busy set in feedkeys()

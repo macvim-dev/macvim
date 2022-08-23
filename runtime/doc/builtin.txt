@@ -253,6 +253,7 @@ getreg([{regname} [, 1 [, {list}]]])
 				String or List   contents of a register
 getreginfo([{regname}])		Dict	information about a register
 getregtype([{regname}])		String	type of a register
+getscriptinfo()		List	list of sourced scripts
 gettabinfo([{expr}])		List	list of tab pages
 gettabvar({nr}, {varname} [, {def}])
 				any	variable {varname} in tab {nr} or {def}
@@ -4088,6 +4089,18 @@ getregtype([{regname}])					*getregtype()*
 		Can also be used as a |method|: >
 			GetRegname()->getregtype()
 
+getscriptinfo()					*getscriptinfo()*
+		Returns a |List| with information about all the sourced Vim
+		scripts in the order they were sourced. (|:scriptinfo|)
+
+		Each item in the returned List is a |Dict| with the following
+		items:
+		    autoload	set to TRUE for a script that was used with
+				|import autoload| but was not actually sourced
+				yet.
+		    name	vim script file name.
+		    sid		script ID |<SID>|.
+
 gettabinfo([{tabnr}])					*gettabinfo()*
 		If {tabnr} is not specified, then information about all the
 		tab pages is returned as a |List|. Each List item is a
@@ -4399,8 +4412,11 @@ has({feature} [, {check}])
 
 has_key({dict}, {key})					*has_key()*
 		The result is a Number, which is TRUE if |Dictionary| {dict}
-		has an entry with key {key}.  FALSE otherwise. The {key}
-		argument is a string.
+		has an entry with key {key}.  FALSE otherwise.
+		The {key} argument is a string.  In |Vim9| script a number is
+		also accepted (and converted to a string) but no other types.
+		In legacy script the usual automatic conversion to string is
+		done.
 
 		Can also be used as a |method|: >
 			mydict->has_key(key)

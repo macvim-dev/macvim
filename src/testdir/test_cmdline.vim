@@ -874,6 +874,24 @@ func Test_cmdline_complete_user_cmd()
   call feedkeys(":Foo b\\x\<Tab>\<Home>\"\<cr>", 'tx')
   call assert_equal('"Foo b\x', @:)
   delcommand Foo
+
+  redraw
+  call assert_equal('~', Screenline(&lines - 1))
+  command! FooOne :
+  command! FooTwo :
+
+  set nowildmenu
+  call feedkeys(":Foo\<Tab>\<Home>\"\<cr>", 'tx')
+  call assert_equal('"FooOne', @:)
+  call assert_equal('~', Screenline(&lines - 1))
+
+  call feedkeys(":Foo\<S-Tab>\<Home>\"\<cr>", 'tx')
+  call assert_equal('"FooTwo', @:)
+  call assert_equal('~', Screenline(&lines - 1))
+
+  delcommand FooOne
+  delcommand FooTwo
+  set wildmenu&
 endfunc
 
 func Test_complete_user_cmd()
@@ -3232,6 +3250,16 @@ func Test_cmdline_redraw_tabline()
 
   call StopVimInTerminal(buf)
   call delete('Xcmdline_redraw_tabline')
+endfunc
+
+func Test_wildmenu_pum_disable_while_shown()
+  set wildoptions=pum
+  set wildmenu
+  cnoremap <F2> <Cmd>set nowildmenu<CR>
+  call feedkeys(":sign \<Tab>\<F2>\<Esc>", 'tx')
+  call assert_equal(0, pumvisible())
+  cunmap <F2>
+  set wildoptions& wildmenu&
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab
