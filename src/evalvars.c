@@ -2955,6 +2955,7 @@ eval_variable(
 	    {
 		if (rettv != NULL)
 		{
+		    // special value that is used in handle_subscript()
 		    rettv->v_type = VAR_ANY;
 		    rettv->vval.v_number = sid != 0 ? sid : import->imp_sid;
 		}
