@@ -850,11 +850,8 @@ EXTERN char e_internal_error_lalloc_zero[]
 	INIT(= N_("E341: Internal error: lalloc(0, )"));
 EXTERN char e_out_of_memory_allocating_nr_bytes[]
 	INIT(= N_("E342: Out of memory!  (allocating %lu bytes)"));
-#ifdef FEAT_PATH_EXTRA
 EXTERN char e_invalid_path_number_must_be_at_end_of_path_or_be_followed_by_str[]
 	INIT(= N_("E343: Invalid path: '**[number]' must be at the end of the path or be followed by '%s'."));
-#endif
-#ifdef FEAT_SEARCHPATH
 EXTERN char e_cant_find_directory_str_in_cdpath[]
 	INIT(= N_("E344: Can't find directory \"%s\" in cdpath"));
 EXTERN char e_cant_find_file_str_in_path[]
@@ -863,7 +860,6 @@ EXTERN char e_no_more_directory_str_found_in_cdpath[]
 	INIT(= N_("E346: No more directory \"%s\" found in cdpath"));
 EXTERN char e_no_more_file_str_found_in_path[]
 	INIT(= N_("E347: No more file \"%s\" found in path"));
-#endif
 EXTERN char e_no_string_under_cursor[]
 	INIT(= N_("E348: No string under cursor"));
 EXTERN char e_no_identifier_under_cursor[]
@@ -955,9 +951,9 @@ EXTERN char e_at_bottom_of_quickfix_stack[]
 	INIT(= N_("E380: At bottom of quickfix stack"));
 EXTERN char e_at_top_of_quickfix_stack[]
 	INIT(= N_("E381: At top of quickfix stack"));
+#endif
 EXTERN char e_cannot_write_buftype_option_is_set[]
 	INIT(= N_("E382: Cannot write, 'buftype' option is set"));
-#endif
 EXTERN char e_invalid_search_string_str[]
 	INIT(= N_("E383: Invalid search string: %s"));
 EXTERN char e_search_hit_top_without_match_for_str[]
@@ -1091,12 +1087,10 @@ EXTERN char e_cannot_close_last_window[]
 	INIT(= N_("E444: Cannot close last window"));
 EXTERN char e_other_window_contains_changes[]
 	INIT(= N_("E445: Other window contains changes"));
-#ifdef FEAT_SEARCHPATH
 EXTERN char e_no_file_name_under_cursor[]
 	INIT(= N_("E446: No file name under cursor"));
 EXTERN char e_cant_find_file_str_in_path_2[]
 	INIT(= N_("E447: Can't find file \"%s\" in path"));
-#endif
 #ifdef USING_LOAD_LIBRARY
 EXTERN char e_could_not_load_library_function_str[]
 	INIT(= N_("E448: Could not load library function %s"));

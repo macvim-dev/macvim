@@ -223,7 +223,6 @@ set_init_1(int clean_arg)
 	}
     }
 
-#ifdef FEAT_SEARCHPATH
     {
 	char_u	*cdpath;
 	char_u	*buf;
@@ -265,7 +264,6 @@ set_init_1(int clean_arg)
 		vim_free(cdpath);
 	}
     }
-#endif
 
 #if defined(FEAT_POSTSCRIPT) && \
 	(defined(MSWIN) || defined(VMS) || defined(MAC) || defined(hpux))
@@ -5630,9 +5628,7 @@ get_varp(struct vimoption *p)
 	case PV_SI:	return (char_u *)&(curbuf->b_p_si);
 	case PV_SN:	return (char_u *)&(curbuf->b_p_sn);
 	case PV_STS:	return (char_u *)&(curbuf->b_p_sts);
-#ifdef FEAT_SEARCHPATH
 	case PV_SUA:	return (char_u *)&(curbuf->b_p_sua);
-#endif
 	case PV_SWF:	return (char_u *)&(curbuf->b_p_swf);
 #ifdef FEAT_SYN_HL
 	case PV_SMC:	return (char_u *)&(curbuf->b_p_smc);
@@ -6191,10 +6187,8 @@ buf_copy_options(buf_T *buf, int flags)
 	    buf->b_p_key = vim_strsave(p_key);
 	    COPY_OPT_SCTX(buf, BV_KEY);
 #endif
-#ifdef FEAT_SEARCHPATH
 	    buf->b_p_sua = vim_strsave(p_sua);
 	    COPY_OPT_SCTX(buf, BV_SUA);
-#endif
 #ifdef FEAT_KEYMAP
 	    buf->b_p_keymap = vim_strsave(p_keymap);
 	    COPY_OPT_SCTX(buf, BV_KMAP);
@@ -6494,20 +6488,14 @@ set_context_in_set_cmd(
 		|| p == (char_u *)&p_path
 		|| p == (char_u *)&p_pp
 		|| p == (char_u *)&p_rtp
-#ifdef FEAT_SEARCHPATH
 		|| p == (char_u *)&p_cdpath
-#endif
 #ifdef FEAT_SESSION
 		|| p == (char_u *)&p_vdir
 #endif
 		)
 	{
 	    xp->xp_context = EXPAND_DIRECTORIES;
-	    if (p == (char_u *)&p_path
-#ifdef FEAT_SEARCHPATH
-		    || p == (char_u *)&p_cdpath
-#endif
-		   )
+	    if (p == (char_u *)&p_path || p == (char_u *)&p_cdpath)
 		xp->xp_backslash = XP_BS_THREE;
 	    else
 		xp->xp_backslash = XP_BS_ONE;

@@ -1935,7 +1935,7 @@ static funcentry_T global_functions[] =
 			ret_dict_any,	    f_getreginfo},
     {"getregtype",	0, 1, FEARG_1,	    arg1_string,
 			ret_string,	    f_getregtype},
-    {"getscriptinfo",	0, 0, 0,	    NULL,
+    {"getscriptinfo",	0, 1, 0,	    arg1_dict_any,
 			ret_list_dict_any,  f_getscriptinfo},
     {"gettabinfo",	0, 1, FEARG_1,	    arg1_number,
 			ret_list_dict_any,  f_gettabinfo},
@@ -5646,13 +5646,7 @@ f_has(typval_T *argvars, typval_T *rettv)
 		0
 #endif
 		},
-	{"file_in_path",
-#ifdef FEAT_SEARCHPATH
-		1
-#else
-		0
-#endif
-		},
+	{"file_in_path", 1},
 	{"filterpipe",
 #if defined(FEAT_FILTERPIPE) && !defined(VIMDLL)
 		1
@@ -5974,13 +5968,7 @@ f_has(typval_T *argvars, typval_T *rettv)
 		0
 #endif
 		},
-	{"path_extra",
-#ifdef FEAT_PATH_EXTRA
-		1
-#else
-		0
-#endif
-		},
+	{"path_extra", 1},
 	{"perl",
 #if defined(FEAT_PERL) && !defined(DYNAMIC_PERL)
 		1

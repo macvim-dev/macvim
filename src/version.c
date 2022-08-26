@@ -246,11 +246,7 @@ static char *(features[]) =
 	"-extra_search",
 #endif
 	"-farsi",
-#ifdef FEAT_SEARCHPATH
 	"+file_in_path",
-#else
-	"-file_in_path",
-#endif
 #ifdef FEAT_FIND_ID
 	"+find_in_path",
 #else
@@ -462,11 +458,7 @@ static char *(features[]) =
 #else
 	"-packages",
 #endif
-#ifdef FEAT_PATH_EXTRA
 	"+path_extra",
-#else
-	"-path_extra",
-#endif
 #ifdef FEAT_PERL
 # ifdef DYNAMIC_PERL
 	"+perl/dyn",
@@ -746,6 +738,26 @@ static char *(features[]) =
 
 static int included_patches[] =
 {   /* Add new patch number below this line */
+/**/
+    270,
+/**/
+    269,
+/**/
+    268,
+/**/
+    267,
+/**/
+    266,
+/**/
+    265,
+/**/
+    264,
+/**/
+    263,
+/**/
+    262,
+/**/
+    261,
 /**/
     260,
 /**/
