@@ -166,7 +166,7 @@ set_ref_in_im_funcs(int copyID UNUSED)
 # endif
 
 # if defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MACVIM) || defined(PROTO)
-static int xim_has_preediting INIT(= FALSE);  // IM current status
+static int xim_has_preediting = FALSE;  // IM current status
 
 /*
  * Set preedit_start_col to the current cursor position.

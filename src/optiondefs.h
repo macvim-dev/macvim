@@ -364,7 +364,7 @@ static struct vimoption options[] =
 #else
 			    (char_u *)NULL, PV_NONE,
 #endif
-#if FEAT_GUI_MACVIM
+#ifdef FEAT_GUI_MACVIM
 			    {(char_u *)TRUE, (char_u *)FALSE}
 #else
 			    {(char_u *)FALSE, (char_u *)FALSE}
@@ -468,13 +468,8 @@ static struct vimoption options[] =
 #endif
 					    (char_u *)0L} SCTX_INIT},
     {"backupskip",  "bsk",  P_STRING|P_VI_DEF|P_ONECOMMA|P_NODUP,
-#ifdef FEAT_WILDIGN
 			    (char_u *)&p_bsk, PV_NONE,
 			    {(char_u *)"", (char_u *)0L}
-#else
-			    (char_u *)NULL, PV_NONE,
-			    {(char_u *)0L, (char_u *)0L}
-#endif
 			    SCTX_INIT},
     {"balloondelay","bdlay",P_NUM|P_VI_DEF,
 #ifdef FEAT_BEVAL
@@ -1280,7 +1275,7 @@ static struct vimoption options[] =
 			    ,
 #if defined(FEAT_GUI)
 			    (char_u *)&p_go, PV_NONE,
-# if defined(FEAT_GUI_MACVIM)
+# ifdef FEAT_GUI_MACVIM
 			    {(char_u *)"egmrL", (char_u *)0L}
 # elif defined(UNIX)
 			    {(char_u *)"aegimrLtT", (char_u *)0L}
@@ -1393,7 +1388,7 @@ static struct vimoption options[] =
 			    {(char_u *)FALSE, (char_u *)0L} SCTX_INIT},
     {"imdisable",   "imd",  P_BOOL|P_VI_DEF,
 			    (char_u *)&p_imdisable, PV_NONE,
-#if defined(__sgi) || defined(FEAT_GUI_MACVIM)
+#ifdef FEAT_GUI_MACVIM
 			    {(char_u *)TRUE, (char_u *)0L}
 #else
 			    {(char_u *)FALSE, (char_u *)0L}
@@ -1419,7 +1414,7 @@ static struct vimoption options[] =
     {"imstyle",	    "imst", P_NUM|P_VI_DEF|P_SECURE,
 #if (defined(FEAT_XIM) && defined(FEAT_GUI_GTK)) || defined(FEAT_GUI_MACVIM)
 			    (char_u *)&p_imst, PV_NONE,
-# if defined(FEAT_GUI_MACVIM)
+# ifdef FEAT_GUI_MACVIM
 			    {(char_u *)IM_ON_THE_SPOT, (char_u *)0L}
 # else
 			    {(char_u *)IM_OVER_THE_SPOT, (char_u *)0L}
@@ -2876,21 +2871,13 @@ static struct vimoption options[] =
 			    (char_u *)&p_wcm, PV_NONE,
 			    {(char_u *)0L, (char_u *)0L} SCTX_INIT},
     {"wildignore",  "wig",  P_STRING|P_VI_DEF|P_ONECOMMA|P_NODUP,
-#ifdef FEAT_WILDIGN
 			    (char_u *)&p_wig, PV_NONE,
-#else
-			    (char_u *)NULL, PV_NONE,
-#endif
 			    {(char_u *)"", (char_u *)0L} SCTX_INIT},
     {"wildignorecase", "wic", P_BOOL|P_VI_DEF,
 			    (char_u *)&p_wic, PV_NONE,
 			    {(char_u *)FALSE, (char_u *)0L} SCTX_INIT},
     {"wildmenu",    "wmnu", P_BOOL|P_VI_DEF,
-#ifdef FEAT_WILDMENU
 			    (char_u *)&p_wmnu, PV_NONE,
-#else
-			    (char_u *)NULL, PV_NONE,
-#endif
 			    {(char_u *)FALSE, (char_u *)0L} SCTX_INIT},
     {"wildmode",    "wim",  P_STRING|P_VI_DEF|P_ONECOMMA|P_NODUP,
 			    (char_u *)&p_wim, PV_NONE,

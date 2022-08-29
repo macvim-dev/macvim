@@ -1898,6 +1898,46 @@ enddef
 
 def Test_getscriptinfo()
   v9.CheckDefAndScriptFailure(['getscriptinfo("x")'], ['E1013: Argument 1: type mismatch, expected dict<any> but got string', 'E1206: Dictionary required for argument 1'])
+
+  var lines1 =<< trim END
+    vim9script
+    g:loaded_script_id = expand("<SID>")
+    var XscriptVar = [1, {v: 2}]
+    func XgetScriptVar()
+      return XscriptVar
+    endfunc
+    func Xscript_legacy_func1()
+    endfunc
+    def Xscript_def_func1()
+    enddef
+    func g:Xscript_legacy_func2()
+    endfunc
+    def g:Xscript_def_func2()
+    enddef
+  END
+  writefile(lines1, 'X22script92')
+
+  var lines2 =<< trim END
+    source X22script92
+    var sid = matchstr(g:loaded_script_id, '<SNR>\zs\d\+\ze_')->str2nr()
+
+    var l = getscriptinfo({sid: sid, name: 'ignored'})
+    assert_match('X22script92$', l[0].name)
+    assert_equal(g:loaded_script_id, $"<SNR>{l[0].sid}_")
+    assert_equal(999999, l[0].version)
+    assert_equal(0, l[0].sourced)
+    assert_equal({XscriptVar: [1, {v: 2}]}, l[0].variables)
+    var funcs = ['Xscript_legacy_func2',
+          $"<SNR>{sid}_Xscript_legacy_func1",
+          $"<SNR>{sid}_Xscript_def_func1",
+          'Xscript_def_func2',
+          $"<SNR>{sid}_XgetScriptVar"]
+    for f in funcs
+      assert_true(index(l[0].functions, f) != -1)
+    endfor
+  END
+  v9.CheckDefAndScriptSuccess(lines2)
+  delete('X22script92')
 enddef
 
 def Test_gettabinfo()
@@ -3655,6 +3695,12 @@ def Test_setcharsearch()
   var d: dict<any> = {char: 'x', forward: 1, until: 1}
   setcharsearch(d)
   assert_equal(d, getcharsearch())
+enddef
+
+def Test_setcmdline()
+  v9.CheckDefAndScriptSuccess(['setcmdline("ls", 2)'])
+  v9.CheckDefAndScriptFailure(['setcmdline(123)'], ['E1013: Argument 1: type mismatch, expected string but got number', 'E1174: String required for argument 1'])
+  v9.CheckDefAndScriptFailure(['setcmdline("ls", "x")'], ['E1013: Argument 2: type mismatch, expected number but got string', 'E1210: Number required for argument 2'])
 enddef
 
 def Test_setcmdpos()

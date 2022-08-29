@@ -118,6 +118,9 @@
  * +textobjects		Text objects: "vaw", "das", etc.
  * +file_in_path	"gf" and "<cfile>" commands.
  * +path_extra		up/downwards searching in 'path' and 'tags'.
+ * +wildignore		'wildignore' and 'backupskip' options
+ * +wildmenu		'wildmenu' option
+ * +builtin_terms	all builtin termcap entries included
  *
  * Obsolete:
  * +tag_old_static	Old style static tags: "file:tag  file  ..".
@@ -285,7 +288,7 @@
 /*
  * +timers		timer_start()
  */
-#if defined(FEAT_RELTIME) && (defined(UNIX) || defined(MSWIN) || defined(VMS) )
+#if defined(FEAT_RELTIME) && (defined(UNIX) || defined(MSWIN) || defined(VMS))
 # define FEAT_TIMERS
 #endif
 
@@ -338,21 +341,6 @@
 #endif
 
 /*
- * +wildignore		'wildignore' and 'backupskip' options
- *			Needed for Unix to make "crontab -e" work.
- */
-#if defined(FEAT_NORMAL) || defined(UNIX)
-# define FEAT_WILDIGN
-#endif
-
-/*
- * +wildmenu		'wildmenu' option
- */
-#if defined(FEAT_NORMAL)
-# define FEAT_WILDMENU
-#endif
-
-/*
  * +viminfo		reading/writing the viminfo file. Takes about 8Kbyte
  *			of code.
  * VIMINFO_FILE		Location of user .viminfo file (should start with $).
@@ -388,37 +376,17 @@
 #endif
 
 /*
- * +builtin_terms	Choose one out of the following four:
- *
- * NO_BUILTIN_TCAPS	Do not include any builtin termcap entries (used only
- *			with HAVE_TGETENT defined).
- *
- * (nothing)		Machine specific termcap entries will be included.
- *
- * SOME_BUILTIN_TCAPS	Include most useful builtin termcap entries (used only
- *			with NO_BUILTIN_TCAPS not defined).
- *			This is the default.
- *
- * ALL_BUILTIN_TCAPS	Include all builtin termcap entries
- *			(used only with NO_BUILTIN_TCAPS not defined).
- */
-#ifdef HAVE_TGETENT
-// #define NO_BUILTIN_TCAPS
-#endif
-
-#if !defined(NO_BUILTIN_TCAPS)
-# ifdef FEAT_BIG
-#  define ALL_BUILTIN_TCAPS
-# else
-#  define SOME_BUILTIN_TCAPS		// default
-# endif
-#endif
-
-/*
- * +cryptv		Encryption (by Mohsin Ahmed <mosh@sasi.com>).
+ * +cryptv		Encryption (originally by Mohsin Ahmed <mosh@sasi.com>).
  */
 #if defined(FEAT_NORMAL) && !defined(FEAT_CRYPT) || defined(PROTO)
 # define FEAT_CRYPT
+#endif
+
+/*
+ * libsodium - add cryptography support
+ */
+#if defined(HAVE_SODIUM) && defined(FEAT_BIG)
+# define FEAT_SODIUM
 #endif
 
 /*
@@ -528,13 +496,6 @@
 #endif
 #if defined(FEAT_SOUND) && defined(HAVE_CANBERRA)
 # define FEAT_SOUND_CANBERRA
-#endif
-
-/*
- * libsodium - add cryptography support
- */
-#if defined(HAVE_SODIUM) && defined(FEAT_BIG)
-# define FEAT_SODIUM
 #endif
 
 // There are two ways to use XPM.
@@ -1120,6 +1081,13 @@
  */
 #if defined(FEAT_EVAL) && defined(FEAT_SYN_HL)
 # define FEAT_PROP_POPUP
+#endif
+
+/*
+ * +message_window	use a popup for messages when 'cmdheight' is zero
+ */
+#if defined(FEAT_PROP_POPUP) && defined(FEAT_TIMERS)
+# define HAS_MESSAGE_WINDOW
 #endif
 
 #if defined(FEAT_SYN_HL) && defined(FEAT_RELTIME)

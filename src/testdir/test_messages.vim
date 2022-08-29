@@ -392,18 +392,36 @@ func Test_cmdheight_zero()
   set cmdheight=0
   set showcmd
   redraw!
+  let using_popupwin = has('timers') && has('popupwin')
 
   echo 'test echo'
-  call assert_equal(116, screenchar(&lines, 1))
+  if using_popupwin
+    redraw
+    call assert_equal('test echo', Screenline(&lines))
+
+    " check that the popup is cleared when entering a command line
+    call feedkeys(':', 'xt')
+    redraw
+    call assert_equal('~', Screenline(&lines))
+  else
+    call assert_equal(116, screenchar(&lines, 1))
+  endif
   redraw!
 
   echomsg 'test echomsg'
-  call assert_equal(116, screenchar(&lines, 1))
+  if using_popupwin
+    redraw
+    call assert_equal('test echomsg', Screenline(&lines))
+  else
+    call assert_equal(116, screenchar(&lines, 1))
+  endif
   redraw!
 
-  call feedkeys(":ls\<CR>", "xt")
-  call assert_equal(':ls', Screenline(&lines - 1))
-  redraw!
+  if !using_popupwin
+    call feedkeys(":ls\<CR>", "xt")
+    call assert_equal(':ls', Screenline(&lines))
+    redraw!
+  endif
 
   let char = getchar(0)
   call assert_match(char, 0)
@@ -420,6 +438,9 @@ func Test_cmdheight_zero()
   call assert_equal('otherstring', getline(1))
 
   call feedkeys("g\<C-g>", "xt")
+  if using_popupwin
+    redraw
+  endif
   call assert_match(
         \ 'Col 1 of 11; Line 1 of 1; Word 1 of 1',
         \ Screenline(&lines))
@@ -445,6 +466,76 @@ func Test_cmdheight_zero()
   set showcmd&
   tabnew
   tabonly
+
+  "redraw to hide the popup window
+  redraw
 endfunc
+
+func Test_cmdheight_zero_dump()
+  CheckScreendump
+
+  let lines =<< trim END
+      set cmdheight=0
+      set showmode
+      call setline(1, 'some text')
+      func ShowMessages()
+        echomsg 'some text'
+        sleep 100m
+        echomsg 'some more text'
+        sleep 2500m
+        echomsg 'even more text'
+      endfunc
+  END
+  call writefile(lines, 'XtestCmdheight')
+  let buf = RunVimInTerminal('-S XtestCmdheight', #{rows: 6})
+  " The "-- INSERT --" indicator should not be visible.
+  call term_sendkeys(buf, "i")
+  call VerifyScreenDump(buf, 'Test_cmdheight_zero_1', {})
+
+  " The "-- VISUAL --" indicator should not be visible.
+  call term_sendkeys(buf, "\<Esc>vw")
+  call VerifyScreenDump(buf, 'Test_cmdheight_zero_2', {})
+
+  " Echo'd text is in a popup window
+  call term_sendkeys(buf, "\<Esc>:echo 'message window'\<CR>")
+  call VerifyScreenDump(buf, 'Test_cmdheight_zero_3', {})
+
+  " Message for CTRL-C is in the popup window
+  call term_sendkeys(buf, "\<C-C>")
+  call VerifyScreenDump(buf, 'Test_cmdheight_zero_4', {})
+
+  " file write message is one line
+  call term_sendkeys(buf, ":w XsomeText\<CR>")
+  call VerifyScreenDump(buf, 'Test_cmdheight_zero_5', {})
+
+  call term_sendkeys(buf, ":call popup_clear()\<CR>")
+  call VerifyScreenDump(buf, 'Test_cmdheight_zero_6', {})
+
+  call term_sendkeys(buf, ":call ShowMessages()\<CR>")
+  call VerifyScreenDump(buf, 'Test_cmdheight_zero_7', {})
+  sleep 2
+  call VerifyScreenDump(buf, 'Test_cmdheight_zero_8', {})
+
+  " clean up
+  call StopVimInTerminal(buf)
+  call delete('XtestCmdheight')
+  call delete('XsomeText')
+endfunc
+
+func Test_cmdheight_zero_shell()
+  CheckUnix
+
+  set cmdheight=0
+  set nomore
+  call setline(1, 'foo!')
+  silent !echo <cWORD> > Xfile.out
+  call assert_equal(['foo!'], readfile('Xfile.out'))
+  call delete('Xfile.out')
+  redraw!
+
+  set more&
+  set cmdheight&
+endfunc
+
 
 " vim: shiftwidth=2 sts=2 expandtab

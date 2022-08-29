@@ -48,7 +48,7 @@ static int	value_changed(char_u *str, char_u **last);
 static int	append_arg_number(win_T *wp, char_u *buf, int buflen, int add_file);
 static void	free_buffer(buf_T *);
 static void	free_buffer_stuff(buf_T *buf, int free_options);
-static void	clear_wininfo(buf_T *buf);
+static int	bt_nofileread(buf_T *buf);
 
 #ifdef UNIX
 # define dev_T dev_t
@@ -167,8 +167,9 @@ buffer_ensure_loaded(buf_T *buf)
 open_buffer(
     int		read_stdin,	    // read file from stdin
     exarg_T	*eap,		    // for forced 'ff' and 'fenc' or NULL
-    int		flags)		    // extra flags for readfile()
+    int		flags_arg)	    // extra flags for readfile()
 {
+    int		flags = flags_arg;
     int		retval = OK;
     bufref_T	old_curbuf;
 #ifdef FEAT_SYN_HL
@@ -220,10 +221,13 @@ open_buffer(
     // mark cursor position as being invalid
     curwin->w_valid = 0;
 
+    // A buffer without an actual file should not use the buffer name to read a
+    // file.
+    if (bt_nofileread(curbuf))
+	flags |= READ_NOFILE;
+
     // Read the file if there is one.
     if (curbuf->b_ffname != NULL
-	    && !bt_quickfix(curbuf)
-	    && !bt_nofilename(curbuf)
 #ifdef FEAT_NETBEANS_INTG
 	    && netbeansReadFile
 #endif
@@ -978,6 +982,22 @@ init_changedtick(buf_T *buf)
 }
 
 /*
+ * Free the b_wininfo list for buffer "buf".
+ */
+    static void
+clear_wininfo(buf_T *buf)
+{
+    wininfo_T	*wip;
+
+    while (buf->b_wininfo != NULL)
+    {
+	wip = buf->b_wininfo;
+	buf->b_wininfo = wip->wi_next;
+	free_wininfo(wip);
+    }
+}
+
+/*
  * Free stuff in the buffer for ":bdel" and when wiping out the buffer.
  */
     static void
@@ -1033,22 +1053,6 @@ free_wininfo(wininfo_T *wip)
 #endif
     }
     vim_free(wip);
-}
-
-/*
- * Free the b_wininfo list for buffer "buf".
- */
-    static void
-clear_wininfo(buf_T *buf)
-{
-    wininfo_T	*wip;
-
-    while (buf->b_wininfo != NULL)
-    {
-	wip = buf->b_wininfo;
-	buf->b_wininfo = wip->wi_next;
-	free_wininfo(wip);
-    }
 }
 
 /*
@@ -5715,7 +5719,8 @@ bt_popup(buf_T *buf)
 
 /*
  * Return TRUE if "buf" is a "nofile", "acwrite", "terminal" or "prompt"
- * buffer.  This means the buffer name is not a file name.
+ * buffer.  This means the buffer name may not be a file name, at least not for
+ * writing the buffer.
  */
     int
 bt_nofilename(buf_T *buf)
@@ -5723,6 +5728,19 @@ bt_nofilename(buf_T *buf)
     return buf != NULL && ((buf->b_p_bt[0] == 'n' && buf->b_p_bt[2] == 'f')
 	    || buf->b_p_bt[0] == 'a'
 	    || buf->b_p_bt[0] == 't'
+	    || buf->b_p_bt[0] == 'p');
+}
+
+/*
+ * Return TRUE if "buf" is a "nofile", "quickfix", "terminal" or "prompt"
+ * buffer.  This means the buffer is not to be read from a file.
+ */
+    static int
+bt_nofileread(buf_T *buf)
+{
+    return buf != NULL && ((buf->b_p_bt[0] == 'n' && buf->b_p_bt[2] == 'f')
+	    || buf->b_p_bt[0] == 't'
+	    || buf->b_p_bt[0] == 'q'
 	    || buf->b_p_bt[0] == 'p');
 }
 

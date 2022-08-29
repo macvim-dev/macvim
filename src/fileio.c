@@ -108,6 +108,7 @@ filemess(
  * READ_STDIN	read from stdin instead of a file
  * READ_BUFFER	read from curbuf instead of a file (converting after reading
  *		stdin)
+ * READ_NOFILE	do not read a file, only trigger BufReadCmd
  * READ_DUMMY	read into a dummy buffer (to check if file contents changed)
  * READ_KEEP_UNDO  don't clear undo info or read it from a file
  * READ_FIFO	read from fifo/socket instead of a file
@@ -309,6 +310,11 @@ readfile(
 #endif
 
 	curbuf->b_op_start = orig_start;
+
+	if (flags & READ_NOFILE)
+	    // Return NOTDONE instead of FAIL so that BufEnter can be triggered
+	    // and other operations don't fail.
+	    return NOTDONE;
     }
 
     if ((shortmess(SHM_OVER) || curbuf->b_help) && p_verbose == 0)
@@ -5439,7 +5445,6 @@ match_file_pat(
     return result;
 }
 
-#if defined(FEAT_WILDIGN) || defined(PROTO)
 /*
  * Return TRUE if a file matches with a pattern in "list".
  * "list" is a comma-separated list of patterns, like 'wildignore'.
@@ -5473,7 +5478,6 @@ match_file_list(char_u *list, char_u *sfname, char_u *ffname)
     }
     return FALSE;
 }
-#endif
 
 /*
  * Convert the given pattern "pat" which has shell style wildcards in it, into

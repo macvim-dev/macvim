@@ -505,6 +505,7 @@ setbufvar({buf}, {varname}, {val})
 setcellwidths({list})		none	set character cell width overrides
 setcharpos({expr}, {list})	Number	set the {expr} position to {list}
 setcharsearch({dict})		Dict	set character search from {dict}
+setcmdline({str} [, {pos}])	Number	set command-line
 setcmdpos({pos})		Number	set cursor position in command-line
 setcursorcharpos({list})	Number	move cursor to position in {list}
 setenv({name}, {val})		none	set environment variable
@@ -3425,7 +3426,8 @@ getcmdcompltype()					*getcmdcompltype()*
 		Only works when the command line is being edited, thus
 		requires use of |c_CTRL-\_e| or |c_CTRL-R_=|.
 		See |:command-completion| for the return string.
-		Also see |getcmdtype()|, |setcmdpos()| and |getcmdline()|.
+		Also see |getcmdtype()|, |setcmdpos()|, |getcmdline()| and
+		|setcmdline()|.
 		Returns an empty string when completion is not defined.
 
 getcmdline()						*getcmdline()*
@@ -3434,7 +3436,8 @@ getcmdline()						*getcmdline()*
 		|c_CTRL-R_=|.
 		Example: >
 			:cmap <F7> <C-\>eescape(getcmdline(), ' \')<CR>
-<		Also see |getcmdtype()|, |getcmdpos()| and |setcmdpos()|.
+<		Also see |getcmdtype()|, |getcmdpos()|, |setcmdpos()| and
+		|setcmdline()|.
 		Returns an empty string when entering a password or using
 		|inputsecret()|.
 
@@ -3444,7 +3447,8 @@ getcmdpos()						*getcmdpos()*
 		Only works when editing the command line, thus requires use of
 		|c_CTRL-\_e| or |c_CTRL-R_=| or an expression mapping.
 		Returns 0 otherwise.
-		Also see |getcmdtype()|, |setcmdpos()| and |getcmdline()|.
+		Also see |getcmdtype()|, |setcmdpos()|, |getcmdline()| and
+		|setcmdline()|.
 
 getcmdscreenpos()					*getcmdscreenpos()*
 		Return the screen position of the cursor in the command line
@@ -3453,7 +3457,8 @@ getcmdscreenpos()					*getcmdscreenpos()*
 		Only works when editing the command line, thus requires use of
 		|c_CTRL-\_e| or |c_CTRL-R_=| or an expression mapping.
 		Returns 0 otherwise.
-		Also see |getcmdpos()|, |setcmdpos()|.
+		Also see |getcmdpos()|, |setcmdpos()|, |getcmdline()| and
+		|setcmdline()|.
 
 getcmdtype()						*getcmdtype()*
 		Return the current command-line type. Possible return values
@@ -4094,24 +4099,42 @@ getscriptinfo([{opts})					*getscriptinfo()*
 		scripts in the order they were sourced, like what
 		`:scriptnames` shows.
 
+		The optional Dict argument {opts} supports the following
+		optional items:
+		    name	Script name match pattern. If specified,
+				and "sid" is not specified, information about
+				scripts with name that match the pattern
+				"name" are returned.
+		    sid		Script ID |<SID>|.  If specified, only
+				information about the script with ID "sid" is
+				returned and "name" is ignored.
+
 		Each item in the returned List is a |Dict| with the following
 		items:
-		    autoload	set to TRUE for a script that was used with
+		    autoload	Set to TRUE for a script that was used with
 				`import autoload` but was not actually sourced
 				yet (see |import-autoload|).
-		    name	vim script file name.
-		    sid		script ID |<SID>|.
-		    sourced	script ID of the actually sourced script that
+		    functions   List of script-local function names defined in
+				the script.  Present only when a particular
+				script is specified using the "sid" item in
+				{opts}.
+		    name	Vim script file name.
+		    sid		Script ID |<SID>|.
+		    sourced	Script ID of the actually sourced script that
 				this script name links to, if any, otherwise
 				zero
-		    version	vimscript version (|scriptversion|)
+		    variables   A dictionary with the script-local variables.
+				Present only when the a particular script is
+				specified using the "sid" item in {opts}.
+				Note that this is a copy, the value of
+				script-local variables cannot be changed using
+				this dictionary.
+		    version	Vimscript version (|scriptversion|)
 
-		The optional Dict argument {opts} supports the following
-		items:
-		    name	script name match pattern. If specified,
-				information about scripts with name
-				that match the pattern "name" are returned.
-
+		Examples: >
+			:echo getscriptinfo({'name': 'myscript'})
+			:echo getscriptinfo({'sid': 15}).variables
+<
 gettabinfo([{tabnr}])					*gettabinfo()*
 		If {tabnr} is not specified, then information about all the
 		tab pages is returned as a |List|. Each List item is a
@@ -7925,6 +7948,16 @@ setcharsearch({dict})					*setcharsearch()*
 		Can also be used as a |method|: >
 			SavedSearch()->setcharsearch()
 
+setcmdline({str} [, {pos}])					*setcmdline()*
+		Set the command line to {str} and set the cursor position to
+		{pos}.
+		If {pos} is omitted, the cursor is positioned after the text.
+		Returns 0 when successful, 1 when not editing the command
+		line.
+
+		Can also be used as a |method|: >
+			GetText()->setcmdline()
+
 setcmdpos({pos})					*setcmdpos()*
 		Set the cursor position in the command line to byte position
 		{pos}.  The first position is 1.
@@ -7937,8 +7970,8 @@ setcmdpos({pos})					*setcmdpos()*
 		before inserting the resulting text.
 		When the number is too big the cursor is put at the end of the
 		line.  A number smaller than one has undefined results.
-		Returns FALSE when successful, TRUE when not editing the
-		command line.
+		Returns 0 when successful, 1 when not editing the command
+		line.
 
 		Can also be used as a |method|: >
 			GetPos()->setcmdpos()
@@ -10491,7 +10524,8 @@ use: `if exists('+shellslash')`
 
 
 acl			Compiled with |ACL| support.
-all_builtin_terms	Compiled with all builtin terminals enabled.
+all_builtin_terms	Compiled with all builtin terminals enabled. (always
+			true)
 amiga			Amiga version of Vim.
 arabic			Compiled with Arabic support |Arabic|.
 arp			Compiled with ARP support (Amiga).
@@ -10505,7 +10539,7 @@ browse			Compiled with |:browse| support, and browse() will
 			work.
 browsefilter		Compiled with support for |browsefilter|.
 bsd			Compiled on an OS in the BSD family (excluding macOS).
-builtin_terms		Compiled with some builtin terminals.
+builtin_terms		Compiled with some builtin terminals. (always true)
 byte_offset		Compiled with support for 'o' in 'statusline'
 channel			Compiled with support for |channel| and |job|
 cindent			Compiled with 'cindent' support. (always true)

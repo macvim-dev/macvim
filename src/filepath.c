@@ -3136,7 +3136,6 @@ expand_wildcards(
     if ((flags & EW_KEEPALL) || retval == FAIL)
 	return retval;
 
-#ifdef FEAT_WILDIGN
     /*
      * Remove names that match 'wildignore'.
      */
@@ -3172,7 +3171,6 @@ expand_wildcards(
 	    return FAIL;
 	}
     }
-#endif
 
     /*
      * Move the names where 'suffixes' match to the end.
@@ -4073,10 +4071,8 @@ addfile(
     /*
      * Append a slash or backslash after directory names if none is present.
      */
-#ifndef DONT_ADD_PATHSEP_TO_DIR
     if (isdir && (flags & EW_ADDSLASH))
 	add_pathsep(p);
-#endif
     ((char_u **)gap->ga_data)[gap->ga_len++] = p;
 }
 
