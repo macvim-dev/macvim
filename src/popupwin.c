@@ -1302,7 +1302,8 @@ popup_adjust_position(win_T *wp)
 	}
 	if (wp->w_popup_pos == POPPOS_BOTTOM)
 	    // assume that each buffer line takes one screen line
-	    wp->w_winrow = MAX(Rows - wp->w_buffer->b_ml.ml_line_count - 1, 0);
+	    wp->w_winrow = MAX(cmdline_row
+				    - wp->w_buffer->b_ml.ml_line_count - 1, 0);
 
 	if (!use_wantcol)
 	    center_hor = TRUE;
@@ -1936,6 +1937,20 @@ popup_terminal_exists(void)
     return FALSE;
 }
 #endif
+
+/*
+ * Mark all popup windows in the current tab and global for redrawing.
+ */
+    void
+popup_redraw_all(void)
+{
+    win_T	*wp;
+
+    FOR_ALL_POPUPWINS(wp)
+	wp->w_redr_type = UPD_NOT_VALID;
+    FOR_ALL_POPUPWINS_IN_TAB(curtab, wp)
+	wp->w_redr_type = UPD_NOT_VALID;
+}
 
 /*
  * Set the color for a notification window.

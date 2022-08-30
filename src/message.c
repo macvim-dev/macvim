@@ -94,7 +94,7 @@ static int  verbose_did_open = FALSE;
 /*
  * msg(s) - displays the string 's' on the status line
  * When terminal not initialized (yet) mch_errmsg(..) is used.
- * return TRUE if wait_return not called
+ * return TRUE if wait_return() not called
  */
     int
 msg(char *s)
@@ -631,7 +631,7 @@ do_perror(char *msg)
  * Rings the bell, if appropriate, and calls message() to do the real work
  * When terminal not initialized (yet) mch_errmsg(..) is used.
  *
- * Return TRUE if wait_return not called.
+ * Return TRUE if wait_return() not called.
  * Note: caller must check 'emsg_not_now()' before calling this.
  */
     static int
@@ -758,7 +758,7 @@ emsg_core(char_u *s)
     attr = HL_ATTR(HLF_E);	    // set highlight mode for error messages
     if (msg_scrolled != 0)
 	need_wait_return = TRUE;    // needed in case emsg() is called after
-				    // wait_return has reset need_wait_return
+				    // wait_return() has reset need_wait_return
 				    // and a redraw is expected because
 				    // msg_scrolled is non-zero
 
@@ -1443,7 +1443,8 @@ use_message_window(void)
 #ifdef HAS_MESSAGE_WINDOW
     // TRUE if there is no command line showing ('cmdheight' is zero and not
     // already editing or showing a message) use a popup window for messages.
-    return p_ch == 0 && cmdline_row >= Rows;
+    // Also when using ":echowindow".
+    return (p_ch == 0 && cmdline_row >= Rows) || in_echowindow;
 #else
     return FALSE;
 #endif
@@ -1477,7 +1478,7 @@ msg_start(void)
     }
 
 #ifdef FEAT_EVAL
-    if (need_clr_eos || p_ch == 0)
+    if (need_clr_eos || use_message_window())
     {
 	// Halfway an ":echo" command and getting an (error) message: clear
 	// any text from the command.
@@ -1489,8 +1490,9 @@ msg_start(void)
 #ifdef HAS_MESSAGE_WINDOW
     if (use_message_window())
     {
-	if (popup_message_win_visible() && msg_col > 0
-					       && (msg_scroll || !full_screen))
+	if (popup_message_win_visible()
+		    && ((msg_col > 0 && (msg_scroll || !full_screen))
+			|| in_echowindow))
 	{
 	    win_T *wp = popup_get_message_win();
 
@@ -1513,8 +1515,9 @@ msg_start(void)
 #endif
 	    0;
     }
-    else if (msg_didout || p_ch == 0)	    // start message on next line
+    else if (msg_didout || use_message_window())
     {
+	// start message on next line
 	msg_putchar('\n');
 	did_return = TRUE;
 	if (exmode_active != EXMODE_NORMAL)
@@ -2460,7 +2463,7 @@ msg_puts_display(
 	    {
 #endif
 		inc_msg_scrolled();
-		need_wait_return = TRUE; // may need wait_return in main()
+		need_wait_return = TRUE; // may need wait_return() in main()
 		redraw_cmdline = TRUE;
 		if (cmdline_row > 0 && !exmode_active)
 		    --cmdline_row;
@@ -3720,8 +3723,8 @@ msg_clr_cmdline(void)
 
 /*
  * end putting a message on the screen
- * call wait_return if the message does not fit in the available space
- * return TRUE if wait_return not called.
+ * call wait_return() if the message does not fit in the available space
+ * return TRUE if wait_return() not called.
  */
     int
 msg_end(void)
