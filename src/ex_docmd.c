@@ -2993,8 +2993,13 @@ parse_command_modifiers(
 			    continue;
 			}
 
+	    case 'h':	if (checkforcmd_noparen(&eap->cmd, "horizontal", 3))
+			{
+			    cmod->cmod_split |= WSP_HOR;
+			    continue;
+			}
 			// ":hide" and ":hide | cmd" are not modifiers
-	    case 'h':	if (p != eap->cmd || !checkforcmd_noparen(&p, "hide", 3)
+			if (p != eap->cmd || !checkforcmd_noparen(&p, "hide", 3)
 					       || *p == NUL || ends_excmd(*p))
 			    break;
 			eap->cmd = p;
@@ -8378,14 +8383,9 @@ ex_redraw(exarg_T *eap)
     // After drawing the statusline screen_attr may still be set.
     screen_stop_highlight();
 
-#ifdef HAS_MESSAGE_WINDOW
-    if (!use_message_window())  // append messages in the message window
-#endif
-    {
-	// Reset msg_didout, so that a message that's there is overwritten.
-	msg_didout = FALSE;
-	msg_col = 0;
-    }
+    // Reset msg_didout, so that a message that's there is overwritten.
+    msg_didout = FALSE;
+    msg_col = 0;
 
     // No need to wait after an intentional redraw.
     need_wait_return = FALSE;

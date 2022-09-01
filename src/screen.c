@@ -4269,7 +4269,7 @@ showmode(void)
     int		nwr_save;
     int		sub_attr;
 
-    do_mode = p_smd && msg_silent == 0 && p_ch > 0
+    do_mode = p_smd && msg_silent == 0
 	    && ((State & MODE_INSERT)
 		|| restart_edit != NUL
 		|| VIsual_active);
@@ -4782,7 +4782,7 @@ redrawing(void)
     int
 messaging(void)
 {
-    return (!(p_lz && char_avail() && !KeyTyped)) && p_ch > 0;
+    return (!(p_lz && char_avail() && !KeyTyped));
 }
 
 /*
