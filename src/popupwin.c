@@ -1356,6 +1356,8 @@ popup_adjust_position(win_T *wp)
 
     if (wp->w_maxheight > 0)
 	maxheight = wp->w_maxheight;
+    else if (wp->w_popup_pos == POPPOS_BOTTOM)
+	maxheight = cmdline_row - 1;
 
     // start at the desired first line
     if (wp->w_firstline > 0)
@@ -4479,6 +4481,7 @@ popup_get_message_win(void)
 	message_win->w_popup_pos = POPPOS_BOTTOM;
 	message_win->w_wantcol = 1;
 	message_win->w_minwidth = 9999;
+	message_win->w_firstline = -1;
 
 	// no padding, border at the top
 	for (i = 0; i < 4; ++i)
@@ -4529,6 +4532,31 @@ popup_hide_message_win(void)
 	popup_hide(message_win);
 }
 
+/*
+ * Invoked before outputting a message for ":echowindow".
+ */
+    void
+start_echowindow(void)
+{
+    in_echowindow = TRUE;
+}
+
+/*
+ * Invoked after outputting a message for ":echowindow".
+ */
+    void
+end_echowindow(void)
+{
+    // show the message window now
+    redraw_cmd(FALSE);
+
+    // do not overwrite messages
+    // TODO: only for message window
+    msg_didout = TRUE;
+    if (msg_col == 0)
+	msg_col = 1;
+    in_echowindow = FALSE;
+}
 #endif
 
 /*
