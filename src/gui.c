@@ -445,9 +445,6 @@ gui_init_check(void)
 #if defined(FEAT_TOOLBAR) && (defined(FEAT_GUI_MOTIF) || defined(FEAT_GUI_HAIKU))
     gui.toolbar_height = 0;
 #endif
-#if defined(FEAT_FOOTER) && defined(FEAT_GUI_MOTIF)
-    gui.footer_height = 0;
-#endif
 #ifdef FEAT_BEVAL_TIP
     gui.tooltip_fontset = NOFONTSET;
 #endif
@@ -1550,10 +1547,6 @@ gui_get_base_height(void)
 	|| defined(FEAT_GUI_MOTIF) || defined(FEAT_GUI_HAIKU))
     if (gui_has_tabline())
 	base_height += gui.tabline_height;
-# endif
-# ifdef FEAT_FOOTER
-    if (vim_strchr(p_go, GO_FOOTER) != NULL)
-	base_height += gui.footer_height;
 # endif
 # if defined(FEAT_GUI_MOTIF) && defined(FEAT_MENU)
     base_height += gui_mch_text_area_extra_height();
@@ -3517,10 +3510,6 @@ gui_init_which_components(char_u *oldval UNUSED)
 #ifdef FEAT_GUI_TABLINE
     int		using_tabline;
 #endif
-#ifdef FEAT_FOOTER
-    static int	prev_footer = -1;
-    int		using_footer = FALSE;
-#endif
 #if defined(FEAT_MENU)
     static int	prev_tearoff = -1;
     int		using_tearoff = FALSE;
@@ -3593,11 +3582,6 @@ gui_init_which_components(char_u *oldval UNUSED)
 #ifdef FEAT_TOOLBAR
 	    case GO_TOOLBAR:
 		using_toolbar = TRUE;
-		break;
-#endif
-#ifdef FEAT_FOOTER
-	    case GO_FOOTER:
-		using_footer = TRUE;
 		break;
 #endif
 	    case GO_TEAROFF:
@@ -3696,16 +3680,6 @@ gui_init_which_components(char_u *oldval UNUSED)
 	    prev_toolbar = using_toolbar;
 	    need_set_size |= RESIZE_VERT;
 	    if (using_toolbar)
-		fix_size = TRUE;
-	}
-#endif
-#ifdef FEAT_FOOTER
-	if (using_footer != prev_footer)
-	{
-	    gui_mch_enable_footer(using_footer);
-	    prev_footer = using_footer;
-	    need_set_size |= RESIZE_VERT;
-	    if (using_footer)
 		fix_size = TRUE;
 	}
 #endif

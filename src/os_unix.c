@@ -4528,7 +4528,7 @@ mch_call_shell_terminal(
     // restore curwin/curbuf and a few other things
     aucmd_restbuf(&aco);
 
-    // only require pressing Enter when redrawing, to avoid that system() gets
+    // Only require pressing Enter when redrawing, to avoid that system() gets
     // the hit-enter prompt even though it didn't output anything.
     if (!RedrawingDisabled)
 	wait_return(TRUE);
@@ -5039,7 +5039,6 @@ mch_call_shell_fork(
 				{
 				    // finished all the lines, close pipe
 				    close(toshell_fd);
-				    toshell_fd = -1;
 				    break;
 				}
 				lp = ml_get(lnum);
@@ -5421,7 +5420,7 @@ finished:
 	     * child already exited.
 	     */
 	    if (wait_pid != pid)
-		wait_pid = wait4pid(pid, &status);
+		(void)wait4pid(pid, &status);
 
 # ifdef FEAT_GUI
 	    // Close slave side of pty.  Only do this after the child has
@@ -6517,7 +6516,7 @@ select_eintr:
 #ifdef FEAT_JOB_CHANNEL
 	// also call when ret == 0, we may be polling a keep-open channel
 	if (ret >= 0)
-	    ret = channel_select_check(ret, &rfds, &wfds);
+	    (void)channel_select_check(ret, &rfds, &wfds);
 #endif
 
 #endif // HAVE_SELECT

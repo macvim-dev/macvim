@@ -1414,13 +1414,13 @@ def Test_import_in_charconvert()
   END
   v9.CheckScriptSuccess(lines)
 
-  writefile(['one', 'two'], 'Xfile')
-  new Xfile
-  write ++enc=ucase Xfile1
-  assert_equal(['ONE', 'TWO'], readfile('Xfile1'))
+  writefile(['one', 'two'], 'Xiicfile')
+  new Xiicfile
+  write ++enc=ucase Xiicfile1
+  assert_equal(['ONE', 'TWO'], readfile('Xiicfile1'))
 
-  delete('Xfile')
-  delete('Xfile1')
+  delete('Xiicfile')
+  delete('Xiicfile1')
   delete('Xconvert.vim')
   bwipe!
   set charconvert&
@@ -1452,6 +1452,28 @@ def Run_Test_import_in_spellsuggest_expr()
 
   delete('Xsuggest.vim')
   set nospell spellsuggest& verbose=0
+enddef
+
+def Test_import_in_lambda_method()
+  var lines =<< trim END
+      vim9script
+      export def Retarg(e: any): any
+        return e
+      enddef
+  END
+  writefile(lines, 'XexportRetarg.vim')
+  lines =<< trim END
+      vim9script
+      import './XexportRetarg.vim'
+      def Lambda(): string
+        var F = (x) => x->XexportRetarg.Retarg()
+        return F('arg')
+      enddef
+      assert_equal('arg', Lambda())
+  END
+  v9.CheckScriptSuccess(lines)
+
+  delete('XexportRetarg.vim')
 enddef
 
 def Test_export_shadows_global_function()

@@ -1609,7 +1609,7 @@ endfunc
 
 func Test_gui_dialog_file()
   let lines =<< trim END
-    file Xfile
+    file Xdialfile
     normal axxx
     confirm qa
   END
@@ -1622,14 +1622,14 @@ func Test_gui_dialog_file()
 
   call WaitForAssert({-> assert_true(filereadable('Xdialog'))})
   if has('gui_macvim')
-    call assert_match('Do you want to save the changes you made in the document "Xfile"?: ' ..
+    call assert_match('Do you want to save the changes you made in the document "Xdialfile"?: ' ..
           \ 'Your changes will be lost if you don''t save them.', readfile('Xdialog')->join('<NL>'))
   else
-    call assert_match('Question: Save changes to "Xfile"?', readfile('Xdialog')->join('<NL>'))
+    call assert_match('Question: Save changes to "Xdialfile"?', readfile('Xdialog')->join('<NL>'))
   endif
 
   call delete('Xdialog')
-  call delete('Xfile')
+  call delete('Xdialfile')
   call delete('Xlines')
 endfunc
 

@@ -375,22 +375,22 @@ func Test_resolve_win32()
 
   " test for shortcut file
   if executable('cscript')
-    new Xfile
+    new Xresfile
     wq
     let lines =<< trim END
 	Set fs = CreateObject("Scripting.FileSystemObject")
 	Set ws = WScript.CreateObject("WScript.Shell")
 	Set shortcut = ws.CreateShortcut("Xlink.lnk")
-	shortcut.TargetPath = fs.BuildPath(ws.CurrentDirectory, "Xfile")
+	shortcut.TargetPath = fs.BuildPath(ws.CurrentDirectory, "Xresfile")
 	shortcut.Save
     END
     call writefile(lines, 'link.vbs')
     silent !cscript link.vbs
     call delete('link.vbs')
-    call assert_equal(s:normalize_fname(getcwd() . '\Xfile'), s:normalize_fname(resolve('./Xlink.lnk')))
-    call delete('Xfile')
+    call assert_equal(s:normalize_fname(getcwd() . '\Xresfile'), s:normalize_fname(resolve('./Xlink.lnk')))
+    call delete('Xresfile')
 
-    call assert_equal(s:normalize_fname(getcwd() . '\Xfile'), s:normalize_fname(resolve('./Xlink.lnk')))
+    call assert_equal(s:normalize_fname(getcwd() . '\Xresfile'), s:normalize_fname(resolve('./Xlink.lnk')))
     call delete('Xlink.lnk')
   else
     echomsg 'skipped test for shortcut file'
@@ -399,20 +399,20 @@ func Test_resolve_win32()
   " remove files
   call delete('Xlink')
   call delete('Xdir', 'd')
-  call delete('Xfile')
+  call delete('Xresfile')
 
   " test for symbolic link to a file
-  new Xfile
+  new Xresfile
   wq
-  call assert_equal('Xfile', resolve('Xfile'))
-  silent !mklink Xlink Xfile
+  call assert_equal('Xresfile', resolve('Xresfile'))
+  silent !mklink Xlink Xresfile
   if !v:shell_error
-    call assert_equal(s:normalize_fname(getcwd() . '\Xfile'), s:normalize_fname(resolve('./Xlink')))
+    call assert_equal(s:normalize_fname(getcwd() . '\Xresfile'), s:normalize_fname(resolve('./Xlink')))
     call delete('Xlink')
   else
     echomsg 'skipped test for symbolic link to a file'
   endif
-  call delete('Xfile')
+  call delete('Xresfile')
 
   " test for junction to a directory
   call mkdir('Xdir')
@@ -447,9 +447,9 @@ func Test_resolve_win32()
   endif
 
   " test for buffer name
-  new Xfile
+  new Xbuffile
   wq
-  silent !mklink Xlink Xfile
+  silent !mklink Xlink Xbuffile
   if !v:shell_error
     edit Xlink
     call assert_equal('Xlink', bufname('%'))
@@ -458,7 +458,7 @@ func Test_resolve_win32()
   else
     echomsg 'skipped test for buffer name'
   endif
-  call delete('Xfile')
+  call delete('Xbuffile')
 
   " test for reparse point
   call mkdir('Xdir')
@@ -1247,11 +1247,11 @@ func Test_charidx()
   call assert_equal(-1, charidx(a, 8, 1))
   call assert_equal(-1, charidx('', 0, 1))
 
-  call assert_fails('let x = charidx([], 1)', 'E474:')
-  call assert_fails('let x = charidx("abc", [])', 'E474:')
-  call assert_fails('let x = charidx("abc", 1, [])', 'E474:')
-  call assert_fails('let x = charidx("abc", 1, -1)', 'E1023:')
-  call assert_fails('let x = charidx("abc", 1, 2)', 'E1023:')
+  call assert_fails('let x = charidx([], 1)', 'E1174:')
+  call assert_fails('let x = charidx("abc", [])', 'E1210:')
+  call assert_fails('let x = charidx("abc", 1, [])', 'E1212:')
+  call assert_fails('let x = charidx("abc", 1, -1)', 'E1212:')
+  call assert_fails('let x = charidx("abc", 1, 2)', 'E1212:')
 endfunc
 
 func Test_count()
@@ -1738,7 +1738,7 @@ func Test_trim()
   call assert_fails('eval trim("  vim  ", " ", [])', 'E745:')
   call assert_fails('eval trim("  vim  ", " ", -1)', 'E475:')
   call assert_fails('eval trim("  vim  ", " ", 3)', 'E475:')
-  call assert_fails('eval trim("  vim  ", 0)', 'E475:')
+  call assert_fails('eval trim("  vim  ", 0)', 'E1174:')
 
   let chars = join(map(range(1, 0x20) + [0xa0], {n -> n->nr2char()}), '')
   call assert_equal("x", trim(chars . "x" . chars))
@@ -2913,7 +2913,7 @@ endfunc
 
 " Test for gettext()
 func Test_gettext()
-  call assert_fails('call gettext(1)', 'E475:')
+  call assert_fails('call gettext(1)', 'E1174:')
 endfunc
 
 func Test_builtin_check()

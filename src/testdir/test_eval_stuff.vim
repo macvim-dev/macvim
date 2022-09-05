@@ -1,6 +1,7 @@
 " Tests for various eval things.
 
 source view_util.vim
+source shared.vim
 
 function s:foo() abort
   try
@@ -34,9 +35,9 @@ func Test_mkdir_p()
     call assert_report('mkdir(..., "p") failed for an existing directory')
   endtry
   " 'p' doesn't suppress real errors
-  call writefile([], 'Xfile')
-  call assert_fails('call mkdir("Xfile", "p")', 'E739:')
-  call delete('Xfile')
+  call writefile([], 'Xmkdirfile')
+  call assert_fails('call mkdir("Xmkdirfile", "p")', 'E739:')
+  call delete('Xmkdirfile')
   call delete('Xmkdir', 'rf')
   call assert_equal(0, mkdir(test_null_string()))
   call assert_fails('call mkdir([])', 'E730:')
@@ -85,6 +86,18 @@ func Test_for_over_null_string()
   call assert_equal(0, cnt)
 
   let &enc = save_enc
+endfunc
+
+func Test_for_invalid_line_count()
+  let lines =<< trim END
+      111111111111111111111111 for line in ['one']
+      endfor
+  END
+  call writefile(lines, 'XinvalidFor')
+  " only test that this doesn't crash
+  call RunVim([], [], '-u NONE -e -s -S XinvalidFor -c qa')
+
+  call delete('XinvalidFor')
 endfunc
 
 func Test_readfile_binary()

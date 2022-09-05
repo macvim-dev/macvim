@@ -2232,6 +2232,7 @@ f_writefile(typval_T *argvars, typval_T *rettv)
 {
     int		binary = FALSE;
     int		append = FALSE;
+    int		defer = FALSE;
 #ifdef HAVE_FSYNC
     int		do_fsync = p_fs;
 #endif
@@ -2285,6 +2286,8 @@ f_writefile(typval_T *argvars, typval_T *rettv)
 	    binary = TRUE;
 	if (vim_strchr(arg2, 'a') != NULL)
 	    append = TRUE;
+	if (vim_strchr(arg2, 'D') != NULL)
+	    defer = TRUE;
 #ifdef HAVE_FSYNC
 	if (vim_strchr(arg2, 's') != NULL)
 	    do_fsync = TRUE;
@@ -2297,37 +2300,59 @@ f_writefile(typval_T *argvars, typval_T *rettv)
     if (fname == NULL)
 	return;
 
+    if (defer && !in_def_function() && get_current_funccal() == NULL)
+    {
+	semsg(_(e_str_not_inside_function), "defer");
+	return;
+    }
+
     // Always open the file in binary mode, library functions have a mind of
     // their own about CR-LF conversion.
     if (*fname == NUL || (fd = mch_fopen((char *)fname,
 				      append ? APPENDBIN : WRITEBIN)) == NULL)
     {
-	semsg(_(e_cant_create_file_str), *fname == NUL ? (char_u *)_("<empty>") : fname);
+	semsg(_(e_cant_create_file_str),
+			       *fname == NUL ? (char_u *)_("<empty>") : fname);
 	ret = -1;
-    }
-    else if (blob)
-    {
-	if (write_blob(fd, blob) == FAIL)
-	    ret = -1;
-#ifdef HAVE_FSYNC
-	else if (do_fsync)
-	    // Ignore the error, the user wouldn't know what to do about it.
-	    // May happen for a device.
-	    vim_ignored = vim_fsync(fileno(fd));
-#endif
-	fclose(fd);
     }
     else
     {
-	if (write_list(fd, list, binary) == FAIL)
-	    ret = -1;
+	if (defer)
+	{
+	    typval_T tv;
+
+	    tv.v_type = VAR_STRING;
+	    tv.v_lock = 0;
+	    tv.vval.v_string = vim_strsave(fname);
+	    if (tv.vval.v_string == NULL
+		    || add_defer((char_u *)"delete", 1, &tv) == FAIL)
+	    {
+		ret = -1;
+		fclose(fd);
+		(void)mch_remove(fname);
+	    }
+	}
+
+	if (ret == 0)
+	{
+	    if (blob)
+	    {
+		if (write_blob(fd, blob) == FAIL)
+		    ret = -1;
+	    }
+	    else
+	    {
+		if (write_list(fd, list, binary) == FAIL)
+		    ret = -1;
+	    }
 #ifdef HAVE_FSYNC
-	else if (do_fsync)
-	    // Ignore the error, the user wouldn't know what to do about it.
-	    // May happen for a device.
-	    vim_ignored = vim_fsync(fileno(fd));
+	    if (ret == 0 && do_fsync)
+		// Ignore the error, the user wouldn't know what to do about
+		// it.  May happen for a device.
+		vim_ignored = vim_fsync(fileno(fd));
 #endif
-	fclose(fd);
+	    fclose(fd);
+	}
     }
 
     rettv->vval.v_number = ret;
@@ -3088,17 +3113,22 @@ expand_wildcards_eval(
     int		ret = FAIL;
     char_u	*eval_pat = NULL;
     char_u	*exp_pat = *pat;
-    char      *ignored_msg;
+    char	*ignored_msg;
     int		usedlen;
+    int		is_cur_alt_file = *exp_pat == '%' || *exp_pat == '#';
+    int		star_follows = FALSE;
 
-    if (*exp_pat == '%' || *exp_pat == '#' || *exp_pat == '<')
+    if (is_cur_alt_file || *exp_pat == '<')
     {
 	++emsg_off;
 	eval_pat = eval_vars(exp_pat, exp_pat, &usedlen,
 					       NULL, &ignored_msg, NULL, TRUE);
 	--emsg_off;
 	if (eval_pat != NULL)
+	{
+	    star_follows = STRCMP(exp_pat + usedlen, "*") == 0;
 	    exp_pat = concat_str(eval_pat, exp_pat + usedlen);
+	}
     }
 
     if (exp_pat != NULL)
@@ -3106,6 +3136,20 @@ expand_wildcards_eval(
 
     if (eval_pat != NULL)
     {
+	if (*num_file == 0 && is_cur_alt_file && star_follows)
+	{
+	    // Expanding "%" or "#" and the file does not exist: Add the
+	    // pattern anyway (without the star) so that this works for remote
+	    // files and non-file buffer names.
+	    *file = ALLOC_ONE(char_u *);
+	    if (*file != NULL)
+	    {
+		**file = eval_pat;
+		eval_pat = NULL;
+		*num_file = 1;
+		ret = OK;
+	    }
+	}
 	vim_free(exp_pat);
 	vim_free(eval_pat);
     }

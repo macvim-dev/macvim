@@ -605,7 +605,7 @@ func Test_getcompletion()
 
   call assert_fails("call getcompletion('\\\\@!\\\\@=', 'buffer')", 'E871:')
   call assert_fails('call getcompletion("", "burp")', 'E475:')
-  call assert_fails('call getcompletion("abc", [])', 'E475:')
+  call assert_fails('call getcompletion("abc", [])', 'E1174:')
 endfunc
 
 " Test for getcompletion() with "fuzzy" in 'wildoptions'
@@ -1304,6 +1304,18 @@ func Test_cmdline_write_alternatefile()
   call assert_equal('foo-B-A', expand('%'))
   bw!
   bw!
+endfunc
+
+func Test_cmdline_expand_cur_alt_file()
+  enew
+  file http://some.com/file.txt
+  call feedkeys(":e %\<Tab>\<C-B>\"\<CR>", 'xt')
+  call assert_equal('"e http://some.com/file.txt', @:)
+  edit another
+  call feedkeys(":e #\<Tab>\<C-B>\"\<CR>", 'xt')
+  call assert_equal('"e http://some.com/file.txt', @:)
+  bwipe
+  bwipe http://some.com/file.txt
 endfunc
 
 " using a leading backslash here

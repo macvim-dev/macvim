@@ -1091,7 +1091,6 @@ ex_let(exarg_T *eap)
 		{
 		    // +=, /=, etc. require an existing variable
 		    semsg(_(e_cannot_use_operator_on_new_variable), eap->arg);
-		    i = FAIL;
 		}
 		else if (vim_strchr((char_u *)"+-*/%.", *expr) != NULL)
 		{
@@ -1114,7 +1113,6 @@ ex_let(exarg_T *eap)
 		vim_strncpy(op, expr - len, len);
 		semsg(_(e_white_space_required_before_and_after_str_at_str),
 								   op, argend);
-		i = FAIL;
 	    }
 
 	    if (eap->skip)
@@ -4014,10 +4012,12 @@ var_wrong_func_name(
 {
     // Allow for w: b: s: and t:.  In Vim9 script s: is not allowed, because
     // the name can be used without the s: prefix.
+    // Allow autoload variable.
     if (!((vim_strchr((char_u *)"wbt", name[0]) != NULL
 		    || (!in_vim9script() && name[0] == 's')) && name[1] == ':')
 	    && !ASCII_ISUPPER((name[0] != NUL && name[1] == ':')
-						     ? name[2] : name[0]))
+						     ? name[2] : name[0])
+	    && vim_strchr(name, '#') == NULL)
     {
 	semsg(_(e_funcref_variable_name_must_start_with_capital_str), name);
 	return TRUE;
