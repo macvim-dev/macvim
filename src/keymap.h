@@ -277,12 +277,13 @@ enum key_extra
     , KE_COMMAND = 103		// <Cmd> special key
     , KE_SCRIPT_COMMAND = 104	// <ScriptCmd> special key
     , KE_S_BS = 105		// shift + <BS>
+    , KE_SID = 106		// <SID> special key, followed by {nr};
 #ifdef FEAT_GUI_MACVIM
-    , KE_SWIPELEFT = 106	// Swipe trackpad left
-    , KE_SWIPERIGHT = 107	// Swipe trackpad right
-    , KE_SWIPEUP = 108		// Swipe trackpad up
-    , KE_SWIPEDOWN = 109	// Swipe trackpad down
-    , KE_FORCECLICK = 110	// Force click on trackpad
+    , KE_SWIPELEFT = 107	// Swipe trackpad left
+    , KE_SWIPERIGHT = 108	// Swipe trackpad right
+    , KE_SWIPEUP = 109		// Swipe trackpad up
+    , KE_SWIPEDOWN = 110	// Swipe trackpad down
+    , KE_FORCECLICK = 111	// Force click on trackpad
 #endif
 };
 
@@ -490,6 +491,7 @@ enum key_extra
 
 #define K_COMMAND	TERMCAP2KEY(KS_EXTRA, KE_COMMAND)
 #define K_SCRIPT_COMMAND TERMCAP2KEY(KS_EXTRA, KE_SCRIPT_COMMAND)
+#define K_SID		TERMCAP2KEY(KS_EXTRA, KE_SID)
 
 #ifdef FEAT_GUI_MACVIM
 # define K_SWIPELEFT	TERMCAP2KEY(KS_EXTRA, KE_SWIPELEFT)
