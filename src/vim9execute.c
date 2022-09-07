@@ -860,6 +860,27 @@ in_def_function(void)
 }
 
 /*
+ * Clear "current_ectx" and return the previous value.  To be used when calling
+ * a user function.
+ */
+    ectx_T *
+clear_currrent_ectx(void)
+{
+    ectx_T *r = current_ectx;
+
+    current_ectx = NULL;
+    return r;
+}
+
+    void
+restore_current_ectx(ectx_T *ectx)
+{
+    if (current_ectx != NULL)
+	iemsg("Restoring current_ectx while it is not NULL");
+    current_ectx = ectx;
+}
+
+/*
  * Add an entry for a deferred function call to the currently executing
  * function.
  * Return the list or NULL when failed.
@@ -5080,12 +5101,12 @@ exec_instructions(ectx_T *ectx)
 	    case ISN_PROF_END:
 		{
 #ifdef FEAT_PROFILE
-		    funccall_T cookie;
-		    ufunc_T	    *cur_ufunc =
+		    funccall_T	cookie;
+		    ufunc_T	*cur_ufunc =
 				    (((dfunc_T *)def_functions.ga_data)
 					       + ectx->ec_dfunc_idx)->df_ufunc;
 
-		    cookie.func = cur_ufunc;
+		    cookie.fc_func = cur_ufunc;
 		    if (iptr->isn_type == ISN_PROF_START)
 		    {
 			func_line_start(&cookie, iptr->isn_lnum);
@@ -5171,13 +5192,7 @@ on_fatal_error:
 done:
     ret = OK;
 theend:
-    {
-	dfunc_T	*dfunc = ((dfunc_T *)def_functions.ga_data)
-							  + ectx->ec_dfunc_idx;
-
-	if (dfunc->df_defer_var_idx > 0)
-	    invoke_defer_funcs(ectx);
-    }
+    may_invoke_defer_funcs(ectx);
 
     dict_stack_clear(dict_stack_len_at_start);
     ectx->ec_trylevel_at_start = save_trylevel_at_start;
@@ -5258,6 +5273,7 @@ call_def_function(
     int		argc_arg,	// nr of arguments
     typval_T	*argv,		// arguments
     partial_T	*partial,	// optional partial for context
+    funccall_T	*funccal,
     typval_T	*rettv)		// return value
 {
     ectx_T	ectx;		// execution context
@@ -5340,7 +5356,7 @@ call_def_function(
     if (idx < 0)
     {
 	semsg(NGETTEXT(e_one_argument_too_few, e_nr_arguments_too_few,
-			-idx), -idx);
+								  -idx), -idx);
 	goto failed_early;
     }
 
@@ -5494,6 +5510,10 @@ call_def_function(
 	ectx.ec_instr = INSTRUCTIONS(dfunc);
     }
 
+    // Store the execution context in funccal, used by invoke_all_defer().
+    if (funccal != NULL)
+	funccal->fc_ectx = &ectx;
+
     // Following errors are in the function, not the caller.
     // Commands behave like vim9script.
     estack_push_ufunc(ufunc, 1);
@@ -5537,8 +5557,7 @@ call_def_function(
     }
 
     // When failed need to unwind the call stack.
-    while (ectx.ec_frame_idx != ectx.ec_initial_frame_idx)
-	func_return(&ectx);
+    unwind_def_callstack(&ectx);
 
     // Deal with any remaining closures, they may be in use somewhere.
     if (ectx.ec_funcrefs.ga_len > 0)
@@ -5601,6 +5620,30 @@ failed_early:
 						   printable_func_name(ufunc));
     funcdepth_restore(orig_funcdepth);
     return ret;
+}
+
+/*
+ * Called when a def function has finished (possibly failed).
+ * Invoke all the function returns to clean up and invoke deferred functions,
+ * except the toplevel one.
+ */
+    void
+unwind_def_callstack(ectx_T *ectx)
+{
+    while (ectx->ec_frame_idx != ectx->ec_initial_frame_idx)
+	func_return(ectx);
+}
+
+/*
+ * Invoke any deffered functions for the top function in "ectx".
+ */
+    void
+may_invoke_defer_funcs(ectx_T *ectx)
+{
+    dfunc_T *dfunc = ((dfunc_T *)def_functions.ga_data) + ectx->ec_dfunc_idx;
+
+    if (dfunc->df_defer_var_idx > 0)
+	invoke_defer_funcs(ectx);
 }
 
 /*
