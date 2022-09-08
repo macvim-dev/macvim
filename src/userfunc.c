@@ -2581,6 +2581,40 @@ funcdepth_restore(int depth)
 }
 
 /*
+ * Allocate a funccall_T, link it in current_funccal and fill in "fp" and
+ * "rettv".
+ * Must be followed by one call to remove_funccal() or cleanup_function_call().
+ * Returns NULL when allocation fails.
+ */
+    funccall_T *
+create_funccal(ufunc_T *fp, typval_T *rettv)
+{
+    funccall_T *fc = ALLOC_CLEAR_ONE(funccall_T);
+
+    if (fc == NULL)
+	return NULL;
+    fc->fc_caller = current_funccal;
+    current_funccal = fc;
+    fc->fc_func = fp;
+    func_ptr_ref(fp);
+    fc->fc_rettv = rettv;
+    return fc;
+}
+
+/*
+ * To be called when returning from a compiled function; restores
+ * current_funccal.
+ */
+    void
+remove_funccal()
+{
+    funccall_T *fc = current_funccal;
+
+    current_funccal = fc->fc_caller;
+    free_funccal(fc);
+}
+
+/*
  * Call a user function.
  */
     static void
@@ -2627,20 +2661,15 @@ call_user_func(
 
     line_breakcheck();		// check for CTRL-C hit
 
-    fc = ALLOC_CLEAR_ONE(funccall_T);
+    fc = create_funccal(fp, rettv);
     if (fc == NULL)
 	return;
-    fc->fc_caller = current_funccal;
-    current_funccal = fc;
-    fc->fc_func = fp;
-    fc->fc_rettv = rettv;
     fc->fc_level = ex_nesting_level;
     // Check if this function has a breakpoint.
     fc->fc_breakpoint = dbg_find_breakpoint(FALSE, fp->uf_name, (linenr_T)0);
     fc->fc_dbg_tick = debug_tick;
     // Set up fields for closure.
     ga_init2(&fc->fc_ufuncs, sizeof(ufunc_T *), 1);
-    func_ptr_ref(fp);
 
     if (fp->uf_def_status != UF_NOT_COMPILED)
     {
@@ -2653,7 +2682,7 @@ call_user_func(
 	    profile_may_start_func(&profile_info, fp, caller);
 #endif
 	sticky_cmdmod_flags = 0;
-	call_def_function(fp, argcount, argvars, funcexe->fe_partial,
+	call_def_function(fp, argcount, argvars, 0, funcexe->fe_partial,
 								    fc, rettv);
 	funcdepth_decrement();
 #ifdef FEAT_PROFILE
@@ -2661,8 +2690,7 @@ call_user_func(
 				  || (caller != NULL && caller->uf_profiling)))
 	    profile_may_end_func(&profile_info, fp, caller);
 #endif
-	current_funccal = fc->fc_caller;
-	free_funccal(fc);
+	remove_funccal();
 	sticky_cmdmod_flags = save_sticky_cmdmod_flags;
 	return;
     }
@@ -5619,6 +5647,21 @@ ex_defer_inner(
 	return FAIL;
     }
     return add_defer(name, argcount, argvars);
+}
+
+/*
+ * Return TRUE if currently inside a function call.
+ * Give an error message and return FALSE when not.
+ */
+    int
+can_add_defer(void)
+{
+    if (!in_def_function() && get_current_funccal() == NULL)
+    {
+	semsg(_(e_str_not_inside_function), "defer");
+	return FALSE;
+    }
+    return TRUE;
 }
 
 /*
