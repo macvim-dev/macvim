@@ -39,6 +39,8 @@
 - (void)setImControl:(BOOL)enable;
 - (void)activateIm:(BOOL)enable;
 - (void)checkImState;
+- (void)refreshFonts;
+- (void)updateCmdlineRow;
 
 //
 // MMTextStorage methods
@@ -47,7 +49,6 @@
 - (void)setFont:(NSFont *)newFont;
 - (NSFont *)fontWide;
 - (void)setWideFont:(NSFont *)newFont;
-- (void)refreshFonts;
 - (NSSize)cellSize;
 - (void)setLinespace:(float)newLinespace;
 - (void)setColumnspace:(float)newColumnspace;

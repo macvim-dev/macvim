@@ -55,7 +55,7 @@ NSString *MMFullScreenFadeTimeKey         = @"MMFullScreenFadeTime";
 NSString *MMNonNativeFullScreenShowMenuKey  = @"MMNonNativeFullScreenShowMenu";
 NSString *MMNonNativeFullScreenSafeAreaBehaviorKey = @"MMNonNativeFullScreenSafeAreaBehavior";
 NSString *MMSmoothResizeKey               = @"MMSmoothResize";
-
+NSString *MMCmdLineAlignBottomKey         = @"MMCmdLineAlignBottom";
 
 
 @implementation NSIndexSet (MMExtras)

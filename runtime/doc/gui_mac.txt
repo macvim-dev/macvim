@@ -256,12 +256,14 @@ Here is a list of relevant dictionary entries:
 
 KEY				VALUE ~
 *MMCellWidthMultiplier*		width of a normal glyph in em units [float]
+*MMCmdLineAlignBottom*		Pin command-line to bottom of MacVim [bool]
 *MMDialogsTrackPwd*		open/save dialogs track the Vim pwd [bool]
 *MMDisableLaunchAnimation*	disable launch animation when opening a new
 				MacVim window [bool]
-*MMFullScreenFadeTime*		fade delay for non-native fullscreen [float]
+*MMFontPreserveLineSpacing*	use the line-spacing as specified by font [bool]
 *MMLoginShellArgument*		login shell parameter [string]
 *MMLoginShellCommand*		which shell to use to launch Vim [string]
+*MMFullScreenFadeTime*		fade delay for non-native fullscreen [float]
 *MMNativeFullScreen*		use native full screen mode [bool]
 *MMNonNativeFullScreenShowMenu*	show menus when in non-native full screen [bool]
 *MMNonNativeFullScreenSafeAreaBehavior*
@@ -269,7 +271,6 @@ KEY				VALUE ~
 				the safe area (aka the "notch") [int]
 *MMNoFontSubstitution*		disable automatic font substitution [bool]
 				(Deprecated: Non-CoreText renderer only)
-*MMFontPreserveLineSpacing*	use the line-spacing as specified by font [bool]
 *MMNoTitleBarWindow*		hide title bar [bool]
 *MMTitlebarAppearsTransparent*	enable a transparent titlebar [bool]
 *MMAppearanceModeSelection*	dark mode selection (|macvim-dark-mode|)[bool]

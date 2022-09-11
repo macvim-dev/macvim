@@ -1816,6 +1816,25 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     if (numTabs < 0)
         numTabs = 0;
 
+    // Custom hacks to deal with cmdline_row not being perfect for our use cases.
+    int cmdline_row_adjusted = cmdline_row;
+    if (State == MODE_HITRETURN) {
+        // When we are in hit-return mode, Vim does a weird thing and sets
+        // cmdline_row to be the 2nd-to-last row, which would make pinning
+        // cmdline to bottom look weird. This is done in msg_start() and
+        // wait_return().
+        // Instead of modifying Vim, we just hack around this by manually
+        // increasing the row by one. This would make the pin happen right at
+        // the "Hit Enter..." prompt.
+        cmdline_row_adjusted++;
+    } else if (State == MODE_ASKMORE) {
+        // In "more" mode, Vim sometimes set cmdline_row, sometimes it doesn't.
+        // Silver lining is that it always only takes one row and doesn't wrap
+        // like hit-enter, so we know we can always just pin it to the last row
+        // and be done with the hack.
+        cmdline_row_adjusted = Rows - 1;
+    }
+
     NSDictionary *vimState = [NSDictionary dictionaryWithObjectsAndKeys:
         [[NSFileManager defaultManager] currentDirectoryPath], @"pwd",
         [NSNumber numberWithInt:p_mh], @"p_mh",
@@ -1823,6 +1842,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         [NSNumber numberWithInt:numTabs], @"numTabs",
         [NSNumber numberWithInt:fuoptions_flags], @"fullScreenOptions",
         [NSNumber numberWithLong:p_mouset], @"p_mouset",
+        [NSNumber numberWithInt:cmdline_row_adjusted], @"cmdline_row", // Used for pinning cmdline to bottom of window
         nil];
 
     // Put the state before all other messages.
