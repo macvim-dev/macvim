@@ -163,4 +163,9 @@
     }
 }
 
+- (IBAction)smoothResizeChanged:(id)sender
+{
+    [[MMAppController sharedInstance] refreshAllResizeConstraints];
+}
+
 @end

@@ -77,6 +77,7 @@
 
 - (void)setBackgroundOption:(int)dark;
 - (void)refreshApperanceMode;
+- (void)updateResizeConstraints:(BOOL)resizeWindow;
 
 - (void)setDefaultColorsBackground:(NSColor *)back foreground:(NSColor *)fore;
 - (void)setFont:(NSFont *)font;

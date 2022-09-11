@@ -252,6 +252,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         [NSNumber numberWithBool:NO],     MMNonNativeFullScreenShowMenuKey,
         [NSNumber numberWithInt:0],       MMNonNativeFullScreenSafeAreaBehaviorKey,
         [NSNumber numberWithBool:YES],    MMShareFindPboardKey,
+        [NSNumber numberWithBool:NO],     MMSmoothResizeKey,
         nil];
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:dict];
@@ -1129,6 +1130,15 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     for (unsigned i = 0; i < count; ++i) {
         MMVimController *vc = [vimControllers objectAtIndex:i];
         [vc.windowController refreshFonts];
+    }
+}
+
+- (void)refreshAllResizeConstraints
+{
+    const unsigned count = [vimControllers count];
+    for (unsigned i = 0; i < count; ++i) {
+        MMVimController *vc = [vimControllers objectAtIndex:i];
+        [vc.windowController updateResizeConstraints:YES];
     }
 }
 

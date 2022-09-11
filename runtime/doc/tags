@@ -5418,6 +5418,7 @@ MMNonNativeFullScreenSafeAreaBehavior	gui_mac.txt	/*MMNonNativeFullScreenSafeAre
 MMNonNativeFullScreenShowMenu	gui_mac.txt	/*MMNonNativeFullScreenShowMenu*
 MMShareFindPboard	gui_mac.txt	/*MMShareFindPboard*
 MMShowAddTabButton	gui_mac.txt	/*MMShowAddTabButton*
+MMSmoothResize	gui_mac.txt	/*MMSmoothResize*
 MMTabMaxWidth	gui_mac.txt	/*MMTabMaxWidth*
 MMTabMinWidth	gui_mac.txt	/*MMTabMinWidth*
 MMTabOptimumWidth	gui_mac.txt	/*MMTabOptimumWidth*

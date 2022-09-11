@@ -86,7 +86,6 @@
                         keepOnScreen:(BOOL)onScreen;
 - (NSSize)constrainContentSizeToScreenSize:(NSSize)contentSize;
 - (NSRect)constrainFrame:(NSRect)frame;
-- (void)updateResizeConstraints;
 - (NSTabViewItem *)addNewTabViewItem;
 - (BOOL)askBackendForStarRegister:(NSPasteboard *)pb;
 - (void)updateTablineSeparator;
@@ -332,7 +331,7 @@
     // code that is executed before this point must not depend on the screen!
 
     [[MMAppController sharedInstance] windowControllerWillOpen:self];
-    [self updateResizeConstraints];
+    [self updateResizeConstraints:NO];
     [self resizeWindowToFitContentSize:[vimView desiredSize]
                           keepOnScreen:YES];
 
@@ -707,7 +706,7 @@
     }
 
     [[vimView textView] setFont:font];
-    [self updateResizeConstraints];
+    [self updateResizeConstraints:NO];
     shouldMaximizeWindow = YES;
 }
 
@@ -1519,6 +1518,35 @@
 }
 #endif
 
+/// This will update the window's resizing constraints to either be smooth or rounded to whole cells.
+///
+/// @param resizeWindow If specified, will also resize the window itself down to match the Vim view's desired size.
+- (void)updateResizeConstraints:(BOOL)resizeWindow
+{
+    if (!setupDone) return;
+
+    // If smooth resizing is not set, set the resize increments to exactly
+    // match the font size; this way the window will always hold an integer
+    // number of (rows,columns). Otherwise, just allow arbitrary resizing.
+    const BOOL smoothResize = [[NSUserDefaults standardUserDefaults] boolForKey:MMSmoothResizeKey];
+    const NSSize desiredResizeConstraints = smoothResize ?
+                                                NSMakeSize(1, 1) :
+                                                [[vimView textView] cellSize];
+    [decoratedWindow setContentResizeIncrements:desiredResizeConstraints];
+
+    const NSSize minSize = [vimView minSize];
+    [decoratedWindow setContentMinSize:minSize];
+
+    if (resizeWindow) {
+        if (!smoothResize) {
+            // We only want to resize the window down to match the Vim size if not using smooth resizing.
+            // This resizing is going to re-snap the Window size to multiples of grid size. Otherwise
+            // the resize constraint is always going to be at an offset to the desired size.
+            shouldResizeVimView = YES;
+        }
+    }
+}
+
 @end // MMWindowController
 
 
@@ -1645,19 +1673,6 @@
     return [decoratedWindow frameRectForContentRect:contentRect];
 }
 
-- (void)updateResizeConstraints
-{
-    if (!setupDone) return;
-
-    // Set the resize increments to exactly match the font size; this way the
-    // window will always hold an integer number of (rows,columns).
-    NSSize cellSize = [[vimView textView] cellSize];
-    [decoratedWindow setContentResizeIncrements:cellSize];
-
-    NSSize minSize = [vimView minSize];
-    [decoratedWindow setContentMinSize:minSize];
-}
-
 - (NSTabViewItem *)addNewTabViewItem
 {
     return [vimView addNewTabViewItem];
@@ -1711,7 +1726,7 @@
     if ([decoratedWindow hideTablineSeparator:hide]) {
         // The tabline separator was toggled so the content view must change
         // size.
-        [self updateResizeConstraints];
+        [self updateResizeConstraints:NO];
     }
 }
 

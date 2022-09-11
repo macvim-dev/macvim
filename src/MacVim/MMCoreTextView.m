@@ -835,10 +835,26 @@ static void grid_free(Grid *grid) {
                 cell.fg ^= 0xFFFFFF;
                 cell.sp ^= 0xFFFFFF;
             }
+
+            // Fill background
             if (cell.bg != defaultBg && ALPHA(cell.bg) > 0) {
+                CGRect fillCellRect = cellRect;
+
+                if (c == grid.cols - 1 || (c == grid.cols - 2 && (cell.textFlags & DRAW_WIDE))) {
+                    // Fill a little extra to the right if this is the last
+                    // column, and the frame size isn't exactly the same size
+                    // as the grid (due to smooth resizing, etc). This makes it
+                    // look less ugly and more consisten. See rectForRow:'s
+                    // implementation for extra comments.
+                    CGFloat extraWidth = rowRect.origin.x + rowRect.size.width - (cellRect.size.width + cellRect.origin.x);
+                    fillCellRect.size.width += extraWidth;
+                }
+
                 CGContextSetFillColor(ctx, COMPONENTS(cell.bg));
-                CGContextFillRect(ctx, cellRect);
+                CGContextFillRect(ctx, fillCellRect);
             }
+
+            // Handle signs
             if (cell.sign) {
                 CGRect signRect = cellRect;
                 signRect.size.width *= 2;
@@ -847,6 +863,8 @@ static void grid_free(Grid *grid) {
                             operation:(cell.inverted ? NSCompositingOperationDifference : NSCompositingOperationSourceOver)
                              fraction:1.0];
             }
+
+            // Insertion point (cursor)
             if (cell.insertionPoint.color && cell.insertionPoint.fraction) {
                 float frac = cell.insertionPoint.fraction / 100.0;
                 NSRect rect = cellRect;
@@ -867,6 +885,8 @@ static void grid_free(Grid *grid) {
                     NSRectFill(rect);
                 }
             }
+
+            // Text underline styles
             if (cell.textFlags & DRAW_UNDERL) {
                 CGRect rect = CGRectMake(cellRect.origin.x, cellRect.origin.y+0.4*fontDescent, cellRect.size.width, 1);
                 CGContextSetFillColor(ctx, COMPONENTS(cell.sp));
@@ -879,6 +899,8 @@ static void grid_free(Grid *grid) {
                 CGContextSetRGBStrokeColor(ctx, RED(cell.sp), GREEN(cell.sp), BLUE(cell.sp), ALPHA(cell.sp));
                 CGContextStrokePath(ctx);
             }
+
+            // Draw the actual text
             if (cell.string) {
                 if (!ligatures || lastStringCell.fg != cell.fg || lastStringCell.textFlags != cell.textFlags)
                     flushLineString();
@@ -894,6 +916,7 @@ static void grid_free(Grid *grid) {
             } else {
                 flushLineString();
             }
+
             if (cell.textFlags & DRAW_WIDE)
                 c++;
         }
@@ -1066,6 +1089,19 @@ static void grid_free(Grid *grid) {
                     insetSize.height;
     rect.size.width = nc*cellSize.width;
     rect.size.height = nr*cellSize.height;
+
+    // Under smooth resizing, full screen, or guioption-k; we frequently have a frame size that's not
+    // aligned with the exact grid size. If the user has 'cursorline' set, or the color scheme uses
+    // the NonText highlight group, this will leave a small gap on the right filled with bg color looking
+    // a little weird. Just fill a little extra to the right for the last column to make it look less weird.
+    //
+    // Note that we don't do this for filling the bottom since it's used only for cmdline which isn't usually
+    // colored anyway.
+    if (col + nc == grid.cols) {
+        const int insetRight = [[NSUserDefaults standardUserDefaults] integerForKey:MMTextInsetRightKey];
+        CGFloat extraWidth = frame.size.width - insetRight - (rect.size.width + rect.origin.x);
+        rect.size.width += extraWidth;
+    }
 
     return rect;
 }

@@ -27,4 +27,11 @@
 - (IBAction)openInCurrentWindowSelectionChanged:(id)sender;
 - (IBAction)checkForUpdatesChanged:(id)sender;
 - (IBAction)appearanceChanged:(id)sender;
+- (IBAction)lastWindowClosedChanged:(id)sender;
+- (IBAction)openUntitledWindowChanged:(id)sender;
+- (IBAction)smoothResizeChanged:(id)sender;
+
+// Appearance pane
+- (IBAction)fontPropertiesChanged:(id)sender;
+
 @end
