@@ -20,12 +20,12 @@
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
         <userDefaultsController representsSharedInstance="YES" id="58" userLabel="Shared Defaults"/>
         <customView id="115" userLabel="General">
-            <rect key="frame" x="0.0" y="0.0" width="483" height="314"/>
+            <rect key="frame" x="0.0" y="0.0" width="483" height="337"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
             <subviews>
                 <customView id="5x5-P0-afk" userLabel="Open untitled window">
-                    <rect key="frame" x="19" y="234" width="433" height="58"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                    <rect key="frame" x="20" y="259" width="433" height="58"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <subviews>
                         <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="117">
                             <rect key="frame" x="-2" y="41" width="187" height="17"/>
@@ -70,8 +70,8 @@
                     </subviews>
                 </customView>
                 <customView id="p6o-fo-STi" userLabel="Open files from applications">
-                    <rect key="frame" x="19" y="94" width="433" height="132"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                    <rect key="frame" x="20" y="119" width="433" height="132"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <subviews>
                         <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="116">
                             <rect key="frame" x="-2" y="115" width="187" height="17"/>
@@ -149,8 +149,8 @@
                     </subviews>
                 </customView>
                 <customView id="dlz-JQ-U4e" userLabel="After last window closes">
-                    <rect key="frame" x="19" y="66" width="381" height="22"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                    <rect key="frame" x="20" y="89" width="381" height="22"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <subviews>
                         <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="126">
                             <rect key="frame" x="-2" y="3" width="187" height="17"/>
@@ -182,9 +182,37 @@
                         </popUpButton>
                     </subviews>
                 </customView>
+                <customView id="6BL-o0-OrR" userLabel="Window Resizing">
+                    <rect key="frame" x="20" y="64" width="444" height="17"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <subviews>
+                        <button id="f9h-8n-asD" userLabel="allow smooth resizing">
+                            <rect key="frame" x="188" y="-1" width="258" height="18"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
+                            <string key="toolTip">Smoothly resizes MacVim's window instead of fixing it to the grid size. It's also recommended to set "guioptions+=k" in your vimrc when this is set.</string>
+                            <buttonCell key="cell" type="check" title="Smoothly resizes window" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="4YN-AX-Vrz">
+                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                <font key="font" metaFont="system"/>
+                            </buttonCell>
+                            <connections>
+                                <action selector="smoothResizeChanged:" target="-2" id="paG-Lx-hcb"/>
+                                <binding destination="58" name="value" keyPath="values.MMSmoothResize" id="Wkt-gU-ZnK"/>
+                            </connections>
+                        </button>
+                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="Lmi-H0-cPd" userLabel="Window resizing">
+                            <rect key="frame" x="-2" y="0.0" width="187" height="17"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
+                            <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Resizing window:" id="ExQ-6y-pyN" userLabel="Window resizing:">
+                                <font key="font" metaFont="system"/>
+                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                            </textFieldCell>
+                        </textField>
+                    </subviews>
+                </customView>
                 <customView id="0hT-y8-Hge" userLabel="Updater">
-                    <rect key="frame" x="19" y="22" width="444" height="36"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                    <rect key="frame" x="20" y="20" width="444" height="36"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <subviews>
                         <button id="122">
                             <rect key="frame" x="188" y="18" width="258" height="18"/>
@@ -226,7 +254,7 @@
                     </subviews>
                 </customView>
             </subviews>
-            <point key="canvasLocation" x="138" y="20"/>
+            <point key="canvasLocation" x="137.5" y="21.5"/>
         </customView>
         <customView id="hr4-G4-3ZG" userLabel="Appearance">
             <rect key="frame" x="0.0" y="0.0" width="483" height="315"/>
