@@ -26,11 +26,6 @@
     NSRect frame = generalPreferences.frame;
     frame.size.height -= sparkleHeight;
     generalPreferences.frame = frame;
-    for (NSView *subview in generalPreferences.subviews) {
-        frame = subview.frame;
-        frame.origin.y -= sparkleHeight;
-        subview.frame = frame;
-    }
 #endif
     [super windowDidLoad];
 
