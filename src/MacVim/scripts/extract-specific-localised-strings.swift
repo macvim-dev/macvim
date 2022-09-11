@@ -363,6 +363,7 @@ for localisation in localisations {
             else {
                 let escapedTranslation = translation.replacingOccurrences(of: " ", with: "\\ ", options: .literal, range: nil)
                                                     .replacingOccurrences(of: " ", with: "\\ ", options: .literal, range: nil)
+                                                    .replacingOccurrences(of: ".", with: "\\.", options: .literal, range: nil)
 
                 return """
                 menutrans \(neededLocalisation.targetKey) \(escapedTranslation)
