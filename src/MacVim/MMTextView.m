@@ -357,6 +357,11 @@
     // Doesn't do anything. CoreText renderer only.
 }
 
+- (void)updateCmdlineRow
+{
+    // Doesn't do anything. CoreText renderer only.
+}
+
 - (NSSize)cellSize
 {
     return [(MMTextStorage*)[self textStorage] cellSize];

@@ -40,6 +40,7 @@
 #import "MMAppController.h"
 #import "MMPreferenceController.h"
 #import "MMVimController.h"
+#import "MMVimView.h"
 #import "MMWindowController.h"
 #import "MMTextView.h"
 #import "Miscellaneous.h"
@@ -253,6 +254,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         [NSNumber numberWithInt:0],       MMNonNativeFullScreenSafeAreaBehaviorKey,
         [NSNumber numberWithBool:YES],    MMShareFindPboardKey,
         [NSNumber numberWithBool:NO],     MMSmoothResizeKey,
+        [NSNumber numberWithBool:NO],     MMCmdLineAlignBottomKey,
         nil];
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:dict];
@@ -1124,6 +1126,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     }
 }
 
+/// Refresh all Vim text views' fonts.
 - (void)refreshAllFonts
 {
     unsigned count = [vimControllers count];
@@ -1133,12 +1136,26 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     }
 }
 
+/// Refresh all resize constraints based on smooth resize configurations
+/// and resize the windows to match the constraints.
 - (void)refreshAllResizeConstraints
 {
     const unsigned count = [vimControllers count];
     for (unsigned i = 0; i < count; ++i) {
         MMVimController *vc = [vimControllers objectAtIndex:i];
         [vc.windowController updateResizeConstraints:YES];
+    }
+}
+
+/// Refresh all text views and re-render them, as well as updating their
+/// cmdline alignment properties to make sure they are pinned properly.
+- (void)refreshAllTextViews
+{
+    unsigned count = [vimControllers count];
+    for (unsigned i = 0; i < count; ++i) {
+        MMVimController *vc = [vimControllers objectAtIndex:i];
+        [vc.windowController.vimView.textView updateCmdlineRow];
+        vc.windowController.vimView.textView.needsDisplay = YES;
     }
 }
 

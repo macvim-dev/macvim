@@ -76,13 +76,12 @@ CTFontDrawGlyphs(CTFontRef fontRef, const CGGlyph glyphs[],
 - (NSFont *)fontVariantForTextFlags:(int)textFlags;
 - (CTLineRef)lineForCharacterString:(NSString *)string
                           textFlags:(int)flags;
+- (void)setCmdlineRow:(int)row;
 @end
 
 
 @interface MMCoreTextView (Drawing)
 - (NSPoint)pointForRow:(int)row column:(int)column;
-- (NSRect)rectFromRow:(int)row1 column:(int)col1
-                toRow:(int)row2 column:(int)col2;
 - (NSSize)textAreaSize;
 - (void)batchDrawData:(NSData *)data;
 - (void)setString:(NSString *)string
@@ -215,6 +214,9 @@ static void grid_free(Grid *grid) {
 
 @implementation MMCoreTextView {
     Grid grid;
+
+    BOOL alignCmdLineToBottom; ///< Whether to pin the Vim command-line to the bottom of the window
+    int cmdlineRow; ///< Row number (0-indexed) where the cmdline starts. Used for pinning it to the bottom if desired.
 }
 
 - (id)initWithFrame:(NSRect)frame
@@ -242,6 +244,10 @@ static void grid_free(Grid *grid) {
             NSFilenamesPboardType, NSStringPboardType, nil]];
 
     ligatures = NO;
+
+    alignCmdLineToBottom = NO; // this would be updated to the user preferences later
+    cmdlineRow = -1; // this would be updated by Vim
+
     return self;
 }
 
@@ -327,6 +333,8 @@ static void grid_free(Grid *grid) {
     // NOTE: The rect should be in _flipped_ coordinates and the first row must
     // include the top inset as well.  (This method is only used to place the
     // scrollbars inside MMVimView.)
+
+    // Note: This doesn't really take alignCmdLineToBottom into account right now.
 
     NSRect rect = { {0, 0}, {0, 0} };
     unsigned start = range.location > maxRows ? maxRows : range.location;
@@ -543,6 +551,57 @@ static void grid_free(Grid *grid) {
 - (void)setThinStrokes:(BOOL)state
 {
     thinStrokes = state;
+}
+
+/// Update the cmdline row number from Vim's state and cmdline alignment user settings.
+- (void)updateCmdlineRow
+{
+    [self setCmdlineRow: [[[self vimController] objectForVimStateKey:@"cmdline_row"] intValue]];
+}
+
+/// Set Vim's cmdline row number. This will mark the relevant parts to be repainted
+/// if the row number has changed as we are pinning the cmdline to the bottom,
+/// because otherwise we will have a gap that doesn't get cleared and leaves artifacts.
+///
+/// @param row The row (0-indexed) of the current cmdline in Vim.
+- (void)setCmdlineRow:(int)row
+{
+    const BOOL newAlignCmdLineToBottom = [[NSUserDefaults standardUserDefaults] boolForKey:MMCmdLineAlignBottomKey];
+
+    if (newAlignCmdLineToBottom != alignCmdLineToBottom) {
+        // The user settings has changed (usually through the settings panel). Just update everything.
+        alignCmdLineToBottom = newAlignCmdLineToBottom;
+        cmdlineRow = row;
+        [self setNeedsDisplay:YES];
+        return;
+    }
+
+    if (row != cmdlineRow) {
+        // The cmdline row has changed. Need to redraw the necessary parts if we
+        // are configured to pin cmdline to the bottom.
+        if (alignCmdLineToBottom) {
+            // Since we are changing the cmdline row, we need to repaint the
+            // parts where the gap changed. Just for simplicity, we repaint
+            // both the old/new cmdline rows and the row above them. This way
+            // the gap in between the top and bottom aligned rows should be
+            // touched in the repainting and cleared to bg.
+            [self setNeedsDisplayFromRow:cmdlineRow-1
+                                  column:grid.cols
+                                   toRow:cmdlineRow
+                                  column:grid.cols];
+
+            // Have to do this between the two calls as cmdlineRow would affect
+            // the calculation in them.
+            cmdlineRow = row;
+
+            [self setNeedsDisplayFromRow:cmdlineRow-1
+                                  column:grid.cols
+                                   toRow:cmdlineRow
+                                  column:grid.cols];
+        } else {
+            cmdlineRow = row;
+        }
+    }
 }
 
 - (void)setImControl:(BOOL)enable
@@ -767,8 +826,8 @@ static void grid_free(Grid *grid) {
     CGContextFillRect(ctx, rect);
 
     for (size_t r = 0; r < grid.rows; r++) {
-        CGRect rowRect = [self rectForRow:r column:0 numRows:1 numColumns:grid.cols];
-        CGRect rowClipRect = CGRectIntersection(rowRect, rect);
+        const CGRect rowRect = [self rectForRow:r column:0 numRows:1 numColumns:grid.cols];
+        const CGRect rowClipRect = CGRectIntersection(rowRect, rect);
         if (CGRectIsNull(rowClipRect))
             continue;
         CGContextSaveGState(ctx);
@@ -1057,14 +1116,34 @@ static void grid_free(Grid *grid) {
     [[self windowController] vimMenuItemAction:sender];
 }
 
+/// Converts a point in this NSView to a specific Vim row/column.
+///
+/// @param point The point in NSView. Note that it's y-up as that's Mac convention, whereas row starts from the top.
 - (BOOL)convertPoint:(NSPoint)point toRow:(int *)row column:(int *)column
 {
+    // Convert y-up to y-down.
     point.y = [self bounds].size.height - point.y;
 
     NSPoint origin = { insetSize.width, insetSize.height };
 
     if (!(cellSize.width > 0 && cellSize.height > 0))
         return NO;
+
+    if (alignCmdLineToBottom) {
+        // Account for the gap we added to pin cmdline to the bottom of the window
+        const NSRect frame = [self bounds];
+        const int insetBottom = [[NSUserDefaults standardUserDefaults] integerForKey:MMTextInsetBottomKey];
+        const CGFloat gapHeight = frame.size.height - grid.rows*cellSize.height - insetSize.height - insetBottom;
+        const CGFloat cmdlineRowY = insetSize.height + cmdlineRow*cellSize.height + 1;
+        if (point.y > cmdlineRowY) {
+            point.y -= gapHeight;
+            if (point.y <= cmdlineRowY) {
+                // This was inside the gap between top and bottom lines. Round it down
+                // to the next line.
+                point.y = cmdlineRowY + 1;
+            }
+        }
+    }
 
     if (row) *row = floor((point.y-origin.y-1) / cellSize.height);
     if (column) *column = floor((point.x-origin.x-1) / cellSize.width);
@@ -1075,6 +1154,11 @@ static void grid_free(Grid *grid) {
     return YES;
 }
 
+/// Calculates the rect for the row/column range, accounting for insets. This also
+/// has additional for accounting for aligning cmdline to bottom, and filling last
+/// column to the right.
+///
+/// @return Rectangle containing the row/column range.
 - (NSRect)rectForRow:(int)row column:(int)col numRows:(int)nr
           numColumns:(int)nc
 {
@@ -1103,6 +1187,22 @@ static void grid_free(Grid *grid) {
         rect.size.width += extraWidth;
     }
 
+    // When configured to align cmdline to bottom, need to adjust the rect with an additional gap to pin
+    // the rect to the bottom.
+    if (alignCmdLineToBottom) {
+        const int insetBottom = [[NSUserDefaults standardUserDefaults] integerForKey:MMTextInsetBottomKey];
+        const CGFloat gapHeight = frame.size.height - grid.rows*cellSize.height - insetSize.height - insetBottom;
+        if (row >= cmdlineRow) {
+            rect.origin.y -= gapHeight;
+        } else if (row + nr - 1 >= cmdlineRow) {
+            // This is an odd case where the gap between cmdline and the top-aligned content is inside
+            // the rect so we need to adjust the height as well. During rendering we draw line-by-line
+            // so this shouldn't cause any issues as we only encounter this situation when calculating
+            // the rect in setNeedsDisplayFromRow:.
+            rect.size.height += gapHeight;
+            rect.origin.y -= gapHeight;
+        }
+    }
     return rect;
 }
 
@@ -1208,17 +1308,6 @@ static void grid_free(Grid *grid) {
     return NSMakePoint(
             col*cellSize.width + insetSize.width,
             frame.size.height - (row+1)*cellSize.height - insetSize.height);
-}
-
-- (NSRect)rectFromRow:(int)row1 column:(int)col1
-                toRow:(int)row2 column:(int)col2
-{
-    NSRect frame = [self bounds];
-    return NSMakeRect(
-            insetSize.width + col1*cellSize.width,
-            frame.size.height - insetSize.height - (row2+1)*cellSize.height,
-            (col2 + 1 - col1) * cellSize.width,
-            (row2 + 1 - row1) * cellSize.height);
 }
 
 - (NSSize)textAreaSize
@@ -1447,6 +1536,9 @@ static int ReadDrawCmd(const void **bytesRef, struct DrawCmd *drawCmd)
     ASLogNotice(@"====> BEGIN");
 #endif
     // TODO: Sanity check input
+
+    // Update the cmdline rows to decide if we need to update based on whether we are pinning cmdline to bottom or not.
+    [self updateCmdlineRow];
 
     while (bytes < end) {
         struct DrawCmd drawCmd;

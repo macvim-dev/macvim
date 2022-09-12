@@ -163,4 +163,9 @@
     [[MMAppController sharedInstance] refreshAllResizeConstraints];
 }
 
+- (IBAction)cmdlineAlignBottomChanged:(id)sender
+{
+    [[MMAppController sharedInstance] refreshAllTextViews];
+}
+
 @end

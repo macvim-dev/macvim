@@ -5405,6 +5405,7 @@ M	motion.txt	/*M*
 MDI	starting.txt	/*MDI*
 MMAppearanceModeSelection	gui_mac.txt	/*MMAppearanceModeSelection*
 MMCellWidthMultiplier	gui_mac.txt	/*MMCellWidthMultiplier*
+MMCmdLineAlignBottom	gui_mac.txt	/*MMCmdLineAlignBottom*
 MMDialogsTrackPwd	gui_mac.txt	/*MMDialogsTrackPwd*
 MMDisableLaunchAnimation	gui_mac.txt	/*MMDisableLaunchAnimation*
 MMFontPreserveLineSpacing	gui_mac.txt	/*MMFontPreserveLineSpacing*

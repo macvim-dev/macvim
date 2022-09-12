@@ -61,6 +61,7 @@
 - (void)refreshAllAppearances;
 - (void)refreshAllFonts;
 - (void)refreshAllResizeConstraints;
+- (void)refreshAllTextViews;
 
 - (IBAction)newWindow:(id)sender;
 - (IBAction)newWindowAndActivate:(id)sender;
