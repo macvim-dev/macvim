@@ -1309,8 +1309,6 @@
 	</array>
 	<key>SUFeedURL</key>
 	<string>https://raw.githubusercontent.com/macvim-dev/macvim/gh-pages/appcast/latest.xml</string>
-	<key>SUPublicDSAKeyFile</key>
-	<string>dsa_pub.pem</string>
 	<key>SUPublicEDKey</key>
 	<string>Pt4zsg/8S3/mxKW7Cmt0cZFw/+2LOuXOYS93evP+Mfc=</string>
 	<key>NSAppleEventsUsageDescription</key>
