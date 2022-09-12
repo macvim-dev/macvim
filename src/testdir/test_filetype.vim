@@ -88,6 +88,7 @@ let s:filename_checks = {
     \ 'bindzone': ['named.root', '/bind/db.file', '/named/db.file', 'any/bind/db.file', 'any/named/db.file'],
     \ 'bitbake': ['file.bb', 'file.bbappend', 'file.bbclass', 'build/conf/local.conf', 'meta/conf/layer.conf', 'build/conf/bbappend.conf', 'meta-layer/conf/distro/foo.conf'],
     \ 'blank': ['file.bl'],
+    \ 'blueprint': ['file.blp'],
     \ 'bsdl': ['file.bsd', 'file.bsdl'],
     \ 'bst': ['file.bst'],
     \ 'bzl': ['file.bazel', 'file.bzl', 'WORKSPACE'],
@@ -213,8 +214,10 @@ let s:filename_checks = {
     \ 'gedcom': ['file.ged', 'lltxxxxx.txt', '/tmp/lltmp', '/tmp/lltmp-file', 'any/tmp/lltmp', 'any/tmp/lltmp-file'],
     \ 'gemtext': ['file.gmi', 'file.gemini'],
     \ 'gift': ['file.gift'],
+    \ 'gitattributes': ['file.git/info/attributes', '.gitattributes', '/.config/git/attributes', '/etc/gitattributes', '/usr/local/etc/gitattributes', 'some.git/info/attributes'],
     \ 'gitcommit': ['COMMIT_EDITMSG', 'MERGE_MSG', 'TAG_EDITMSG', 'NOTES_EDITMSG', 'EDIT_DESCRIPTION'],
     \ 'gitconfig': ['file.git/config', 'file.git/config.worktree', 'file.git/worktrees/x/config.worktree', '.gitconfig', '.gitmodules', 'file.git/modules//config', '/.config/git/config', '/etc/gitconfig', '/usr/local/etc/gitconfig', '/etc/gitconfig.d/file', 'any/etc/gitconfig.d/file', '/.gitconfig.d/file', 'any/.config/git/config', 'any/.gitconfig.d/file', 'some.git/config', 'some.git/modules/any/config'],
+    \ 'gitignore': ['file.git/info/exclude', '.gitignore', '/.config/git/ignore', 'some.git/info/exclude'],
     \ 'gitolite': ['gitolite.conf', '/gitolite-admin/conf/file', 'any/gitolite-admin/conf/file'],
     \ 'gitrebase': ['git-rebase-todo'],
     \ 'gitsendemail': ['.gitsendemail.msg.xxxxxx'],
@@ -409,7 +412,7 @@ let s:filename_checks = {
     \ 'perl': ['file.plx', 'file.al', 'file.psgi', 'gitolite.rc', '.gitolite.rc', 'example.gitolite.rc'],
     \ 'pf': ['pf.conf'],
     \ 'pfmain': ['main.cf'],
-    \ 'php': ['file.php', 'file.php9', 'file.phtml', 'file.ctp', 'file.phpt'],
+    \ 'php': ['file.php', 'file.php9', 'file.phtml', 'file.ctp', 'file.phpt', 'file.theme'],
     \ 'pike': ['file.pike', 'file.pmod'],
     \ 'pilrc': ['file.rcp'],
     \ 'pine': ['.pinerc', 'pinerc', '.pinercex', 'pinercex'],
@@ -534,7 +537,7 @@ let s:filename_checks = {
     \ 'stata': ['file.ado', 'file.do', 'file.imata', 'file.mata'],
     \ 'stp': ['file.stp'],
     \ 'sudoers': ['any/etc/sudoers', 'sudoers.tmp', '/etc/sudoers', 'any/etc/sudoers.d/file'],
-    \ 'supercollider': ['file.quark'], 
+    \ 'supercollider': ['file.quark'],
     \ 'surface': ['file.sface'],
     \ 'svelte': ['file.svelte'],
     \ 'svg': ['file.svg'],
@@ -1354,7 +1357,7 @@ func Test_mod_file()
   unlet g:filetype_mod
   bwipe!
 
-  " RAPID header start with a line containing only "%%%", 
+  " RAPID header start with a line containing only "%%%",
   " but is not always present.
   call writefile(['%%%'], 'modfile.mod')
   split modfile.mod
@@ -1370,7 +1373,7 @@ func Test_mod_file()
   bwipe!
   call delete('modfile.Mod')
 
-  " RAPID is not case sensitive, embedded spaces, sysmodule, 
+  " RAPID is not case sensitive, embedded spaces, sysmodule,
   " file starts with empty line(s).
   call writefile(['', 'MODULE  rapidmödüle  (SYSMODULE,NOSTEPIN)'], 'modfile.MOD')
   split modfile.MOD
@@ -1498,7 +1501,7 @@ func Test_prg_file()
   unlet g:filetype_prg
   bwipe!
 
-  " RAPID header start with a line containing only "%%%", 
+  " RAPID header start with a line containing only "%%%",
   " but is not always present.
   call writefile(['%%%'], 'prgfile.prg')
   split prgfile.prg
@@ -1514,7 +1517,7 @@ func Test_prg_file()
   bwipe!
   call delete('prgfile.Prg')
 
-  " RAPID is not case sensitive, embedded spaces, sysmodule, 
+  " RAPID is not case sensitive, embedded spaces, sysmodule,
   " file starts with empty line(s).
   call writefile(['', 'MODULE  rapidmödüle  (SYSMODULE,NOSTEPIN)'], 'prgfile.PRG')
   split prgfile.PRG
@@ -1625,7 +1628,7 @@ func Test_sys_file()
   unlet g:filetype_sys
   bwipe!
 
-  " RAPID header start with a line containing only "%%%", 
+  " RAPID header start with a line containing only "%%%",
   " but is not always present.
   call writefile(['%%%'], 'sysfile.sys')
   split sysfile.sys
@@ -1641,7 +1644,7 @@ func Test_sys_file()
   bwipe!
   call delete('sysfile.Sys')
 
-  " RAPID is not case sensitive, embedded spaces, sysmodule, 
+  " RAPID is not case sensitive, embedded spaces, sysmodule,
   " file starts with empty line(s).
   call writefile(['', 'MODULE  rapidmödüle  (SYSMODULE,NOSTEPIN)'], 'sysfile.SYS')
   split sysfile.SYS

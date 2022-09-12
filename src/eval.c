@@ -842,6 +842,7 @@ call_func_retstr(
  * Call Vim script function "func" and return the result as a List.
  * Uses "argv" and "argc" as call_func_retstr().
  * Returns NULL when there is something wrong.
+ * Gives an error when the returned value is not a list.
  */
     void *
 call_func_retlist(
@@ -856,6 +857,8 @@ call_func_retlist(
 
     if (rettv.v_type != VAR_LIST)
     {
+	semsg(_(e_custom_list_completion_function_does_not_return_list_but_str),
+		vartype_name(rettv.v_type));
 	clear_tv(&rettv);
 	return NULL;
     }
@@ -1028,12 +1031,16 @@ get_lval(
 	    {
 		char_u	    *tp = skipwhite(p + 1);
 
+		if (is_scoped_variable(name))
+		{
+		    semsg(_(e_cannot_use_type_with_this_variable_str), name);
+		    return NULL;
+		}
 		if (tp == p + 1 && !quiet)
 		{
 		    semsg(_(e_white_space_required_after_str_str), ":", p);
 		    return NULL;
 		}
-
 		if (!SCRIPT_ID_VALID(current_sctx.sc_sid))
 		{
 		    semsg(_(e_using_type_not_in_script_context_str), p);
@@ -1121,6 +1128,8 @@ get_lval(
     var2.v_type = VAR_UNKNOWN;
     while (*p == '[' || (*p == '.' && p[1] != '=' && p[1] != '.'))
     {
+	int r = OK;
+
 	if (*p == '.' && lp->ll_tv->v_type != VAR_DICT)
 	{
 	    if (!quiet)
@@ -1136,12 +1145,14 @@ get_lval(
 	    return NULL;
 	}
 
-	// a NULL list/blob works like an empty list/blob, allocate one now.
+	// A NULL list/blob works like an empty list/blob, allocate one now.
 	if (lp->ll_tv->v_type == VAR_LIST && lp->ll_tv->vval.v_list == NULL)
-	    rettv_list_alloc(lp->ll_tv);
+	    r = rettv_list_alloc(lp->ll_tv);
 	else if (lp->ll_tv->v_type == VAR_BLOB
 					     && lp->ll_tv->vval.v_blob == NULL)
-	    rettv_blob_alloc(lp->ll_tv);
+	    r = rettv_blob_alloc(lp->ll_tv);
+	if (r == FAIL)
+	    return NULL;
 
 	if (lp->ll_range)
 	{
