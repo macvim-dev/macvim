@@ -246,7 +246,6 @@
 		52818AFA1C1C075300F59085 /* QuickLookStephen.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = QuickLookStephen.xcodeproj; path = qlstephen/QuickLookStephen.xcodeproj; sourceTree = "<group>"; };
 		528DA6691426D4EB003380F1 /* macvim-askpass */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = "macvim-askpass"; sourceTree = "<group>"; };
 		52A364721C4A5789005757EC /* Sparkle.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = Sparkle.framework; sourceTree = "<group>"; };
-		52B7ED9A1C4A4D6900AFFF15 /* dsa_pub.pem */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = dsa_pub.pem; sourceTree = "<group>"; };
 		8D1107310486CEB800E47090 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		8D1107320486CEB800E47090 /* MacVim.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MacVim.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		901C06F42430C8C800797C2A /* map.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = map.c; path = ../map.c; sourceTree = "<group>"; };
@@ -611,7 +610,6 @@
 		29B97317FDCFA39411CA2CEA /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				52B7ED9A1C4A4D6900AFFF15 /* dsa_pub.pem */,
 				1D384A0D100D671700D3C22F /* KeyBinding.plist */,
 				1D9C602E0EF79C0C0034AD44 /* MacVim.icns */,
 				0395A8A90D72D88B00881434 /* General.png */,
