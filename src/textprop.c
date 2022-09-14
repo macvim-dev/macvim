@@ -232,8 +232,9 @@ prop_add_one(
 
     for (lnum = start_lnum; lnum <= end_lnum; ++lnum)
     {
-	colnr_T col;	// start column
-	long	length;	// in bytes
+	colnr_T col;	    // start column use in tp_col
+	colnr_T sort_col;   // column where it appears
+	long	length;	    // in bytes
 
 	// Fetch the line to get the ml_line_len field updated.
 	proplen = get_text_props(buf, lnum, &props, TRUE);
@@ -248,6 +249,7 @@ prop_add_one(
 	    semsg(_(e_invalid_column_number_nr), (long)start_col);
 	    goto theend;
 	}
+	sort_col = col;
 
 	if (lnum == end_lnum)
 	    length = end_col - col;
@@ -263,7 +265,9 @@ prop_add_one(
 	    length = 1;		// text is placed on one character
 	    if (col == 0)
 	    {
-		col = MAXCOL;	// after the line
+		col = MAXCOL;	// before or after the line
+		if ((text_flags & TP_FLAG_ALIGN_ABOVE) == 0)
+		    sort_col = MAXCOL;
 		length += text_padding_left;
 	    }
 	}
@@ -280,9 +284,15 @@ prop_add_one(
 	// the text, we need to copy them as bytes before using it as a struct.
 	for (i = 0; i < proplen; ++i)
 	{
+	    colnr_T prop_col;
+
 	    mch_memmove(&tmp_prop, props + i * sizeof(textprop_T),
 							   sizeof(textprop_T));
-	    if (tmp_prop.tp_col >= col)
+	    // col is MAXCOL when the text goes above or after the line, when
+	    // above we should use column zero for sorting
+	    prop_col = (tmp_prop.tp_flags & TP_FLAG_ALIGN_ABOVE)
+				? 0 : tmp_prop.tp_col;
+	    if (prop_col >= sort_col)
 		break;
 	}
 	newprops = newtext + textlen;
@@ -608,12 +618,12 @@ get_text_props(buf_T *buf, linenr_T lnum, char_u **props, int will_change)
 }
 
 /*
- * Return the number of text properties with "below" alignment in line "lnum".
- * A "right" aligned property also goes below after a "below" or other "right"
- * aligned property.
+ * Return the number of text properties with "above" or "below" alignment in
+ * line "lnum".  A "right" aligned property also goes below after a "below" or
+ * other "right" aligned property.
  */
     int
-prop_count_below(buf_T *buf, linenr_T lnum)
+prop_count_above_below(buf_T *buf, linenr_T lnum)
 {
     char_u	*props;
     int		count = get_text_props(buf, lnum, &props, FALSE);
@@ -634,6 +644,11 @@ prop_count_below(buf_T *buf, linenr_T lnum)
 				     && (prop.tp_flags & TP_FLAG_ALIGN_RIGHT)))
 	    {
 		next_right_goes_below = TRUE;
+		++result;
+	    }
+	    else if (prop.tp_flags & TP_FLAG_ALIGN_ABOVE)
+	    {
+		next_right_goes_below = FALSE;
 		++result;
 	    }
 	    else if (prop.tp_flags & TP_FLAG_ALIGN_RIGHT)
@@ -2249,6 +2264,7 @@ adjust_props_for_split(
 	proptype_T *pt;
 	int	    start_incl, end_incl;
 	int	    cont_prev, cont_next;
+	int	    prop_col;
 
 	// copy the prop to an aligned structure
 	mch_memmove(&prop, props + i * sizeof(textprop_T), sizeof(textprop_T));
@@ -2256,9 +2272,13 @@ adjust_props_for_split(
 	pt = text_prop_type_by_id(curbuf, prop.tp_type);
 	start_incl = (pt != NULL && (pt->pt_flags & PT_FLAG_INS_START_INCL));
 	end_incl = (pt != NULL && (pt->pt_flags & PT_FLAG_INS_END_INCL));
-	cont_prev = prop.tp_col != MAXCOL && prop.tp_col + !start_incl <= kept;
-	cont_next = prop.tp_col != MAXCOL
-			   && skipped <= prop.tp_col + prop.tp_len - !end_incl;
+
+	// a text prop "above" behaves like it is on the first text column
+	prop_col = (prop.tp_flags & TP_FLAG_ALIGN_ABOVE) ? 1 : prop.tp_col;
+
+	cont_prev = prop_col != MAXCOL && prop_col + !start_incl <= kept;
+	cont_next = prop_col != MAXCOL
+			      && skipped <= prop_col + prop.tp_len - !end_incl;
 	// when a prop has text it is never copied
 	if (prop.tp_id < 0 && cont_next)
 	    cont_prev = FALSE;
@@ -2277,8 +2297,7 @@ adjust_props_for_split(
 
 	// Only add the property to the next line if the length is bigger than
 	// zero.
-	if ((cont_next || prop.tp_col == MAXCOL)
-						&& ga_grow(&nextprop, 1) == OK)
+	if ((cont_next || prop_col == MAXCOL) && ga_grow(&nextprop, 1) == OK)
 	{
 	    textprop_T *p = ((textprop_T *)nextprop.ga_data) + nextprop.ga_len;
 

@@ -3929,6 +3929,7 @@ new_frame(win_T *wp)
 win_init_size(void)
 {
     firstwin->w_height = ROWS_AVAIL;
+    firstwin->w_prev_height = ROWS_AVAIL;
     topframe->fr_height = ROWS_AVAIL;
     firstwin->w_width = Columns;
     topframe->fr_width = Columns;
@@ -4075,6 +4076,7 @@ win_new_tabpage(int after)
 
 	win_init_size();
 	firstwin->w_winrow = tabline_height();
+	firstwin->w_prev_winrow = firstwin->w_winrow;
 	win_comp_scroll(curwin);
 
 	newtp->tp_topframe = topframe;
@@ -6378,10 +6380,8 @@ win_fix_scroll(int resize)
 	    {
 		lnum = wp->w_cursor.lnum;
 		wp->w_cursor.lnum = MIN(wp->w_buffer->b_ml.ml_line_count,
-			wp->w_botline - 1 + (wp->w_prev_height
-			    ? (wp->w_winrow - wp->w_prev_winrow)
-					   + (wp->w_height - wp->w_prev_height)
-			    : -WINBAR_HEIGHT(wp)));
+			wp->w_botline - 1 + (wp->w_winrow - wp->w_prev_winrow)
+					  + (wp->w_height - wp->w_prev_height));
 		// Bring the new cursor position to the bottom of the screen.
 		wp->w_fraction = FRACTION_MULT;
 		scroll_to_fraction(wp, wp->w_prev_height);
@@ -6390,6 +6390,7 @@ win_fix_scroll(int resize)
 	    invalidate_botline_win(wp);
 	    validate_botline_win(wp);
 	}
+	win_comp_scroll(wp);
 	wp->w_prev_height = wp->w_height;
 	wp->w_prev_winrow = wp->w_winrow;
     }
@@ -6818,6 +6819,9 @@ last_status_rec(frame_T *fr, int statusline)
 	    comp_col();
 	    redraw_all_later(UPD_SOME_VALID);
 	}
+	// Set prev_height when difference is due to 'laststatus'.
+	if (abs(wp->w_height - wp->w_prev_height) == 1)
+	    wp->w_prev_height = wp->w_height;
     }
     else if (fr->fr_layout == FR_ROW)
     {
@@ -7107,6 +7111,8 @@ restore_snapshot(
 	win_comp_pos();
 	if (wp != NULL && close_curwin)
 	    win_goto(wp);
+	if (!p_spsc)
+	    win_fix_scroll(FALSE);
 	redraw_all_later(UPD_NOT_VALID);
     }
     clear_snapshot(curtab, idx);

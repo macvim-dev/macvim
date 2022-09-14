@@ -2259,17 +2259,33 @@ def Test_for_loop()
 enddef
 
 def Test_for_loop_with_closure()
+  # using the loop variable in a closure results in the last used value
   var lines =<< trim END
       var flist: list<func>
       for i in range(5)
-        var inloop = i
-        flist[i] = () => inloop
+        flist[i] = () => i
       endfor
       for i in range(5)
         assert_equal(4, flist[i]())
       endfor
   END
   v9.CheckDefAndScriptSuccess(lines)
+
+  # using a local variable set to the loop variable in a closure results in the
+  # value at that moment
+  lines =<< trim END
+      var flist: list<func>
+      for i in range(5)
+        var inloop = i
+        flist[i] = () => inloop
+      endfor
+      for i in range(5)
+        assert_equal(i, flist[i]())
+      endfor
+  END
+  # FIXME
+  # v9.CheckDefAndScriptSuccess(lines)
+  v9.CheckScriptSuccess(['vim9script'] + lines)
 
   lines =<< trim END
       var flist: list<func>
@@ -2280,10 +2296,12 @@ def Test_for_loop_with_closure()
             }
       endfor
       for i in range(5)
-        assert_equal(4, flist[i]())
+        assert_equal(i, flist[i]())
       endfor
   END
-  v9.CheckDefAndScriptSuccess(lines)
+  # FIXME
+  # v9.CheckDefAndScriptSuccess(lines)
+  v9.CheckScriptSuccess(['vim9script'] + lines)
 enddef
 
 def Test_for_loop_fails()

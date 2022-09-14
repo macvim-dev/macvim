@@ -666,9 +666,11 @@ win_line(
 					  // syntax_attr
     int		text_prop_id = 0;	// active property ID
     int		text_prop_flags = 0;
+    int		text_prop_above = FALSE;  // first doing virtual text above
     int		text_prop_follows = FALSE;  // another text prop to display
     int		saved_search_attr = 0;	// search_attr to be used when n_extra
 					// goes to zero
+    int		saved_area_attr = 0;	// idem for area_attr
 #endif
 #ifdef FEAT_SPELL
     int		has_spell = FALSE;	// this buffer has spell checking
@@ -1784,6 +1786,7 @@ win_line(
 
 		    // Sort the properties on priority and/or starting last.
 		    // Then combine the attributes, highest priority last.
+		    text_prop_above = FALSE;
 		    text_prop_follows = FALSE;
 		    sort_text_props(wp->w_buffer, text_props,
 					    text_prop_idxs, text_props_active);
@@ -1817,6 +1820,8 @@ win_line(
 			char_u	    *p = ((char_u **)wp->w_buffer
 						   ->b_textprop_text.ga_data)[
 							   -text_prop_id - 1];
+			int	    above = (tp->tp_flags
+							& TP_FLAG_ALIGN_ABOVE);
 
 			// reset the ID in the copy to avoid it being used
 			// again
@@ -1826,8 +1831,6 @@ win_line(
 			{
 			    int	    right = (tp->tp_flags
 							& TP_FLAG_ALIGN_RIGHT);
-			    int	    above = (tp->tp_flags
-							& TP_FLAG_ALIGN_ABOVE);
 			    int	    below = (tp->tp_flags
 							& TP_FLAG_ALIGN_BELOW);
 			    int	    wrap = (tp->tp_flags & TP_FLAG_WRAP);
@@ -1844,8 +1847,12 @@ win_line(
 			    extra_for_textprop = TRUE;
 			    extra_attr = used_attr;
 			    n_attr = mb_charlen(p);
+			    // restore search_attr and area_attr when n_extra
+			    // is down to zero
 			    saved_search_attr = search_attr;
-			    search_attr = 0;	// restore when n_extra is zero
+			    saved_area_attr = area_attr;
+			    search_attr = 0;
+			    area_attr = 0;
 			    text_prop_attr = 0;
 			    text_prop_attr_comb = 0;
 			    if (*ptr == NUL)
@@ -1902,6 +1909,9 @@ win_line(
 
 			// If another text prop follows the condition below at
 			// the last window column must know.
+			// If this is an "above" text prop and 'nowrap' the we
+			// must wrap anyway.
+			text_prop_above = above;
 			text_prop_follows = other_tpi != -1;
 		    }
 		}
@@ -2198,6 +2208,8 @@ win_line(
 		in_linebreak = FALSE;
 		if (search_attr == 0)
 		    search_attr = saved_search_attr;
+		if (area_attr == 0 && *ptr != NUL)
+		    area_attr = saved_area_attr;
 	    }
 #endif
 	}
@@ -3585,7 +3597,7 @@ win_line(
 		    || filler_todo > 0
 #endif
 #ifdef FEAT_PROP_POPUP
-		    || text_prop_follows
+		    || text_prop_above || text_prop_follows
 #endif
 		    || (wp->w_p_list && wp->w_lcs_chars.eol != NUL
 						&& wlv.p_extra != at_end_str)
@@ -3612,12 +3624,12 @@ win_line(
 			&& filler_todo <= 0
 #endif
 #ifdef FEAT_PROP_POPUP
-			&& !text_prop_follows
+			&& !text_prop_above && !text_prop_follows
 #endif
 		    ) || lcs_eol_one == -1)
 		break;
 #ifdef FEAT_PROP_POPUP
-	    if (!wp->w_p_wrap && text_prop_follows)
+	    if (!wp->w_p_wrap && text_prop_follows && !text_prop_above)
 	    {
 		// do not output more of the line, only the "below" prop
 		ptr += STRLEN(ptr);
@@ -3651,7 +3663,7 @@ win_line(
 		     && filler_todo <= 0
 #endif
 #ifdef FEAT_PROP_POPUP
-		     && !text_prop_follows
+		     && !text_prop_above && !text_prop_follows
 #endif
 		     && wp->w_width == Columns)
 	    {
