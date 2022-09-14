@@ -158,7 +158,27 @@ jobs:
           cat src/auto/config.mk
           cat src/auto/config.h
 
-      - name: Build
+      # Build Vim first, separately from MacVim, so that we can use it to run
+      # vimtags afterwards to get the most correct help tags before we copy
+      # that into the MacVim bundle.
+      - name: Build Vim
+        env:
+          LC_ALL: C
+        run: |
+          set -o verbose
+
+          NPROC=$(getconf _NPROCESSORS_ONLN)
+          echo "Building Vim with ${NPROC} cores"
+
+          make -C src -j${NPROC} Vim
+
+      # Re-generate Vim help tags, because sometimes the Vim's runtime is not
+      # updated to have the latest tags.
+      - name: Update Vim help tags
+        if: matrix.publish
+        run: make -C runtime/doc vimtags VIMEXE=../../src/vim
+
+      - name: Build MacVim
         env:
           LC_ALL: C
         run: |
@@ -209,10 +229,6 @@ jobs:
           }
           check_arch "${VIM_BIN}"
           check_arch "${MACVIM_BIN}"
-
-      - name: Update Vim help tags
-        if: matrix.publish
-        run: make -C runtime/doc vimtags VIMEXE=../../${VIM_BIN}
 
       - name: Test
         timeout-minutes: 20
