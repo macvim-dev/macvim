@@ -2527,7 +2527,14 @@ gui_outstr_nowrap(
     if (hl_mask_todo & HL_UNDERCURL)
 	draw_flags |= DRAW_UNDERC;
 
-    // TODO: HL_UNDERDOUBLE, HL_UNDERDOTTED, HL_UNDERDASHED
+    // MacVim note: underdouble/underdotted/underdashed are not implemented in Vim yet.
+    // These are MacVim-only for now.
+    if (hl_mask_todo & HL_UNDERDOUBLE)
+	draw_flags |= DRAW_UNDERDOUBLE;
+    if (hl_mask_todo & HL_UNDERDOTTED)
+	draw_flags |= DRAW_UNDERDOTTED;
+    if (hl_mask_todo & HL_UNDERDASHED)
+	draw_flags |= DRAW_UNDERDASHED;
 
     // Do we strikethrough the text?
     if (hl_mask_todo & HL_STRIKETHROUGH)

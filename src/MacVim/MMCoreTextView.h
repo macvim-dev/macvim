@@ -27,7 +27,9 @@
     // From NSTextView
     NSSize                      insetSize;
 
-    float                       fontDescent;
+    CGFloat                     fontDescent;
+    CGFloat                     fontAscent;
+    CGFloat                     fontXHeight;
     BOOL                        antialias;
     BOOL                        ligatures;
     BOOL                        thinStrokes;
