@@ -6,7 +6,7 @@
     <description>MacVim</description>
 
     <item>
-      <title>MacVim snapshot-174</title>
+      <title>MacVim release-174</title>
       <description><![CDATA[
 <style>
 :root { supported-color-schemes: light dark; color-scheme: light dark; }
@@ -103,12 +103,12 @@
       <sparkle:version>174</sparkle:version>
       <sparkle:shortVersionString>9.0.472"</sparkle:shortVersionString>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-174/MacVim.dmg"
+        url="https://github.com/macvim-dev/macvim/releases/download/release-174/MacVim.dmg"
         sparkle:edSignature="9PxwXcjRdLvHDpd/si8a46xI6EoivqndvF40+oPXAnH3iHjPeemvfU2GemS4iLa6dfUh8F8RysKdgjv6KhY0AQ==" length="24668528"
         />
       <sparkle:deltas>
         <enclosure type="application/octet-stream"
-          url="https://github.com/macvim-dev/macvim/releases/download/snapshot-174/173_to_174.delta"
+          url="https://github.com/macvim-dev/macvim/releases/download/release-174/173_to_174.delta"
           sparkle:deltaFrom="173"
           sparkle:edSignature="Wz7wV/rehdcETi71PudMgYdlS2j8ehitW1KkeK3Z0JtX5PC2OGjbRlnbrDMNoOqjbBdPfmzB59+J4MaqFx3MBQ==" length="2165243"
           />
