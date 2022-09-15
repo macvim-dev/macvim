@@ -6,29 +6,77 @@
     <description>MacVim</description>
 
     <item>
-      <title>MacVim snapshot-173</title>
+      <title>MacVim snapshot-174</title>
       <description><![CDATA[
 <style>
 :root { supported-color-schemes: light dark; color-scheme: light dark; }
 </style>
-<p>Updated to Vim 9.0.0065.</p>
+<p>Updated to Vim 9.0.472.</p>
 
-<p>MacVim is now updated to Vim 9!</p>
+<h1 id="announcements">Announcements</h1>
 
-<p>I just want to apologize for the infrequent update cadence for MacVim over the last year and a half. I have not had much time to work on MacVim, which made catching up harder, leading to a bad feedback loop. I would like to move back to a more regular release cadence to keep MacVim more updated relative to Vim, and to be able to start working on macOS 12/13 integrations as well as fixing outstanding bugs and merging the various pull requests that have been waiting to be merged for a while.  Please don’t hesitate to poke on GitHub if MacVim starts falling behind again.</p>
+<h2 id="sponsors">Sponsors</h2>
+
+<p>MacVim now allows you to sponsor the team! Any amount would be appreciated and it is of course optional. See the announcement (<a href="https://github.com/macvim-dev/macvim/issues/1271">#1271</a>) for more details.</p>
+
+<h2 id="supporting-old-versions-of-macos-1012-or-below">Supporting old versions of macOS (10.12 or below)</h2>
+
+<p>Currently, macOS supports macOS 10.9 or above. However, this is getting harder to do so as time goes on (e.g. the latest Xcode doesn’t support building for it). In the near future, MacVim will mostly target 10.13 (High Sierra) or above, with 10.9 - 10.12 as legacy support. Visit this discussion (<a href="https://github.com/macvim-dev/macvim/issues/1288">#1288</a>) if you would be affected and would like to know more.</p>
+
+<h1 id="features">Features</h1>
+
+<h2 id="resizing-macvim-new-options">Resizing MacVim new options</h2>
+
+<p>You can now smoothly drag and resize MacVim without having it constrained to fixed multiples of the text size, by setting the “Smoothly resizes window” under General preference pane. This also allows MacVim to behave better when used with third-party tools (e.g. BetterSnapTool) to snap it to one side of the screen. <a href="https://github.com/macvim-dev/macvim/issues/1276">#1276</a></p>
+
+<p>The command line can now be pinned to the bottom of the window with a setting (under Appearance preference pane). This makes it look better aligned when using smooth resizing, or in other situations where the window size is not a direct multiples of Vim’s text size (e.g. full screen or guioption+=k). <a href="https://github.com/macvim-dev/macvim/issues/1280">#1280</a></p>
+
+<p>Both features in action:</p>
+
+<p><img width="293" height="199" src="https://github.com/macvim-dev/macvim/releases/download/release-174/macvim-smooth-resize-pin-cmdline-bottom-video.gif" /></p>
+
+<h2 id="new-supported-text-styles">New supported text styles</h2>
+
+<p>Vim highlight groups <code>strikethrough</code>, <code>underdouble</code>, <code>underdotted</code>, <code>underdashed</code> are now supported. <a href="https://github.com/macvim-dev/macvim/issues/1287">#1287</a></p>
+
+<p><img width="389" alt="MacVim new text styles" src="https://user-images.githubusercontent.com/1217449/190359583-7816d046-a097-4f36-8a0a-ac8530f5131f.png" /></p>
+
+<h2 id="new-vim-features">New Vim features</h2>
+
+<p>Virtual text allows you to place custom texts to be displayed inline for diagnostic information and more (e.g. build errors, CSS color preview).  See <code>:help virtual-text</code> for more information.</p>
+
+<p>The default color schemes (e.g. desert) are now fixed to look correct again.</p>
+
+<p>Misc options and commands:</p>
+
+<ul>
+  <li><code>set nosplitscroll</code> lets you preserve the windows’ scroll positions when splitting. (v9.0.0445)</li>
+  <li><code>:defer</code> allows you to clean up in a function. (v9.0.0370)</li>
+  <li><code>:echowindow</code> allows you to echo a message to a floating popup message window instead of to the command line. (v9.0.0321)</li>
+</ul>
+
+<h1 id="fixes">Fixes</h1>
+
+<ul>
+  <li>Fixed non-native full screen not working well with the notch on newer MacBook’s when set to not show menu bar. You can also use <code>MMNonNativeFullScreenSafeAreaBehavior</code> to force MacVim to use the notch area as well if you don’t mind some content being obscured. <a href="https://github.com/macvim-dev/macvim/issues/1261">#1261</a></li>
+  <li>Fixed bad interaction when two settings (“Open untitled window: never” and “After last window closes: Quit MacVim”) are set together. <a href="https://github.com/macvim-dev/macvim/issues/1257">#1257</a></li>
+  <li>Fixed the bundled Vim tutor not working when launching from the Help menu <a href="https://github.com/macvim-dev/macvim/issues/1265">#1265</a>.</li>
+  <li>Fix crashing on launch under macOS 10.9. <a href="https://github.com/macvim-dev/macvim/issues/1212">#1212</a></li>
+  <li>Fixed potential crash when switching appearance mode in MacVim preferences. <a href="https://github.com/macvim-dev/macvim/issues/1270">#1270</a></li>
+  <li>Korean localized menus no longer throw a syntax error on launch. <a href="https://github.com/macvim-dev/macvim/issues/1278">#1278</a></li>
+  <li><code>did_install_default_menus</code> should work in MacVim now. <a href="https://github.com/macvim-dev/macvim/issues/1267">#1267</a></li>
+</ul>
 
 <h1 id="general">General</h1>
 
-<ul>
-  <li>MacVim now supports the <code>+sodium</code> feature, which allows you to use the newer “xchacha20” encryption method for encryption. See <code>:help cryptmethod</code>. <a href="https://github.com/macvim-dev/macvim/issues/1225">#1225</a></li>
-</ul>
+<p>Sparkle (updater for MacVim) is now updated to 1.27.1 (<a href="https://github.com/macvim-dev/macvim/issues/1284">#1284</a>), and we no longer use DSA keys for signing updates (<a href="https://github.com/macvim-dev/macvim/issues/1285">#1285</a>) as we are using EdDSA already.</p>
 
-<h1 id="misc">Misc</h1>
+<h1 id="scripting">Scripting</h1>
 
 <ul>
   <li>Scripting languages versions:
     <ul>
-      <li>Ruby is now built against 3.1, up from 3.0.</li>
+      <li>Python is now built against 3.10, up from 3.9.</li>
     </ul>
   </li>
 </ul>
@@ -43,29 +91,26 @@
   <li>Lua 5.4</li>
   <li>Perl 5.18</li>
   <li>Python2 2.7</li>
-  <li>Python3 3.9</li>
+  <li>Python3 3.10</li>
   <li>Ruby 3.1</li>
 </ul>
 
 <p><br /><small>Read the latest release notes <a href="https://github.com/macvim-dev/macvim/releases/latest">here</a>.</small></p>
 
       ]]></description>
-      <pubDate>Mon, 25 Jul 2022 04:00:00 -0700</pubDate>
+      <pubDate>Thu, 15 Sep 2022 13:00:00 -0700</pubDate>
       <sparkle:minimumSystemVersion>10.9</sparkle:minimumSystemVersion>
+      <sparkle:version>174</sparkle:version>
+      <sparkle:shortVersionString>9.0.472"</sparkle:shortVersionString>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-173/MacVim.dmg"
-        sparkle:version="173"
-        sparkle:shortVersionString="9.0.65"
-        sparkle:dsaSignature="MCwCFGNWotTEx/Q288Gj5DEGgjnGKMDmAhQo2Gb4CQy1TValmeC8fW+Ul5YHMg=="
-        sparkle:edSignature="ERRxzt7A8v8ZViNTxS+IRZuc5+3HhqFrM4+f7HzAkkmGq+iKHdaVMC9ga05VL02IE7ZfMNn0K8vKO+i/W6GaBw==" length="25253382"
+        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-174/MacVim.dmg"
+        sparkle:edSignature="9PxwXcjRdLvHDpd/si8a46xI6EoivqndvF40+oPXAnH3iHjPeemvfU2GemS4iLa6dfUh8F8RysKdgjv6KhY0AQ==" length="24668528"
         />
       <sparkle:deltas>
         <enclosure type="application/octet-stream"
-          url="https://github.com/macvim-dev/macvim/releases/download/snapshot-173/172_to_173.delta"
-          sparkle:version="173"
-          sparkle:deltaFrom="172"
-          sparkle:dsaSignature="MC0CFE/IWlQPpgNDlosJ9d1WAOpUxYKSAhUAjPw6yk6Y27O+kKxZEevewA+NkeA="
-          sparkle:edSignature="1u2l2VjfeawPAK7gEvg1VGUJN5+0Qo7t8r2N/EzDCcjW5M+GM3zvIVxdUF2nBQdlJSm0ExWncZXJh8ww5IIyDg==" length="5021293"
+          url="https://github.com/macvim-dev/macvim/releases/download/snapshot-174/173_to_174.delta"
+          sparkle:deltaFrom="173"
+          sparkle:edSignature="Wz7wV/rehdcETi71PudMgYdlS2j8ehitW1KkeK3Z0JtX5PC2OGjbRlnbrDMNoOqjbBdPfmzB59+J4MaqFx3MBQ==" length="2165243"
           />
       </sparkle:deltas>
     </item>
