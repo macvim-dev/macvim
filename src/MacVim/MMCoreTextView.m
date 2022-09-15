@@ -36,14 +36,18 @@
 // TODO: What does DRAW_TRANSP flag do?  If the background isn't drawn when
 // this flag is set, then sometimes the character after the cursor becomes
 // blank.  Everything seems to work fine by just ignoring this flag.
-#define DRAW_TRANSP               0x01    /* draw with transparent bg */
-#define DRAW_BOLD                 0x02    /* draw bold text */
-#define DRAW_UNDERL               0x04    /* draw underline text */
-#define DRAW_UNDERC               0x08    /* draw undercurl text */
-#define DRAW_ITALIC               0x10    /* draw italic text */
+#define DRAW_TRANSP               0x01    // draw with transparent bg
+#define DRAW_BOLD                 0x02    // draw bold text
+#define DRAW_UNDERL               0x04    // draw underline text
+#define DRAW_UNDERC               0x08    // draw undercurl text
+#define DRAW_ITALIC               0x10    // draw italic text
 #define DRAW_CURSOR               0x20
-#define DRAW_WIDE                 0x80    /* draw wide text */
-#define DRAW_COMP                 0x100   /* drawing composing char */
+#define DRAW_STRIKE               0x40    // draw strikethrough text
+#define DRAW_UNDERDOUBLE          0x80	  // draw double underline
+#define DRAW_UNDERDOTTED          0x100	  // draw dotted underline
+#define DRAW_UNDERDASHED          0x200	  // draw dashed underline
+#define DRAW_WIDE                 0x1000  // (MacVim only) draw wide text
+#define DRAW_COMP                 0x2000  // (MacVim only) drawing composing char
 
 #if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_13
 typedef NSString * NSAttributedStringKey;
@@ -431,6 +435,8 @@ static void grid_free(Grid *grid) {
         font = [newFont retain];
     }
     fontDescent = ceil(CTFontGetDescent((CTFontRef)font));
+    fontAscent = CTFontGetAscent((CTFontRef)font);
+    fontXHeight = CTFontGetXHeight((CTFontRef)font);
 
     // NOTE! Even though NSFontFixedAdvanceAttribute is a float, it will
     // only render at integer sizes.  Hence, we restrict the cell width to
@@ -884,6 +890,9 @@ static void grid_free(Grid *grid) {
             CGContextSetBlendMode(ctx, kCGBlendModeCopy);
             [lineString deleteCharactersInRange:NSMakeRange(0, lineString.length)];
         };
+
+        BOOL hasStrikeThrough = NO;
+
         for (size_t c = 0; c < grid.cols; c++) {
             GridCell cell = *grid_cell(&grid, r, c);
             CGRect cellRect = {{rowRect.origin.x + cellSize.width * c, rowRect.origin.y}, cellSize};
@@ -945,18 +954,89 @@ static void grid_free(Grid *grid) {
                 }
             }
 
-            // Text underline styles
-            if (cell.textFlags & DRAW_UNDERL) {
-                CGRect rect = CGRectMake(cellRect.origin.x, cellRect.origin.y+0.4*fontDescent, cellRect.size.width, 1);
-                CGContextSetFillColor(ctx, COMPONENTS(cell.sp));
-                CGContextFillRect(ctx, rect);
-            } else if (cell.textFlags & DRAW_UNDERC) {
-                const float x = cellRect.origin.x, y = cellRect.origin.y+1, w = cellSize.width, h = 0.5*fontDescent;
+            // Text underline styles. We only allow one of them to be active.
+            // Note: We are not currently using underlineThickness or underlinePosition. Should fix to use them.
+            const CGFloat underlineY = 0.4*fontDescent; // Just a hard-coded value for now. Should fix to use underlinePosition.
+            if (cell.textFlags & DRAW_UNDERC) {
+                const CGFloat x = cellRect.origin.x, y = cellRect.origin.y+1, w = cellSize.width, h = 0.5*fontDescent;
                 CGContextMoveToPoint(ctx, x, y);
                 CGContextAddCurveToPoint(ctx, x+0.25*w, y, x+0.25*w, y+h, x+0.5*w, y+h);
                 CGContextAddCurveToPoint(ctx, x+0.75*w, y+h, x+0.75*w, y, x+w, y);
+                if (cell.textFlags & DRAW_WIDE) {
+                    // Need to draw another set for double-width characters
+                    const CGFloat x2 = x + cellSize.width;
+                    CGContextAddCurveToPoint(ctx, x2+0.25*w, y, x2+0.25*w, y+h, x2+0.5*w, y+h);
+                    CGContextAddCurveToPoint(ctx, x2+0.75*w, y+h, x2+0.75*w, y, x2+w, y);
+                }
                 CGContextSetRGBStrokeColor(ctx, RED(cell.sp), GREEN(cell.sp), BLUE(cell.sp), ALPHA(cell.sp));
                 CGContextStrokePath(ctx);
+            }
+            else if (cell.textFlags & DRAW_UNDERDASHED) {
+                const CGFloat dashLengths[] = {cellSize.width / 4, cellSize.width / 4};
+
+                const CGFloat x = cellRect.origin.x;
+                const CGFloat y = cellRect.origin.y+underlineY;
+                CGContextMoveToPoint(ctx, x, y);
+                CGContextAddLineToPoint(ctx, x + cellRect.size.width, y);
+                CGContextSetRGBStrokeColor(ctx, RED(cell.sp), GREEN(cell.sp), BLUE(cell.sp), ALPHA(cell.sp));
+                CGContextSetLineDash(ctx, 0, dashLengths, 2);
+                CGContextStrokePath(ctx);
+            }
+            else if (cell.textFlags & DRAW_UNDERDOTTED) {
+                // Calculate dot size to use. Normally, just do 1-pixel dots/gaps, since the line is one pixel thick.
+                CGFloat dotSize = 1, gapSize = 1;
+                if (fmod(cellSize.width, 2) != 0) {
+                    // Width is not even number, so spacing them would look weird. Find another way.
+                    if (fmod(cellSize.width, 3) == 0) {
+                        // Width is divisible by 3, so just make the gap twice as long so they can be spaced out.
+                        dotSize = 1;
+                        gapSize = 2;
+                    }
+                    else {
+                        // Not disible by 2 or 3. Just Re-calculate dot size so be slightly larger than 1 so we can exactly
+                        // equal number of dots and gaps. This does mean we have a non-integer size, so we are relying
+                        // on anti-aliasing here to help this not look too bad, but it will still look slightly blurry.
+                        dotSize = cellSize.width / (ceil(cellSize.width / 2) * 2);
+                        gapSize = dotSize;
+                    }
+                }
+                const CGFloat dashLengths[] = {dotSize, gapSize};
+
+                const CGFloat x = cellRect.origin.x;
+                const CGFloat y = cellRect.origin.y+underlineY;
+                CGContextMoveToPoint(ctx, x, y);
+                CGContextAddLineToPoint(ctx, x + cellRect.size.width, y);
+                CGContextSetRGBStrokeColor(ctx, RED(cell.sp), GREEN(cell.sp), BLUE(cell.sp), ALPHA(cell.sp));
+                CGContextSetLineDash(ctx, 0, dashLengths, 2);
+                CGContextStrokePath(ctx);
+            }
+            else if (cell.textFlags & DRAW_UNDERDOUBLE) {
+                CGRect rect = CGRectMake(cellRect.origin.x, cellRect.origin.y+underlineY, cellRect.size.width, 1);
+                CGContextSetFillColor(ctx, COMPONENTS(cell.sp));
+                CGContextFillRect(ctx, rect);
+
+                // Draw second underline
+                if (underlineY - 3 < 0) {
+                    // Not enough fontDescent to draw another line below, just draw above. This is not the desired
+                    // solution but works.
+                    rect = CGRectMake(cellRect.origin.x, cellRect.origin.y+underlineY + 3, cellRect.size.width, 1);
+                } else {
+                    // Nominal situation. Just a second one below first one.
+                    rect = CGRectMake(cellRect.origin.x, cellRect.origin.y+underlineY - 3, cellRect.size.width, 1);
+                }
+                CGContextSetFillColor(ctx, COMPONENTS(cell.sp));
+                CGContextFillRect(ctx, rect);
+            } else if (cell.textFlags & DRAW_UNDERL) {
+                CGRect rect = CGRectMake(cellRect.origin.x, cellRect.origin.y+underlineY, cellRect.size.width, 1);
+                CGContextSetFillColor(ctx, COMPONENTS(cell.sp));
+                CGContextFillRect(ctx, rect);
+            }
+
+            // Text strikethrough
+            // We delay the rendering of strikethrough and only do it as a second-pass since we want to draw them on top
+            // of text, and text rendering is currently delayed via flushLineString().
+            if (cell.textFlags & DRAW_STRIKE) {
+                hasStrikeThrough = YES;
             }
 
             // Draw the actual text
@@ -981,6 +1061,31 @@ static void grid_free(Grid *grid) {
         }
         flushLineString();
         [lineString release];
+
+        if (hasStrikeThrough) {
+            // Second pass to render strikethrough. Unfortunately have to duplicate a little bit of code here to loop
+            // through the cells.
+            for (size_t c = 0; c < grid.cols; c++) {
+                GridCell cell = *grid_cell(&grid, r, c);
+                CGRect cellRect = {{rowRect.origin.x + cellSize.width * c, rowRect.origin.y}, cellSize};
+                if (cell.textFlags & DRAW_WIDE)
+                    cellRect.size.width *= 2;
+                if (cell.inverted) {
+                    cell.bg ^= 0xFFFFFF;
+                    cell.fg ^= 0xFFFFFF;
+                    cell.sp ^= 0xFFFFFF;
+                }
+
+                // Text strikethrough
+                if (cell.textFlags & DRAW_STRIKE) {
+                    CGRect rect = CGRectMake(cellRect.origin.x, cellRect.origin.y + fontDescent + fontXHeight / 2, cellRect.size.width, 1);
+                    CGContextSetFillColor(ctx, COMPONENTS(cell.sp));
+                    CGContextFillRect(ctx, rect);
+                }
+
+            }
+        }
+
         CGContextRestoreGState(ctx);
     }
     if (thinStrokes) {

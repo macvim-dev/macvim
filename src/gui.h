@@ -128,8 +128,18 @@
 #endif
 #define DRAW_CURSOR		0x20	// drawing block cursor (win32)
 #define DRAW_STRIKE		0x40	// strikethrough
-#define DRAW_WIDE		0x80	// drawing wide char (MacVim)
-#define DRAW_COMP		0x100	// drawing composing char (MacVim)
+// MacVim note: underdouble/underdotted/underdashed are not implemented in Vim yet.
+// These are MacVim-only for now.
+// IMPORTANT: If resolving a merge conflict when merging from upstream, if Vim decided
+//	      to use different values for these constants, MMCoreTextView.m would need
+//	      to be updated to reflect them as well, or the renderer won't understand
+//	      these values.
+#define DRAW_UNDERDOUBLE	0x80	// draw double underline
+#define DRAW_UNDERDOTTED	0x100	// draw dotted underline
+#define DRAW_UNDERDASHED	0x200	// draw dashed underline
+
+#define DRAW_WIDE		0x1000	// drawing wide char (MacVim)
+#define DRAW_COMP		0x2000	// drawing composing char (MacVim)
 
 // For our own tearoff menu item
 #define TEAR_STRING		"-->Detach"
