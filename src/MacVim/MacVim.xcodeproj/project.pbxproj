@@ -72,6 +72,7 @@
 		907FF7512521BCE200BADACB /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 907FF74F2521BCE200BADACB /* MainMenu.xib */; };
 		907FF7542521BDA600BADACB /* Preferences.xib in Resources */ = {isa = PBXBuildFile; fileRef = 907FF7522521BDA600BADACB /* Preferences.xib */; };
 		907FF7572521BDC300BADACB /* FindAndReplace.xib in Resources */ = {isa = PBXBuildFile; fileRef = 907FF7552521BDC200BADACB /* FindAndReplace.xib */; };
+		90A33BEA28D563DF003A2E2F /* MMSparkle2Delegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 90A33BE928D563DF003A2E2F /* MMSparkle2Delegate.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -414,6 +415,8 @@
 		90922ABC221D42F700F1E1F4 /* MMBackend.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MMBackend.h; sourceTree = "<group>"; };
 		90922ABD221D42F700F1E1F4 /* gui_macvim.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = gui_macvim.m; sourceTree = "<group>"; };
 		90922ABE221D42F700F1E1F4 /* MMBackend.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MMBackend.m; sourceTree = "<group>"; };
+		90A33BE928D563DF003A2E2F /* MMSparkle2Delegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MMSparkle2Delegate.m; sourceTree = "<group>"; };
+		90A33BEC28D56423003A2E2F /* MMSparkle2Delegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MMSparkle2Delegate.h; sourceTree = "<group>"; };
 		90F84F1E2521F2270000268B /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ko; path = ko.lproj/MainMenu.strings; sourceTree = "<group>"; };
 		90F84F232521F6480000268B /* ca */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ca; path = ca.lproj/MainMenu.strings; sourceTree = "<group>"; };
 		90F84F242521F6590000268B /* cs */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = cs; path = cs.lproj/MainMenu.strings; sourceTree = "<group>"; };
@@ -502,6 +505,8 @@
 				1D1474960C56703C0038FA2B /* MacVim.m */,
 				32CA4F630368D1EE00C91783 /* MacVim_Prefix.pch */,
 				29B97316FDCFA39411CA2CEA /* main.m */,
+				90A33BE928D563DF003A2E2F /* MMSparkle2Delegate.m */,
+				90A33BEC28D56423003A2E2F /* MMSparkle2Delegate.h */,
 			);
 			name = "MacVim Source";
 			sourceTree = "<group>";
@@ -1089,6 +1094,7 @@
 				1D1474B60C56796D0038FA2B /* MMVimController.m in Sources */,
 				1D1474BC0C567A910038FA2B /* MMWindowController.m in Sources */,
 				1D09AB420C6A4D520045497E /* MMTypesetter.m in Sources */,
+				90A33BEA28D563DF003A2E2F /* MMSparkle2Delegate.m in Sources */,
 				1DD66ECE0C803D3600EBDAB3 /* MMApplication.m in Sources */,
 				1D80FBD40CBBD3B700102A1C /* MMFullScreenWindow.m in Sources */,
 				1D80FBD60CBBD3B700102A1C /* MMVimView.m in Sources */,
