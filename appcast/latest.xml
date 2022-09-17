@@ -98,6 +98,7 @@
 <p><br /><small>Read the latest release notes <a href="https://github.com/macvim-dev/macvim/releases/latest">here</a>.</small></p>
 
       ]]></description>
+      <sparkle:fullReleaseNotesLink>https://github.com/macvim-dev/macvim/releases</sparkle:fullReleaseNotesLink>
       <pubDate>Thu, 15 Sep 2022 13:00:00 -0700</pubDate>
       <sparkle:minimumSystemVersion>10.9</sparkle:minimumSystemVersion>
       <sparkle:version>174</sparkle:version>
