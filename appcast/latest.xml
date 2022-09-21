@@ -2,7 +2,7 @@
 <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"> 
   <channel>
     <title>MacVim</title>
-    <link>https://raw.githubusercontent.com/macvim-dev/macvim/gh-pages/appcast/latest.xml</link>
+    <link>https://macvim.org/appcast/latest.xml</link>
     <description>MacVim</description>
 
     <item>
