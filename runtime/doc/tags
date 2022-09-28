@@ -310,6 +310,7 @@ $quote	eval.txt	/*$quote*
 'fullscreen'	options.txt	/*'fullscreen'*
 'fuopt'	options.txt	/*'fuopt'*
 'fuoptions'	options.txt	/*'fuoptions'*
+'g:context_extra_options'	ft_context.txt	/*'g:context_extra_options'*
 'g:context_ignore_makefile'	ft_context.txt	/*'g:context_ignore_makefile'*
 'g:context_include'	ft_context.txt	/*'g:context_include'*
 'g:mf_other_macros'	ft_mp.txt	/*'g:mf_other_macros'*
@@ -736,7 +737,9 @@ $quote	eval.txt	/*$quote*
 'nospell'	options.txt	/*'nospell'*
 'nosplitbelow'	options.txt	/*'nosplitbelow'*
 'nosplitright'	options.txt	/*'nosplitright'*
+'nosplitscroll'	options.txt	/*'nosplitscroll'*
 'nospr'	options.txt	/*'nospr'*
+'nospsc'	options.txt	/*'nospsc'*
 'nosr'	options.txt	/*'nosr'*
 'nossl'	options.txt	/*'nossl'*
 'nosta'	options.txt	/*'nosta'*
@@ -970,9 +973,11 @@ $quote	eval.txt	/*$quote*
 'spl'	options.txt	/*'spl'*
 'splitbelow'	options.txt	/*'splitbelow'*
 'splitright'	options.txt	/*'splitright'*
+'splitscroll'	options.txt	/*'splitscroll'*
 'spo'	options.txt	/*'spo'*
 'spr'	options.txt	/*'spr'*
 'sps'	options.txt	/*'sps'*
+'spsc'	options.txt	/*'spsc'*
 'sr'	options.txt	/*'sr'*
 'srr'	options.txt	/*'srr'*
 'ss'	options.txt	/*'ss'*
@@ -4141,7 +4146,6 @@ E1072	eval.txt	/*E1072*
 E1073	vim9.txt	/*E1073*
 E1074	vim9.txt	/*E1074*
 E1075	vim9.txt	/*E1075*
-E1076	eval.txt	/*E1076*
 E1077	vim9.txt	/*E1077*
 E1078	autocmd.txt	/*E1078*
 E1079	vim9.txt	/*E1079*
@@ -4389,7 +4393,12 @@ E1298	vim9.txt	/*E1298*
 E1299	tagsrch.txt	/*E1299*
 E13	message.txt	/*E13*
 E1300	userfunc.txt	/*E1300*
+E1301	vim9.txt	/*E1301*
 E1302	eval.txt	/*E1302*
+E1303	map.txt	/*E1303*
+E1304	vim9.txt	/*E1304*
+E1305	textprop.txt	/*E1305*
+E1306	vim9.txt	/*E1306*
 E131	userfunc.txt	/*E131*
 E132	userfunc.txt	/*E132*
 E133	userfunc.txt	/*E133*
@@ -6010,6 +6019,7 @@ blob-modification	eval.txt	/*blob-modification*
 blob2list()	builtin.txt	/*blob2list()*
 blockwise-examples	visual.txt	/*blockwise-examples*
 blockwise-operators	visual.txt	/*blockwise-operators*
+blockwise-put	change.txt	/*blockwise-put*
 blockwise-register	change.txt	/*blockwise-register*
 blockwise-visual	visual.txt	/*blockwise-visual*
 blowfish	options.txt	/*blowfish*
@@ -6886,6 +6896,7 @@ extension-removal	cmdline.txt	/*extension-removal*
 extensions-improvements	todo.txt	/*extensions-improvements*
 external-editor	gui_mac.txt	/*external-editor*
 f	motion.txt	/*f*
+f-args-example	map.txt	/*f-args-example*
 false	vim9.txt	/*false*
 false-variable	eval.txt	/*false-variable*
 falsy	eval.txt	/*falsy*
@@ -7485,6 +7496,7 @@ g:tex_subscripts	syntax.txt	/*g:tex_subscripts*
 g:tex_superscripts	syntax.txt	/*g:tex_superscripts*
 g:tex_verbspell	syntax.txt	/*g:tex_verbspell*
 g:var	eval.txt	/*g:var*
+g:vim_indent	indent.txt	/*g:vim_indent*
 g:vim_indent_cont	indent.txt	/*g:vim_indent_cont*
 g:vimball_home	pi_vimball.txt	/*g:vimball_home*
 g:vimball_mkdir	pi_vimball.txt	/*g:vimball_mkdir*
@@ -8219,6 +8231,7 @@ keypad-page-up	intro.txt	/*keypad-page-up*
 keypad-plus	intro.txt	/*keypad-plus*
 keypad-point	intro.txt	/*keypad-point*
 keys()	builtin.txt	/*keys()*
+keytrans()	builtin.txt	/*keytrans()*
 known-bugs	todo.txt	/*known-bugs*
 l	motion.txt	/*l*
 l:	eval.txt	/*l:*
@@ -9314,6 +9327,7 @@ pythonx	if_pyth.txt	/*pythonx*
 pythonx-directory	if_pyth.txt	/*pythonx-directory*
 pyxeval()	builtin.txt	/*pyxeval()*
 q	repeat.txt	/*q*
+q-args-example	map.txt	/*q-args-example*
 q/	cmdline.txt	/*q\/*
 q:	cmdline.txt	/*q:*
 q?	cmdline.txt	/*q?*
@@ -10865,6 +10879,7 @@ vim9-literal-dict	vim9.txt	/*vim9-literal-dict*
 vim9-mix	vim9.txt	/*vim9-mix*
 vim9-namespace	vim9.txt	/*vim9-namespace*
 vim9-no-dict-function	vim9.txt	/*vim9-no-dict-function*
+vim9-no-shorten	vim9.txt	/*vim9-no-shorten*
 vim9-rationale	vim9.txt	/*vim9-rationale*
 vim9-reload	vim9.txt	/*vim9-reload*
 vim9-s-namespace	vim9.txt	/*vim9-s-namespace*

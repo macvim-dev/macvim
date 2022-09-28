@@ -683,6 +683,7 @@ cursor_valid(void)
     void
 validate_cursor(void)
 {
+    check_cursor_lnum();
     check_cursor_moved(curwin);
     if ((curwin->w_valid & (VALID_WCOL|VALID_WROW)) != (VALID_WCOL|VALID_WROW))
 	curs_columns(TRUE);
@@ -991,7 +992,7 @@ curs_columns(
     /*
      * First make sure that w_topline is valid (after moving the cursor).
      */
-    if (p_spsc)
+    if (!skip_update_topline)
 	update_topline();
 
     /*

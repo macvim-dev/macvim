@@ -515,6 +515,26 @@ func Test_WinClosed_throws_with_tabs()
   augroup! test-WinClosed
 endfunc
 
+" This used to trigger WinClosed twice for the same window, and the window's
+" buffer was NULL in the second autocommand.
+func Test_WinClosed_switch_tab()
+  edit Xa
+  split Xb
+  split Xc
+  tab split
+  new
+  augroup test-WinClosed
+    autocmd WinClosed * tabprev | bwipe!
+  augroup END
+  close
+  " Check that the tabline has been fully removed
+  call assert_equal([1, 1], win_screenpos(0))
+
+  autocmd! test-WinClosed
+  augroup! test-WinClosed
+  %bwipe!
+endfunc
+
 func s:AddAnAutocmd()
   augroup vimBarTest
     au BufReadCmd * echo 'hello'
@@ -2860,6 +2880,16 @@ func Test_FileType_spell()
   setglobal spellfile=
 endfunc
 
+" this was wiping out the current buffer and using freed memory
+func Test_SpellFileMissing_bwipe()
+  next 0
+  au SpellFileMissing 0 bwipe
+  call assert_fails('set spell spelllang=0', 'E937:')
+
+  au! SpellFileMissing
+  bwipe
+endfunc
+
 " Test closing a window or editing another buffer from a FileChangedRO handler
 " in a readonly buffer
 func Test_FileChangedRO_winclose()
@@ -2978,6 +3008,8 @@ endfunc
 " Tests for SigUSR1 autocmd event, which is only available on posix systems.
 func Test_autocmd_sigusr1()
   CheckUnix
+  " FIXME: should this work on MacOS M1?
+  CheckNotMacM1
   CheckExecutable /bin/kill
 
   let g:sigusr1_passed = 0

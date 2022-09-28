@@ -3345,6 +3345,12 @@ on_tabline_menu(GtkWidget *widget, GdkEvent *event)
 		send_tabline_event(x < 50 ? -1 : 0);
 	    }
 	}
+	else if (bevent->button == 2)
+	{
+	    if (clicked_page != 0)
+		// Middle mouse click on tabpage label closes that tab.
+		send_tabline_menu_event(clicked_page, TABLINE_MENU_CLOSE);
+	}
     }
 
     // We didn't handle the event.
@@ -3598,7 +3604,7 @@ gui_mch_init(void)
     {
 	gnome_program_init(VIMPACKAGE, VIM_VERSION_SHORT,
 			   LIBGNOMEUI_MODULE, gui_argc, gui_argv, NULL);
-# if defined(FEAT_FLOAT) && defined(LC_NUMERIC)
+# if defined(LC_NUMERIC)
 	{
 	    char *p = setlocale(LC_NUMERIC, NULL);
 

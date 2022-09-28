@@ -147,7 +147,7 @@ func Test_spell_file_missing()
   augroup TestSpellFileMissing
     autocmd! SpellFileMissing * bwipe
   augroup END
-  call assert_fails('set spell spelllang=ab_cd', 'E797:')
+  call assert_fails('set spell spelllang=ab_cd', 'E937:')
 
   " clean up
   augroup TestSpellFileMissing
@@ -982,6 +982,18 @@ func Test_spell_screendump_spellcap()
   call writefile(lines, 'XtestSpellCap')
   let buf = RunVimInTerminal('-S XtestSpellCap', {'rows': 8})
   call VerifyScreenDump(buf, 'Test_spell_2', {})
+
+  " After adding word missing Cap in next line is updated
+  call term_sendkeys(buf, "3GANot\<Esc>")
+  call VerifyScreenDump(buf, 'Test_spell_3', {})
+
+  " Deleting a full stop removes missing Cap in next line
+  call term_sendkeys(buf, "5Gddk$x")
+  call VerifyScreenDump(buf, 'Test_spell_4', {})
+
+  " Undo also updates the next line (go to command line to remove message)
+  call term_sendkeys(buf, "u:\<Esc>")
+  call VerifyScreenDump(buf, 'Test_spell_5', {})
 
   " clean up
   call StopVimInTerminal(buf)

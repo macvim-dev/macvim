@@ -1460,9 +1460,7 @@ typedef struct
     union
     {
 	varnumber_T	v_number;	// number value
-#ifdef FEAT_FLOAT
 	float_T		v_float;	// floating number value
-#endif
 	char_u		*v_string;	// string value (can be NULL!)
 	list_T		*v_list;	// list value (can be NULL!)
 	dict_T		*v_dict;	// dict value (can be NULL!)
@@ -1632,7 +1630,7 @@ typedef struct svar_S svar_T;
 typedef struct
 {
     int		fi_semicolon;	// TRUE if ending in '; var]'
-    int		fi_varcount;	// nr of variables in the list
+    int		fi_varcount;	// nr of variables in [] or zero
     int		fi_break_count;	// nr of line breaks encountered
     listwatch_T	fi_lw;		// keep an eye on the item used.
     list_T	*fi_list;	// list being used
@@ -2077,7 +2075,6 @@ typedef struct {
  * defined in that function.
  */
 typedef struct funcstack_S funcstack_T;
-
 struct funcstack_S
 {
     funcstack_T *fs_next;	// linked list at "first_funcstack"
@@ -2092,8 +2089,27 @@ struct funcstack_S
 
     int		fs_refcount;	// nr of closures referencing this funcstack
     int		fs_min_refcount; // nr of closures on this funcstack
-    int		fs_copyID;	// for garray_T collection
+    int		fs_copyID;	// for garbage collection
 };
+
+/*
+ * Structure to hold the variables declared in a loop that are possiblly used
+ * in a closure.
+ */
+typedef struct loopvars_S loopvars_T;
+struct loopvars_S
+{
+    loopvars_T *lvs_next;	// linked list at "first_loopvars"
+    loopvars_T *lvs_prev;
+
+    garray_T	lvs_ga;		// contains the variables
+    int		lvs_refcount;	// nr of closures referencing this loopvars
+    int		lvs_min_refcount; // nr of closures on this loopvars
+    int		lvs_copyID;	// for garbage collection
+};
+
+// maximum nesting of :while and :for loops in a :def function
+#define MAX_LOOP_DEPTH 10
 
 typedef struct outer_S outer_T;
 struct outer_S {
@@ -2103,11 +2119,14 @@ struct outer_S {
     outer_T	*out_up;	    // outer scope of outer scope or NULL
     partial_T	*out_up_partial;    // partial owning out_up or NULL
 
-    garray_T	*out_loop_stack;    // stack from outer scope, or a copy
+    struct {
+	garray_T *stack;	    // stack from outer scope, or a copy
 				    // containing only vars inside the loop
-    short	out_loop_var_idx;   // first variable defined in a loop
-				    // in out_loop_stack
-    short	out_loop_var_count; // number of variables defined in a loop
+	short	 var_idx;	    // first variable defined in a loop in
+				    // out_loop_stack
+	short	 var_count;	    // number of variables defined in a loop
+    } out_loop[MAX_LOOP_DEPTH];
+    int		out_loop_size;	    // nr of used entries in out_loop[]
 };
 
 struct partial_S
@@ -2128,6 +2147,9 @@ struct partial_S
 
     funcstack_T	*pt_funcstack;	// copy of stack, used after context
 				// function returns
+    loopvars_T	*(pt_loopvars[MAX_LOOP_DEPTH]);
+				// copy of loop variables, used after loop
+				// block ends
 
     typval_T	*pt_argv;	// arguments in allocated array
     int		pt_argc;	// number of arguments
@@ -2135,6 +2157,14 @@ struct partial_S
     int		pt_copyID;	// funcstack may contain pointer to partial
     dict_T	*pt_dict;	// dict for "self"
 };
+
+typedef struct {
+    short	lvi_depth;	    // current nested loop depth
+    struct {
+	short	var_idx;	    // index of first variable inside loop
+	short	var_count;	    // number of variables inside loop
+    } lvi_loop[MAX_LOOP_DEPTH];
+} loopvarinfo_T;
 
 typedef struct AutoPatCmd_S AutoPatCmd_T;
 

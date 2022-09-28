@@ -210,6 +210,39 @@ func Test_redraw_in_autocmd()
   call StopVimInTerminal(buf)
 endfunc
 
+func Test_redrawstatus_in_autocmd()
+  CheckScreendump
+
+  let lines =<< trim END
+      set laststatus=2
+      set statusline=%=:%{getcmdline()}
+      autocmd CmdlineChanged * redrawstatus
+  END
+  call writefile(lines, 'XTest_redrawstatus', 'D')
+
+  let buf = RunVimInTerminal('-S XTest_redrawstatus', {'rows': 8})
+  " :redrawstatus is postponed if messages have scrolled
+  call term_sendkeys(buf, ":echo \"one\\ntwo\\nthree\\nfour\"\<CR>")
+  call term_sendkeys(buf, ":foobar")
+  call VerifyScreenDump(buf, 'Test_redrawstatus_in_autocmd_1', {})
+  " it is not postponed if messages have not scrolled
+  call term_sendkeys(buf, "\<Esc>:for in in range(3)")
+  call VerifyScreenDump(buf, 'Test_redrawstatus_in_autocmd_2', {})
+  " with cmdheight=1 messages have scrolled when typing :endfor
+  call term_sendkeys(buf, "\<CR>:endfor")
+  call VerifyScreenDump(buf, 'Test_redrawstatus_in_autocmd_3', {})
+  call term_sendkeys(buf, "\<CR>:set cmdheight=2\<CR>")
+  " with cmdheight=2 messages haven't scrolled when typing :for or :endfor
+  call term_sendkeys(buf, ":for in in range(3)")
+  call VerifyScreenDump(buf, 'Test_redrawstatus_in_autocmd_4', {})
+  call term_sendkeys(buf, "\<CR>:endfor")
+  call VerifyScreenDump(buf, 'Test_redrawstatus_in_autocmd_5', {})
+
+  " clean up
+  call term_sendkeys(buf, "\<CR>")
+  call StopVimInTerminal(buf)
+endfunc
+
 func Test_changing_cmdheight()
   CheckScreendump
 

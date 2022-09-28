@@ -1,7 +1,7 @@
 " Vim support file to detect file types
 "
 " Maintainer:	Bram Moolenaar <Bram@vim.org>
-" Last Change:	2022 Sep 09
+" Last Change:	2022 Sep 27
 
 " Listen very carefully, I will say this only once
 if exists("did_load_filetypes")
@@ -299,6 +299,9 @@ au BufNewFile,BufRead cfengine.conf		setf cfengine
 " ChaiScript
 au BufRead,BufNewFile *.chai			setf chaiscript
 
+" Chatito
+au BufNewFile,BufRead *.chatito			setf chatito
+
 " Comshare Dimension Definition Language
 au BufNewFile,BufRead *.cdl			setf cdl
 
@@ -447,6 +450,9 @@ endif
 
 " Lynx config files
 au BufNewFile,BufRead lynx.cfg			setf lynx
+
+" LyRiCs
+au BufNewFile,BufRead *.lrc			setf lyrics
 
 " Modula-3 configuration language (must be before *.cfg and *makefile)
 au BufNewFile,BufRead *.quake,cm3.cfg		setf m3quake
@@ -764,8 +770,8 @@ au BufNewFile,BufRead gitolite.conf		setf gitolite
 au BufNewFile,BufRead {,.}gitolite.rc,example.gitolite.rc	setf perl
 
 " Glimmer-flavored TypeScript and JavaScript
-au BufNewFile,BufRead *.gts	setf typescript.glimmer
-au BufNewFile,BufRead *.gjs	setf javascript.glimmer
+au BufNewFile,BufRead *.gts			setf typescript.glimmer
+au BufNewFile,BufRead *.gjs			setf javascript.glimmer
 
 " Gnuplot scripts
 au BufNewFile,BufRead *.gpi,.gnuplot		setf gnuplot
@@ -795,6 +801,9 @@ au BufNewFile,BufRead */etc/group,*/etc/group-,*/etc/group.edit,*/etc/gshadow,*/
 
 " GTK RC
 au BufNewFile,BufRead .gtkrc,gtkrc		setf gtkrc
+
+" GYP
+au BufNewFile,BufRead *.gyp,*.gypi		setf gyp
 
 " Hack
 au BufRead,BufNewFile *.hack,*.hackpartial			setf hack
@@ -837,6 +846,9 @@ au BufNewFile,BufRead *.hex,*.h32		setf hex
 
 " Hjson
 au BufNewFile,BufRead *.hjson			setf hjson
+
+" HLS Playlist (or another form of playlist)
+au BufNewFile,BufRead *.m3u,*.m3u8		setf hlsplaylist
 
 " Hollywood
 au BufRead,BufNewFile *.hws			setf hollywood
@@ -1017,6 +1029,9 @@ au BufNewFile,BufRead Kconfig,Kconfig.debug	setf kconfig
 " Lace (ISE)
 au BufNewFile,BufRead *.ace,*.ACE		setf lace
 
+" Latexmkrc
+au BufNewFile,BufRead .latexmkrc,latexmkrc	setf perl
+
 " Latte
 au BufNewFile,BufRead *.latte,*.lte		setf latte
 
@@ -1096,6 +1111,9 @@ au BufNewFile,BufRead *.lou,*.lout		setf lout
 
 " Lua
 au BufNewFile,BufRead *.lua			setf lua
+
+" Luacheck
+au BufNewFile,BufRead .luacheckrc		setf lua
 
 " Luarocks
 au BufNewFile,BufRead *.rockspec		setf lua
@@ -1268,6 +1286,9 @@ au BufNewFile,BufRead .netrc			setf netrc
 
 " Nginx
 au BufNewFile,BufRead *.nginx,nginx*.conf,*nginx.conf,*/etc/nginx/*,*/usr/local/nginx/conf/*,*/nginx/*.conf			setf nginx
+
+" Nim file
+au BufNewFile,BufRead *.nim,*.nims,*.nimble	setf nim
 
 " Ninja file
 au BufNewFile,BufRead *.ninja			setf ninja
@@ -2068,13 +2089,16 @@ au BufNewFile,BufRead *.tsv			setf tsv
 " TWIG files
 au BufNewFile,BufReadPost *.twig		setf twig
 
-" Typescript or Qt translation file (which is XML)
+" TypeScript or Qt translation file (which is XML)
 au BufNewFile,BufReadPost *.ts
 	\ if getline(1) =~ '<?xml' |
 	\   setf xml |
 	\ else |
 	\   setf typescript |
 	\ endif
+
+" TypeScript module and common
+au BufNewFile,BufRead *.mts,*.cts		setf typescript
 
 " TypeScript with React
 au BufNewFile,BufRead *.tsx			setf typescriptreact
@@ -2267,7 +2291,7 @@ au BufNewFile,BufRead *.fsproj,*.fsproj.user	setf xml
 au BufNewFile,BufRead *.vbproj,*.vbproj.user	setf xml
 
 " Qt Linguist translation source and Qt User Interface Files are XML
-" However, for .ts Typescript is more common.
+" However, for .ts TypeScript is more common.
 au BufNewFile,BufRead *.ui			setf xml
 
 " TPM's are RDF-based descriptions of TeX packages (Nikolai Weibull)

@@ -208,9 +208,7 @@ generate_add_instr(
 		      vartype == VAR_NUMBER ? ISN_OPNR
 		    : vartype == VAR_LIST ? ISN_ADDLIST
 		    : vartype == VAR_BLOB ? ISN_ADDBLOB
-#ifdef FEAT_FLOAT
 		    : vartype == VAR_FLOAT ? ISN_OPFLOAT
-#endif
 		    : ISN_OPANY, 1);
 
     if (vartype != VAR_LIST && vartype != VAR_BLOB
@@ -251,9 +249,7 @@ operator_type(type_T *type1, type_T *type2)
     if (type1->tt_type == type2->tt_type
 	    && (type1->tt_type == VAR_NUMBER
 		|| type1->tt_type == VAR_LIST
-#ifdef FEAT_FLOAT
 		|| type1->tt_type == VAR_FLOAT
-#endif
 		|| type1->tt_type == VAR_BLOB))
 	return type1->tt_type;
     return VAR_ANY;
@@ -293,10 +289,8 @@ generate_two_op(cctx_T *cctx, char_u *op)
 		      return FAIL;
 		  if (vartype == VAR_NUMBER)
 		      isn = generate_instr_drop(cctx, ISN_OPNR, 1);
-#ifdef FEAT_FLOAT
 		  else if (vartype == VAR_FLOAT)
 		      isn = generate_instr_drop(cctx, ISN_OPFLOAT, 1);
-#endif
 		  else
 		      isn = generate_instr_drop(cctx, ISN_OPANY, 1);
 		  if (isn != NULL)
@@ -326,12 +320,10 @@ generate_two_op(cctx_T *cctx, char_u *op)
     {
 	type_T *type = &t_any;
 
-#ifdef FEAT_FLOAT
 	// float+number and number+float results in float
 	if ((type1->tt_type == VAR_NUMBER || type1->tt_type == VAR_FLOAT)
-		&& (type2->tt_type == VAR_NUMBER || type2->tt_type == VAR_FLOAT))
+	      && (type2->tt_type == VAR_NUMBER || type2->tt_type == VAR_FLOAT))
 	    type = &t_float;
-#endif
 	set_type_on_stack(cctx, type, 0);
     }
 
@@ -580,11 +572,9 @@ generate_tv_PUSH(cctx_T *cctx, typval_T *tv)
 	case VAR_NUMBER:
 	    generate_PUSHNR(cctx, tv->vval.v_number);
 	    break;
-#ifdef FEAT_FLOAT
 	case VAR_FLOAT:
 	    generate_PUSHF(cctx, tv->vval.v_float);
 	    break;
-#endif
 	case VAR_BLOB:
 	    generate_PUSHBLOB(cctx, tv->vval.v_blob);
 	    tv->vval.v_blob = NULL;
@@ -688,7 +678,6 @@ generate_PUSHSPEC(cctx_T *cctx, varnumber_T number)
     return OK;
 }
 
-#if defined(FEAT_FLOAT) || defined(PROTO)
 /*
  * Generate an ISN_PUSHF instruction.
  */
@@ -704,7 +693,6 @@ generate_PUSHF(cctx_T *cctx, float_T fnumber)
 
     return OK;
 }
-#endif
 
 /*
  * Generate an ISN_PUSHS instruction.
@@ -1009,6 +997,7 @@ generate_LOADOUTER(
 	cctx_T	    *cctx,
 	int	    idx,
 	int	    nesting,
+	int	    loop_depth,
 	int	    loop_idx,
 	type_T	    *type)
 {
@@ -1020,9 +1009,9 @@ generate_LOADOUTER(
     if (nesting == 1 && loop_idx >= 0 && idx >= loop_idx)
     {
 	// Load a variable defined in a loop.  A copy will be made at the end
-	// of the loop.  TODO: how about deeper nesting?
+	// of the loop.
 	isn->isn_arg.outer.outer_idx = idx - loop_idx;
-	isn->isn_arg.outer.outer_depth = OUTER_LOOP_DEPTH;
+	isn->isn_arg.outer.outer_depth = -loop_depth - 1;
     }
     else
     {
@@ -1219,8 +1208,8 @@ generate_FUNCREF(
     isn_T	    *isn;
     type_T	    *type;
     funcref_extra_T *extra;
-    short	    loop_var_idx;
-    short	    loop_var_count;
+    loopvarinfo_T   loopinfo;
+    int		    has_vars;
 
     RETURN_OK_IF_SKIP(cctx);
     if ((isn = generate_instr(cctx, ISN_FUNCREF)) == NULL)
@@ -1228,20 +1217,22 @@ generate_FUNCREF(
     if (isnp != NULL)
 	*isnp = isn;
 
-    loop_var_count = get_loop_var_info(cctx, &loop_var_idx);
-    if (ufunc->uf_def_status == UF_NOT_COMPILED || loop_var_count > 0)
+    has_vars = get_loop_var_info(cctx, &loopinfo);
+    if (ufunc->uf_def_status == UF_NOT_COMPILED || has_vars)
     {
 	extra = ALLOC_CLEAR_ONE(funcref_extra_T);
 	if (extra == NULL)
 	    return FAIL;
 	isn->isn_arg.funcref.fr_extra = extra;
-	extra->fre_loop_var_idx = loop_var_idx;
-	extra->fre_loop_var_count = loop_var_count;
+	extra->fre_loopvar_info = loopinfo;
     }
     if (ufunc->uf_def_status == UF_NOT_COMPILED)
 	extra->fre_func_name = vim_strsave(ufunc->uf_name);
     else
 	isn->isn_arg.funcref.fr_dfunc_idx = ufunc->uf_dfunc_idx;
+
+    // Reserve an extra variable to keep track of the number of closures
+    // created.
     cctx->ctx_has_closure = 1;
 
     // If the referenced function is a closure, it may use items further up in
@@ -1264,9 +1255,7 @@ generate_FUNCREF(
 generate_NEWFUNC(
 	cctx_T	*cctx,
 	char_u	*lambda_name,
-	char_u	*func_name,
-	short	loop_var_idx,
-	short	loop_var_count)
+	char_u	*func_name)
 {
     isn_T	*isn;
     int		ret = OK;
@@ -1283,11 +1272,14 @@ generate_NEWFUNC(
 		ret = FAIL;
 	    else
 	    {
+		// Reserve an extra variable to keep track of the number of
+		// closures created.
+		cctx->ctx_has_closure = 1;
+
 		isn->isn_arg.newfunc.nf_arg = arg;
 		arg->nfa_lambda = lambda_name;
 		arg->nfa_global = func_name;
-		arg->nfa_loop_var_idx = loop_var_idx;
-		arg->nfa_loop_var_count = loop_var_count;
+		(void)get_loop_var_info(cctx, &arg->nfa_loopvar_info);
 		return OK;
 	    }
 	}
@@ -1383,27 +1375,25 @@ generate_FOR(cctx_T *cctx, int loop_idx)
     RETURN_OK_IF_SKIP(cctx);
     if ((isn = generate_instr(cctx, ISN_FOR)) == NULL)
 	return FAIL;
-    isn->isn_arg.forloop.for_idx = loop_idx;
+    isn->isn_arg.forloop.for_loop_idx = loop_idx;
 
     // type doesn't matter, will be stored next
     return push_type_stack(cctx, &t_any);
 }
 
     int
-generate_ENDLOOP(
-	cctx_T	*cctx,
-	int	funcref_idx,
-	int	prev_local_count)
+generate_ENDLOOP(cctx_T *cctx, loop_info_T *loop_info)
 {
     isn_T	*isn;
 
     RETURN_OK_IF_SKIP(cctx);
     if ((isn = generate_instr(cctx, ISN_ENDLOOP)) == NULL)
 	return FAIL;
-    isn->isn_arg.endloop.end_funcref_idx = funcref_idx;
-    isn->isn_arg.endloop.end_var_idx = prev_local_count;
+    isn->isn_arg.endloop.end_depth = loop_info->li_depth;
+    isn->isn_arg.endloop.end_funcref_idx = loop_info->li_funcref_idx;
+    isn->isn_arg.endloop.end_var_idx = loop_info->li_local_count;
     isn->isn_arg.endloop.end_var_count =
-				    cctx->ctx_locals.ga_len - prev_local_count;
+			   cctx->ctx_locals.ga_len - loop_info->li_local_count;
     return OK;
 }
 

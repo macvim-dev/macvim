@@ -1,4 +1,4 @@
-*todo.txt*      For Vim version 9.0.  Last change: 2022 Sep 10
+*todo.txt*      For Vim version 9.0.  Last change: 2022 Sep 27
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -38,16 +38,21 @@ browser use: https://github.com/vim/vim/issues/1234
 							*known-bugs*
 -------------------- Known bugs and current work -----------------------
 
+From test_global
+        Found errors in Test_interrupt_global():
+        Run 1, 02:16:22 - 02:16:27:
+        command line..script /home/mool/vim/vim90/src/testdir/runtest.vim[469]..function RunTheTest[44]..Test_interrupt_global[13]..WaitForAssert[2]..<SNR>7_WaitForCommon[11]..<lambda>20 line 1: Pattern 'Interrupted' does not match 'Type  :qa!  and press...l changes and exit Vim           1,1           All'
+        command line..script /home/mool/vim/vim90/src/testdir/runtest.vim[469]..function RunTheTest[44]..Test_interrupt_global[20]..WaitForAssert[2]..<SNR>7_WaitForCommon[11]..<lambda>21 line 1: Pattern 'Interrupted' does not match 'Entering Ex mode.  Type "visual" to go to Normal mode.'
+
 Use :defer command:
     - Use "D" flag of writefile() and mkdir() in tests.
-	(testdir/test_c*.vim done)
+	(testdir/test_e*.vim done)
 
-When using :echomessage do use msg_row and msg_col, but save and restore.
-How to test any failure?  If nothing fails perhaps it's OK alrady.
-
-Drop Windows XP?  #11089
+New Vim indent script: #11079  OK? 
 
 Further Vim9 improvements, possibly after launch:
+- For map(), reduce() and filter() use a specific implementation if the second
+  argument is a compiled function.  #11163
 - Use Vim9 for more runtime files.
 - Check performance with callgrind and kcachegrind.
     getline()/substitute()/setline() in #5632
@@ -185,8 +190,6 @@ Terminal emulator window:
 - When 'encoding' is not utf-8, or the job is using another encoding, setup
   conversions.
 
-Add 'splitscroll'  #10682  Anything remaining
-
 Autoconf: must use autoconf 2.69, later version generates lots of warnings
 - try using autoconf 2.71 and fix all "obsolete" warnings
 
@@ -196,6 +199,16 @@ After patch 8.2.4915 w_botline is computed much more often. Can this be
 reduced?
 
 Add BufDeletePost.  #11041
+
+Test property disappears when using CR twice in a row.  OK when some text was
+entered. (#11151)
+
+Add a string to the 'display' option ("smoothscroll" ?) to make CTRL-E and
+CTRL-Y scroll one screen line, also if this means the first line doesn't start
+with the first character (like what happens with a last line that doesn't
+fit).  Display "<<<" at the start of the first visible line (like "@@@" is
+displayed in the last line). (Arseny Nasokin,  #5154)
+Neovim PR: https://github.com/neovim/neovim/pull/11014
 
 NFA regexp does not handle composing characters well: #10286
     [ɔ̃] matches both ɔ and ɔ̃
@@ -274,7 +287,9 @@ Adding "10" to 'spellsuggest' causes spell suggestions to become very slow.
 Also, z= in German on a long word can take a very long time, but CTRL-C to
 interrupt does not work. Where to add ui_breakcheck()?
 New English spell files also have very slow suggestions.
+
 French spell files don't work correctly.  #4916
+    Make Vim understand the format somehow?
 
 Make "g>" and "g<" in Visual mode move the text right or left.
 Also for a block selection.  #8558
@@ -555,12 +570,6 @@ Patch for this (Tristan Konolige, #1011, only added the option, no implem.)
 Bug: script written with "-W scriptout" contains Key codes, while the script
 read with "-s scriptin" expects escape codes.  Probably "scriptout" needs to
 be adjusted. (Daniel Steinberg, 2019 Feb 24, #4041)
-
-Add a string to the 'display' option ("smoothscroll" ?) to make CTRL-E and
-CTRL-Y scroll one screen line, also if this means the first line doesn't start
-with the first character (like what happens with a last line that doesn't
-fit).  Display "<<<" at the start of the first visible line (like "@@@" is
-displayed in the last line). (Arseny Nasokin,  #5154)
 
 Window size changes after closing a tab. (#4741)
 

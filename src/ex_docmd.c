@@ -6310,7 +6310,6 @@ tabpage_close_other(tabpage_T *tp, int forceit)
 {
     int		done = 0;
     win_T	*wp;
-    int		h = tabline_height();
 
     // Limit to 1000 windows, autocommands may add a window while we close
     // one.  OK, so I'm paranoid...
@@ -6326,10 +6325,6 @@ tabpage_close_other(tabpage_T *tp, int forceit)
     }
 
     apply_autocmds(EVENT_TABCLOSED, NULL, NULL, FALSE, curbuf);
-
-    redraw_tabline = TRUE;
-    if (h != tabline_height())
-	shell_new_rows();
 }
 
 /*
@@ -8439,13 +8434,19 @@ ex_redrawstatus(exarg_T *eap UNUSED)
     int		r = RedrawingDisabled;
     int		p = p_lz;
 
-    RedrawingDisabled = 0;
-    p_lz = FALSE;
     if (eap->forceit)
 	status_redraw_all();
     else
 	status_redraw_curbuf();
-    update_screen(VIsual_active ? UPD_INVERTED : 0);
+    if (msg_scrolled && (State & MODE_CMDLINE))
+	return;  // redraw later
+
+    RedrawingDisabled = 0;
+    p_lz = FALSE;
+    if (State & MODE_CMDLINE)
+	redraw_statuslines();
+    else
+	update_screen(VIsual_active ? UPD_INVERTED : 0);
     RedrawingDisabled = r;
     p_lz = p;
     out_flush();
