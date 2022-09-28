@@ -45,13 +45,18 @@
 // TODO: What does DRAW_TRANSP flag do?  If the background isn't drawn when
 // this flag is set, then sometimes the character after the cursor becomes
 // blank.  Everything seems to work fine by just ignoring this flag.
-#define DRAW_TRANSP               0x01    /* draw with transparant bg */
-#define DRAW_BOLD                 0x02    /* draw bold text */
-#define DRAW_UNDERL               0x04    /* draw underline text */
-#define DRAW_UNDERC               0x08    /* draw undercurl text */
-#define DRAW_ITALIC               0x10    /* draw italic text */
+#define DRAW_TRANSP               0x01    // draw with transparent bg
+#define DRAW_BOLD                 0x02    // draw bold text
+#define DRAW_UNDERL               0x04    // draw underline text
+#define DRAW_UNDERC               0x08    // draw undercurl text
+#define DRAW_ITALIC               0x10    // draw italic text
 #define DRAW_CURSOR               0x20
-#define DRAW_WIDE                 0x80    /* draw wide text */
+#define DRAW_STRIKE               0x40    // draw strikethrough text
+#define DRAW_UNDERDOUBLE          0x80      // draw double underline
+#define DRAW_UNDERDOTTED          0x100      // draw dotted underline
+#define DRAW_UNDERDASHED          0x200      // draw dashed underline
+#define DRAW_WIDE                 0x1000  // (MacVim only) draw wide text
+#define DRAW_COMP                 0x2000  // (MacVim only) drawing composing char
 
 
 static NSString *MMWideCharacterAttributeName = @"MMWideChar";
@@ -319,6 +324,12 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
         NSNumber *value = [NSNumber numberWithInt:(NSUnderlineStyleSingle
                 | NSUnderlinePatternSolid)]; // | NSUnderlineByWordMask
         [attributes setObject:value forKey:NSUnderlineStyleAttributeName];
+    }
+
+    if (flags & DRAW_STRIKE) {
+        NSNumber *value = [NSNumber numberWithInt:(NSUnderlineStyleSingle
+                | NSUnderlinePatternSolid)]; // | NSUnderlineByWordMask
+        [attributes setObject:value forKey:NSStrikethroughStyleAttributeName];
     }
 
     if (flags & DRAW_UNDERC) {
