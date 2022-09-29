@@ -252,7 +252,7 @@ jobs:
 
       - name: Upload MacVim image
         if: startsWith(github.ref, 'refs/tags/') && matrix.publish
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: MacVim.dmg
           path: src/MacVim/build/Release/MacVim.dmg
