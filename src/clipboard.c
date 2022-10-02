@@ -2114,7 +2114,19 @@ clip_convert_selection(char_u **str, long_u *len, Clipboard_T *cbd)
     int_u	eolsize;
     yankreg_T	*y_ptr;
 
-    if (cbd == &clip_plus)
+    if (!cbd)
+    {
+	// MacVim extension: This makes this function much more useful as we
+	// can now extract usable texts from any registers for use instead of
+	// being forced to go through the system clipboard. This is useful for
+	// features that expose selected texts (e.g. system services) without
+	// polluting the system clipboard. 
+	int unname_register = get_unname_register();
+	if (unname_register < 0)
+	    return -1;
+	y_ptr = get_y_register(unname_register);
+    }
+    else if (cbd == &clip_plus)
 	y_ptr = get_y_register(PLUS_REGISTER);
     else
 	y_ptr = get_y_register(STAR_REGISTER);
