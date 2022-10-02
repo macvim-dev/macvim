@@ -1685,13 +1685,11 @@
 /// Ask Vim to fill in the pasteboard with the currently selected text in visual mode.
 - (BOOL)askBackendForSelectedText:(NSPasteboard *)pb
 {
-    // We use a dedicated API for this instead of just using something like
-    // evaluateExpression because there's a fair bit of logic in Vim that
-    // figures out how to convert from a visual selection to an externally
-    // presentable text in the clipboard code. Part of the complexity has to do
-    // with the three modes (character/blockwise/linewise) that visual mode can
-    // be in. We would like to reuse that code, instead of hacking it via some
-    // expression evaluation results.
+    // This could potentially be done via evaluateExpression by yanking the
+    // selection, then returning the results via getreg('@') and restoring the
+    // register. Using a dedicated API is probably a little safer (e.g. it
+    // prevents TextYankPost autocmd's from triggering) and efficient
+    // and hence this is what we use for now.
     BOOL reply = NO;
     id backendProxy = [vimController backendProxy];
 

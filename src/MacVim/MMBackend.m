@@ -1357,10 +1357,10 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     return eval;
 }
 
-/// Extracts the text currently selected in visual mode, and return them in str/len.
+/// Extracts the text currently selected in visual mode, and returns it.
 ///
-/// @return the motion type (e.g. blockwise), or -1 for failure.
-static int extractSelectedText(char_u **str, long_u *len)
+/// @return the string representing the selected text, or NULL if failure.
+static char_u *extractSelectedText()
 {
     // Note: Most of the functionality in Vim that allows for extracting useful
     // text from a selection are in the register & clipboard utility functions.
@@ -1372,7 +1372,7 @@ static int extractSelectedText(char_u **str, long_u *len)
 
     if (!(VIsual_active && (State & MODE_NORMAL))) {
         // This only works when we are in visual mode and have stuff to select.
-        return -1;
+        return NULL;
     }    
 
     // Step 1: Find a register to yank the selection to. If we don't do this we
@@ -1423,9 +1423,8 @@ static int extractSelectedText(char_u **str, long_u *len)
     ca.retval = CA_NO_ADJ_OP_END;
     do_pending_operator(&ca, 0, TRUE);
 
-    // Step 3: Convert the yank register to a single piece of useful text. This
-    // will handle all the edge cases of different modes (e.g. blockwise, etc).
-    const int convert_result = clip_convert_selection(str, len, NULL);
+    // Step 3: Extract the text from the yank ('0') register.
+    char_u *str = get_reg_contents(0, 0);
 
     // Step 4: Clean up the yank register, and restore it back.
     set_y_current(target_reg); // should not be necessary as it's done in do_pending_operator above (since regname was set to 0), but just to be safe and verbose in intention.
@@ -1447,7 +1446,7 @@ static int extractSelectedText(char_u **str, long_u *len)
 
     unblock_autocmds();
 
-    return convert_result;
+    return str;
 }
 
 /// Extract the currently selected text (in visual mode) and send that to the
@@ -1460,23 +1459,19 @@ static int extractSelectedText(char_u **str, long_u *len)
         if (!pboard)
             return YES;
 
-        long_u llen = 0; char_u *str = 0;
-        int type = extractSelectedText(&str, &llen);
-        if (type < 0)
+        char_u *str = extractSelectedText();
+        if (!str)
             return NO;
         
-        // TODO: Avoid overflow.
-        int len = (int)llen;
         if (output_conv.vc_type != CONV_NONE) {
-            char_u *conv_str = string_convert(&output_conv, str, &len);
+            char_u *conv_str = string_convert(&output_conv, str, NULL);
             if (conv_str) {
                 vim_free(str);
                 str = conv_str;
             }
         }
 
-        NSString *string = [[NSString alloc]
-            initWithBytes:str length:len encoding:NSUTF8StringEncoding];
+        NSString *string = [[NSString alloc] initWithUTF8String:(char*)str];
 
         NSArray *types = [NSArray arrayWithObject:NSStringPboardType];
         [pboard declareTypes:types owner:nil];
