@@ -33,6 +33,7 @@ NSString *MMFontPreserveLineSpacingKey    = @"MMFontPreserveLineSpacing";
 NSString *MMAppearanceModeSelectionKey    = @"MMAppearanceModeSelection";
 NSString *MMNoTitleBarWindowKey           = @"MMNoTitleBarWindow";
 NSString *MMTitlebarAppearsTransparentKey = @"MMTitlebarAppearsTransparent";
+NSString *MMNoWindowShadowKey             = @"MMNoWindowShadow";
 NSString *MMDisableLaunchAnimation        = @"MMDisableLaunchAnimation";
 NSString *MMLoginShellKey                 = @"MMLoginShell";
 NSString *MMUntitledWindowKey             = @"MMUntitledWindow";

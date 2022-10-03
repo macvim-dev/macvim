@@ -133,8 +133,8 @@
             | NSWindowStyleMaskUnifiedTitleAndToolbar
             | NSWindowStyleMaskTexturedBackground;
 
-    if ([[NSUserDefaults standardUserDefaults]
-            boolForKey:MMNoTitleBarWindowKey]) {
+    NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
+    if ([userDefaults boolForKey:MMNoTitleBarWindowKey]) {
         // No title bar setting
         styleMask &= ~NSWindowStyleMaskTitled;
     }
@@ -571,21 +571,27 @@
     // This function calculates what apperance mode (light vs dark mode and
     // titlebar settings) to use for this window, depending on what the user
     // has selected as a preference.
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
     
     // Transparent title bar setting
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_10
     if (@available(macos 10.10, *)) {
-        decoratedWindow.titlebarAppearsTransparent = [[NSUserDefaults standardUserDefaults]
-                                                      boolForKey:MMTitlebarAppearsTransparentKey];
+        decoratedWindow.titlebarAppearsTransparent = [ud boolForKey:MMTitlebarAppearsTransparentKey];
     }
 #endif
     
     // No title bar setting
-    if ([[NSUserDefaults standardUserDefaults]
-            boolForKey:MMNoTitleBarWindowKey]) {
+    if ([ud boolForKey:MMNoTitleBarWindowKey]) {
         [decoratedWindow setStyleMask:([decoratedWindow styleMask] & ~NSWindowStyleMaskTitled)];
     } else {
         [decoratedWindow setStyleMask:([decoratedWindow styleMask] | NSWindowStyleMaskTitled)];
+    }
+
+    // Whether to hide shadows or not
+    if ([ud boolForKey:MMNoWindowShadowKey]) {
+        [decoratedWindow setHasShadow:NO];
+    } else {
+        [decoratedWindow setHasShadow:YES];
     }
 
     // Title may have been lost if we hid the title-bar. Reset it.
@@ -596,7 +602,7 @@
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_14
     if (@available(macos 10.14, *)) {
         NSAppearance* desiredAppearance;
-        switch ([[NSUserDefaults standardUserDefaults] integerForKey:MMAppearanceModeSelectionKey])
+        switch ([ud integerForKey:MMAppearanceModeSelectionKey])
         {
             case MMAppearanceModeSelectionLight:
             {
