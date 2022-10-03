@@ -87,7 +87,7 @@
 - (NSSize)constrainContentSizeToScreenSize:(NSSize)contentSize;
 - (NSRect)constrainFrame:(NSRect)frame;
 - (NSTabViewItem *)addNewTabViewItem;
-- (BOOL)askBackendForStarRegister:(NSPasteboard *)pb;
+- (BOOL)askBackendForSelectedText:(NSPasteboard *)pb;
 - (void)updateTablineSeparator;
 - (void)hideTablineSeparator:(BOOL)hide;
 - (void)doFindNext:(BOOL)next;
@@ -1342,21 +1342,25 @@
                      returnType:(NSString *)returnType
 {
     if ([sendType isEqual:NSStringPboardType]
-            && [self askBackendForStarRegister:nil])
+            && [self askBackendForSelectedText:nil])
         return self;
 
     return [super validRequestorForSendType:sendType returnType:returnType];
 }
 
+/// Called by OS when it tries to show a "Services" menu. We ask Vim for the
+/// currently selected text and write that to the provided pasteboard.
 - (BOOL)writeSelectionToPasteboard:(NSPasteboard *)pboard
                              types:(NSArray *)types
 {
     if (![types containsObject:NSStringPboardType])
         return NO;
 
-    return [self askBackendForStarRegister:pboard];
+    return [self askBackendForSelectedText:pboard];
 }
 
+/// Called by the OS when it tries to update the selection. This could happen
+/// if you selected "Convert text to full width" in the Services menu, for example.
 - (BOOL)readSelectionFromPasteboard:(NSPasteboard *)pboard
 {
     // Replace the current selection with the text on the pasteboard.
@@ -1684,18 +1688,23 @@
     return [vimView addNewTabViewItem];
 }
 
-- (BOOL)askBackendForStarRegister:(NSPasteboard *)pb
-{ 
-    // TODO: Can this be done with evaluateExpression: instead?
+/// Ask Vim to fill in the pasteboard with the currently selected text in visual mode.
+- (BOOL)askBackendForSelectedText:(NSPasteboard *)pb
+{
+    // This could potentially be done via evaluateExpression by yanking the
+    // selection, then returning the results via getreg('@') and restoring the
+    // register. Using a dedicated API is probably a little safer (e.g. it
+    // prevents TextYankPost autocmd's from triggering) and efficient
+    // and hence this is what we use for now.
     BOOL reply = NO;
     id backendProxy = [vimController backendProxy];
 
     if (backendProxy) {
         @try {
-            reply = [backendProxy starRegisterToPasteboard:pb];
+            reply = [backendProxy selectedTextToPasteboard:pb];
         }
         @catch (NSException *ex) {
-            ASLogDebug(@"starRegisterToPasteboard: failed: pid=%d reason=%@",
+            ASLogDebug(@"selectedTextToPasteboard: failed: pid=%d reason=%@",
                     [vimController pid], ex);
         }
     }

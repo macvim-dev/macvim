@@ -1357,41 +1357,121 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     return eval;
 }
 
-- (BOOL)starRegisterToPasteboard:(byref NSPasteboard *)pboard
+/// Extracts the text currently selected in visual mode, and returns it.
+///
+/// @return the string representing the selected text, or NULL if failure.
+static char_u *extractSelectedText()
 {
-    // TODO: This method should share code with clip_mch_request_selection().
+    // Note: Most of the functionality in Vim that allows for extracting useful
+    // text from a selection are in the register & clipboard utility functions.
+    // Unfortunately, most of those functions would actually send the text to
+    // the system clipboard, which we don't want (since we just want to extract
+    // the text instead of polluting the system clipboard). We don't want to
+    // refactor upstream Vim code too much to avoid merge pains later, so we
+    // duplicate a fair bit of the code from the functions below.
 
-    if (VIsual_active && (State & MODE_NORMAL) && clip_star.available) {
-        // If there is no pasteboard, return YES to indicate that there is text
-        // to copy.
+    if (!(VIsual_active && (State & MODE_NORMAL))) {
+        // This only works when we are in visual mode and have stuff to select.
+        return NULL;
+    }    
+
+    // Step 1: Find a register to yank the selection to. If we don't do this we
+    // have to duplicate a lot of code in op_yank(). We save it off to a backup
+    // first so we can restore it later to avoid polluting the registers.
+
+    // Just use the yank / '0' register as it makes sense, but it doesn't
+    // really matter.
+    yankreg_T *target_reg = get_y_register(0);
+
+    // Move the contents to the backup without doing memory allocs.
+    yankreg_T backup_reg = *target_reg;
+    target_reg->y_array = NULL;
+    target_reg->y_size = 0;
+
+    // Step 2: Preserve the local states, and then invoke yank.
+    // Note: These were copied from clip_get_selection() in clipboard.c
+    yankreg_T	*old_y_previous, *old_y_current;
+    pos_T	old_cursor;
+    pos_T	old_visual;
+    int		old_visual_mode;
+    colnr_T	old_curswant;
+    int		old_set_curswant;
+    pos_T	old_op_start, old_op_end;
+    oparg_T	oa;
+    cmdarg_T	ca;
+
+    // Avoid triggering autocmds such as TextYankPost.
+    block_autocmds();
+
+    // Yank the selected text into the target register.
+    old_y_previous = get_y_previous();
+    old_y_current = get_y_current();
+    old_cursor = curwin->w_cursor;
+    old_curswant = curwin->w_curswant;
+    old_set_curswant = curwin->w_set_curswant;
+    old_op_start = curbuf->b_op_start;
+    old_op_end = curbuf->b_op_end;
+    old_visual = VIsual;
+    old_visual_mode = VIsual_mode;
+    clear_oparg(&oa);
+    oa.regname = '0'; // Use the '0' (yank) register. We will restore it later to avoid pollution.
+    oa.op_type = OP_YANK;
+    CLEAR_FIELD(ca);
+    ca.oap = &oa;
+    ca.cmdchar = 'y';
+    ca.count1 = 1;
+    ca.retval = CA_NO_ADJ_OP_END;
+    do_pending_operator(&ca, 0, TRUE);
+
+    // Step 3: Extract the text from the yank ('0') register.
+    char_u *str = get_reg_contents(0, 0);
+
+    // Step 4: Clean up the yank register, and restore it back.
+    set_y_current(target_reg); // should not be necessary as it's done in do_pending_operator above (since regname was set to 0), but just to be safe and verbose in intention.
+    free_yank_all();
+    *target_reg = backup_reg;
+
+    // Step 5: Restore all the loose states that were modified during yank.
+    // Note: These were copied from clip_get_selection() in clipboard.c
+    set_y_previous(old_y_previous);
+    set_y_current(old_y_current);
+    curwin->w_cursor = old_cursor;
+    changed_cline_bef_curs();   // need to update w_virtcol et al
+    curwin->w_curswant = old_curswant;
+    curwin->w_set_curswant = old_set_curswant;
+    curbuf->b_op_start = old_op_start;
+    curbuf->b_op_end = old_op_end;
+    VIsual = old_visual;
+    VIsual_mode = old_visual_mode;
+
+    unblock_autocmds();
+
+    return str;
+}
+
+/// Extract the currently selected text (in visual mode) and send that to the
+/// provided pasteboard.
+- (BOOL)selectedTextToPasteboard:(byref NSPasteboard *)pboard
+{
+    if (VIsual_active && (State & MODE_NORMAL)) {
+        // If there is no pasteboard, just return YES to indicate that there is
+        // text to copy.
         if (!pboard)
             return YES;
 
-        // The code below used to be clip_copy_selection() but it is now
-        // static, so do it manually.
-        clip_update_selection(&clip_star);
-        clip_free_selection(&clip_star);
-        clip_get_selection(&clip_star);
-        clip_gen_set_selection(&clip_star);
-
-        // Get the text to put on the pasteboard.
-        long_u llen = 0; char_u *str = 0;
-        int type = clip_convert_selection(&str, &llen, &clip_star);
-        if (type < 0)
+        char_u *str = extractSelectedText();
+        if (!str)
             return NO;
         
-        // TODO: Avoid overflow.
-        int len = (int)llen;
         if (output_conv.vc_type != CONV_NONE) {
-            char_u *conv_str = string_convert(&output_conv, str, &len);
+            char_u *conv_str = string_convert(&output_conv, str, NULL);
             if (conv_str) {
                 vim_free(str);
                 str = conv_str;
             }
         }
 
-        NSString *string = [[NSString alloc]
-            initWithBytes:str length:len encoding:NSUTF8StringEncoding];
+        NSString *string = [[NSString alloc] initWithUTF8String:(char*)str];
 
         NSArray *types = [NSArray arrayWithObject:NSStringPboardType];
         [pboard declareTypes:types owner:nil];
