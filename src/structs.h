@@ -262,6 +262,8 @@ typedef struct
 #endif
     long	wo_scr;
 #define w_p_scr w_onebuf_opt.wo_scr	// 'scroll'
+    int		wo_sms;
+#define w_p_sms w_onebuf_opt.wo_sms	// 'smoothscroll'
 #ifdef FEAT_SPELL
     int		wo_spell;
 # define w_p_spell w_onebuf_opt.wo_spell // 'spell'
@@ -1445,10 +1447,10 @@ typedef struct {
     type_T	*type_decl;	    // declared type or equal to type_current
 } type2_T;
 
-#define TTFLAG_VARARGS	1	    // func args ends with "..."
-#define TTFLAG_OPTARG	2	    // func arg type with "?"
-#define TTFLAG_BOOL_OK	4	    // can be converted to bool
-#define TTFLAG_STATIC	8	    // one of the static types, e.g. t_any
+#define TTFLAG_VARARGS	0x01	    // func args ends with "..."
+#define TTFLAG_BOOL_OK	0x02	    // can be converted to bool
+#define TTFLAG_STATIC	0x04	    // one of the static types, e.g. t_any
+#define TTFLAG_CONST	0x08	    // cannot be changed
 
 /*
  * Structure to hold an internal variable without a name.
@@ -3436,9 +3438,6 @@ typedef struct
 			    // CurSearch
 } match_T;
 
-// number of positions supported by matchaddpos()
-#define MAXPOSMATCH 8
-
 /*
  * Same as lpos_T, but with additional field len.
  */
@@ -3450,35 +3449,31 @@ typedef struct
 } llpos_T;
 
 /*
- * posmatch_T provides an array for storing match items for matchaddpos()
- * function.
- */
-typedef struct posmatch posmatch_T;
-struct posmatch
-{
-    llpos_T	pos[MAXPOSMATCH];	// array of positions
-    int		cur;			// internal position counter
-    linenr_T	toplnum;		// top buffer line
-    linenr_T	botlnum;		// bottom buffer line
-};
-
-/*
- * matchitem_T provides a linked list for storing match items for ":match" and
- * the match functions.
+ * matchitem_T provides a linked list for storing match items for ":match",
+ * matchadd() and matchaddpos().
  */
 typedef struct matchitem matchitem_T;
 struct matchitem
 {
-    matchitem_T	*next;
-    int		id;	    // match ID
-    int		priority;   // match priority
-    char_u	*pattern;   // pattern to highlight
-    regmmatch_T	match;	    // regexp program for pattern
-    posmatch_T	pos;	    // position matches
-    match_T	hl;	    // struct for doing the actual highlighting
-    int		hlg_id;	    // highlight group ID
+    matchitem_T	*mit_next;
+    int		mit_id;		// match ID
+    int		mit_priority;   // match priority
+
+    // Either a pattern is defined (mit_pattern is not NUL) or a list of
+    // positions is given (mit_pos is not NULL and mit_pos_count > 0).
+    char_u	*mit_pattern;   // pattern to highlight
+    regmmatch_T	mit_match;	// regexp program for pattern
+
+    llpos_T	*mit_pos_array;	// array of positions
+    int		mit_pos_count;	// nr of entries in mit_pos
+    int		mit_pos_cur;	// internal position counter
+    linenr_T	mit_toplnum;	// top buffer line
+    linenr_T	mit_botlnum;	// bottom buffer line
+
+    match_T	mit_hl;		// struct for doing the actual highlighting
+    int		mit_hlg_id;	// highlight group ID
 #ifdef FEAT_CONCEAL
-    int		conceal_char; // cchar for Conceal highlighting
+    int		mit_conceal_char; // cchar for Conceal highlighting
 #endif
 };
 
@@ -3611,11 +3606,12 @@ struct window_S
 				    // below w_topline (at end of file)
     int		w_old_botfill;	    // w_botfill at last redraw
 #endif
-    colnr_T	w_leftcol;	    // window column number of the left most
+    colnr_T	w_leftcol;	    // screen column number of the left most
 				    // character in the window; used when
 				    // 'wrap' is off
-    colnr_T	w_skipcol;	    // starting column when a single line
-				    // doesn't fit in the window
+    colnr_T	w_skipcol;	    // starting screen column for the first
+				    // line in the window; used when 'wrap' is
+				    // on
 
     int		w_empty_rows;	    // number of ~ rows in window
 #ifdef FEAT_DIFF
@@ -3637,8 +3633,8 @@ struct window_S
     int		w_winrow;	    // first row of window in screen
     int		w_height;	    // number of rows in window, excluding
 				    // status/command/winbar line(s)
-    int		w_prev_winrow;	    // previous winrow used for 'splitscroll'
-    int		w_prev_height;	    // previous height used for 'splitscroll'
+    int		w_prev_winrow;	    // previous winrow used for 'splitkeep'
+    int		w_prev_height;	    // previous height used for 'splitkeep'
 
     int		w_status_height;    // number of status lines (0 or 1)
     int		w_wincol;	    // Leftmost column of window in screen.

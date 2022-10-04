@@ -214,11 +214,41 @@ check_arg_type(
 	type_T		*actual,
 	argcontext_T	*context)
 {
-    // TODO: would be useful to know if "actual" is a constant and pass it to
-    // need_type() to get a compile time error if possible.
     return need_type(actual, expected,
 	    context->arg_idx - context->arg_count, context->arg_idx + 1,
 	    context->arg_cctx, FALSE, FALSE);
+}
+
+/*
+ * Call need_type() to check an argument type and that it is modifiable
+ */
+    static int
+check_arg_type_mod(
+	type_T		*expected,
+	type_T		*actual,
+	argcontext_T	*context)
+{
+    if (need_type(actual, expected,
+	    context->arg_idx - context->arg_count, context->arg_idx + 1,
+	    context->arg_cctx, FALSE, FALSE) == FAIL)
+	return FAIL;
+    return arg_type_modifiable(actual, context->arg_idx + 1);
+}
+
+/*
+ * Give an error if "type" is a constant.
+ */
+    int
+arg_type_modifiable(type_T *type, int arg_idx)
+{
+    char *tofree;
+
+    if ((type->tt_flags & TTFLAG_CONST) == 0)
+	return OK;
+    semsg(_(e_argument_nr_trying_to_modify_const_str),
+	    arg_idx, type_name(type, &tofree));
+    vim_free(tofree);
+    return FAIL;
 }
 
 /*
@@ -261,6 +291,18 @@ arg_dict_any(type_T *type, type_T *decl_type UNUSED, argcontext_T *context)
 arg_list_any(type_T *type, type_T *decl_type UNUSED, argcontext_T *context)
 {
     return check_arg_type(&t_list_any, type, context);
+}
+
+/*
+ * Check "type" is a list of 'any' and modifiable
+ */
+    static int
+arg_list_any_mod(
+	type_T	     *type,
+	type_T	     *decl_type UNUSED,
+	argcontext_T *context)
+{
+    return check_arg_type_mod(&t_list_any, type, context);
 }
 
 /*
@@ -321,6 +363,20 @@ arg_list_or_blob(type_T *type, type_T *decl_type UNUSED, argcontext_T *context)
 	return OK;
     arg_type_mismatch(&t_list_any, type, context->arg_idx + 1);
     return FAIL;
+}
+
+/*
+ * Check "type" is a modifiable list of 'any' or a blob.
+ */
+    static int
+arg_list_or_blob_mod(
+	type_T	     *type,
+	type_T	     *decl_type,
+	argcontext_T *context)
+{
+    if (arg_list_or_blob(type, decl_type, context) == FAIL)
+	return FAIL;
+    return arg_type_modifiable(type, context->arg_idx + 1);
 }
 
 /*
@@ -468,17 +524,35 @@ arg_list_or_dict(type_T *type, type_T *decl_type UNUSED, argcontext_T *context)
 }
 
 /*
- * Check "type" is a list of 'any' or a dict of 'any' or a blob.
+ * Check "type" is a list of 'any' or a dict of 'any'.  And modifiable.
  */
     static int
-arg_list_or_dict_or_blob(type_T *type, type_T *decl_type UNUSED, argcontext_T *context)
+arg_list_or_dict_mod(
+	type_T	     *type,
+	type_T	     *decl_type,
+	argcontext_T *context)
+{
+    if (arg_list_or_dict(type, decl_type, context) == FAIL)
+	return FAIL;
+    return arg_type_modifiable(type, context->arg_idx + 1);
+}
+
+/*
+ * Check "type" is a list of 'any' or a dict of 'any' or a blob.
+ * Also check if "type" is modifiable.
+ */
+    static int
+arg_list_or_dict_or_blob_mod(
+	type_T	     *type,
+	type_T	     *decl_type UNUSED,
+	argcontext_T *context)
 {
     if (type->tt_type == VAR_ANY
 	    || type->tt_type == VAR_UNKNOWN
 	    || type->tt_type == VAR_LIST
 	    || type->tt_type == VAR_DICT
 	    || type->tt_type == VAR_BLOB)
-	return OK;
+	return arg_type_modifiable(type, context->arg_idx + 1);
     arg_type_mismatch(&t_list_any, type, context->arg_idx + 1);
     return FAIL;
 }
@@ -498,6 +572,21 @@ arg_list_or_dict_or_blob_or_string(type_T *type, type_T *decl_type UNUSED, argco
 	return OK;
     arg_type_mismatch(&t_list_any, type, context->arg_idx + 1);
     return FAIL;
+}
+
+/*
+ * Check "type" is a list of 'any' or a dict of 'any' or a blob or a string.
+ * Also check the value is modifiable.
+ */
+    static int
+arg_list_or_dict_or_blob_or_string_mod(
+	type_T	     *type,
+	type_T	     *decl_type,
+	argcontext_T *context)
+{
+    if (arg_list_or_dict_or_blob_or_string(type, decl_type, context) == FAIL)
+	return FAIL;
+    return arg_type_modifiable(type, context->arg_idx + 1);
 }
 
 /*
@@ -950,7 +1039,7 @@ static argcheck_T arg1_float_or_nr[] = {arg_float_or_nr};
 static argcheck_T arg1_job[] = {arg_job};
 static argcheck_T arg1_list_any[] = {arg_list_any};
 static argcheck_T arg1_list_number[] = {arg_list_number};
-static argcheck_T arg1_list_or_blob[] = {arg_list_or_blob};
+static argcheck_T arg1_list_or_blob_mod[] = {arg_list_or_blob_mod};
 static argcheck_T arg1_list_or_dict[] = {arg_list_or_dict};
 static argcheck_T arg1_list_string[] = {arg_list_string};
 static argcheck_T arg1_string_or_list_or_dict[] = {arg_string_or_list_or_dict};
@@ -979,7 +1068,7 @@ static argcheck_T arg2_list_any_number[] = {arg_list_any, arg_number};
 static argcheck_T arg2_list_any_string[] = {arg_list_any, arg_string};
 static argcheck_T arg2_list_number[] = {arg_list_number, arg_list_number};
 static argcheck_T arg2_list_number_bool[] = {arg_list_number, arg_bool};
-static argcheck_T arg2_listblob_item[] = {arg_list_or_blob, arg_item_of_prev};
+static argcheck_T arg2_listblobmod_item[] = {arg_list_or_blob_mod, arg_item_of_prev};
 static argcheck_T arg2_lnum[] = {arg_lnum, arg_lnum};
 static argcheck_T arg2_lnum_number[] = {arg_lnum, arg_number};
 static argcheck_T arg2_number[] = {arg_number, arg_number};
@@ -1036,7 +1125,7 @@ static argcheck_T arg24_count[] = {arg_string_or_list_or_dict, NULL, arg_bool, a
 static argcheck_T arg13_cursor[] = {arg_cursor1, arg_number, arg_number};
 static argcheck_T arg12_deepcopy[] = {NULL, arg_bool};
 static argcheck_T arg12_execute[] = {arg_string_or_list_string, arg_string};
-static argcheck_T arg23_extend[] = {arg_list_or_dict, arg_same_as_prev, arg_extend3};
+static argcheck_T arg23_extend[] = {arg_list_or_dict_mod, arg_same_as_prev, arg_extend3};
 static argcheck_T arg23_extendnew[] = {arg_list_or_dict, arg_same_struct_as_prev, arg_extend3};
 static argcheck_T arg23_get[] = {arg_get1, arg_string_or_nr, NULL};
 static argcheck_T arg14_glob[] = {arg_string, arg_bool, arg_bool, arg_bool};
@@ -1047,15 +1136,15 @@ static argcheck_T arg23_insert[] = {arg_list_or_blob, arg_item_of_prev, arg_numb
 static argcheck_T arg1_len[] = {arg_len1};
 static argcheck_T arg3_libcall[] = {arg_string, arg_string, arg_string_or_nr};
 static argcheck_T arg14_maparg[] = {arg_string, arg_string, arg_bool, arg_bool};
-static argcheck_T arg2_filter[] = {arg_list_or_dict_or_blob_or_string, arg_filter_func};
-static argcheck_T arg2_map[] = {arg_list_or_dict_or_blob_or_string, arg_map_func};
+static argcheck_T arg2_filter[] = {arg_list_or_dict_or_blob_or_string_mod, arg_filter_func};
+static argcheck_T arg2_map[] = {arg_list_or_dict_or_blob_or_string_mod, arg_map_func};
 static argcheck_T arg2_mapnew[] = {arg_list_or_dict_or_blob_or_string, NULL};
 static argcheck_T arg25_matchadd[] = {arg_string, arg_string, arg_number, arg_number, arg_dict_any};
 static argcheck_T arg25_matchaddpos[] = {arg_string, arg_list_any, arg_number, arg_number, arg_dict_any};
 static argcheck_T arg119_printf[] = {arg_string_or_nr, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
 static argcheck_T arg23_reduce[] = {arg_string_list_or_blob, NULL, NULL};
 static argcheck_T arg24_remote_expr[] = {arg_string, arg_string, arg_string, arg_number};
-static argcheck_T arg23_remove[] = {arg_list_or_dict_or_blob, arg_remove2, arg_number};
+static argcheck_T arg23_remove[] = {arg_list_or_dict_or_blob_mod, arg_remove2, arg_number};
 static argcheck_T arg2_repeat[] = {arg_repeat1, arg_number};
 static argcheck_T arg15_search[] = {arg_string, arg_string, arg_number, arg_number, arg_string_or_func};
 static argcheck_T arg37_searchpair[] = {arg_string, arg_string, arg_string, arg_string, arg_string_or_func, arg_number, arg_number};
@@ -1067,7 +1156,7 @@ static argcheck_T arg23_settagstack[] = {arg_number, arg_dict_any, arg_string};
 static argcheck_T arg02_sign_getplaced[] = {arg_buffer, arg_dict_any};
 static argcheck_T arg45_sign_place[] = {arg_number, arg_string, arg_string, arg_buffer, arg_dict_any};
 static argcheck_T arg23_slice[] = {arg_slice1, arg_number, arg_number};
-static argcheck_T arg13_sortuniq[] = {arg_list_any, arg_sort_how, arg_dict_any};
+static argcheck_T arg13_sortuniq[] = {arg_list_any_mod, arg_sort_how, arg_dict_any};
 static argcheck_T arg24_strpart[] = {arg_string, arg_number, arg_number, arg_bool};
 static argcheck_T arg12_system[] = {arg_string, arg_str_or_nr_or_list};
 static argcheck_T arg23_win_execute[] = {arg_number, arg_string_or_list_string, arg_string};
@@ -1554,7 +1643,7 @@ static funcentry_T global_functions[] =
 			ret_any,	    f_abs},
     {"acos",		1, 1, FEARG_1,	    arg1_float_or_nr,
 			ret_float,	    f_acos},
-    {"add",		2, 2, FEARG_1,	    arg2_listblob_item,
+    {"add",		2, 2, FEARG_1,	    arg2_listblobmod_item,
 			ret_first_arg,	    f_add},
     {"and",		2, 2, FEARG_1,	    arg2_number,
 			ret_number,	    f_and},
@@ -2318,7 +2407,7 @@ static funcentry_T global_functions[] =
 			ret_repeat,	    f_repeat},
     {"resolve",		1, 1, FEARG_1,	    arg1_string,
 			ret_string,	    f_resolve},
-    {"reverse",		1, 1, FEARG_1,	    arg1_list_or_blob,
+    {"reverse",		1, 1, FEARG_1,	    arg1_list_or_blob_mod,
 			ret_first_arg,	    f_reverse},
     {"round",		1, 1, FEARG_1,	    arg1_float_or_nr,
 			ret_float,	    f_round},

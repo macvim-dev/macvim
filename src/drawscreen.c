@@ -1552,6 +1552,26 @@ win_update(win_T *wp)
     init_search_hl(wp, &screen_search_hl);
 #endif
 
+    // Make sure skipcol is valid, it depends on various options and the window
+    // width.
+    if (wp->w_skipcol > 0)
+    {
+	int w = 0;
+	int width1 = wp->w_width - win_col_off(wp);
+	int width2 = width1 + win_col_off2(wp);
+	int add = width1;
+
+	while (w < wp->w_skipcol)
+	{
+	    if (w > 0)
+		add = width2;
+	    w += add;
+	}
+	if (w != wp->w_skipcol)
+	    // always round down, the higher value may not be valid
+	    wp->w_skipcol = w - add;
+    }
+
 #ifdef FEAT_LINEBREAK
     // Force redraw when width of 'number' or 'relativenumber' column
     // changes.
@@ -1614,13 +1634,13 @@ win_update(win_T *wp)
 
 		while (cur != NULL)
 		{
-		    if (cur->match.regprog != NULL
-					   && re_multiline(cur->match.regprog))
+		    if (cur->mit_match.regprog != NULL
+				       && re_multiline(cur->mit_match.regprog))
 		    {
 			top_to_mod = TRUE;
 			break;
 		    }
-		    cur = cur->next;
+		    cur = cur->mit_next;
 		}
 	    }
 #endif

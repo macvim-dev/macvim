@@ -2718,8 +2718,10 @@ EXTERN char e_item_not_found_in_script_str[]
 	INIT(= N_("E1048: Item not found in script: %s"));
 EXTERN char e_item_not_exported_in_script_str[]
 	INIT(= N_("E1049: Item not exported in script: %s"));
+#endif
 EXTERN char e_colon_required_before_range_str[]
 	INIT(= N_("E1050: Colon required before a range: %s"));
+#ifdef FEAT_EVAL
 EXTERN char e_wrong_argument_type_for_plus[]
 	INIT(= N_("E1051: Wrong argument type for +"));
 EXTERN char e_cannot_declare_an_option[]
@@ -3337,4 +3339,6 @@ EXTERN char e_cannot_use_length_endcol_and_endlnum_with_text[]
 #ifdef FEAT_EVAL
 EXTERN char e_loop_nesting_too_deep[]
 	INIT(= N_("E1306: Loop nesting too deep"));
+EXTERN char e_argument_nr_trying_to_modify_const_str[]
+	INIT(= N_("E1307: Argument %d: Trying to modify a const %s"));
 #endif

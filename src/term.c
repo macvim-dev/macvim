@@ -153,7 +153,7 @@ static termrequest_T *all_termrequests[] = {
 
 // The t_8u code may default to a value but get reset when the term response is
 // received.  To avoid redrawing too often, only redraw when t_8u is not reset
-// and it was supposed to be written.
+// and it was supposed to be written.  Unless t_8u was set explicitly.
 // FALSE -> don't output t_8u yet
 // MAYBE -> tried outputing t_8u while FALSE
 // OK    -> can write t_8u
@@ -3017,7 +3017,10 @@ term_bg_rgb_color(guicolor_T rgb)
 term_ul_rgb_color(guicolor_T rgb)
 {
 # ifdef FEAT_TERMRESPONSE
-    if (write_t_8u_state != OK)
+    // If the user explicitly sets t_8u then use it.  Otherwise wait for
+    // termresponse to be received, which is when t_8u would be set and a
+    // redraw is needed if it was used.
+    if (!option_was_set((char_u *)"t_8u") && write_t_8u_state != OK)
 	write_t_8u_state = MAYBE;
     else
 # endif
@@ -6736,11 +6739,13 @@ cterm_color2rgb(int nr, char_u *r, char_u *g, char_u *b, char_u *ansi_idx)
 #endif
 
 /*
- * Replace K_BS by <BS> and K_DEL by <DEL>
+ * Replace K_BS by <BS> and K_DEL by <DEL>.
+ * Returns "len" adjusted for replaced codes.
  */
-    void
-term_replace_bs_del_keycode(char_u *ta_buf, int ta_len, int len)
+    int
+term_replace_bs_del_keycode(char_u *ta_buf, int ta_len, int len_arg)
 {
+    int		len = len_arg;
     int		i;
     int		c;
 
@@ -6765,4 +6770,5 @@ term_replace_bs_del_keycode(char_u *ta_buf, int ta_len, int len)
 	if (has_mbyte)
 	    i += (*mb_ptr2len_len)(ta_buf + i, ta_len + len - i) - 1;
     }
+    return len;
 }
