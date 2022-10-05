@@ -260,7 +260,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:dict];
 
-    NSArray *types = [NSArray arrayWithObject:NSStringPboardType];
+    NSArray *types = [NSArray arrayWithObject:NSPasteboardTypeString];
     [NSApp registerServicesMenuSendTypes:types returnTypes:types];
 
     // NOTE: Set the current directory to user's home directory, otherwise it
@@ -1587,8 +1587,8 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 - (void)openSelection:(NSPasteboard *)pboard userData:(NSString *)userData
                 error:(NSString **)error
 {
-    if (![[pboard types] containsObject:NSStringPboardType]) {
-        ASLogNotice(@"Pasteboard contains no NSStringPboardType");
+    if (![[pboard types] containsObject:NSPasteboardTypeString]) {
+        ASLogNotice(@"Pasteboard contains no NSPasteboardTypeString");
         return;
     }
 
@@ -1600,13 +1600,13 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
     if (openInCurrentWindow && (vc = [self topmostVimController])) {
         [vc sendMessage:AddNewTabMsgID data:nil];
-        [vc dropString:[pboard stringForType:NSStringPboardType]];
+        [vc dropString:[pboard stringForType:NSPasteboardTypeString]];
     } else {
         // Save the text, open a new window, and paste the text when the next
         // window opens.  (If this is called several times in a row, then all
         // but the last call may be ignored.)
         if (openSelectionString) [openSelectionString release];
-        openSelectionString = [[pboard stringForType:NSStringPboardType] copy];
+        openSelectionString = [[pboard stringForType:NSPasteboardTypeString] copy];
 
         [self newWindow:self];
     }
@@ -1615,13 +1615,13 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 - (void)openFile:(NSPasteboard *)pboard userData:(NSString *)userData
            error:(NSString **)error
 {
-    if (![[pboard types] containsObject:NSStringPboardType]) {
-        ASLogNotice(@"Pasteboard contains no NSStringPboardType");
+    if (![[pboard types] containsObject:NSPasteboardTypeString]) {
+        ASLogNotice(@"Pasteboard contains no NSPasteboardTypeString");
         return;
     }
 
     // TODO: Parse multiple filenames and create array with names.
-    NSString *string = [pboard stringForType:NSStringPboardType];
+    NSString *string = [pboard stringForType:NSPasteboardTypeString];
     string = [string stringByTrimmingCharactersInSet:
             [NSCharacterSet whitespaceAndNewlineCharacterSet]];
     string = [string stringByStandardizingPath];

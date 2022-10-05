@@ -1341,10 +1341,13 @@
 - (id)validRequestorForSendType:(NSString *)sendType
                      returnType:(NSString *)returnType
 {
-    if ([sendType isEqual:NSStringPboardType]
-            && [self askBackendForSelectedText:nil])
+    const BOOL sendOk = (([sendType isEqual:NSPasteboardTypeString] && [self askBackendForSelectedText:nil])
+                         || [sendType length] == 0);
+    const BOOL returnOk = ([returnType isEqual:NSPasteboardTypeString] || [returnType length] == 0);
+    if (sendOk && returnOk)
+    {
         return self;
-
+    }
     return [super validRequestorForSendType:sendType returnType:returnType];
 }
 
@@ -1353,9 +1356,11 @@
 - (BOOL)writeSelectionToPasteboard:(NSPasteboard *)pboard
                              types:(NSArray *)types
 {
-    if (![types containsObject:NSStringPboardType])
-        return NO;
-
+    // We don't check whether types == NSPasteboardTypeString because for some
+    // reason macOS likes to send NSStringPboardType instead even that's deprecated.
+    // We should really be fine here since we already checked the types in
+    // validRequestsForSendType: above.
+    (void)types;
     return [self askBackendForSelectedText:pboard];
 }
 
@@ -1365,9 +1370,9 @@
 {
     // Replace the current selection with the text on the pasteboard.
     NSArray *types = [pboard types];
-    if ([types containsObject:NSStringPboardType]) {
+    if ([types containsObject:NSPasteboardTypeString]) {
         NSString *input = [NSString stringWithFormat:@"s%@",
-                 [pboard stringForType:NSStringPboardType]];
+                 [pboard stringForType:NSPasteboardTypeString]];
         [vimController addVimInput:input];
         return YES;
     }
@@ -1761,7 +1766,7 @@
         // Use find pasteboard for next query.
         NSPasteboard *pb = [NSPasteboard pasteboardWithName:NSFindPboard];
         NSArray *supportedTypes = [NSArray arrayWithObjects:VimFindPboardType,
-                NSStringPboardType, nil];
+                                   NSPasteboardTypeString, nil];
         NSString *bestType = [pb availableTypeFromArray:supportedTypes];
 
         // See gui_macvim_add_to_find_pboard() for an explanation of these
@@ -1769,7 +1774,7 @@
         if ([bestType isEqual:VimFindPboardType]) {
             query = [pb stringForType:VimFindPboardType];
         } else {
-            query = [pb stringForType:NSStringPboardType];
+            query = [pb stringForType:NSPasteboardTypeString];
         }
     }
 

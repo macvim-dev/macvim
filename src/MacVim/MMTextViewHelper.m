@@ -515,8 +515,8 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 {
     NSPasteboard *pboard = [sender draggingPasteboard];
 
-    if ([[pboard types] containsObject:NSStringPboardType]) {
-        NSString *string = [pboard stringForType:NSStringPboardType];
+    if ([[pboard types] containsObject:NSPasteboardTypeString]) {
+        NSString *string = [pboard stringForType:NSPasteboardTypeString];
         [[self vimController] dropString:string];
         return YES;
     } else if ([[pboard types] containsObject:NSFilenamesPboardType]) {
@@ -536,7 +536,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     if ( [[pboard types] containsObject:NSFilenamesPboardType]
             && (sourceDragMask & NSDragOperationCopy) )
         return NSDragOperationCopy;
-    if ( [[pboard types] containsObject:NSStringPboardType]
+    if ( [[pboard types] containsObject:NSPasteboardTypeString]
             && (sourceDragMask & NSDragOperationCopy) )
         return NSDragOperationCopy;
 
@@ -551,7 +551,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     if ( [[pboard types] containsObject:NSFilenamesPboardType]
             && (sourceDragMask & NSDragOperationCopy) )
         return NSDragOperationCopy;
-    if ( [[pboard types] containsObject:NSStringPboardType]
+    if ( [[pboard types] containsObject:NSPasteboardTypeString]
             && (sourceDragMask & NSDragOperationCopy) )
         return NSDragOperationCopy;
 
