@@ -545,7 +545,11 @@
     [super drawRect:rect];
 
     if (invertRects) {
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_10
+        CGContextRef cgctx = context.CGContext;
+#else
         CGContextRef cgctx = (CGContextRef)[context graphicsPort];
+#endif
         CGContextSaveGState(cgctx);
         CGContextSetBlendMode(cgctx, kCGBlendModeDifference);
         CGContextSetRGBFillColor(cgctx, 1.0, 1.0, 1.0, 1.0);

@@ -638,7 +638,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
             if ([alert runModal] != NSAlertFirstButtonReturn)
                 reply = NSTerminateCancel;
 
-            if ([[alert suppressionButton] state] == NSOnState) {
+            if ([[alert suppressionButton] state] == NSControlStateValueOn) {
                 [[NSUserDefaults standardUserDefaults]
                             setBool:YES forKey:MMSuppressTerminationAlertKey];
             }
@@ -1346,7 +1346,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 {
     ASLogDebug(@"Toggle CoreText renderer");
     NSInteger renderer = MMRendererDefault;
-    BOOL enable = ([sender state] == NSOnState);
+    BOOL enable = ([sender state] == NSControlStateValueOn);
 
     if (enable) {
         renderer = MMRendererCoreText;

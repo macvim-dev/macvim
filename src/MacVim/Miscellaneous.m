@@ -267,7 +267,7 @@ showHiddenFilesView()
         initWithFrame:NSMakeRect(0, 0, 140, 18)] autorelease];
     [button setTitle:
         NSLocalizedString(@"Show Hidden Files", @"Show Hidden Files Checkbox")];
-    [button setButtonType:NSSwitchButton];
+    [button setButtonType:NSButtonTypeSwitch];
 
     [button setTarget:nil];
     [button setAction:@selector(hiddenFilesButtonToggled:)];

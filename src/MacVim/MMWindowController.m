@@ -1764,7 +1764,7 @@
 
     if (!query) {
         // Use find pasteboard for next query.
-        NSPasteboard *pb = [NSPasteboard pasteboardWithName:NSFindPboard];
+        NSPasteboard *pb = [NSPasteboard pasteboardWithName:NSPasteboardNameFind];
         NSArray *supportedTypes = [NSArray arrayWithObjects:VimFindPboardType,
                                    NSPasteboardTypeString, nil];
         NSString *bestType = [pb availableTypeFromArray:supportedTypes];

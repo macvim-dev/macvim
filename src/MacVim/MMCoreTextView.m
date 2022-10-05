@@ -565,51 +565,6 @@ static void grid_free(Grid *grid) {
     [self setCmdlineRow: [[[self vimController] objectForVimStateKey:@"cmdline_row"] intValue]];
 }
 
-/// Set Vim's cmdline row number. This will mark the relevant parts to be repainted
-/// if the row number has changed as we are pinning the cmdline to the bottom,
-/// because otherwise we will have a gap that doesn't get cleared and leaves artifacts.
-///
-/// @param row The row (0-indexed) of the current cmdline in Vim.
-- (void)setCmdlineRow:(int)row
-{
-    const BOOL newAlignCmdLineToBottom = [[NSUserDefaults standardUserDefaults] boolForKey:MMCmdLineAlignBottomKey];
-
-    if (newAlignCmdLineToBottom != alignCmdLineToBottom) {
-        // The user settings has changed (usually through the settings panel). Just update everything.
-        alignCmdLineToBottom = newAlignCmdLineToBottom;
-        cmdlineRow = row;
-        [self setNeedsDisplay:YES];
-        return;
-    }
-
-    if (row != cmdlineRow) {
-        // The cmdline row has changed. Need to redraw the necessary parts if we
-        // are configured to pin cmdline to the bottom.
-        if (alignCmdLineToBottom) {
-            // Since we are changing the cmdline row, we need to repaint the
-            // parts where the gap changed. Just for simplicity, we repaint
-            // both the old/new cmdline rows and the row above them. This way
-            // the gap in between the top and bottom aligned rows should be
-            // touched in the repainting and cleared to bg.
-            [self setNeedsDisplayFromRow:cmdlineRow-1
-                                  column:grid.cols
-                                   toRow:cmdlineRow
-                                  column:grid.cols];
-
-            // Have to do this between the two calls as cmdlineRow would affect
-            // the calculation in them.
-            cmdlineRow = row;
-
-            [self setNeedsDisplayFromRow:cmdlineRow-1
-                                  column:grid.cols
-                                   toRow:cmdlineRow
-                                  column:grid.cols];
-        } else {
-            cmdlineRow = row;
-        }
-    }
-}
-
 - (void)setImControl:(BOOL)enable
 {
     [helper setImControl:enable];
@@ -1398,6 +1353,51 @@ static void grid_free(Grid *grid) {
         [strCache setObject:(id)line forKey:[[string copy] autorelease]];
     }
     return (CTLineRef)[(id)line autorelease];
+}
+
+/// Set Vim's cmdline row number. This will mark the relevant parts to be repainted
+/// if the row number has changed as we are pinning the cmdline to the bottom,
+/// because otherwise we will have a gap that doesn't get cleared and leaves artifacts.
+///
+/// @param row The row (0-indexed) of the current cmdline in Vim.
+- (void)setCmdlineRow:(int)row
+{
+    const BOOL newAlignCmdLineToBottom = [[NSUserDefaults standardUserDefaults] boolForKey:MMCmdLineAlignBottomKey];
+
+    if (newAlignCmdLineToBottom != alignCmdLineToBottom) {
+        // The user settings has changed (usually through the settings panel). Just update everything.
+        alignCmdLineToBottom = newAlignCmdLineToBottom;
+        cmdlineRow = row;
+        [self setNeedsDisplay:YES];
+        return;
+    }
+
+    if (row != cmdlineRow) {
+        // The cmdline row has changed. Need to redraw the necessary parts if we
+        // are configured to pin cmdline to the bottom.
+        if (alignCmdLineToBottom) {
+            // Since we are changing the cmdline row, we need to repaint the
+            // parts where the gap changed. Just for simplicity, we repaint
+            // both the old/new cmdline rows and the row above them. This way
+            // the gap in between the top and bottom aligned rows should be
+            // touched in the repainting and cleared to bg.
+            [self setNeedsDisplayFromRow:cmdlineRow-1
+                                  column:grid.cols
+                                   toRow:cmdlineRow
+                                  column:grid.cols];
+
+            // Have to do this between the two calls as cmdlineRow would affect
+            // the calculation in them.
+            cmdlineRow = row;
+
+            [self setNeedsDisplayFromRow:cmdlineRow-1
+                                  column:grid.cols
+                                   toRow:cmdlineRow
+                                  column:grid.cols];
+        } else {
+            cmdlineRow = row;
+        }
+    }
 }
 
 @end // MMCoreTextView (Private)

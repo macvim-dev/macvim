@@ -72,6 +72,7 @@
 # define NSAlertStyleCritical NSCriticalAlertStyle
 # define NSAlertStyleInformational NSInformationalAlertStyle
 # define NSAlertStyleWarning NSWarningAlertStyle
+# define NSButtonTypeSwitch NSSwitchButton
 # define NSCompositingOperationSourceOver NSCompositeSourceOver
 # define NSCompositingOperationDifference NSCompositeDifference
 # define NSControlSizeRegular NSRegularControlSize
@@ -98,6 +99,12 @@
 # define NSWindowStyleMaskTexturedBackground NSTexturedBackgroundWindowMask
 # define NSWindowStyleMaskTitled NSTitledWindowMask
 # define NSWindowStyleMaskUnifiedTitleAndToolbar NSUnifiedTitleAndToolbarWindowMask
+#endif
+
+#if MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_13
+// Deprecated constants in 10.13 SDK
+#define NSControlStateValueOn NSOnState
+#define NSControlStateValueOff NSOffState
 #endif
 
 // Deprecated runtime values. Since these are runtime values, we need to use the
