@@ -1,4 +1,4 @@
-/* vi:set ts=8 sts=4 sw=4 ft=objc:
+/* vi:set ts=8 sts=4 sw=4 ft=objc fdm=syntax:
  *
  * VIM - Vi IMproved		by Bram Moolenaar
  *				MacVim GUI port by Bjorn Winckler
@@ -8,7 +8,12 @@
  * See README.txt for an overview of the Vim source code.
  */
 
+// This file contains root-level commonly used definitions that both Vim and
+// MacVim processes need access to.
+
 #import <Cocoa/Cocoa.h>
+
+#pragma region Backward compatibility defines
 
 // Taken from /usr/include/AvailabilityMacros.h
 #ifndef MAC_OS_X_VERSION_10_7
@@ -58,6 +63,10 @@
 # define NSAppKitVersionNumber10_14 1671
 #endif
 
+// Deprecated constants. Since these are constants, we just need the compiler,
+// not the runtime to know about them. As such, we can use MAX_ALLOWED to
+// determine if we need to map or not.
+
 #if MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_12
 // Deprecated constants in 10.12 SDK
 # define NSAlertStyleCritical NSCriticalAlertStyle
@@ -91,6 +100,16 @@
 # define NSWindowStyleMaskUnifiedTitleAndToolbar NSUnifiedTitleAndToolbarWindowMask
 #endif
 
+// Deprecated runtime values. Since these are runtime values, we need to use the
+// minimum required OS as determining factor. Otherwise it would crash.
+
+#if MAC_OS_X_VERSION_MIN_REQUIRED <  MAC_OS_X_VERSION_10_13
+// Deprecated runtime values in 10.13 SDK.
+# define NSPasteboardNameFind NSFindPboard
+#endif
+
+#pragma endregion
+
 #import <asl.h>
 #if MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_12
 # define MM_USE_ASL
@@ -98,6 +117,7 @@
 # import <os/log.h>
 #endif
 
+#pragma region Shared protocols
 
 //
 // This is the protocol MMBackend implements.
@@ -171,7 +191,9 @@
                  client:(in byref id <MMVimClientProtocol>)client;
 @end
 
+#pragma endregion
 
+#pragma region IPC messages
 
 //
 // The following enum lists all messages that are passed between MacVim and
@@ -330,6 +352,8 @@ enum {
     MMGestureForceClick,
 };
 
+#pragma endregion
+
 
 // Create a string holding the labels of all messages in message queue for
 // debugging purposes (condense some messages since there may typically be LOTS
@@ -405,6 +429,7 @@ extern NSString *VimFindPboardType;
 // MacVim Apple Event Constants
 #define keyMMUntitledWindow       'MMuw'
 
+#pragma region Logging
 
 // Logging related functions and macros.
 //
@@ -496,3 +521,5 @@ void ASLInit();
 # define ASLogTmp(fmt, ...)    ASLog(OS_LOG_TYPE_DEFAULT, fmt, ##__VA_ARGS__)
 
 #endif
+
+#pragma endregion

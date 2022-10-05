@@ -159,7 +159,7 @@ debugStringForMessageQueue(NSArray *queue)
 
 - (unsigned)argbInt {
     CGFloat rf, gf, bf, af;
-    [[self colorUsingColorSpace:NSColorSpace.deviceRGBColorSpace]
+    [[self colorUsingColorSpace:NSColorSpace.sRGBColorSpace]
      getRed:&rf green:&gf blue:&bf alpha:&af];
     unsigned r = rf * 255, g = gf * 255, b = bf * 255, a = af*255;
     return a<<24 | r<<16 | g<<8 | b;
@@ -171,7 +171,7 @@ debugStringForMessageQueue(NSArray *queue)
     float g = ((rgb>>8) & 0xff)/255.0f;
     float b = (rgb & 0xff)/255.0f;
 
-    return [NSColor colorWithDeviceRed:r green:g blue:b alpha:1.0f];
+    return [NSColor colorWithSRGBRed:r green:g blue:b alpha:1.0f];
 }
 
 + (NSColor *)colorWithArgbInt:(unsigned)argb
@@ -181,7 +181,7 @@ debugStringForMessageQueue(NSArray *queue)
     float g = ((argb>>8) & 0xff)/255.0f;
     float b = (argb & 0xff)/255.0f;
 
-    return [NSColor colorWithDeviceRed:r green:g blue:b alpha:a];
+    return [NSColor colorWithSRGBRed:r green:g blue:b alpha:a];
 }
 
 @end // NSColor (MMExtras)

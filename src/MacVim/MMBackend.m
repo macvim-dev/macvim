@@ -1138,7 +1138,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
             NSColor *col = [NSColor performSelector:NSSelectorFromString(obj)];
             if (col) {
                 CGFloat r, g, b, a;
-                col = [col colorUsingColorSpaceName:NSCalibratedRGBColorSpace];
+                col = [col colorUsingColorSpace:NSColorSpace.sRGBColorSpace];
                 [col getRed:&r green:&g blue:&b alpha:&a];
                 return (((int)(r*255+.5f) & 0xff) << 16)
                      + (((int)(g*255+.5f) & 0xff) << 8)
@@ -1473,9 +1473,9 @@ static char_u *extractSelectedText()
 
         NSString *string = [[NSString alloc] initWithUTF8String:(char*)str];
 
-        NSArray *types = [NSArray arrayWithObject:NSStringPboardType];
+        NSArray *types = [NSArray arrayWithObject:NSPasteboardTypeString];
         [pboard declareTypes:types owner:nil];
-        BOOL ok = [pboard setString:string forType:NSStringPboardType];
+        BOOL ok = [pboard setString:string forType:NSPasteboardTypeString];
     
         [string release];
         vim_free(str);
@@ -2502,12 +2502,14 @@ static char_u *extractSelectedText()
         case NSScrollerIncrementPage:
             value += (size > 2 ? size - 2 : 1);
             break;
+#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_7
         case NSScrollerDecrementLine:
             --value;
             break;
         case NSScrollerIncrementLine:
             ++value;
             break;
+#endif
         case NSScrollerKnob:
             isStillDragging = YES;
             // fall through ...
