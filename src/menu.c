@@ -2376,9 +2376,24 @@ execute_menu(exarg_T *eap, vimmenu_T *menu, int mode_idx)
     if (idx == MENU_INDEX_INVALID || eap == NULL)
 	idx = MENU_INDEX_NORMAL;
 
-    if (menu->strings[idx] != NULL && menu->strings[idx][0] != NUL
-						&& (menu->modes & (1 << idx)))
+    if (menu->strings[idx] != NULL && (menu->modes & (1 << idx)))
     {
+#ifdef FEAT_GUI_MACVIM
+	// When a menu is bound to <Nop>, we let :emenu fall through to execute
+	// the associated macaction (if one exists) instead. Otherwise, we
+	// simply execute the associated Vim command. Note that if you
+	// physically press the menu item (or the associated shortcut key), the
+	// macaction is always invoked even if the menu isn't bound to <Nop>.
+        if (menu->mac_action != NULL && menu->strings[idx] != NULL && menu->strings[idx][0] == NUL)
+	{
+	    // Count on the fact taht ex_macaction() only looks at eap->arg.
+	    old_arg = eap->arg;
+	    eap->arg = menu->mac_action;
+	    ex_macaction(eap);
+	    eap->arg = old_arg;
+	}
+#endif // FEAT_GUI_MACVIM
+
 	// When executing a script or function execute the commands right now.
 	// Also for the window toolbar.
 	// Otherwise put them in the typeahead buffer.
@@ -2425,20 +2440,6 @@ execute_menu(exarg_T *eap, vimmenu_T *menu, int mode_idx)
 	    default:
 		mode = (char_u *)"Normal";
 	}
-#ifdef FEAT_GUI_MACVIM
-        if (menu->mac_action != NULL && menu->strings[idx][0] == NUL)
-	{
-	    // This allows us to bind a menu to an action without mapping to
-	    // anything so that pressing the menu's key equivalent and typing
-	    // ":emenu ..." does the same thing.  (HACK: We count on the fact
-	    // that ex_macaction() only looks at eap->arg.)
-	    old_arg = eap->arg;
-	    eap->arg = menu->mac_action;
-	    ex_macaction(eap);
-	    eap->arg = old_arg;
-	}
-	else
-#endif // FEAT_GUI_MACVIM
 	semsg(_(e_menu_not_defined_for_str_mode), mode);
     }
 }
