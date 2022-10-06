@@ -3889,11 +3889,7 @@ send_tabline_event(int nr)
 	return FALSE;
 
     // Don't put events in the input queue now.
-    if (hold_gui_events
-# ifdef FEAT_CMDWIN
-	    || cmdwin_type != 0
-# endif
-	    )
+    if (hold_gui_events || cmdwin_type != 0)
     {
 	// Set it back to the current tab page.
 	gui_mch_set_curtab(tabpage_index(curtab));
@@ -4043,10 +4039,8 @@ gui_drag_scrollbar(scrollbar_T *sb, long value, int still_dragging)
     if (hold_gui_events)
 	return;
 
-#ifdef FEAT_CMDWIN
     if (cmdwin_type != 0 && sb->wp != curwin)
 	return;
-#endif
 
     if (still_dragging)
     {

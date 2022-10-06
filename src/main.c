@@ -1280,11 +1280,7 @@ main_loop(
 #endif
 
     clear_oparg(&oa);
-    while (!cmdwin
-#ifdef FEAT_CMDWIN
-	    || cmdwin_result == 0
-#endif
-	    )
+    while (!cmdwin || cmdwin_result == 0)
     {
 #ifdef FEAT_GUI_MACVIM
         // Cocoa needs an NSAutoreleasePool in place or it will leak memory.

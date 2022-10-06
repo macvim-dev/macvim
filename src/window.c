@@ -119,12 +119,8 @@ log_frame_layout(frame_T *frame)
     win_T *
 prevwin_curwin(void)
 {
-    return
-#ifdef FEAT_CMDWIN
-	// In cmdwin, the alternative buffer should be used.
-	is_in_cmdwin() && prevwin != NULL ? prevwin :
-#endif
-	curwin;
+    // In cmdwin, the alternative buffer should be used.
+    return is_in_cmdwin() && prevwin != NULL ? prevwin : curwin;
 }
 
 /*
@@ -149,8 +145,7 @@ do_window(
     if (ERROR_IF_ANY_POPUP_WINDOW)
 	return;
 
-#ifdef FEAT_CMDWIN
-# define CHECK_CMDWIN \
+#define CHECK_CMDWIN \
     do { \
 	if (cmdwin_type != 0) \
 	{ \
@@ -158,9 +153,6 @@ do_window(
 	    return; \
 	} \
     } while (0)
-#else
-# define CHECK_CMDWIN do { /**/ } while (0)
-#endif
 
     Prenum1 = Prenum == 0 ? 1 : Prenum;
 
@@ -2969,10 +2961,9 @@ win_free_all(void)
 {
     int		dummy;
 
-#ifdef FEAT_CMDWIN
     // avoid an error for switching tabpage with the cmdline window open
     cmdwin_type = 0;
-#endif
+
     while (first_tabpage->tp_next != NULL)
 	tabpage_close(TRUE);
 
@@ -4025,13 +4016,11 @@ win_new_tabpage(int after)
     tabpage_T	*newtp;
     int		n;
 
-#ifdef FEAT_CMDWIN
     if (cmdwin_type != 0)
     {
 	emsg(_(e_invalid_in_cmdline_window));
 	return FAIL;
     }
-#endif
 
     newtp = alloc_tabpage();
     if (newtp == NULL)
@@ -4349,7 +4338,7 @@ enter_tabpage(
     // When cmdheight is changed in a tab page with '<C-w>-', cmdline_row is
     // changed but p_ch and tp_ch_used are not changed. Thus we also need to
     // check cmdline_row.
-    if ((row < cmdline_row) && (cmdline_row <= Rows - p_ch))
+    if (row < cmdline_row && cmdline_row <= Rows - p_ch)
 	clear_cmdline = TRUE;
 
     // The tabpage line may have appeared or disappeared, may need to resize
@@ -5519,7 +5508,6 @@ shell_new_columns(void)
 #endif
 }
 
-#if defined(FEAT_CMDWIN) || defined(PROTO)
 /*
  * Save the size of all windows in "gap".
  */
@@ -5573,7 +5561,6 @@ win_size_restore(garray_T *gap)
 	(void)win_comp_pos();
     }
 }
-#endif // FEAT_CMDWIN
 
 /*
  * Update the position for all windows, using the width and height of the
@@ -6375,7 +6362,8 @@ win_fix_scroll(int resize)
 	if (wp->w_height != wp->w_prev_height)
 	{
 	    // If window has moved update botline to keep the same screenlines.
-	    if (*p_spk == 's' && wp->w_winrow != wp->w_prev_winrow)
+	    if (*p_spk == 's' && wp->w_winrow != wp->w_prev_winrow
+		      && wp->w_botline - 1 <= wp->w_buffer->b_ml.ml_line_count)
 	    {
 		lnum = wp->w_cursor.lnum;
 		diff = (wp->w_winrow - wp->w_prev_winrow)
@@ -6425,10 +6413,9 @@ win_fix_cursor(int normal)
 
     if (wp->w_buffer->b_ml.ml_line_count < wp->w_height)
 	return;
-#ifdef FEAT_CMDWIN
     if (skip_win_fix_cursor)
 	return;
-#endif
+
     // Determine valid cursor range.
     so = MIN(wp->w_height / 2, so);
     wp->w_cursor.lnum = wp->w_topline;
@@ -6674,7 +6661,7 @@ win_comp_scroll(win_T *wp)
 }
 
 /*
- * command_height: called whenever p_ch has been changed
+ * Command_height: called whenever p_ch has been changed.
  */
     void
 command_height(void)
@@ -6692,6 +6679,9 @@ command_height(void)
     // is nothing to do (window size must have decreased).
     if (p_ch > old_p_ch && cmdline_row <= Rows - p_ch)
 	return;
+
+    // Update cmdline_row to what it should be: just below the last window.
+    cmdline_row = topframe->fr_height + tabline_height();
 
     // If cmdline_row is smaller than what it is supposed to be for 'cmdheight'
     // then set old_p_ch to what it would be, so that the windows get resized

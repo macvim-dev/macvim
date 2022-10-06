@@ -2426,10 +2426,8 @@ didset_options(void)
     (void)compile_cap_prog(curwin->w_s);
     (void)did_set_spell_option(TRUE);
 #endif
-#ifdef FEAT_CMDWIN
     // set cedit_key
     (void)check_cedit();
-#endif
 #ifdef FEAT_LINEBREAK
     // initialize the table for 'breakat'.
     fill_breakat_flags();
@@ -3660,11 +3658,13 @@ set_num_option(
 
 	// Only compute the new window layout when startup has been
 	// completed. Otherwise the frame sizes may be wrong.
-	if (p_ch != old_value && full_screen
+	if ((p_ch != old_value
+		      || tabline_height() + topframe->fr_height != Rows - p_ch)
+		&& full_screen
 #ifdef FEAT_GUI
 		&& !gui.starting
 #endif
-	   )
+		       )
 	    command_height();
     }
 
@@ -3912,13 +3912,11 @@ set_num_option(
 	errmsg = e_argument_must_be_positive;
 	p_siso = 0;
     }
-#ifdef FEAT_CMDWIN
     if (p_cwh < 1)
     {
 	errmsg = e_argument_must_be_positive;
 	p_cwh = 1;
     }
-#endif
     if (p_ut < 0)
     {
 	errmsg = e_argument_must_be_positive;

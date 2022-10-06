@@ -156,11 +156,7 @@ typedef struct {
 
 // draw_state values for items that are drawn in sequence:
 #define WL_START	0		// nothing done yet, must be zero
-#ifdef FEAT_CMDWIN
-# define WL_CMDLINE	(WL_START + 1)	// cmdline window column
-#else
-# define WL_CMDLINE	WL_START
-#endif
+#define WL_CMDLINE	(WL_START + 1)	// cmdline window column
 #ifdef FEAT_FOLDING
 # define WL_FOLD	(WL_CMDLINE + 1)	// 'foldcolumn'
 #else
@@ -346,10 +342,17 @@ handle_lnum_col(
 	int		sign_present UNUSED,
 	int		num_attr UNUSED)
 {
+    int has_cpo_n = vim_strchr(p_cpo, CPO_NUMCOL) != NULL;
+
     if ((wp->w_p_nu || wp->w_p_rnu)
-	    && ((wlv->row == wlv->startrow + wlv->filler_lines
-		    && (wp->w_skipcol == 0 || wlv->row > wp->w_winrow))
-		|| vim_strchr(p_cpo, CPO_NUMCOL) == NULL))
+	     && (wlv->row == wlv->startrow + wlv->filler_lines || !has_cpo_n)
+	     // there is no line number in a wrapped line when "n" is in
+	     // 'cpoptions', but 'breakindent' assumes it anyway.
+	     && !((has_cpo_n
+#ifdef FEAT_LINEBREAK
+		     && !wp->w_p_bri
+#endif
+		  ) && wp->w_skipcol > 0 && wlv->lnum == wp->w_topline))
     {
 #ifdef FEAT_SIGNS
 	// If 'signcolumn' is set to 'number' and a sign is present
@@ -367,7 +370,7 @@ handle_lnum_col(
 #ifdef FEAT_PROP_POPUP
 		  + wlv->text_prop_above_count
 #endif
-		  )
+		    && (wp->w_skipcol == 0 || wlv->row > wp->w_winrow))
 	  {
 	      long num;
 	      char *fmt = "%*ld ";
@@ -742,12 +745,17 @@ text_prop_position(
 
 /*
  * Call screen_line() using values from "wlv".
- * Also takes care of putting "<<<" on the first line for 'smoothscroll'.
+ * Also takes care of putting "<<<" on the first line for 'smoothscroll'
+ * when 'showbreak' is not set.
  */
     static void
 wlv_screen_line(win_T *wp, winlinevars_T *wlv, int negative_width)
 {
-    if (wlv->row == 0 && wp->w_skipcol > 0)
+    if (wlv->row == 0 && wp->w_skipcol > 0
+#if defined(FEAT_LINEBREAK)
+	    && *get_showbreak_value(wp) == NUL
+#endif
+	    )
     {
 	int off = (int)(current_ScreenLine - ScreenLines);
 
@@ -1678,7 +1686,6 @@ win_line(
 		line_attr = line_attr_save;
 	    }
 #endif
-#ifdef FEAT_CMDWIN
 	    if (wlv.draw_state == WL_CMDLINE - 1 && wlv.n_extra == 0)
 	    {
 		wlv.draw_state = WL_CMDLINE;
@@ -1692,7 +1699,6 @@ win_line(
 				hl_combine_attr(wlv.wcr_attr, HL_ATTR(HLF_AT));
 		}
 	    }
-#endif
 #ifdef FEAT_FOLDING
 	    if (wlv.draw_state == WL_FOLD - 1 && wlv.n_extra == 0)
 	    {
@@ -3699,9 +3705,9 @@ win_line(
 		)
 	{
 #ifdef FEAT_CONCEAL
-	    wlv.col += wlv.boguscols;
-	    wlv_screen_line(wp, &wlv, FALSE);
 	    wlv.col -= wlv.boguscols;
+	    wlv_screen_line(wp, &wlv, FALSE);
+	    wlv.col += wlv.boguscols;
 	    wlv.boguscols = 0;
 #else
 	    wlv_screen_line(wp, &wlv, FALSE);

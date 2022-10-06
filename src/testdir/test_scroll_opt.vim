@@ -141,6 +141,62 @@ func Test_smoothscroll_number()
   call StopVimInTerminal(buf)
 endfunc
 
+func Test_smoothscroll_diff_mode()
+  CheckScreendump
+
+  let lines =<< trim END
+      vim9script
+      var text = 'just some text here'
+      setline(1, text)
+      set smoothscroll
+      diffthis
+      new
+      setline(1, text)
+      set smoothscroll
+      diffthis
+  END
+  call writefile(lines, 'XSmoothDiff', 'D')
+  let buf = RunVimInTerminal('-S XSmoothDiff', #{rows: 8})
+
+  call VerifyScreenDump(buf, 'Test_smooth_diff_1', {})
+  call term_sendkeys(buf, "\<C-Y>")
+  call VerifyScreenDump(buf, 'Test_smooth_diff_1', {})
+  call term_sendkeys(buf, "\<C-E>")
+  call VerifyScreenDump(buf, 'Test_smooth_diff_1', {})
+
+  call StopVimInTerminal(buf)
+endfunc
+
+func Test_smoothscroll_wrap_scrolloff_zero()
+  CheckScreendump
+
+  let lines =<< trim END
+      vim9script
+      setline(1, ['Line' .. (' with some text'->repeat(7))]->repeat(7))
+      set smoothscroll scrolloff=0
+      :3
+  END
+  call writefile(lines, 'XSmoothWrap', 'D')
+  let buf = RunVimInTerminal('-S XSmoothWrap', #{rows: 8, cols: 40})
+
+  call VerifyScreenDump(buf, 'Test_smooth_wrap_1', {})
+
+  " moving cursor down - whole bottom line shows
+  call term_sendkeys(buf, "j")
+  call VerifyScreenDump(buf, 'Test_smooth_wrap_2', {})
+
+  call term_sendkeys(buf, "\<C-E>j")
+  call VerifyScreenDump(buf, 'Test_smooth_wrap_3', {})
+
+  call term_sendkeys(buf, "G")
+  call VerifyScreenDump(buf, 'Test_smooth_wrap_4', {})
+
+  " moving cursor up - whole top line shows
+  call term_sendkeys(buf, "2k")
+  call VerifyScreenDump(buf, 'Test_smooth_wrap_5', {})
+
+  call StopVimInTerminal(buf)
+endfunc
 
 
 " vim: shiftwidth=2 sts=2 expandtab

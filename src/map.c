@@ -1753,7 +1753,11 @@ vim_strsave_escape_csi(char_u *p)
 	d = res;
 	for (s = p; *s != NUL; )
 	{
-	    if (s[0] == K_SPECIAL && s[1] != NUL && s[2] != NUL)
+	    if ((s[0] == K_SPECIAL
+#ifdef FEAT_GUI
+		    || (gui.in_use && s[0] == CSI)
+#endif
+		) && s[1] != NUL && s[2] != NUL)
 	    {
 		// Copy special key unmodified.
 		*d++ = *s++;
@@ -2814,8 +2818,6 @@ init_mappings(void)
 #endif
 }
 
-#if defined(MSWIN) || defined(FEAT_CMDWIN) || defined(MACOS_X) \
-							     || defined(PROTO)
 /*
  * Add a mapping "map" for mode "mode".
  * When "nore" is TRUE use MAPTYPE_NOREMAP.
@@ -2836,7 +2838,6 @@ add_map(char_u *map, int mode, int nore)
     }
     p_cpo = cpo_save;
 }
-#endif
 
 #if defined(FEAT_LANGMAP) || defined(PROTO)
 /*
