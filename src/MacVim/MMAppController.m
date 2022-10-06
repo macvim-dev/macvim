@@ -1315,11 +1315,19 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 #endif
 }
 
+// Note that the zoomAll method does not appear to be called in modern macOS versions
+// as NSApplication just handles it and directly calls each window's zoom:. It's
+// difficult to trace through history to see when that happened as it's not really
+// documented, so we are leaving this method around in case on older macOS
+// versions it's useful.
+#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_13
 - (IBAction)zoomAll:(id)sender
 {
+    // TODO ychin: check on 10.13 etc. This was depreacated post 10.14.
     ASLogDebug(@"Zoom all windows");
     [NSApp makeWindowsPerform:@selector(performZoom:) inOrder:YES];
 }
+#endif
 
 - (IBAction)stayInFront:(id)sender
 {

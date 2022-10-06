@@ -73,7 +73,9 @@
 - (IBAction)showVimHelp:(id)sender withCmd:(NSString *)cmd;
 - (IBAction)showVimHelp:(id)sender;
 - (IBAction)checkForUpdates:(id)sender;
+#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_13
 - (IBAction)zoomAll:(id)sender;
+#endif
 - (IBAction)stayInFront:(id)sender;
 - (IBAction)stayInBack:(id)sender;
 - (IBAction)stayLevelNormal:(id)sender;
