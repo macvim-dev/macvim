@@ -13,7 +13,13 @@
 @class MMTextViewHelper;
 
 
-@interface MMCoreTextView : NSView <NSTextInput> {
+@interface MMCoreTextView : NSView <
+    NSTextInput
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_14
+    , NSFontChanging
+#endif
+    >
+{
     // From MMTextStorage
     int                         maxRows, maxColumns;
     NSColor                     *defaultBackgroundColor;
@@ -50,6 +56,11 @@
 }
 
 - (id)initWithFrame:(NSRect)frame;
+
+//
+// NSFontChanging methods
+//
+- (void)changeFont:(id)sender;
 
 //
 // MMTextStorage methods

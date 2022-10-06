@@ -1002,9 +1002,11 @@
 			files = (
 			);
 			inputPaths = (
+				"$(PROJECT_DIR)/icons",
 			);
 			name = "Make Document Icons";
 			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -1017,9 +1019,11 @@
 			files = (
 			);
 			inputPaths = (
+				"${SRCROOT}/mvim",
 			);
 			name = "Copy mvim scripts";
 			outputPaths = (
+				$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/bin/mvim,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -1034,11 +1038,13 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
+				"$(SRCROOT)/../po",
 			);
 			name = "Copy locale message translation files";
 			outputFileListPaths = (
 			);
 			outputPaths = (
+				"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/vim/runtime/lang",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -1047,18 +1053,21 @@
 		};
 		90C052E1251E889500E2D81E /* Copy vimtutor */ = {
 			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			inputFileListPaths = (
 			);
 			inputPaths = (
+				"${SRCROOT}/../vimtutor",
+				"${SRCROOT}/../gvimtutor",
 			);
 			name = "Copy vimtutor";
 			outputFileListPaths = (
 			);
 			outputPaths = (
+				$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/bin/vimtutor,
+				$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/bin/gvimtutor,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;

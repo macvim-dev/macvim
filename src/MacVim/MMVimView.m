@@ -151,8 +151,7 @@ enum {
     [[tabBarControl addTabButton] setTarget:self];
     [[tabBarControl addTabButton] setAction:@selector(addNewTab:)];
     [tabBarControl setAllowsDragBetweenWindows:NO];
-    [tabBarControl registerForDraggedTypes:
-                            [NSArray arrayWithObject:NSFilenamesPboardType]];
+    [tabBarControl registerForDraggedTypes:[NSArray arrayWithObject:getPasteboardFilenamesType()]];
 
     [tabBarControl setAutoresizingMask:NSViewWidthSizable|NSViewMinYMargin];
     
@@ -192,6 +191,10 @@ enum {
     return textView.defaultBackgroundColor.alphaComponent == 1;
 }
 
+#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_7
+// The core logic should not be reachable in 10.7 or above and is deprecated code.
+// See documentation for showsResizeIndicator and placeScrollbars: comments.
+// As such, just ifdef out the whole thing as we no longer support 10.7.
 - (void)drawRect:(NSRect)rect
 {
     // On Leopard, we want to have a textured window background for nice
@@ -202,9 +205,6 @@ enum {
             || !([[self window] styleMask] & NSWindowStyleMaskTexturedBackground))
         return;
     
-    // This should not be reachable in 10.7 or above and is deprecated code.
-    // See documentation for showsResizeIndicator and placeScrollbars: comments.
-
 #if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
     int sw = [NSScroller scrollerWidthForControlSize:NSControlSizeRegular scrollerStyle:NSScrollerStyleLegacy];
 #else
@@ -243,6 +243,7 @@ enum {
         [path stroke];
     }
 }
+#endif
 
 - (MMTextView *)textView
 {
@@ -586,7 +587,7 @@ enum {
         forTabAtIndex:(NSUInteger)tabIndex
 {
     NSPasteboard *pb = [sender draggingPasteboard];
-    return [[pb types] containsObject:NSFilenamesPboardType]
+    return [[pb types] containsObject:getPasteboardFilenamesType()]
             ? NSDragOperationCopy
             : NSDragOperationNone;
 }
@@ -596,22 +597,19 @@ enum {
         forTabAtIndex:(NSUInteger)tabIndex
 {
     NSPasteboard *pb = [sender draggingPasteboard];
-    if ([[pb types] containsObject:NSFilenamesPboardType]) {
-        NSArray *filenames = [pb propertyListForType:NSFilenamesPboardType];
-        if ([filenames count] == 0)
-            return NO;
-        if (tabIndex != NSNotFound) {
-            // If dropping on a specific tab, only open one file
-            [vimController file:[filenames objectAtIndex:0]
-                draggedToTabAtIndex:tabIndex];
-        } else {
-            // Files were dropped on empty part of tab bar; open them all
-            [vimController filesDraggedToTabBar:filenames];
-        }
-        return YES;
-    } else {
+    NSArray<NSString*>* filenames = extractPasteboardFilenames(pb);
+    if (filenames == nil || filenames.count == 0)
         return NO;
+
+    if (tabIndex != NSNotFound) {
+        // If dropping on a specific tab, only open one file
+        [vimController file:[filenames objectAtIndex:0]
+            draggedToTabAtIndex:tabIndex];
+    } else {
+        // Files were dropped on empty part of tab bar; open them all
+        [vimController filesDraggedToTabBar:filenames];
     }
+    return YES;
 }
 
 

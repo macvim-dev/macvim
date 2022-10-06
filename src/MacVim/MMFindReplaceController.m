@@ -34,8 +34,8 @@
         [findBox setStringValue:text];
 
     // NOTE: The 'flags' values must match the FRD_ defines in gui.h.
-    [matchWordButton setState:(flags & 0x08 ? NSOnState : NSOffState)];
-    [ignoreCaseButton setState:(flags & 0x10 ? NSOffState : NSOnState)];
+    [matchWordButton setState:(flags & 0x08 ? NSControlStateValueOn : NSControlStateValueOff)];
+    [ignoreCaseButton setState:(flags & 0x10 ? NSControlStateValueOff : NSControlStateValueOn)];
 
     [window makeKeyAndOrderFront:self];
 }
@@ -52,12 +52,12 @@
 
 - (BOOL)ignoreCase
 {
-    return [ignoreCaseButton state] == NSOnState;
+    return [ignoreCaseButton state] == NSControlStateValueOn;
 }
 
 - (BOOL)matchWord
 {
-    return [matchWordButton state] == NSOnState;
+    return [matchWordButton state] == NSControlStateValueOn;
 }
 
 @end // MMFindReplaceController

@@ -260,7 +260,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:dict];
 
-    NSArray *types = [NSArray arrayWithObject:NSStringPboardType];
+    NSArray *types = [NSArray arrayWithObject:NSPasteboardTypeString];
     [NSApp registerServicesMenuSendTypes:types returnTypes:types];
 
     // NOTE: Set the current directory to user's home directory, otherwise it
@@ -638,7 +638,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
             if ([alert runModal] != NSAlertFirstButtonReturn)
                 reply = NSTerminateCancel;
 
-            if ([[alert suppressionButton] state] == NSOnState) {
+            if ([[alert suppressionButton] state] == NSControlStateValueOn) {
                 [[NSUserDefaults standardUserDefaults]
                             setBool:YES forKey:MMSuppressTerminationAlertKey];
             }
@@ -1315,11 +1315,19 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 #endif
 }
 
+// Note that the zoomAll method does not appear to be called in modern macOS versions
+// as NSApplication just handles it and directly calls each window's zoom:. It's
+// difficult to trace through history to see when that happened as it's not really
+// documented, so we are leaving this method around in case on older macOS
+// versions it's useful.
+#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_13
 - (IBAction)zoomAll:(id)sender
 {
+    // TODO ychin: check on 10.13 etc. This was depreacated post 10.14.
     ASLogDebug(@"Zoom all windows");
     [NSApp makeWindowsPerform:@selector(performZoom:) inOrder:YES];
 }
+#endif
 
 - (IBAction)stayInFront:(id)sender
 {
@@ -1346,7 +1354,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 {
     ASLogDebug(@"Toggle CoreText renderer");
     NSInteger renderer = MMRendererDefault;
-    BOOL enable = ([sender state] == NSOnState);
+    BOOL enable = ([sender state] == NSControlStateValueOn);
 
     if (enable) {
         renderer = MMRendererCoreText;
@@ -1587,8 +1595,8 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 - (void)openSelection:(NSPasteboard *)pboard userData:(NSString *)userData
                 error:(NSString **)error
 {
-    if (![[pboard types] containsObject:NSStringPboardType]) {
-        ASLogNotice(@"Pasteboard contains no NSStringPboardType");
+    if (![[pboard types] containsObject:NSPasteboardTypeString]) {
+        ASLogNotice(@"Pasteboard contains no NSPasteboardTypeString");
         return;
     }
 
@@ -1600,13 +1608,13 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
     if (openInCurrentWindow && (vc = [self topmostVimController])) {
         [vc sendMessage:AddNewTabMsgID data:nil];
-        [vc dropString:[pboard stringForType:NSStringPboardType]];
+        [vc dropString:[pboard stringForType:NSPasteboardTypeString]];
     } else {
         // Save the text, open a new window, and paste the text when the next
         // window opens.  (If this is called several times in a row, then all
         // but the last call may be ignored.)
         if (openSelectionString) [openSelectionString release];
-        openSelectionString = [[pboard stringForType:NSStringPboardType] copy];
+        openSelectionString = [[pboard stringForType:NSPasteboardTypeString] copy];
 
         [self newWindow:self];
     }
@@ -1615,13 +1623,13 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 - (void)openFile:(NSPasteboard *)pboard userData:(NSString *)userData
            error:(NSString **)error
 {
-    if (![[pboard types] containsObject:NSStringPboardType]) {
-        ASLogNotice(@"Pasteboard contains no NSStringPboardType");
+    if (![[pboard types] containsObject:NSPasteboardTypeString]) {
+        ASLogNotice(@"Pasteboard contains no NSPasteboardTypeString");
         return;
     }
 
     // TODO: Parse multiple filenames and create array with names.
-    NSString *string = [pboard stringForType:NSStringPboardType];
+    NSString *string = [pboard stringForType:NSPasteboardTypeString];
     string = [string stringByTrimmingCharactersInSet:
             [NSCharacterSet whitespaceAndNewlineCharacterSet]];
     string = [string stringByStandardizingPath];
@@ -1647,12 +1655,9 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 - (void)newFileHere:(NSPasteboard *)pboard userData:(NSString *)userData
               error:(NSString **)error
 {
-    if (![[pboard types] containsObject:NSFilenamesPboardType]) {
-        ASLogNotice(@"Pasteboard contains no NSFilenamesPboardType");
+    NSArray<NSString *> *filenames = extractPasteboardFilenames(pboard);
+    if (filenames == nil || filenames.count == 0)
         return;
-    }
-
-    NSArray *filenames = [pboard propertyListForType:NSFilenamesPboardType];
     NSString *path = [filenames lastObject];
 
     BOOL dirIndicator;

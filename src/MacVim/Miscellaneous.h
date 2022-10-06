@@ -169,8 +169,11 @@ NSView *showHiddenFilesView();
 NSString *normalizeFilename(NSString *filename);
 NSArray *normalizeFilenames(NSArray *filenames);
 
-
 BOOL shouldUseYosemiteTabBarStyle();
 BOOL shouldUseMojaveTabBarStyle();
 
 int getCurrentAppearance(NSAppearance *appearance);
+
+// Pasteboard helpers
+NSPasteboardType getPasteboardFilenamesType();
+NSArray<NSString*>* extractPasteboardFilenames(NSPasteboard *pboard);

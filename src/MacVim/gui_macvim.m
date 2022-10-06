@@ -1916,9 +1916,9 @@ gui_macvim_add_to_find_pboard(char_u *pat)
 
     if (!s) return;
 
-    NSPasteboard *pb = [NSPasteboard pasteboardWithName:NSFindPboard];
+    NSPasteboard *pb = [NSPasteboard pasteboardWithName:NSPasteboardNameFind];
     NSArray *supportedTypes = [NSArray arrayWithObjects:VimFindPboardType,
-            NSStringPboardType, nil];
+            NSPasteboardTypeString, nil];
     [pb declareTypes:supportedTypes owner:nil];
 
     // Put two entries on the Find pasteboard:
@@ -1927,7 +1927,7 @@ gui_macvim_add_to_find_pboard(char_u *pat)
     // The second entry will be used by other applications when taking entries
     // off the Find pasteboard, whereas MacVim will use the first if present.
     [pb setString:s forType:VimFindPboardType];
-    [pb setString:[s stringByRemovingFindPatterns] forType:NSStringPboardType];
+    [pb setString:[s stringByRemovingFindPatterns] forType:NSPasteboardTypeString];
 }
 
     void

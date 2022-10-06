@@ -515,13 +515,13 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 {
     NSPasteboard *pboard = [sender draggingPasteboard];
 
-    if ([[pboard types] containsObject:NSStringPboardType]) {
-        NSString *string = [pboard stringForType:NSStringPboardType];
+    if ([[pboard types] containsObject:NSPasteboardTypeString]) {
+        NSString *string = [pboard stringForType:NSPasteboardTypeString];
         [[self vimController] dropString:string];
         return YES;
-    } else if ([[pboard types] containsObject:NSFilenamesPboardType]) {
-        NSArray *files = [pboard propertyListForType:NSFilenamesPboardType];
-        [[self vimController] dropFiles:files forceOpen:NO];
+    } else if ([[pboard types] containsObject:getPasteboardFilenamesType()]) {
+        NSArray<NSString *> *filenames = extractPasteboardFilenames(pboard);
+        [[self vimController] dropFiles:filenames forceOpen:NO];
         return YES;
     }
 
@@ -533,10 +533,10 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     NSDragOperation sourceDragMask = [sender draggingSourceOperationMask];
     NSPasteboard *pboard = [sender draggingPasteboard];
 
-    if ( [[pboard types] containsObject:NSFilenamesPboardType]
+    if ( [[pboard types] containsObject:getPasteboardFilenamesType()]
             && (sourceDragMask & NSDragOperationCopy) )
         return NSDragOperationCopy;
-    if ( [[pboard types] containsObject:NSStringPboardType]
+    if ( [[pboard types] containsObject:NSPasteboardTypeString]
             && (sourceDragMask & NSDragOperationCopy) )
         return NSDragOperationCopy;
 
@@ -548,10 +548,10 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     NSDragOperation sourceDragMask = [sender draggingSourceOperationMask];
     NSPasteboard *pboard = [sender draggingPasteboard];
 
-    if ( [[pboard types] containsObject:NSFilenamesPboardType]
+    if ( [[pboard types] containsObject:getPasteboardFilenamesType()]
             && (sourceDragMask & NSDragOperationCopy) )
         return NSDragOperationCopy;
-    if ( [[pboard types] containsObject:NSStringPboardType]
+    if ( [[pboard types] containsObject:NSPasteboardTypeString]
             && (sourceDragMask & NSDragOperationCopy) )
         return NSDragOperationCopy;
 
