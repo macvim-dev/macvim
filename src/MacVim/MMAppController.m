@@ -1647,12 +1647,9 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 - (void)newFileHere:(NSPasteboard *)pboard userData:(NSString *)userData
               error:(NSString **)error
 {
-    if (![[pboard types] containsObject:NSFilenamesPboardType]) {
-        ASLogNotice(@"Pasteboard contains no NSFilenamesPboardType");
+    NSArray<NSString *> *filenames = extractPasteboardFilenames(pboard);
+    if (filenames == nil || filenames.count == 0)
         return;
-    }
-
-    NSArray *filenames = [pboard propertyListForType:NSFilenamesPboardType];
     NSString *path = [filenames lastObject];
 
     BOOL dirIndicator;

@@ -350,3 +350,54 @@ getCurrentAppearance(NSAppearance *appearance){
 #endif
     return flag;
 }
+
+/// Returns the pasteboard type to use for retrieving file names from a list of
+/// files.
+/// @return The pasteboard type that can be passed to NSPasteboard for registration.
+NSPasteboardType getPasteboardFilenamesType()
+{
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_13
+    return NSPasteboardTypeFileURL;
+#else
+    return NSFilenamesPboardType;
+#endif
+}
+
+/// Extract the list of file names from a pasteboard.
+NSArray<NSString*>* extractPasteboardFilenames(NSPasteboard *pboard)
+{
+    // NSPasteboardTypeFileURL is only available in 10.13, and
+    // NSFilenamesPboardType was deprecated soon after that (10.14).
+
+    // As such if we are building with min deployed OS 10.13, we need to use
+    // the new method (using NSPasteboardTypeFileURL /
+    // readObjectsForClasses:options:) because otherwise we will get
+    // deprecation warnings. Otherwise, we just use NSFilenamesPboardType. It
+    // will still work if run in a newer OS since it's simply deprecated, and
+    // the OS still supports it.
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_13
+    if (![pboard.types containsObject:NSPasteboardTypeFileURL]) {
+        ASLogNotice(@"Pasteboard contains no NSPasteboardTypeFileURL");
+        return nil;
+    }
+    NSArray<NSURL*> *fileurls = [pboard readObjectsForClasses:@[NSURL.class]
+                                                      options:@{NSPasteboardURLReadingFileURLsOnlyKey: [NSNumber numberWithBool:YES]}];
+    if (fileurls == nil || fileurls.count == 0) {
+        return nil;
+    }
+    NSMutableArray<NSString *> *filenames = [NSMutableArray arrayWithCapacity:fileurls.count];
+    for (int i = 0; i < fileurls.count; i++) {
+        [filenames addObject:fileurls[i].path];
+    }
+    return filenames;
+#else
+    if (![pboard.types containsObject:NSFilenamesPboardType]) {
+        ASLogNotice(@"Pasteboard contains no NSFilenamesPboardType");
+        return nil;
+    }
+
+    NSArray<NSString *> *filenames = [pboard propertyListForType:NSFilenamesPboardType];
+    return filenames;
+#endif
+}
+

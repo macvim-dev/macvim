@@ -819,8 +819,7 @@
 
 - (NSArray *)acceptableDragTypes
 {
-    return [NSArray arrayWithObjects:NSFilenamesPboardType,
-            NSPasteboardTypeString, nil];
+    return @[getPasteboardFilenamesType(), NSPasteboardTypeString];
 }
 
 - (BOOL)performDragOperation:(id <NSDraggingInfo>)sender

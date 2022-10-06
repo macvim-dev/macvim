@@ -244,8 +244,8 @@ static void grid_free(Grid *grid) {
     helper = [[MMTextViewHelper alloc] init];
     [helper setTextView:self];
 
-    [self registerForDraggedTypes:[NSArray arrayWithObjects:
-            NSFilenamesPboardType, NSPasteboardTypeString, nil]];
+    [self registerForDraggedTypes:@[getPasteboardFilenamesType(),
+                                    NSPasteboardTypeString]];
 
     ligatures = NO;
 

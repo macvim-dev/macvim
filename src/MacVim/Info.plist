@@ -1299,6 +1299,7 @@
 			<string>MacVim</string>
 			<key>NSSendTypes</key>
 			<array>
+				<string>public.file-url</string>
 				<string>NSFilenamesPboardType</string>
 			</array>
 			<key>NSUserData</key>
