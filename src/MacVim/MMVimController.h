@@ -15,6 +15,16 @@
 @class MMTouchBarInfo;
 
 
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12
+/// Button used for Touch Bar support, with an additional metadata to store the
+/// Vim command it should send.
+@interface MMTouchBarButton : NSButton {
+    NSArray *_desc;
+}
+- (NSArray *)desc;
+- (void)setDesc:(NSArray *)desc;
+@end
+#endif
 
 @interface MMVimController : NSObject<
     NSToolbarDelegate
