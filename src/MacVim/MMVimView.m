@@ -192,6 +192,10 @@ enum {
     return textView.defaultBackgroundColor.alphaComponent == 1;
 }
 
+#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_7
+// The core logic should not be reachable in 10.7 or above and is deprecated code.
+// See documentation for showsResizeIndicator and placeScrollbars: comments.
+// As such, just ifdef out the whole thing as we no longer support 10.7.
 - (void)drawRect:(NSRect)rect
 {
     // On Leopard, we want to have a textured window background for nice
@@ -202,9 +206,6 @@ enum {
             || !([[self window] styleMask] & NSWindowStyleMaskTexturedBackground))
         return;
     
-    // This should not be reachable in 10.7 or above and is deprecated code.
-    // See documentation for showsResizeIndicator and placeScrollbars: comments.
-
 #if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
     int sw = [NSScroller scrollerWidthForControlSize:NSControlSizeRegular scrollerStyle:NSScrollerStyleLegacy];
 #else
@@ -243,6 +244,7 @@ enum {
         [path stroke];
     }
 }
+#endif
 
 - (MMTextView *)textView
 {

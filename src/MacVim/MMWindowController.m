@@ -128,10 +128,27 @@
 {
     backgroundDark = NO;
     
-    unsigned styleMask = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable
-            | NSWindowStyleMaskMiniaturizable | NSWindowStyleMaskResizable
-            | NSWindowStyleMaskUnifiedTitleAndToolbar
-            | NSWindowStyleMaskTexturedBackground;
+    unsigned styleMask = NSWindowStyleMaskTitled
+                       | NSWindowStyleMaskClosable
+                       | NSWindowStyleMaskMiniaturizable
+                       | NSWindowStyleMaskResizable
+                       | NSWindowStyleMaskUnifiedTitleAndToolbar;
+
+    // Textured background has been a deprecated feature for a while. For a
+    // while we kept using it to avoid showing a black line below the title
+    // bar, but since macOS 11.0 this flag is completely ignored and
+    // deprecated. Since it's hard to test older versions of macOS well, simply
+    // preserve the existing functionality on older macOS versions, while not
+    // setting it in macOS 11+.
+    BOOL usingTexturedBackground = NO;
+#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_VERSION_11_0
+    if (@available(macos 11.0, *)) {
+        // Don't set the textured background because it's been completely deprecated and won't do anything.
+    } else {
+        styleMask = styleMask | NSWindowStyleMaskTexturedBackground;
+        usingTexturedBackground = YES;
+    }
+#endif
 
     NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
     if ([userDefaults boolForKey:MMNoTitleBarWindowKey]) {
@@ -179,7 +196,7 @@
     [win setDelegate:self];
     [win setInitialFirstResponder:[vimView textView]];
 
-    if ([win styleMask] & NSWindowStyleMaskTexturedBackground) {
+    if (usingTexturedBackground) {
         // On Leopard, we want to have a textured window to have nice
         // looking tabs. But the textured window look implies rounded
         // corners, which looks really weird -- disable them. This is a
@@ -1722,9 +1739,17 @@
 {
     BOOL tabBarVisible  = ![[vimView tabBarControl] isHidden];
     BOOL toolbarHidden  = [decoratedWindow toolbar] == nil;
-    BOOL windowTextured = ([decoratedWindow styleMask] &
-                            NSWindowStyleMaskTexturedBackground) != 0;
     BOOL hideSeparator  = NO;
+
+    // See initWithVimController: for textured background deprecation notes.
+    BOOL windowTextured = NO;
+#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_VERSION_11_0
+    if (@available(macos 11.0, *)) {
+    } else {
+        windowTextured = ([decoratedWindow styleMask] &
+                          NSWindowStyleMaskTexturedBackground) != 0;
+    }
+#endif
 
     if (floor(NSAppKitVersionNumber) >= NSAppKitVersionNumber10_10) {
         // The tabline separator is mostly an old feature and not necessary
