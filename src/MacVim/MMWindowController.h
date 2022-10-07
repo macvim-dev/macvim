@@ -17,7 +17,12 @@
 @class MMVimController;
 @class MMVimView;
 
-@interface MMWindowController : NSWindowController<NSWindowDelegate>
+@interface MMWindowController : NSWindowController<
+    NSWindowDelegate
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_14
+    , NSMenuItemValidation
+#endif
+    >
 {
     MMVimController     *vimController;
     MMVimView           *vimView;
@@ -104,6 +109,12 @@
 - (BOOL)getDefaultTopLeft:(NSPoint*)pt;
 - (void)runAfterWindowPresentedUsingBlock:(void (^)(void))block;
 
+//
+// NSMenuItemValidation
+//
+- (BOOL)validateMenuItem:(NSMenuItem *)item;
+
+// Menu items / macactions
 - (IBAction)addNewTab:(id)sender;
 - (IBAction)toggleToolbar:(id)sender;
 - (IBAction)performClose:(id)sender;

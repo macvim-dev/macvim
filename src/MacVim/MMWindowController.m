@@ -1181,11 +1181,10 @@
 
 - (BOOL)validateMenuItem:(NSMenuItem *)item
 {
-    if ([item action] == @selector(vimMenuItemAction:)
-            || [item action] == @selector(performClose:))
-        return [item tag];
-
-    return YES;
+    // This class is a responsder class and this should get called when we have
+    // a specific action that we implement exposed as a menu. As such just return
+    // [item tag] and no need to worry about macOS-injected menus.
+    return [item tag];
 }
 
 // -- NSWindow delegate ------------------------------------------------------

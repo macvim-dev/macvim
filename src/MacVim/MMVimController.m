@@ -1447,10 +1447,15 @@ static BOOL isUnsafeMessage(int msgid);
         return;
     }
 
-    // Use tag to set whether item is enabled or disabled instead of
-    // calling setEnabled:.  This way the menus can autoenable themselves
-    // but at the same time Vim can set if a menu is enabled whenever it
-    // wants to.
+    // We are using auto-enabling of menu items, where instead of directly
+    // calling setEnabled:, we rely on validateMenuItem: callbacks in each
+    // target to handle whether they want each menu item to be enabled or not.
+    // This allows us to more easily control the enabled states of OS-injected
+    // menu items if we want to. To remember whether we want to enable/disable
+    // a Vim menu, we use item.tag to remember it. See each validateMenuItem:
+    // implementation for details.
+    //
+    // See https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/MenuList/Articles/EnablingMenuItems.html
     [[self menuItemForDescriptor:desc] setTag:on];
 
     const BOOL isPopup = [MMVimController hasPopupPrefix:rootName];

@@ -17,6 +17,7 @@
     NSTextInput
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_14
     , NSFontChanging
+    , NSMenuItemValidation
 #endif
     >
 {
@@ -61,6 +62,22 @@
 // NSFontChanging methods
 //
 - (void)changeFont:(id)sender;
+
+//
+// NSMenuItemValidation
+//
+- (BOOL)validateMenuItem:(NSMenuItem *)item;
+
+//
+// Public macaction's
+// Note: New items here need to be handled in validateMenuItem: as well.
+//
+- (IBAction)cut:(id)sender;
+- (IBAction)copy:(id)sender;
+- (IBAction)paste:(id)sender;
+- (IBAction)undo:(id)sender;
+- (IBAction)redo:(id)sender;
+- (IBAction)selectAll:(id)sender;
 
 //
 // MMTextStorage methods
