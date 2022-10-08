@@ -1140,6 +1140,23 @@ static void grid_free(Grid *grid) {
     }
 }
 
+/// Specifies whether the menu item should be enabled/disabled.
+- (BOOL)validateMenuItem:(NSMenuItem *)item
+{
+    if ([item action] == @selector(cut:)
+        || [item action] == @selector(copy:)
+        || [item action] == @selector(paste:)
+        || [item action] == @selector(undo:)
+        || [item action] == @selector(redo:)
+        || [item action] == @selector(selectAll:))
+        return [item tag];
+
+    // This class should not have any special macOS menu itmes, so theoretically
+    // all of them should just return item.tag, but just in case macOS decides
+    // to inject some menu items to the parent NSView class without us knowing,
+    // we let the superclass handle this.
+    return YES;
+}
 
 //
 // NOTE: The menu items cut/copy/paste/undo/redo/select all/... must be bound

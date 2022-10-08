@@ -906,7 +906,7 @@
             || [item action] == @selector(selectAll:))
         return [item tag];
 
-    return YES;
+    return [super validateMenuItem:item];
 }
 
 @end // MMTextView

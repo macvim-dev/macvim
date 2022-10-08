@@ -184,13 +184,17 @@ static CGSSetWindowBackgroundBlurRadiusFunction* GetCGSSetWindowBackgroundBlurRa
         [super performClose:sender];
 }
 
+/// Validates whether the menu item should be enabled or not.
 - (BOOL)validateMenuItem:(NSMenuItem *)item
 {
-    if ([item action] == @selector(vimMenuItemAction:)
-            || [item action] == @selector(performClose:))
+    // This class only really have one action that's bound from Vim
+    if ([item action] == @selector(performClose:)) {
         return [item tag];
+    }
 
-    return YES;
+    // Since this is a subclass of NSWindow, it has a bunch of auto-populated
+    // menu from the OS. Just pass it off to the superclass to let it handle it.
+    return [super validateMenuItem:item];
 }
 
 - (IBAction)zoom:(id)sender
