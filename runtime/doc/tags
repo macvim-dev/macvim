@@ -8389,6 +8389,7 @@ macvim-full-screen	gui_mac.txt	/*macvim-full-screen*
 macvim-gestures	gui_mac.txt	/*macvim-gestures*
 macvim-help-menu	gui_mac.txt	/*macvim-help-menu*
 macvim-hints	gui_mac.txt	/*macvim-hints*
+macvim-internal-variables	gui_mac.txt	/*macvim-internal-variables*
 macvim-international	gui_mac.txt	/*macvim-international*
 macvim-login-shell	gui_mac.txt	/*macvim-login-shell*
 macvim-menus	gui_mac.txt	/*macvim-menus*

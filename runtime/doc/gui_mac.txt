@@ -121,6 +121,10 @@ These are the non-standard commands that MacVim supports:
 These are the non-standard events that MacVim supports:
 	|OSAppearanceChanged|
 
+					       *macvim-internal-variables*
+These are the non-standard internal variables that MacVim supports:
+	|v:os_appearance|
+
 							*macvim-find*
 Whenever you search for something in Vim (e.g. using "/"), or hit <D-e> when
 you have text selected, the search query is copied to the macOS "Find
@@ -319,7 +323,7 @@ this behaviour set MMLoginShellArgument to "--".
 ==============================================================================
 4. MacVim appearance					*macvim-appearance*
 
-MacVim can be used in full screen mode, see 'fullscreen'.
+For more configuration options, see the Preferences… → Appearance pane.
 
 				*macvim-appearance-mode* *macvim-dark-mode*
 MacVim will by default use the system apperance mode (light or dark). However,
@@ -330,7 +334,14 @@ color scheme while system preferences are configured to use light mode. It's
 also the recommended setting when title bar is configured to be "Transparent"
 (see |MMTitlebarAppearsTransparent|).
 
+If you would like to query the system apperance mode in Vim (e.g. to change
+the color scheme at launch), see |v:os_appearance|.  You can also use the
+autocommand |OSAppearanceChanged| to be notified when the OS changes its
+appearance.
+
 							*macvim-full-screen*
+MacVim can be used in full screen mode, see 'fullscreen'.
+
 There are two types of full screen modes.  By default, MacVim uses macOS'
 native full screen functionality, which creates a separate space in Mission
 Control.  MacVim also provides a non-native full screen mode, which can be set

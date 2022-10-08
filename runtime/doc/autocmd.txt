@@ -1042,6 +1042,7 @@ OptionSet			After setting an option.  The pattern is
 OSAppearanceChanged             After changing the variable |v:os_appearance|. 
                                 This change happens only if the OS changes
                                 its appearance and Vim is running with a GUI.
+				{only in MacVim GUI}
 
 							*QuickFixCmdPre*
 QuickFixCmdPre			Before a quickfix command is run (|:make|,
