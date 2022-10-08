@@ -1831,7 +1831,8 @@ generate_STRINGMEMBER(cctx_T *cctx, char_u *name, size_t len)
 
     // check for dict type
     type = get_type_on_stack(cctx, 0);
-    if (type->tt_type != VAR_DICT && type != &t_any && type != &t_unknown)
+    if (type->tt_type != VAR_DICT
+		   && type->tt_type != VAR_ANY && type->tt_type != VAR_UNKNOWN)
     {
 	char *tofree;
 
@@ -1843,7 +1844,7 @@ generate_STRINGMEMBER(cctx_T *cctx, char_u *name, size_t len)
     // change dict type to dict member type
     if (type->tt_type == VAR_DICT)
     {
-	type_T *ntype = type->tt_member == &t_unknown
+	type_T *ntype = type->tt_member->tt_type == VAR_UNKNOWN
 						    ? &t_any : type->tt_member;
 	set_type_on_stack(cctx, ntype, 0);
     }
@@ -1876,10 +1877,25 @@ generate_MULT_EXPR(cctx_T *cctx, isntype_T isn_type, int count)
 {
     isn_T	*isn;
 
+    RETURN_OK_IF_SKIP(cctx);
     if ((isn = generate_instr_drop(cctx, isn_type, count)) == NULL)
 	return FAIL;
     isn->isn_arg.number = count;
+    return OK;
+}
 
+/*
+ * Generate an ISN_ECHOWINDOW instruction
+ */
+    int
+generate_ECHOWINDOW(cctx_T *cctx, int count, long time)
+{
+    isn_T	*isn;
+
+    if ((isn = generate_instr_drop(cctx, ISN_ECHOWINDOW, count)) == NULL)
+	return FAIL;
+    isn->isn_arg.echowin.ewin_count = count;
+    isn->isn_arg.echowin.ewin_time = time;
     return OK;
 }
 

@@ -396,6 +396,7 @@ popup_create({what}, {options}) Number	create a popup window
 popup_dialog({what}, {options}) Number	create a popup window used as a dialog
 popup_filter_menu({id}, {key})  Number	filter for a menu popup window
 popup_filter_yesno({id}, {key}) Number	filter for a dialog popup window
+popup_findecho()		Number	get window ID of popup for `:echowin`
 popup_findinfo()		Number	get window ID of info popup window
 popup_findpreview()		Number	get window ID of preview popup window
 popup_getoptions({id})		Dict	get options of popup window {id}
@@ -8630,6 +8631,9 @@ sound_playevent({name} [, {callback}])
 <		On MS-Windows, {name} can be SystemAsterisk, SystemDefault,
 		SystemExclamation, SystemExit, SystemHand, SystemQuestion,
 		SystemStart, SystemWelcome, etc.
+		On macOS, {name} refers to files located in
+		/System/Library/Sounds (e.g. "Tink").  It will also work for
+		custom installed sounds in folders like ~/Library/Sounds.
 
 		When {callback} is specified it is invoked when the sound is
 		finished.  The first argument is the sound ID, the second
