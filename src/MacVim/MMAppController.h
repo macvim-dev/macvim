@@ -20,7 +20,13 @@
 #endif
 
 
-@interface MMAppController : NSObject <MMAppProtocol, NSUserInterfaceItemSearching> {
+@interface MMAppController : NSObject <
+    MMAppProtocol,
+    NSUserInterfaceItemSearching
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_14
+    , NSMenuItemValidation
+#endif
+> {
     NSConnection        *connection;
     NSMutableArray      *vimControllers;
     NSString            *openSelectionString;
@@ -62,6 +68,11 @@
 - (void)refreshAllFonts;
 - (void)refreshAllResizeConstraints;
 - (void)refreshAllTextViews;
+
+//
+// NSMenuItemValidation
+//
+- (BOOL)validateMenuItem:(NSMenuItem *)item;
 
 - (IBAction)newWindow:(id)sender;
 - (IBAction)newWindowAndActivate:(id)sender;

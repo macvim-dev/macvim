@@ -1160,6 +1160,14 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     }
 }
 
+- (BOOL)validateMenuItem:(NSMenuItem *)item
+{
+    // For the actions defined in this class we do want them to always be
+    // enabled since they are usually app functionality and independent of
+    // each Vim's state.
+    return YES;
+}
+
 - (IBAction)newWindow:(id)sender
 {
     ASLogDebug(@"Open new window");
