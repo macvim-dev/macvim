@@ -165,6 +165,7 @@ if has("gui_macvim")
   an <silent> 10.330 &File.Close\ Window<Tab>:qa    :conf qa<CR>
   tln <silent> 10.330 &File.Close\ Window<Tab>:qa   <C-W>:conf qa<CR>
   an <silent> 10.332 &File.Close<Tab>:q		    :conf q<CR>
+  tln <silent> 10.332 &File.Close<Tab>:q		    <C-W>:conf q<CR>
   an <silent> 10.341 &File.Save\ All		    :browse conf wa<CR>
   an 10.350 &File.Save\ As…<Tab>:sav	    :browse confirm saveas<CR>
 else
