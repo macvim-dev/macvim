@@ -1602,6 +1602,33 @@ scrolldown(
 #endif
 	coladvance(curwin->w_curswant);
     }
+
+    if (curwin->w_cursor.lnum == curwin->w_topline && do_sms)
+    {
+	long	so = curwin->w_p_so >= 0 ? curwin->w_p_so : p_so;
+	int	scrolloff_cols = so == 0 ? 0 : width1 + (so - 1) * width2;
+
+	// make sure the cursor is in the visible text
+	validate_virtcol();
+	int col = curwin->w_virtcol - curwin->w_skipcol + scrolloff_cols;
+	int row = 0;
+	if (col >= width1)
+	{
+	    col -= width1;
+	    ++row;
+	}
+	if (col > width2)
+	{
+	    row += col / width2;
+	    col = col % width2;
+	}
+	if (row >= curwin->w_height)
+	{
+	    curwin->w_curswant = curwin->w_virtcol
+				       - (row - curwin->w_height + 1) * width2;
+	    coladvance(curwin->w_curswant);
+	}
+    }
 }
 
 /*
@@ -1651,8 +1678,7 @@ scrollup(
 		    // for a closed fold: go to the last line in the fold
 		    (void)hasFolding(lnum, NULL, &lnum);
 # endif
-		if (lnum == curwin->w_topline
-					&& curwin->w_p_wrap && curwin->w_p_sms)
+		if (lnum == curwin->w_topline && do_sms)
 		{
 		    // 'smoothscroll': increase "w_skipcol" until it goes over
 		    // the end of the line, then advance to the next line.
@@ -1724,6 +1750,29 @@ scrollup(
 	curwin->w_valid &=
 	      ~(VALID_WROW|VALID_WCOL|VALID_CHEIGHT|VALID_CROW|VALID_VIRTCOL);
 	coladvance(curwin->w_curswant);
+    }
+    if (curwin->w_cursor.lnum == curwin->w_topline
+					    && do_sms && curwin->w_skipcol > 0)
+    {
+	int	width1 = curwin->w_width - curwin_col_off();
+	int	width2 = width1 + curwin_col_off2();
+	long	so = curwin->w_p_so >= 0 ? curwin->w_p_so : p_so;
+	int	scrolloff_cols = so == 0 ? 0 : width1 + (so - 1) * width2;
+
+	// Make sure the cursor is in a visible part of the line, taking
+	// 'scrolloff' into account, but using screen lines.
+	validate_virtcol();
+	if (curwin->w_virtcol < curwin->w_skipcol + 3 + scrolloff_cols)
+	{
+	    colnr_T col = curwin->w_virtcol;
+
+	    if (col < width1)
+		col += width1;
+	    while (col < curwin->w_skipcol + 3 + scrolloff_cols)
+		col += width2;
+	    curwin->w_curswant = col;
+	    coladvance(curwin->w_curswant);
+	}
     }
 }
 
