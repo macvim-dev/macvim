@@ -43,6 +43,17 @@
 {
     [super setCrossFade:NO];
     [super showWindow:sender];
+
+    // Refresh enabled states for settings that may or may not make sense
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    if (allowForceClickLookUpButton != nil) {
+        // Only enable force click lookup setting if only the user has configured so to begin with.
+        // Otherwise it doesn't make sense at all.
+        // Note: This cannot be done in simple bindings, because NSUserDefaults don't really support
+        //       global domain bindings from what I can tell, we have to manually read it.
+        const BOOL useForceClickLookup = [ud boolForKey:@"com.apple.trackpad.forceClick"];
+        [allowForceClickLookUpButton setEnabled:useForceClickLookup];
+    }
 }
 
 - (void)setupToolbar
@@ -58,6 +69,10 @@
                 label:@"Appearance"
                 image:[NSImage imageWithSystemSymbolName:@"paintbrush" accessibilityDescription:nil]];
 
+        [self addView:inputPreferences
+                label:@"Input"
+                image:[NSImage imageWithSystemSymbolName:@"keyboard" accessibilityDescription:nil]];
+
         [self addView:advancedPreferences
                 label:@"Advanced"
                 image:[NSImage imageWithSystemSymbolName:@"gearshape.2" accessibilityDescription:nil]];
@@ -72,6 +87,10 @@
         [self addView:appearancePreferences
                 label:@"Appearance"
                 image:[NSImage imageNamed:NSImageNameColorPanel]];
+
+        [self addView:inputPreferences
+                label:@"Input"
+                image:[NSImage imageNamed:NSImageNamePreferencesGeneral]]; // not a good choice but works for now
 
         [self addView:advancedPreferences
                 label:@"Advanced"

@@ -503,8 +503,29 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     if (event.stage >= 2) {
         if (!inForceClick) {
             inForceClick = YES;
-            
-            [self sendGestureEvent:MMGestureForceClick flags:[event modifierFlags]];
+
+            NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+
+            // See if the OS is configured to use Force click for data lookups
+            // (the other option usually being three-finger tap).
+            const BOOL useForceClickLookup = [ud boolForKey:@"com.apple.trackpad.forceClick"];
+
+            // See if the user has overriden to disallow Force click lookups.
+            // The usual reason for disallowing it is to support binding
+            // <ForceClick> mappings in Vim.
+            const BOOL userAllowsForceClickLookup = [ud boolForKey:MMAllowForceClickLookUpKey];
+
+            if (useForceClickLookup && userAllowsForceClickLookup) {
+                // For some odd reason, we don't get quickLookWithEvent: even when
+                // the user has configured to use force click instead of 3-finger
+                // tap. We need to manually invoke it (this is how NSTextView does
+                // it as well). References for other software that do this:
+                //   https://gitlab.com/gnachman/iterm2/-/blob/master/sources/PointerController.m
+                //   https://searchfox.org/mozilla-central/source/widget/cocoa/nsChildView.mm
+                [textView quickLookWithEvent:event];
+            } else {
+                [self sendGestureEvent:MMGestureForceClick flags:[event modifierFlags]];
+            }
         }
     } else {
         inForceClick = NO;
@@ -751,8 +772,23 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     markedRange = range;
 }
 
+/// Don't use this. See comments.
 - (NSRect)firstRectForCharacterRange:(NSRange)range
 {
+    //
+    // Note: This is really quite a buggy method and relies on improper
+    // assumptions. It's kept alive for now because MMTextView (which is also
+    // deprecated and shouldn't be used for real users) uses this.
+    // Known bugs:
+    // - Assumes that preEditRow/Column is the beginning of the marked range,
+    //   but the way it actually works is that it's the current cursor *within*
+    //   the marked range.
+    // - Uses fontWide to decide to jump 1 or 2 columns per character. First,
+    //   this is wrong, as wide texts work just fine even without guifontwide
+    //   set. Second, some characters may have length > 1. See MMCoreTextView
+    //   which does proper length calculation.
+    //
+
     // This method is called when the input manager wants to pop up an
     // auxiliary window.  The position where this should be is controlled by
     // Vim by sending SetPreEditPositionMsgID so compute a position based on
@@ -761,13 +797,13 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     int row = preEditRow;
 
     NSFont *theFont = [[textView markedTextAttributes]
-            valueForKey:NSFontAttributeName];
+                       valueForKey:NSFontAttributeName];
     if (theFont == [textView fontWide]) {
         col += imRange.location * 2;
         if (col >= [textView maxColumns] - 1) {
             row += (col / [textView maxColumns]);
             col = col % 2 ? col % [textView maxColumns] + 1 :
-                            col % [textView maxColumns];
+            col % [textView maxColumns];
         }
     } else {
         col += imRange.location;
@@ -777,10 +813,15 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
         }
     }
 
+    return [self firstRectForCharacterRange:row column:col length:range.length];
+}
+
+- (NSRect)firstRectForCharacterRange:(int)row column:(int)col length:(int)numColumns
+{
     NSRect rect = [textView rectForRow:row
                                 column:col
                                numRows:1
-                            numColumns:range.length];
+                            numColumns:numColumns];
 
     // NOTE: If the text view is flipped then 'rect' has its origin in the top
     // left corner of the rect, but the methods below expect it to be in the

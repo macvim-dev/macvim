@@ -259,6 +259,8 @@ as general information regarding macOS user defaults.
 Here is a list of relevant dictionary entries:
 
 KEY				VALUE ~
+*MMAllowForceClickLookUp*	use Force click for data lookup instead of
+				<ForceClick> [bool]
 *MMCellWidthMultiplier*		width of a normal glyph in em units [float]
 *MMCmdLineAlignBottom*		Pin command-line to bottom of MacVim [bool]
 *MMDialogsTrackPwd*		open/save dialogs track the Vim pwd [bool]
@@ -783,11 +785,17 @@ Each gesture generates one of the following Vim pseudo keys:
 
 						 *<SwipeUp>*   *<SwipeDown>*
 	Generated when swiping three fingers across the trackpad in a
-	vertical direction.  (Not supported by the Apple Magic Mouse.)
+	vertical direction.  (Not supported by the Apple Magic Mouse)
 
 						 *<ForceClick>*
 	Generated when doing a Force click by pressing hard on a trackpad.
-	(Only supported on trackpads that support Force Touch.)
+	(Only supported on trackpads that support Force Touch)
+
+	If you have configured to use Force click for "Look up & data
+	detectors" in the system settings, by default MacVim will do a
+	dictionary lookup instead of triggering this mapping. You can turn
+	this off in MacVim's Preference pane, or directly set
+	|MMAllowForceClickLookUp|.
 
 You can map these keys like with any other key using the |:map| family of
 commands.  For example, the following commands map left/right swipe to change

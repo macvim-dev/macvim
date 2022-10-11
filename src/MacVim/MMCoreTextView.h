@@ -13,8 +13,31 @@
 @class MMTextViewHelper;
 
 
+/// The main text view that manages drawing Vim's content using Core Text, and
+/// handles input. We are using this instead of NSTextView because of the
+/// custom needs in order to draw Vim's texts, as we don't have access to the
+/// full contents of Vim, and works more like a smart terminal to Vim.
+///
+/// Currently the rendering is done in software via Core Text, but a future
+/// extension will add support for Metal rendering which probably will require
+/// splitting this class up.
+///
+/// Since this class implements text rendering/input using a custom view, it
+/// implements NSTextInputClient, mostly for the following needs:
+/// 1. Text input. This is done via insertText / doCommandBySelector.
+/// 2. Input methods (e.g. for CJK). This is done via the marked text and the
+///    other APIs like selectedRange/firstRectForCharacterRange/etc.
+/// 3. Support native dictionary lookup (quickLookWithEvent:) when the user
+///    wants to. This mostly involves implementing the attributeSubstring /
+///    firstRectForCharacterRange / characterIndexForPoint APIs.
+/// There is an inherent difficulty to implementing NSTextInputClient
+/// 'correctly', because it assumes we have an entire text storage with
+/// indexable ranges. However, we don't have full access to Vim's internal
+/// storage, and we are represening the screen view instead in row-major
+/// indexing, but this becomes complicated when we want to implement marked
+/// texts. We the relevant parts for comments on how we hack around this.
 @interface MMCoreTextView : NSView <
-    NSTextInput
+    NSTextInputClient
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_14
     , NSFontChanging
     , NSMenuItemValidation
@@ -122,8 +145,21 @@
 // NSTextView methods
 //
 - (void)keyDown:(NSEvent *)event;
-- (void)insertText:(id)string;
+
+//
+// NSTextInputClient methods
+//
+- (void)insertText:(id)string replacementRange:(NSRange)replacementRange;
 - (void)doCommandBySelector:(SEL)selector;
+- (void)setMarkedText:(id)string selectedRange:(NSRange)selectedRange replacementRange:(NSRange)replacementRange;
+- (void)unmarkText;
+- (NSRange)selectedRange;
+- (NSRange)markedRange;
+- (BOOL)hasMarkedText;
+- (nullable NSAttributedString *)attributedSubstringForProposedRange:(NSRange)range actualRange:(nullable NSRangePointer)actualRange;
+- (nonnull NSArray<NSAttributedStringKey> *)validAttributesForMarkedText;
+- (NSRect)firstRectForCharacterRange:(NSRange)range actualRange:(nullable NSRangePointer)actualRange;
+- (NSUInteger)characterIndexForPoint:(NSPoint)point;
 
 //
 // NSTextContainer methods

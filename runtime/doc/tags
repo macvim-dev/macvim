@@ -5417,6 +5417,7 @@ LogiPat-flags	pi_logipat.txt	/*LogiPat-flags*
 Lua	if_lua.txt	/*Lua*
 M	motion.txt	/*M*
 MDI	starting.txt	/*MDI*
+MMAllowForceClickLookUp	gui_mac.txt	/*MMAllowForceClickLookUp*
 MMAppearanceModeSelection	gui_mac.txt	/*MMAppearanceModeSelection*
 MMCellWidthMultiplier	gui_mac.txt	/*MMCellWidthMultiplier*
 MMCmdLineAlignBottom	gui_mac.txt	/*MMCmdLineAlignBottom*

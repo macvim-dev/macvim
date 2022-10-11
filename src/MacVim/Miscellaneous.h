@@ -61,6 +61,7 @@ extern NSString *MMNonNativeFullScreenShowMenuKey;
 extern NSString *MMNonNativeFullScreenSafeAreaBehaviorKey;
 extern NSString *MMSmoothResizeKey;
 extern NSString *MMCmdLineAlignBottomKey;
+extern NSString *MMAllowForceClickLookUpKey;
 
 
 // Enum for MMUntitledWindowKey
