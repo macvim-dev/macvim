@@ -596,44 +596,15 @@ static void grid_free(Grid *grid) {
     [helper keyDown:event];
 }
 
-- (void)insertText:(id)string
+- (void)insertText:(id)string replacementRange:(NSRange)replacementRange
 {
+    // We are not currently replacementRange right now.
     [helper insertText:string];
 }
 
 - (void)doCommandBySelector:(SEL)selector
 {
     [helper doCommandBySelector:selector];
-}
-
-- (BOOL)hasMarkedText
-{
-    return [helper hasMarkedText];
-}
-
-- (NSRange)markedRange
-{
-    return [helper markedRange];
-}
-
-- (NSDictionary *)markedTextAttributes
-{
-    return [helper markedTextAttributes];
-}
-
-- (void)setMarkedTextAttributes:(NSDictionary *)attr
-{
-    [helper setMarkedTextAttributes:attr];
-}
-
-- (void)setMarkedText:(id)text selectedRange:(NSRange)range
-{
-    [helper setMarkedText:text selectedRange:range];
-}
-
-- (void)unmarkText
-{
-    [helper unmarkText];
 }
 
 - (void)scrollWheel:(NSEvent *)event
@@ -1283,39 +1254,422 @@ static void grid_free(Grid *grid) {
     return rect;
 }
 
-- (NSArray *)validAttributesForMarkedText
+#pragma mark Text Input Client
+#pragma region Text Input Client
+
+//
+// Text input client implementation.
+// 
+// Note that we are implementing this as a row-major indexed grid of the
+// current display. This is not the same as Vim's internal knowledge of the
+// buffers. We don't really have access to that easily because MacVim is purely
+// a GUI into Vim through a multi-process model. It's theoretically possible to
+// get access to it, but it increases latency and complexity, and we won't be
+// able to get access to the message output.
+//
+// Because of this quirk, proper marked text implementation is quite difficult.
+// The OS assumes a proper text strage backing, and that marked texts are a
+// contiguous region in that storage (see how markedRange API returns a single
+// NSRange). This is not possible for us if Vim has the marked texts wrapped
+// into multiple lines while we have split windows, or just that a long marked
+// text could be hidden. Because of that, we fake it by testing for
+// hasMarkedText: If we have marked texts, we always tell the OS we are
+// starting from 0, and the selectedRange/markedRange/etc all treat the text
+// storage as having the marked text starting from 0, and
+// firstRectForCharacterRange just handles that specially to make sure we still
+// draw the input method's candidate list properly. Otherwise, we just treat
+// the text storage as a row-major grid of the currently displayed text, which
+// works fine for dictionary lookups.
+//
+// Also, note that whenever the OS API uses a character index or range, it
+// always refers to the unicode length, so the calculation between row/col and
+// character index/range needs to go through each character and calculate its
+// length. We could optimize it to cache each row's total char length if we
+// want if this is an issue.
+//
+
+/// Takes a point and convert it into a single index into the entire window's
+/// text. The text is converted into a row-major format, and the lines are
+/// concatenated together without injecting any spaces or newlines. Note that
+/// this doesn't take into account of Vim's own window splits and whatnot for
+/// now so a wrapped text in Vim would not be returned as contiguous.
+///
+/// The concatenation is done without injecting newlines for simplicity and to
+/// allow wrapped lines to come together but that could be changed if it's
+/// undesired.
+static NSUInteger utfCharIndexFromRowCol(const Grid* grid, int row, int col)
 {
-    return nil;
+    // Find the raw index for the character. Note that this is not good enough. With localized / wide texts,
+    // some character will be single-width but have length > 1, and some character will be double-width. We
+    // don't pre-calculate these information (since this is needed infrequently), and so we have to search
+    // from first character onwards and accumulating the lengths.
+    // See attributedSubstringForProposedRange which also does the same thing.
+    const int rawIndex = row * grid->cols + col;
+    const int gridSize = grid->cols * grid->rows;
+
+    NSUInteger utfIndex = 0;
+    for (int i = 0; i < gridSize && i < rawIndex; i++) {
+        NSString *str = grid->cells[i].string;
+        utfIndex += str == nil ? 1 : str.length; // Note: nil string means empty space.
+
+        if (grid->cells[i].textFlags & DRAW_WIDE) {
+            i += 1;
+        }
+    }
+    return utfIndex;
 }
 
-- (NSAttributedString *)attributedSubstringFromRange:(NSRange)range
+/// Given grid position, and a UTF-8 character offset, return the new column on
+/// the same line. This doesn't support multi-line for now as there is no need
+/// to.
+///
+/// @param utfIndexOffset The character offset from the row/col provided. Can
+///        be positive or negative.
+///
+/// @return The column at the specified offset. Note that this clamps at
+///         [0,cols-1] since we are only looking for the same line.
+static int colFromUtfOffset(const Grid* grid, int row, int col, NSInteger utfIndexOffset)
 {
-    return nil;
+    if (row < 0 || col < 0 || row >= grid->rows || col >= grid->cols) {
+        // Should not happen
+        return 0;
+    }
+    if (utfIndexOffset == 0)
+        return col;
+
+    const int advance = utfIndexOffset > 0 ? 1 : -1;
+    NSUInteger accUtfIndexOffset = 0;
+
+    int c;
+    for (c = col; c > 0 && c < grid->cols - 1 && accUtfIndexOffset < labs(utfIndexOffset); c += advance) {
+        int rawIndex = row * grid->cols + c;
+
+        if (advance < 0) {
+            // If going backwards, we have to use the last character's length
+            // instead, including walking back 2 chars if it happens to be a
+            // wide char.
+            rawIndex -= 1;
+            if (c - 2 >= 0 && grid->cells[rawIndex - 1].textFlags & DRAW_WIDE) {
+                c += advance;
+                rawIndex -= 1;
+            }
+        }
+
+        NSString *str = grid->cells[rawIndex].string;
+        accUtfIndexOffset += str == nil ? 1 : str.length; // Note: nil string means empty space.
+
+        if (advance > 0) {
+            if (grid->cells[rawIndex].textFlags & DRAW_WIDE) {
+                c += advance;
+            }
+        }
+    }
+
+    // Make sure nothing out of bounds happened due to some issue with wide-character skipping.
+    if (c < 0)
+        c = 0;
+    if (c >= grid->cols)
+        c = grid->cols - 1;
+
+    return c;
 }
 
+/// Given a range of UTF-8 character indices, find the row/col of the beginning
+/// of the range, and the end of the range *on the same line*. This doesn't
+/// support searching for the end past the first line because there's no need
+/// to right now. Sort of the reverse of utfCharIndexFromRowCol.
+///
+/// This assumes the text representation is a row-major representation of the
+/// whole grid, with no newline/spaces to separate the lines.
+///
+/// @param row Return the starting character's row.
+/// @param col Return the starting character's column.
+/// @param firstLineNumCols Return the number of columns to the end character's
+///        on the same line. If the end char is on the next line, then this
+///        will just find the last column of the line.
+/// @param firstLineUtf8Len Return the length of the characters on the first
+///        line, in UTF-8 length.
+static void rowColFromUtfRange(const Grid* grid, NSRange range,
+                            int *row, int *col,
+                            int *firstLineNumCols, int *firstLineUtf8Len)
+{
+    int startUtfIndex = -1;
+    int outRow = -1;
+    int outCol = -1;
+    int outFirstLineNumCols = -1;
+    int outFirstLineLen = -1;
+
+    const int gridSize = grid->cols * grid->rows;
+    NSUInteger utfIndex = 0;
+    for (int i = 0; i < gridSize; i++) {
+        if (utfIndex >= range.location) {
+            // We are now past the start of the character.
+            const int curRow = i / grid->cols;
+            const int curCol = i % grid->cols;
+
+            if (outRow == -1) {
+                // Record the beginning
+                startUtfIndex = utfIndex;
+                outRow = curRow;
+                outCol = curCol;
+            }
+
+            if (utfIndex >= range.location + range.length) {
+                // Record the end if we found it.
+                if (outFirstLineNumCols == -1) {
+                    outFirstLineLen = utfIndex - startUtfIndex;
+                    outFirstLineNumCols = curCol - outCol;
+                }
+                break;
+            }
+
+            if (curRow > outRow) {
+                // We didn't find the end, but we are already at next line, so
+                // just clamp it to the last column from the last line.
+                outFirstLineLen = utfIndex - startUtfIndex;
+                outFirstLineNumCols = grid->cols - outCol;
+                break;
+            }
+
+        }
+
+        NSString *str = grid->cells[i].string;
+        utfIndex += str == nil ? 1 : str.length; // Note: nil string means empty space.
+
+        if (grid->cells[i].textFlags & DRAW_WIDE) {
+            i += 1;
+        }
+    }
+
+    if (outRow == -1)
+    {
+        *row = 0;
+        *col = 1;
+        *firstLineNumCols = 0;
+        *firstLineUtf8Len = 0;
+        return;
+    }
+    if (outFirstLineNumCols == -1)
+    {
+        outFirstLineLen = utfIndex - startUtfIndex;
+        outFirstLineNumCols = grid->cols;
+    }
+    *row = outRow;
+    *col = outCol;
+    *firstLineNumCols = outFirstLineNumCols;
+    *firstLineUtf8Len = outFirstLineLen;
+}
+
+- (nonnull NSArray<NSAttributedStringKey> *)validAttributesForMarkedText
+{
+    // Not implementing this for now. Properly implementing this would allow things like bolded underline
+    // for certain texts in the marked range, etc, but we would need SetMarkedTextMsgID to support it.
+    return @[];
+}
+
+/// Returns an attributed string containing the proposed range. This method is
+/// usually called for two reasons:
+/// 1. Input methods. It's unclear why the OS calls this during marked text
+///    operation and returning nil doesn't seem to have any negative effect.
+///    However, for operations like Hangul->Hanja (by pressing Option-Return),
+///    it does rely on this after inserting the original Hangul text.
+/// 2. Dictionary lookup. This is used for retrieving the formatted text that
+///    the OS uses to look up and to show within the yellow box.
+- (nullable NSAttributedString *)attributedSubstringForProposedRange:(NSRange)range actualRange:(nullable NSRangePointer)actualRange;
+{
+    // Because of Unicode / wide characters, we have to unfortunately loop through the entire text to
+    // find the range. We could add better accelerated data structure here if for some reason this is
+    // slow (it should only be called when inputting special / localized characters or when doing
+    // quickLook lookup (e.g. Cmd-Ctrl-D). This step is important though or emojis and say Chinese
+    // characters would not behave properly. See characterIndexForPoint which also does the same thing.
+
+    if (range.length == 0) {
+        return nil;
+    }
+
+    if ([helper hasMarkedText]) {
+        // Since marked text changes the meaning of the text storage ranges (see above overall design),
+        // just don't return anything for now. We could simply return the marked text if we want to and
+        // have a need to do so.
+        return nil;
+    }
+
+    NSMutableString *retStr = nil;
+    NSUInteger utfIndex = 0;
+
+    const int gridSize = grid.cols * grid.rows;
+    for (int i = 0; i < gridSize; i++) {
+        NSString *str = grid.cells[i].string;
+        if (str == nil) {
+            str = @" ";
+        }
+
+        if (utfIndex >= range.location) {
+            if (retStr == nil) {
+                // Lazily initialize the return string in case the passed in range is just completely
+                // out of bounds.
+                retStr = [NSMutableString stringWithCapacity:range.length];;
+            }
+            [retStr appendString:str];
+        }
+        if (retStr.length >= range.length) {
+            break;
+        }
+
+        // Increment counters
+        utfIndex += str.length;
+        if (grid.cells[i].textFlags & DRAW_WIDE) {
+            i += 1;
+        }
+    }
+
+    if (retStr == nil) {
+        return nil;
+    }
+    if (actualRange != NULL) {
+        actualRange->length = retStr.length;
+    }
+    // Return an attributed string with the correct font so it will long right.
+    // Note that this won't get us a perfect replica of the displayed texts,
+    // but good enough. Some reasons why it's not perfect:
+    // - Asian characters don't get displayed in double-width under OS
+    //   rendering and will be narrower.
+    // - We aren't passing through bold/italics/underline/strike-through/etc
+    //   for now. This is probably ok. If we want to tackle this maybe just
+    //   bold/underline is enough. Even NSTextView doesn't pass the
+    //   underline/etc styles over, presumably because they make reading it
+    //   hard.
+    // - Font substitutions aren't handled the same way.
+    return [[[NSAttributedString alloc] initWithString:retStr
+                                            attributes:@{NSFontAttributeName: font}
+            ] autorelease];
+}
+
+- (BOOL)hasMarkedText
+{
+    return [helper hasMarkedText];
+}
+
+- (NSRange)markedRange
+{
+    // This will return the range marked from 0 to size of marked text. See the
+    // overall text input client implementation above for more description of
+    // the design choice of handling marked text in this API.
+    return [helper markedRange];
+}
+
+- (NSDictionary *)markedTextAttributes
+{
+    return [helper markedTextAttributes];
+}
+
+- (void)setMarkedTextAttributes:(NSDictionary *)attr
+{
+    [helper setMarkedTextAttributes:attr];
+}
+
+- (void)setMarkedText:(id)string selectedRange:(NSRange)selectedRange replacementRange:(NSRange)replacementRange;
+{
+    // We are not using replacementRange right now
+    [helper setMarkedText:string selectedRange:selectedRange];
+}
+
+- (void)unmarkText
+{
+    [helper unmarkText];
+}
+
+/// Returns a character index to the overall text storage.
+///
+/// This is used mostly for quickLookWithEvent: calls for the OS to be able to
+/// understand the textual content of this text input client.
 - (NSUInteger)characterIndexForPoint:(NSPoint)point
 {
-    return NSNotFound;
-}
+    // Not using convertPointFromScreen because it's 10.12+ only.
+    NSRect screenRect = {point, NSZeroSize};
+    NSPoint windowPt = [[self window] convertRectFromScreen:screenRect].origin;
+    NSPoint viewPt = [self convertPoint:windowPt fromView:nil];
+    int row, col;
+    if (![self convertPoint:viewPt toRow:&row column:&col]) {
+        return NSNotFound;
+    }
 
-- (NSInteger)conversationIdentifier
-{
-    return (NSInteger)self;
+    return utfCharIndexFromRowCol(&grid, row, col);
 }
 
 - (NSRange)selectedRange
 {
-    return [helper imRange];
+    if ([helper hasMarkedText]) {
+        // This returns the current cursor position relative to the marked
+        // range, starting from 0. See above overall comments on text input
+        // client implementation for marked text API decision.
+        return [helper imRange];
+    }
+
+    // Find the character index.
+    int row = [helper preEditRow];
+    int col = [helper preEditColumn];
+    NSUInteger charIndex = utfCharIndexFromRowCol(&grid, row, col);
+
+    // We don't support selected texts for now, so always return length = 0;
+    NSRange result = {charIndex, 0};
+    return result;
 }
 
-- (NSRect)firstRectForCharacterRange:(NSRange)range
+/// Return the first line's rectangle for a range of characters. This is
+/// usually called either during marked text operation to decide where to show
+/// a candidate list, or when doing dictionary lookup and the UI wants to draw
+/// a box right on top of this text seamlessly.
+///
+/// @param range The range to show rect for. Note that during marked text
+///        operation, this could be different from imRange. For example, when using
+///        Japanese input to input a long line of text, the user could use
+///        left/right arrow keys to jump to different section of the
+///        in-progress phrase and pick a new candidate. When doing that, this
+///        will get called with different range's in order to show the
+///        candidate list box right below the current section under
+///        consideration.
+/// @param actualRange The actual range this rect represents. Only used for
+///        non-marked text situations for now.
+- (NSRect)firstRectForCharacterRange:(NSRange)range actualRange:(nullable NSRangePointer)actualRange
 {
-    return [helper firstRectForCharacterRange:range];
+    if ([helper hasMarkedText]) {
+        // Marked texts have special handling (see above overall comments for
+        // marked text API design).
+
+        // Because we just expose the range as 0 to marked length, the range
+        // here doesn't represent the final screen position. Instead, we use
+        // the current cursor position as basis. We know that during marked
+        // text operations it has to be inside the marked range as specified by
+        // setMarkedText's range.
+        const int cursorRow = [helper preEditRow];
+        const int cursorCol = [helper preEditColumn];
+
+        // Now, we retrieve the IM range that setMarkedText gave us, and
+        // compare with what the OS wants now (range). Find the rectangle
+        // surrounding that.
+        const NSRange imRange = [helper imRange];
+        const NSInteger startIndexOffset = range.location - imRange.location;
+        const NSInteger endIndexOffset = range.location + range.length - imRange.location;
+
+        const int rectBeginCol = colFromUtfOffset(&grid, cursorRow, cursorCol, startIndexOffset);
+        const int rectEndCol = colFromUtfOffset(&grid, cursorRow, cursorCol, endIndexOffset);
+
+        return [helper firstRectForCharacterRange:cursorRow column:rectBeginCol length:(rectEndCol - rectBeginCol)];
+    } else {
+        int row = 0, col = 0, firstLineNumCols = 0, firstLineUtf8Len = 0;
+        rowColFromUtfRange(&grid, range, &row, &col, &firstLineNumCols, &firstLineUtf8Len);
+        if (actualRange != NULL) {
+            actualRange->location = range.location;
+            actualRange->length = firstLineUtf8Len;
+        }
+        return [helper firstRectForCharacterRange:row column:col length:firstLineNumCols];
+    }
 }
+
+#pragma endregion // Text Input Client
 
 @end // MMCoreTextView
-
-
 
 
 @implementation MMCoreTextView (Private)

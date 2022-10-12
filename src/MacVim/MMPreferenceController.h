@@ -14,12 +14,16 @@
 @interface MMPreferenceController : DBPrefsWindowController {
     IBOutlet NSView *generalPreferences;
     IBOutlet NSView *appearancePreferences;
+    IBOutlet NSView *inputPreferences;
     IBOutlet NSView *advancedPreferences;
 
     // General pane
     IBOutlet NSPopUpButton *layoutPopUpButton;
     IBOutlet NSButton *autoInstallUpdateButton;
     IBOutlet NSView *sparkleUpdaterPane;
+
+    // Input pane
+    IBOutlet NSButton *allowForceClickLookUpButton;
 }
 
 // General pane

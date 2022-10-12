@@ -44,8 +44,8 @@
     NSRange             markedRange;
     NSDictionary        *markedTextAttributes;
     NSMutableAttributedString   *markedText;
-    int                 preEditRow;
-    int                 preEditColumn;
+    int                 preEditRow; ///< The cursor's row. Note that this gets set no matter what. Doesn't matter if we are in pre-edit or not.
+    int                 preEditColumn; ///< The cursor's column.
     BOOL                imControl;
     BOOL                imState;
     TISInputSourceRef   lastImSource;
@@ -90,6 +90,7 @@
 - (NSRange)imRange;
 - (void)setMarkedRange:(NSRange)range;
 - (NSRect)firstRectForCharacterRange:(NSRange)range;
+- (NSRect)firstRectForCharacterRange:(int)row column:(int)col length:(int)length;
 - (void)setImControl:(BOOL)enable;
 - (void)activateIm:(BOOL)enable;
 - (BOOL)useInlineIm;
