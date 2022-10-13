@@ -552,6 +552,16 @@ check_cursor_moved(win_T *wp)
 				      |VALID_BOTLINE|VALID_BOTLINE_AP);
 	wp->w_valid_cursor = wp->w_cursor;
 	wp->w_valid_leftcol = wp->w_leftcol;
+	wp->w_valid_skipcol = wp->w_skipcol;
+    }
+    else if (wp->w_skipcol != wp->w_valid_skipcol)
+    {
+	wp->w_valid &= ~(VALID_WROW|VALID_WCOL|VALID_VIRTCOL
+				      |VALID_CHEIGHT|VALID_CROW
+				      |VALID_BOTLINE|VALID_BOTLINE_AP);
+	wp->w_valid_cursor = wp->w_cursor;
+	wp->w_valid_leftcol = wp->w_leftcol;
+	wp->w_valid_skipcol = wp->w_skipcol;
     }
     else if (wp->w_cursor.col != wp->w_valid_cursor.col
 	     || wp->w_leftcol != wp->w_valid_leftcol
@@ -878,7 +888,6 @@ curs_rows(win_T *wp)
 
     redraw_for_cursorline(curwin);
     wp->w_valid |= VALID_CROW|VALID_CHEIGHT;
-
 }
 
 /*
@@ -1035,6 +1044,7 @@ curs_columns(
     colnr_T	prev_skipcol;
     long	so = get_scrolloff_value();
     long	siso = get_sidescrolloff_value();
+    int		did_sub_skipcol = FALSE;
 
     /*
      * First make sure that w_topline is valid (after moving the cursor).
@@ -1092,13 +1102,17 @@ curs_columns(
     {
 	width = textwidth + curwin_col_off2();
 
+	// skip columns that are not visible
+	if (curwin->w_cursor.lnum == curwin->w_topline
+		&& curwin->w_wcol >= curwin->w_skipcol)
+	{
+	    curwin->w_wcol -= curwin->w_skipcol;
+	    did_sub_skipcol = TRUE;
+	}
+
 	// long line wrapping, adjust curwin->w_wrow
 	if (curwin->w_wcol >= curwin->w_width)
 	{
-#ifdef FEAT_LINEBREAK
-	    char_u *sbr;
-#endif
-
 	    // this same formula is used in validate_cursor_col()
 	    n = (curwin->w_wcol - curwin->w_width) / width + 1;
 	    curwin->w_wcol -= n * width;
@@ -1108,7 +1122,7 @@ curs_columns(
 	    // When cursor wraps to first char of next line in Insert
 	    // mode, the 'showbreak' string isn't shown, backup to first
 	    // column
-	    sbr = get_showbreak_value(curwin);
+	    char_u *sbr = get_showbreak_value(curwin);
 	    if (*sbr && *ml_get_cursor() == NUL
 				    && curwin->w_wcol == vim_strsize(sbr))
 		curwin->w_wcol = 0;
@@ -1233,7 +1247,7 @@ curs_columns(
 	if ((colnr_T)n >= curwin->w_height + curwin->w_skipcol / width - so)
 	    extra += 2;
 
-	if (extra == 3 || p_lines <= so * 2)
+	if (extra == 3 || curwin->w_height <= so * 2)
 	{
 	    // not enough room for 'scrolloff', put cursor in the middle
 	    n = curwin->w_virtcol / width;
@@ -1268,7 +1282,12 @@ curs_columns(
 		curwin->w_skipcol = endcol;
 	}
 
-	curwin->w_wrow -= curwin->w_skipcol / width;
+	// adjust w_wrow for the changed w_skipcol
+	if (did_sub_skipcol)
+	    curwin->w_wrow -= (curwin->w_skipcol - prev_skipcol) / width;
+	else
+	    curwin->w_wrow -= curwin->w_skipcol / width;
+
 	if (curwin->w_wrow >= curwin->w_height)
 	{
 	    // small window, make sure cursor is in it
@@ -1302,8 +1321,10 @@ curs_columns(
 	curwin->w_flags &= ~(WFLAG_WCOL_OFF_ADDED + WFLAG_WROW_OFF_ADDED);
 #endif
 
-    // now w_leftcol is valid, avoid check_cursor_moved() thinking otherwise
+    // now w_leftcol and w_skipcol are valid, avoid check_cursor_moved()
+    // thinking otherwise
     curwin->w_valid_leftcol = curwin->w_leftcol;
+    curwin->w_valid_skipcol = curwin->w_skipcol;
 
     curwin->w_valid |= VALID_WCOL|VALID_WROW|VALID_VIRTCOL;
 }
@@ -1772,7 +1793,71 @@ scrollup(
 		col += width2;
 	    curwin->w_curswant = col;
 	    coladvance(curwin->w_curswant);
+
+	    // validate_virtcol() marked various things as valid, but after
+	    // moving the cursor they need to be recomputed
+	    curwin->w_valid &=
+	       ~(VALID_WROW|VALID_WCOL|VALID_CHEIGHT|VALID_CROW|VALID_VIRTCOL);
 	}
+    }
+}
+
+/*
+ * Called after changing the cursor column: make sure that curwin->w_skipcol is
+ * valid for 'smoothscroll'.
+ */
+    void
+adjust_skipcol(void)
+{
+    if (!curwin->w_p_wrap
+	    || !curwin->w_p_sms
+	    || curwin->w_cursor.lnum != curwin->w_topline)
+	return;
+
+    int	    width1 = curwin->w_width - curwin_col_off();
+    int	    width2 = width1 + curwin_col_off2();
+    long    so = curwin->w_p_so >= 0 ? curwin->w_p_so : p_so;
+    int	    scrolloff_cols = so == 0 ? 0 : width1 + (so - 1) * width2;
+    int	    scrolled = FALSE;
+
+    validate_virtcol();
+    while (curwin->w_skipcol > 0
+		 && curwin->w_virtcol < curwin->w_skipcol + 3 + scrolloff_cols)
+    {
+	// scroll a screen line down
+	if (curwin->w_skipcol >= width1 + width2)
+	    curwin->w_skipcol -= width2;
+	else
+	    curwin->w_skipcol -= width1;
+	redraw_later(UPD_NOT_VALID);
+	scrolled = TRUE;
+	validate_virtcol();
+    }
+    if (scrolled)
+	return;  // don't scroll in the other direction now
+
+    int col = curwin->w_virtcol - curwin->w_skipcol + scrolloff_cols;
+    int row = 0;
+    if (col >= width1)
+    {
+	col -= width1;
+	++row;
+    }
+    if (col > width2)
+    {
+	row += col / width2;
+	col = col % width2;
+    }
+    if (row >= curwin->w_height)
+    {
+	if (curwin->w_skipcol == 0)
+	{
+	    curwin->w_skipcol += width1;
+	    --row;
+	}
+	if (row >= curwin->w_height)
+	    curwin->w_skipcol += (row - curwin->w_height) * width2;
+	redraw_later(UPD_NOT_VALID);
     }
 }
 
