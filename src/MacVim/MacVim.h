@@ -146,6 +146,8 @@
 - (id)evaluateExpressionCocoa:(in bycopy NSString *)expr
                   errorString:(out bycopy NSString **)errstr;
 - (BOOL)selectedTextToPasteboard:(byref NSPasteboard *)pboard;
+- (NSString *)selectedText;
+- (BOOL)mouseScreenposIsSelection:(int)row column:(int)column selRow:(byref int *)startRow selCol:(byref int *)startCol;
 - (oneway void)acknowledgeConnection;
 @end
 

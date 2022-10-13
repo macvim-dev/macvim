@@ -146,7 +146,7 @@ find_end_of_word(pos_T *pos)
  * Returns IN_BUFFER and sets "mpos->col" to the column when in buffer text.
  * The column is one for the first column.
  */
-    static int
+    int
 get_fpos_of_mouse(pos_T *mpos)
 {
     win_T	*wp;
