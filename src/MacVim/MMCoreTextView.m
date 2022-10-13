@@ -1687,6 +1687,10 @@ static void rowColFromUtfRange(const Grid* grid, NSRange range,
 
 /// Perform data lookup. This gets called by the OS when the user uses
 /// Ctrl-Cmd-D or the trackpad to look up data.
+///
+/// This implementation will default to using the OS's implementation,
+/// but also perform special checking for selected text, and perform data
+/// detection for URLs, etc.
 - (void)quickLookWithEvent:(NSEvent *)event
 {
     // The default implementation would query using the NSTextInputClient API
@@ -1701,15 +1705,23 @@ static void rowColFromUtfRange(const Grid* grid, NSRange range,
     // return the selected text (which we cannot do easily since our text
     // storage isn't representative of the Vim's internal buffer, see above
     // design notes), by querying Vim for the selected text manually.
+    //
+    // Another custom implementation we do is by first feeding the data through
+    // an NSDataDetector first. This helps us catch URLs, addresses, and so on.
+    // Otherwise for an URL, it will not include the whole https:// part and
+    // won't show a web page. Note that NSTextView/WebKit/etc all use an
+    // internal API called Reveal which does this for free and more powerful,
+    // but we don't have access to that as a third-party software that
+    // implements a custom text view.
 
-    MMVimController *vc = [self vimController];
-    id<MMBackendProtocol> backendProxy = [vc backendProxy];
-    if ([backendProxy selectedTextToPasteboard:nil]) {
-        // We have selected text. Proceed to see if the mouse is directly on
+    const NSPoint pt = [self convertPoint:[event locationInWindow] fromView:nil];
+    int row = 0, col = 0;
+    if ([self convertPoint:pt toRow:&row column:&col]) {
+        // 1. If we have selected text. Proceed to see if the mouse is directly on
         // top of said selection and if so, show definition of that instead.
-        const NSPoint pt = [self convertPoint:[event locationInWindow] fromView:nil];
-        int row, col;
-        if ([self convertPoint:pt toRow:&row column:&col]) {
+        MMVimController *vc = [self vimController];
+        id<MMBackendProtocol> backendProxy = [vc backendProxy];
+        if ([backendProxy selectedTextToPasteboard:nil]) {
             int selRow = 0, selCol = 0;
             const BOOL isMouseInSelection = [backendProxy mouseScreenposIsSelection:row column:col selRow:&selRow selCol:&selCol];
 
@@ -1732,6 +1744,71 @@ static void rowColFromUtfRange(const Grid* grid, NSRange range,
                     [self showDefinitionForAttributedString:attrText atPoint:baselinePt];
                     return;
                 }
+            }
+        }
+
+        // 2. Check if we have specialized data. Honestly the OS should really do this
+        // for us as we are just calling text input client APIs here.
+        const NSUInteger charIndex = utfCharIndexFromRowCol(&grid, row, col);
+        NSTextCheckingTypes checkingTypes = NSTextCheckingTypeAddress
+                                            | NSTextCheckingTypeLink
+                                            | NSTextCheckingTypePhoneNumber;
+                                            // | NSTextCheckingTypeDate // Date doesn't really work for showDefinition without private APIs
+                                            // | NSTextCheckingTypeTransitInformation // Flight info also doesn't work without private APIs
+        NSDataDetector *detector = [NSDataDetector dataDetectorWithTypes:checkingTypes error:nil];
+        if (detector != nil) {
+            // Just check [-100,100) around the mouse cursor. That should be more than enough to find interesting information.
+            const NSUInteger rangeSize = 100;
+            const NSUInteger rangeOffset = charIndex > rangeSize ? rangeSize : charIndex;
+            const NSRange checkRange = NSMakeRange(charIndex - rangeOffset, charIndex + rangeSize * 2);
+
+            NSAttributedString *attrStr = [self attributedSubstringForProposedRange:checkRange actualRange:nil];
+
+            __block NSUInteger count = 0;
+            __block NSRange foundRange = NSMakeRange(0, 0);
+            [detector enumerateMatchesInString:attrStr.string
+                                       options:0
+                                         range:NSMakeRange(0, attrStr.length)
+                                    usingBlock:^(NSTextCheckingResult *match, NSMatchingFlags flags, BOOL *stop){
+                if (++count >= 30) {
+                    // Sanity checking
+                    *stop = YES;
+                }
+
+                NSRange matchRange = [match range];
+                if (!NSLocationInRange(rangeOffset, matchRange)) {
+                    // We found something interesting nearby, but it's not where the mouse cursor is, just move on.
+                    return;
+                }
+                if (match.resultType == NSTextCheckingTypeLink) {
+                    foundRange = matchRange;
+                    *stop = YES; // URL is highest priority, so we always terminate.
+                } else if (match.resultType == NSTextCheckingTypePhoneNumber || match.resultType == NSTextCheckingTypeAddress) {
+                    foundRange = matchRange;
+                }
+            }];
+
+            if (foundRange.length != 0) {
+                // We found something interesting! Show that instead of going through the default OS behavior.
+                NSUInteger startIndex = charIndex + foundRange.location - rangeOffset;
+
+                int row = 0, col = 0, firstLineNumCols = 0, firstLineUtf8Len = 0;
+                rowColFromUtfRange(&grid, NSMakeRange(startIndex, 0), &row, &col, &firstLineNumCols, &firstLineUtf8Len);
+                const NSRect rectToShow = [self rectForRow:row
+                                                    column:col
+                                                   numRows:1
+                                                numColumns:1];
+
+                NSPoint baselinePt = rectToShow.origin;
+                baselinePt.y += fontDescent;
+
+                [self showDefinitionForAttributedString:attrStr
+                                                  range:foundRange
+                                                options:@{}
+                                 baselineOriginProvider:^NSPoint(NSRange adjustedRange) {
+                    return baselinePt;
+                }];
+                return;
             }
         }
     }
