@@ -223,7 +223,7 @@ static void grid_free(Grid *grid) {
     int cmdlineRow; ///< Row number (0-indexed) where the cmdline starts. Used for pinning it to the bottom if desired.
 }
 
-- (id)initWithFrame:(NSRect)frame
+- (instancetype)initWithFrame:(NSRect)frame
 {
     if (!(self = [super initWithFrame:frame]))
         return nil;
@@ -1597,6 +1597,12 @@ static void rowColFromUtfRange(const Grid* grid, NSRange range,
     return utfCharIndexFromRowCol(&grid, row, col);
 }
 
+/// Returns the cursor location in the text storage. Note that the API is
+/// supposed to return a range if there are selected texts, but since we don't
+/// have access to the full text storage in MacVim (it requires IPC calls to
+/// Vim), we just return the cursor with the range always having zero length.
+/// This affects the quickLookWithEvent: implementation where we have to
+/// manually handle the selected text case.
 - (NSRange)selectedRange
 {
     if ([helper hasMarkedText]) {
@@ -1667,7 +1673,151 @@ static void rowColFromUtfRange(const Grid* grid, NSRange range,
     }
 }
 
+/// Optional function in text input client. Returns the proper baseline delta
+/// for the returned rect. We need to do this because we take the ceil() of
+/// fontDescent, which subtly changes the baseline relative to what the OS thinks,
+/// and would have resulted in a slightly offset text under certain fonts/sizes.
+- (CGFloat)baselineDeltaForCharacterAtIndex:(NSUInteger)anIndex
+{
+    // Note that this function is calculated top-down, so we need to subtract from height.
+    return cellSize.height - fontDescent;
+}
+
 #pragma endregion // Text Input Client
+
+/// Perform data lookup. This gets called by the OS when the user uses
+/// Ctrl-Cmd-D or the trackpad to look up data.
+///
+/// This implementation will default to using the OS's implementation,
+/// but also perform special checking for selected text, and perform data
+/// detection for URLs, etc.
+- (void)quickLookWithEvent:(NSEvent *)event
+{
+    // The default implementation would query using the NSTextInputClient API
+    // which works fine.
+    //
+    // However, by default, if there are texts that are selected, *and* the
+    // user performs lookup when the mouse is on top of said selected text, the
+    // OS will use that for the lookup instead. E.g. if the user has selected
+    // "ice cream" and perform a lookup on it, the lookup will be "ice cream"
+    // instead of "ice" or "cream". We need to implement this in a custom
+    // fashion because our `selectedRange` implementation doesn't properly
+    // return the selected text (which we cannot do easily since our text
+    // storage isn't representative of the Vim's internal buffer, see above
+    // design notes), by querying Vim for the selected text manually.
+    //
+    // Another custom implementation we do is by first feeding the data through
+    // an NSDataDetector first. This helps us catch URLs, addresses, and so on.
+    // Otherwise for an URL, it will not include the whole https:// part and
+    // won't show a web page. Note that NSTextView/WebKit/etc all use an
+    // internal API called Reveal which does this for free and more powerful,
+    // but we don't have access to that as a third-party software that
+    // implements a custom text view.
+
+    const NSPoint pt = [self convertPoint:[event locationInWindow] fromView:nil];
+    int row = 0, col = 0;
+    if ([self convertPoint:pt toRow:&row column:&col]) {
+        // 1. If we have selected text. Proceed to see if the mouse is directly on
+        // top of said selection and if so, show definition of that instead.
+        MMVimController *vc = [self vimController];
+        id<MMBackendProtocol> backendProxy = [vc backendProxy];
+        if ([backendProxy selectedTextToPasteboard:nil]) {
+            int selRow = 0, selCol = 0;
+            const BOOL isMouseInSelection = [backendProxy mouseScreenposIsSelection:row column:col selRow:&selRow selCol:&selCol];
+
+            if (isMouseInSelection) {
+                NSString *selectedText = [backendProxy selectedText];
+                if (selectedText) {
+                    NSAttributedString *attrText = [[[NSAttributedString alloc] initWithString:selectedText
+                                                                                    attributes:@{NSFontAttributeName: font}
+                                                    ] autorelease];
+
+                    const NSRect selRect = [self rectForRow:selRow
+                                                     column:selCol
+                                                    numRows:1
+                                                 numColumns:1];
+
+                    NSPoint baselinePt = selRect.origin;
+                    baselinePt.y += fontDescent;
+
+                    // We have everything we need. Just show the definition and return.
+                    [self showDefinitionForAttributedString:attrText atPoint:baselinePt];
+                    return;
+                }
+            }
+        }
+
+        // 2. Check if we have specialized data. Honestly the OS should really do this
+        // for us as we are just calling text input client APIs here.
+        const NSUInteger charIndex = utfCharIndexFromRowCol(&grid, row, col);
+        NSTextCheckingTypes checkingTypes = NSTextCheckingTypeAddress
+                                            | NSTextCheckingTypeLink
+                                            | NSTextCheckingTypePhoneNumber;
+                                            // | NSTextCheckingTypeDate // Date doesn't really work for showDefinition without private APIs
+                                            // | NSTextCheckingTypeTransitInformation // Flight info also doesn't work without private APIs
+        NSDataDetector *detector = [NSDataDetector dataDetectorWithTypes:checkingTypes error:nil];
+        if (detector != nil) {
+            // Just check [-100,100) around the mouse cursor. That should be more than enough to find interesting information.
+            const NSUInteger rangeSize = 100;
+            const NSUInteger rangeOffset = charIndex > rangeSize ? rangeSize : charIndex;
+            const NSRange checkRange = NSMakeRange(charIndex - rangeOffset, charIndex + rangeSize * 2);
+
+            NSAttributedString *attrStr = [self attributedSubstringForProposedRange:checkRange actualRange:nil];
+
+            __block NSUInteger count = 0;
+            __block NSRange foundRange = NSMakeRange(0, 0);
+            [detector enumerateMatchesInString:attrStr.string
+                                       options:0
+                                         range:NSMakeRange(0, attrStr.length)
+                                    usingBlock:^(NSTextCheckingResult *match, NSMatchingFlags flags, BOOL *stop){
+                if (++count >= 30) {
+                    // Sanity checking
+                    *stop = YES;
+                }
+
+                NSRange matchRange = [match range];
+                if (!NSLocationInRange(rangeOffset, matchRange)) {
+                    // We found something interesting nearby, but it's not where the mouse cursor is, just move on.
+                    return;
+                }
+                if (match.resultType == NSTextCheckingTypeLink) {
+                    foundRange = matchRange;
+                    *stop = YES; // URL is highest priority, so we always terminate.
+                } else if (match.resultType == NSTextCheckingTypePhoneNumber || match.resultType == NSTextCheckingTypeAddress) {
+                    foundRange = matchRange;
+                }
+            }];
+
+            if (foundRange.length != 0) {
+                // We found something interesting! Show that instead of going through the default OS behavior.
+                NSUInteger startIndex = charIndex + foundRange.location - rangeOffset;
+
+                int row = 0, col = 0, firstLineNumCols = 0, firstLineUtf8Len = 0;
+                rowColFromUtfRange(&grid, NSMakeRange(startIndex, 0), &row, &col, &firstLineNumCols, &firstLineUtf8Len);
+                const NSRect rectToShow = [self rectForRow:row
+                                                    column:col
+                                                   numRows:1
+                                                numColumns:1];
+
+                NSPoint baselinePt = rectToShow.origin;
+                baselinePt.y += fontDescent;
+
+                [self showDefinitionForAttributedString:attrStr
+                                                  range:foundRange
+                                                options:@{}
+                                 baselineOriginProvider:^NSPoint(NSRange adjustedRange) {
+                    return baselinePt;
+                }];
+                return;
+            }
+        }
+    }
+
+    // Just call the default implementation, which will call misc
+    // NSTextInputClient methods on us and use that to determine what/where to
+    // show.
+    [super quickLookWithEvent:event];
+}
 
 @end // MMCoreTextView
 

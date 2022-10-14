@@ -1486,6 +1486,110 @@ static char_u *extractSelectedText()
     return NO;
 }
 
+/// Returns the currently selected text. We should consolidate this with
+/// selectedTextToPasteboard: above when we have time. (That function has a
+/// fast path just to query whether selected text exists)
+- (NSString *)selectedText
+{
+    if (VIsual_active && (State & MODE_NORMAL)) {
+        char_u *str = extractSelectedText();
+        if (!str)
+            return nil;
+        
+        if (output_conv.vc_type != CONV_NONE) {
+            char_u *conv_str = string_convert(&output_conv, str, NULL);
+            if (conv_str) {
+                vim_free(str);
+                str = conv_str;
+            }
+        }
+
+        NSString *string = [[NSString alloc] initWithUTF8String:(char*)str];
+        vim_free(str);
+        return [string autorelease];
+    }
+    return nil;
+}
+
+/// Returns whether the provided mouse screen position is on a visually
+/// selected range of text.
+///
+/// If yes, also return the starting row/col of the selection.
+- (BOOL)mouseScreenposIsSelection:(int)row column:(int)column selRow:(byref int *)startRow selCol:(byref int *)startCol
+{
+    // The code here is adopted from mouse.c's handling of popup_setpos.
+    // Unfortunately this logic is a little tricky to do in pure Vim script
+    // because there isn't a function to allow you to query screen pos to
+    // window pos. Even getmousepos() doesn't work the way you expect it to if
+    // you click on the placeholder rows after the last line (they all return
+    // the same 'column').
+    if (!VIsual_active)
+        return NO;
+
+    // We set mouse_row / mouse_col without caching/restoring, because it
+    // hoenstly makes sense to update them. If in the future we want a version
+    // that isn't mouse-related, then we may want to resotre them at the end of
+    // the function.
+    mouse_row = row;
+    mouse_col = column;
+
+    pos_T    m_pos;
+
+    if (mouse_row < curwin->w_winrow
+            || mouse_row > (curwin->w_winrow + curwin->w_height))
+    {
+        return NO;
+    }
+    else if (get_fpos_of_mouse(&m_pos) != IN_BUFFER)
+    {
+        return NO;
+    }
+    else if (VIsual_mode == 'V')
+    {
+        if ((curwin->w_cursor.lnum <= VIsual.lnum
+                    && (m_pos.lnum < curwin->w_cursor.lnum
+                        || VIsual.lnum < m_pos.lnum))
+                || (VIsual.lnum < curwin->w_cursor.lnum
+                    && (m_pos.lnum < VIsual.lnum
+                        || curwin->w_cursor.lnum < m_pos.lnum)))
+        {
+            return NO;
+        }
+    }
+    else if ((LTOREQ_POS(curwin->w_cursor, VIsual)
+                && (LT_POS(m_pos, curwin->w_cursor)
+                    || LT_POS(VIsual, m_pos)))
+            || (LT_POS(VIsual, curwin->w_cursor)
+                && (LT_POS(m_pos, VIsual)
+                    || LT_POS(curwin->w_cursor, m_pos))))
+    {
+        return NO;
+    }
+    else if (VIsual_mode == Ctrl_V)
+    {
+        colnr_T leftcol, rightcol;
+        getvcols(curwin, &curwin->w_cursor, &VIsual,
+                 &leftcol, &rightcol);
+        getvcol(curwin, &m_pos, NULL, &m_pos.col, NULL);
+        if (m_pos.col < leftcol || m_pos.col > rightcol)
+            return NO;
+    }
+
+    // Now, also return the selection's coordinates back to caller
+    pos_T*  visualStart = LT_POS(curwin->w_cursor, VIsual) ? &curwin->w_cursor : &VIsual;
+    int     srow = 0;
+    int     scol = 0, ccol = 0, ecol = 0;
+    textpos2screenpos(curwin, visualStart, &srow, &scol, &ccol, &ecol);
+    srow = srow > 0 ? srow - 1 : 0; // convert from 1-indexed to 0-indexed.
+    scol = scol > 0 ? scol - 1 : 0;
+    if (VIsual_mode == 'V')
+        scol = 0;
+    *startRow = srow;
+    *startCol = scol;
+
+    return YES;
+}
+
 - (oneway void)addReply:(in bycopy NSString *)reply
                  server:(in byref id <MMVimServerProtocol>)server
 {

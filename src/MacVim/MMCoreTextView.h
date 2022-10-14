@@ -79,7 +79,7 @@
     NSString* toolTip_;
 }
 
-- (id)initWithFrame:(NSRect)frame;
+- (instancetype)initWithFrame:(NSRect)frame;
 
 //
 // NSFontChanging methods
@@ -145,6 +145,7 @@
 // NSTextView methods
 //
 - (void)keyDown:(NSEvent *)event;
+- (void)quickLookWithEvent:(NSEvent *)event;
 
 //
 // NSTextInputClient methods
@@ -160,6 +161,8 @@
 - (nonnull NSArray<NSAttributedStringKey> *)validAttributesForMarkedText;
 - (NSRect)firstRectForCharacterRange:(NSRange)range actualRange:(nullable NSRangePointer)actualRange;
 - (NSUInteger)characterIndexForPoint:(NSPoint)point;
+
+- (CGFloat)baselineDeltaForCharacterAtIndex:(NSUInteger)anIndex;
 
 //
 // NSTextContainer methods
