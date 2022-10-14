@@ -41,6 +41,7 @@
 - (void)checkImState;
 - (void)refreshFonts;
 - (void)updateCmdlineRow;
+- (void)showDefinitionForCustomString:(NSString *)text row:(int)row col:(int)col;
 
 //
 // MMTextStorage methods

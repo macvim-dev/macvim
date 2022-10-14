@@ -26,3 +26,4 @@ menutrans Show\ Next\ Tab Mostrar\ la\ pestanya\ següent
 menutrans Show\ Previous\ Tab Mostrar\ la\ pestanya\ anterior
 menutrans Bring\ All\ to\ Front Portar-ho\ tot\ a\ primer\ pla
 menutrans Release\ Notes Notes\ de\ la\ versió
+menutrans Look\ Up Consultar

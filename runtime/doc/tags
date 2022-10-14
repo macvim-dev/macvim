@@ -8373,6 +8373,7 @@ macvim-appearance	gui_mac.txt	/*macvim-appearance*
 macvim-appearance-mode	gui_mac.txt	/*macvim-appearance-mode*
 macvim-autocommands	gui_mac.txt	/*macvim-autocommands*
 macvim-backspace	gui_mac.txt	/*macvim-backspace*
+macvim-builtin-functions	gui_mac.txt	/*macvim-builtin-functions*
 macvim-clientserver	remote.txt	/*macvim-clientserver*
 macvim-cmdline	gui_mac.txt	/*macvim-cmdline*
 macvim-colors	gui_mac.txt	/*macvim-colors*
@@ -8393,6 +8394,7 @@ macvim-hints	gui_mac.txt	/*macvim-hints*
 macvim-internal-variables	gui_mac.txt	/*macvim-internal-variables*
 macvim-international	gui_mac.txt	/*macvim-international*
 macvim-login-shell	gui_mac.txt	/*macvim-login-shell*
+macvim-lookup	gui_mac.txt	/*macvim-lookup*
 macvim-menus	gui_mac.txt	/*macvim-menus*
 macvim-multilang	gui_mac.txt	/*macvim-multilang*
 macvim-options	gui_mac.txt	/*macvim-options*
@@ -9651,6 +9653,7 @@ shift	intro.txt	/*shift*
 shift-left-right	change.txt	/*shift-left-right*
 shiftwidth()	builtin.txt	/*shiftwidth()*
 short-name-changed	version4.txt	/*short-name-changed*
+showdefinition()	builtin.txt	/*showdefinition()*
 showing-menus	gui.txt	/*showing-menus*
 sign-column	sign.txt	/*sign-column*
 sign-commands	sign.txt	/*sign-commands*

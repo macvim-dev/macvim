@@ -538,6 +538,8 @@ shellescape({string} [, {special}])
 				String	escape {string} for use as shell
 					command argument
 shiftwidth([{col}])		Number	effective value of 'shiftwidth'
+showdefinition({string} [, {options}])
+				none	show definition of {string} in a popup
 sign_define({name} [, {dict}])	Number	define or update a sign
 sign_define({list})		List	define or update a list of signs
 sign_getdefined([{name}])	List	get a list of defined signs
@@ -8471,6 +8473,28 @@ shiftwidth([{col}])						*shiftwidth()*
 
 		Can also be used as a |method|: >
 			GetColumn()->shiftwidth()
+
+showdefinition({string} [, {options}])			*showdefinition()*
+		Opens a macOS popup window showing the definition of {string}
+		using macOS' builtin lookup functionality.  The behavior of
+		the lookup depends on the content of the text.  Usually, it
+		will be the dictionary definition or Siri Knowledge article.
+		If it's a URL, it will show a preview of the web page; and if
+		it's an address, it will show a map.
+
+		This is similar to using Ctrl-Cmd-D or the trackpad to look up
+		data under the mouse cursor.
+
+		The location of the popup will be at the cursor.  This can be
+		overriden by passing {options}, which should be a Dict
+		containing two members: "row" and "col", representing the
+		screen row and column to show the popup.  You can also
+		directly pass the results of |screenpos()| to {options} as
+		well.
+
+		Can also be used as a |method|: >
+			GetText()->showdefinition()
+<		{only in MacVim GUI}
 
 sign_ functions are documented here: |sign-functions-details|
 

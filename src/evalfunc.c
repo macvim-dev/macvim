@@ -66,7 +66,6 @@ static void f_getenv(typval_T *argvars, typval_T *rettv);
 static void f_getfontname(typval_T *argvars, typval_T *rettv);
 static void f_getjumplist(typval_T *argvars, typval_T *rettv);
 static void f_getpid(typval_T *argvars, typval_T *rettv);
-static void f_getcurpos(typval_T *argvars, typval_T *rettv);
 static void f_getcursorcharpos(typval_T *argvars, typval_T *rettv);
 static void f_getpos(typval_T *argvars, typval_T *rettv);
 static void f_getreg(typval_T *argvars, typval_T *rettv);
@@ -2473,6 +2472,10 @@ static funcentry_T global_functions[] =
 			ret_string,	    f_shellescape},
     {"shiftwidth",	0, 1, FEARG_1,	    arg1_number,
 			ret_number,	    f_shiftwidth},
+#ifdef FEAT_GUI_MACVIM
+    {"showdefinition",	1, 2, FEARG_1,	    arg2_string_dict,
+			ret_void,	    f_showdefinition},
+#endif
     {"sign_define",	1, 2, FEARG_1,	    arg2_string_or_list_dict,
 			ret_any,	    SIGN_FUNC(f_sign_define)},
     {"sign_getdefined",	0, 1, FEARG_1,	    arg1_string,
@@ -5136,7 +5139,7 @@ f_getpid(typval_T *argvars UNUSED, typval_T *rettv)
 /*
  * "getcurpos()" function
  */
-    static void
+    void
 f_getcurpos(typval_T *argvars, typval_T *rettv)
 {
     if (in_vim9script() && check_for_opt_number_arg(argvars, 0) == FAIL)

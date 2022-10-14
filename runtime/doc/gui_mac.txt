@@ -14,14 +14,15 @@ The MacVim Graphical User Interface			*macvim* *gui-macvim*
  6. Menus			|macvim-menus|
  7. Toolbar			|macvim-toolbar|
  8. Touch Bar			|macvim-touchbar|
- 9. Dialogs			|macvim-dialogs|
-10. System services		|macvim-services|
-11. mvim:// URL handler		|macvim-url-handler|
-12. Keyboard shortcuts		|macvim-shortcuts|
-13. Trackpad gestures		|macvim-gestures|
-14. International		|macvim-international|
-15. Known bugs/missing features	|macvim-todo|
-16. Hints			|macvim-hints|
+ 9. Looking up data		|macvim-lookup|
+10. Dialogs			|macvim-dialogs|
+11. System services		|macvim-services|
+12. mvim:// URL handler		|macvim-url-handler|
+13. Keyboard shortcuts		|macvim-shortcuts|
+14. Trackpad gestures		|macvim-gestures|
+15. International		|macvim-international|
+16. Known bugs/missing features	|macvim-todo|
+17. Hints			|macvim-hints|
 
 Other relevant documentation:
 |gui.txt|	For generic items of the GUI.
@@ -116,6 +117,10 @@ These are the non-standard options that MacVim supports:
 							*macvim-commands*
 These are the non-standard commands that MacVim supports:
 	|:macaction|	|:macmenu|
+
+						*macvim-builtin-functions*
+These are the non-standard builtin functions that MacVim supports:
+	|showdefinition()|
 
                                                        *macvim-autocommands*
 These are the non-standard events that MacVim supports:
@@ -625,7 +630,31 @@ ExitFullScreen		|'fullscreen'| mode. To disable, add the following to
 			  let g:macvim_default_touchbar_characterpicker=0
 
 ==============================================================================
-9. Dialogs						*macvim-dialogs*
+9. Looking up data					*macvim-lookup*
+
+In macOS, you can look up the definition of the text under your cursor by
+pressing Ctrl-Cmd-D, or using the trackpad (either three-finger tap or Force
+click, depending on your system settings).  This also works in MacVim.
+Interesting data such as URL will behave differently (e.g. show a preview of
+the web page linked to by the URL) as well.  You can also select a piece of
+text to look up the entirety of the phrase (e.g. if you select "ice cream"
+using visual mode, then the definition will use that instead of just "ice" or
+"cream").  There is also a right-click menu item "Look Up" available when in
+visual mode to do the same thing.
+
+If you would like to programmatically access this feature, you can call
+|showdefinition()| to show the definition of whatever text you would like to.
+MacVim also provides two convenient functions that you can call or map to a
+key (they use |showdefinition()| internally):
+
+`macvim#ShowDefinitionUnderCursor()`	Shows the definition of the word under
+					the current cursor.
+
+`macvim#ShowDefinitionSelected()`	Shows the definition of the last
+					selected text in visual mode.
+
+==============================================================================
+10. Dialogs						*macvim-dialogs*
 
 Dialogs can be controlled with the keyboard in two ways.  By default each
 button in a dialog is bound to a key.  The button that is highlighted by blue
@@ -644,7 +673,7 @@ select the current button.  The current button is indicated with a blue
 outline.
 
 ==============================================================================
-10. System services					*macvim-services*
+11. System services					*macvim-services*
 
 MacVim supports two system services.  These can be accessed from the MacVim
 submenu in the Services menu or by right-clicking a selection.  For services
@@ -661,7 +690,7 @@ The services respect the "Open files from applications" setting in the general
 preferences.
 
 ==============================================================================
-11. mvim:// URL handler				*mvim://* *macvim-url-handler*
+12. mvim:// URL handler				*mvim://* *macvim-url-handler*
 
 MacVim supports a custom URL handler for "mvim://" URLs. The handler is
 supposed to be compatible to TextMate's URL scheme as documented at >
@@ -691,7 +720,7 @@ encoded once, but for best results use double-encoding as described above.
 Note that url has to be a file:// url pointing to an existing local file.
 
 ==============================================================================
-12. Keyboard shortcuts					*macvim-shortcuts*
+13. Keyboard shortcuts					*macvim-shortcuts*
 
 Most keyboard shortcuts in MacVim are bound to menu items and can be
 discovered by looking through the menus (see |macvim-menus| on how to create
@@ -771,7 +800,7 @@ sometimes be slightly involved.  Here are all the things you need to consider:
 - A few command key mappings are set up by MacVim, see |cmd-movement|.
 
 ==============================================================================
-13. Trackpad gestures					*macvim-gestures*
+14. Trackpad gestures					*macvim-gestures*
 
 MacVim supports trackpad swipe gestures.  By default this can be used to
 navigate back/forward in the help (try it!).
@@ -812,7 +841,7 @@ As another example, here is how to switch buffers by swiping left/right: >
 See the section on |key-mapping| for more help on how to map keys.
 
 ==============================================================================
-14. International			*macvim-international* *macvim-multilang*
+15. International			*macvim-international* *macvim-multilang*
 
 Typing text ~
 
@@ -843,7 +872,7 @@ messages/menus in Vim that are not currently localized.  Please file an issue
 if you would like to see certain messages localized.
 
 ==============================================================================
-15. Known bugs/missing features				*macvim-todo*
+16. Known bugs/missing features				*macvim-todo*
 
 This list is by no means exhaustive, it only enumerates some of the more
 prominent bugs/missing features.
@@ -872,7 +901,7 @@ and issues there as well:				*vim_mac_group*   >
 	http://groups.google.com/group/vim_mac
 
 ==============================================================================
-16. Hints						*macvim-hints*
+17. Hints						*macvim-hints*
 
 In this section some general (not necessarily MacVim specific) hints are
 given.

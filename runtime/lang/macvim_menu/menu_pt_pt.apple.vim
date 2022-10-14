@@ -26,3 +26,4 @@ menutrans Show\ Next\ Tab Mostrar\ separador\ seguinte
 menutrans Show\ Previous\ Tab Mostrar\ separador\ anterior
 menutrans Bring\ All\ to\ Front Passar\ tudo\ para\ a\ frente
 menutrans Release\ Notes Notas\ de\ lançamento
+menutrans Look\ Up Procurar

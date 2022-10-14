@@ -362,6 +362,11 @@
     // Doesn't do anything. CoreText renderer only.
 }
 
+- (void)showDefinitionForCustomString:(NSString *)text row:(int)row col:(int)col;
+{
+    // Doesn't do anything. CoreText renderer only.
+}
+
 - (NSSize)cellSize
 {
     return [(MMTextStorage*)[self textStorage] cellSize];

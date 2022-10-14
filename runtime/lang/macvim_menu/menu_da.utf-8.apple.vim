@@ -26,3 +26,4 @@ menutrans Show\ Next\ Tab Vis\ næste\ fane
 menutrans Show\ Previous\ Tab Vis\ forrige\ fane
 menutrans Bring\ All\ to\ Front Anbring\ alle\ forrest
 menutrans Release\ Notes Frigivelsesnoter
+menutrans Look\ Up Slå\ op

@@ -26,3 +26,4 @@ menutrans Show\ Next\ Tab Zobrazit\ další\ panel
 menutrans Show\ Previous\ Tab Zobrazit\ předchozí\ panel
 menutrans Bring\ All\ to\ Front Převést\ vše\ do\ popředí
 menutrans Release\ Notes Poznámky\ k\ vydání
+menutrans Look\ Up Vyhledat

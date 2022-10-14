@@ -26,3 +26,4 @@ menutrans Show\ Next\ Tab Vis\ neste\ fane
 menutrans Show\ Previous\ Tab Vis\ forrige\ fane
 menutrans Bring\ All\ to\ Front Legg\ alle\ øverst
 menutrans Release\ Notes Merknader
+menutrans Look\ Up Slå\ opp

@@ -122,6 +122,8 @@
 - (void)activate;
 - (void)setPreEditRow:(int)row column:(int)col;
 
+- (void)showDefinition:(NSString *)text row:(int)row col:(int)col;
+
 - (int)lookupColorWithKey:(NSString *)key;
 - (BOOL)hasSpecialKeyWithValue:(char_u *)value;
 

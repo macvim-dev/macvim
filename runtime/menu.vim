@@ -1010,6 +1010,11 @@ an 70.410 &Window.Min\ Widt&h<Tab>^W1\|			<C-W>1\|
 endif " !has("gui_macvim")
 
 " The popup menu
+if has("gui_macvim")
+  vnoremenu 1.05 PopUp.Look\ Up     :<C-U>call macvim#ShowDefinitionSelected()<CR>
+  vnoremenu 1.06 PopUp.-SEP10-      <Nop>
+endif
+
 an 1.10 PopUp.&Undo			u
 an 1.15 PopUp.-SEP1-			<Nop>
 vnoremenu 1.20 PopUp.Cu&t		"+x
