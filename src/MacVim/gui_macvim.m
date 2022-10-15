@@ -2534,6 +2534,94 @@ gui_macvim_set_background(int dark)
     [[MMBackend sharedInstance] setBackground:dark];
 }
 
+#pragma region MacVim builtin functions
+#pragma mark MacVim builtin functions
+
+/// Implementation of showdefinition()
+void f_showdefinition(typval_T *argvars, typval_T *rettv UNUSED)
+{
+    if (in_vim9script() && check_for_string_arg(argvars, 0) == FAIL)
+	return;
+
+    char_u *lookup_text = tv_get_string(&argvars[0]);
+
+    varnumber_T screen_row = -1;
+    varnumber_T screen_col = -1;
+
+    if (argvars[1].v_type == VAR_DICT) {
+        // Retrieve the optional row/col from the caller. Note that this is
+        // designed so that the input object could just be the output of
+        // screenpos().
+	dict_T	    *d = argvars[1].vval.v_dict;
+        if (d != NULL) {
+            screen_row = dict_get_number_def(d, "row", -1);
+            screen_col = dict_get_number_def(d, "col", -1);
+        }
+    }
+
+    if (screen_row <= 0 || screen_col <= 0) {
+        // row/col are optional parameters, so if not given we just use the
+        // cursor position.
+        // We are essentially doing the following:
+        //   var curpos = getcurpos()
+        //   var screenpos = screenpos(win_getid(), curpos[1], curpos[2])
+        //   showDefinition(text, screenpos['row'], screenpos['col'])
+        //
+        // Note that we could either take screenpos['cursorcol'] or
+        // screenpos['col']. Both could make sense in some situations, but just
+        // for consistency with how this function is used, we just use 'col'.
+        // (It's consistent because this function is designed so that you can
+        // just pass the output of screenpos() directly into the 2nd argument).
+        varnumber_T lnum = 0, col = 0;
+        {
+            typval_T args[1] = { {VAR_UNKNOWN} };
+            typval_T lrettv;
+
+            f_getcurpos(args, &lrettv);
+            if (lrettv.v_type == VAR_LIST) {
+                lnum = list_find(lrettv.vval.v_list, 1)->li_tv.vval.v_number;
+                col = list_find(lrettv.vval.v_list, 2)->li_tv.vval.v_number;
+                list_unref(lrettv.vval.v_list);
+            }
+        }
+        {
+            typval_T arg_winid;
+            arg_winid.v_type = VAR_NUMBER;
+            arg_winid.vval.v_number = curwin->w_id;
+
+            typval_T arg_lnum;
+            arg_lnum.v_type = VAR_NUMBER;
+            arg_lnum.vval.v_number = lnum;
+
+            typval_T arg_col;
+            arg_col.v_type = VAR_NUMBER;
+            arg_col.vval.v_number = col;
+
+            typval_T args[4] = {
+                arg_winid,
+                arg_lnum,
+                arg_col,
+                {VAR_UNKNOWN}
+            };
+            typval_T lrettv;
+
+            f_screenpos(args, &lrettv);
+
+            screen_row = dict_get_number_def(lrettv.vval.v_dict, "row", -1);
+            screen_col = dict_get_number_def(lrettv.vval.v_dict, "col", -1);
+
+            dict_unref(lrettv.vval.v_dict);
+        }
+    }
+
+    NSString *lookup_text_str = [NSString stringWithVimString:lookup_text];
+    [[MMBackend sharedInstance] showDefinition:lookup_text_str
+                                           row:screen_row
+                                           col:screen_col];
+}
+
+#pragma endregion
+
 
 // -- Netbeans Integration Support -------------------------------------------
 

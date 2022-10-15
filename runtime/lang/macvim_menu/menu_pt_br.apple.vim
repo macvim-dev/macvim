@@ -26,3 +26,4 @@ menutrans Show\ Next\ Tab Mostrar\ Aba\ Seguinte
 menutrans Show\ Previous\ Tab Mostrar\ Aba\ Anterior
 menutrans Bring\ All\ to\ Front Trazer\ Todas\ para\ a\ Frente
 menutrans Release\ Notes Notas\ de\ Lançamento
+menutrans Look\ Up Pesquisar

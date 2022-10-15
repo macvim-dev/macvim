@@ -308,6 +308,7 @@ extern const char * const MMVimMsgIDStrings[];
     MSG(DisableLigaturesMsgID) \
     MSG(EnableThinStrokesMsgID) \
     MSG(DisableThinStrokesMsgID) \
+    MSG(ShowDefinitionMsgID) \
     MSG(LastMsgID) \
 
 enum {

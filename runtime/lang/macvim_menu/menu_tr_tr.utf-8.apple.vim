@@ -26,3 +26,4 @@ menutrans Show\ Next\ Tab Sonraki\ Sekmeyi\ Göster
 menutrans Show\ Previous\ Tab Önceki\ Sekmeyi\ Göster
 menutrans Bring\ All\ to\ Front Tümünü\ Öne\ Getir
 menutrans Release\ Notes Çıkış\ Notları
+menutrans Look\ Up Araştır

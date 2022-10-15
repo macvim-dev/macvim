@@ -1379,6 +1379,9 @@ Various:					*various-functions*
 
 	debugbreak()		interrupt a program being debugged
 
+MacVim-specific functions
+	showdefinition()	look up and show definition of provided string
+
 ==============================================================================
 *41.7*	Defining a function
 

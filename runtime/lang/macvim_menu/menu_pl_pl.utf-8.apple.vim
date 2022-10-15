@@ -26,3 +26,4 @@ menutrans Show\ Next\ Tab Pokaż\ następną\ kartę
 menutrans Show\ Previous\ Tab Pokaż\ poprzednią\ kartę
 menutrans Bring\ All\ to\ Front Umieść\ wszystko\ na\ wierzchu
 menutrans Release\ Notes Informacje\ o\ wersji
+menutrans Look\ Up Definicja

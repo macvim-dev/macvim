@@ -1104,6 +1104,20 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     [self queueMessage:SetPreEditPositionMsgID data:data];
 }
 
+- (void)showDefinition:(NSString *)text row:(int)row col:(int)col
+{
+    NSMutableData *data = [NSMutableData data];
+    [data appendBytes:&row length:sizeof(int)];
+    [data appendBytes:&col length:sizeof(int)];
+
+    NSUInteger len = [text lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+    [data appendBytes:&len length:sizeof(NSUInteger)];
+    if (len > 0)
+        [data appendBytes:[text UTF8String] length:len];
+
+    [self queueMessage:ShowDefinitionMsgID data:data];
+}
+
 - (int)lookupColorWithKey:(NSString *)key
 {
     if (!(key && [key length] > 0))

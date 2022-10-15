@@ -668,358 +668,559 @@ static BOOL isUnsafeMessage(int msgid);
 
 - (void)handleMessage:(int)msgid data:(NSData *)data
 {
-    if (OpenWindowMsgID == msgid) {
-        [windowController openWindow];
-        if (!isPreloading) {
-            [windowController presentWindow:nil];
+    switch (msgid) {
+        case OpenWindowMsgID:
+        {
+            [windowController openWindow];
+            if (!isPreloading) {
+                [windowController presentWindow:nil];
+            }
         }
-    } else if (BatchDrawMsgID == msgid) {
-        [[[windowController vimView] textView] performBatchDrawWithData:data];
-    } else if (SelectTabMsgID == msgid) {
-#if 0   // NOTE: Tab selection is done inside updateTabsWithData:.
-        const void *bytes = [data bytes];
-        int idx = *((int*)bytes);
-        [windowController selectTabWithIndex:idx];
-#endif
-    } else if (UpdateTabBarMsgID == msgid) {
-        [windowController updateTabsWithData:data];
-    } else if (ShowTabBarMsgID == msgid) {
-        [windowController showTabBar:YES];
-        [self sendMessage:BackingPropertiesChangedMsgID data:nil];
-    } else if (HideTabBarMsgID == msgid) {
-        [windowController showTabBar:NO];
-        [self sendMessage:BackingPropertiesChangedMsgID data:nil];
-    } else if (SetTextDimensionsMsgID == msgid || LiveResizeMsgID == msgid ||
-            SetTextDimensionsNoResizeWindowMsgID == msgid ||
-            SetTextDimensionsReplyMsgID == msgid) {
-        const void *bytes = [data bytes];
-        int rows = *((int*)bytes);  bytes += sizeof(int);
-        int cols = *((int*)bytes);
+        break;
+        case BatchDrawMsgID:
+        {
+            [[[windowController vimView] textView] performBatchDrawWithData:data];
+        }
+        break;
+        case SelectTabMsgID:
+        {
+    #if 0   // NOTE: Tab selection is done inside updateTabsWithData:.
+            const void *bytes = [data bytes];
+            int idx = *((int*)bytes);
+            [windowController selectTabWithIndex:idx];
+    #endif
+        }
+        break;
+        case UpdateTabBarMsgID:
+        {
+            [windowController updateTabsWithData:data];
+        }
+        break;
+        case ShowTabBarMsgID:
+        {
+            [windowController showTabBar:YES];
+            [self sendMessage:BackingPropertiesChangedMsgID data:nil];
+        }
+        break;
+        case HideTabBarMsgID:
+        {
+            [windowController showTabBar:NO];
+            [self sendMessage:BackingPropertiesChangedMsgID data:nil];
+        }
+        break;
 
-        // NOTE: When a resize message originated in the frontend, Vim
-        // acknowledges it with a reply message.  When this happens the window
-        // should not move (the frontend would already have moved the window).
-        BOOL onScreen = SetTextDimensionsReplyMsgID!=msgid;
-        
-        BOOL keepGUISize = SetTextDimensionsNoResizeWindowMsgID == msgid;
+        case SetTextDimensionsMsgID:
+        case LiveResizeMsgID:
+        case SetTextDimensionsNoResizeWindowMsgID:
+        case SetTextDimensionsReplyMsgID:
+        {
+            const void *bytes = [data bytes];
+            int rows = *((int*)bytes);  bytes += sizeof(int);
+            int cols = *((int*)bytes);
 
-        [windowController setTextDimensionsWithRows:rows
-                                 columns:cols
-                                  isLive:(LiveResizeMsgID==msgid)
-                            keepGUISize:keepGUISize
-                            keepOnScreen:onScreen];
-    } else if (ResizeViewMsgID == msgid) {
-        [windowController resizeView];
-    } else if (SetWindowTitleMsgID == msgid) {
-        const void *bytes = [data bytes];
-        int len = *((int*)bytes);  bytes += sizeof(int);
+            // NOTE: When a resize message originated in the frontend, Vim
+            // acknowledges it with a reply message.  When this happens the window
+            // should not move (the frontend would already have moved the window).
+            BOOL onScreen = SetTextDimensionsReplyMsgID!=msgid;
 
-        NSString *string = [[NSString alloc] initWithBytes:(void*)bytes
-                length:len encoding:NSUTF8StringEncoding];
+            BOOL keepGUISize = SetTextDimensionsNoResizeWindowMsgID == msgid;
 
-        [windowController setTitle:string];
+            [windowController setTextDimensionsWithRows:rows
+                                     columns:cols
+                                      isLive:(LiveResizeMsgID==msgid)
+                                keepGUISize:keepGUISize
+                                keepOnScreen:onScreen];
+        }
+        break;
 
-        [string release];
-    } else if (SetDocumentFilenameMsgID == msgid) {
-        const void *bytes = [data bytes];
-        int len = *((int*)bytes);  bytes += sizeof(int);
+        case ResizeViewMsgID:
+        {
+            [windowController resizeView];
+        }
+        break;
+        case SetWindowTitleMsgID:
+        {
+            const void *bytes = [data bytes];
+            int len = *((int*)bytes);  bytes += sizeof(int);
 
-        if (len > 0) {
-            NSString *filename = [[NSString alloc] initWithBytes:(void*)bytes
+            NSString *string = [[NSString alloc] initWithBytes:(void*)bytes
                     length:len encoding:NSUTF8StringEncoding];
 
-            [windowController setDocumentFilename:filename];
+            [windowController setTitle:string];
 
-            [filename release];
-        } else {
-            [windowController setDocumentFilename:@""];
+            [string release];
         }
-    } else if (AddMenuMsgID == msgid) {
-        NSDictionary *attrs = [NSDictionary dictionaryWithData:data];
-        [self addMenuWithDescriptor:[attrs objectForKey:@"descriptor"]
-                atIndex:[[attrs objectForKey:@"index"] intValue]];
-    } else if (AddMenuItemMsgID == msgid) {
-        NSDictionary *attrs = [NSDictionary dictionaryWithData:data];
-        [self addMenuItemWithDescriptor:[attrs objectForKey:@"descriptor"]
-                      atIndex:[[attrs objectForKey:@"index"] intValue]
-                          tip:[attrs objectForKey:@"tip"]
-                         icon:[attrs objectForKey:@"icon"]
-                keyEquivalent:[attrs objectForKey:@"keyEquivalent"]
-                 modifierMask:[[attrs objectForKey:@"modifierMask"] intValue]
-                       action:[attrs objectForKey:@"action"]
-                  isAlternate:[[attrs objectForKey:@"isAlternate"] boolValue]];
-    } else if (RemoveMenuItemMsgID == msgid) {
-        NSDictionary *attrs = [NSDictionary dictionaryWithData:data];
-        [self removeMenuItemWithDescriptor:[attrs objectForKey:@"descriptor"]];
-    } else if (EnableMenuItemMsgID == msgid) {
-        NSDictionary *attrs = [NSDictionary dictionaryWithData:data];
-        [self enableMenuItemWithDescriptor:[attrs objectForKey:@"descriptor"]
-                state:[[attrs objectForKey:@"enable"] boolValue]];
-    } else if (UpdateMenuItemTooltipMsgID == msgid) {
-        NSDictionary *attrs = [NSDictionary dictionaryWithData:data];
-        [self updateMenuItemTooltipWithDescriptor:[attrs objectForKey:@"descriptor"]
-                                              tip:[attrs objectForKey:@"tip"]];
-    } else if (ShowToolbarMsgID == msgid) {
-        const void *bytes = [data bytes];
-        int enable = *((int*)bytes);  bytes += sizeof(int);
-        int flags = *((int*)bytes);
+        break;
+        case SetDocumentFilenameMsgID:
+        {
+            const void *bytes = [data bytes];
+            int len = *((int*)bytes);  bytes += sizeof(int);
 
-        int mode = NSToolbarDisplayModeDefault;
-        if (flags & ToolbarLabelFlag) {
-            mode = flags & ToolbarIconFlag ? NSToolbarDisplayModeIconAndLabel
-                    : NSToolbarDisplayModeLabelOnly;
-        } else if (flags & ToolbarIconFlag) {
-            mode = NSToolbarDisplayModeIconOnly;
+            if (len > 0) {
+                NSString *filename = [[NSString alloc] initWithBytes:(void*)bytes
+                        length:len encoding:NSUTF8StringEncoding];
+
+                [windowController setDocumentFilename:filename];
+
+                [filename release];
+            } else {
+                [windowController setDocumentFilename:@""];
+            }
         }
-
-        int size = flags & ToolbarSizeRegularFlag ? NSToolbarSizeModeRegular
-                : NSToolbarSizeModeSmall;
-
-        [windowController showToolbar:enable size:size mode:mode];
-    } else if (CreateScrollbarMsgID == msgid) {
-        const void *bytes = [data bytes];
-        int32_t ident = *((int32_t*)bytes);  bytes += sizeof(int32_t);
-        int type = *((int*)bytes);
-
-        [windowController createScrollbarWithIdentifier:ident type:type];
-    } else if (DestroyScrollbarMsgID == msgid) {
-        const void *bytes = [data bytes];
-        int32_t ident = *((int32_t*)bytes);
-
-        [windowController destroyScrollbarWithIdentifier:ident];
-    } else if (ShowScrollbarMsgID == msgid) {
-        const void *bytes = [data bytes];
-        int32_t ident = *((int32_t*)bytes);  bytes += sizeof(int32_t);
-        int visible = *((int*)bytes);
-
-        [windowController showScrollbarWithIdentifier:ident state:visible];
-    } else if (SetScrollbarPositionMsgID == msgid) {
-        const void *bytes = [data bytes];
-        int32_t ident = *((int32_t*)bytes);  bytes += sizeof(int32_t);
-        int pos = *((int*)bytes);  bytes += sizeof(int);
-        int len = *((int*)bytes);
-
-        [windowController setScrollbarPosition:pos length:len
-                                    identifier:ident];
-    } else if (SetScrollbarThumbMsgID == msgid) {
-        const void *bytes = [data bytes];
-        int32_t ident = *((int32_t*)bytes);  bytes += sizeof(int32_t);
-        float val = *((float*)bytes);  bytes += sizeof(float);
-        float prop = *((float*)bytes);
-
-        [windowController setScrollbarThumbValue:val proportion:prop
-                                      identifier:ident];
-    } else if (SetFontMsgID == msgid) {
-        const void *bytes = [data bytes];
-        float size = *((float*)bytes);  bytes += sizeof(float);
-        int len = *((int*)bytes);  bytes += sizeof(int);
-        NSString *name = [[NSString alloc]
-                initWithBytes:(void*)bytes length:len
-                     encoding:NSUTF8StringEncoding];
-        NSFont *font = [NSFont fontWithName:name size:size];
-        if (!font) {
-            // This should only happen if the system default font has changed
-            // name since MacVim was compiled in which case we fall back on
-            // using the user fixed width font.
-            ASLogInfo(@"Failed to load font '%@' / %f", name, size);
-            font = [NSFont userFixedPitchFontOfSize:size];
+        break;
+        case AddMenuMsgID:
+        {
+            NSDictionary *attrs = [NSDictionary dictionaryWithData:data];
+            [self addMenuWithDescriptor:[attrs objectForKey:@"descriptor"]
+                    atIndex:[[attrs objectForKey:@"index"] intValue]];
         }
+        break;
+        case AddMenuItemMsgID:
+        {
+            NSDictionary *attrs = [NSDictionary dictionaryWithData:data];
+            [self addMenuItemWithDescriptor:[attrs objectForKey:@"descriptor"]
+                          atIndex:[[attrs objectForKey:@"index"] intValue]
+                              tip:[attrs objectForKey:@"tip"]
+                             icon:[attrs objectForKey:@"icon"]
+                    keyEquivalent:[attrs objectForKey:@"keyEquivalent"]
+                     modifierMask:[[attrs objectForKey:@"modifierMask"] intValue]
+                           action:[attrs objectForKey:@"action"]
+                      isAlternate:[[attrs objectForKey:@"isAlternate"] boolValue]];
+        }
+        break;
+        case RemoveMenuItemMsgID:
+        {
+            NSDictionary *attrs = [NSDictionary dictionaryWithData:data];
+            [self removeMenuItemWithDescriptor:[attrs objectForKey:@"descriptor"]];
+        }
+        break;
+        case EnableMenuItemMsgID:
+        {
+            NSDictionary *attrs = [NSDictionary dictionaryWithData:data];
+            [self enableMenuItemWithDescriptor:[attrs objectForKey:@"descriptor"]
+                    state:[[attrs objectForKey:@"enable"] boolValue]];
+        }
+        break;
+        case UpdateMenuItemTooltipMsgID:
+        {
+            NSDictionary *attrs = [NSDictionary dictionaryWithData:data];
+            [self updateMenuItemTooltipWithDescriptor:[attrs objectForKey:@"descriptor"]
+                                                  tip:[attrs objectForKey:@"tip"]];
+        }
+        break;
+        case ShowToolbarMsgID:
+        {
+            const void *bytes = [data bytes];
+            int enable = *((int*)bytes);  bytes += sizeof(int);
+            int flags = *((int*)bytes);
 
-        [windowController setFont:font];
-        [name release];
-    } else if (SetWideFontMsgID == msgid) {
-        const void *bytes = [data bytes];
-        float size = *((float*)bytes);  bytes += sizeof(float);
-        int len = *((int*)bytes);  bytes += sizeof(int);
-        if (len > 0) {
+            int mode = NSToolbarDisplayModeDefault;
+            if (flags & ToolbarLabelFlag) {
+                mode = flags & ToolbarIconFlag ? NSToolbarDisplayModeIconAndLabel
+                        : NSToolbarDisplayModeLabelOnly;
+            } else if (flags & ToolbarIconFlag) {
+                mode = NSToolbarDisplayModeIconOnly;
+            }
+
+            int size = flags & ToolbarSizeRegularFlag ? NSToolbarSizeModeRegular
+                    : NSToolbarSizeModeSmall;
+
+            [windowController showToolbar:enable size:size mode:mode];
+        }
+        break;
+        case CreateScrollbarMsgID:
+        {
+            const void *bytes = [data bytes];
+            int32_t ident = *((int32_t*)bytes);  bytes += sizeof(int32_t);
+            int type = *((int*)bytes);
+
+            [windowController createScrollbarWithIdentifier:ident type:type];
+        }
+        break;
+        case DestroyScrollbarMsgID:
+        {
+            const void *bytes = [data bytes];
+            int32_t ident = *((int32_t*)bytes);
+
+            [windowController destroyScrollbarWithIdentifier:ident];
+        }
+        break;
+        case ShowScrollbarMsgID:
+        {
+            const void *bytes = [data bytes];
+            int32_t ident = *((int32_t*)bytes);  bytes += sizeof(int32_t);
+            int visible = *((int*)bytes);
+
+            [windowController showScrollbarWithIdentifier:ident state:visible];
+        }
+        break;
+        case SetScrollbarPositionMsgID:
+        {
+            const void *bytes = [data bytes];
+            int32_t ident = *((int32_t*)bytes);  bytes += sizeof(int32_t);
+            int pos = *((int*)bytes);  bytes += sizeof(int);
+            int len = *((int*)bytes);
+
+            [windowController setScrollbarPosition:pos length:len
+                                        identifier:ident];
+        }
+        break;
+        case SetScrollbarThumbMsgID:
+        {
+            const void *bytes = [data bytes];
+            int32_t ident = *((int32_t*)bytes);  bytes += sizeof(int32_t);
+            float val = *((float*)bytes);  bytes += sizeof(float);
+            float prop = *((float*)bytes);
+
+            [windowController setScrollbarThumbValue:val proportion:prop
+                                          identifier:ident];
+        }
+        break;
+        case SetFontMsgID:
+        {
+            const void *bytes = [data bytes];
+            float size = *((float*)bytes);  bytes += sizeof(float);
+            int len = *((int*)bytes);  bytes += sizeof(int);
             NSString *name = [[NSString alloc]
                     initWithBytes:(void*)bytes length:len
                          encoding:NSUTF8StringEncoding];
             NSFont *font = [NSFont fontWithName:name size:size];
-            [windowController setWideFont:font];
+            if (!font) {
+                // This should only happen if the system default font has changed
+                // name since MacVim was compiled in which case we fall back on
+                // using the user fixed width font.
+                ASLogInfo(@"Failed to load font '%@' / %f", name, size);
+                font = [NSFont userFixedPitchFontOfSize:size];
+            }
 
+            [windowController setFont:font];
             [name release];
-        } else {
-            [windowController setWideFont:nil];
         }
-    } else if (SetDefaultColorsMsgID == msgid) {
-        const void *bytes = [data bytes];
-        unsigned bg = *((unsigned*)bytes);  bytes += sizeof(unsigned);
-        unsigned fg = *((unsigned*)bytes);
-        NSColor *back = [NSColor colorWithArgbInt:bg];
-        NSColor *fore = [NSColor colorWithRgbInt:fg];
+        break;
+        case SetWideFontMsgID:
+        {
+            const void *bytes = [data bytes];
+            float size = *((float*)bytes);  bytes += sizeof(float);
+            int len = *((int*)bytes);  bytes += sizeof(int);
+            if (len > 0) {
+                NSString *name = [[NSString alloc]
+                        initWithBytes:(void*)bytes length:len
+                             encoding:NSUTF8StringEncoding];
+                NSFont *font = [NSFont fontWithName:name size:size];
+                [windowController setWideFont:font];
 
-        [windowController setDefaultColorsBackground:back foreground:fore];
-    } else if (ExecuteActionMsgID == msgid) {
-        const void *bytes = [data bytes];
-        int len = *((int*)bytes);  bytes += sizeof(int);
-        NSString *actionName = [[NSString alloc]
-                initWithBytes:(void*)bytes length:len
-                     encoding:NSUTF8StringEncoding];
-
-        SEL sel = NSSelectorFromString(actionName);
-        [NSApp sendAction:sel to:nil from:self];
-
-        [actionName release];
-    } else if (ShowPopupMenuMsgID == msgid) {
-        NSDictionary *attrs = [NSDictionary dictionaryWithData:data];
-
-        // The popup menu enters a modal loop so delay this call so that we
-        // don't block inside processInputQueue:.
-        [self performSelector:@selector(popupMenuWithAttributes:)
-                   withObject:attrs
-                   afterDelay:0];
-    } else if (SetMouseShapeMsgID == msgid) {
-        const void *bytes = [data bytes];
-        int shape = *((int*)bytes);
-
-        [windowController setMouseShape:shape];
-    } else if (AdjustLinespaceMsgID == msgid) {
-        const void *bytes = [data bytes];
-        int linespace = *((int*)bytes);
-
-        [windowController adjustLinespace:linespace];
-    } else if (AdjustColumnspaceMsgID == msgid) {
-        const void *bytes = [data bytes];
-        int columnspace = *((int*)bytes);
-
-        [windowController adjustColumnspace:columnspace];
-    } else if (ActivateMsgID == msgid) {
-        [NSApp activateIgnoringOtherApps:YES];
-        [[windowController window] makeKeyAndOrderFront:self];
-    } else if (SetServerNameMsgID == msgid) {
-        NSString *name = [[NSString alloc] initWithData:data
-                                               encoding:NSUTF8StringEncoding];
-        [self setServerName:name];
-        [name release];
-    } else if (EnterFullScreenMsgID == msgid) {
-        const void *bytes = [data bytes];
-        int fuoptions = *((int*)bytes); bytes += sizeof(int);
-        int bg = *((int*)bytes);
-        NSColor *back = [NSColor colorWithArgbInt:bg];
-
-        [windowController enterFullScreen:fuoptions backgroundColor:back];
-    } else if (LeaveFullScreenMsgID == msgid) {
-        [windowController leaveFullScreen];
-    } else if (SetBuffersModifiedMsgID == msgid) {
-        const void *bytes = [data bytes];
-        // state < 0  <->  some buffer modified
-        // state > 0  <->  current buffer modified
-        int state = *((int*)bytes);
-
-        // NOTE: The window controller tracks whether current buffer is
-        // modified or not (and greys out the proxy icon as well as putting a
-        // dot in the red "close button" if necessary).  The Vim controller
-        // tracks whether any buffer has been modified (used to decide whether
-        // to show a warning or not when quitting).
-        //
-        // TODO: Make 'hasModifiedBuffer' part of the Vim state?
-        [windowController setBufferModified:(state > 0)];
-        hasModifiedBuffer = (state != 0);
-    } else if (SetPreEditPositionMsgID == msgid) {
-        const int *dim = (const int*)[data bytes];
-        [[[windowController vimView] textView] setPreEditRow:dim[0]
-                                                      column:dim[1]];
-    } else if (EnableAntialiasMsgID == msgid) {
-        [[[windowController vimView] textView] setAntialias:YES];
-    } else if (DisableAntialiasMsgID == msgid) {
-        [[[windowController vimView] textView] setAntialias:NO];
-    } else if (EnableLigaturesMsgID == msgid) {
-        [[[windowController vimView] textView] setLigatures:YES];
-    } else if (DisableLigaturesMsgID == msgid) {
-        [[[windowController vimView] textView] setLigatures:NO];
-    } else if (EnableThinStrokesMsgID == msgid) {
-        [[[windowController vimView] textView] setThinStrokes:YES];
-    } else if (DisableThinStrokesMsgID == msgid) {
-        [[[windowController vimView] textView] setThinStrokes:NO];
-    } else if (SetVimStateMsgID == msgid) {
-        NSDictionary *dict = [NSDictionary dictionaryWithData:data];
-        if (dict) {
-            [vimState release];
-            vimState = [dict retain];
+                [name release];
+            } else {
+                [windowController setWideFont:nil];
+            }
         }
-    } else if (CloseWindowMsgID == msgid) {
-        [self scheduleClose];
-    } else if (SetFullScreenColorMsgID == msgid) {
-        const int *bg = (const int*)[data bytes];
-        NSColor *color = [NSColor colorWithRgbInt:*bg];
+        break;
+        case SetDefaultColorsMsgID:
+        {
+            const void *bytes = [data bytes];
+            unsigned bg = *((unsigned*)bytes);  bytes += sizeof(unsigned);
+            unsigned fg = *((unsigned*)bytes);
+            NSColor *back = [NSColor colorWithArgbInt:bg];
+            NSColor *fore = [NSColor colorWithRgbInt:fg];
 
-        [windowController setFullScreenBackgroundColor:color];
-    } else if (ShowFindReplaceDialogMsgID == msgid) {
-        NSDictionary *dict = [NSDictionary dictionaryWithData:data];
-        if (dict) {
-            [[MMFindReplaceController sharedInstance]
-                showWithText:[dict objectForKey:@"text"]
-                       flags:[[dict objectForKey:@"flags"] intValue]];
+            [windowController setDefaultColorsBackground:back foreground:fore];
         }
-    } else if (ActivateKeyScriptMsgID == msgid) {
-        [[[windowController vimView] textView] activateIm:YES];
-    } else if (DeactivateKeyScriptMsgID == msgid) {
-        [[[windowController vimView] textView] activateIm:NO];
-    } else if (EnableImControlMsgID == msgid) {
-        [[[windowController vimView] textView] setImControl:YES];
-    } else if (DisableImControlMsgID == msgid) {
-        [[[windowController vimView] textView] setImControl:NO];
-    } else if (BrowseForFileMsgID == msgid) {
-        NSDictionary *dict = [NSDictionary dictionaryWithData:data];
-        if (dict)
-            [self handleBrowseForFile:dict];
-    } else if (ShowDialogMsgID == msgid) {
-        [windowController runAfterWindowPresentedUsingBlock:^{
+        break;
+        case ExecuteActionMsgID:
+        {
+            const void *bytes = [data bytes];
+            int len = *((int*)bytes);  bytes += sizeof(int);
+            NSString *actionName = [[NSString alloc]
+                    initWithBytes:(void*)bytes length:len
+                         encoding:NSUTF8StringEncoding];
+
+            SEL sel = NSSelectorFromString(actionName);
+            [NSApp sendAction:sel to:nil from:self];
+
+            [actionName release];
+        }
+        break;
+        case ShowPopupMenuMsgID:
+        {
+            NSDictionary *attrs = [NSDictionary dictionaryWithData:data];
+
+            // The popup menu enters a modal loop so delay this call so that we
+            // don't block inside processInputQueue:.
+            [self performSelector:@selector(popupMenuWithAttributes:)
+                       withObject:attrs
+                       afterDelay:0];
+        }
+        break;
+        case SetMouseShapeMsgID:
+        {
+            const void *bytes = [data bytes];
+            int shape = *((int*)bytes);
+
+            [windowController setMouseShape:shape];
+        }
+        break;
+        case AdjustLinespaceMsgID:
+        {
+            const void *bytes = [data bytes];
+            int linespace = *((int*)bytes);
+
+            [windowController adjustLinespace:linespace];
+        }
+        break;
+        case AdjustColumnspaceMsgID:
+        {
+            const void *bytes = [data bytes];
+            int columnspace = *((int*)bytes);
+
+            [windowController adjustColumnspace:columnspace];
+        }
+        break;
+        case ActivateMsgID:
+        {
+            [NSApp activateIgnoringOtherApps:YES];
+            [[windowController window] makeKeyAndOrderFront:self];
+        }
+        break;
+        case SetServerNameMsgID:
+        {
+            NSString *name = [[NSString alloc] initWithData:data
+                                                   encoding:NSUTF8StringEncoding];
+            [self setServerName:name];
+            [name release];
+        }
+        break;
+        case EnterFullScreenMsgID:
+        {
+            const void *bytes = [data bytes];
+            int fuoptions = *((int*)bytes); bytes += sizeof(int);
+            int bg = *((int*)bytes);
+            NSColor *back = [NSColor colorWithArgbInt:bg];
+
+            [windowController enterFullScreen:fuoptions backgroundColor:back];
+        }
+        break;
+        case LeaveFullScreenMsgID:
+        {
+            [windowController leaveFullScreen];
+        }
+        break;
+        case SetBuffersModifiedMsgID:
+        {
+            const void *bytes = [data bytes];
+            // state < 0  <->  some buffer modified
+            // state > 0  <->  current buffer modified
+            int state = *((int*)bytes);
+
+            // NOTE: The window controller tracks whether current buffer is
+            // modified or not (and greys out the proxy icon as well as putting a
+            // dot in the red "close button" if necessary).  The Vim controller
+            // tracks whether any buffer has been modified (used to decide whether
+            // to show a warning or not when quitting).
+            //
+            // TODO: Make 'hasModifiedBuffer' part of the Vim state?
+            [windowController setBufferModified:(state > 0)];
+            hasModifiedBuffer = (state != 0);
+        }
+        break;
+        case SetPreEditPositionMsgID:
+        {
+            const int *dim = (const int*)[data bytes];
+            [[[windowController vimView] textView] setPreEditRow:dim[0]
+                                                          column:dim[1]];
+        }
+        break;
+        case EnableAntialiasMsgID:
+        {
+            [[[windowController vimView] textView] setAntialias:YES];
+        }
+        break;
+        case DisableAntialiasMsgID:
+        {
+            [[[windowController vimView] textView] setAntialias:NO];
+        }
+        break;
+        case EnableLigaturesMsgID:
+        {
+            [[[windowController vimView] textView] setLigatures:YES];
+        }
+        break;
+        case DisableLigaturesMsgID:
+        {
+            [[[windowController vimView] textView] setLigatures:NO];
+        }
+        break;
+        case EnableThinStrokesMsgID:
+        {
+            [[[windowController vimView] textView] setThinStrokes:YES];
+        }
+        break;
+        case DisableThinStrokesMsgID:
+        {
+            [[[windowController vimView] textView] setThinStrokes:NO];
+        }
+        break;
+        case SetVimStateMsgID:
+        {
+            NSDictionary *dict = [NSDictionary dictionaryWithData:data];
+            if (dict) {
+                [vimState release];
+                vimState = [dict retain];
+            }
+        }
+        break;
+        case CloseWindowMsgID:
+        {
+            [self scheduleClose];
+        }
+        break;
+        case SetFullScreenColorMsgID:
+        {
+            const int *bg = (const int*)[data bytes];
+            NSColor *color = [NSColor colorWithRgbInt:*bg];
+
+            [windowController setFullScreenBackgroundColor:color];
+        }
+        break;
+        case ShowFindReplaceDialogMsgID:
+        {
+            NSDictionary *dict = [NSDictionary dictionaryWithData:data];
+            if (dict) {
+                [[MMFindReplaceController sharedInstance]
+                    showWithText:[dict objectForKey:@"text"]
+                           flags:[[dict objectForKey:@"flags"] intValue]];
+            }
+        }
+        break;
+        case ActivateKeyScriptMsgID:
+        {
+            [[[windowController vimView] textView] activateIm:YES];
+        }
+        break;
+        case DeactivateKeyScriptMsgID:
+        {
+            [[[windowController vimView] textView] activateIm:NO];
+        }
+        break;
+        case EnableImControlMsgID:
+        {
+            [[[windowController vimView] textView] setImControl:YES];
+        }
+        break;
+        case DisableImControlMsgID:
+        {
+            [[[windowController vimView] textView] setImControl:NO];
+        }
+        break;
+        case BrowseForFileMsgID:
+        {
             NSDictionary *dict = [NSDictionary dictionaryWithData:data];
             if (dict)
-                [self handleShowDialog:dict];
-        }];
-    } else if (DeleteSignMsgID == msgid) {
-        NSDictionary *dict = [NSDictionary dictionaryWithData:data];
-        if (dict)
-            [self handleDeleteSign:dict];
-    } else if (ZoomMsgID == msgid) {
-        const void *bytes = [data bytes];
-        int rows = *((int*)bytes);  bytes += sizeof(int);
-        int cols = *((int*)bytes);  bytes += sizeof(int);
-        int state = *((int*)bytes);
+                [self handleBrowseForFile:dict];
+        }
+        break;
+        case ShowDialogMsgID:
+        {
+            [windowController runAfterWindowPresentedUsingBlock:^{
+                NSDictionary *dict = [NSDictionary dictionaryWithData:data];
+                if (dict)
+                    [self handleShowDialog:dict];
+            }];
+        }
+        break;
+        case DeleteSignMsgID:
+        {
+            NSDictionary *dict = [NSDictionary dictionaryWithData:data];
+            if (dict)
+                [self handleDeleteSign:dict];
+        }
+        break;
+        case ZoomMsgID:
+        {
+            const void *bytes = [data bytes];
+            int rows = *((int*)bytes);  bytes += sizeof(int);
+            int cols = *((int*)bytes);  bytes += sizeof(int);
+            int state = *((int*)bytes);
 
-        [windowController zoomWithRows:rows
-                               columns:cols
-                                 state:state];
-    } else if (SetWindowPositionMsgID == msgid) {
-        const void *bytes = [data bytes];
-        int x = *((int*)bytes);  bytes += sizeof(int);
-        int y = *((int*)bytes);
+            [windowController zoomWithRows:rows
+                                   columns:cols
+                                     state:state];
+        }
+        break;
+        case SetWindowPositionMsgID:
+        {
+            const void *bytes = [data bytes];
+            int x = *((int*)bytes);  bytes += sizeof(int);
+            int y = *((int*)bytes);
 
-        // NOTE: Vim measures Y-coordinates from top of screen.
-        NSRect frame = [[[windowController window] screen] frame];
-        y = NSMaxY(frame) - y;
+            // NOTE: Vim measures Y-coordinates from top of screen.
+            NSRect frame = [[[windowController window] screen] frame];
+            y = NSMaxY(frame) - y;
 
-        [windowController setTopLeft:NSMakePoint(x,y)];
-    } else if (SetTooltipMsgID == msgid) {
-        id textView = [[windowController vimView] textView];
-        NSDictionary *dict = [NSDictionary dictionaryWithData:data];
-        NSString *toolTip = dict ? [dict objectForKey:@"toolTip"] : nil;
-        if (toolTip && [toolTip length] > 0)
-            [textView setToolTipAtMousePoint:toolTip];
-        else
-            [textView setToolTipAtMousePoint:nil];
-    } else if (AddToMRUMsgID == msgid) {
-        NSDictionary *dict = [NSDictionary dictionaryWithData:data];
-        NSArray *filenames = dict ? [dict objectForKey:@"filenames"] : nil;
-        if (filenames)
-            [[NSDocumentController sharedDocumentController]
-                                            noteNewRecentFilePaths:filenames];
-    } else if (SetBackgroundOptionMsgID == msgid) {
-        const void *bytes = [data bytes];
-        int dark = *((int*)bytes);
-        [windowController setBackgroundOption:dark];
-    } else if (SetBlurRadiusMsgID == msgid) {
-        const void *bytes = [data bytes];
-        int radius = *((int*)bytes);
-        [windowController setBlurRadius:radius];
+            [windowController setTopLeft:NSMakePoint(x,y)];
+        }
+        break;
+        case SetTooltipMsgID:
+        {
+            id textView = [[windowController vimView] textView];
+            NSDictionary *dict = [NSDictionary dictionaryWithData:data];
+            NSString *toolTip = dict ? [dict objectForKey:@"toolTip"] : nil;
+            if (toolTip && [toolTip length] > 0)
+                [textView setToolTipAtMousePoint:toolTip];
+            else
+                [textView setToolTipAtMousePoint:nil];
+        }
+        break;
+        case AddToMRUMsgID:
+        {
+            NSDictionary *dict = [NSDictionary dictionaryWithData:data];
+            NSArray *filenames = dict ? [dict objectForKey:@"filenames"] : nil;
+            if (filenames)
+                [[NSDocumentController sharedDocumentController]
+                                                noteNewRecentFilePaths:filenames];
+        }
+        break;
+        case SetBackgroundOptionMsgID:
+        {
+            const void *bytes = [data bytes];
+            int dark = *((int*)bytes);
+            [windowController setBackgroundOption:dark];
+        }
+        break;
+        case SetBlurRadiusMsgID:
+        {
+            const void *bytes = [data bytes];
+            int radius = *((int*)bytes);
+            [windowController setBlurRadius:radius];
+        }
+        break;
 
-    // IMPORTANT: When adding a new message, make sure to update
-    // isUnsafeMessage() if necessary!
-    } else {
-        ASLogWarn(@"Unknown message received (msgid=%d)", msgid);
+        case ShowDefinitionMsgID:
+        {
+            const void* bytes = [data bytes];
+            int row = *((int*)bytes);  bytes += sizeof(int);
+            int col = *((int*)bytes);  bytes += sizeof(int);
+            NSUInteger len = *((NSUInteger*)bytes);  bytes += sizeof(NSUInteger);
+            if (len > 0) {
+                NSString *text = [[[NSString alloc] initWithBytes:(void*)bytes
+                                                           length:len
+                                                         encoding:NSUTF8StringEncoding] autorelease];
+
+                // Convert from 1-indexed (Vim-style) to 0-indexed.
+                row -= 1;
+                col -= 1;
+
+                MMTextView *view = [[windowController vimView] textView];
+                [view showDefinitionForCustomString:text row:row col:col];
+            }
+        }
+        break;
+
+        // IMPORTANT: When adding a new message, make sure to update
+        // isUnsafeMessage() if necessary!
+        default:
+        {
+            ASLogWarn(@"Unknown message received (msgid=%d)", msgid);
+        }
     }
 }
 

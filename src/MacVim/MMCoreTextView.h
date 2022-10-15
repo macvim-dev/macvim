@@ -140,6 +140,7 @@
 - (NSRect)rectForRow:(int)row column:(int)column numRows:(int)nr
           numColumns:(int)nc;
 - (void)updateCmdlineRow;
+- (void)showDefinitionForCustomString:(NSString *)text row:(int)row col:(int)col;
 
 //
 // NSTextView methods

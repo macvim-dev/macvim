@@ -565,6 +565,22 @@ static void grid_free(Grid *grid) {
     [self setCmdlineRow: [[[self vimController] objectForVimStateKey:@"cmdline_row"] intValue]];
 }
 
+/// Shows the dictionary looup / definition of the provided text at row/col.
+/// This is usually invoked from Vimscript via the showdefinition() function.
+- (void)showDefinitionForCustomString:(NSString *)text row:(int)row col:(int)col
+{
+    const NSRect cursorRect = [self rectForRow:row column:col numRows:1 numColumns:1];
+
+    NSPoint baselinePt = cursorRect.origin;
+    baselinePt.y += fontDescent;
+
+    NSAttributedString *attrText = [[[NSAttributedString alloc] initWithString:text
+                                                                    attributes:@{NSFontAttributeName: font}
+                                    ] autorelease];
+
+    [self showDefinitionForAttributedString:attrText atPoint:baselinePt];
+}
+
 - (void)setImControl:(BOOL)enable
 {
     [helper setImControl:enable];
