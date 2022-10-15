@@ -236,6 +236,11 @@ jobs:
           check_arch "${VIM_BIN}"
           check_arch "${MACVIM_BIN}"
 
+      # Build the unit test binaries first so if they fail, it'll be at a different step from the actual test. Also,
+      # with link-time-optimizations, this help prevent them from using up the timeout in the tests.
+      - name: Build test binaries
+        run: make -C src unittesttargets
+
       - name: Test
         timeout-minutes: 20
         run: make test
