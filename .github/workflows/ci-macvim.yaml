@@ -137,6 +137,12 @@ jobs:
             sed -i.bak -f ci/config.mk.clang-12.sed src/auto/config.mk
           fi
 
+          if ${{ matrix.publish == true }}; then
+            # Only do link-time optimizations for publish builds, so the other
+            # ones can still finish quickly to give quick feedbacks.
+            sed -i.bak -f ci/config.mk.lto.sed src/auto/config.mk
+          fi
+
       - name: Modify configure result
         if: matrix.publish
         run: |
