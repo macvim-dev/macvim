@@ -18,12 +18,12 @@ env:
 
   VERSIONER_PERL_VERSION: '5.18'
   VERSIONER_PYTHON_VERSION: '2.7'
-  vi_cv_path_python: /usr/bin/python
+  vi_cv_path_python: /usr/local/bin/python
   vi_cv_path_python3: /usr/local/bin/python3
   vi_cv_path_plain_lua: /usr/local/bin/lua
   vi_cv_path_ruby: /usr/local/opt/ruby/bin/ruby
   vi_cv_dll_name_perl: /System/Library/Perl/5.18/darwin-thread-multi-2level/CORE/libperl.dylib
-  vi_cv_dll_name_python: /System/Library/Frameworks/Python.framework/Versions/2.7/Python
+  vi_cv_dll_name_python: /usr/local/Library/Frameworks/Python.framework/Versions/2.7/Python
   vi_cv_dll_name_python3: /usr/local/Frameworks/Python.framework/Versions/3.10/Python # Make sure to keep src/MacVim/vimrc synced with the Python version here for the Python DLL detection logic.
   vi_cv_dll_name_python3_arm64: /opt/homebrew/Frameworks/Python.framework/Versions/3.10/Python
   vi_cv_dll_name_ruby: /usr/local/opt/ruby/lib/libruby.dylib
@@ -46,15 +46,16 @@ jobs:
       matrix:
         include:
           - os: macos-11
-            xcode: '13.0'
             publish: true
           - os: macos-11
+            xcode: '11.7'
           - os: macos-12
 
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v3
 
       # Set up, install, and cache gettext library for localization.
       #

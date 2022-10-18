@@ -27,7 +27,7 @@ runs:
 
     - name: Cache keg
       id: cache-keg
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: /usr/local/Cellar/${{ inputs.formula }}
         key: ${{ inputs.formula }}-homebrew-cache-patched-unified-${{ hashFiles(format('{0}.rb', inputs.formula)) }}
