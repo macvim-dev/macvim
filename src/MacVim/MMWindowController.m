@@ -1351,6 +1351,22 @@
     [vimController sendMessage:ZoomMsgID data:data];
 }
 
+- (IBAction)performMaximize:(id)sender
+{
+    NSWindow *win = [self window];
+    NSRect maxFrame = [[win screen] frame];
+    int maxRows, maxColumns;
+    NSData *data;
+
+    [vimView constrainRows:&maxRows columns:&maxColumns toSize:maxFrame.size];
+    data = [NSData dataWithBytes:(int [2]){maxRows, maxColumns} length:(2 * sizeof(int))];
+    [[self vimController] sendMessage:SetTextDimensionsMsgID data:data];
+    [[vimView textView] setMaxRows:maxRows columns:maxColumns];
+
+    [win setFrameOrigin:maxFrame.origin];
+    [win setIsZoomed:YES];
+}
+
 
 
 // -- Services menu delegate -------------------------------------------------

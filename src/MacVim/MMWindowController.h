@@ -127,5 +127,6 @@
 - (IBAction)fontSizeDown:(id)sender;
 - (IBAction)findAndReplace:(id)sender;
 - (IBAction)zoom:(id)sender;
+- (IBAction)performMaximize:(id)sender;
 
 @end
