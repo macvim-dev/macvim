@@ -8,7 +8,7 @@ The MacVim Graphical User Interface			*macvim* *gui-macvim*
 
  1. MacVim differences		|macvim-differences|
  2. Starting MacVim		|macvim-start|
- 3. Preferences			|macvim-preferences|
+ 3. Settings			|macvim-settings|
  4. MacVim appearance		|macvim-appearance|
  5. Special colors		|macvim-colors|
  6. Menus			|macvim-menus|
@@ -84,7 +84,7 @@ If a file is dropped on the Dock icon, it is always opened in a new tab
 regardless of the mode Vim is currently in.  The same holds if you
 double-click on a file in the Finder.
 
-The "Open files from applications" preference in the General preference pane
+The "Open files from applications" setting in the General settings pane
 gives more options on how dropped files should open, in case tabs are not
 desired.
 
@@ -174,14 +174,14 @@ up the "Open with" menu.  You can also drag and drop files onto the Dock icon
 to open them in tabs in a new window, or you can drop them in an already open
 window to open the files in tabs in that specific window (it is possible to
 have files open in e.g. splits by changing the "Open files from applications"
-option in the General preference pane).  Finally, you can use macOS System
+option in the General settings pane).  Finally, you can use macOS System
 Services to open files in MacVim, see |macvim-services|.
 
 Alternatively, use the "open" command (this method can not be used to pass
 parameters to Vim) >
 	open -a MacVim file ...
 The advantage of using the latter method is that the settings relating to file
-opening in the preferences panel are respected, and files open instantly if
+opening in the settings panel are respected, and files open instantly if
 |Quickstart| is enabled.
 
 Starting MacVim from a terminal~
@@ -219,7 +219,7 @@ Note: Forking ("-b") currently does not work.
 Quickstart ensures that new windows open quickly e.g. when <D-n> is
 pressed.  It works by keeping a Vim process in the background that will
 immediately become active when you open a window.  This feature can be enabled
-from the Advanced preferences pane (it is disabled by default).  Note that
+from the Advanced settings pane (it is disabled by default).  Note that
 this setting does not affect the speed with which windows open when using the
 |mvim| command.
 
@@ -246,14 +246,14 @@ at the moment though).  In the modified and closed events the Tokn parameter
 is sent back to the server application.
 
 ==============================================================================
-3. Preferences				    *macvim-prefs* *macvim-preferences*
+3. Settings		    *macvim-prefs* *macvim-preferences* *macvim-settings*
 
 Some settings are global to the MacVim application and would not make sense as
 Vim options.  These settings are stored in the user defaults database and can
-be accessed via the "MacVim.Preferences…" menu item.
+be accessed via the "MacVim.Settings…" menu item.
 
 							*macvim-user-defaults*
-Not all entries in the user defaults database are exposed via the preference
+Not all entries in the user defaults database are exposed via the settings
 panel, usually because they should not be changed by the user under normal
 circumstances.  These options can still be changed with the "defaults" command
 by opening Terminal and typing >
@@ -330,14 +330,14 @@ this behaviour set MMLoginShellArgument to "--".
 ==============================================================================
 4. MacVim appearance					*macvim-appearance*
 
-For more configuration options, see the Preferences… → Appearance pane.
+For more configuration options, see the Settings… → Appearance pane.
 
 				*macvim-appearance-mode* *macvim-dark-mode*
 MacVim will by default use the system apperance mode (light or dark). However,
 you can manually force MacVim to use either light or dark mode in the
-preferences panel. A fourth option allows MacVim to respect the |'background'|
+settings panel. A fourth option allows MacVim to respect the |'background'|
 option set by Vim, which is more flexible in situations like loading a dark
-color scheme while system preferences are configured to use light mode. It's
+color scheme while system settings are configured to use light mode. It's
 also the recommended setting when title bar is configured to be "Transparent"
 (see |MMTitlebarAppearsTransparent|).
 
@@ -352,7 +352,7 @@ MacVim can be used in full screen mode, see 'fullscreen'.
 There are two types of full screen modes.  By default, MacVim uses macOS'
 native full screen functionality, which creates a separate space in Mission
 Control.  MacVim also provides a non-native full screen mode, which can be set
-by disabling native full screen in the preference panel, or by setting
+by disabling native full screen in the settings panel, or by setting
 |MMNativeFullScreen| to `NO` manually.  If you have a MacBook with a "notch"
 at the top of the screen, you can set |MMNonNativeFullScreenShowMenu| to `NO`
 and |MMNonNativeFullScreenSafeAreaBehavior| to 1 to utilitize the whole screen
@@ -377,7 +377,7 @@ The most useful system colors are: >
 	MacSelectedTextBackgroundColor
 	MacSecondarySelectedColor
 The former is the "Highlight Color" which can be changed in the "Appearance"
-section of the System Preferences.  The latter is the selection color used by
+section of the System Settings.  The latter is the selection color used by
 a Cocoa application when it is not in focus.
 
 							*Colors.plist*
@@ -405,7 +405,7 @@ scheme will be loaded when the system gvimrc file is sourced and mess up your
 changes.
 
 The color scheme uses the system "Highlight Color", which can be changed in
-the "Appearance" pane of the System Preferences.  It also changes the
+the "Appearance" pane of the System Settings.  It also changes the
 highlight color when a window becomes inactive.
 
 ==============================================================================
@@ -528,7 +528,7 @@ miniaturizeAll:			Minimize all windows to the dock
 newWindow:			Open a new (empty) window
 orderFrontCharacterPalette:	Show the the "Special Characters" dialog
 orderFrontFontPanel:		Show the Font panel
-orderFrontPreferencePanel:	Show the Preferences panel
+orderFrontPreferencePanel:	Show the Settings panel
 performMiniaturize:		Minimize window to the dock
 performZoom:			Zoom window (same as clicking the green blob)
 terminate:			Quit MacVim
@@ -666,7 +666,7 @@ some experimentation might be required in order to figure out which key to
 press.
 
 The second way of controlling dialogs with the keyboard is to enable "Full
-keyboard access" in the "Keyboard" pane of the System Preferences (you can
+keyboard access" in the "Keyboard" pane of the System Settings (you can
 also toggle this on or off by pressing Ctrl-F7).  Once keyboard access is
 enabled it is possible to move between buttons with Tab and pressing Space to
 select the current button.  The current button is indicated with a blue
@@ -687,7 +687,7 @@ These are the currently supported services:
 	  directory to the file or folder that is selected in the Finder.
 
 The services respect the "Open files from applications" setting in the general
-preferences.
+settings.
 
 ==============================================================================
 12. mvim:// URL handler				*mvim://* *macvim-url-handler*
@@ -741,7 +741,7 @@ Cmd-`			Cycle to the next window.  On an American keyboard the
 			keyboards this key is often adjacent to the left
 			Shift-key and it may be not even be marked with "`".
 			This Cmd-key combination can only be unmapped via the
-			"Keyboard" System Preferences.
+			"Keyboard" System Settings.
 
 							*Cmd-Left*  *<D-Left>*
 Cmd-Left		Move cursor to the beginning of the line
@@ -796,7 +796,7 @@ sometimes be slightly involved.  Here are all the things you need to consider:
   <D-S-d> or <D-S-D>.
 - Some command key shortcuts are reserved by macOS and cannot be mapped to
   (e.g. <D-Tab>).  However, some of these shortcuts can be freed up in the
-  System Preferences under Keyboard (e.g. Cmd+Space).
+  System Settings under Keyboard (e.g. Cmd+Space).
 - A few command key mappings are set up by MacVim, see |cmd-movement|.
 
 ==============================================================================
@@ -823,7 +823,7 @@ Each gesture generates one of the following Vim pseudo keys:
 	If you have configured to use Force click for "Look up & data
 	detectors" in the system settings, by default MacVim will do a
 	dictionary lookup instead of triggering this mapping. You can turn
-	this off in MacVim's Preference pane, or directly set
+	this off in MacVim's Settings pane, or directly set
 	|MMAllowForceClickLookUp|.
 
 You can map these keys like with any other key using the |:map| family of
@@ -867,7 +867,7 @@ Translations ~
 
 MacVim uses localized Vim messages (see |multilang-messages|) and menus (see
 |multilang-menus|).  However, some of the user interface in MacVim (e.g.
-Preference pane) are not yet localized.  There are also some MacVim-specific
+Settings pane) are not yet localized.  There are also some MacVim-specific
 messages/menus in Vim that are not currently localized.  Please file an issue
 if you would like to see certain messages localized.
 
@@ -909,8 +909,8 @@ given.
 Scenario: ~
 You would like to remap Caps Lock to Esc.
 Solution: ~
-Go to System Preferences → Keyboard → Modifier Keys…, and map Caps Lock Key to
-Escape.
+Go to System Settings → Keyboard → Keyboard Shortcuts… → Modifier Keys, and
+map Caps Lock Key to Escape.
 
 Scenario: ~
 You try opening a bunch of files in tabs but not all files get opened in their
