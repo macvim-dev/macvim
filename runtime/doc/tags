@@ -8401,6 +8401,7 @@ macvim-options	gui_mac.txt	/*macvim-options*
 macvim-preferences	gui_mac.txt	/*macvim-preferences*
 macvim-prefs	gui_mac.txt	/*macvim-prefs*
 macvim-services	gui_mac.txt	/*macvim-services*
+macvim-settings	gui_mac.txt	/*macvim-settings*
 macvim-shift-movement	gui_mac.txt	/*macvim-shift-movement*
 macvim-shortcuts	gui_mac.txt	/*macvim-shortcuts*
 macvim-start	gui_mac.txt	/*macvim-start*
