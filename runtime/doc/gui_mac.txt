@@ -254,7 +254,8 @@ is sent back to the server application.
 
 Some settings are global to the MacVim application and would not make sense as
 Vim options.  These settings are stored in the user defaults database and can
-be accessed via the "MacVim.Settings…" menu item.
+be accessed via the "MacVim.Settings…" ("MacVim.Preferences…" in macOS 12
+Monterey and older) menu item.
 
 							*macvim-user-defaults*
 Not all entries in the user defaults database are exposed via the settings
