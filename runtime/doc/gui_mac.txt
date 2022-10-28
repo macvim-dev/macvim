@@ -108,6 +108,10 @@ guitablabel=" to your .gvimrc file to revert back to the default Vim tab
 label.  Setting 'guitablabel' to anything in your .vimrc will also prevent
 this default from taking effect.
 
+							*E9000-M*
+Below is a list of non-standard Vim commands and options that MacVim supports.
+They are only usable when GUI is active.
+
 							*macvim-options*
 These are the non-standard options that MacVim supports:
 	'antialias'	'blurradius'	'fullscreen'
@@ -503,7 +507,7 @@ file for more examples on how to set up menus.  Note: When no window is open a
 minimal default menu is used.  The default menu is set up in MainMenu.nib
 which resides in "Resources/English.lproj/" folder inside the app bundle.
 
-							*Actions.plist*
+							*E9001-M* *Actions.plist*
 Some action messages would not be suitable to call from within Vim, so there
 is a dictionary called "Actions.plist" (in the Resources folder of the
 application bundle) which contains all actions that may be called.  The key in
