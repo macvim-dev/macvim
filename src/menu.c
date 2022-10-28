@@ -3041,7 +3041,7 @@ ex_macmenu(exarg_T *eap)
 
 	    if (!is_valid_macaction(action))
 	    {
-		semsg(_("E???: Invalid action: %s"), arg);
+		semsg(_("E9001-M: Invalid action: %s"), arg);
 		error = TRUE;
 		break;
 	    }

@@ -891,6 +891,11 @@ func Test_popup_command()
   call writefile(lines, 'Xtest', 'D')
   let buf = RunVimInTerminal('-S XtimerScript Xtest', {})
   call term_sendkeys(buf, ":source $VIMRUNTIME/menu.vim\<CR>")
+  if has('gui_macvim')
+    " Remove the non-standard MacVim menus to the navigation below will work.
+    call term_sendkeys(buf, ":aunmenu PopUp.Look\\ Up\<CR>")
+    call term_sendkeys(buf, ":aunmenu PopUp.-SEPLookUp-\<CR>")
+  endif
   call term_sendkeys(buf, "/X\<CR>:popup PopUp\<CR>")
   call VerifyScreenDump(buf, 'Test_popup_command_01', {})
 

@@ -5226,6 +5226,8 @@ E898	channel.txt	/*E898*
 E899	eval.txt	/*E899*
 E90	message.txt	/*E90*
 E900	builtin.txt	/*E900*
+E9000-M	gui_mac.txt	/*E9000-M*
+E9001-M	gui_mac.txt	/*E9001-M*
 E901	channel.txt	/*E901*
 E902	channel.txt	/*E902*
 E903	channel.txt	/*E903*

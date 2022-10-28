@@ -1012,7 +1012,7 @@ endif " !has("gui_macvim")
 " The popup menu
 if has("gui_macvim")
   vnoremenu 1.05 PopUp.Look\ Up     :<C-U>call macvim#ShowDefinitionSelected()<CR>
-  vnoremenu 1.06 PopUp.-SEP10-      <Nop>
+  vnoremenu 1.06 PopUp.-SEPLookUp-      <Nop>
 endif
 
 an 1.10 PopUp.&Undo			u

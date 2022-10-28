@@ -1461,7 +1461,7 @@ ex_macaction(eap)
     exarg_T	*eap;
 {
     if (!gui.in_use) {
-        emsg(_("E???: Command only available in GUI mode"));
+        emsg(_("E9000-M: Command only available in GUI mode"));
         return;
     }
 
@@ -1473,7 +1473,7 @@ ex_macaction(eap)
     if (actionDict && [actionDict objectForKey:name] != nil) {
         [[MMBackend sharedInstance] executeActionWithName:name];
     } else {
-        semsg(_("E???: Invalid action: %s"), eap->arg);
+        semsg(_("E9001-M: Invalid action: %s"), eap->arg);
     }
 
     arg = CONVERT_TO_UTF8(arg);
@@ -2540,6 +2540,11 @@ gui_macvim_set_background(int dark)
 /// Implementation of showdefinition()
 void f_showdefinition(typval_T *argvars, typval_T *rettv UNUSED)
 {
+    if (!gui.in_use) {
+        emsg(_("E9000-M: Command only available in GUI mode"));
+        return;
+    }
+
     if (in_vim9script() && check_for_string_arg(argvars, 0) == FAIL)
 	return;
 
