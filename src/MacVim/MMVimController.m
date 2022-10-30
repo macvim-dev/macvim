@@ -125,6 +125,7 @@ static BOOL isUnsafeMessage(int msgid);
 - (void)removeMenuItemWithDescriptor:(NSArray *)desc;
 - (void)enableMenuItemWithDescriptor:(NSArray *)desc state:(BOOL)on;
 - (void)updateMenuItemTooltipWithDescriptor:(NSArray *)desc tip:(NSString *)tip;
+- (NSImage*)findToolbarIcon:(NSString*)icon;
 - (void)addToolbarItemToDictionaryWithLabel:(NSString *)title
         toolTip:(NSString *)tip icon:(NSString *)icon;
 - (void)addToolbarItemWithLabel:(NSString *)label
@@ -1547,6 +1548,11 @@ static BOOL isUnsafeMessage(int msgid);
         }
         [item setAlternate:isAlternate];
 
+        NSImage *img = [self findToolbarIcon:icon];
+        if (img) {
+            [item setImage: img];
+        }
+
         // The tag is used to indicate whether Vim thinks a menu item should be
         // enabled or disabled.  By default Vim thinks menu items are enabled.
         [item setTag:1];
@@ -1700,6 +1706,154 @@ static BOOL isUnsafeMessage(int msgid);
         [[MMAppController sharedInstance] markMainMenuDirty:mainMenu];
 }
 
+/// Load an icon image for the provided name. This will try multiple things to find the best image that fits the name.
+/// @param icon Can be an SF Symbol name (with colon-separated formatting strings), named system image, or just a file.
+- (NSImage*)findToolbarIcon:(NSString*)icon
+{
+    if ([icon length] == 0) {
+        return nil;
+    }
+    NSImage *img = nil;
+
+    // Detect whether this is explicitly specified to be a template image, via a ":template" configuration suffix.
+    BOOL template = NO;
+    if ([icon hasSuffix:@":template"]) {
+        icon = [icon substringToIndex:([icon length] - 9)];
+        template = YES;
+    }
+
+    // Attempt 1: Load an SF Symbol image. This is first try because it's what Apple is pushing for and also likely
+    //            what our users are going to want to use. We also allows for customization of the symbol.
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_VERSION_11_0
+    if (@available(macos 11.0, *)) {
+        // All SF Symbol functionality were introduced in macOS 11.0.
+        NSString *sfSymbolName = icon;
+
+        BOOL monochrome = NO, hierarchical = NO, palette = NO, multicolor = NO;
+        double variableValue = -1;
+
+        if ([sfSymbolName rangeOfString:@":"].location != NSNotFound) {
+            // We support using colon-separated strings to customize the symbol. First item is the icon name itself.
+            NSArray<NSString*> *splitComponents = [sfSymbolName componentsSeparatedByString:@":"];
+            sfSymbolName = splitComponents[0];
+
+            for (int i = 1, count = splitComponents.count; i < count; i++) {
+                NSString *component = splitComponents[i];
+                if ([component isEqualToString:@"monochrome"]) {
+                    monochrome = YES;
+                } else if ([component isEqualToString:@"hierarchical"]) {
+                    hierarchical = YES;
+                } else if ([component isEqualToString:@"palette"]) {
+                    palette = YES;
+                } else if ([component isEqualToString:@"multicolor"]) {
+                    multicolor = YES;
+                } else if ([component hasPrefix:@"variable-"]) {
+                    NSString *variableString = [component substringFromIndex:9];
+                    variableValue = [variableString floatValue];
+                }
+            }
+        }
+
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_VERSION_13_0
+        if (@available(macos 13.0, *)) {
+            if (variableValue >= 0.0 && variableValue <= 1.0) {
+                img = [NSImage imageWithSystemSymbolName:sfSymbolName variableValue:variableValue accessibilityDescription:nil];
+            }
+        }
+#endif // MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_VERSION_13_0
+
+        if (img == nil) {
+            img = [NSImage imageWithSystemSymbolName:sfSymbolName accessibilityDescription:nil];
+        }
+
+        // Apply style customization to the symbol. This feature was added in macOS 12.
+        if (img) {
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_VERSION_12_0
+            if (@available(macos 12.0, *)) {
+                NSImageSymbolConfiguration *config = nil;
+                if (monochrome) {
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_VERSION_13_0
+                    if (@available(macos 13.0, *)) {
+                        config = [NSImageSymbolConfiguration configurationPreferringMonochrome];
+                    }
+#endif
+                }
+                if (hierarchical) {
+                    NSImageSymbolConfiguration *config2;
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_VERSION_13_0
+                    if (@available(macos 13.0, *))
+                    {
+                        // This version is preferred as it seems to set the color up automatically and therefore will use the correct ones.
+                        config2 = [NSImageSymbolConfiguration configurationPreferringHierarchical];
+                    }
+                    else
+#endif
+                    {
+                        // Just guess which color to use. AppKit doesn't really give you a color that you can pick so we just guess one.
+                        config2 = [NSImageSymbolConfiguration configurationWithHierarchicalColor:NSColor.controlTextColor];
+                    }
+                    if (config) {
+                        config = [config configurationByApplyingConfiguration:config2];
+                    } else {
+                        config = config2;
+                    }
+                }
+                if (palette) {
+                    // The palette colors aren't completely correct. It doesn't appear for there to be a good way to query the primary colors
+                    // for Touch Bar, tool bar, etc, so we just use controlTextColor. It would be nice if Apple just provides a "Preferring"
+                    // version of this API like the other ones.
+                    NSImageSymbolConfiguration *config2 = [NSImageSymbolConfiguration configurationWithPaletteColors:@[NSColor.controlTextColor, NSColor.controlAccentColor]];
+                    if (config) {
+                        config = [config configurationByApplyingConfiguration:config2];
+                    } else {
+                        config = config2;
+                    }
+                }
+                if (multicolor) {
+                    NSImageSymbolConfiguration *config2 = [NSImageSymbolConfiguration configurationPreferringMulticolor];
+                    if (config) {
+                        config = [config configurationByApplyingConfiguration:config2];
+                    } else {
+                        config = config2;
+                    }
+                }
+
+                if (config) {
+                    NSImage *img2 = [img imageWithSymbolConfiguration:config];
+                    if (img2) {
+                        img = img2;
+                    }
+                }
+            }
+#endif // MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_VERSION_12_0
+
+            // Just mark them as used so compiling on older SDKs won't complain about unused variables.
+            (void)multicolor;
+            (void)hierarchical;
+            (void)palette;
+            (void)variableValue;
+        }
+    }
+#endif // MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_VERSION_11_0
+
+    // Attempt 2: Load a named image.
+    if (!img) {
+        img = [NSImage imageNamed:icon];
+    }
+
+    // Attempt 3: Load from a file.
+    if (!img) {
+        img = [[[NSImage alloc] initByReferencingFile:icon] autorelease];
+        if (!(img && [img isValid]))
+            img = nil;
+    }
+
+    if (img && template) {
+        [img setTemplate:YES];
+    }
+    return img;
+}
+
 - (void)addToolbarItemToDictionaryWithLabel:(NSString *)title
                                     toolTip:(NSString *)tip
                                        icon:(NSString *)icon
@@ -1717,12 +1871,7 @@ static BOOL isUnsafeMessage(int msgid);
     [item setAction:@selector(vimToolbarItemAction:)];
     [item setAutovalidates:NO];
 
-    NSImage *img = [NSImage imageNamed:icon];
-    if (!img) {
-        img = [[[NSImage alloc] initByReferencingFile:icon] autorelease];
-        if (!(img && [img isValid]))
-            img = nil;
-    }
+    NSImage *img = [self findToolbarIcon:icon];
     if (!img) {
         ASLogNotice(@"Could not find image with name '%@' to use as toolbar"
             " image for identifier '%@';"
@@ -1732,7 +1881,6 @@ static BOOL isUnsafeMessage(int msgid);
         img = [NSImage imageNamed:MMDefaultToolbarImageName];
     }
 
-    [img setTemplate:YES];
     [item setImage:img];
 
     [toolbarItemDict setObject:item forKey:title];
@@ -1809,13 +1957,8 @@ static BOOL isUnsafeMessage(int msgid);
         [button setDesc:desc];
         NSCustomTouchBarItem *item =
             [[[NSCustomTouchBarItem alloc] initWithIdentifier:label] autorelease];
-        NSImage *img = [NSImage imageNamed:icon];
 
-        if (!img) {
-            img = [[[NSImage alloc] initByReferencingFile:icon] autorelease];
-            if (!(img && [img isValid]))
-                img = nil;
-        }
+        NSImage *img = [self findToolbarIcon:icon];;
         if (img) {
             [button setImage: img];
             if (useTip) {

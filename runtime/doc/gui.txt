@@ -771,6 +771,9 @@ level.  Vim interprets the items in this menu as follows:
     A space in the file name must be escaped with a backslash.
     A menu priority must come _after_ the icon argument: >
 	:amenu icon=foo 1.42 ToolBar.Foo :echo "42!"<CR>
+<
+    In MacVim, the "icon=" argument can also be used to specify SF symbols or
+    system named images.  See |macvim-toolbar-icon| for more details.
 2)  An item called 'BuiltIn##', where ## is a number, is taken as number ## of
     the built-in bitmaps available in Vim.  Currently there are 31 numbered
     from 0 to 30 which cover most common editing operations |builtin-tools|. >

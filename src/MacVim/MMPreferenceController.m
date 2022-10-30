@@ -58,7 +58,7 @@
 
 - (void)setupToolbar
 {
-#if MAC_OS_X_VERSION_MAX_ALLOWED >= 110000
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_VERSION_11_0
     if (@available(macos 11.0, *)) {
         // Use SF Symbols for versions of the OS that supports it to be more unified with OS appearance.
         [self addView:generalPreferences

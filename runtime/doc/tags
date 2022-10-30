@@ -8410,6 +8410,7 @@ macvim-start	gui_mac.txt	/*macvim-start*
 macvim-tablabel	gui_mac.txt	/*macvim-tablabel*
 macvim-todo	gui_mac.txt	/*macvim-todo*
 macvim-toolbar	gui_mac.txt	/*macvim-toolbar*
+macvim-toolbar-icon	gui_mac.txt	/*macvim-toolbar-icon*
 macvim-touchbar	gui_mac.txt	/*macvim-touchbar*
 macvim-touchbar-characterpicker	gui_mac.txt	/*macvim-touchbar-characterpicker*
 macvim-touchbar-defaults	gui_mac.txt	/*macvim-touchbar-defaults*
