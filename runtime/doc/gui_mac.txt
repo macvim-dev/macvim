@@ -446,13 +446,13 @@ that is the action that instructs them to paste something.)
 Menus are configured using the |:macmenu| command and the |:macaction| command
 can be used to send action messages.
 
-						*:maca* *:macaction*
-:maca[ction] {action:}	Send the message "action:" to the first responder.
-			The list of allowed actions can be seen by typing
+						*E9001-M* *:maca* *:macaction*
+:maca[ction] {action:}	Send the message "action:" to the first responder in
+			MacVim.  The list of allowed actions can be seen by
+			typing >
 			    :maca <C-d>
-			An attempt to send an action not listed here will
-			result in an error.  This list is specified in a
-			property list file called |Actions.plist|.
+<			An attempt to send an action not listed here will
+			result in an error.  See |macvim-actions| below.
 
 						*:macm* *:macmenu*
 :macm[enu] {menu} {key}={arg} ...
@@ -466,10 +466,10 @@ can be used to send action messages.
 
 			For convenience, a menu with "action=name:" which is
 			bound to <Nop> will act as if bound to
-			":maca name:<CR>".  Thus, if "Menu.Item" is given by
+			":maca name:<CR>".  Thus, if "Menu.Item" is given by >
 			    :an Menu.Item <Nop>
 			    :macm Menu.Item action=name:
-			then ":emenu Menu.Item" is equivalent to
+<			then ":emenu Menu.Item" is equivalent to
 			":maca name:".
 
 			The key equivalent is specified with the <D-..>
@@ -513,17 +513,16 @@ file for more examples on how to set up menus.  Note: When no window is open a
 minimal default menu is used.  The default menu is set up in MainMenu.nib
 which resides in "Resources/English.lproj/" folder inside the app bundle.
 
-							*E9001-M* *Actions.plist*
-Some action messages would not be suitable to call from within Vim, so there
-is a dictionary called "Actions.plist" (in the Resources folder of the
-application bundle) which contains all actions that may be called.  The key in
-this dictionary is the name of the action message (case sensitive), the value
-is not used.
+						*Actions.plist* *macvim-actions*
+Some actions (e.g. changing the font size) are not directly Vim related, and
+are handled by MacVim on the application level for the GUI.  MacVim allows
+these actions to be invoked by either directly calling |:macaction| or binding
+to a menu via |:macmenu|. The full list of actions can be found in the file
+"Actions.plist" (under MacVim.app/Contents/Resources/), but below are the
+common ones which might be useful.
 
 Hint: The |:macaction| command supports command-line completion so you can
 enter ":maca<Space><C-d>" to see a list of all available actions.
-
-Here are some of the actions from Actions.plist which might be useful.  
 
 Action				Description ~
 fileOpen:			Show "File Open" dialog
@@ -543,8 +542,14 @@ performMiniaturize:		Minimize window to the dock
 performZoom:			Zoom window (same as clicking the green blob)
 terminate:			Quit MacVim
 zoomAll:			Zoom all windows
+zoomLeft:			Pin the window to the left of the screen
+zoomRight:			Pin the window to the right of the screen
 _cycleWindows:			Select next window (similar to <D-`>)
 _cycleWindowsBackwards:		Select previous window (similar to <D-S-`>)
+_removeWindowFromStageManagerSet  Remove window from a Stage Manager Set. Same
+				as the "Remove Window from Set" menu item.
+joinAllStageManagerSets		Window will float among all Stage Manager sets
+unjoinAllStageManagerSets	Window will only show up in its own set
 
 ==============================================================================
 7. Toolbar						*macvim-toolbar*

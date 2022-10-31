@@ -74,11 +74,21 @@
 	<string></string>
 	<key>zoomAll:</key>
 	<string></string>
+	<key>zoomLeft:</key>
+	<string></string>
+	<key>zoomRight:</key>
+	<string></string>
 	<key>stayInFront:</key>
 	<string></string>
 	<key>stayInBack:</key>
 	<string></string>
 	<key>stayLevelNormal:</key>
 	<string></string>
+    <key>_removeWindowFromStageManagerSet:</key>
+    <string></string>
+    <key>joinAllStageManagerSets:</key>
+    <string></string>
+    <key>unjoinAllStageManagerSets:</key>
+    <string></string>
 </dict>
 </plist>
