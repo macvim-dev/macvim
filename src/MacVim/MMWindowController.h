@@ -35,8 +35,8 @@
     int                 updateToolbarFlag;
     BOOL                keepOnScreen;
     NSString            *windowAutosaveKey;
-    BOOL                fullScreenEnabled;
-    MMFullScreenWindow  *fullScreenWindow;
+    BOOL                fullScreenEnabled; ///< Whether full screen is on (native or not)
+    MMFullScreenWindow  *fullScreenWindow; ///< The window used for non-native full screen. Will only be non-nil when in non-native full screen.
     int                 fullScreenOptions;
     BOOL                delayEnterFullScreen;
     NSRect              preFullScreenFrame;
@@ -127,5 +127,9 @@
 - (IBAction)fontSizeDown:(id)sender;
 - (IBAction)findAndReplace:(id)sender;
 - (IBAction)zoom:(id)sender;
+- (IBAction)zoomLeft:(id)sender;
+- (IBAction)zoomRight:(id)sender;
+- (IBAction)joinAllStageManagerSets:(id)sender;
+- (IBAction)unjoinAllStageManagerSets:(id)sender;
 
 @end

@@ -1351,7 +1351,64 @@
     [vimController sendMessage:ZoomMsgID data:data];
 }
 
+/// Pin the window to the left of the screen.
+///
+/// @note We expose this as a method instead of just having Actions.plist
+/// expose NSWindow's private API `_zoomLeft` because it's a little nicer this
+/// way instead of having to confuse the user with the underscore, and also so
+/// that we can block this while full screen is active.
+- (IBAction)zoomLeft:(id)sender
+{
+    if (fullScreenEnabled)
+        return;
 
+    // macOS (as of 13.0) doesn't currently have an API to do "zoom left/right"
+    // aka Aero Snap in Windows, even though macOS 10.15 added UI to do so if
+    // you hover over the full screen button with Option key pressed. Because
+    // of that, we have to cheat a little bit and use private APIs
+    // (_zoomLeft/_zoomRight) which seems to work just fine. We also
+    // future-proof by detecting if this API gets graduated to public API
+    // (without the "_") and call that if that exists.
+    if ([decoratedWindow respondsToSelector:@selector(zoomLeft:)]) {
+        [decoratedWindow performSelector:@selector(zoomLeft:) withObject:sender];
+    } else if ([decoratedWindow respondsToSelector:@selector(_zoomLeft:)]) {
+        [decoratedWindow performSelector:@selector(_zoomLeft:) withObject:sender];
+    }
+}
+
+/// Pin the window to the right of the screen. See zoomLeft: for comments.
+- (IBAction)zoomRight:(id)sender
+{
+    if (fullScreenEnabled)
+        return;
+
+    if ([decoratedWindow respondsToSelector:@selector(zoomRight:)]) {
+        [decoratedWindow performSelector:@selector(zoomRight:) withObject:sender];
+    } else if ([decoratedWindow respondsToSelector:@selector(_zoomRight:)]) {
+        [decoratedWindow performSelector:@selector(_zoomRight:) withObject:sender];
+    }
+}
+
+/// Make this window join all app sets
+- (IBAction)joinAllStageManagerSets:(id)sender
+{
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_VERSION_13_0
+    if (@available(macos 13.0, *)) {
+        [decoratedWindow setCollectionBehavior:NSWindowCollectionBehaviorCanJoinAllApplications];
+    }
+#endif
+}
+
+/// Make this window only show up in its own set. This is the default, so calling
+/// this is only necessary if joinAllStageManagerSets: was previousaly called.
+- (IBAction)unjoinAllStageManagerSets:(id)sender
+{
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_VERSION_13_0
+    if (@available(macos 13.0, *)) {
+        [decoratedWindow setCollectionBehavior:NSWindowCollectionBehaviorPrimary];
+    }
+#endif
+}
 
 // -- Services menu delegate -------------------------------------------------
 

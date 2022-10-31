@@ -8371,6 +8371,7 @@ macintosh	os_mac.txt	/*macintosh*
 macro	map.txt	/*macro*
 macvim	gui_mac.txt	/*macvim*
 macvim-PATH	gui_mac.txt	/*macvim-PATH*
+macvim-actions	gui_mac.txt	/*macvim-actions*
 macvim-appearance	gui_mac.txt	/*macvim-appearance*
 macvim-appearance-mode	gui_mac.txt	/*macvim-appearance-mode*
 macvim-autocommands	gui_mac.txt	/*macvim-autocommands*

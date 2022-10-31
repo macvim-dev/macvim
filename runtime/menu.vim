@@ -81,15 +81,16 @@ if has("gui_macvim")
   an <silent> 9998.301 Window.Minimize\ All	    <Nop>
   an <silent> 9998.310 Window.Zoom		    <Nop>
   an <silent> 9998.311 Window.Zoom\ All		    <Nop>
+  an 9998.318 Window.-SEP1-			    <Nop>
   an <silent> 9998.320 Window.Toggle\ Full\ Screen\ Mode :set invfullscreen<CR>
   tln <silent> 9998.320 Window.Toggle\ Full\ Screen\ Mode <C-W>:set invfullscreen<CR>
-  an 9998.330 Window.-SEP1-			    <Nop>
+  an 9998.330 Window.-SEP2-			    <Nop>
   " TODO! Grey out if no tabs are visible.
   an <silent> 9998.340 Window.Show\ Next\ Tab	    :tabnext<CR>
   tln <silent> 9998.340 Window.Show\ Next\ Tab	<C-W>:tabnext<CR>
   an <silent> 9998.350 Window.Show\ Previous\ Tab :tabprevious<CR>
   tln <silent> 9998.350 Window.Show\ Previous\ Tab <C-W>:tabprevious<CR>
-  an 9998.360 Window.-SEP2-			    <Nop>
+  an 9998.360 Window.-SEP3-			    <Nop>
   an <silent> 9998.370 Window.Bring\ All\ To\ Front <Nop>
   an <silent> 9998.380 Window.Stay\ in\ Front <Nop>
   an <silent> 9998.390 Window.Stay\ in\ Back <Nop>
