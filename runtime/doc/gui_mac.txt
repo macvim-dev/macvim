@@ -420,6 +420,11 @@ Default Menus~
 
 See |macvim-default-menus|.
 
+Icons~
+
+Unlike regular Vim, MacVim menus can be customized with an icon.  Simply use
+the "icon=" parameter similar to toolbar. See |macvim-toolbar-icon| for usage.
+
 Customization~
 
 Menus in macOS behave slightly different from other platforms.  For that
@@ -554,16 +559,40 @@ empty space which will shink or expand so that the items to the right of it
 are right-aligned.  A space (flexspace) will be created for any toolbar item
 whose name begins with "-space" ("-flexspace") and ends with "-"
 
-Toolbar icons should be tiff, png, icns, or heic, of dimension 32x32 or 24x24
-pixels.  The larger size is used when 'tbis' is "medium" or "large", otherwise
-the smaller size is used (which is the default).  If the icon file only
-contains one dimension then macOS will scale the icon to the appropriate
-dimension if necessary.  To avoid this, use a file format which supports
-multiple resolutions (such as icns) and provide both 32x32 and 24x24 versions
-of the icon.
+							*macvim-toolbar-icon*
+In regular Vim, the "icon=" argument (see |toolbar-icon|) can be used to
+specify an image file by file path.  In MacVim, the argument could also be
+used for specifying an SF symbol or a macOS system image.  Simply use the SF
+symbol name or the system image name and MacVim will use load them instead of
+an image file.  Below are examples for using an SF symbol "gearshape.2" and a
+macOS system image named "NSAdvanced": >
+	:an icon=gearshape.2 ToolBar.Setting1   <Nop>
+	:an icon=NSAdvanced  ToolBar.Setting2   <Nop>
+Some SF symbols in macOS can be customized with different styles.  You can do
+so by using colon-delimited options (most of them require macOS 13 Ventura).
+The available options are `monochrome`, `hierarchical`, `palette`,
+`multicolor`, and `variable-0.5` (where 0.5 can be substituted with any number
+between 0 and 1). Download Apple's SF Symbols app to find out what the symbol
+names are and what styling options each one supports.  Some examples below: >
+	:an icon=bolt.circle:hierarchical       ToolBar.Bolt  :echo '⚡️'<CR>
+	:an icon=cloud.sun.rain.fill:multicolor ToolBar.Cloud :echo '🌦️'<CR>
+	:an icon=homekit:variable-0.4:palette   ToolBar.Home  :echo '🏠'<CR>
+<
+If your icon image is a template image (meaning that it is a grayscale image
+designed to be mapped to whatever foreground color is), you can add
+`:template` to the end of an image name, which will mark it as a template
+image to macOS: >
+	:an icon=/a/b/black-and-white.png:template ToolBar.Foo <Nop>
+<
+Supported image formats depend on the version of macOS.  Safe formats include
+png, icns, ico.  Later macOS versions also support heic and webp.
 
-Note: Only a subset of the builtin toolbar items presently have icons.  If no
-icon can be found a warning triangle is displayed instead.
+Toolbar icons should be of dimension 32x32 or 24x24 pixels.  The larger size
+is used when 'tbis' is "medium" or "large", otherwise the smaller size is used
+(which is the default).  If the icon file only contains one dimension then
+macOS will scale the icon to the appropriate dimension if necessary.  To avoid
+this, use a file format which supports multiple resolutions (such as icns) and
+provide both 32x32 and 24x24 versions of the icon.
 
 ==============================================================================
 8. Touch Bar						*macvim-touchbar*
@@ -573,6 +602,9 @@ Touch Bar in MacVim is configurable, and works similar to the toolbar (see
 instead of "ToolBar": >
 	:an TouchBar.Hello          :echo "Hello"<CR>
 <
+This feature only works on Mac devices that come with Touch Bars. On the ones
+that don't, nothing will show up.
+
 You can also create submenus. Due to macOS restrictions, submenus can only be
 one level deep: >
 	:an TouchBar.Navigate.Next  :next<CR>
@@ -593,13 +625,14 @@ begin with "-flexspace" and ends with "-".
 
 						*macvim-touchbar-icon*
 You can specify icons for Touch Bar buttons the same way for toolbar icons
-(see |macvim-toolbar|).  When a button has an icon, it won't show the menu
+(see |macvim-toolbar-icon|).  When a button has an icon, it won't show the menu
 name.  Touch Bar icons should ideally be 36x36 pixels, and no larger than
 44x44 pixels. >
-	:an icon=/home/foo/bar.png TouchBar.DoSomething :echo 'Do'<CR>
-You can also use default template icons provided by Apple by using their
-template names. An example: >
+	:an icon=/home/foo/bar.png          TouchBar.DoThing  :echo 'Do'<CR>
+You can use any image for the icon, but macOS comes with a few default
+template images designed for use with Touch Bar.  Some examples: >
 	:an icon=NSTouchBarListViewTemplate TouchBar.ShowList :ls<CR>
+	:an icon=NSTouchBarRefreshTemplate  TouchBar.Refresh  :e!<CR>
 <
 						*macvim-touchbar-title*
 By default, the Touch Bar buttons will use the menu names as the title. If an
@@ -614,10 +647,7 @@ the icon. Example: >
 You can also insert emojis by adding a character picker button (specified by
 using a name that begin wtih "-characterpicker" and ends with "-"): >
 	:inoremenu TouchBar.-characterpicker-	<Nop>
-
-This feature only works on Mac devices that come with Touch Bars. On the ones
-that don't, nothing will show up.
-
+<
 						*macvim-touchbar-defaults*
 Here is a list of default Touch Bar buttons that MacVim sets up:
 

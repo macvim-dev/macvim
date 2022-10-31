@@ -749,6 +749,8 @@ gui_mch_add_menu(vimmenu_T *menu, int idx)
 }
 
 
+// Look up the icon file. If it's a full path, return that. Otherwise, look for
+// it under a 'bitmaps' folder under runtimepath, using common file extensions.
 // Taken from gui_gtk.c (slightly modified)
     static int
 lookup_menu_iconfile(char_u *iconfile, char_u *dest)
@@ -758,7 +760,9 @@ lookup_menu_iconfile(char_u *iconfile, char_u *dest)
     if (mch_isFullName(dest))
 	return vim_fexists(dest);
 
-    static const char   suffixes[][4] = {"png", "bmp"};
+    // Just find the popular image formats that macOS supports.
+    static const char   suffixes[][5] = {
+       "png", "bmp", "ico", "icns", "jpeg", "jpg", "heic", "webp"};
     char_u		buf[MAXPATHL];
     unsigned int	i;
 
@@ -786,39 +790,63 @@ gui_mch_add_menu_item(vimmenu_T *menu, int idx)
                             (unsigned short)specialKeyToNSKey(menu->mac_key)]
         : [NSString string];
     int modifierMask = vimModMaskToEventModifierFlags(menu->mac_mods);
-    char_u *icon = NULL;
+    NSString *icon = nil;
 
     vimmenu_T *rootMenu = menu;
     while (rootMenu->parent) {
         rootMenu = rootMenu->parent;
     }
     if (menu_is_toolbar(rootMenu->name)) {
-        //
-        // Find out what file to load for the icon. This is only relevant for the
-        // toolbar and TouchBar.
-        //
+        // Find out what file to load for the toolbar icon.
         char_u fname[MAXPATHL];
 
-        // Try to use the icon=.. argument
+        // Try to use the file path from the icon=.. argument
         if (menu->iconfile && lookup_menu_iconfile(menu->iconfile, fname))
-            icon = fname;
+            icon = [NSString stringWithVimString:fname];
 
         // If not found and not builtin specified try using the menu name
-        if (!icon && !menu->icon_builtin
+        if (icon == nil && !menu->icon_builtin
                                     && lookup_menu_iconfile(menu->name, fname))
-            icon = fname;
+            icon = [NSString stringWithVimString:fname];
 
         // Still no icon found, try using a builtin icon.  (If this also fails,
         // then a warning icon will be displayed).
-        if (!icon)
-            icon = lookup_toolbar_item(menu->iconidx);
+        if (icon == nil) {
+            char_u* toolbar_item = lookup_toolbar_item(menu->iconidx);
+            if (toolbar_item) {
+                icon = [NSString stringWithVimString:toolbar_item];
 
-        // Last step is to see if this is a standard Apple template icon. The
-        // touch bar templates are of the form "NSTouchBar*Template".
-        if (!icon)
-            if (menu->iconfile && STRNCMP(menu->iconfile, "NSTouchBar", 10) == 0) {
-                icon = menu->iconfile;
+                // All the default icons that MacVim ships with are templates
+                // to make them work better in light/dark modes.
+                icon = [icon stringByAppendingString:@":template"];
             }
+        }
+
+        // Last step is to simply pass the icon argument up the chain as there
+        // are more complicated logic to determine what this is (e.g. SF Symbol
+        // or raw image).
+        if (icon == nil) {
+            if (menu->iconfile && *menu->iconfile != '\0') {
+                icon = [NSString stringWithVimString:menu->iconfile];
+            }
+        }
+    } else {
+        // For regular menus, we support icons as well, but only if it's
+        // specified by the icon=... argument. This is a MacVim-extension.
+        char_u fname[MAXPATHL];
+
+        if (menu->iconfile && *menu->iconfile != '\0') {
+            if (lookup_menu_iconfile(menu->iconfile, fname)) {
+                icon = [NSString stringWithVimString:fname];
+            } else {
+                icon = [NSString stringWithVimString:menu->iconfile];
+            }
+        }
+    }
+
+    if (icon == nil) {
+        // Need non-nil items for dictionaryWithObjectsAndKeys: below.
+        icon = @"";
     }
 
     [[MMBackend sharedInstance] queueMessage:AddMenuItemMsgID properties:
@@ -826,7 +854,7 @@ gui_mch_add_menu_item(vimmenu_T *menu, int idx)
             desc, @"descriptor",
             [NSNumber numberWithInt:idx], @"index",
             [NSString stringWithVimString:tip], @"tip",
-            [NSString stringWithVimString:icon], @"icon",
+            icon, @"icon",
             keyEquivalent, @"keyEquivalent",
             [NSNumber numberWithInt:modifierMask], @"modifierMask",
             [NSString stringWithVimString:menu->mac_action], @"action",

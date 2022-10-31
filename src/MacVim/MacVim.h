@@ -43,8 +43,14 @@
 #ifndef MAC_OS_X_VERSION_10_14
 # define MAC_OS_X_VERSION_10_14 101400
 #endif
+#ifndef MAC_OS_VERSION_11_0
+# define MAC_OS_VERSION_11_0 110000
+#endif
 #ifndef MAC_OS_VERSION_12_0
 # define MAC_OS_VERSION_12_0 120000
+#endif
+#ifndef MAC_OS_VERSION_13_0
+# define MAC_OS_VERSION_13_0 130000
 #endif
 
 #ifndef NSAppKitVersionNumber10_10
