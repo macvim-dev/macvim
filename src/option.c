@@ -4039,7 +4039,7 @@ findoption(char_u *arg)
     return opt_idx;
 }
 
-#if defined(FEAT_EVAL) || defined(FEAT_TCL) || defined(FEAT_MZSCHEME)
+#if defined(FEAT_EVAL) || defined(FEAT_TCL) || defined(FEAT_MZSCHEME) || defined(FEAT_SPELL)
 /*
  * Get the value for an option.
  *
@@ -5598,6 +5598,7 @@ get_varp(struct vimoption *p)
 #ifdef FEAT_EVAL
 	case PV_TFU:	return (char_u *)&(curbuf->b_p_tfu);
 #endif
+	case PV_EOF:	return (char_u *)&(curbuf->b_p_eof);
 	case PV_EOL:	return (char_u *)&(curbuf->b_p_eol);
 	case PV_FIXEOL:	return (char_u *)&(curbuf->b_p_fixeol);
 	case PV_ET:	return (char_u *)&(curbuf->b_p_et);
@@ -5626,6 +5627,7 @@ get_varp(struct vimoption *p)
 	case PV_KEY:	return (char_u *)&(curbuf->b_p_key);
 #endif
 	case PV_LISP:	return (char_u *)&(curbuf->b_p_lisp);
+	case PV_LOP:	return (char_u *)&(curbuf->b_p_lop);
 	case PV_ML:	return (char_u *)&(curbuf->b_p_ml);
 	case PV_MPS:	return (char_u *)&(curbuf->b_p_mps);
 #ifdef FEAT_GUI_MACVIM
@@ -6158,6 +6160,8 @@ buf_copy_options(buf_T *buf, int flags)
 	    COPY_OPT_SCTX(buf, BV_CINO);
 	    buf->b_p_cinsd = vim_strsave(p_cinsd);
 	    COPY_OPT_SCTX(buf, BV_CINSD);
+	    buf->b_p_lop = vim_strsave(p_lop);
+	    COPY_OPT_SCTX(buf, BV_LOP);
 
 	    // Don't copy 'filetype', it must be detected
 	    buf->b_p_ft = empty_option;
@@ -6965,9 +6969,7 @@ paste_option_changed(void)
     static int	old_p_paste = FALSE;
     static int	save_sm = 0;
     static int	save_sta = 0;
-#ifdef FEAT_CMDL_INFO
     static int	save_ru = 0;
-#endif
 #ifdef FEAT_RIGHTLEFT
     static int	save_ri = 0;
     static int	save_hkmap = 0;
@@ -7001,9 +7003,7 @@ paste_option_changed(void)
 	    // save global options
 	    save_sm = p_sm;
 	    save_sta = p_sta;
-#ifdef FEAT_CMDL_INFO
 	    save_ru = p_ru;
-#endif
 #ifdef FEAT_RIGHTLEFT
 	    save_ri = p_ri;
 	    save_hkmap = p_hkmap;
@@ -7044,11 +7044,9 @@ paste_option_changed(void)
 	// set global options
 	p_sm = 0;		    // no showmatch
 	p_sta = 0;		    // no smarttab
-#ifdef FEAT_CMDL_INFO
 	if (p_ru)
 	    status_redraw_all();    // redraw to remove the ruler
 	p_ru = 0;		    // no ruler
-#endif
 #ifdef FEAT_RIGHTLEFT
 	p_ri = 0;		    // no reverse insert
 	p_hkmap = 0;		    // no Hebrew keyboard
@@ -7094,11 +7092,9 @@ paste_option_changed(void)
 	// restore global options
 	p_sm = save_sm;
 	p_sta = save_sta;
-#ifdef FEAT_CMDL_INFO
 	if (p_ru != save_ru)
 	    status_redraw_all();    // redraw to draw the ruler
 	p_ru = save_ru;
-#endif
 #ifdef FEAT_RIGHTLEFT
 	p_ri = save_ri;
 	p_hkmap = save_hkmap;

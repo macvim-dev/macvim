@@ -41,17 +41,17 @@
 #define PV_BOMB		OPT_BUF(BV_BOMB)
 #define PV_CI		OPT_BUF(BV_CI)
 #define PV_CIN		OPT_BUF(BV_CIN)
-#define PV_CINK	OPT_BUF(BV_CINK)
-#define PV_CINO	OPT_BUF(BV_CINO)
+#define PV_CINK		OPT_BUF(BV_CINK)
+#define PV_CINO		OPT_BUF(BV_CINO)
 #define PV_CINSD	OPT_BUF(BV_CINSD)
-#define PV_CINW	OPT_BUF(BV_CINW)
+#define PV_CINW		OPT_BUF(BV_CINW)
 #define PV_CM		OPT_BOTH(OPT_BUF(BV_CM))
 #ifdef FEAT_FOLDING
 # define PV_CMS		OPT_BUF(BV_CMS)
 #endif
 #define PV_COM		OPT_BUF(BV_COM)
 #define PV_CPT		OPT_BUF(BV_CPT)
-#define PV_DICT	OPT_BOTH(OPT_BUF(BV_DICT))
+#define PV_DICT		OPT_BOTH(OPT_BUF(BV_DICT))
 #define PV_TSR		OPT_BOTH(OPT_BUF(BV_TSR))
 #define PV_CSL		OPT_BUF(BV_CSL)
 #ifdef FEAT_COMPL_FUNC
@@ -61,6 +61,7 @@
 # define PV_DEF		OPT_BOTH(OPT_BUF(BV_DEF))
 # define PV_INC		OPT_BOTH(OPT_BUF(BV_INC))
 #endif
+#define PV_EOF		OPT_BUF(BV_EOF)
 #define PV_EOL		OPT_BUF(BV_EOL)
 #define PV_FIXEOL	OPT_BUF(BV_FIXEOL)
 #define PV_EP		OPT_BOTH(OPT_BUF(BV_EP))
@@ -95,7 +96,8 @@
 # define PV_KMAP	OPT_BUF(BV_KMAP)
 #endif
 #define PV_KP		OPT_BOTH(OPT_BUF(BV_KP))
-#define PV_LISP	OPT_BUF(BV_LISP)
+#define PV_LISP		OPT_BUF(BV_LISP)
+#define PV_LOP		OPT_BUF(BV_LOP)
 #define PV_LW		OPT_BOTH(OPT_BUF(BV_LW))
 #define PV_MENC		OPT_BOTH(OPT_BUF(BV_MENC))
 #define PV_MA		OPT_BUF(BV_MA)
@@ -145,7 +147,7 @@
 #endif
 #define PV_WM		OPT_BUF(BV_WM)
 #ifdef FEAT_VARTABS
-# define PV_VSTS		OPT_BUF(BV_VSTS)
+# define PV_VSTS	OPT_BUF(BV_VSTS)
 # define PV_VTS		OPT_BUF(BV_VTS)
 #endif
 
@@ -900,7 +902,7 @@ static struct vimoption options[] =
     {"edcompatible","ed",   P_BOOL|P_VI_DEF,
 			    (char_u *)&p_ed, PV_NONE,
 			    {(char_u *)FALSE, (char_u *)0L} SCTX_INIT},
-    {"emoji",  "emo",	    P_BOOL|P_VI_DEF|P_RCLR,
+    {"emoji",      "emo",   P_BOOL|P_VI_DEF|P_RCLR,
 			    (char_u *)&p_emoji, PV_NONE,
 			    {(char_u *)TRUE, (char_u *)0L}
 			    SCTX_INIT},
@@ -908,6 +910,9 @@ static struct vimoption options[] =
 			    (char_u *)&p_enc, PV_NONE,
 			    {(char_u *)ENC_DFLT, (char_u *)0L}
 			    SCTX_INIT},
+    {"endoffile",   "eof",  P_BOOL|P_NO_MKRC|P_VI_DEF|P_RSTAT,
+			    (char_u *)&p_eof, PV_EOF,
+			    {(char_u *)TRUE, (char_u *)0L} SCTX_INIT},
     {"endofline",   "eol",  P_BOOL|P_NO_MKRC|P_VI_DEF|P_RSTAT,
 			    (char_u *)&p_eol, PV_EOL,
 			    {(char_u *)TRUE, (char_u *)0L} SCTX_INIT},
@@ -1611,6 +1616,9 @@ static struct vimoption options[] =
     {"lisp",	    NULL,   P_BOOL|P_VI_DEF,
 			    (char_u *)&p_lisp, PV_LISP,
 			    {(char_u *)FALSE, (char_u *)0L} SCTX_INIT},
+    {"lispoptions", "lop",  P_STRING|P_ALLOCED|P_VI_DEF|P_ONECOMMA|P_NODUP,
+			    (char_u *)&p_lop, PV_LOP,
+			    {(char_u *)"", (char_u *)0L} SCTX_INIT},
     {"lispwords",   "lw",   P_STRING|P_VI_DEF|P_ONECOMMA|P_NODUP,
 			    (char_u *)&p_lispwords, PV_LW,
 			    {(char_u *)LISPWORD_VALUE, (char_u *)0L} SCTX_INIT},
@@ -2176,11 +2184,7 @@ static struct vimoption options[] =
 #endif
 			    SCTX_INIT},
     {"ruler",	    "ru",   P_BOOL|P_VI_DEF|P_VIM|P_RSTAT,
-#ifdef FEAT_CMDL_INFO
 			    (char_u *)&p_ru, PV_NONE,
-#else
-			    (char_u *)NULL, PV_NONE,
-#endif
 			    {(char_u *)FALSE, (char_u *)0L} SCTX_INIT},
     {"rulerformat", "ruf",  P_STRING|P_VI_DEF|P_ALLOCED|P_RSTAT|P_MLE,
 #ifdef FEAT_STL_OPT
@@ -2340,11 +2344,7 @@ static struct vimoption options[] =
 #endif
 			    {(char_u *)"", (char_u *)0L} SCTX_INIT},
     {"showcmd",	    "sc",   P_BOOL|P_VIM,
-#ifdef FEAT_CMDL_INFO
 			    (char_u *)&p_sc, PV_NONE,
-#else
-			    (char_u *)NULL, PV_NONE,
-#endif
 			    {(char_u *)FALSE,
 #ifdef UNIX
 				(char_u *)FALSE

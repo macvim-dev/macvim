@@ -794,6 +794,8 @@ buf_clear_file(buf_T *buf)
     buf->b_ml.ml_line_count = 1;
     unchanged(buf, TRUE, TRUE);
     buf->b_shortname = FALSE;
+    buf->b_p_eof = FALSE;
+    buf->b_start_eof = FALSE;
     buf->b_p_eol = TRUE;
     buf->b_start_eol = TRUE;
     buf->b_p_bomb = FALSE;
@@ -1355,6 +1357,13 @@ do_buffer_ext(
     if ((flags & DOBUF_NOPOPUP) && bt_popup(buf) && !bt_terminal(buf))
 	return OK;
 #endif
+    if ((action == DOBUF_GOTO || action == DOBUF_SPLIT)
+						  && (buf->b_flags & BF_DUMMY))
+    {
+	// disallow navigating to the dummy buffer
+	semsg(_(e_buffer_nr_does_not_exist), count);
+	return FAIL;
+    }
 
 #ifdef FEAT_GUI
     need_mouse_correct = TRUE;
@@ -2394,6 +2403,7 @@ free_buf_options(
     clear_string_option(&buf->b_p_ft);
     clear_string_option(&buf->b_p_cink);
     clear_string_option(&buf->b_p_cino);
+    clear_string_option(&buf->b_p_lop);
     clear_string_option(&buf->b_p_cinsd);
     clear_string_option(&buf->b_p_cinw);
     clear_string_option(&buf->b_p_cpt);
@@ -2547,7 +2557,7 @@ buflist_getfpos(void)
     }
 }
 
-#if defined(FEAT_QUICKFIX) || defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_QUICKFIX) || defined(FEAT_EVAL) || defined(FEAT_SPELL) || defined(PROTO)
 /*
  * Find file in buffer list by name (it has to be for the current window).
  * Returns NULL if not found.
@@ -3850,14 +3860,12 @@ fileinfo(
 					    (long)curbuf->b_ml.ml_line_count);
     if (curbuf->b_ml.ml_flags & ML_EMPTY)
 	vim_snprintf_add(buffer, IOSIZE, "%s", _(no_lines_msg));
-#ifdef FEAT_CMDL_INFO
     else if (p_ru)
 	// Current line and column are already on the screen -- webb
 	vim_snprintf_add(buffer, IOSIZE,
 		NGETTEXT("%ld line --%d%%--", "%ld lines --%d%%--",
 						   curbuf->b_ml.ml_line_count),
 		(long)curbuf->b_ml.ml_line_count, n);
-#endif
     else
     {
 	vim_snprintf_add(buffer, IOSIZE,
@@ -5187,8 +5195,6 @@ build_stl_str_hl(
 }
 #endif // FEAT_STL_OPT
 
-#if defined(FEAT_STL_OPT) || defined(FEAT_CMDL_INFO) \
-	    || defined(FEAT_GUI_TABLINE) || defined(PROTO)
 /*
  * Get relative cursor position in window into "buf[buflen]", in the form 99%,
  * using "Top", "Bot" or "All" when appropriate.
@@ -5223,7 +5229,6 @@ get_rel_pos(
 				    ? (int)(above / ((above + below) / 100L))
 				    : (int)(above * 100L / (above + below)));
 }
-#endif
 
 /*
  * Append (file 2 of 8) to "buf[buflen]", if editing more than one file.

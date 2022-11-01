@@ -775,6 +775,28 @@ func Test_term_mouse_drag_to_move_tab()
         \              'Tab page 2',
         \              '    Xtab1'], a, msg)
 
+    " Switch to tab1
+    tabnext
+    let a = split(execute(':tabs'), "\n")
+    call assert_equal(['Tab page 1',
+        \              '    Xtab2',
+        \              'Tab page 2',
+        \              '>   Xtab1'], a, msg)
+
+    " Click in tab2 and drag it to tab1.
+    " This time it is non-current tab.
+    call MouseLeftClick(row, 6)
+    call assert_equal(0, getcharmod(), msg)
+    for col in [7, 8, 9, 10]
+      call MouseLeftDrag(row, col)
+    endfor
+    call MouseLeftRelease(row, col)
+    let a = split(execute(':tabs'), "\n")
+    call assert_equal(['Tab page 1',
+        \              '    Xtab1',
+        \              'Tab page 2',
+        \              '>   Xtab2'], a, msg)
+
     " Click elsewhere so that click in next iteration is not
     " interpreted as unwanted double-click.
     call MouseLeftClick(row, 11)
@@ -1338,7 +1360,7 @@ func Test_term_mouse_popup_menu_setpos()
 		\ .. MouseRightReleaseCode(1, 10) .. "\<Down>\<CR>", "x")
     call assert_equal([1, 1], [line('.'), col('.')], msg) " After yanking, the cursor goes to 1,1
     call assert_equal("V", getregtype('"'), msg)
-    call assert_equal(len(getreg('"', 1, v:true)), 1, msg)
+    call assert_equal(1, len(getreg('"', 1, v:true)), msg)
 
     " Test for right click in multi-line line-wise visual mode inside the selection
     let @" = ''
@@ -1347,7 +1369,7 @@ func Test_term_mouse_popup_menu_setpos()
 		\ .. MouseRightReleaseCode(2, 20) .. "\<Down>\<CR>", "x")
     call assert_equal([1, 1], [line('.'), col('.')], msg) " After yanking, the cursor goes to 1,1
     call assert_equal("V", getregtype('"'), msg)
-    call assert_equal(len(getreg('"', 1, v:true)), 2, msg)
+    call assert_equal(2, len(getreg('"', 1, v:true)), msg)
 
     " Test for right click in line-wise visual mode outside the selection
     let @" = ''
@@ -1367,7 +1389,7 @@ func Test_term_mouse_popup_menu_setpos()
 
     " Try clicking outside the window
     let @" = ''
-    call cursor(7, 2)
+    call cursor(2, 2)
     call feedkeys('vee' .. MouseRightClickCode(7, 2)
 		\ .. MouseRightReleaseCode(7, 2) .. "\<Down>\<CR>", "x")
     call assert_equal(2, winnr(), msg)
@@ -1647,7 +1669,8 @@ func Test_xx01_term_style_response()
         \ cursor_style: 'u',
         \ cursor_blink_mode: 'u',
         \ underline_rgb: 'u',
-        \ mouse: 's'
+        \ mouse: 's',
+        \ kitty: 'u',
         \ }, terminalprops())
 
   set t_RV=
@@ -1681,7 +1704,8 @@ func Test_xx02_iTerm2_response()
         \ cursor_style: 'n',
         \ cursor_blink_mode: 'u',
         \ underline_rgb: 'u',
-        \ mouse: 's'
+        \ mouse: 's',
+        \ kitty: 'u',
         \ }, terminalprops())
 
   set t_RV=
@@ -1700,7 +1724,8 @@ func Run_libvterm_konsole_response(code)
         \ cursor_style: 'n',
         \ cursor_blink_mode: 'u',
         \ underline_rgb: 'u',
-        \ mouse: 's'
+        \ mouse: 's',
+        \ kitty: 'u',
         \ }, terminalprops())
 endfunc
 
@@ -1742,7 +1767,8 @@ func Test_xx04_Mac_Terminal_response()
         \ cursor_style: 'n',
         \ cursor_blink_mode: 'u',
         \ underline_rgb: 'y',
-        \ mouse: 's'
+        \ mouse: 's',
+        \ kitty: 'u',
         \ }, terminalprops())
   call assert_equal("\<Esc>[58;2;%lu;%lu;%lum", &t_8u)
 
@@ -1772,7 +1798,8 @@ func Test_xx05_mintty_response()
         \ cursor_style: 'n',
         \ cursor_blink_mode: 'u',
         \ underline_rgb: 'y',
-        \ mouse: 's'
+        \ mouse: 's',
+        \ kitty: 'u',
         \ }, terminalprops())
 
   set t_RV=
@@ -1807,7 +1834,8 @@ func Test_xx06_screen_response()
         \ cursor_style: 'n',
         \ cursor_blink_mode: 'n',
         \ underline_rgb: 'y',
-        \ mouse: 's'
+        \ mouse: 's',
+        \ kitty: 'u',
         \ }, terminalprops())
 
   set t_RV=
@@ -1831,7 +1859,8 @@ func Do_check_t_8u_set_reset(set_by_user)
         \ cursor_style: 'u',
         \ cursor_blink_mode: 'u',
         \ underline_rgb: 'u',
-        \ mouse: 's'
+        \ mouse: 's',
+        \ kitty: 'u',
         \ }, terminalprops())
   call assert_equal(a:set_by_user ? default_value : '', &t_8u)
 endfunc
@@ -1867,7 +1896,8 @@ func Test_xx07_xterm_response()
         \ cursor_style: 'n',
         \ cursor_blink_mode: 'u',
         \ underline_rgb: 'y',
-        \ mouse: 'u'
+        \ mouse: 'u',
+        \ kitty: 'u',
         \ }, terminalprops())
 
   " xterm >= 95 < 277 "xterm2"
@@ -1882,7 +1912,8 @@ func Test_xx07_xterm_response()
         \ cursor_style: 'n',
         \ cursor_blink_mode: 'u',
         \ underline_rgb: 'u',
-        \ mouse: '2'
+        \ mouse: '2',
+        \ kitty: 'u',
         \ }, terminalprops())
 
   " xterm >= 277: "sgr"
@@ -1897,13 +1928,38 @@ func Test_xx07_xterm_response()
         \ cursor_style: 'n',
         \ cursor_blink_mode: 'u',
         \ underline_rgb: 'u',
-        \ mouse: 's'
+        \ mouse: 's',
+        \ kitty: 'u',
         \ }, terminalprops())
 
   " xterm >= 279: "sgr" and cursor_style not reset; also check t_8u reset,
   " except when it was set by the user
   call Do_check_t_8u_set_reset(0)
   call Do_check_t_8u_set_reset(1)
+
+  set t_RV=
+  call test_override('term_props', 0)
+endfunc
+
+func Test_xx08_kitty_response()
+  " Termresponse is only parsed when t_RV is not empty.
+  set t_RV=x
+  call test_override('term_props', 1)
+
+  set ttymouse=xterm
+  call test_option_not_set('ttymouse')
+  let seq = "\<Esc>[>1;4001;12c"
+  call feedkeys(seq, 'Lx!')
+  call assert_equal(seq, v:termresponse)
+  call assert_equal('sgr', &ttymouse)
+
+  call assert_equal(#{
+        \ cursor_style: 'u',
+        \ cursor_blink_mode: 'u',
+        \ underline_rgb: 'y',
+        \ mouse: 's',
+        \ kitty: 'y',
+        \ }, terminalprops())
 
   set t_RV=
   call test_override('term_props', 0)
@@ -1992,6 +2048,11 @@ func GetEscCodeCSIu(key, modifier)
   return "\<Esc>[" .. key .. ';' .. mod .. 'u'
 endfunc
 
+func GetEscCodeCSIuWithoutModifier(key)
+  let key = printf("%d", char2nr(a:key))
+  return "\<Esc>[" .. key .. 'u'
+endfunc
+
 " This checks the CSI sequences when in modifyOtherKeys mode.
 " The mode doesn't need to be enabled, the codes are always detected.
 func RunTest_modifyOtherKeys(func)
@@ -2078,6 +2139,19 @@ func Test_modifyOtherKeys_no_mapping()
   bwipe!
 
   set timeoutlen&
+endfunc
+
+func Test_CSIu_keys_without_modifiers()
+  " Escape sent as `CSI 27 u` should act as normal escape and not undo
+  call setline(1, 'a')
+  call feedkeys('a' .. GetEscCodeCSIuWithoutModifier("\e"), 'Lx!')
+  call assert_equal('n', mode())
+  call assert_equal('a', getline(1))
+
+  " Tab sent as `CSI 9 u` should work
+  call setline(1, '')
+  call feedkeys('a' .. GetEscCodeCSIuWithoutModifier("\t") .. "\<Esc>", 'Lx!')
+  call assert_equal("\t", getline(1))
 endfunc
 
 " Check that when DEC mouse codes are recognized a special key is handled.

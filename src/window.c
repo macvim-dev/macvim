@@ -604,9 +604,8 @@ wingotofile:
 		LANGMAP_ADJUST(xchar, TRUE);
 		--no_mapping;
 		--allow_keys;
-#ifdef FEAT_CMDL_INFO
 		(void)add_to_showcmd(xchar);
-#endif
+
 		switch (xchar)
 		{
 #if defined(FEAT_QUICKFIX)
@@ -4275,6 +4274,8 @@ leave_tabpage(
 	if (curtab != tp)
 	    return FAIL;
     }
+
+    reset_dragwin();
 #if defined(FEAT_GUI)
     // Remove the scrollbars.  They may be added back later.
     if (gui.in_use)
@@ -4340,6 +4341,10 @@ enter_tabpage(
     // check cmdline_row.
     if (row < cmdline_row && cmdline_row <= Rows - p_ch)
 	clear_cmdline = TRUE;
+
+    // If there was a click in a window, it won't be usable for a following
+    // drag.
+    reset_dragwin();
 
     // The tabpage line may have appeared or disappeared, may need to resize
     // the frames for that.  When the Vim window was resized need to update
@@ -6291,7 +6296,7 @@ win_drag_vsep_line(win_T *dragwin, int offset)
     if (fr == NULL)
 	// This can happen when calling win_move_separator() on the rightmost
 	// window.  Just don't do anything.
-	return;			
+	return;
 
     // grow frame fr by offset lines
     frame_new_width(fr, fr->fr_width + offset, left, FALSE);
@@ -6385,7 +6390,6 @@ win_fix_scroll(int resize)
 	    invalidate_botline_win(wp);
 	    validate_botline_win(wp);
 	}
-	win_comp_scroll(wp);
 	wp->w_prev_height = wp->w_height;
 	wp->w_prev_winrow = wp->w_winrow;
     }
@@ -6479,6 +6483,7 @@ win_new_height(win_T *wp, int height)
 
     wp->w_height = height;
     wp->w_skipcol = 0;
+    win_comp_scroll(wp);
 
     // There is no point in adjusting the scroll position when exiting.  Some
     // values might be invalid.
@@ -6603,7 +6608,6 @@ scroll_to_fraction(win_T *wp, int prev_height)
     if (prev_height > 0)
 	wp->w_prev_fraction_row = wp->w_wrow;
 
-    win_comp_scroll(wp);
     redraw_win_later(wp, UPD_SOME_VALID);
     wp->w_redr_status = TRUE;
     invalidate_botline_win(wp);

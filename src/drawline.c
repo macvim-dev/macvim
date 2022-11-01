@@ -343,9 +343,14 @@ handle_lnum_col(
 	int		num_attr UNUSED)
 {
     int has_cpo_n = vim_strchr(p_cpo, CPO_NUMCOL) != NULL;
+    int lnum_row = wlv->startrow + wlv->filler_lines
+#ifdef FEAT_PROP_POPUP
+		      + wlv->text_prop_above_count
+#endif
+		      ;
 
     if ((wp->w_p_nu || wp->w_p_rnu)
-	     && (wlv->row == wlv->startrow + wlv->filler_lines || !has_cpo_n)
+	     && (wlv->row <= lnum_row || !has_cpo_n)
 	     // there is no line number in a wrapped line when "n" is in
 	     // 'cpoptions', but 'breakindent' assumes it anyway.
 	     && !((has_cpo_n
@@ -366,11 +371,9 @@ handle_lnum_col(
 	  // Draw the line number (empty space after wrapping).
 	  // When there are text properties above the line put the line number
 	  // below them.
-	  if (wlv->row == wlv->startrow + wlv->filler_lines
-#ifdef FEAT_PROP_POPUP
-		  + wlv->text_prop_above_count
-#endif
-		    && (wp->w_skipcol == 0 || wlv->row > wp->w_winrow))
+	  if (wlv->row == lnum_row
+		    && (wp->w_skipcol == 0 || wlv->row > wp->w_winrow
+					       || (wp->w_p_nu && wp->w_p_rnu)))
 	  {
 	      long num;
 	      char *fmt = "%*ld ";
@@ -765,13 +768,25 @@ wlv_screen_line(win_T *wp, winlinevars_T *wlv, int negative_width)
 {
     if (wlv->row == 0 && wp->w_skipcol > 0
 #if defined(FEAT_LINEBREAK)
+	    // do not overwrite the 'showbreak' text with "<<<"
 	    && *get_showbreak_value(wp) == NUL
 #endif
-	    )
+	    // do not overwrite the 'listchars' "precedes" text with "<<<"
+	    && !(wp->w_p_list && wp->w_lcs_chars.prec != 0))
     {
 	int off = (int)(current_ScreenLine - ScreenLines);
+	int skip = 0;
 
-	for (int i = 0; i < 3; ++i)
+	if (wp->w_p_nu && wp->w_p_rnu)
+	    // Do not overwrite the line number, change "123 text" to
+	    // "123>>>xt".
+	    while (skip < wp->w_width && VIM_ISDIGIT(ScreenLines[off]))
+	    {
+		++off;
+		++skip;
+	    }
+
+	for (int i = 0; i < 3 && i + skip < wp->w_width; ++i)
 	{
 	    ScreenLines[off] = '<';
 	    if (enc_utf8)
@@ -1075,7 +1090,7 @@ win_line(
     int		get_term_attr = FALSE;
 #endif
 
-#ifdef FEAT_SYN_HL
+#if defined(FEAT_SYN_HL) || defined(FEAT_DIFF)
     // margin columns for the screen line, needed for when 'cursorlineopt'
     // contains "screenline"
     int		left_curline_col = 0;
@@ -1089,6 +1104,8 @@ win_line(
 
 #if defined(FEAT_CONCEAL) || defined(FEAT_SEARCH_EXTRA)
     int		match_conc	= 0;	// cchar for match functions
+#endif
+#if defined(FEAT_CONCEAL) || defined(FEAT_SEARCH_EXTRA) || defined(FEAT_LINEBREAK)
     int		on_last_col     = FALSE;
 #endif
 #ifdef FEAT_CONCEAL
@@ -1680,6 +1697,8 @@ win_line(
 	    {
 		area_highlighting = TRUE;
 		extra_check = TRUE;
+		// text props "above" move the line number down to where the
+		// text is.
 		for (int i = 0; i < text_prop_count; ++i)
 		    if (text_props[i].tp_flags & TP_FLAG_ALIGN_ABOVE)
 			++wlv.text_prop_above_count;

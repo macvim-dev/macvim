@@ -1222,6 +1222,8 @@ update_cursor(term_T *term, int redraw)
 	setcursor();
     if (redraw)
     {
+	aco_save_T	aco;
+
 	if (term->tl_buffer == curbuf && term->tl_cursor_visible)
 	    cursor_on();
 	out_flush();
@@ -1232,6 +1234,16 @@ update_cursor(term_T *term, int redraw)
 	    gui_mch_flush();
 	}
 #endif
+        // Make sure an invoked autocmd doesn't delete the buffer (and the
+        // terminal) under our fingers.
+	++term->tl_buffer->b_locked;
+
+	// save and restore curwin and curbuf, in case the autocmd changes them
+	aucmd_prepbuf(&aco, curbuf);
+	apply_autocmds(EVENT_TEXTCHANGEDT, NULL, NULL, FALSE, term->tl_buffer);
+	aucmd_restbuf(&aco);
+
+	--term->tl_buffer->b_locked;
     }
 }
 
@@ -2320,15 +2332,13 @@ term_paste_register(int prev_c UNUSED)
     long	reglen = 0;
     int		type;
 
-#ifdef FEAT_CMDL_INFO
     if (add_to_showcmd(prev_c))
     if (add_to_showcmd('"'))
 	out_flush();
-#endif
+
     c = term_vgetc();
-#ifdef FEAT_CMDL_INFO
     clear_showcmd();
-#endif
+
     if (!term_use_loop())
 	// job finished while waiting for a character
 	return;
@@ -2707,16 +2717,14 @@ terminal_loop(int blocking)
 	    int	    prev_raw_c = raw_c;
 	    int	    prev_mod_mask = mod_mask;
 
-#ifdef FEAT_CMDL_INFO
 	    if (add_to_showcmd(c))
 		out_flush();
-#endif
+
 	    raw_c = term_vgetc();
 	    c = raw_c_to_ctrl(raw_c);
 
-#ifdef FEAT_CMDL_INFO
 	    clear_showcmd();
-#endif
+
 	    if (!term_use_loop_check(TRUE)
 					 || in_terminal_loop != curbuf->b_term)
 		// job finished while waiting for a character
@@ -3444,7 +3452,8 @@ static VTermScreenCallbacks screen_callbacks = {
   handle_bell,		// bell
   handle_resize,	// resize
   handle_pushline,	// sb_pushline
-  NULL			// sb_popline
+  NULL,			// sb_popline
+  NULL			// sb_clear
 };
 
 /*

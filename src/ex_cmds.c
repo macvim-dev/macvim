@@ -256,7 +256,7 @@ linelen(int *has_tab)
 	;
     save = *last;
     *last = NUL;
-    len = linetabsize(line);		// get line length
+    len = linetabsize_str(line);	// get line length on screen
     if (has_tab != NULL)		// check for embedded TAB
 	*has_tab = (vim_strchr(first, TAB) != NULL);
     *last = save;
@@ -957,8 +957,15 @@ do_bang(
 	}
     } while (trailarg != NULL);
 
-    vim_free(prevcmd);
-    prevcmd = newcmd;
+    // Only set "prevcmd" if there is a command to run, otherwise keep te one
+    // we have.
+    if (STRLEN(newcmd) > 0)
+    {
+	vim_free(prevcmd);
+	prevcmd = newcmd;
+    }
+    else
+	free_newcmd = TRUE;
 
     if (bangredo)	    // put cmd in redo buffer for ! command
     {
@@ -982,6 +989,8 @@ do_bang(
      */
     if (*p_shq != NUL)
     {
+	if (free_newcmd)
+	    vim_free(newcmd);
 	newcmd = alloc(STRLEN(prevcmd) + 2 * STRLEN(p_shq) + 1);
 	if (newcmd == NULL)
 	    return;

@@ -589,6 +589,8 @@ readfile(
 	// correctly set when reading stdin.
 	if (!read_buffer)
 	{
+	    curbuf->b_p_eof = FALSE;
+	    curbuf->b_start_eof = FALSE;
 	    curbuf->b_p_eol = TRUE;
 	    curbuf->b_start_eol = TRUE;
 	}
@@ -2269,18 +2271,28 @@ failed:
     if (error && read_count == 0)
 	error = FALSE;
 
-    /*
-     * If we get EOF in the middle of a line, note the fact and
-     * complete the line ourselves.
-     * In Dos format ignore a trailing CTRL-Z, unless 'binary' set.
-     */
+    // In Dos format ignore a trailing CTRL-Z, unless 'binary' is set.
+    // In old days the file length was in sector count and the CTRL-Z the
+    // marker where the file really ended.  Assuming we write it to a file
+    // system that keeps file length properly the CTRL-Z should be dropped.
+    // Set the 'endoffile' option so the user can decide what to write later.
+    // In Unix format the CTRL-Z is just another character.
+    if (linerest != 0
+	    && !curbuf->b_p_bin
+	    && fileformat == EOL_DOS
+	    && ptr[-1] == Ctrl_Z)
+    {
+	ptr--;
+	linerest--;
+	if (set_options)
+	    curbuf->b_p_eof = TRUE;
+    }
+
+    // If we get EOF in the middle of a line, note the fact by resetting
+    // 'endofline' and add the line normally.
     if (!error
 	    && !got_int
-	    && linerest != 0
-	    && !(!curbuf->b_p_bin
-		&& fileformat == EOL_DOS
-		&& *line_start == Ctrl_Z
-		&& ptr == line_start + 1))
+	    && linerest != 0)
     {
 	// remember for when writing
 	if (set_options)

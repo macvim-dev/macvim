@@ -1,4 +1,4 @@
-*options.txt*	For Vim version 9.0.  Last change: 2022 Oct 03
+*options.txt*	For Vim version 9.0.  Last change: 2022 Oct 28
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -3063,6 +3063,16 @@ A jump table for the options with a short description can be found at |Q_op|.
 	When 'encoding' is set to a Unicode encoding, and 'fileencodings' was
 	not set yet, the default for 'fileencodings' is changed.
 
+			*'endoffile'* *'eof'* *'noendoffile'* *'noeof'*
+'endoffile' 'eof'	boolean	(default on)
+			local to buffer
+	Indicates that a CTRL-Z character was found at the end of the file
+	when reading it.  Normally only happens when 'fileformat' is "dos".
+	When writing a file and this option is off and the 'binary' option
+	is on, or 'fixeol' option is off, no CTRL-Z will be written at the
+	end of the file.
+	See |eol-and-eof| for example settings.
+
 			*'endofline'* *'eol'* *'noendofline'* *'noeol'*
 'endofline' 'eol'	boolean	(default on)
 			local to buffer
@@ -3077,6 +3087,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 	to remember the presence of a <EOL> for the last line in the file, so
 	that when you write the file the situation from the original file can
 	be kept.  But you can change it if you want to.
+	See |eol-and-eof| for example settings.
 
 			     *'equalalways'* *'ea'* *'noequalalways'* *'noea'*
 'equalalways' 'ea'	boolean	(default on)
@@ -3467,11 +3478,12 @@ A jump table for the options with a short description can be found at |Q_op|.
 'fixendofline' 'fixeol'	boolean	(default on)
 			local to buffer
 	When writing a file and this option is on, <EOL> at the end of file
-	will be restored if missing. Turn this option off if you want to
+	will be restored if missing.  Turn this option off if you want to
 	preserve the situation from the original file.
 	When the 'binary' option is set the value of this option doesn't
 	matter.
 	See the 'endofline' option.
+	See |eol-and-eof| for example settings.
 
 					*'fkmap'* *'fk'* *'nofkmap'* *'nofk'*
 'fkmap' 'fk'		boolean (default off)
@@ -4716,7 +4728,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 	in Insert mode as specified with the 'indentkeys' option.
 	When this option is not empty, it overrules the 'cindent' and
 	'smartindent' indenting.  When 'lisp' is set, this option is
-	overridden by the Lisp indentation algorithm.
+	is only used when 'lispoptions' contains "expr:1".
 	When 'paste' is set this option is not used for indenting.
 	The expression is evaluated with |v:lnum| set to the line number for
 	which the indent is to be computed.  The cursor is also in this line
@@ -5157,6 +5169,17 @@ A jump table for the options with a short description can be found at |Q_op|.
 	"=" operator to use this same indentation algorithm rather than
 	calling an external program if 'equalprg' is empty.
 	This option is not used when 'paste' is set.
+
+						*'lispoptions'* *'lop'*
+'lispoptions' 'lop'	string	(default "")
+			local to buffer
+	Comma-separated list of items that influence the Lisp indenting when
+	enabled with the |'lisp'| option.  Currently only one item is
+	supported:
+		expr:1	use 'indentexpr' for Lisp indenting when it is set
+		expr:0	do not use 'indentexpr' for Lisp indenting (default)
+	Note that when using 'indentexpr' the `=` operator indents all the
+	lines, otherwise the first line is not indented (Vi-compatible).
 
 						*'lispwords'* *'lw'*
 'lispwords' 'lw'	string	(default is very long)
@@ -6608,8 +6631,6 @@ A jump table for the options with a short description can be found at |Q_op|.
 					 *'ruler'* *'ru'* *'noruler'* *'noru'*
 'ruler' 'ru'		boolean	(default off, set in |defaults.vim|)
 			global
-			{not available when compiled without the
-			|+cmdline_info| feature}
 	Show the line and column number of the cursor position, separated by a
 	comma.  When there is room, the relative position of the displayed
 	text in the file is shown on the far right:
@@ -7269,8 +7290,6 @@ A jump table for the options with a short description can be found at |Q_op|.
 'showcmd' 'sc'		boolean	(Vim default: on, off for Unix,
 				       Vi default: off, set in |defaults.vim|)
 			global
-			{not available when compiled without the
-			|+cmdline_info| feature}
 	Show (partial) command in the last line of the screen.  Set this
 	option off if your terminal is slow.
 	In Visual mode the size of the selected area is shown:
@@ -7659,7 +7678,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 	When on, splitting a window will put the new window below the current
 	one. |:split|
 
-			*'splitkeep'* *'spk'
+			*'splitkeep'* *'spk'*
 'splitkeep' 'spk'	string	(default "cursor")
 			global
 	The value of this option determines the scroll behavior when opening,
@@ -7673,7 +7692,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 	For the "screen" and "topline" values, the cursor position will be
 	changed when necessary. In this case, the jumplist will be populated
 	with the previous cursor position. For "screen", the text cannot always
-	be kept on the same screen line	when 'wrap' is enabled.
+	be kept on the same screen line when 'wrap' is enabled.
 
 			*'splitright'* *'spr'* *'nosplitright'* *'nospr'*
 'splitright' 'spr'	boolean	(default off)

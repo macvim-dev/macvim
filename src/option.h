@@ -555,6 +555,7 @@ EXTERN char_u	*p_efm;		// 'errorformat'
 EXTERN char_u	*p_gefm;	// 'grepformat'
 EXTERN char_u	*p_gp;		// 'grepprg'
 #endif
+EXTERN int	p_eof;		// 'endoffile'
 EXTERN int	p_eol;		// 'endofline'
 EXTERN int	p_ek;		// 'esckeys'
 EXTERN char_u	*p_ei;		// 'eventignore'
@@ -721,6 +722,7 @@ EXTERN char_u	*p_lm;		// 'langmenu'
 EXTERN long	p_linespace;	// 'linespace'
 #endif
 EXTERN int	p_lisp;		// 'lisp'
+EXTERN char_u	*p_lop;		// 'lispoptions'
 EXTERN char_u	*p_lispwords;	// 'lispwords'
 EXTERN long	p_ls;		// 'laststatus'
 EXTERN long	p_stal;		// 'showtabline'
@@ -843,9 +845,7 @@ EXTERN int	p_ri;		// 'revins'
 #if defined(DYNAMIC_RUBY)
 EXTERN char_u	*p_rubydll;	// 'rubydll'
 #endif
-#ifdef FEAT_CMDL_INFO
 EXTERN int	p_ru;		// 'ruler'
-#endif
 #ifdef FEAT_STL_OPT
 EXTERN char_u	*p_ruf;		// 'rulerformat'
 #endif
@@ -912,9 +912,7 @@ EXTERN int	p_sn;		// 'shortname'
 #ifdef FEAT_LINEBREAK
 EXTERN char_u	*p_sbr;		// 'showbreak'
 #endif
-#ifdef FEAT_CMDL_INFO
 EXTERN int	p_sc;		// 'showcmd'
-#endif
 EXTERN int	p_sft;		// 'showfulltag'
 EXTERN int	p_sm;		// 'showmatch'
 EXTERN int	p_smd;		// 'showmode'
@@ -1152,6 +1150,7 @@ enum
     , BV_DEF
     , BV_INC
 #endif
+    , BV_EOF
     , BV_EOL
     , BV_FIXEOL
     , BV_EP
@@ -1185,6 +1184,7 @@ enum
 #endif
     , BV_KP
     , BV_LISP
+    , BV_LOP
     , BV_LW
     , BV_MENC
     , BV_MA

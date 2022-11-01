@@ -69,8 +69,8 @@ endfunc
 func Test_window_cmd_wincmd_gf()
   let fname = 'test_gf.txt'
   let swp_fname = '.' . fname . '.swp'
-  call writefile([], fname)
-  call writefile([], swp_fname)
+  call writefile([], fname, 'D')
+  call writefile([], swp_fname, 'D')
   function s:swap_exists()
     let v:swapchoice = s:swap_choice
   endfunc
@@ -96,8 +96,6 @@ func Test_window_cmd_wincmd_gf()
   call assert_notequal(fname, bufname("%"))
   new | only!
 
-  call delete(fname)
-  call delete(swp_fname)
   augroup! test_window_cmd_wincmd_gf
 endfunc
 
@@ -740,7 +738,7 @@ func Test_window_prevwin()
   CheckUnix
 
   set hidden autoread
-  call writefile(['2'], 'tmp.txt')
+  call writefile(['2'], 'tmp.txt', 'D')
   new tmp.txt
   q
   call Fun_RenewFile()
@@ -756,7 +754,6 @@ func Test_window_prevwin()
   wincmd p
   " reset
   q
-  call delete('tmp.txt')
   set hidden&vim autoread&vim
   delfunc Fun_RenewFile
 endfunc
@@ -1082,9 +1079,9 @@ func Run_noroom_for_newwindow_test(dir_arg)
     endtry
   endwhile
 
-  call writefile(['first', 'second', 'third'], 'Xnorfile1')
-  call writefile([], 'Xnorfile2')
-  call writefile([], 'Xnorfile3')
+  call writefile(['first', 'second', 'third'], 'Xnorfile1', 'D')
+  call writefile([], 'Xnorfile2', 'D')
+  call writefile([], 'Xnorfile3', 'D')
 
   " Argument list related commands
   args Xnorfile1 Xnorfile2 Xnorfile3
@@ -1165,9 +1162,6 @@ func Run_noroom_for_newwindow_test(dir_arg)
   endif
 
   %bwipe!
-  call delete('Xnorfile1')
-  call delete('Xnorfile2')
-  call delete('Xnorfile3')
   only
 endfunc
 
@@ -1489,23 +1483,33 @@ func Test_win_move_separator()
   call assert_equal(w0, winwidth(0))
   call assert_true(win_move_separator(0, -1))
   call assert_equal(w0, winwidth(0))
+
   " check that win_move_separator doesn't error with offsets beyond moving
   " possibility
   call assert_true(win_move_separator(id, 5000))
   call assert_true(winwidth(id) > w)
   call assert_true(win_move_separator(id, -5000))
   call assert_true(winwidth(id) < w)
+
   " check that win_move_separator returns false for an invalid window
   wincmd =
   let w = winwidth(0)
   call assert_false(win_move_separator(-1, 1))
   call assert_equal(w, winwidth(0))
+
   " check that win_move_separator returns false for a popup window
   let id = popup_create(['hello', 'world'], {})
   let w = winwidth(id)
   call assert_false(win_move_separator(id, 1))
   call assert_equal(w, winwidth(id))
   call popup_close(id)
+
+  " check that using another tabpage fails without crash
+  let id = win_getid()
+  tabnew
+  call assert_fails('call win_move_separator(id, -1)', 'E1308:')
+  tabclose
+
   %bwipe!
 endfunc
 
@@ -1551,23 +1555,33 @@ func Test_win_move_statusline()
     call assert_true(id->win_move_statusline(-offset))
     call assert_equal(h, winheight(id))
   endfor
+
   " check that win_move_statusline doesn't error with offsets beyond moving
   " possibility
   call assert_true(win_move_statusline(id, 5000))
   call assert_true(winheight(id) > h)
   call assert_true(win_move_statusline(id, -5000))
   call assert_true(winheight(id) < h)
+
   " check that win_move_statusline returns false for an invalid window
   wincmd =
   let h = winheight(0)
   call assert_false(win_move_statusline(-1, 1))
   call assert_equal(h, winheight(0))
+
   " check that win_move_statusline returns false for a popup window
   let id = popup_create(['hello', 'world'], {})
   let h = winheight(id)
   call assert_false(win_move_statusline(id, 1))
   call assert_equal(h, winheight(id))
   call popup_close(id)
+
+  " check that using another tabpage fails without crash
+  let id = win_getid()
+  tabnew
+  call assert_fails('call win_move_statusline(id, -1)', 'E1308:')
+  tabclose
+
   %bwipe!
 endfunc
 

@@ -478,8 +478,12 @@ func Test_list_mappings()
         \ execute('nmap ,n')->trim()->split("\n"))
 
   " verbose map
+  " first line might be "seen modifyOtherKeys"
+  let lines = execute('verbose map ,n')->trim()->split("\n")
+  let index = indexof(lines, 'v:val =~ "Last set"')
+  call assert_inrange(1, 2, index)
   call assert_match("\tLast set from .*/test_mapping.vim line \\d\\+$",
-        \ execute('verbose map ,n')->trim()->split("\n")[1])
+        \ lines[index])
 
   " character with K_SPECIAL byte in rhs
   nmap foo …
@@ -1642,6 +1646,30 @@ func Test_mouse_drag_mapped_start_select()
   delfunc DragExpr
   set selectmode&
   set mouse&
+endfunc
+
+func Test_mouse_drag_statusline()
+  set laststatus=2
+  set mouse=a
+  func ClickExpr()
+    call test_setmouse(&lines - 1, 1)
+    return "\<LeftMouse>"
+  endfunc
+  func DragExpr()
+    call test_setmouse(&lines - 2, 1)
+    return "\<LeftDrag>"
+  endfunc
+  nnoremap <expr> <F2> ClickExpr()
+  nnoremap <expr> <F3> DragExpr()
+
+  " this was causing a crash in win_drag_status_line()
+  call feedkeys("\<F2>:tabnew\<CR>\<F3>", 'tx')
+
+  nunmap <F2>
+  nunmap <F3>
+  delfunc ClickExpr
+  delfunc DragExpr
+  set laststatus& mouse&
 endfunc
 
 " Test for mapping <LeftDrag> in Insert mode

@@ -2154,6 +2154,13 @@ restore_backup:
 	    nchars += len;
 	}
 
+	if (!buf->b_p_fixeol && buf->b_p_eof)
+	{
+	    // write trailing CTRL-Z
+	    (void)write_eintr(write_info.bw_fd, "\x1a", 1);
+	    nchars++;
+	}
+
 	// Stop when writing done or an error was encountered.
 	if (!checking_conversion || end == 0)
 	    break;
