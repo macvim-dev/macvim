@@ -11,7 +11,7 @@
 @interface MMSparkle2Delegate : NSObject <SPUUpdaterDelegate, SPUStandardUserDriverDelegate>;
 
 // SPUUpdaterDelegate
-// Don't implement anything for now.
+- (nonnull NSSet<NSString *> *)allowedChannelsForUpdater:(nonnull SPUUpdater *)updater;
 
 // SPUStandardUserDriverDelegate
 // No need to implement anything for now. Default behaviors work fine.

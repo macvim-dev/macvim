@@ -24,6 +24,10 @@
 
     // Input pane
     IBOutlet NSButton *allowForceClickLookUpButton;
+
+    // Advanced pane
+    IBOutlet NSView *sparklePrereleaseButton;
+    IBOutlet NSView *sparklePrereleaseDesc;
 }
 
 // General pane

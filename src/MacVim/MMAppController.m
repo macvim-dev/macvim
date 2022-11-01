@@ -42,7 +42,6 @@
 #import "MMVimController.h"
 #import "MMVimView.h"
 #import "MMWindowController.h"
-#import "MMSparkle2Delegate.h"
 #import "MMTextView.h"
 #import "Miscellaneous.h"
 #import <unistd.h>
@@ -51,6 +50,7 @@
 #import <Carbon/Carbon.h>
 
 #if !DISABLE_SPARKLE
+#import "MMSparkle2Delegate.h"
 #import "Sparkle.framework/Headers/Sparkle.h"
 #endif
 
@@ -261,6 +261,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         [NSNumber numberWithBool:NO],     MMSmoothResizeKey,
         [NSNumber numberWithBool:NO],     MMCmdLineAlignBottomKey,
         [NSNumber numberWithBool:YES],    MMAllowForceClickLookUpKey,
+        [NSNumber numberWithBool:NO],     MMUpdaterPrereleaseChannelKey,
         nil];
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:dict];

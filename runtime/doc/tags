@@ -5454,6 +5454,7 @@ MMTextInsetTop	gui_mac.txt	/*MMTextInsetTop*
 MMTexturedWindow	gui_mac.txt	/*MMTexturedWindow*
 MMTitlebarAppearsTransparent	gui_mac.txt	/*MMTitlebarAppearsTransparent*
 MMTranslateCtrlClick	gui_mac.txt	/*MMTranslateCtrlClick*
+MMUpdaterPrereleaseChannel	gui_mac.txt	/*MMUpdaterPrereleaseChannel*
 MMUseMouseTime	gui_mac.txt	/*MMUseMouseTime*
 MMVerticalSplit	gui_mac.txt	/*MMVerticalSplit*
 MMZoomBoth	gui_mac.txt	/*MMZoomBoth*
