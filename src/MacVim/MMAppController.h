@@ -16,7 +16,12 @@
 @class MMVimController;
 
 #if !DISABLE_SPARKLE
+#if USE_SPARKLE_1
 @class SUUpdater;
+#else
+@class SPUStandardUpdaterController;
+@class MMSparkle2Delegate;
+#endif
 #endif
 
 
@@ -46,7 +51,12 @@
     int                 processingFlag;
     
 #if !DISABLE_SPARKLE
+#if USE_SPARKLE_1
     SUUpdater           *updater;
+#else
+    SPUStandardUpdaterController *updater;
+    MMSparkle2Delegate  *sparkle2delegate; ///< Sparkle 2 delegate which allows us to customize the updater's behavior.
+#endif
 #endif
 
     FSEventStreamRef    fsEventStream;

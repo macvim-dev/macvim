@@ -17,15 +17,35 @@
 - (void)windowDidLoad
 {
 #if DISABLE_SPARKLE
-    // If Sparkle is disabled in config, we don't want to show the preference pane
-    // which could be confusing as it won't do anything.
-    // After hiding the Sparkle subview, shorten the height of the General pane
-    // and move its other subviews down.
-    [sparkleUpdaterPane setHidden:YES];
-    CGFloat sparkleHeight = NSHeight(sparkleUpdaterPane.frame);
-    NSRect frame = generalPreferences.frame;
-    frame.size.height -= sparkleHeight;
-    generalPreferences.frame = frame;
+    {
+        // If Sparkle is disabled in config, we don't want to show the preference pane
+        // which could be confusing as it won't do anything.
+        // After hiding the Sparkle subview, shorten the height of the General pane
+        // and move its other subviews down.
+        [sparkleUpdaterPane setHidden:YES];
+        CGFloat sparkleHeight = NSHeight(sparkleUpdaterPane.frame);
+        NSRect frame = generalPreferences.frame;
+        frame.size.height -= sparkleHeight;
+        generalPreferences.frame = frame;
+    }
+#endif
+
+#if DISABLE_SPARKLE || USE_SPARKLE_1
+    {
+        // Also hide the pre-release update channel pane, if we disabled Sparkle, or
+        // we are using Sparkle 1 still (since it doesn't support this feature).
+        [sparklePrereleaseButton setHidden:YES];
+        CGFloat sparkleHeight = NSHeight(sparklePrereleaseButton.frame);
+        NSRect frame = advancedPreferences.frame;
+        frame.size.height -= sparkleHeight;
+        advancedPreferences.frame = frame;
+
+        [sparklePrereleaseDesc setHidden:YES];
+        sparkleHeight = NSHeight(sparklePrereleaseDesc.frame);
+        frame = advancedPreferences.frame;
+        frame.size.height -= sparkleHeight;
+        advancedPreferences.frame = frame;
+    }
 #endif
     [super windowDidLoad];
 

@@ -44,11 +44,15 @@
 #import "MMWindowController.h"
 #import "MMTextView.h"
 #import "Miscellaneous.h"
-#import "Sparkle.framework/Headers/Sparkle.h"
 #import <unistd.h>
 #import <CoreServices/CoreServices.h>
 // Need Carbon for TIS...() functions
 #import <Carbon/Carbon.h>
+
+#if !DISABLE_SPARKLE
+#import "MMSparkle2Delegate.h"
+#import "Sparkle.framework/Headers/Sparkle.h"
+#endif
 
 
 #define MM_HANDLE_XCODE_MOD_EVENT 0
@@ -257,6 +261,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         [NSNumber numberWithBool:NO],     MMSmoothResizeKey,
         [NSNumber numberWithBool:NO],     MMCmdLineAlignBottomKey,
         [NSNumber numberWithBool:YES],    MMAllowForceClickLookUpKey,
+        [NSNumber numberWithBool:NO],     MMUpdaterPrereleaseChannelKey,
         nil];
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:dict];
@@ -312,7 +317,12 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 #if !DISABLE_SPARKLE
     // Sparkle is enabled (this is the default). Initialize it. It will
     // automatically check for update.
+#if USE_SPARKLE_1
     updater = [[SUUpdater alloc] init];
+#else
+    sparkle2delegate = [[MMSparkle2Delegate alloc] init];
+    updater = [[SPUStandardUpdaterController alloc] initWithUpdaterDelegate:sparkle2delegate userDriverDelegate:sparkle2delegate];
+#endif
 #endif
 
     return self;
@@ -334,6 +344,9 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     [appMenuItemTemplate release];  appMenuItemTemplate = nil;
 #if !DISABLE_SPARKLE
     [updater release];  updater = nil;
+#if !USE_SPARKLE_1
+    [sparkle2delegate release];  sparkle2delegate = nil;
+#endif
 #endif
 
     [super dealloc];

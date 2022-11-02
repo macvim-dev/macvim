@@ -74,8 +74,19 @@ jobs:
       - name: Set up legacy build
         if: matrix.legacy
         run: |
+          # Set the correct build env vars to target the correct architectures and min OS targets.
           echo "MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET_LEGACY" >> $GITHUB_ENV
           echo "MACVIM_ARCHS=$MACVIM_ARCHS_LEGACY" >> $GITHUB_ENV
+
+      - name: Set up Sparkle 1
+        if: matrix.legacy || !matrix.publish
+        run: |
+          # Use Sparkle 1 because Sparkle 2 requires newer OS version than our legacy build.
+          # Later, we pass the --enable-sparkle_1 flag to configure to set the corresponding ifdef.
+          #
+          # We also do this for non-publish builds, because those are usually run on older versions
+          # of Xcode, and they cannot handle the Sparkle 2 framework as it's built using newer Xcode.
+          ln -fhs Sparkle_1.framework src/MacVim/Sparkle.framework
 
       # Set up, install, and cache gettext library for localization.
       #
@@ -161,6 +172,12 @@ jobs:
           else
             CONFOPT+=(
               --with-macarchs=x86_64
+              --disable-sparkle       # Disable Sparkle for testing that this flag builds and works
+            )
+          fi
+          if ${{ matrix.legacy == true }}; then
+            CONFOPT+=(
+              --enable-sparkle_1
             )
           fi
           echo "CONFOPT: ${CONFOPT[@]}"

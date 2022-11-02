@@ -239,6 +239,21 @@ if test "$vim_cv_uname_output" = Darwin; then
     XCODEFLAGS="$XCODEFLAGS GCC_PREPROCESSOR_DEFINITIONS='$GCC_PREPROCESSOR_DEFINITIONS DISABLE_SPARKLE=1'"
   fi
 
+  if test "$enable_sparkle" == "yes"; then
+    # Check if we want to build for legacy Sparkle version for old macOS
+    # versions
+    AC_MSG_CHECKING(--enable-sparkle_1 argument)
+    AC_ARG_ENABLE(sparkle_1,
+        [  --enable-sparkle_1       Use legacy Sparkle 1 updater (MacVim).],
+        [use_sparkle_1="yes"])
+    if test "$use_sparkle_1" == "yes"; then
+      AC_MSG_RESULT(yes)
+      XCODEFLAGS="$XCODEFLAGS GCC_PREPROCESSOR_DEFINITIONS='$GCC_PREPROCESSOR_DEFINITIONS USE_SPARKLE_1=1'"
+    else
+      AC_MSG_RESULT(no)
+    fi
+  fi
+
   AC_MSG_CHECKING(--with-developer-dir argument)
   AC_ARG_WITH(developer-dir, [  --with-developer-dir=PATH    use PATH as location for Xcode developer tools],
 	DEVELOPER_DIR="$withval"; AC_MSG_RESULT($DEVELOPER_DIR),
