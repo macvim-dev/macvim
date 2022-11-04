@@ -17,27 +17,27 @@ set -e
 macvim_path=$1
 entitlements=$2
 
-if [[ $macvim_path =~ dmg ]]; then
+if [[ "$macvim_path" =~ dmg ]]; then
     set -x
-    codesign -f -s "Developer ID Application" -o runtime --timestamp $macvim_path
+    codesign -f -s "Developer ID Application" -o runtime --timestamp "$macvim_path"
 else
     # Sign bottom-up to make sure everything is signed in order.
     # Note: Not using --deep because it's been deprecated since macOS 13, and
     # also it doesn't catch all the binaries anyway so it's better to just be
     # explicit and sign everything in order to be clear what we are doing.
-    if [ -d $macvim_path/Contents/Frameworks/Sparkle.framework/Versions/A ]; then
+    if [ -d "$macvim_path/Contents/Frameworks/Sparkle.framework/Versions/A" ]; then
         (set -x
-        codesign -f -s "Developer ID Application" -o runtime --timestamp $macvim_path/Contents/Frameworks/Sparkle.framework/Versions/A/Resources/Autoupdate.app)
+        codesign -f -s "Developer ID Application" -o runtime --timestamp "$macvim_path/Contents/Frameworks/Sparkle.framework/Versions/A/Resources/Autoupdate.app")
     fi
     if [ -d $macvim_path/Contents/Frameworks/Sparkle.framework/Versions/B ]; then
         (set -x
-        codesign -f -s "Developer ID Application" -o runtime --timestamp $macvim_path/Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate
-        codesign -f -s "Developer ID Application" -o runtime --timestamp $macvim_path/Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app)
+        codesign -f -s "Developer ID Application" -o runtime --timestamp "$macvim_path/Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate"
+        codesign -f -s "Developer ID Application" -o runtime --timestamp "$macvim_path/Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app")
     fi
     set -x
-    codesign -f -s "Developer ID Application" -o runtime --timestamp $macvim_path/Contents/Frameworks/Sparkle.framework
-    codesign -f -s "Developer ID Application" -o runtime --timestamp $macvim_path/Contents/Frameworks/PSMTabBarControl.framework
-    codesign -f -s "Developer ID Application" -o runtime --timestamp $macvim_path/Contents/Library/QuickLook/QLStephen.qlgenerator/Contents/MacOS/QLStephen
-    codesign -f -s "Developer ID Application" -o runtime --timestamp --entitlements $entitlements $macvim_path/Contents/MacOS/Vim
-    codesign -f -s "Developer ID Application" -o runtime --timestamp --entitlements $entitlements $macvim_path
+    codesign -f -s "Developer ID Application" -o runtime --timestamp "$macvim_path/Contents/Frameworks/Sparkle.framework"
+    codesign -f -s "Developer ID Application" -o runtime --timestamp "$macvim_path/Contents/Frameworks/PSMTabBarControl.framework"
+    codesign -f -s "Developer ID Application" -o runtime --timestamp "$macvim_path/Contents/Library/QuickLook/QLStephen.qlgenerator/Contents/MacOS/QLStephen"
+    codesign -f -s "Developer ID Application" -o runtime --timestamp --entitlements $entitlements "$macvim_path/Contents/MacOS/Vim"
+    codesign -f -s "Developer ID Application" -o runtime --timestamp --entitlements $entitlements "$macvim_path"
 fi

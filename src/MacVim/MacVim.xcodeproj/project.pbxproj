@@ -1053,7 +1053,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "./scripts/cleanup-after-build $BUILT_PRODUCTS_DIR/$WRAPPER_NAME\n";
+			shellScript = "./scripts/cleanup-after-build \"$BUILT_PRODUCTS_DIR/$WRAPPER_NAME\"\n";
 			showEnvVarsInLog = 0;
 		};
 		90BD4EF224E0E8B700BF29F2 /* Copy locale message translation files */ = {
