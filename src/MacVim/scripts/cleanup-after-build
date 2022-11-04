@@ -1,0 +1,22 @@
+#!/bin/sh
+
+# Utility script to clean up after a MacVim build.
+
+if [[ $# == 0 ]]; then
+    echo "Usage: cleanup-after-build <MacVim_app>"
+    exit -1
+fi
+
+set -e
+
+macvim_path=$1
+
+sparkle_xpcservices="$macvim_path/Contents/Frameworks/Sparkle.framework/Versions/Current/XPCServices"
+
+if [ -d $sparkle_xpcservices ]; then
+    # This only happens when building using Sparkle 2. It contains XPC Services
+    # files which are only necessary for sandboxed apps, and not recommended
+    # otherwise. See https://sparkle-project.org/documentation/sandboxing/.
+    set -x
+    rm -rf $sparkle_xpcservices
+fi

@@ -30,10 +30,38 @@ if [[ "$USE_ALTOOL" != "1" ]]; then
         exit -1
     fi
 
-    # Step 1: Submit app for notarization, and wait till it finishes.
-    set -x
-    xcrun notarytool submit ${macvim_dmg} --keychain-profile "${NOTARIZATION_KEYCHAIN_PROFILE}" --progress --wait --timeout=20m
-    set +x
+    # Step 1.1: Submit app for notarization, and wait till it finishes.
+    notarize_submit_results=$(set -x; xcrun notarytool submit ${macvim_dmg} --keychain-profile "${NOTARIZATION_KEYCHAIN_PROFILE}")
+
+    echo $notarize_submit_results
+    notarize_submit_uuid=$(echo $notarize_submit_results | grep "id:" | head -1 | sed -E "s/^.*id:[ ]*(.*)/\1/")
+
+    if [[ ${notarize_submit_uuid} == "" ]]; then
+        echo "Failed to submit for notarization!"
+        exit -1
+    fi
+    if ! [[ ${notarize_submit_uuid} =~ "^[a-f0-9\-]*$" ]]; then
+        echo "Request UUID format error!"
+        echo ${notarize_submit_uuid}
+        exit -1
+    fi
+
+    (set -x; xcrun notarytool wait --keychain-profile "${NOTARIZATION_KEYCHAIN_PROFILE}" --progress --timeout=20m $notarize_submit_uuid)
+
+    # Step 1.2: Confirm that notarization succeeded. If not, print the log. We
+    # have to manually query instead of using return code because xcrun
+    # notarytool always exits with 0 regardless of success.
+    notarize_results=$(xcrun notarytool info --keychain-profile "${NOTARIZATION_KEYCHAIN_PROFILE}" $notarize_submit_uuid)
+    notarize_status=$(echo $notarize_results | grep "status:" | sed -E "s/^.*status:[ ]*(.*)/\1/")
+    if [[ $notarize_status == "Accepted" ]]; then
+        printf "\n"
+        echo "Notarization Success!\n"
+    else
+        printf "\n"
+        echo "Notarization Failed!\n"
+        xcrun notarytool log --keychain-profile "${NOTARIZATION_KEYCHAIN_PROFILE}" $notarize_submit_uuid
+        exit -1
+    fi
 else
     # Legacy Xcode 12 path using altool and username + app-specific password.
     # See: https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution/customizing_the_notarization_workflow/notarizing_apps_when_developing_with_xcode_12_and_earlier
@@ -89,13 +117,10 @@ fi
 
 # Step 2: Staple the notarization info to the DMG so that an offline user can
 # verify that it is notarized.
-set -x
-xcrun stapler staple ${macvim_dmg}
-set +x
+(set -x; xcrun stapler staple ${macvim_dmg})
 
 # Just print out extra info for reference
 echo "--------------------"
 set -x
 codesign -d --verbose=2 ${macvim_dmg}
 spctl -a -t open --context context:primary-signature -v ${macvim_dmg}
-set +x

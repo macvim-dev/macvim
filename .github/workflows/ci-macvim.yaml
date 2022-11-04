@@ -78,14 +78,8 @@ jobs:
           echo "MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET_LEGACY" >> $GITHUB_ENV
           echo "MACVIM_ARCHS=$MACVIM_ARCHS_LEGACY" >> $GITHUB_ENV
 
-      - name: Set up Sparkle 1
-        if: matrix.legacy || !matrix.publish
-        run: |
           # Use Sparkle 1 because Sparkle 2 requires newer OS version than our legacy build.
           # Later, we pass the --enable-sparkle_1 flag to configure to set the corresponding ifdef.
-          #
-          # We also do this for non-publish builds, because those are usually run on older versions
-          # of Xcode, and they cannot handle the Sparkle 2 framework as it's built using newer Xcode.
           ln -fhs Sparkle_1.framework src/MacVim/Sparkle.framework
 
       # Set up, install, and cache gettext library for localization.
