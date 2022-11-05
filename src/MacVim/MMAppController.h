@@ -49,6 +49,8 @@
     int                 numChildProcesses;
     NSMutableDictionary *inputQueues;
     int                 processingFlag;
+
+    BOOL                hasShownWindowBefore;
     
 #if !DISABLE_SPARKLE
 #if USE_SPARKLE_1

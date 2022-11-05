@@ -548,6 +548,15 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender
 {
+    if (!hasShownWindowBefore) {
+        // If we have not opened a window before, never return YES. This can
+        // happen when MacVim is not configured to open window at launch. We
+        // want to give the user a chance to open a window first. Otherwise
+        // just opening the About MacVim or Settings windows could immediately
+        // terminate the app (since those are not proper app windows),
+        // depending if the OS feels like invoking this method.
+        return NO;
+    }
     return (MMTerminateWhenLastWindowClosed ==
             [[NSUserDefaults standardUserDefaults]
                 integerForKey:MMLastWindowClosedBehaviorKey]);
@@ -888,6 +897,8 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         [NSApp activateIgnoringOtherApps:YES];
         shouldActivateWhenNextWindowOpens = NO;
     }
+
+    hasShownWindowBefore = YES;
 }
 
 - (void)setMainMenu:(NSMenu *)mainMenu
