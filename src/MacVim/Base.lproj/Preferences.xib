@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="20037" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="17701" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
     <dependencies>
         <deployment version="1090" identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="20037"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="17701"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
@@ -67,7 +67,6 @@
                                 </column>
                             </cells>
                             <connections>
-                                <action selector="openUntitledWindowChanged:" target="-2" id="S8l-uX-tEl"/>
                                 <binding destination="58" name="selectedTag" keyPath="values.MMUntitledWindow" id="171"/>
                             </connections>
                         </matrix>
@@ -180,7 +179,6 @@
                                 </menu>
                             </popUpButtonCell>
                             <connections>
-                                <action selector="lastWindowClosedChanged:" target="-2" id="IcT-7v-gxr"/>
                                 <binding destination="58" name="selectedIndex" keyPath="values.MMLastWindowClosedBehavior" id="968"/>
                             </connections>
                         </popUpButton>
