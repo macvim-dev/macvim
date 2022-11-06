@@ -19,6 +19,8 @@ func Test_macvim_options_commands()
     call assert_true(exists(':macaction'), 'Missing command "macaction"')
     call assert_true(exists(':macmenu'), 'Missing command "macmenu"')
 
+    call assert_true(exists('*showdefinition'), 'Missing function "showdefinition"')
+
     call assert_true(exists('##OSAppearanceChanged'), 'Missing autocmd event "OSAppearanceChanged"')
 
     call assert_true(has('fullscreen'), 'Missing feature "fullscreen"')
@@ -26,6 +28,12 @@ func Test_macvim_options_commands()
     call assert_true(has('odbeditor'), 'Missing feature "odbeditor"')
     call assert_true(has('touchbar'), 'Missing feature "touchbar"')
     call assert_true(has('transparency'), 'Missing feature "transparency"')
+
+    " Vim system-specific features that we expect to be on in macOS
+    call assert_true(has('clipboard'), 'Missing feature "clipboard"')
+    call assert_true(has('sound'), 'Missing feature "sound"')
+    call assert_true(has('terminal'), 'Missing feature "terminal"')
+    call assert_true(has('xim'), 'Missing feature "xim"')
 endfunc
 
 " Test that Cmd-key and touch pad mappings are working (this doesn't actually

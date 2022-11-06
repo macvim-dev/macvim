@@ -251,14 +251,17 @@ jobs:
           }
 
           # Smoketest scripting languages
-          macvim_excmd -c 'lua print("Test")'
-          macvim_excmd -c 'perl VIM::Msg("Test")'
-          macvim_excmd -c 'py print "Test"'
-          macvim_excmd -c 'py3 print("Test")'
-          macvim_excmd -c 'ruby puts("Test")'
+          macvim_excmd -c 'lua print("Test")'     | grep Test
+          macvim_excmd -c 'perl VIM::Msg("Test")' | grep Test
+          macvim_excmd -c 'py print "Test"'       | grep Test
+          macvim_excmd -c 'py3 print("Test")'     | grep Test
+          macvim_excmd -c 'ruby puts("Test")'     | grep Test
 
           # Check that localized messages work by printing ':version' and checking against localized word
           macvim_excmd -c 'lang es_ES' -c 'version' | grep Enlazado
+
+          # Check that libsodium is working
+          macvim_excmd -c 'set cryptmethod=xchacha20'
 
           # Make sure there isn't any dynamic linkage to third-party dependencies in the built binary, as we should only use
           # static linkage to avoid dependency hell. Test that all those dylib's are in /usr/lib which is bundled with macOS and not third-party.
