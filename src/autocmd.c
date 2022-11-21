@@ -297,9 +297,14 @@ show_autocmd(AutoPat *ap, event_T event)
     if (ap->pat == NULL)		// pattern has been removed
 	return;
 
+    // Make sure no info referenced by "ap" is cleared, e.g. when a timer
+    // clears an augroup.  Jump to "theend" after this!
+    // "ap->pat" may be cleared anyway.
+    ++autocmd_busy;
+
     msg_putchar('\n');
     if (got_int)
-	return;
+	goto theend;
     if (event != last_event || ap->group != last_group)
     {
 	if (ap->group != AUGROUP_DEFAULT)
@@ -315,8 +320,12 @@ show_autocmd(AutoPat *ap, event_T event)
 	last_group = ap->group;
 	msg_putchar('\n');
 	if (got_int)
-	    return;
+	    goto theend;
     }
+
+    if (ap->pat == NULL)
+	goto theend;  // timer might have cleared the pattern or group
+
     msg_col = 4;
     msg_outtrans(ap->pat);
 
@@ -329,21 +338,24 @@ show_autocmd(AutoPat *ap, event_T event)
 	    msg_putchar('\n');
 	msg_col = 14;
 	if (got_int)
-	    return;
+	    goto theend;
 	msg_outtrans(ac->cmd);
 #ifdef FEAT_EVAL
 	if (p_verbose > 0)
 	    last_set_msg(ac->script_ctx);
 #endif
 	if (got_int)
-	    return;
+	    goto theend;
 	if (ac->next != NULL)
 	{
 	    msg_putchar('\n');
 	    if (got_int)
-		return;
+		goto theend;
 	}
     }
+
+theend:
+    --autocmd_busy;
 }
 
 /*
@@ -1253,14 +1265,20 @@ do_autocmd_event(
 		    get_mode(last_mode);
 #endif
 		// Initialize the fields checked by the WinScrolled trigger to
-		// stop it from firing right after the first autocmd is defined.
+		// prevent it from firing right after the first autocmd is
+		// defined.
 		if (event == EVENT_WINSCROLLED && !has_winscrolled())
 		{
-		    curwin->w_last_topline = curwin->w_topline;
-		    curwin->w_last_leftcol = curwin->w_leftcol;
-		    curwin->w_last_skipcol = curwin->w_skipcol;
-		    curwin->w_last_width = curwin->w_width;
-		    curwin->w_last_height = curwin->w_height;
+		    tabpage_T *save_curtab = curtab;
+		    tabpage_T *tp;
+		    FOR_ALL_TABPAGES(tp)
+		    {
+			unuse_tabpage(curtab);
+			use_tabpage(tp);
+			snapshot_windows_scroll_size();
+		    }
+		    unuse_tabpage(curtab);
+		    use_tabpage(save_curtab);
 		}
 
 		if (is_buflocal)

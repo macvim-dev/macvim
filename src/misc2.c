@@ -673,25 +673,27 @@ adjust_cursor_col(void)
 }
 
 /*
- * When curwin->w_leftcol has changed, adjust the cursor position.
+ * Set "curwin->w_leftcol" to "leftcol".
+ * Adjust the cursor position if needed.
  * Return TRUE if the cursor was moved.
  */
     int
-leftcol_changed(void)
+set_leftcol(colnr_T leftcol)
 {
-    long	lastcol;
-    colnr_T	s, e;
     int		retval = FALSE;
-    long	siso = get_sidescrolloff_value();
+
+    // Return quickly when there is no change.
+    if (curwin->w_leftcol == leftcol)
+	return FALSE;
+    curwin->w_leftcol = leftcol;
 
     changed_cline_bef_curs();
-    lastcol = curwin->w_leftcol + curwin->w_width - curwin_col_off() - 1;
+    long lastcol = curwin->w_leftcol + curwin->w_width - curwin_col_off() - 1;
     validate_virtcol();
 
-    /*
-     * If the cursor is right or left of the screen, move it to last or first
-     * character.
-     */
+    // If the cursor is right or left of the screen, move it to last or first
+    // visible character.
+    long siso = get_sidescrolloff_value();
     if (curwin->w_virtcol > (colnr_T)(lastcol - siso))
     {
 	retval = TRUE;
@@ -703,11 +705,10 @@ leftcol_changed(void)
 	(void)coladvance((colnr_T)(curwin->w_leftcol + siso));
     }
 
-    /*
-     * If the start of the character under the cursor is not on the screen,
-     * advance the cursor one more char.  If this fails (last char of the
-     * line) adjust the scrolling.
-     */
+    // If the start of the character under the cursor is not on the screen,
+    // advance the cursor one more char.  If this fails (last char of the
+    // line) adjust the scrolling.
+    colnr_T	s, e;
     getvvcol(curwin, &curwin->w_cursor, &s, NULL, &e);
     if (e > (colnr_T)lastcol)
     {
@@ -1522,7 +1523,8 @@ find_special_key(
  * CTRL-2 is CTRL-@
  * CTRL-6 is CTRL-^
  * CTRL-- is CTRL-_
- * Also, <C-H> and <C-h> mean the same thing, always use "H".
+ * Also, unless no_reduce_keys is set then <C-H> and <C-h> mean the same thing,
+ * use "H".
  * Returns the possibly adjusted key.
  */
     int
@@ -1531,7 +1533,12 @@ may_adjust_key_for_ctrl(int modifiers, int key)
     if (modifiers & MOD_MASK_CTRL)
     {
 	if (ASCII_ISALPHA(key))
-	    return TOUPPER_ASC(key);
+	{
+#ifdef FEAT_TERMINAL
+	    check_no_reduce_keys();  // may update the no_reduce_keys flag
+#endif
+	    return no_reduce_keys == 0 ? TOUPPER_ASC(key) : key;
+	}
 	if (key == '2')
 	    return '@';
 	if (key == '6')
@@ -2034,12 +2041,12 @@ cursorentry_T shape_table[SHAPE_IDX_COUNT] =
     {0,	0, 0, 100L, 100L, 100L, 0, 0, "sm", SHAPE_CURSOR},
 };
 
-#ifdef FEAT_MOUSESHAPE
+# ifdef FEAT_MOUSESHAPE
 /*
  * Table with names for mouse shapes.  Keep in sync with all the tables for
  * mch_set_mouse_shape()!.
  */
-static char * mshape_names[] =
+static char *mshape_names[] =
 {
     "arrow",	// default, must be the first one
     "blank",	// hidden
@@ -2059,7 +2066,9 @@ static char * mshape_names[] =
     "up-arrow",
     NULL
 };
-#endif
+
+#  define MSHAPE_NAMES_COUNT  (ARRAY_LENGTH(mshape_names) - 1)
+# endif
 
 /*
  * Parse the 'guicursor' option ("what" is SHAPE_CURSOR) or 'mouseshape'
@@ -2362,7 +2371,7 @@ get_shape_idx(int mouse)
 #endif
 
 # if defined(FEAT_MOUSESHAPE) || defined(PROTO)
-static int old_mouse_shape = 0;
+static int current_mouse_shape = 0;
 
 /*
  * Set the mouse shape:
@@ -2396,24 +2405,43 @@ update_mouseshape(int shape_idx)
 	shape_idx = -2;
 
     if (shape_idx == -2
-	    && old_mouse_shape != shape_table[SHAPE_IDX_CLINE].mshape
-	    && old_mouse_shape != shape_table[SHAPE_IDX_STATUS].mshape
-	    && old_mouse_shape != shape_table[SHAPE_IDX_VSEP].mshape)
+	    && current_mouse_shape != shape_table[SHAPE_IDX_CLINE].mshape
+	    && current_mouse_shape != shape_table[SHAPE_IDX_STATUS].mshape
+	    && current_mouse_shape != shape_table[SHAPE_IDX_VSEP].mshape)
 	return;
     if (shape_idx < 0)
 	new_mouse_shape = shape_table[get_shape_idx(TRUE)].mshape;
     else
 	new_mouse_shape = shape_table[shape_idx].mshape;
-    if (new_mouse_shape != old_mouse_shape)
+    if (new_mouse_shape != current_mouse_shape)
     {
 	mch_set_mouse_shape(new_mouse_shape);
-	old_mouse_shape = new_mouse_shape;
+	current_mouse_shape = new_mouse_shape;
     }
     postponed_mouseshape = FALSE;
 }
 # endif
 
 #endif // CURSOR_SHAPE
+
+#if defined(FEAT_EVAL) || defined(PROTO)
+/*
+ * Mainly for tests: get the name of the current mouse shape.
+ */
+    void
+f_getmouseshape(typval_T *argvars UNUSED, typval_T *rettv)
+{
+    rettv->v_type = VAR_STRING;
+    rettv->vval.v_string = NULL;
+# if defined(FEAT_MOUSESHAPE) || defined(PROTO)
+    if (current_mouse_shape >= 0
+			      && current_mouse_shape < (int)MSHAPE_NAMES_COUNT)
+	rettv->vval.v_string = vim_strsave(
+				  (char_u *)mshape_names[current_mouse_shape]);
+# endif
+}
+#endif
+
 
 
 /*

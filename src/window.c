@@ -84,6 +84,50 @@ static char *m_onlyone = N_("Already only one window");
 // autocommands mess up the window structure.
 static int split_disallowed = 0;
 
+// When non-zero closing a window is forbidden.  Used to avoid that nasty
+// autocommands mess up the window structure.
+static int close_disallowed = 0;
+
+/*
+ * Disallow changing the window layout (split window, close window, move
+ * window).  Resizing is still allowed.
+ * Used for autocommands that temporarily use another window and need to
+ * make sure the previously selected window is still there.
+ * Must be matched with exactly one call to window_layout_unlock()!
+ */
+    static void
+window_layout_lock(void)
+{
+    ++split_disallowed;
+    ++close_disallowed;
+}
+
+    static void
+window_layout_unlock(void)
+{
+    --split_disallowed;
+    --close_disallowed;
+}
+
+/*
+ * When the window layout cannot be changed give an error and return TRUE.
+ * "cmd" indicates the action being performed and is used to pick the relevant
+ * error message.
+ */
+    int
+window_layout_locked(enum CMD_index cmd)
+{
+    if (split_disallowed > 0 || close_disallowed > 0)
+    {
+	if (close_disallowed == 0 && cmd == CMD_tabnew)
+	    emsg(_(e_cannot_split_window_when_closing_buffer));
+	else
+	    emsg(_(e_not_allowed_to_change_window_layout_in_this_autocmd));
+	return TRUE;
+    }
+    return FALSE;
+}
+
 // #define WIN_DEBUG
 #ifdef WIN_DEBUG
 /*
@@ -2537,6 +2581,8 @@ win_close(win_T *win, int free_buf)
 	emsg(_(e_cannot_close_last_window));
 	return FAIL;
     }
+    if (window_layout_locked(CMD_close))
+	return FAIL;
 
     if (win->w_closing || (win->w_buffer != NULL
 					       && win->w_buffer->b_locked > 0))
@@ -2803,40 +2849,76 @@ trigger_winclosed(win_T *win)
 }
 
 /*
- * Trigger WinScrolled for "curwin" if needed.
+ * Make a snapshot of all the window scroll positions and sizes of the current
+ * tab page.
+ */
+    void
+snapshot_windows_scroll_size(void)
+{
+    win_T *wp;
+    FOR_ALL_WINDOWS(wp)
+    {
+	wp->w_last_topline = wp->w_topline;
+	wp->w_last_leftcol = wp->w_leftcol;
+	wp->w_last_skipcol = wp->w_skipcol;
+	wp->w_last_width = wp->w_width;
+	wp->w_last_height = wp->w_height;
+    }
+}
+
+static int did_initial_scroll_size_snapshot = FALSE;
+
+    void
+may_make_initial_scroll_size_snapshot(void)
+{
+    if (!did_initial_scroll_size_snapshot)
+    {
+	did_initial_scroll_size_snapshot = TRUE;
+	snapshot_windows_scroll_size();
+    }
+}
+
+/*
+ * Trigger WinScrolled if any window scrolled or changed size.
  */
     void
 may_trigger_winscrolled(void)
 {
-    win_T	    *wp = curwin;
     static int	    recursive = FALSE;
-    char_u	    winid[NUMBUFLEN];
 
-    if (recursive || !has_winscrolled())
+    if (recursive
+	    || !has_winscrolled()
+	    || !did_initial_scroll_size_snapshot)
 	return;
 
-    if (wp->w_last_topline != wp->w_topline
-	    || wp->w_last_leftcol != wp->w_leftcol
-	    || wp->w_last_skipcol != wp->w_skipcol
-	    || wp->w_last_width != wp->w_width
-	    || wp->w_last_height != wp->w_height)
-    {
-	vim_snprintf((char *)winid, sizeof(winid), "%d", wp->w_id);
-
-	recursive = TRUE;
-	apply_autocmds(EVENT_WINSCROLLED, winid, winid, FALSE, wp->w_buffer);
-	recursive = FALSE;
-
-	// an autocmd may close the window, "wp" may be invalid now
-	if (win_valid_any_tab(wp))
+    win_T *wp;
+    FOR_ALL_WINDOWS(wp)
+	if (wp->w_last_topline != wp->w_topline
+		|| wp->w_last_leftcol != wp->w_leftcol
+		|| wp->w_last_skipcol != wp->w_skipcol
+		|| wp->w_last_width != wp->w_width
+		|| wp->w_last_height != wp->w_height)
 	{
-	    wp->w_last_topline = wp->w_topline;
-	    wp->w_last_leftcol = wp->w_leftcol;
-	    wp->w_last_skipcol = wp->w_skipcol;
-	    wp->w_last_width = wp->w_width;
-	    wp->w_last_height = wp->w_height;
+	    // WinScrolled is triggered only once, even when multiple windows
+	    // scrolled or changed size.  Store the current values before
+	    // triggering the event, if a scroll or resize happens as a side
+	    // effect then WinScrolled is triggered again later.
+	    snapshot_windows_scroll_size();
+
+	    // "curwin" may be different from the actual current window, make
+	    // sure it can be restored.
+	    window_layout_lock();
+
+	    recursive = TRUE;
+	    char_u winid[NUMBUFLEN];
+	    vim_snprintf((char *)winid, sizeof(winid), "%d", wp->w_id);
+	    apply_autocmds(EVENT_WINSCROLLED, winid, winid, FALSE,
+								 wp->w_buffer);
+	    recursive = FALSE;
+	    window_layout_unlock();
+
+	    break;
 	}
-    }
 }
 
 /*
@@ -3788,6 +3870,33 @@ close_others(
 }
 
 /*
+ * Store the relevant window pointers for tab page "tp".  To be used before
+ * use_tabpage().
+ */
+    void
+unuse_tabpage(tabpage_T *tp)
+{
+    tp->tp_topframe = topframe;
+    tp->tp_firstwin = firstwin;
+    tp->tp_lastwin = lastwin;
+    tp->tp_curwin = curwin;
+}
+
+/*
+ * Set the relevant pointers to use tab page "tp".  May want to call
+ * unuse_tabpage() first.
+ */
+    void
+use_tabpage(tabpage_T *tp)
+{
+    curtab = tp;
+    topframe = curtab->tp_topframe;
+    firstwin = curtab->tp_firstwin;
+    lastwin = curtab->tp_lastwin;
+    curwin = curtab->tp_curwin;
+}
+
+/*
  * Allocate the first window and put an empty buffer in it.
  * Called from main().
  * Return FAIL when something goes wrong (out of memory).
@@ -3801,11 +3910,8 @@ win_alloc_first(void)
     first_tabpage = alloc_tabpage();
     if (first_tabpage == NULL)
 	return FAIL;
-    first_tabpage->tp_topframe = topframe;
     curtab = first_tabpage;
-    curtab->tp_firstwin = firstwin;
-    curtab->tp_lastwin = lastwin;
-    curtab->tp_curwin = curwin;
+    unuse_tabpage(first_tabpage);
 
     return OK;
 }
@@ -4020,6 +4126,8 @@ win_new_tabpage(int after)
 	emsg(_(e_invalid_in_cmdline_window));
 	return FAIL;
     }
+    if (window_layout_locked(CMD_tabnew))
+	return FAIL;
 
     newtp = alloc_tabpage();
     if (newtp == NULL)
@@ -4311,10 +4419,7 @@ enter_tabpage(
     win_T	*next_prevwin = tp->tp_prevwin;
     tabpage_T	*last_tab = curtab;
 
-    curtab = tp;
-    firstwin = tp->tp_firstwin;
-    lastwin = tp->tp_lastwin;
-    topframe = tp->tp_topframe;
+    use_tabpage(tp);
 
     // We would like doing the TabEnter event first, but we don't have a
     // valid current window yet, which may break some commands.

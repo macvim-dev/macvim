@@ -2709,6 +2709,29 @@ func Test_props_with_text_after_below_trunc()
   call StopVimInTerminal(buf)
 endfunc
 
+func Test_prop_with_text_below_after_match()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+      vim9script
+
+      setline(1, ['vim9script', 'some text'])
+      set signcolumn=yes
+      matchaddpos('Search', [[1, 10]])
+      prop_type_add('test', {highlight: 'Error'})
+      prop_add(1, 0, {
+          type: 'test',
+          text: 'The quick brown fox',
+          text_align: 'below'
+      })
+  END
+  call writefile(lines, 'XscriptPropsBelow', 'D')
+  let buf = RunVimInTerminal('-S XscriptPropsBelow', #{rows: 8, cols: 60})
+  call VerifyScreenDump(buf, 'Test_prop_with_text_below_after_match_1', {})
+
+  call StopVimInTerminal(buf)
+endfunc
+
 func Test_props_with_text_after_joined()
   CheckRunVimInTerminal
 
@@ -3370,6 +3393,42 @@ func Test_text_after_nowrap()
   call StopVimInTerminal(buf)
 endfunc
 
+func Test_text_after_nowrap_list()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+      vim9script
+
+      set nowrap
+      set listchars+=extends:>
+      set list
+      setline(1, ['some text here', '', 'last line'])
+
+      prop_type_add('test', {highlight: 'DiffChange'})
+      prop_add(1, 0, {
+          type: 'test',
+          text: 'The quick brown fox jumps.',
+          text_padding_left: 2,
+      })
+      prop_add(1, 0, {
+          type: 'test',
+          text: '■ The fox jumps over the lazy dog.',
+          text_padding_left: 2,
+      })
+      prop_add(1, 0, {
+          type: 'test',
+          text: '■ The lazy dog.',
+          text_padding_left: 2,
+      })
+      normal 3G$
+  END
+  call writefile(lines, 'XTextAfterNowrapList', 'D')
+  let buf = RunVimInTerminal('-S XTextAfterNowrapList', #{rows: 6, cols: 60})
+  call VerifyScreenDump(buf, 'Test_text_after_nowrap_list_1', {})
+
+  call StopVimInTerminal(buf)
+endfunc
+
 func Test_text_below_nowrap()
   CheckRunVimInTerminal
 
@@ -3395,6 +3454,50 @@ func Test_text_below_nowrap()
   call writefile(lines, 'XTextBelowNowrap', 'D')
   let buf = RunVimInTerminal('-S XTextBelowNowrap', #{rows: 8, cols: 60})
   call VerifyScreenDump(buf, 'Test_text_below_nowrap_1', {})
+
+  call StopVimInTerminal(buf)
+endfunc
+
+func Test_virtual_text_in_popup_highlight()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+      vim9script
+
+      # foreground highlight only, popup background is used
+      prop_type_add('Prop1', {'highlight': 'SpecialKey'})
+      # foreground and background highlight, popup background is not used
+      prop_type_add('Prop2', {'highlight': 'DiffDelete'})
+
+      var popupText = [{
+        text: 'Some text',
+        props: [
+                    {
+                      col: 1,
+                      type: 'Prop1',
+                      text: ' + '
+                    },
+                    {
+                      col: 6,
+                      type: 'Prop2',
+                      text: ' x '
+                    },
+                ]
+          }]
+      var popupArgs = {
+            line: 3,
+            col: 20,
+            maxwidth: 80,
+            highlight: 'PMenu',
+            border: [],
+            borderchars: [' '],
+          }
+
+      popup_create(popupText, popupArgs)
+  END
+  call writefile(lines, 'XscriptVirtualHighlight', 'D')
+  let buf = RunVimInTerminal('-S XscriptVirtualHighlight', #{rows: 8})
+  call VerifyScreenDump(buf, 'Test_virtual_text_in_popup_highlight_1', {})
 
   call StopVimInTerminal(buf)
 endfunc
@@ -3433,5 +3536,32 @@ func Test_insert_text_change_arg()
 
   call StopVimInTerminal(buf)
 endfunc
+
+def Test_textprop_in_quickfix_window()
+  enew!
+  var prop_type = 'my_prop'
+  prop_type_add(prop_type, {})
+
+  for lnum in range(1, 10)
+    setline(lnum, 'hello world')
+  endfor
+
+  cgetbuffer
+  copen
+
+  var bufnr = bufnr()
+  for lnum in range(1, line('$', bufnr->bufwinid()))
+    prop_add(lnum, 1, {
+      id: 1000 + lnum,
+      type: prop_type,
+      bufnr: bufnr,
+    })
+  endfor
+
+  prop_type_delete(prop_type)
+  cclose
+  bwipe!
+enddef
+
 
 " vim: shiftwidth=2 sts=2 expandtab

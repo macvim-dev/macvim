@@ -1,7 +1,7 @@
 " Vim support file to detect file types
 "
 " Maintainer:	Bram Moolenaar <Bram@vim.org>
-" Last Change:	2022 Nov 07
+" Last Change:	2022 Nov 17
 
 " Listen very carefully, I will say this only once
 if exists("did_load_filetypes")
@@ -418,6 +418,12 @@ au BufNewFile,BufRead configure.in,configure.ac setf config
 
 " Cooklang
 au BufNewFile,BufRead *.cook			setf cook
+
+" Clinical Quality Language (CQL)
+" .cql is also mentioned as the 'XDCC Catcher queue list' file extension.
+" If support for XDCC Catcher is needed in the future, the contents of the file
+" needs to be inspected.
+au BufNewFile,BufRead *.cql			setf cqlang
 
 " CSV Files
 au BufNewFile,BufRead *.csv			setf csv
