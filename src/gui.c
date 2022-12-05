@@ -5160,7 +5160,7 @@ gui_update_screen(void)
     }
 
     if (!finish_op)
-	may_trigger_winscrolled();
+	may_trigger_win_scrolled_resized();
 
 # ifdef FEAT_CONCEAL
     if (conceal_update_lines

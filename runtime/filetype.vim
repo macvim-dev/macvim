@@ -1,7 +1,7 @@
 " Vim support file to detect file types
 "
 " Maintainer:	Bram Moolenaar <Bram@vim.org>
-" Last Change:	2022 Nov 17
+" Last Change:	2022 Nov 23
 
 " Listen very carefully, I will say this only once
 if exists("did_load_filetypes")
@@ -981,6 +981,8 @@ au BufNewFile,BufRead *.jsp			setf jsp
 
 " Java Properties resource file (note: doesn't catch font.properties.pl)
 au BufNewFile,BufRead *.properties,*.properties_??,*.properties_??_??	setf jproperties
+" Eclipse preference files use Java Properties syntax
+au BufNewFile,BufRead org.eclipse.*.prefs	setf jproperties
 
 " Jess
 au BufNewFile,BufRead *.clp			setf jess
@@ -1197,6 +1199,9 @@ au BufNewFile,BufRead hg-editor-*.txt		setf hgcommit
 " Mercurial config (looks like generic config file)
 au BufNewFile,BufRead *.hgrc,*hgrc		setf cfg
 
+" Mermaid
+au BufNewFile,BufRead *.mmd,*.mmdc,*.mermaid	setf mermaid
+
 " Meson Build system config
 au BufNewFile,BufRead meson.build,meson_options.txt setf meson
 au BufNewFile,BufRead *.wrap			setf dosini
@@ -1339,6 +1344,9 @@ au BufNewFile,BufRead *.nse			setf lua
 
 " NSIS
 au BufNewFile,BufRead *.nsi,*.nsh		setf nsis
+
+" Oblivion Language and Oblivion Script Extender
+au BufNewFile,BufRead *.obl,*.obse,*.oblivion,*.obscript  setf obse
 
 " OCaml
 au BufNewFile,BufRead *.ml,*.mli,*.mll,*.mly,.ocamlinit,*.mlt,*.mlp,*.mlip,*.mli.cppo,*.ml.cppo setf ocaml
@@ -2342,6 +2350,9 @@ au BufNewFile,BufRead fglrxrc			setf xml
 
 " Web Services Description Language (WSDL)
 au BufNewFile,BufRead *.wsdl			setf xml
+
+" Workflow Description Language (WDL)
+au BufNewFile,BufRead *.wdl			setf wdl
 
 " XLIFF (XML Localisation Interchange File Format) is also XML
 au BufNewFile,BufRead *.xlf			setf xml

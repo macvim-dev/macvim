@@ -109,9 +109,12 @@ find_win_for_curbuf(void)
 {
     wininfo_T *wip;
 
+    // The b_wininfo list should have the windows that recently contained the
+    // buffer, going over this is faster than going over all the windows.
+    // Do check the buffer is still there.
     FOR_ALL_BUF_WININFO(curbuf, wip)
     {
-	if (wip->wi_win != NULL)
+	if (wip->wi_win != NULL && wip->wi_win->w_buffer == curbuf)
 	{
 	    curwin = wip->wi_win;
 	    break;
@@ -133,6 +136,8 @@ typedef struct {
  *
  * Information is saved in "cob" and MUST be restored by calling
  * change_other_buffer_restore().
+ *
+ * If this fails then "curbuf" will not be equal to "buf".
  */
     static void
 change_other_buffer_prepare(cob_T *cob, buf_T *buf)
@@ -153,7 +158,8 @@ change_other_buffer_prepare(cob_T *cob, buf_T *buf)
 	// curwin->w_buffer differ from "curbuf", use the autocmd window.
 	curbuf = curwin->w_buffer;
 	aucmd_prepbuf(&cob->cob_aco, buf);
-	cob->cob_using_aco = TRUE;
+	if (curbuf == buf)
+	    cob->cob_using_aco = TRUE;
     }
 }
 
@@ -814,10 +820,11 @@ get_buffer_lines(
 }
 
 /*
- * "getbufline()" function
+ * "retlist" TRUE: "getbufline()" function
+ * "retlist" FALSE: "getbufoneline()" function
  */
-    void
-f_getbufline(typval_T *argvars, typval_T *rettv)
+    static void
+getbufline(typval_T *argvars, typval_T *rettv, int retlist)
 {
     linenr_T	lnum = 1;
     linenr_T	end = 1;
@@ -842,7 +849,25 @@ f_getbufline(typval_T *argvars, typval_T *rettv)
 	    end = tv_get_lnum_buf(&argvars[2], buf);
     }
 
-    get_buffer_lines(buf, lnum, end, TRUE, rettv);
+    get_buffer_lines(buf, lnum, end, retlist, rettv);
+}
+
+/*
+ * "getbufline()" function
+ */
+    void
+f_getbufline(typval_T *argvars, typval_T *rettv)
+{
+    getbufline(argvars, rettv, TRUE);
+}
+
+/*
+ * "getbufoneline()" function
+ */
+    void
+f_getbufoneline(typval_T *argvars, typval_T *rettv)
+{
+    getbufline(argvars, rettv, FALSE);
 }
 
 /*

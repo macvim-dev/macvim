@@ -11,7 +11,9 @@ func Test_setbufline_getbufline()
   hide
   call assert_equal(0, setbufline(b, 1, ['foo', 'bar']))
   call assert_equal(['foo'], getbufline(b, 1))
+  call assert_equal('foo', getbufoneline(b, 1))
   call assert_equal(['bar'], getbufline(b, '$'))
+  call assert_equal('bar', getbufoneline(b, '$'))
   call assert_equal(['foo', 'bar'], getbufline(b, 1, 2))
   exe "bd!" b
   call assert_equal([], getbufline(b, 1, 2))
@@ -35,8 +37,11 @@ func Test_setbufline_getbufline()
 
   call assert_equal(0, setbufline(b, 4, ['d', 'e']))
   call assert_equal(['c'], b->getbufline(3))
+  call assert_equal('c', b->getbufoneline(3))
   call assert_equal(['d'], getbufline(b, 4))
+  call assert_equal('d', getbufoneline(b, 4))
   call assert_equal(['e'], getbufline(b, 5))
+  call assert_equal('e', getbufoneline(b, 5))
   call assert_equal([], getbufline(b, 6))
   call assert_equal([], getbufline(b, 2, 1))
 
@@ -281,6 +286,20 @@ func Test_deletebufline_select_mode()
 
   exe "bwipe! " .. bufnr
   bwipe!
+endfunc
+
+func Test_deletebufline_popup_window()
+  let popupID = popup_create('foo', {})
+  let bufnr = winbufnr(popupID)
+
+  " Check that deletebufline() brings us back to the same window.
+  new
+  let winid_before = win_getid()
+  call deletebufline(bufnr, 1, '$')
+  call assert_equal(winid_before, win_getid())
+  bwipe
+
+  call popup_close(popupID)
 endfunc
 
 func Test_setbufline_startup_nofile()

@@ -188,8 +188,28 @@ check_text_locked(oparg_T *oap)
 {
     if (text_locked())
     {
-	clearopbeep(oap);
+	if (oap != NULL)
+	    clearopbeep(oap);
 	text_locked_msg();
+	return TRUE;
+    }
+    return FALSE;
+}
+
+/*
+ * If text is locked, "curbuf_lock" or "allbuf_lock" is set:
+ * Give an error message, possibly beep and return TRUE.
+ * "oap" may be NULL.
+ */
+    int
+check_text_or_curbuf_locked(oparg_T *oap)
+{
+    if (check_text_locked(oap))
+	return TRUE;
+    if (curbuf_locked())
+    {
+	if (oap != NULL)
+	    clearop(oap);
 	return TRUE;
     }
     return FALSE;
@@ -424,7 +444,7 @@ normal_cmd_get_more_chars(
 	    // Disable bracketed paste and modifyOtherKeys here, we won't
 	    // recognize the escape sequences with 'esckeys' off.
 	    out_str(T_BD);
-	    out_str(T_CTE);
+	    out_str_t_TE();
 	}
 
 	*cp = plain_vgetc();
@@ -435,7 +455,7 @@ normal_cmd_get_more_chars(
 
 	    // Re-enable bracketed paste mode and modifyOtherKeys
 	    out_str(T_BE);
-	    out_str(T_CTI);
+	    out_str_t_TI();
 	}
 
 	if (langmap_active)
@@ -798,8 +818,7 @@ normal_cmd(
 	goto normal_end;
     }
 
-    if ((nv_cmds[idx].cmd_flags & NV_NCW)
-				&& (check_text_locked(oap) || curbuf_locked()))
+    if ((nv_cmds[idx].cmd_flags & NV_NCW) && check_text_or_curbuf_locked(oap))
 	// this command is not allowed now
 	goto normal_end;
 
@@ -4038,13 +4057,9 @@ nv_gotofile(cmdarg_T *cap)
     char_u	*ptr;
     linenr_T	lnum = -1;
 
-    if (check_text_locked(cap->oap))
+    if (check_text_or_curbuf_locked(cap->oap))
 	return;
-    if (curbuf_locked())
-    {
-	clearop(cap->oap);
-	return;
-    }
+
 #ifdef FEAT_PROP_POPUP
     if (ERROR_IF_TERM_POPUP_WINDOW)
 	return;
