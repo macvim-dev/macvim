@@ -22,14 +22,11 @@ func Test_suspend()
   CheckFeature terminal
   CheckExecutable /bin/sh
 
-  call WaitForResponses()
-  if has('mac')
-    " Mac OS machines tend to be slow, wait a bit longer
-    sleep 150m
-  endif
+  " Somehow the modifyOtherKeys response may get to the terminal when using
+  " Mac OS.  Make t_RK and 'keyprotocol' empty to avoid that.
+  set t_RK= keyprotocol=
 
-  " in case a previous failure left a swap file behind
-  call delete('.Xfoo.swp')
+  call WaitForResponses()
 
   let buf = term_start('/bin/sh')
   " Wait for shell prompt.
@@ -37,7 +34,7 @@ func Test_suspend()
 
   call term_sendkeys(buf, v:progpath
         \               . " --clean -X"
-        \               . " -c 'set nu'"
+        \               . " -c 'set nu keyprotocol='"
         \               . " -c 'call setline(1, \"foo\")'"
         \               . " Xfoo\<CR>")
   " Cursor in terminal buffer should be on first line in spawned vim.
@@ -69,21 +66,17 @@ func Test_suspend()
 
   exe buf . 'bwipe!'
   call delete('Xfoo')
-  call delete('.Xfoo.swp')
 endfunc
 
 func Test_suspend_autocmd()
   CheckFeature terminal
   CheckExecutable /bin/sh
 
-  call WaitForResponses()
-  if has('mac')
-    " Mac OS machines tend to be slow, wait a bit longer
-    sleep 150m
-  endif
+  " Somehow the modifyOtherKeys response may get to the terminal when using
+  " Mac OS.  Make t_RK and 'keyprotocol' empty to avoid that.
+  set t_RK= keyprotocol=
 
-  " in case a previous failure left a swap file behind
-  call delete('.Xfoo.swp')
+  call WaitForResponses()
 
   let buf = term_start('/bin/sh', #{term_rows: 6})
   " Wait for shell prompt.
@@ -91,7 +84,7 @@ func Test_suspend_autocmd()
 
   call term_sendkeys(buf, v:progpath
         \               . " --clean -X"
-        \               . " -c 'set nu'"
+        \               . " -c 'set nu keyprotocol='"
         \               . " -c 'let g:count = 0'"
         \               . " -c 'au VimSuspend * let g:count += 1'"
         \               . " -c 'au VimResume * let g:count += 1'"
@@ -123,7 +116,6 @@ func Test_suspend_autocmd()
 
   exe buf . 'bwipe!'
   call delete('Xfoo')
-  call delete('.Xfoo.swp')
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

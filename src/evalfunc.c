@@ -167,6 +167,7 @@ static void f_split(typval_T *argvars, typval_T *rettv);
 static void f_srand(typval_T *argvars, typval_T *rettv);
 static void f_submatch(typval_T *argvars, typval_T *rettv);
 static void f_substitute(typval_T *argvars, typval_T *rettv);
+static void f_swapfilelist(typval_T *argvars, typval_T *rettv);
 static void f_swapinfo(typval_T *argvars, typval_T *rettv);
 static void f_swapname(typval_T *argvars, typval_T *rettv);
 static void f_synID(typval_T *argvars, typval_T *rettv);
@@ -2582,6 +2583,8 @@ static funcentry_T global_functions[] =
 			ret_string,	    f_submatch},
     {"substitute",	4, 4, FEARG_1,	    arg4_string_string_any_string,
 			ret_string,	    f_substitute},
+    {"swapfilelist",	0, 0, 0,	    NULL,
+			ret_list_string,    f_swapfilelist},
     {"swapinfo",	1, 1, FEARG_1,	    arg1_string,
 			ret_dict_any,	    f_swapinfo},
     {"swapname",	1, 1, FEARG_1,	    arg1_buffer,
@@ -3769,6 +3772,12 @@ f_empty(typval_T *argvars, typval_T *rettv)
 	case VAR_BOOL:
 	case VAR_SPECIAL:
 	    n = argvars[0].vval.v_number != VVAL_TRUE;
+	    break;
+	case VAR_CLASS:
+	    n = argvars[0].vval.v_class != NULL;
+	    break;
+	case VAR_OBJECT:
+	    n = argvars[0].vval.v_object != NULL;
 	    break;
 
 	case VAR_BLOB:
@@ -7302,6 +7311,8 @@ f_len(typval_T *argvars, typval_T *rettv)
 	case VAR_JOB:
 	case VAR_CHANNEL:
 	case VAR_INSTR:
+	case VAR_CLASS:
+	case VAR_OBJECT:
 	    emsg(_(e_invalid_type_for_len));
 	    break;
     }
@@ -8194,9 +8205,32 @@ init_srand(UINT32_T *x)
 	}
     }
     if (dev_urandom_state != OK)
-	// Reading /dev/urandom doesn't work, fall back to time().
 #endif
-	*x = vim_time();
+    {
+	// Reading /dev/urandom doesn't work, fall back to:
+	// - randombytes_random()
+	// - reltime() or time()
+	// - XOR with process ID
+#if defined(FEAT_SODIUM)
+	if (crypt_sodium_init() >= 0)
+	    *x = crypt_sodium_randombytes_random();
+	else
+#endif
+	{
+#if defined(FEAT_RELTIME)
+	    proftime_T res;
+	    profile_start(&res);
+#  if defined(MSWIN)
+	    *x = (UINT32_T)res.LowPart;
+#  else
+	    *x = (UINT32_T)res.tv_usec;
+#  endif
+#else
+	    *x = vim_time();
+#endif
+	    *x ^= mch_get_pid();
+	}
+    }
 }
 
 #define ROTL(x, k) (((x) << (k)) | ((x) >> (32 - (k))))
@@ -10195,7 +10229,9 @@ f_substitute(typval_T *argvars, typval_T *rettv)
 
     if (argvars[2].v_type == VAR_FUNC
 	    || argvars[2].v_type == VAR_PARTIAL
-	    || argvars[2].v_type == VAR_INSTR)
+	    || argvars[2].v_type == VAR_INSTR
+	    || argvars[2].v_type == VAR_CLASS
+	    || argvars[2].v_type == VAR_OBJECT)
 	expr = &argvars[2];
     else
 	sub = tv_get_string_buf_chk(&argvars[2], subbuf);
@@ -10206,6 +10242,17 @@ f_substitute(typval_T *argvars, typval_T *rettv)
 	rettv->vval.v_string = NULL;
     else
 	rettv->vval.v_string = do_string_sub(str, pat, sub, expr, flg);
+}
+
+/*
+ * "swapfilelist()" function
+ */
+    static void
+f_swapfilelist(typval_T *argvars UNUSED, typval_T *rettv)
+{
+    if (rettv_list_alloc(rettv) == FAIL)
+	return;
+    recover_names(NULL, FALSE, rettv->vval.v_list, 0, NULL);
 }
 
 /*
@@ -10618,6 +10665,8 @@ f_type(typval_T *argvars, typval_T *rettv)
 	case VAR_CHANNEL: n = VAR_TYPE_CHANNEL; break;
 	case VAR_BLOB:    n = VAR_TYPE_BLOB; break;
 	case VAR_INSTR:   n = VAR_TYPE_INSTR; break;
+	case VAR_CLASS:   n = VAR_TYPE_CLASS; break;
+	case VAR_OBJECT:  n = VAR_TYPE_OBJECT; break;
 	case VAR_UNKNOWN:
 	case VAR_ANY:
 	case VAR_VOID:
