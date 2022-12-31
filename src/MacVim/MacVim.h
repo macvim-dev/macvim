@@ -379,13 +379,13 @@ NSString *debugStringForMessageQueue(NSArray *queue);
 
 // Shared user defaults (most user defaults are in Miscellaneous.h).
 // Contrary to the user defaults in Miscellaneous.h these defaults are not
-// intitialized to any default values.  That is, unless the user sets them
+// initialized to any default values.  That is, unless the user sets them
 // these keys will not be present in the user default database.
 extern NSString *MMLogLevelKey;
 extern NSString *MMLogToStdErrKey;
 
 // Argument used to stop MacVim from opening an empty window on startup
-// (techincally this is a user default but should not be used as such).
+// (technically this is a user default but should not be used as such).
 extern NSString *MMNoWindowKey;
 
 // Argument used to control MacVim sharing search text via the Find Pasteboard.
