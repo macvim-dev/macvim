@@ -229,12 +229,11 @@ exe_newdict(int count, ectx_T *ectx)
 	    // have already checked key type is VAR_STRING
 	    tv = STACK_TV_BOT(2 * (idx - count));
 	    // check key is unique
-	    key = tv->vval.v_string == NULL
-				? (char_u *)"" : tv->vval.v_string;
+	    key = tv->vval.v_string == NULL ? (char_u *)"" : tv->vval.v_string;
 	    item = dict_find(dict, key, -1);
 	    if (item != NULL)
 	    {
-		semsg(_(e_duplicate_key_in_dictionary), key);
+		semsg(_(e_duplicate_key_in_dictionary_str), key);
 		dict_unref(dict);
 		return MAYBE;
 	    }
@@ -377,6 +376,41 @@ get_pt_outer(partial_T *pt)
 }
 
 /*
+ * Check "argcount" arguments on the stack against what "ufunc" expects.
+ * "off" is the offset of arguments on the stack.
+ * Return OK or FAIL.
+ */
+    static int
+check_ufunc_arg_types(ufunc_T *ufunc, int argcount, int off, ectx_T *ectx)
+{
+    if (ufunc->uf_arg_types != NULL || ufunc->uf_va_type != NULL)
+    {
+	typval_T	*argv = STACK_TV_BOT(0) - argcount - off;
+
+	// The function can change at runtime, check that the argument
+	// types are correct.
+	for (int i = 0; i < argcount; ++i)
+	{
+	    type_T *type = NULL;
+
+	    // assume a v:none argument, using the default value, is always OK
+	    if (argv[i].v_type == VAR_SPECIAL
+					 && argv[i].vval.v_number == VVAL_NONE)
+		continue;
+
+	    if (i < ufunc->uf_args.ga_len && ufunc->uf_arg_types != NULL)
+		type = ufunc->uf_arg_types[i];
+	    else if (ufunc->uf_va_type != NULL)
+		type = ufunc->uf_va_type->tt_member;
+	    if (type != NULL && check_typval_arg_type(type,
+					    &argv[i], NULL, i + 1) == FAIL)
+		return FAIL;
+	}
+    }
+    return OK;
+}
+
+/*
  * Call compiled function "cdf_idx" from compiled code.
  * This adds a stack frame and sets the instruction pointer to the start of the
  * called function.
@@ -497,6 +531,10 @@ call_dfunc(
 			missing), missing);
 	return FAIL;
     }
+
+    // Check the argument types.
+    if (check_ufunc_arg_types(ufunc, argcount, vararg_count, ectx) == FAIL)
+	return FAIL;
 
     // Reserve space for:
     // - missing arguments
@@ -1345,26 +1383,8 @@ call_by_name(
 
     if (ufunc != NULL)
     {
-	if (ufunc->uf_arg_types != NULL || ufunc->uf_va_type != NULL)
-	{
-	    int i;
-	    typval_T	*argv = STACK_TV_BOT(0) - argcount;
-
-	    // The function can change at runtime, check that the argument
-	    // types are correct.
-	    for (i = 0; i < argcount; ++i)
-	    {
-		type_T *type = NULL;
-
-		if (i < ufunc->uf_args.ga_len && ufunc->uf_arg_types != NULL)
-		    type = ufunc->uf_arg_types[i];
-		else if (ufunc->uf_va_type != NULL)
-		    type = ufunc->uf_va_type->tt_member;
-		if (type != NULL && check_typval_arg_type(type,
-						&argv[i], NULL, i + 1) == FAIL)
-		    return FAIL;
-	    }
-	}
+	if (check_ufunc_arg_types(ufunc, argcount, 0, ectx) == FAIL)
+	    return FAIL;
 
 	return call_ufunc(ufunc, NULL, argcount, ectx, iptr, selfdict);
     }
@@ -2068,7 +2088,7 @@ handle_debug(isn_T *iptr, ectx_T *ectx)
 }
 
 /*
- * Store a value in a list, dict or blob variable.
+ * Store a value in a list, dict, blob or object variable.
  * Returns OK, FAIL or NOTDONE (uncatchable error).
  */
     static int
@@ -2177,9 +2197,9 @@ execute_storeindex(isn_T *iptr, ectx_T *ectx)
 	{
 	    long	    lidx = (long)tv_idx->vval.v_number;
 	    blob_T	    *blob = tv_dest->vval.v_blob;
-	    varnumber_T nr;
-	    int	    error = FALSE;
-	    int	    len;
+	    varnumber_T	    nr;
+	    int		    error = FALSE;
+	    int		    len;
 
 	    if (blob == NULL)
 	    {
@@ -2209,6 +2229,7 @@ execute_storeindex(isn_T *iptr, ectx_T *ectx)
 	    long	    idx = (long)tv_idx->vval.v_number;
 	    object_T	    *obj = tv_dest->vval.v_object;
 	    typval_T	    *otv = (typval_T *)(obj + 1);
+	    clear_tv(&otv[idx]);
 	    otv[idx] = *tv;
 	}
 	else
@@ -2364,8 +2385,7 @@ execute_unletindex(isn_T *iptr, ectx_T *ectx)
 		if (di == NULL)
 		{
 		    // NULL dict is equivalent to empty dict
-		    semsg(_(e_key_not_present_in_dictionary),
-							  key);
+		    semsg(_(e_key_not_present_in_dictionary_str), key);
 		    status = FAIL;
 		}
 		else if (var_check_fixed(di->di_flags,
@@ -3009,7 +3029,7 @@ exec_instructions(ectx_T *ectx)
 	iptr = &ectx->ec_instr[ectx->ec_iidx++];
 	switch (iptr->isn_type)
 	{
-	    // Constructor, new() method.
+	    // Constructor, first instruction in a new() method.
 	    case ISN_CONSTRUCT:
 		// "this" is always the local variable at index zero
 		tv = STACK_TV_VAR(0);
@@ -3798,7 +3818,7 @@ exec_instructions(ectx_T *ectx)
 		tv->vval.v_number = iptr->isn_arg.storenr.stnr_val;
 		break;
 
-	    // store value in list or dict variable
+	    // Store a value in a list, dict, blob or object variable.
 	    case ISN_STOREINDEX:
 		{
 		    int res = execute_storeindex(iptr, ectx);
@@ -3814,6 +3834,27 @@ exec_instructions(ectx_T *ectx)
 	    case ISN_STORERANGE:
 		if (execute_storerange(iptr, ectx) == FAIL)
 		    goto on_error;
+		break;
+
+	    case ISN_LOAD_CLASSMEMBER:
+		{
+		    if (GA_GROW_FAILS(&ectx->ec_stack, 1))
+			goto theend;
+		    classmember_T *cm = &iptr->isn_arg.classmember;
+		    *STACK_TV_BOT(0) =
+				    cm->cm_class->class_members_tv[cm->cm_idx];
+		    ++ectx->ec_stack.ga_len;
+		}
+		break;
+
+	    case ISN_STORE_CLASSMEMBER:
+		{
+		    classmember_T *cm = &iptr->isn_arg.classmember;
+		    tv = &cm->cm_class->class_members_tv[cm->cm_idx];
+		    clear_tv(tv);
+		    *tv = *STACK_TV_BOT(-1);
+		    --ectx->ec_stack.ga_len;
+		}
 		break;
 
 	    // Load or store variable or argument from outer scope.
@@ -4293,10 +4334,12 @@ exec_instructions(ectx_T *ectx)
 	    // Jump if an argument with a default value was already set and not
 	    // v:none.
 	    case ISN_JUMP_IF_ARG_SET:
+	    case ISN_JUMP_IF_ARG_NOT_SET:
 		tv = STACK_TV_VAR(iptr->isn_arg.jumparg.jump_arg_off);
-		if (tv->v_type != VAR_UNKNOWN
-			&& !(tv->v_type == VAR_SPECIAL
-					    && tv->vval.v_number == VVAL_NONE))
+		int arg_set = tv->v_type != VAR_UNKNOWN
+				&& !(tv->v_type == VAR_SPECIAL
+					    && tv->vval.v_number == VVAL_NONE);
+		if (iptr->isn_type == ISN_JUMP_IF_ARG_SET ? arg_set : !arg_set)
 		    ectx->ec_iidx = iptr->isn_arg.jumparg.jump_where;
 		break;
 
@@ -4654,6 +4697,8 @@ exec_instructions(ectx_T *ectx)
 	    case ISN_COMPAREFUNC:
 	    case ISN_COMPARESTRING:
 	    case ISN_COMPAREBLOB:
+	    case ISN_COMPARECLASS:
+	    case ISN_COMPAREOBJECT:
 		{
 		    typval_T	*tv1 = STACK_TV_BOT(-2);
 		    typval_T	*tv2 = STACK_TV_BOT(-1);
@@ -4683,9 +4728,19 @@ exec_instructions(ectx_T *ectx)
 			status = typval_compare_string(tv1, tv2,
 							   exprtype, ic, &res);
 		    }
-		    else
+		    else if (iptr->isn_type == ISN_COMPAREBLOB)
 		    {
 			status = typval_compare_blob(tv1, tv2, exprtype, &res);
+		    }
+		    else if (iptr->isn_type == ISN_COMPARECLASS)
+		    {
+			status = typval_compare_class(tv1, tv2,
+							exprtype, FALSE, &res);
+		    }
+		    else // ISN_COMPAREOBJECT
+		    {
+			status = typval_compare_object(tv1, tv2,
+							exprtype, FALSE, &res);
 		    }
 		    --ectx->ec_stack.ga_len;
 		    clear_tv(tv1);
@@ -5058,7 +5113,7 @@ exec_instructions(ectx_T *ectx)
 		    if ((di = dict_find(dict, key, -1)) == NULL)
 		    {
 			SOURCING_LNUM = iptr->isn_lnum;
-			semsg(_(e_key_not_present_in_dictionary), key);
+			semsg(_(e_key_not_present_in_dictionary_str), key);
 
 			// If :silent! is used we will continue, make sure the
 			// stack contents makes sense and the dict stack is
@@ -5101,7 +5156,7 @@ exec_instructions(ectx_T *ectx)
 								       == NULL)
 		    {
 			SOURCING_LNUM = iptr->isn_lnum;
-			semsg(_(e_key_not_present_in_dictionary),
+			semsg(_(e_key_not_present_in_dictionary_str),
 							 iptr->isn_arg.string);
 			goto on_error;
 		    }
@@ -5114,7 +5169,7 @@ exec_instructions(ectx_T *ectx)
 		}
 		break;
 
-	    case ISN_OBJ_MEMBER:
+	    case ISN_GET_OBJ_MEMBER:
 		{
 		    tv = STACK_TV_BOT(-1);
 		    if (tv->v_type != VAR_OBJECT)
@@ -5135,11 +5190,23 @@ exec_instructions(ectx_T *ectx)
 		    object_T *obj = tv->vval.v_object;
 		    // the members are located right after the object struct
 		    typval_T *mtv = ((typval_T *)(obj + 1)) + idx;
-		    *tv = *mtv;
+		    copy_tv(mtv, tv);
 
 		    // Unreference the object after getting the member, it may
 		    // be freed.
 		    object_unref(obj);
+		}
+		break;
+
+	    case ISN_STORE_THIS:
+		{
+		    int idx = iptr->isn_arg.number;
+		    object_T *obj = STACK_TV_VAR(0)->vval.v_object;
+		    // the members are located right after the object struct
+		    typval_T *mtv = ((typval_T *)(obj + 1)) + idx;
+		    clear_tv(mtv);
+		    *mtv = *STACK_TV_BOT(-1);
+		    --ectx->ec_stack.ga_len;
 		}
 		break;
 
@@ -6388,6 +6455,19 @@ list_instructions(char *pfx, isn_T *instr, int instr_count, ufunc_T *ufunc)
 		smsg("%s%4d STORERANGE", pfx, current);
 		break;
 
+	    case ISN_LOAD_CLASSMEMBER:
+	    case ISN_STORE_CLASSMEMBER:
+		{
+		    class_T *cl = iptr->isn_arg.classmember.cm_class;
+		    int	    idx = iptr->isn_arg.classmember.cm_idx;
+		    ocmember_T *ocm = &cl->class_class_members[idx];
+		    smsg("%s%4d %s CLASSMEMBER %s.%s", pfx, current,
+			    iptr->isn_type == ISN_LOAD_CLASSMEMBER
+							    ? "LOAD" : "STORE",
+			    cl->class_name, ocm->ocm_name);
+		}
+		break;
+
 	    // constants
 	    case ISN_PUSHNR:
 		smsg("%s%4d PUSHNR %lld", pfx, current,
@@ -6621,6 +6701,12 @@ list_instructions(char *pfx, isn_T *instr, int instr_count, ufunc_T *ufunc)
 						iptr->isn_arg.jump.jump_where);
 		break;
 
+	    case ISN_JUMP_IF_ARG_NOT_SET:
+		smsg("%s%4d JUMP_IF_ARG_NOT_SET arg[%d] -> %d", pfx, current,
+			 iptr->isn_arg.jumparg.jump_arg_off + STACK_FRAME_SIZE,
+						iptr->isn_arg.jump.jump_where);
+		break;
+
 	    case ISN_FOR:
 		{
 		    forloop_T *forloop = &iptr->isn_arg.forloop;
@@ -6733,6 +6819,8 @@ list_instructions(char *pfx, isn_T *instr, int instr_count, ufunc_T *ufunc)
 	    case ISN_COMPARELIST:
 	    case ISN_COMPAREDICT:
 	    case ISN_COMPAREFUNC:
+	    case ISN_COMPARECLASS:
+	    case ISN_COMPAREOBJECT:
 	    case ISN_COMPAREANY:
 		   {
 		       char *p;
@@ -6770,6 +6858,9 @@ list_instructions(char *pfx, isn_T *instr, int instr_count, ufunc_T *ufunc)
 			   case ISN_COMPARELIST: type = "COMPARELIST"; break;
 			   case ISN_COMPAREDICT: type = "COMPAREDICT"; break;
 			   case ISN_COMPAREFUNC: type = "COMPAREFUNC"; break;
+			   case ISN_COMPARECLASS: type = "COMPARECLASS"; break;
+			   case ISN_COMPAREOBJECT:
+						 type = "COMPAREOBJECT"; break;
 			   case ISN_COMPAREANY: type = "COMPAREANY"; break;
 			   default: type = "???"; break;
 		       }
@@ -6805,7 +6896,9 @@ list_instructions(char *pfx, isn_T *instr, int instr_count, ufunc_T *ufunc)
 	    case ISN_MEMBER: smsg("%s%4d MEMBER", pfx, current); break;
 	    case ISN_STRINGMEMBER: smsg("%s%4d MEMBER %s", pfx, current,
 						  iptr->isn_arg.string); break;
-	    case ISN_OBJ_MEMBER: smsg("%s%4d OBJ_MEMBER %d", pfx, current,
+	    case ISN_GET_OBJ_MEMBER: smsg("%s%4d OBJ_MEMBER %d", pfx, current,
+					     (int)iptr->isn_arg.number); break;
+	    case ISN_STORE_THIS: smsg("%s%4d STORE_THIS %d", pfx, current,
 					     (int)iptr->isn_arg.number); break;
 	    case ISN_CLEARDICT: smsg("%s%4d CLEARDICT", pfx, current); break;
 	    case ISN_USEDICT: smsg("%s%4d USEDICT", pfx, current); break;
@@ -6815,16 +6908,23 @@ list_instructions(char *pfx, isn_T *instr, int instr_count, ufunc_T *ufunc)
 	    case ISN_CHECKTYPE:
 		  {
 		      checktype_T   *ct = &iptr->isn_arg.type;
-		      char	    *tofree;
+		      char	    *tofree = NULL;
+		      char	    *typename;
+
+		      if (ct->ct_type->tt_type == VAR_FLOAT
+			      && (ct->ct_type->tt_flags & TTFLAG_NUMBER_OK))
+			  typename = "float|number";
+		      else
+			  typename = type_name(ct->ct_type, &tofree);
 
 		      if (ct->ct_arg_idx == 0)
 			  smsg("%s%4d CHECKTYPE %s stack[%d]", pfx, current,
-					  type_name(ct->ct_type, &tofree),
+					  typename,
 					  (int)ct->ct_off);
 		      else
 			  smsg("%s%4d CHECKTYPE %s stack[%d] %s %d",
 					  pfx, current,
-					  type_name(ct->ct_type, &tofree),
+					  typename,
 					  (int)ct->ct_off,
 					  ct->ct_is_var ? "var": "arg",
 					  (int)ct->ct_arg_idx);

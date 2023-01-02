@@ -99,13 +99,14 @@ compile_member(int is_slice, int *keeping_dict, cctx_T *cctx)
 	vartype = VAR_DICT;
     if (vartype == VAR_STRING || vartype == VAR_LIST || vartype == VAR_BLOB)
     {
-	if (need_type(idxtype, &t_number, -1, 0, cctx, FALSE, FALSE) == FAIL)
+	if (need_type(idxtype, &t_number, FALSE,
+					    -1, 0, cctx, FALSE, FALSE) == FAIL)
 	    return FAIL;
 	if (is_slice)
 	{
 	    idxtype = get_type_on_stack(cctx, 1);
-	    if (need_type(idxtype, &t_number, -2, 0, cctx,
-							 FALSE, FALSE) == FAIL)
+	    if (need_type(idxtype, &t_number, FALSE,
+					    -2, 0, cctx, FALSE, FALSE) == FAIL)
 		return FAIL;
 	}
     }
@@ -135,8 +136,8 @@ compile_member(int is_slice, int *keeping_dict, cctx_T *cctx)
 	}
 	else
 	{
-	    if (need_type(typep->type_curr, &t_dict_any, -2, 0, cctx,
-							 FALSE, FALSE) == FAIL)
+	    if (need_type(typep->type_curr, &t_dict_any, FALSE,
+					    -2, 0, cctx, FALSE, FALSE) == FAIL)
 		return FAIL;
 	    typep->type_curr = &t_any;
 	    typep->type_decl = &t_any;
@@ -253,7 +254,6 @@ compile_member(int is_slice, int *keeping_dict, cctx_T *cctx)
 /*
  * Compile ".member" coming after an object or class.
  */
-
     static int
 compile_class_object_index(cctx_T *cctx, char_u **arg, type_T *type)
 {
@@ -273,16 +273,23 @@ compile_class_object_index(cctx_T *cctx, char_u **arg, type_T *type)
     class_T *cl = (class_T *)type->tt_member;
     if (*name_end == '(')
     {
-	// TODO
+	// TODO: method or function call
+	emsg("compile_class_object_index(): object/class call not handled yet");
     }
     else if (type->tt_type == VAR_OBJECT)
     {
 	for (int i = 0; i < cl->class_obj_member_count; ++i)
 	{
-	    objmember_T *m = &cl->class_obj_members[i];
-	    if (STRNCMP(name, m->om_name, len) == 0 && m->om_name[len] == NUL)
+	    ocmember_T *m = &cl->class_obj_members[i];
+	    if (STRNCMP(name, m->ocm_name, len) == 0 && m->ocm_name[len] == NUL)
 	    {
-		generate_OBJ_MEMBER(cctx, i, m->om_type);
+		if (*name == '_' && cctx->ctx_ufunc->uf_class != cl)
+		{
+		    semsg(_(e_cannot_access_private_member_str), m->ocm_name);
+		    return FAIL;
+		}
+
+		generate_GET_OBJ_MEMBER(cctx, i, m->ocm_type);
 
 		*arg = name_end;
 		return OK;
@@ -294,7 +301,7 @@ compile_class_object_index(cctx_T *cctx, char_u **arg, type_T *type)
     else
     {
 	// TODO: class member
-	emsg("compile_class_object_index(): not handled");
+	emsg("compile_class_object_index(): class member not handled yet");
     }
 
     return FAIL;
@@ -581,7 +588,8 @@ compile_load(
 	}
 	else
 	{
-	    lvar_T lvar;
+	    lvar_T  lvar;
+	    class_T *cl = NULL;
 
 	    if (lookup_local(*arg, len, &lvar, cctx) == OK)
 	    {
@@ -595,6 +603,10 @@ compile_load(
 		}
 		else
 		    gen_load = TRUE;
+	    }
+	    else if ((idx = class_member_index(*arg, len, &cl, cctx)) >= 0)
+	    {
+		res = generate_CLASSMEMBER(cctx, TRUE, cl, idx);
 	    }
 	    else
 	    {
@@ -1306,7 +1318,7 @@ compile_dict(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 	    item = dict_find(d, key, -1);
 	    if (item != NULL)
 	    {
-		semsg(_(e_duplicate_key_in_dictionary), key);
+		semsg(_(e_duplicate_key_in_dictionary_str), key);
 		goto failret;
 	    }
 	    item = dictitem_alloc(key);
@@ -1324,7 +1336,7 @@ compile_dict(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 	    if (*skipwhite(*arg) == ':')
 		semsg(_(e_no_white_space_allowed_before_str_str), ":", *arg);
 	    else
-		semsg(_(e_missing_colon_in_dictionary), *arg);
+		semsg(_(e_missing_colon_in_dictionary_str), *arg);
 	    return FAIL;
 	}
 	whitep = *arg + 1;
@@ -1356,7 +1368,7 @@ compile_dict(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 	    break;
 	if (**arg != ',')
 	{
-	    semsg(_(e_missing_comma_in_dictionary), *arg);
+	    semsg(_(e_missing_comma_in_dictionary_str), *arg);
 	    goto failret;
 	}
 	if (IS_WHITE_OR_NUL(*whitep))
@@ -1387,7 +1399,7 @@ compile_dict(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 failret:
     if (*arg == NULL)
     {
-	semsg(_(e_missing_dict_end), _("[end of lines]"));
+	semsg(_(e_missing_dict_end_str), _("[end of lines]"));
 	*arg = (char_u *)"";
     }
     dict_unref(d);
@@ -1720,7 +1732,7 @@ bool_on_stack(cctx_T *cctx)
 	// This requires a runtime type check.
 	return generate_COND2BOOL(cctx);
 
-    return need_type(type, &t_bool, -1, 0, cctx, FALSE, FALSE);
+    return need_type(type, &t_bool, FALSE, -1, 0, cctx, FALSE, FALSE);
 }
 
 /*
@@ -1752,22 +1764,14 @@ compile_leader(cctx_T *cctx, int numeric_only, char_u *start, char_u **end)
 	    --p;
 	if (*p == '-' || *p == '+')
 	{
-	    int		negate = *p == '-';
-	    isn_T	*isn;
-	    type_T	*type;
-
-	    type = get_type_on_stack(cctx, 0);
-	    if (type != &t_float && need_type(type, &t_number,
-					    -1, 0, cctx, FALSE, FALSE) == FAIL)
+	    type_T *type = get_type_on_stack(cctx, 0);
+	    if (type->tt_type != VAR_FLOAT && need_type(type, &t_number,
+				     FALSE, -1, 0, cctx, FALSE, FALSE) == FAIL)
 		return FAIL;
 
 	    // only '-' has an effect, for '+' we only check the type
-	    if (negate)
-	    {
-		isn = generate_instr(cctx, ISN_NEGATENR);
-		if (isn == NULL)
-		    return FAIL;
-	    }
+	    if (*p == '-' && generate_instr(cctx, ISN_NEGATENR) == NULL)
+		return FAIL;
 	}
 	else if (numeric_only)
 	{
@@ -2520,8 +2524,8 @@ compile_expr8(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 	actual = get_type_on_stack(cctx, 0);
 	if (check_type_maybe(want_type, actual, FALSE, where) != OK)
 	{
-	    if (need_type(actual, want_type, -1, 0, cctx, FALSE, FALSE)
-								       == FAIL)
+	    if (need_type(actual, want_type, FALSE,
+					    -1, 0, cctx, FALSE, FALSE) == FAIL)
 		return FAIL;
 	}
     }
@@ -2762,7 +2766,7 @@ compile_expr5(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 	{
 	    type_T	*t = get_type_on_stack(cctx, 0);
 
-	    if (need_type(t, &t_number, 0, 0, cctx, FALSE, FALSE) == FAIL)
+	    if (need_type(t, &t_number, FALSE, 0, 0, cctx, FALSE, FALSE) == FAIL)
 	    {
 		emsg(_(e_bitshift_ops_must_be_number));
 		return FAIL;
@@ -2817,8 +2821,8 @@ compile_expr5(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 	}
 	else
 	{
-	    if (need_type(get_type_on_stack(cctx, 0), &t_number, 0, 0, cctx,
-			FALSE, FALSE) == FAIL)
+	    if (need_type(get_type_on_stack(cctx, 0), &t_number, FALSE,
+					     0, 0, cctx, FALSE, FALSE) == FAIL)
 	    {
 		emsg(_(e_bitshift_ops_must_be_number));
 		return FAIL;

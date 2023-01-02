@@ -165,7 +165,6 @@ main
 # endif
     }
 #endif
-    starttime = time(NULL);
 
 #ifdef CLEAN_RUNTIMEPATH
     // Need to find "--clean" before actually parsing arguments.

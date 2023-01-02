@@ -982,7 +982,7 @@ eval_dict(char_u **arg, typval_T *rettv, evalarg_T *evalarg, int literal)
 	    if (*skipwhite(*arg) == ':')
 		semsg(_(e_no_white_space_allowed_before_str_str), ":", *arg);
 	    else
-		semsg(_(e_missing_colon_in_dictionary), *arg);
+		semsg(_(e_missing_colon_in_dictionary_str), *arg);
 	    clear_tv(&tvkey);
 	    goto failret;
 	}
@@ -1020,7 +1020,7 @@ eval_dict(char_u **arg, typval_T *rettv, evalarg_T *evalarg, int literal)
 	    item = dict_find(d, key, -1);
 	    if (item != NULL)
 	    {
-		semsg(_(e_duplicate_key_in_dictionary), key);
+		semsg(_(e_duplicate_key_in_dictionary_str), key);
 		clear_tv(&tvkey);
 		clear_tv(&tv);
 		goto failret;
@@ -1060,7 +1060,7 @@ eval_dict(char_u **arg, typval_T *rettv, evalarg_T *evalarg, int literal)
 	    if (**arg == ',')
 		semsg(_(e_no_white_space_allowed_before_str_str), ",", *arg);
 	    else
-		semsg(_(e_missing_comma_in_dictionary), *arg);
+		semsg(_(e_missing_comma_in_dictionary_str), *arg);
 	    goto failret;
 	}
     }
@@ -1068,7 +1068,7 @@ eval_dict(char_u **arg, typval_T *rettv, evalarg_T *evalarg, int literal)
     if (**arg != '}')
     {
 	if (evalarg != NULL)
-	    semsg(_(e_missing_dict_end), *arg);
+	    semsg(_(e_missing_dict_end_str), *arg);
 failret:
 	if (d != NULL)
 	    dict_free(d);
@@ -1270,50 +1270,52 @@ dict_extend_func(
 	return;
     }
     d2 = argvars[1].vval.v_dict;
-    if ((is_new || !value_check_lock(d1->dv_lock, arg_errmsg, TRUE))
-	    && d2 != NULL)
+    if (d2 == NULL)
+	return;
+
+    if (!is_new && value_check_lock(d1->dv_lock, arg_errmsg, TRUE))
+	return;
+
+    if (is_new)
     {
-	if (is_new)
-	{
-	    d1 = dict_copy(d1, FALSE, TRUE, get_copyID());
-	    if (d1 == NULL)
-		return;
-	}
-
-	// Check the third argument.
-	if (argvars[2].v_type != VAR_UNKNOWN)
-	{
-	    static char *(av[]) = {"keep", "force", "error"};
-
-	    action = tv_get_string_chk(&argvars[2]);
-	    if (action == NULL)
-		return;
-	    for (i = 0; i < 3; ++i)
-		if (STRCMP(action, av[i]) == 0)
-		    break;
-	    if (i == 3)
-	    {
-		semsg(_(e_invalid_argument_str), action);
-		return;
-	    }
-	}
-	else
-	    action = (char_u *)"force";
-
-	if (type != NULL && check_typval_arg_type(type, &argvars[1],
-							 func_name, 2) == FAIL)
+	d1 = dict_copy(d1, FALSE, TRUE, get_copyID());
+	if (d1 == NULL)
 	    return;
-	dict_extend(d1, d2, action, func_name);
-
-	if (is_new)
-	{
-	    rettv->v_type = VAR_DICT;
-	    rettv->vval.v_dict = d1;
-	    rettv->v_lock = FALSE;
-	}
-	else
-	    copy_tv(&argvars[0], rettv);
     }
+
+    // Check the third argument.
+    if (argvars[2].v_type != VAR_UNKNOWN)
+    {
+	static char *(av[]) = {"keep", "force", "error"};
+
+	action = tv_get_string_chk(&argvars[2]);
+	if (action == NULL)
+	    return;
+	for (i = 0; i < 3; ++i)
+	    if (STRCMP(action, av[i]) == 0)
+		break;
+	if (i == 3)
+	{
+	    semsg(_(e_invalid_argument_str), action);
+	    return;
+	}
+    }
+    else
+	action = (char_u *)"force";
+
+    if (type != NULL && check_typval_arg_type(type, &argvars[1],
+		func_name, 2) == FAIL)
+	return;
+    dict_extend(d1, d2, action, func_name);
+
+    if (is_new)
+    {
+	rettv->v_type = VAR_DICT;
+	rettv->vval.v_dict = d1;
+	rettv->v_lock = FALSE;
+    }
+    else
+	copy_tv(&argvars[0], rettv);
 }
 
 /*
@@ -1454,7 +1456,7 @@ dict_remove(typval_T *argvars, typval_T *rettv, char_u *arg_errmsg)
     di = dict_find(d, key, -1);
     if (di == NULL)
     {
-	semsg(_(e_key_not_present_in_dictionary), key);
+	semsg(_(e_key_not_present_in_dictionary_str), key);
 	return;
     }
 

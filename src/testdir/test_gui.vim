@@ -1288,7 +1288,7 @@ func Test_gui_mouse_move_event()
     let g:eventlist = g:eventlist[1 : ]
   endif
 
-  call assert_equal([#{row: 4, col: 31}, #{row: 11, col: 31}], g:eventlist)
+  call assert_equal([#{row: 3, col: 30}, #{row: 10, col: 30}], g:eventlist)
 
   " wiggle the mouse around within a screen cell, shouldn't trigger events
   call extend(args, #{cell: v:false})
@@ -1650,10 +1650,10 @@ endfunc
 " Test for sending low level key presses
 func SendKeys(keylist)
   for k in a:keylist
-    call test_gui_event("sendevent", #{event: "keydown", keycode: k})
+    call test_gui_event("key", #{event: "keydown", keycode: k})
   endfor
   for k in reverse(a:keylist)
-    call test_gui_event("sendevent", #{event: "keyup", keycode: k})
+    call test_gui_event("key", #{event: "keyup", keycode: k})
   endfor
 endfunc
 
@@ -1706,7 +1706,7 @@ func Test_gui_lowlevel_keyevent()
     \ [[0x11, 0x10, 0x28], "C-S-Down", 4],
     \ [[0x11, 0x30], "C-0", 4],
     \ [[0x11, 0x31], "C-1", 4],
-    \ [[0x11, 0x32], "C-2", 4],
+    \ [[0x11, 0x32], "C-@", 0],
     \ [[0x11, 0x33], "C-3", 4],
     \ [[0x11, 0x34], "C-4", 4],
     \ [[0x11, 0x35], "C-5", 4],
@@ -1727,6 +1727,7 @@ func Test_gui_lowlevel_keyevent()
     \ [[0x11, 0x6A], "C-*", 4],
     \ [[0x11, 0x6B], "C-+", 4],
     \ [[0x11, 0x6D], "C--", 4],
+    \ [[0x11, 0xBD], "C-_", 0],
     \ [[0x11, 0x70], "C-F1", 4],
     \ [[0x11, 0x10, 0x70], "C-S-F1", 4],
     \ [[0x11, 0x71], "C-F2", 4],

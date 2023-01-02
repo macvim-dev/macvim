@@ -1,4 +1,4 @@
-*vim9class.txt*	For Vim version 9.0.  Last change: 2022 Dec 04
+*vim9class.txt*	For Vim version 9.0.  Last change: 2022 Dec 20
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -96,7 +96,7 @@ Let's start with a simple example: a class that stores a text position: >
 	      this.col = col
 	   enddef
 	 endclass
-
+<							*object* *Object*
 You can create an object from this class with the new() method: >
 
 	var pos = TextPosition.new(1, 1)
@@ -104,7 +104,7 @@ You can create an object from this class with the new() method: >
 The object members "lnum" and "col" can be accessed directly: >
 
 	echo $'The text position is ({pos.lnum}, {pos.col})'
-
+<							*E1317* *E1327*
 If you have been using other object-oriented languages you will notice that
 in Vim the object members are consistently referred to with the "this."
 prefix.  This is different from languages like Java and TypeScript.  This
@@ -117,7 +117,7 @@ Member write access ~
 Now try to change an object member directly: >
 
 	pos.lnum = 9
-
+<								*E1335*
 This will give you an error!  That is because by default object members can be
 read but not set.  That's why the class provides a method for it: >
 
@@ -128,7 +128,7 @@ way.  Most often there is no problem using a value, while setting a value may
 have side effects that need to be taken care of.  In this case, the SetLnum()
 method could check if the line number is valid and either give an error or use
 the closest valid value.
-
+						*:public* *E1331*
 If you don't care about side effects and want to allow the object member to be
 changed at any time, you can make it public: >
 
@@ -137,10 +137,14 @@ changed at any time, you can make it public: >
 
 Now you don't need the SetLnum(), SetCol() and SetPosition() methods, setting
 "pos.lnum" directly above will no longer give an error.
+							*E1334*
+If you try to set an object member that doesn't exist you get an error: >
+	pos.other = 9
+<	E1334: Object member not found: other ~
 
 
 Private members ~
-
+							*E1332* *E1333*
 On the other hand, if you do not want the object members to be read directly,
 you can make them private.  This is done by prefixing an underscore to the
 name: >
@@ -245,7 +249,7 @@ class, for which objects can be created.  Example: >
 	   enddef
 	endclass
 <
-						*class-member* *:static*
+					*class-member* *:static* *E1337* *E1338*
 Class members are declared with "static".  They are used by the name without a
 prefix: >
 
@@ -329,14 +333,14 @@ The interface name can be used as a type: >
 
 ==============================================================================
 
-5.  More class details					*Vim9-class*
+5.  More class details				*Vim9-class* *Class* *class*
 
 Defining a class ~
 					*:class* *:endclass* *:abstract*
 A class is defined between `:class` and `:endclass`.  The whole class is
 defined in one script file.  It is not possible to add to a class later.
 
-A class can only be defined in a |Vim9| script file.  *E1315*
+A class can only be defined in a |Vim9| script file.  *E1316*
 A class cannot be defined inside a function.
 
 It is possible to define more than one class in a script file.  Although it
@@ -361,7 +365,7 @@ these variants: >
 							*E1314*
 The class name should be CamelCased.  It must start with an uppercase letter.
 That avoids clashing with builtin types.
-
+							*E1315*
 After the class name these optional items can be used.  Each can appear only
 once.  They can appear in any order, although this order is recommended: >
 	extends ClassName
@@ -375,6 +379,31 @@ A class can implement one or more interfaces.
 A class can declare its interface, the object members and methods, with a
 named interface.  This avoids the need for separately specifying the
 interface, which is often done in many languages, especially Java.
+
+
+Items in a class ~
+						*E1318* *E1325* *E1326*
+Inside a class, in betweeen `:class` and `:endclass`, these items can appear:
+- An object member declaration: >
+  	this._memberName: memberType
+  	this.memberName: memberType
+	public this.memberName: memberType
+- A constructor method: >
+  	def new(arguments)
+  	def newName(arguments)
+- An object method: >
+  	def SomeMethod(arguments)
+<							*E1329*
+For the object member the type must be specified.  The best way is to do this
+explicitly with ": {type}".  For simple types you can also use an initializer,
+such as "= 123", and Vim will see that the type is a number.  Avoid doing this
+for more complex types and when the type will be incomplete.  For example: >
+	this.nameList = []
+This specifies a list, but the item type is unknown.  Better use: >
+	this.nameList: list<string>
+The initialization isn't needed, the list is empty by default.
+							*E1330*
+Some types cannot be used, such as "void", "null" and "v:none".
 
 
 Defining an interface ~
@@ -417,10 +446,31 @@ members, in the order they were specified.  Thus if your class looks like: >
 
 Then The default constructor will be: >
 
-	def new(this.name, this.age, this.gender)
+	def new(this.name = v:none, this.age = v:none, this.gender = v:none)
 	enddef
 
 All object members will be used, also private access ones.
+
+The "= v:none" default values make the arguments optional.  Thus you can also
+call `new()` without any arguments.  No assignment will happen and the default
+value for the object members will be used.  This is a more useful example,
+with default values: >
+
+	class TextPosition
+	   this.lnum: number = 1
+	   this.col: number = 1
+	endclass
+
+If you want the constructor to have mandatory arguments, you need to write it
+yourself.  For example, if for the AutoNew class above you insist on getting
+the name, you can define the constructor like this: >
+
+	def new(this.name, this.age = v:none, this.gender = v:none)
+	enddef
+<							*E1328*
+Note that you cannot use another default value than "v:none" here.  If you
+want to initialize the object members, do it where they are declared.  This
+way you only need to look in one place for the default values.
 
 
 Multiple constructors ~

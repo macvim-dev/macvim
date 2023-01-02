@@ -12,4 +12,6 @@ char *set_string_option(int opt_idx, char_u *value, int opt_flags);
 char *did_set_string_option(int opt_idx, char_u **varp, char_u *oldval, char *errbuf, int opt_flags, int *value_checked);
 int check_ff_value(char_u *p);
 int check_fuoptions(void);
+void save_clear_shm_value(void);
+void restore_shm_value(void);
 /* vim: set ft=c : */

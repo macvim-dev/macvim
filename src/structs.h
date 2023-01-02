@@ -1387,6 +1387,7 @@ typedef signed char int8_T;
 
 typedef double	float_T;
 
+typedef struct typval_S typval_T;
 typedef struct listvar_S list_T;
 typedef struct dictvar_S dict_T;
 typedef struct partial_S partial_T;
@@ -1459,13 +1460,27 @@ typedef struct {
     type_T	*type_decl;	    // declared type or equal to type_current
 } type2_T;
 
+#define TTFLAG_VARARGS	    0x01    // func args ends with "..."
+#define TTFLAG_BOOL_OK	    0x02    // can be converted to bool
+#define TTFLAG_NUMBER_OK    0x04    // tt_type is VAR_FLOAT, VAR_NUMBER is OK
+#define TTFLAG_STATIC	    0x08    // one of the static types, e.g. t_any
+#define TTFLAG_CONST	    0x10    // cannot be changed
+
+typedef enum {
+    ACCESS_PRIVATE,	// read/write only inside th class
+    ACCESS_READ,	// read everywhere, write only inside th class
+    ACCESS_ALL		// read/write everywhere
+} omacc_T;
+
 /*
- * Entry for an object member variable.
+ * Entry for an object or class member variable.
  */
 typedef struct {
-    char_u	*om_name;  // allocated
-    type_T	*om_type;
-} objmember_T;
+    char_u	*ocm_name;   // allocated
+    omacc_T	ocm_access;
+    type_T	*ocm_type;
+    char_u	*ocm_init;   // allocated
+} ocmember_T;
 
 // "class_T": used for v_class of typval of VAR_CLASS
 struct class_S
@@ -1473,14 +1488,25 @@ struct class_S
     char_u	*class_name;		// allocated
     int		class_refcount;
 
-    int		class_obj_member_count;
-    objmember_T	*class_obj_members;	// allocated
+    // class members: "static varname"
+    int		class_class_member_count;
+    ocmember_T	*class_class_members;	// allocated
+    typval_T	*class_members_tv;	// allocated array of class member vals
 
+    // class functions: "static def SomeMethod()"
+    int		class_class_function_count;
+    ufunc_T	**class_class_functions;	// allocated
+
+    // object members: "this.varname"
+    int		class_obj_member_count;
+    ocmember_T	*class_obj_members;	// allocated
+
+    // object methods: "def SomeMethod()"
     int		class_obj_method_count;
     ufunc_T	**class_obj_methods;	// allocated
 
     garray_T	class_type_list;	// used for type pointers
-    type_T	class_type;
+    type_T	class_type;		// type used for the class
     type_T	class_object_type;	// same as class_type but VAR_OBJECT
 };
 
@@ -1497,15 +1523,10 @@ struct object_S
     int		obj_copyID;	    // used by garbage collection
 };
 
-#define TTFLAG_VARARGS	0x01	    // func args ends with "..."
-#define TTFLAG_BOOL_OK	0x02	    // can be converted to bool
-#define TTFLAG_STATIC	0x04	    // one of the static types, e.g. t_any
-#define TTFLAG_CONST	0x08	    // cannot be changed
-
 /*
  * Structure to hold an internal variable without a name.
  */
-typedef struct
+struct typval_S
 {
     vartype_T	v_type;
     char	v_lock;	    // see below: VAR_LOCKED, VAR_FIXED
@@ -1526,7 +1547,7 @@ typedef struct
 	class_T		*v_class;	// class value (can be NULL)
 	object_T	*v_object;	// object value (can be NULL)
     }		vval;
-} typval_T;
+};
 
 // Values for "dv_scope".
 #define VAR_SCOPE     1	// a:, v:, s:, etc. scope dictionaries
@@ -1719,7 +1740,8 @@ struct ufunc_S
     def_status_T uf_def_status; // UF_NOT_COMPILED, UF_TO_BE_COMPILED, etc.
     int		uf_dfunc_idx;	// only valid if uf_def_status is UF_COMPILED
 
-    class_T	*uf_class;	// for object method and constructor
+    class_T	*uf_class;	// for object method and constructor; does not
+				// count for class_refcount
 
     garray_T	uf_args;	// arguments, including optional arguments
     garray_T	uf_def_args;	// default argument expressions

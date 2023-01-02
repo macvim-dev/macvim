@@ -5266,6 +5266,14 @@ then :
 
 fi
 
+# 10.5 and earlier lack dispatch
+ac_fn_c_check_header_compile "$LINENO" "dispatch/dispatch.h" "ac_cv_header_dispatch_dispatch_h" "$ac_includes_default"
+if test "x$ac_cv_header_dispatch_dispatch_h" = xyes
+then :
+  printf "%s\n" "#define HAVE_DISPATCH_DISPATCH_H 1" >>confdefs.h
+
+fi
+
 
 
 

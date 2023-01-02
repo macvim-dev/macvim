@@ -224,7 +224,6 @@ get_function_args(
     char_u	*p;
     int		c;
     int		any_default = FALSE;
-    char_u	*expr;
     char_u	*whitep = *argp;
 
     if (newargs != NULL)
@@ -302,6 +301,34 @@ get_function_args(
 	    arg = p;
 	    while (ASCII_ISALNUM(*p) || *p == '_')
 		++p;
+	    char_u *argend = p;
+
+	    if (*skipwhite(p) == '=')
+	    {
+		char_u *defval = skipwhite(skipwhite(p) + 1);
+		if (STRNCMP(defval, "v:none", 6) != 0)
+		{
+		    semsg(_(e_constructor_default_value_must_be_vnone_str), p);
+		    goto err_ret;
+		}
+		any_default = TRUE;
+		p = defval + 6;
+
+		if (ga_grow(default_args, 1) == FAIL)
+		    goto err_ret;
+
+		char_u *expr = vim_strsave((char_u *)"v:none");
+		if (expr == NULL)
+		    goto err_ret;
+		((char_u **)(default_args->ga_data))
+						 [default_args->ga_len] = expr;
+		default_args->ga_len++;
+	    }
+	    else if (any_default)
+	    {
+		emsg(_(e_non_default_argument_follows_default_argument));
+		goto err_ret;
+	    }
 
 	    // TODO: check the argument is indeed a member
 	    if (newargs != NULL && ga_grow(newargs, 1) == FAIL)
@@ -309,7 +336,7 @@ get_function_args(
 	    if (newargs != NULL)
 	    {
 		((char_u **)(newargs->ga_data))[newargs->ga_len] =
-						    vim_strnsave(arg, p - arg);
+					       vim_strnsave(arg, argend - arg);
 		newargs->ga_len++;
 
 		if (argtypes != NULL && ga_grow(argtypes, 1) == OK)
@@ -322,15 +349,22 @@ get_function_args(
 		    if (ga_grow(newlines, 1) == OK)
 		    {
 			// "this.name = name"
-			int len = 5 + (p - arg) + 3 + (p - arg) + 1;
+			int len = 5 + (argend - arg) + 3 + (argend - arg) + 1;
+			if (any_default)
+			    len += 14 + 10;
 			char_u *assignment = alloc(len);
 			if (assignment != NULL)
 			{
-			    c = *p;
-			    *p = NUL;
-			    vim_snprintf((char *)assignment, len,
+			    c = *argend;
+			    *argend = NUL;
+			    if (any_default)
+				vim_snprintf((char *)assignment, len,
+						"ifargisset %d this.%s = %s",
+					   default_args->ga_len - 1, arg, arg);
+			    else
+				vim_snprintf((char *)assignment, len,
 						     "this.%s = %s", arg, arg);
-			    *p = c;
+			    *argend = c;
 			    ((char_u **)(newlines->ga_data))[
 					      newlines->ga_len++] = assignment;
 			}
@@ -361,7 +395,7 @@ get_function_args(
 		// find the end of the expression (doesn't evaluate it)
 		any_default = TRUE;
 		p = skipwhite(np + 1);
-		expr = p;
+		char_u *expr = p;
 		if (eval1(&p, &rettv, NULL) != FAIL)
 		{
 		    if (!skip)
@@ -4047,6 +4081,12 @@ trans_function_name(
 	    name = vim_strsave(lv.ll_tv->vval.v_string);
 	    *pp = end;
 	}
+	else if (lv.ll_tv->v_type == VAR_CLASS
+					     && lv.ll_tv->vval.v_class != NULL)
+	{
+	    name = vim_strsave(lv.ll_tv->vval.v_class->class_name);
+	    *pp = end;
+	}
 	else if (lv.ll_tv->v_type == VAR_PARTIAL
 					  && lv.ll_tv->vval.v_partial != NULL)
 	{
@@ -4559,7 +4599,8 @@ define_function(
 	    if (!aborting())
 	    {
 		if (!eap->skip && fudi.fd_newkey != NULL)
-		    semsg(_(e_key_not_present_in_dictionary), fudi.fd_newkey);
+		    semsg(_(e_key_not_present_in_dictionary_str),
+							       fudi.fd_newkey);
 		vim_free(fudi.fd_newkey);
 		return NULL;
 	    }
@@ -4807,7 +4848,7 @@ define_function(
 		p += 7;
 		if (current_funccal == NULL)
 		{
-		    emsg_funcname(e_closure_function_should_not_be_at_top_level,
+		    emsg_funcname(e_closure_function_should_not_be_at_top_level_str,
 			    name == NULL ? (char_u *)"" : name);
 		    goto erret;
 		}
@@ -5240,8 +5281,17 @@ find_func_by_name(char_u *name, compiletype_T *compile_type)
 	fname = vim_strnsave(name, arg - name);
     }
     else
+    {
+	// First try finding a method in a class, find_func_by_name() will give
+	// an error if the function is not found.
+	ufunc = find_class_func(&arg);
+	if (ufunc != NULL)
+	    return ufunc;
+
 	fname = trans_function_name(&arg, &is_global, FALSE,
-		      TFN_INT | TFN_QUIET | TFN_NO_AUTOLOAD, NULL, NULL, NULL);
+		      TFN_INT | TFN_QUIET | TFN_NO_AUTOLOAD | TFN_NO_DECL,
+		      NULL, NULL, NULL);
+    }
     if (fname == NULL)
     {
 	semsg(_(e_invalid_argument_str), name);
@@ -6009,7 +6059,7 @@ ex_call(exarg_T *eap)
     if (fudi.fd_newkey != NULL)
     {
 	// Still need to give an error message for missing key.
-	semsg(_(e_key_not_present_in_dictionary), fudi.fd_newkey);
+	semsg(_(e_key_not_present_in_dictionary_str), fudi.fd_newkey);
 	vim_free(fudi.fd_newkey);
     }
     if (tofree == NULL)

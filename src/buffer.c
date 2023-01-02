@@ -146,19 +146,19 @@ read_buffer(
     void
 buffer_ensure_loaded(buf_T *buf)
 {
-    if (buf->b_ml.ml_mfp == NULL)
-    {
-	aco_save_T	aco;
+    if (buf->b_ml.ml_mfp != NULL)
+	return;
 
-	// Make sure the buffer is in a window.  If not then skip it.
-	aucmd_prepbuf(&aco, buf);
-	if (curbuf == buf)
-	{
-	    if (swap_exists_action != SEA_READONLY)
-		swap_exists_action = SEA_NONE;
-	    open_buffer(FALSE, NULL, 0);
-	    aucmd_restbuf(&aco);
-	}
+    aco_save_T	aco;
+
+    // Make sure the buffer is in a window.  If not then skip it.
+    aucmd_prepbuf(&aco, buf);
+    if (curbuf == buf)
+    {
+	if (swap_exists_action != SEA_READONLY)
+	    swap_exists_action = SEA_NONE;
+	open_buffer(FALSE, NULL, 0);
+	aucmd_restbuf(&aco);
     }
 }
 #endif
@@ -3586,18 +3586,18 @@ buf_set_name(int fnum, char_u *name)
     buf_T	*buf;
 
     buf = buflist_findnr(fnum);
-    if (buf != NULL)
-    {
-	if (buf->b_sfname != buf->b_ffname)
-	    vim_free(buf->b_sfname);
-	vim_free(buf->b_ffname);
-	buf->b_ffname = vim_strsave(name);
-	buf->b_sfname = NULL;
-	// Allocate ffname and expand into full path.  Also resolves .lnk
-	// files on Win32.
-	fname_expand(buf, &buf->b_ffname, &buf->b_sfname);
-	buf->b_fname = buf->b_sfname;
-    }
+    if (buf == NULL)
+	return;
+
+    if (buf->b_sfname != buf->b_ffname)
+	vim_free(buf->b_sfname);
+    vim_free(buf->b_ffname);
+    buf->b_ffname = vim_strsave(name);
+    buf->b_sfname = NULL;
+    // Allocate ffname and expand into full path.  Also resolves .lnk
+    // files on Win32.
+    fname_expand(buf, &buf->b_ffname, &buf->b_sfname);
+    buf->b_fname = buf->b_sfname;
 }
 
 /*
@@ -4785,6 +4785,11 @@ build_stl_str_hl(
 	    get_rel_pos(wp, str, TMPLEN);
 	    break;
 
+	case STL_SHOWCMD:
+	    if (p_sc && STRCMP(opt_name, p_sloc) == 0)
+		str = showcmd_buf;
+	    break;
+
 	case STL_ARGLISTSTAT:
 	    fillable = FALSE;
 	    buf_tmp[0] = 0;
@@ -5926,14 +5931,14 @@ buf_get_fname(buf_T *buf)
     void
 set_buflisted(int on)
 {
-    if (on != curbuf->b_p_bl)
-    {
-	curbuf->b_p_bl = on;
-	if (on)
-	    apply_autocmds(EVENT_BUFADD, NULL, NULL, FALSE, curbuf);
-	else
-	    apply_autocmds(EVENT_BUFDELETE, NULL, NULL, FALSE, curbuf);
-    }
+    if (on == curbuf->b_p_bl)
+	return;
+
+    curbuf->b_p_bl = on;
+    if (on)
+	apply_autocmds(EVENT_BUFADD, NULL, NULL, FALSE, curbuf);
+    else
+	apply_autocmds(EVENT_BUFDELETE, NULL, NULL, FALSE, curbuf);
 }
 
 /*
