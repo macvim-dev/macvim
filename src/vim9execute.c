@@ -532,6 +532,9 @@ call_dfunc(
 	return FAIL;
     }
 
+    // If this is an object method, the object is just before the arguments.
+    typval_T	*obj = STACK_TV_BOT(0) - argcount - vararg_count - 1;
+
     // Check the argument types.
     if (check_ufunc_arg_types(ufunc, argcount, vararg_count, ectx) == FAIL)
 	return FAIL;
@@ -593,6 +596,14 @@ call_dfunc(
 	tv->vval.v_number = 0;
     }
     ectx->ec_stack.ga_len += STACK_FRAME_SIZE + varcount;
+
+    // For an object method move the object from just before the arguments to
+    // the first local variable.
+    if (ufunc->uf_flags & FC_OBJECT)
+    {
+	*STACK_TV_VAR(0) = *obj;
+	obj->v_type = VAR_UNKNOWN;
+    }
 
     partial_T *pt = pt_arg != NULL ? pt_arg : ufunc->uf_partial;
     if (pt != NULL || (ufunc->uf_flags & FC_CLOSURE))
@@ -1073,7 +1084,6 @@ func_return(ectx_T *ectx)
     dfunc_T	*dfunc = ((dfunc_T *)def_functions.ga_data)
 							  + ectx->ec_dfunc_idx;
     int		argcount = ufunc_argcount(dfunc->df_ufunc);
-    int		top = ectx->ec_frame_idx - argcount;
     estack_T	*entry;
     int		prev_dfunc_idx = STACK_TV(ectx->ec_frame_idx
 					+ STACK_FRAME_FUNC_OFF)->vval.v_number;
@@ -1111,7 +1121,11 @@ func_return(ectx_T *ectx)
     if (handle_closure_in_use(ectx, TRUE) == FAIL)
 	return FAIL;
 
-    // Clear the arguments.
+    // Clear the arguments.  If this was an object method also clear the
+    // object, it is just before the arguments.
+    int top = ectx->ec_frame_idx - argcount;
+    if (dfunc->df_ufunc->uf_flags & FC_OBJECT)
+	--top;
     for (idx = top; idx < ectx->ec_frame_idx; ++idx)
 	clear_tv(STACK_TV(idx));
 
@@ -2094,7 +2108,7 @@ handle_debug(isn_T *iptr, ectx_T *ectx)
     static int
 execute_storeindex(isn_T *iptr, ectx_T *ectx)
 {
-    vartype_T	dest_type = iptr->isn_arg.vartype;
+    vartype_T	dest_type = iptr->isn_arg.storeindex.si_vartype;
     typval_T	*tv;
     typval_T	*tv_idx = STACK_TV_BOT(-2);
     typval_T	*tv_dest = STACK_TV_BOT(-1);
@@ -2229,6 +2243,12 @@ execute_storeindex(isn_T *iptr, ectx_T *ectx)
 	    long	    idx = (long)tv_idx->vval.v_number;
 	    object_T	    *obj = tv_dest->vval.v_object;
 	    typval_T	    *otv = (typval_T *)(obj + 1);
+
+	    class_T	    *itf = iptr->isn_arg.storeindex.si_class;
+	    if (itf != NULL)
+		// convert interface member index to class member index
+		idx = object_index_from_itf_index(itf, idx, obj->obj_class);
+
 	    clear_tv(&otv[idx]);
 	    otv[idx] = *tv;
 	}
@@ -4266,7 +4286,7 @@ exec_instructions(ectx_T *ectx)
 		    CLEAR_FIELD(ea);
 		    ea.cmd = ea.arg = iptr->isn_arg.string;
 		    ga_init2(&lines_to_free, sizeof(char_u *), 50);
-		    define_function(&ea, NULL, &lines_to_free, FALSE);
+		    define_function(&ea, NULL, &lines_to_free, 0);
 		    ga_clear_strings(&lines_to_free);
 		}
 		break;
@@ -5170,6 +5190,7 @@ exec_instructions(ectx_T *ectx)
 		break;
 
 	    case ISN_GET_OBJ_MEMBER:
+	    case ISN_GET_ITF_MEMBER:
 		{
 		    tv = STACK_TV_BOT(-1);
 		    if (tv->v_type != VAR_OBJECT)
@@ -5186,8 +5207,20 @@ exec_instructions(ectx_T *ectx)
 			clear_type_list(&type_list);
 			goto on_error;
 		    }
-		    int idx = iptr->isn_arg.number;
+
 		    object_T *obj = tv->vval.v_object;
+		    int idx;
+		    if (iptr->isn_type == ISN_GET_OBJ_MEMBER)
+			idx = iptr->isn_arg.number;
+		    else
+		    {
+			idx = iptr->isn_arg.classmember.cm_idx;
+			// convert the interface index to the object index
+			idx = object_index_from_itf_index(
+					      iptr->isn_arg.classmember.cm_class,
+					      idx, obj->obj_class);
+		    }
+
 		    // the members are located right after the object struct
 		    typval_T *mtv = ((typval_T *)(obj + 1)) + idx;
 		    copy_tv(mtv, tv);
@@ -6448,7 +6481,7 @@ list_instructions(char *pfx, isn_T *instr, int instr_count, ufunc_T *ufunc)
 
 	    case ISN_STOREINDEX:
 		smsg("%s%4d STOREINDEX %s", pfx, current,
-					  vartype_name(iptr->isn_arg.vartype));
+			    vartype_name(iptr->isn_arg.storeindex.si_vartype));
 		break;
 
 	    case ISN_STORERANGE:
@@ -6898,6 +6931,11 @@ list_instructions(char *pfx, isn_T *instr, int instr_count, ufunc_T *ufunc)
 						  iptr->isn_arg.string); break;
 	    case ISN_GET_OBJ_MEMBER: smsg("%s%4d OBJ_MEMBER %d", pfx, current,
 					     (int)iptr->isn_arg.number); break;
+	    case ISN_GET_ITF_MEMBER: smsg("%s%4d ITF_MEMBER %d on %s",
+			     pfx, current,
+			     (int)iptr->isn_arg.classmember.cm_idx,
+			     iptr->isn_arg.classmember.cm_class->class_name);
+				     break;
 	    case ISN_STORE_THIS: smsg("%s%4d STORE_THIS %d", pfx, current,
 					     (int)iptr->isn_arg.number); break;
 	    case ISN_CLEARDICT: smsg("%s%4d CLEARDICT", pfx, current); break;

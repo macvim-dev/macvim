@@ -3897,6 +3897,7 @@ win_line(
 	    wlv_screen_line(wp, &wlv, FALSE);
 	    wlv.col += wlv.boguscols;
 	    wlv.boguscols = 0;
+	    wlv.vcol_off = 0;
 #else
 	    wlv_screen_line(wp, &wlv, FALSE);
 #endif

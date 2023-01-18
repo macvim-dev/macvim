@@ -2092,25 +2092,27 @@ typedef int sock_T;
 #define VV_TYPE_JOB	85
 #define VV_TYPE_CHANNEL	86
 #define VV_TYPE_BLOB	87
-#define VV_TERMRFGRESP	88
-#define VV_TERMRBGRESP	89
-#define VV_TERMU7RESP	90
-#define VV_TERMSTYLERESP 91
-#define VV_TERMBLINKRESP 92
-#define VV_EVENT	93
-#define VV_VERSIONLONG	94
-#define VV_ECHOSPACE	95
-#define VV_ARGV		96
-#define VV_COLLATE      97
-#define VV_EXITING	98
-#define VV_COLORNAMES   99
-#define VV_SIZEOFINT	100
-#define VV_SIZEOFLONG	101
-#define VV_SIZEOFPOINTER 102
-#define VV_MAXCOL	103
+#define VV_TYPE_CLASS	88
+#define VV_TYPE_OBJECT	89
+#define VV_TERMRFGRESP	90
+#define VV_TERMRBGRESP	91
+#define VV_TERMU7RESP	92
+#define VV_TERMSTYLERESP 93
+#define VV_TERMBLINKRESP 94
+#define VV_EVENT	95
+#define VV_VERSIONLONG	96
+#define VV_ECHOSPACE	97
+#define VV_ARGV		98
+#define VV_COLLATE      99
+#define VV_EXITING	100
+#define VV_COLORNAMES   101
+#define VV_SIZEOFINT	102
+#define VV_SIZEOFLONG	103
+#define VV_SIZEOFPOINTER 104
+#define VV_MAXCOL	105
 // MacVim-specific values go here
-#define VV_OS_APPEARANCE 104
-#define VV_LEN		105	// number of v: vars
+#define VV_OS_APPEARANCE 106
+#define VV_LEN		107	// number of v: vars
 
 // used for v_number in VAR_BOOL and VAR_SPECIAL
 #define VVAL_FALSE	0L	// VAR_BOOL
@@ -2827,6 +2829,7 @@ long elapsed(DWORD start_tick);
 #define FSK_KEEP_X_KEY	0x02	// don't translate xHome to Home key
 #define FSK_IN_STRING	0x04	// TRUE in string, double quote is escaped
 #define FSK_SIMPLIFY	0x08	// simplify <C-H> and <A-x>
+#define FSK_FROM_PART	0x10	// left-hand-side of mapping
 
 // Flags for the readdirex function, how to sort the result
 #define READDIR_SORT_NONE	0  // do not sort
@@ -2864,5 +2867,9 @@ long elapsed(DWORD start_tick);
 #define FFED_NO_GLOBAL	2	// only check for script-local functions
 
 #define MAX_LSHIFT_BITS (varnumber_T)((sizeof(uvarnumber_T) * 8) - 1)
+
+// Flags used by "class_flags" of define_function()
+#define CF_CLASS	1	// inside a class
+#define CF_INTERFACE	2	// inside an interface
 
 #endif // VIM__H
