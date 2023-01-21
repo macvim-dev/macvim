@@ -142,6 +142,10 @@ typedef struct {
     int fraction;
 } GridCellInsertionPoint;
 
+/// A cell in the grid. Each cell represents a grapheme, which could consist of one or more
+/// characters. If textFlags contains DRAW_WIDE, then it's a 'wide' cell, which means a grapheme
+/// takes up two cell spaces to render (e.g. emoji or CJK characters). When this is the case, the
+/// next cell in the grid should be ignored and skipped.
 typedef struct {
     // Note: All objects should be weak references.
     // Fields are grouped by draw order.
@@ -160,7 +164,7 @@ typedef struct {
     unsigned fg;
     unsigned sp;
     int textFlags;
-    NSString* string; // Owned by characterStrings.
+    NSString* string; ///< Owned by characterStrings. Length would be >1 if there are composing chars.
 } GridCell;
 
 typedef struct {
@@ -786,14 +790,19 @@ static void grid_free(Grid *grid) {
         __block CFRange lineStringRange = {};
         __block GridCell lastStringCell = {};
         void (^flushLineString)() = ^{
+            // This function flushes the current pending line out to be rendered. When ligature is
+            // enabled it could be quite long.  Otherwise, lineString would be just one cell/grapheme. Note
+            // that even one cell can have lineString.length > 1 and also multiple glyphs due to
+            // composing characters (limited by Vim's 'maxcombine').
             if (!lineString.length)
                 return;
-            CGPoint positionsByIndex[lineString.length];
+            size_t cellOffsetByIndex[lineString.length];
             for (size_t i = 0, stringIndex = 0; i < lineStringRange.length; i++) {
                 GridCell cell = *grid_cell(&grid, r, lineStringRange.location + i);
                 size_t cell_length = cell.string.length;
-                for (size_t j = 0; j < cell_length; j++)
-                    positionsByIndex[stringIndex++] = CGPointMake(i * cellSize.width, 0);
+                for (size_t j = 0; j < cell_length; j++) {
+                    cellOffsetByIndex[stringIndex++] = i;
+                }
                 if (cell.textFlags & DRAW_WIDE)
                     i++;
             }
@@ -807,26 +816,98 @@ static void grid_free(Grid *grid) {
             if ([glyphRuns count] == 0) {
                 ASLogDebug(@"CTLineGetGlyphRuns no glyphs for: %@", lineString);
             }
+
+            CGSize accumAdvance = CGSizeZero; // Accumulated advance for the currently cell's glyphs (we can get more than one glyph when we have composing chars)
+            CGPoint expectedGlyphPosition = CGPointZero; // The expected layout glyph position produced by CTLine
+            size_t curCell = -1; // The current cell offset within lineStrangeRange
+
             for (id obj in glyphRuns) {
                 CTRunRef run = (CTRunRef)obj;
                 CFIndex glyphCount = CTRunGetGlyphCount(run);
-                CFIndex indices[glyphCount];
+
+                CTFontRef runFont = CFDictionaryGetValue(CTRunGetAttributes(run), kCTFontAttributeName);
+                if (!runFont) {
+                    ASLogDebug(@"Null font for rendering. glyphCount: %ld", (long)glyphCount);
+                }
+
                 CGPoint positions[glyphCount];
-                CGGlyph glyphs[glyphCount];
-                CTRunGetStringIndices(run, CFRangeMake(0, 0), indices);
-                CTRunGetGlyphs(run, CFRangeMake(0, 0), glyphs);
+
+                CFIndex indices_storage[glyphCount];
+                const CFIndex* indices = NULL;
+                if ((indices = CTRunGetStringIndicesPtr(run)) == NULL) {
+                    CTRunGetStringIndices(run, CFRangeMake(0, 0), indices_storage);
+                    indices = indices_storage;
+                }
+
+                const CGGlyph* glyphs = NULL;
+                CGGlyph glyphs_storage[glyphCount];
+                if ((glyphs = CTRunGetGlyphsPtr(run)) == NULL) {
+                    CTRunGetGlyphs(run, CFRangeMake(0, 0), glyphs_storage);
+                    glyphs = glyphs_storage;
+                }
+
+                const CGSize* advances = NULL;
+                CGSize advances_storage[glyphCount];
+                if ((advances = CTRunGetAdvancesPtr(run)) == NULL) {
+                    CTRunGetAdvances(run, CFRangeMake(0, 0), advances_storage);
+                    advances = advances_storage;
+                }
+
+                const CGPoint* layoutPositions = CTRunGetPositionsPtr(run);
+                CGPoint layoutPositions_storage[glyphCount];
+                if (layoutPositions == NULL) {
+                    CTRunGetPositions(run, CFRangeMake(0, 0), layoutPositions_storage);
+                    layoutPositions = layoutPositions_storage;
+                }
+
                 for (CFIndex i = 0; i < glyphCount; i++) {
                     if (indices[i] >= lineStringLength) {
                         ASLogDebug(@"Invalid glyph pos index: %ld, len: %lu", (long)indices[i], (unsigned long)lineStringLength);
                         continue;
                     }
-                    positions[i] = positionsByIndex[indices[i]];
+                    if (curCell != -1 && curCell == cellOffsetByIndex[indices[i]]) {
+                        // We are still in the same cell/grapheme as last glyph. This usually only happens
+                        // when we have 1 or more composing characters (e.g. U+20E3 or U+20D7), and
+                        // Core Text decides to render them as separate glyphs instead of a single
+                        // one (e.g. 'â' will result in a single glyph instead).
+                        //
+                        // Don't do anything to allow the last glyph's advance to accumulate.
+                    } else {
+                        // We are in a new cell/grapheme with a new string to render. This is the
+                        // normal case.
+                        // In this situation we reset the accumulated advances because we render
+                        // every cell aligned to the grid and force everything to a monospace.
+                        accumAdvance = CGSizeZero;
+                        curCell = cellOffsetByIndex[indices[i]];
+                    }
+
+                    // Align the position to the grid cell. Ignore what the typesetter wants (we
+                    // should be using a monospace font anyway, but if you are say entering CJK
+                    // characters font substitution will result in a non-monospaced typesetting)
+                    const CGPoint curCellPosition = CGPointMake(curCell * cellSize.width, 0);
+                    positions[i] = curCellPosition;
+
+                    // Add the accumulated advances, which would be non-zero if this is not the
+                    // first glyph for this cell/character (due to composing chars).
+                    positions[i].x += accumAdvance.width;
+                    positions[i].y += accumAdvance.height;
+
+                    // The expected glyph position should usually match what the layout wants to do.
+                    // Sometimes though the typesetter will offset it slightly (e.g. when rendering
+                    // 'x゙⃣', the first 'x' will be offsetted to give space to the later composing
+                    // chars. Since we are manually rendering to curCellPosition to align to a grid,
+                    // we take the offset and apply that instead of directly using layoutPositions.
+                    positions[i].x += (layoutPositions[i].x - expectedGlyphPosition.x);
+                    positions[i].y += (layoutPositions[i].y - expectedGlyphPosition.y);
+
+                    // Accumulate the glyph's advance
+                    accumAdvance.width += advances[i].width;
+                    accumAdvance.height += advances[i].height;
+                    expectedGlyphPosition.x += advances[i].width;
+                    expectedGlyphPosition.y += advances[i].height;
+
                 }
-                CTFontRef font = CFDictionaryGetValue(CTRunGetAttributes(run), kCTFontAttributeName);
-                if (!font) {
-                    ASLogDebug(@"Null font for rendering. glyphCount: %ld", (long)glyphCount);
-                }
-                CTFontDrawGlyphs(font, glyphs, positions, glyphCount, ctx);
+                CTFontDrawGlyphs(runFont, glyphs, positions, glyphCount, ctx);
             }
 
             CGContextSetBlendMode(ctx, kCGBlendModeCopy);
@@ -976,7 +1057,8 @@ static void grid_free(Grid *grid) {
 
             // Text strikethrough
             // We delay the rendering of strikethrough and only do it as a second-pass since we want to draw them on top
-            // of text, and text rendering is currently delayed via flushLineString().
+            // of text, and text rendering is currently delayed via flushLineString(). This is important for things like
+            // emojis where the color of the text is different from the underline's color.
             if (cell.textFlags & DRAW_STRIKE) {
                 hasStrikeThrough = YES;
             }
