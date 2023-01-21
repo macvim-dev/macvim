@@ -434,7 +434,7 @@ static void grid_free(Grid *grid) {
     } else {
         font = [newFont retain];
     }
-    fontDescent = ceil(CTFontGetDescent((CTFontRef)font));
+    fontDescent = CTFontGetDescent((CTFontRef)font);
     fontAscent = CTFontGetAscent((CTFontRef)font);
     fontXHeight = CTFontGetXHeight((CTFontRef)font);
 
