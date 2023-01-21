@@ -425,8 +425,8 @@
                         <button id="A48-s0-kdR" userLabel="Preserve Line Spacing">
                             <rect key="frame" x="189" y="-1" width="244" height="18"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
-                            <string key="toolTip">Some fonts have non-standard built-in line spacings (anything other than 1). If this is checked, MacVim will use the font's specified line spacing to calculate line height. Otherwise, it will just set it to 1, which helps if you would like a more compact spacing without having to install another font.</string>
-                            <buttonCell key="cell" type="check" title="Preserve font line spacing" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="SeR-yl-Gtz" userLabel="Preserve Line Spacing">
+                            <string key="toolTip">macOS can sometimes use a conservative approach to calculating line spacing for a font (by setting a 1.2 line spacing). This could potentially lead to line spacing feeling too wide. Unchecking this will use a tighter calculation and use a 1.0 line spacing instead.</string>
+                            <buttonCell key="cell" type="check" title="Use macOS line spacing calculation" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="SeR-yl-Gtz" userLabel="Preserve Line Spacing">
                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                 <font key="font" metaFont="system"/>
                             </buttonCell>
