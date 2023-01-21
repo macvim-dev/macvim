@@ -260,6 +260,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         [NSNumber numberWithBool:YES],    MMShareFindPboardKey,
         [NSNumber numberWithBool:NO],     MMSmoothResizeKey,
         [NSNumber numberWithBool:NO],     MMCmdLineAlignBottomKey,
+        [NSNumber numberWithBool:NO],     MMRendererClipToRowKey,
         [NSNumber numberWithBool:YES],    MMAllowForceClickLookUpKey,
         [NSNumber numberWithBool:NO],     MMUpdaterPrereleaseChannelKey,
         nil];

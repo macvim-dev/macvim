@@ -225,6 +225,16 @@ static void grid_free(Grid *grid) {
 
     BOOL alignCmdLineToBottom; ///< Whether to pin the Vim command-line to the bottom of the window
     int cmdlineRow; ///< Row number (0-indexed) where the cmdline starts. Used for pinning it to the bottom if desired.
+
+    /// Number of rows to expand when redrawing to make sure we don't clip tall
+    /// characters whose glyphs extend beyond the bottom/top of the cell.
+    ///
+    /// Note: This is a short-term hacky solution as it permanently increases
+    /// the number of rows to expand every time we redraw. Eventually we should
+    /// calculate each line's glyphs' bounds before issuing a redraw and use
+    /// that to determine the accurate redraw bounds instead. Currently we
+    /// calculate the glyph run too late (inside the draw call itself).
+    unsigned int redrawExpandRows;
 }
 
 - (instancetype)initWithFrame:(NSRect)frame
@@ -255,6 +265,7 @@ static void grid_free(Grid *grid) {
 
     alignCmdLineToBottom = NO; // this would be updated to the user preferences later
     cmdlineRow = -1; // this would be updated by Vim
+    redrawExpandRows = 0; // start at 0, until we see a tall character. and then we expand it.
 
     return self;
 }
@@ -739,11 +750,16 @@ static void grid_free(Grid *grid) {
 
 - (void)setNeedsDisplayFromRow:(int)row column:(int)col toRow:(int)row2
                         column:(int)col2 {
+    row -= redrawExpandRows;
+    row2 += redrawExpandRows;
     [self setNeedsDisplayInRect:[self rectForRow:row column:0 numRows:row2-row+1 numColumns:maxColumns]];
 }
 
 - (void)drawRect:(NSRect)rect
 {
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    const BOOL clipTextToRow = [ud boolForKey:MMRendererClipToRowKey]; // Specify whether to clip tall characters by the row boundary.
+
     NSGraphicsContext *context = [NSGraphicsContext currentContext];
 #if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_10
     CGContextRef ctx = context.CGContext;
@@ -777,14 +793,101 @@ static void grid_free(Grid *grid) {
 
     CGContextFillRect(ctx, rect);
 
-    for (size_t r = 0; r < grid.rows; r++) {
-        const CGRect rowRect = [self rectForRow:r column:0 numRows:1 numColumns:grid.cols];
-        const CGRect rowClipRect = CGRectIntersection(rowRect, rect);
-        if (CGRectIsNull(rowClipRect))
-            continue;
-        CGContextSaveGState(ctx);
-        CGContextClipToRect(ctx, rowClipRect);
-        
+    // Function to draw all rows
+    void (^drawAllRows)(void (^)(CGContextRef,CGRect,int)) = ^(void (^drawFunc)(CGContextRef,CGRect,int)){
+        for (size_t r = 0; r < grid.rows; r++) {
+            const CGRect rowRect = [self rectForRow:(int)r
+                                             column:0
+                                            numRows:1
+                                         numColumns:grid.cols];
+
+            // Expand the clip rect to include some above/below rows in case we have tall characters.
+            const CGRect rowExpandedRect = [self rectForRow:(int)(r-redrawExpandRows)
+                                                     column:0
+                                                    numRows:(1+redrawExpandRows*2)
+                                                 numColumns:grid.cols];
+
+            const CGRect rowClipRect = CGRectIntersection(rowExpandedRect, rect);
+            if (CGRectIsNull(rowClipRect))
+                continue;
+            CGContextSaveGState(ctx);
+            if (clipTextToRow)
+                CGContextClipToRect(ctx, rowClipRect);
+
+            drawFunc(ctx, rowRect, (int)r);
+
+            CGContextRestoreGState(ctx);
+        }
+    };
+
+    // Function to draw a row of background colors, signs, and cursor rect. These should go below
+    // any text.
+    void (^drawBackgroundAndCursorFunc)(CGContextRef,CGRect,int) = ^(CGContextRef ctx, CGRect rowRect, int r){
+        for (int c = 0; c < grid.cols; c++) {
+            GridCell cell = *grid_cell(&grid, r, c);
+            CGRect cellRect = {{rowRect.origin.x + cellSize.width * c, rowRect.origin.y}, cellSize};
+            if (cell.textFlags & DRAW_WIDE)
+                cellRect.size.width *= 2;
+            if (cell.inverted) {
+                cell.bg ^= 0xFFFFFF;
+                cell.fg ^= 0xFFFFFF;
+                cell.sp ^= 0xFFFFFF;
+            }
+
+            // Fill background
+            if (cell.bg != defaultBg && ALPHA(cell.bg) > 0) {
+                CGRect fillCellRect = cellRect;
+
+                if (c == grid.cols - 1 || (c == grid.cols - 2 && (cell.textFlags & DRAW_WIDE))) {
+                    // Fill a little extra to the right if this is the last
+                    // column, and the frame size isn't exactly the same size
+                    // as the grid (due to smooth resizing, etc). This makes it
+                    // look less ugly and more consisten. See rectForRow:'s
+                    // implementation for extra comments.
+                    CGFloat extraWidth = rowRect.origin.x + rowRect.size.width - (cellRect.size.width + cellRect.origin.x);
+                    fillCellRect.size.width += extraWidth;
+                }
+
+                CGContextSetFillColor(ctx, COMPONENTS(cell.bg));
+                CGContextFillRect(ctx, fillCellRect);
+            }
+
+            // Handle signs
+            if (cell.sign) {
+                CGRect signRect = cellRect;
+                signRect.size.width *= 2;
+                [cell.sign drawInRect:signRect
+                             fromRect:(NSRect){{0, 0}, cell.sign.size}
+                            operation:(cell.inverted ? NSCompositingOperationDifference : NSCompositingOperationSourceOver)
+                             fraction:1.0];
+            }
+
+            // Insertion point (cursor)
+            if (cell.insertionPoint.color && cell.insertionPoint.fraction) {
+                float frac = cell.insertionPoint.fraction / 100.0;
+                NSRect rect = cellRect;
+                if (MMInsertionPointHorizontal == cell.insertionPoint.shape) {
+                    rect.size.height = cellSize.height * frac;
+                } else if (MMInsertionPointVertical == cell.insertionPoint.shape) {
+                    rect.size.width = cellSize.width * frac;
+                } else if (MMInsertionPointVerticalRight == cell.insertionPoint.shape) {
+                    rect.size.width = cellSize.width * frac;
+                    rect.origin.x += cellRect.size.width - rect.size.width;
+                }
+                rect = [self backingAlignedRect:rect options:NSAlignAllEdgesInward];
+                
+                [[NSColor colorWithArgbInt:cell.insertionPoint.color] set];
+                if (MMInsertionPointHollow == cell.insertionPoint.shape) {
+                    [NSBezierPath strokeRect:NSInsetRect(rect, 0.5, 0.5)];
+                } else {
+                    NSRectFill(rect);
+                }
+            }
+        }
+    };
+
+    // Function to draw a row of text with their corresponding text styles.
+    void (^drawTextFunc)(CGContextRef,CGRect,int) = ^(CGContextRef ctx, CGRect rowRect, int r){
         __block NSMutableString *lineString = nil;
         __block CGFloat lineStringStart = 0;
         __block CFRange lineStringRange = {};
@@ -797,7 +900,7 @@ static void grid_free(Grid *grid) {
             if (!lineString.length)
                 return;
             size_t cellOffsetByIndex[lineString.length];
-            for (size_t i = 0, stringIndex = 0; i < lineStringRange.length; i++) {
+            for (int i = 0, stringIndex = 0; i < lineStringRange.length; i++) {
                 GridCell cell = *grid_cell(&grid, r, lineStringRange.location + i);
                 size_t cell_length = cell.string.length;
                 for (size_t j = 0; j < cell_length; j++) {
@@ -860,6 +963,38 @@ static void grid_free(Grid *grid) {
                     layoutPositions = layoutPositions_storage;
                 }
 
+                const int maxRedrawExpandRows = clipTextToRow ? 0 : 3; // Hard-code a sane maximum for now to prevent degenerate edge cases
+                if (redrawExpandRows < maxRedrawExpandRows) {
+                    // Check if we encounter any glyphs in this line that are too tall and would be
+                    // clipped / not redrawn properly. If we encounter that, increase
+                    // redrawExpandRows and redraw.
+                    // Note: This is kind of a hacky solution. See comments for redrawExpandRows.
+                    CGRect lineBounds = CTRunGetImageBounds(run, ctx, CFRangeMake(0,0));
+                    if (!CGRectIsNull(lineBounds)) {
+                        unsigned int newRedrawExpandRows = 0;
+                        if (lineBounds.origin.y < rowRect.origin.y) {
+                            newRedrawExpandRows = (int)ceil((rowRect.origin.y - lineBounds.origin.y) / cellSize.height);
+                        }
+                        if (lineBounds.origin.y + lineBounds.size.height > rowRect.origin.y + cellSize.height) {
+                            int rowsAbove = (int)ceil(((lineBounds.origin.y + lineBounds.size.height) - (rowRect.origin.y + cellSize.height)) / cellSize.height);
+                            if (rowsAbove > newRedrawExpandRows) {
+                                newRedrawExpandRows = rowsAbove;
+                            }
+                        }
+
+                        if (newRedrawExpandRows > redrawExpandRows) {
+                            redrawExpandRows = newRedrawExpandRows;
+                            if (redrawExpandRows > maxRedrawExpandRows) {
+                                redrawExpandRows = maxRedrawExpandRows;
+                            }
+                            [self setNeedsDisplay:YES];
+                        }
+                    }
+                }
+                else {
+                    redrawExpandRows = maxRedrawExpandRows;
+                }
+
                 for (CFIndex i = 0; i < glyphCount; i++) {
                     if (indices[i] >= lineStringLength) {
                         ASLogDebug(@"Invalid glyph pos index: %ld, len: %lu", (long)indices[i], (unsigned long)lineStringLength);
@@ -916,7 +1051,7 @@ static void grid_free(Grid *grid) {
 
         BOOL hasStrikeThrough = NO;
 
-        for (size_t c = 0; c < grid.cols; c++) {
+        for (int c = 0; c < grid.cols; c++) {
             GridCell cell = *grid_cell(&grid, r, c);
             CGRect cellRect = {{rowRect.origin.x + cellSize.width * c, rowRect.origin.y}, cellSize};
             if (cell.textFlags & DRAW_WIDE)
@@ -925,56 +1060,6 @@ static void grid_free(Grid *grid) {
                 cell.bg ^= 0xFFFFFF;
                 cell.fg ^= 0xFFFFFF;
                 cell.sp ^= 0xFFFFFF;
-            }
-
-            // Fill background
-            if (cell.bg != defaultBg && ALPHA(cell.bg) > 0) {
-                CGRect fillCellRect = cellRect;
-
-                if (c == grid.cols - 1 || (c == grid.cols - 2 && (cell.textFlags & DRAW_WIDE))) {
-                    // Fill a little extra to the right if this is the last
-                    // column, and the frame size isn't exactly the same size
-                    // as the grid (due to smooth resizing, etc). This makes it
-                    // look less ugly and more consisten. See rectForRow:'s
-                    // implementation for extra comments.
-                    CGFloat extraWidth = rowRect.origin.x + rowRect.size.width - (cellRect.size.width + cellRect.origin.x);
-                    fillCellRect.size.width += extraWidth;
-                }
-
-                CGContextSetFillColor(ctx, COMPONENTS(cell.bg));
-                CGContextFillRect(ctx, fillCellRect);
-            }
-
-            // Handle signs
-            if (cell.sign) {
-                CGRect signRect = cellRect;
-                signRect.size.width *= 2;
-                [cell.sign drawInRect:signRect
-                             fromRect:(NSRect){{0, 0}, cell.sign.size}
-                            operation:(cell.inverted ? NSCompositingOperationDifference : NSCompositingOperationSourceOver)
-                             fraction:1.0];
-            }
-
-            // Insertion point (cursor)
-            if (cell.insertionPoint.color && cell.insertionPoint.fraction) {
-                float frac = cell.insertionPoint.fraction / 100.0;
-                NSRect rect = cellRect;
-                if (MMInsertionPointHorizontal == cell.insertionPoint.shape) {
-                    rect.size.height = cellSize.height * frac;
-                } else if (MMInsertionPointVertical == cell.insertionPoint.shape) {
-                    rect.size.width = cellSize.width * frac;
-                } else if (MMInsertionPointVerticalRight == cell.insertionPoint.shape) {
-                    rect.size.width = cellSize.width * frac;
-                    rect.origin.x += cellRect.size.width - rect.size.width;
-                }
-                rect = [self backingAlignedRect:rect options:NSAlignAllEdgesInward];
-                
-                [[NSColor colorWithArgbInt:cell.insertionPoint.color] set];
-                if (MMInsertionPointHollow == cell.insertionPoint.shape) {
-                    [NSBezierPath strokeRect:NSInsetRect(rect, 0.5, 0.5)];
-                } else {
-                    NSRectFill(rect);
-                }
             }
 
             // Text underline styles. We only allow one of them to be active.
@@ -1089,7 +1174,7 @@ static void grid_free(Grid *grid) {
         if (hasStrikeThrough) {
             // Second pass to render strikethrough. Unfortunately have to duplicate a little bit of code here to loop
             // through the cells.
-            for (size_t c = 0; c < grid.cols; c++) {
+            for (int c = 0; c < grid.cols; c++) {
                 GridCell cell = *grid_cell(&grid, r, c);
                 CGRect cellRect = {{rowRect.origin.x + cellSize.width * c, rowRect.origin.y}, cellSize};
                 if (cell.textFlags & DRAW_WIDE)
@@ -1109,9 +1194,21 @@ static void grid_free(Grid *grid) {
 
             }
         }
+    };
 
-        CGContextRestoreGState(ctx);
-    }
+    // Render passes:
+
+    // 1. Draw background color and cursor rect.
+    drawAllRows(drawBackgroundAndCursorFunc);
+
+    // 2. Draw text.
+    // We need to do this in a separate pass in case some characters are taller than a cell. This
+    // could easily happen when we have composed characters (e.g. T゙̂⃗) that either goes below or above
+    // the cell boundary. We draw the background colors in 1st pass to make sure all the texts will
+    // be drawn on top of them. Also see redrawExpandRows which handles making such tall characters
+    // redraw/clip correctly.
+    drawAllRows(drawTextFunc);
+
     if (thinStrokes) {
         CGContextSetFontSmoothingStyle(ctx, originalSmoothingStyle);
     }
