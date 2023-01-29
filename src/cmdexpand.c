@@ -56,6 +56,7 @@ cmdline_fuzzy_completion_supported(expand_T *xp)
 	    && xp->xp_context != EXPAND_OLD_SETTING
 	    && xp->xp_context != EXPAND_OWNSYNTAX
 	    && xp->xp_context != EXPAND_PACKADD
+	    && xp->xp_context != EXPAND_RUNTIME
 	    && xp->xp_context != EXPAND_SHELLCMD
 	    && xp->xp_context != EXPAND_TAGS
 	    && xp->xp_context != EXPAND_TAGS_LISTFILES
@@ -1366,6 +1367,7 @@ addstar(
 		|| context == EXPAND_OWNSYNTAX
 		|| context == EXPAND_FILETYPE
 		|| context == EXPAND_PACKADD
+		|| context == EXPAND_RUNTIME
 		|| ((context == EXPAND_TAGS_LISTFILES
 			|| context == EXPAND_TAGS)
 		    && fname[0] == '/'))
@@ -2335,6 +2337,10 @@ set_context_by_cmdname(
 	    xp->xp_pattern = arg;
 	    break;
 
+	case CMD_runtime:
+	    set_context_in_runtime_cmd(xp, arg);
+	    break;
+
 #if defined(HAVE_LOCALE_H) || defined(X_LOCALE)
 	case CMD_language:
 	    return set_context_in_lang_cmd(xp, arg);
@@ -3052,6 +3058,8 @@ ExpandFromContext(
 #endif
     if (xp->xp_context == EXPAND_PACKADD)
 	return ExpandPackAddDir(pat, numMatches, matches);
+    if (xp->xp_context == EXPAND_RUNTIME)
+	return expand_runtime_cmd(pat, numMatches, matches);
 
     // When expanding a function name starting with s:, match the <SNR>nr_
     // prefix.
@@ -3611,13 +3619,15 @@ ExpandUserList(
 /*
  * Expand "file" for all comma-separated directories in "path".
  * Adds the matches to "ga".  Caller must init "ga".
+ * If "dirs" is TRUE only expand directory names.
  */
     void
 globpath(
     char_u	*path,
     char_u	*file,
     garray_T	*ga,
-    int		expand_options)
+    int		expand_options,
+    int		dirs)
 {
     expand_T	xpc;
     char_u	*buf;
@@ -3630,7 +3640,7 @@ globpath(
 	return;
 
     ExpandInit(&xpc);
-    xpc.xp_context = EXPAND_FILES;
+    xpc.xp_context = dirs ? EXPAND_DIRECTORIES : EXPAND_FILES;
 
     // Loop over all entries in {path}.
     while (*path != NUL)
@@ -4037,6 +4047,11 @@ f_getcompletion(typval_T *argvars, typval_T *rettv)
 	    xpc.xp_pattern_len = (int)STRLEN(xpc.xp_pattern);
 	}
 # endif
+	if (xpc.xp_context == EXPAND_RUNTIME)
+	{
+	    set_context_in_runtime_cmd(&xpc, xpc.xp_pattern);
+	    xpc.xp_pattern_len = (int)STRLEN(xpc.xp_pattern);
+	}
     }
 
     if (cmdline_fuzzy_completion_supported(&xpc))

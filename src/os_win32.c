@@ -232,7 +232,8 @@ static guicolor_T store_console_bg_rgb;
 static guicolor_T store_console_fg_rgb;
 static int default_console_color_bg = 0x000000; // black
 static int default_console_color_fg = 0xc0c0c0; // white
-#  define USE_VTP		(vtp_working && is_term_win32())
+#  define USE_VTP		(vtp_working && is_term_win32() \
+						 && (p_tgc || t_colors >= 256))
 #  define USE_WT		(wt_working)
 # else
 #  define USE_VTP		0
@@ -3426,7 +3427,6 @@ mch_init_c(void)
 
     wt_init();
     vtp_flag_init();
-    vtp_init();
 # ifdef FEAT_RESTORE_ORIG_SCREEN
     // Save the initial console buffer for later restoration
     SaveConsoleBuffer(&g_cbOrig);
@@ -3462,6 +3462,11 @@ mch_init_c(void)
 	SetConsoleIcon(g_hWnd, g_hVimIcon, g_hVimIcon);
 
     ui_get_shellsize();
+
+    vtp_init();
+    // Switch to a new alternate screen buffer.
+    if (use_alternate_screen_buffer)
+	vtp_printf("\033[?1049h");
 
 # ifdef MCH_WRITE_DUMP
     fdDump = fopen("dump", "wt");
@@ -4436,6 +4441,9 @@ ResizeConBuf(
     HANDLE  hConsole,
     COORD   coordScreen)
 {
+    if (use_alternate_screen_buffer)
+	return;
+
     if (!SetConsoleScreenBufferSize(hConsole, coordScreen))
     {
 # ifdef MCH_WRITE_DUMP
@@ -5724,7 +5732,7 @@ win32_build_env(dict_T *env, garray_T *gap, int is_terminal)
 		    size_t	lkey = wcslen(wkey);
 		    size_t	lval = wcslen(wval);
 
-		    if (ga_grow(gap, (int)(lkey + lval + 2)) != OK)
+		    if (ga_grow(gap, (int)(lkey + lval + 2)) == FAIL)
 			continue;
 		    for (n = 0; n < lkey; n++)
 			*((WCHAR*)gap->ga_data + gap->ga_len++) = wkey[n];
@@ -6188,12 +6196,6 @@ termcap_mode_start(void)
     if (g_fTermcapMode)
 	return;
 
-    // VTP uses alternate screen buffer.
-    // Switch to a new alternate screen buffer.
-    // But, not if running in a nested terminal
-    if (use_alternate_screen_buffer)
-	vtp_printf("\033[?1049h");
-
     SaveConsoleBuffer(&g_cbNonTermcap);
 
     if (g_cbTermcap.IsValid)
@@ -6272,7 +6274,6 @@ termcap_mode_end(void)
     RestoreConsoleBuffer(cb, p_rs);
     restore_console_color_rgb();
 
-    // VTP uses alternate screen buffer.
     // Switch back to main screen buffer.
     if (exiting && use_alternate_screen_buffer)
 	vtp_printf("\033[?1049l");
@@ -6284,9 +6285,8 @@ termcap_mode_end(void)
 	 */
 	coord.X = 0;
 	coord.Y = (SHORT) (p_rs ? cb->Info.dwCursorPosition.Y : (Rows - 1));
-	if (!vtp_working)
-	    FillConsoleOutputCharacter(g_hConOut, ' ',
-		    cb->Info.dwSize.X, coord, &dwDummy);
+	FillConsoleOutputCharacter(g_hConOut, ' ',
+		cb->Info.dwSize.X, coord, &dwDummy);
 	/*
 	 * The following is just for aesthetics.  If we are exiting without
 	 * restoring the screen, then we want to have a prompt string
@@ -6496,11 +6496,7 @@ insert_lines(unsigned cLines)
     clip.Bottom = g_srScrollRegion.Bottom;
 
     fill.Char.AsciiChar = ' ';
-    if (!(vtp_working
-# ifdef FEAT_TERMGUICOLORS
-		&& (p_tgc || t_colors >= 256)
-# endif
-	 ))
+    if (!USE_VTP)
 	fill.Attributes = g_attrCurrent;
     else
 	fill.Attributes = g_attrDefault;
@@ -6624,11 +6620,7 @@ gotoxy(
     if (x < 1 || x > (unsigned)Columns || y < 1 || y > (unsigned)Rows)
 	return;
 
-    if (!(vtp_working
-# ifdef FEAT_TERMGUICOLORS
-		&& (p_tgc || t_colors >= 256)
-# endif
-	 ))
+    if (!USE_VTP)
     {
 	// There are reports of double-width characters not displayed
 	// correctly.  This workaround should fix it, similar to how it's done
@@ -6775,20 +6767,30 @@ visual_bell(void)
     WORD    attrFlash = ~g_attrCurrent & 0xff;
 
     DWORD   dwDummy;
-    LPWORD  oldattrs = ALLOC_MULT(WORD, Rows * Columns);
+    LPWORD  oldattrs = NULL;
 
-    if (oldattrs == NULL)
-	return;
-    ReadConsoleOutputAttribute(g_hConOut, oldattrs, Rows * Columns,
+# ifdef FEAT_TERMGUICOLORS
+    if (!(p_tgc || t_colors >= 256))
+# endif
+    {
+	oldattrs = ALLOC_MULT(WORD, Rows * Columns);
+	if (oldattrs == NULL)
+	    return;
+	ReadConsoleOutputAttribute(g_hConOut, oldattrs, Rows * Columns,
 			       coordOrigin, &dwDummy);
+    }
+
     FillConsoleOutputAttribute(g_hConOut, attrFlash, Rows * Columns,
 			       coordOrigin, &dwDummy);
 
     Sleep(15);	    // wait for 15 msec
-    if (!vtp_working)
+
+    if (oldattrs != NULL)
+    {
 	WriteConsoleOutputAttribute(g_hConOut, oldattrs, Rows * Columns,
 				coordOrigin, &dwDummy);
-    vim_free(oldattrs);
+	vim_free(oldattrs);
+    }
 }
 
 
@@ -6872,11 +6874,7 @@ write_chars(
 	}
     }
 
-    if (!(vtp_working
-# ifdef FEAT_TERMGUICOLORS
-	    && (p_tgc || t_colors >= 256)
-# endif
-	))
+    if (!USE_VTP)
     {
 	FillConsoleOutputAttribute(g_hConOut, g_attrCurrent, cells,
 				    coord, &written);
@@ -6916,11 +6914,7 @@ write_chars(
     }
 
     // Cursor under VTP is always in the correct position, no need to reset.
-    if (!(vtp_working
-# ifdef FEAT_TERMGUICOLORS
-		&& (p_tgc || t_colors >= 256)
-# endif
-	 ))
+    if (!USE_VTP)
 	gotoxy(g_coord.X + 1, g_coord.Y + 1);
 
     return written;
@@ -7216,11 +7210,7 @@ notsgr:
 			normvideo();
 		    else if (argc == 1)
 		    {
-			if (vtp_working
-# ifdef FEAT_TERMGUICOLORS
-				&& (p_tgc || t_colors >= 256)
-# endif
-			   )
+			if (USE_VTP)
 			    textcolor((WORD)arg1);
 			else
 			    textattr((WORD)arg1);
@@ -8429,6 +8419,11 @@ vtp_flag_init(void)
 	mode |= (ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 	if (SetConsoleMode(out, mode) == 0)
 	    vtp_working = 0;
+
+	// VTP uses alternate screen buffer.
+	// But, not if running in a nested terminal
+	use_alternate_screen_buffer = win10_22H2_or_later && p_rs && vtp_working
+						&& !mch_getenv("VIM_TERMINAL");
     }
 #endif
 
@@ -8456,29 +8451,24 @@ vtp_flag_init(void)
 vtp_init(void)
 {
 # ifdef FEAT_TERMGUICOLORS
-    if (!vtp_working)
-    {
-	CONSOLE_SCREEN_BUFFER_INFOEX csbi;
-	csbi.cbSize = sizeof(csbi);
-	GetConsoleScreenBufferInfoEx(g_hConOut, &csbi);
-	save_console_bg_rgb = (guicolor_T)csbi.ColorTable[g_color_index_bg];
-	save_console_fg_rgb = (guicolor_T)csbi.ColorTable[g_color_index_fg];
-	store_console_bg_rgb = save_console_bg_rgb;
-	store_console_fg_rgb = save_console_fg_rgb;
+    CONSOLE_SCREEN_BUFFER_INFOEX csbi;
+    csbi.cbSize = sizeof(csbi);
+    GetConsoleScreenBufferInfoEx(g_hConOut, &csbi);
+    save_console_bg_rgb = (guicolor_T)csbi.ColorTable[g_color_index_bg];
+    save_console_fg_rgb = (guicolor_T)csbi.ColorTable[g_color_index_fg];
+    store_console_bg_rgb = save_console_bg_rgb;
+    store_console_fg_rgb = save_console_fg_rgb;
 
-	COLORREF bg;
-	bg = (COLORREF)csbi.ColorTable[g_color_index_bg];
-	bg = (GetRValue(bg) << 16) | (GetGValue(bg) << 8) | GetBValue(bg);
-	default_console_color_bg = bg;
+    COLORREF bg;
+    bg = (COLORREF)csbi.ColorTable[g_color_index_bg];
+    bg = (GetRValue(bg) << 16) | (GetGValue(bg) << 8) | GetBValue(bg);
+    default_console_color_bg = bg;
 
-	COLORREF fg;
-	fg = (COLORREF)csbi.ColorTable[g_color_index_fg];
-	fg = (GetRValue(fg) << 16) | (GetGValue(fg) << 8) | GetBValue(fg);
-	default_console_color_fg = fg;
-    }
+    COLORREF fg;
+    fg = (COLORREF)csbi.ColorTable[g_color_index_fg];
+    fg = (GetRValue(fg) << 16) | (GetGValue(fg) << 8) | GetBValue(fg);
+    default_console_color_fg = fg;
 # endif
-    use_alternate_screen_buffer = win10_22H2_or_later && p_rs && vtp_working
-						&& !mch_getenv("VIM_TERMINAL");
     set_console_color_rgb();
 }
 
@@ -8699,23 +8689,23 @@ set_console_color_rgb(void)
 	return;
     }
 
-    if (!conpty_working)
-    {
-	fg = (GetRValue(fg) << 16) | (GetGValue(fg) << 8) | GetBValue(fg);
-	bg = (GetRValue(bg) << 16) | (GetGValue(bg) << 8) | GetBValue(bg);
+    if (use_alternate_screen_buffer)
+	return;
 
-	csbi.cbSize = sizeof(csbi);
-	GetConsoleScreenBufferInfoEx(g_hConOut, &csbi);
+    fg = (GetRValue(fg) << 16) | (GetGValue(fg) << 8) | GetBValue(fg);
+    bg = (GetRValue(bg) << 16) | (GetGValue(bg) << 8) | GetBValue(bg);
 
-	csbi.cbSize = sizeof(csbi);
-	csbi.srWindow.Right += 1;
-	csbi.srWindow.Bottom += 1;
-	store_console_bg_rgb = csbi.ColorTable[g_color_index_bg];
-	store_console_fg_rgb = csbi.ColorTable[g_color_index_fg];
-	csbi.ColorTable[g_color_index_bg] = (COLORREF)bg;
-	csbi.ColorTable[g_color_index_fg] = (COLORREF)fg;
-	SetConsoleScreenBufferInfoEx(g_hConOut, &csbi);
-    }
+    csbi.cbSize = sizeof(csbi);
+    GetConsoleScreenBufferInfoEx(g_hConOut, &csbi);
+
+    csbi.cbSize = sizeof(csbi);
+    csbi.srWindow.Right += 1;
+    csbi.srWindow.Bottom += 1;
+    store_console_bg_rgb = csbi.ColorTable[g_color_index_bg];
+    store_console_fg_rgb = csbi.ColorTable[g_color_index_fg];
+    csbi.ColorTable[g_color_index_bg] = (COLORREF)bg;
+    csbi.ColorTable[g_color_index_fg] = (COLORREF)fg;
+    SetConsoleScreenBufferInfoEx(g_hConOut, &csbi);
 # endif
 }
 
@@ -8742,39 +8732,24 @@ get_default_console_color(
 	ctermfg = -1;
 	if (id > 0)
 	    syn_id2cterm_bg(id, &ctermfg, &dummynull);
-	if (vtp_working)
-	{
-	    cterm_normal_fg_gui_color = guifg =
-			    ctermfg != -1 ? ctermtoxterm(ctermfg) : INVALCOLOR;
-	    ctermfg = ctermfg < 0 ? 0 : ctermfg;
-	}
+	if (ctermfg != -1)
+	    guifg = ctermtoxterm(ctermfg);
 	else
-	{
-	    guifg = ctermfg != -1 ? ctermtoxterm(ctermfg)
-						    : default_console_color_fg;
-	    cterm_normal_fg_gui_color = guifg;
-	    ctermfg = ctermfg < 0 ? 0 : ctermfg;
-	}
+	    guifg = USE_WT ? INVALCOLOR : default_console_color_fg;
+	cterm_normal_fg_gui_color = guifg;
+	ctermfg = ctermfg < 0 ? 0 : ctermfg;
     }
     if (guibg == INVALCOLOR)
     {
 	ctermbg = -1;
 	if (id > 0)
 	    syn_id2cterm_bg(id, &dummynull, &ctermbg);
-	if (vtp_working)
-	{
-	    cterm_normal_bg_gui_color = guibg =
-			    ctermbg != -1 ? ctermtoxterm(ctermbg) : INVALCOLOR;
-	    if (ctermbg < 0)
-		ctermbg = 0;
-	}
+	if (ctermbg != -1)
+	    guibg = ctermtoxterm(ctermbg);
 	else
-	{
-	    guibg = ctermbg != -1 ? ctermtoxterm(ctermbg)
-						    : default_console_color_bg;
-	    cterm_normal_bg_gui_color = guibg;
-	    ctermbg = ctermbg < 0 ? 0 : ctermbg;
-	}
+	    guibg = USE_WT ? INVALCOLOR : default_console_color_bg;
+	cterm_normal_bg_gui_color = guibg;
+	ctermbg = ctermbg < 0 ? 0 : ctermbg;
     }
 
     *cterm_fg = ctermfg;
@@ -8791,8 +8766,7 @@ get_default_console_color(
 reset_console_color_rgb(void)
 {
 # ifdef FEAT_TERMGUICOLORS
-
-    if (vtp_working)
+    if (use_alternate_screen_buffer)
 	return;
 
     CONSOLE_SCREEN_BUFFER_INFOEX csbi;
@@ -8816,7 +8790,7 @@ reset_console_color_rgb(void)
 restore_console_color_rgb(void)
 {
 # ifdef FEAT_TERMGUICOLORS
-    if (vtp_working)
+    if (use_alternate_screen_buffer)
 	return;
 
     CONSOLE_SCREEN_BUFFER_INFOEX csbi;
@@ -8890,6 +8864,9 @@ get_conpty_fix_type(void)
     void
 resize_console_buf(void)
 {
+    if (use_alternate_screen_buffer)
+	return;
+
     CONSOLE_SCREEN_BUFFER_INFO csbi;
     COORD coord;
     SMALL_RECT newsize;

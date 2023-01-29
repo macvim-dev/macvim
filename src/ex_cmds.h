@@ -98,7 +98,8 @@ typedef struct exarg exarg_T;
  * Not supported commands are included to avoid ambiguities.
  */
 #ifdef DO_DECLARE_EXCMD
-# define EXCMD(a, b, c, d, e)  {(char_u *)b, c, (long_u)(d), e}
+# define EXCMD(a, b, c, d, e) \
+	{(char_u *)b, c, (long_u)(d), e}
 
 typedef void (*ex_func_T) (exarg_T *eap);
 
@@ -127,7 +128,7 @@ EXCMD(CMD_aboveleft,	"aboveleft",	ex_wrongmodifier,
 	EX_NEEDARG|EX_EXTRA|EX_NOTRLCOM,
 	ADDR_NONE),
 EXCMD(CMD_abstract,	"abstract",	ex_class,
-	EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK,
+	EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_EXPORT,
 	ADDR_NONE),
 EXCMD(CMD_all,		"all",		ex_all,
 	EX_BANG|EX_RANGE|EX_COUNT|EX_TRLBAR,
@@ -757,7 +758,7 @@ EXCMD(CMD_intro,	"intro",	ex_intro,
 	EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK,
 	ADDR_NONE),
 EXCMD(CMD_interface,	"interface",	ex_class,
-	EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK,
+	EX_EXTRA|EX_TRLBAR|EX_CMDWIN|EX_LOCK_OK|EX_EXPORT,
 	ADDR_NONE),
 EXCMD(CMD_isearch,	"isearch",	ex_findpat,
 	EX_BANG|EX_RANGE|EX_DFLALL|EX_WHOLEFOLD|EX_EXTRA|EX_CMDWIN|EX_LOCK_OK,

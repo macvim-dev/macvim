@@ -2875,6 +2875,10 @@ get_function_name(expand_T *xp, int idx)
     }
     if (++intidx < (int)ARRAY_LENGTH(global_functions))
     {
+	// Skip if the function doesn't have an implementation (feature not
+	// implemented).
+	if (global_functions[intidx].f_func == NULL)
+	    return (char_u *)"";
 	STRCPY(IObuff, global_functions[intidx].f_name);
 	STRCAT(IObuff, "(");
 	if (global_functions[intidx].f_max_argc == 0)
@@ -3965,7 +3969,7 @@ execute_redir_str(char_u *value, int value_len)
 	len = (int)STRLEN(value);	// Append the entire string
     else
 	len = value_len;		// Append only "value_len" characters
-    if (ga_grow(&redir_execute_ga, len) != OK)
+    if (ga_grow(&redir_execute_ga, len) == FAIL)
 	return;
 
     mch_memmove((char *)redir_execute_ga.ga_data
@@ -8828,7 +8832,8 @@ search_cmn(typval_T *argvars, pos_T *match_pos, int *flagsp)
 	if (subpatnum == FAIL || !use_skip)
 	    // didn't find it or no skip argument
 	    break;
-	firstpos = pos;
+	if (firstpos.lnum == 0)
+	    firstpos = pos;
 
 	// If the skip expression matches, ignore this match.
 	{

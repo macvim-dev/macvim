@@ -57,26 +57,26 @@ char	*longVersion = NULL;
     void
 init_longVersion(void)
 {
-    if (longVersion == NULL)
-    {
-#ifdef BUILD_DATE
-	char *date_time = BUILD_DATE;
-#else
-	char *date_time = __DATE__ " " __TIME__;
-#endif
-	char *msg = _("%s (%s, compiled %s)");
-	size_t len = strlen(msg)
-		    + strlen(VIM_VERSION_LONG_ONLY)
-		    + strlen(VIM_VERSION_DATE_ONLY)
-		    + strlen(date_time);
+    if (longVersion != NULL)
+	return;
 
-	longVersion = alloc(len);
-	if (longVersion == NULL)
-	    longVersion = VIM_VERSION_LONG;
-	else
-	    vim_snprintf(longVersion, len, msg,
-		      VIM_VERSION_LONG_ONLY, VIM_VERSION_DATE_ONLY, date_time);
-    }
+#ifdef BUILD_DATE
+    char *date_time = BUILD_DATE;
+#else
+    char *date_time = __DATE__ " " __TIME__;
+#endif
+    char *msg = _("%s (%s, compiled %s)");
+    size_t len = strlen(msg)
+	+ strlen(VIM_VERSION_LONG_ONLY)
+	+ strlen(VIM_VERSION_DATE_ONLY)
+	+ strlen(date_time);
+
+    longVersion = alloc(len);
+    if (longVersion == NULL)
+	longVersion = VIM_VERSION_LONG;
+    else
+	vim_snprintf(longVersion, len, msg,
+		VIM_VERSION_LONG_ONLY, VIM_VERSION_DATE_ONLY, date_time);
 }
 # endif
 #else
@@ -710,6 +710,98 @@ static char *(features[]) =
 
 static int included_patches[] =
 {   /* Add new patch number below this line */
+/**/
+    1261,
+/**/
+    1260,
+/**/
+    1259,
+/**/
+    1258,
+/**/
+    1257,
+/**/
+    1256,
+/**/
+    1255,
+/**/
+    1254,
+/**/
+    1253,
+/**/
+    1252,
+/**/
+    1251,
+/**/
+    1250,
+/**/
+    1249,
+/**/
+    1248,
+/**/
+    1247,
+/**/
+    1246,
+/**/
+    1245,
+/**/
+    1244,
+/**/
+    1243,
+/**/
+    1242,
+/**/
+    1241,
+/**/
+    1240,
+/**/
+    1239,
+/**/
+    1238,
+/**/
+    1237,
+/**/
+    1236,
+/**/
+    1235,
+/**/
+    1234,
+/**/
+    1233,
+/**/
+    1232,
+/**/
+    1231,
+/**/
+    1230,
+/**/
+    1229,
+/**/
+    1228,
+/**/
+    1227,
+/**/
+    1226,
+/**/
+    1225,
+/**/
+    1224,
+/**/
+    1223,
+/**/
+    1222,
+/**/
+    1221,
+/**/
+    1220,
+/**/
+    1219,
+/**/
+    1218,
+/**/
+    1217,
+/**/
+    1216,
 /**/
     1215,
 /**/

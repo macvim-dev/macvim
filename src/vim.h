@@ -812,7 +812,8 @@ extern int (*dyn_libintl_wputenv)(const wchar_t *envstring);
 #define EXPAND_DISASSEMBLE	50
 #define EXPAND_BREAKPOINT	51
 #define EXPAND_SCRIPTNAMES	52
-#define EXPAND_MACACTION	53
+#define EXPAND_RUNTIME		53
+#define EXPAND_MACACTION	54
 
 // Values for exmode_active (0 is no exmode)
 #define EXMODE_NORMAL		1
@@ -2502,24 +2503,34 @@ typedef enum {
 #  define gtk_widget_set_window(wid, win) \
     do { (wid)->window = (win); } while (0)
 #  define gtk_widget_set_can_default(wid, can) \
-    do { if (can) { GTK_WIDGET_SET_FLAGS(wid, GTK_CAN_DEFAULT); } \
-	else { GTK_WIDGET_UNSET_FLAGS(wid, GTK_CAN_DEFAULT); } } while (0)
+    do { if (can) \
+	    { GTK_WIDGET_SET_FLAGS(wid, GTK_CAN_DEFAULT); } \
+	else \
+	    { GTK_WIDGET_UNSET_FLAGS(wid, GTK_CAN_DEFAULT); } } while (0)
 #  define gtk_widget_set_can_focus(wid, can) \
-    do { if (can) { GTK_WIDGET_SET_FLAGS(wid, GTK_CAN_FOCUS); } \
-	else { GTK_WIDGET_UNSET_FLAGS(wid, GTK_CAN_FOCUS); } } while (0)
+    do { if (can) \
+	    { GTK_WIDGET_SET_FLAGS(wid, GTK_CAN_FOCUS); } \
+	else \
+	    { GTK_WIDGET_UNSET_FLAGS(wid, GTK_CAN_FOCUS); } } while (0)
 #  define gtk_widget_set_visible(wid, vis) \
-    do { if (vis) { gtk_widget_show(wid); } \
-	else { gtk_widget_hide(wid); } } while (0)
+    do { if (vis) \
+	    { gtk_widget_show(wid); } \
+	else \
+	    { gtk_widget_hide(wid); } } while (0)
 # endif
 # if !GTK_CHECK_VERSION(2,20,0)
 #  define gtk_widget_get_mapped(wid)	GTK_WIDGET_MAPPED(wid)
 #  define gtk_widget_get_realized(wid)	GTK_WIDGET_REALIZED(wid)
 #  define gtk_widget_set_mapped(wid, map) \
-    do { if (map) { GTK_WIDGET_SET_FLAGS(wid, GTK_MAPPED); } \
-	else { GTK_WIDGET_UNSET_FLAGS(wid, GTK_MAPPED); } } while (0)
+    do { if (map) \
+	    { GTK_WIDGET_SET_FLAGS(wid, GTK_MAPPED); } \
+	else \
+	    { GTK_WIDGET_UNSET_FLAGS(wid, GTK_MAPPED); } } while (0)
 #  define gtk_widget_set_realized(wid, rea) \
-    do { if (rea) { GTK_WIDGET_SET_FLAGS(wid, GTK_REALIZED); } \
-	else { GTK_WIDGET_UNSET_FLAGS(wid, GTK_REALIZED); } } while (0)
+    do { if (rea) \
+	    { GTK_WIDGET_SET_FLAGS(wid, GTK_REALIZED); } \
+	else \
+	    { GTK_WIDGET_UNSET_FLAGS(wid, GTK_REALIZED); } } while (0)
 # endif
 #endif
 

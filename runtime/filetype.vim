@@ -277,6 +277,9 @@ au BufNewFile,BufRead *.lpc,*.ulpc		setf lpc
 " Calendar
 au BufNewFile,BufRead calendar			setf calendar
 
+" Cap'n Proto
+au BufNewFile,BufRead *.capnp			setf capnp
+
 " C#
 au BufNewFile,BufRead *.cs,*.csx		setf cs
 
@@ -625,6 +628,9 @@ au BufNewFile,BufRead *.elm			setf elm
 
 " Elm Filter Rules file
 au BufNewFile,BufRead filter-rules		setf elmfilt
+
+" Elsa - https://github.com/ucsd-progsys/elsa
+au BufNewFile,BufRead *.lc			setf elsa
 
 " ESMTP rc file
 au BufNewFile,BufRead *esmtprc			setf esmtprc
@@ -1396,6 +1402,7 @@ au BufNewFile,BufRead pf.conf				setf pf
 " ini style config files, using # comments
 au BufNewFile,BufRead */etc/pacman.conf,mpv.conf	setf confini
 au BufNewFile,BufRead */.aws/config,*/.aws/credentials	setf confini
+au BufNewFile,BufRead *.nmconnection			setf confini
 
 " Pacman hooks
 au BufNewFile,BufRead *.hook
@@ -2102,6 +2109,9 @@ au BufNewFile,BufRead *.texinfo,*.texi,*.txi	setf texinfo
 
 " TeX configuration
 au BufNewFile,BufRead texmf.cnf			setf texmf
+
+" Thrift (Apache)
+au BufNewFile,BufRead *.thrift			setf thrift
 
 " Tidy config
 au BufNewFile,BufRead .tidyrc,tidyrc,tidy.conf	setf tidy

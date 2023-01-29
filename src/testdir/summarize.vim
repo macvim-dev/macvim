@@ -39,7 +39,7 @@ if 1
     silent %s/^\(\d\+\)\s\+FAILED:/\=Count(submatch(1), 'failed')/egn
     silent %s/^PENDING \zs.*/\=Count(submatch(0), 'pending')/egn
 
-    call extend(output, ["Skipped:"]) 
+    call extend(output, ["Skipped:"])
     call extend(output, skipped_output)
     if !empty(pending_output)
       call add(output, "")

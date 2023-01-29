@@ -1682,7 +1682,7 @@ registerdigraph(int char1, int char2, int n)
     }
 
     // Add a new digraph to the table.
-    if (ga_grow(&user_digraphs, 1) != OK)
+    if (ga_grow(&user_digraphs, 1) == FAIL)
 	return;
 
     dp = (digr_T *)user_digraphs.ga_data + user_digraphs.ga_len;
@@ -2093,7 +2093,8 @@ f_digraph_get(typval_T *argvars, typval_T *rettv)
 
     if (has_mbyte)
 	buf[(*mb_char2bytes)(code, buf)] = NUL;
-    else {
+    else
+    {
 	buf[0] = code;
 	buf[1] = NUL;
     }

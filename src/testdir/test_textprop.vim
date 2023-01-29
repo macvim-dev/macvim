@@ -1342,9 +1342,34 @@ func Test_textprop_after_tab()
        call prop_add(1, 2, {'length': 3, 'type': 'search'})
        call prop_add(2, 3, {'length': 3, 'type': 'search'})
   END
-  call writefile(lines, 'XtestPropTab', 'D')
-  let buf = RunVimInTerminal('-S XtestPropTab', {'rows': 6})
+  call writefile(lines, 'XtextPropTab', 'D')
+  let buf = RunVimInTerminal('-S XtextPropTab', {'rows': 6})
   call VerifyScreenDump(buf, 'Test_textprop_tab', {})
+
+  " clean up
+  call StopVimInTerminal(buf)
+endfunc
+
+func Test_textprop_nesting()
+  CheckScreendump
+
+  let lines =<< trim END
+      vim9script
+      var lines =<< trim LINESEND
+
+          const func: func.IFunction = ({
+              setLoading
+            }) => {
+      LINESEND
+      setline(1, lines)
+      prop_type_add('prop_add_test', {highlight: "ErrorMsg"})
+      prop_add(2, 31, {type: 'prop_add_test', end_lnum: 4, end_col: 2})
+      var text = 'text long enough to wrap line, text long enough to wrap line, text long enough to wrap line...'
+      prop_add(2, 0, {type: 'prop_add_test', text_wrap: 'truncate', text_align: 'after', text: text})
+  END
+  call writefile(lines, 'XtextpropNesting', 'D')
+  let buf = RunVimInTerminal('-S XtextpropNesting', {'rows': 8})
+  call VerifyScreenDump(buf, 'Test_textprop_nesting', {})
 
   " clean up
   call StopVimInTerminal(buf)
@@ -2720,7 +2745,7 @@ func Test_prop_with_text_below_after_empty()
 
   let lines =<< trim END
       vim9script
-      
+
       setline(1, ['vim9script', '', 'three', ''])
 
       # Add text prop below empty line 2 with padding.
@@ -2743,13 +2768,13 @@ func Test_prop_with_text_below_after_empty()
   END
   call writefile(lines, 'XscriptPropBelowAfterEmpty', 'D')
   let buf = RunVimInTerminal('-S XscriptPropBelowAfterEmpty', #{rows: 8, cols: 60})
-  call VerifyScreenDump(buf, 'Test_prop_below_after_empty_1', {}) 
+  call VerifyScreenDump(buf, 'Test_prop_below_after_empty_1', {})
 
   call term_sendkeys(buf, ":set number\<CR>")
-  call VerifyScreenDump(buf, 'Test_prop_below_after_empty_2', {}) 
+  call VerifyScreenDump(buf, 'Test_prop_below_after_empty_2', {})
 
   call term_sendkeys(buf, ":set nowrap\<CR>")
-  call VerifyScreenDump(buf, 'Test_prop_below_after_empty_3', {}) 
+  call VerifyScreenDump(buf, 'Test_prop_below_after_empty_3', {})
 
   call StopVimInTerminal(buf)
 endfunc
@@ -3285,7 +3310,7 @@ func Test_insert_text_start_incl()
       prop_type_add('propnotincl', {highlight: 'NonText', start_incl: false})
       prop_add(1, 15, {type: 'propnotincl', text: 'before '})
 
-      set cindent sw=4 
+      set cindent sw=4
       prop_type_add('argname', {highlight: 'DiffChange', start_incl: true})
       prop_add(3, 10, {type: 'argname', text: 'arg: '})
   END
@@ -3726,7 +3751,7 @@ func Test_text_prop_diff_mode()
 
   call StopVimInTerminal(buf)
 endfunc
- 
+
 func Test_error_when_using_negative_id()
   call prop_type_add('test1', #{highlight: 'ErrorMsg'})
   call prop_add(1, 1, #{type: 'test1', text: 'virtual'})

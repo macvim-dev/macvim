@@ -607,7 +607,7 @@ def Test_call_ufunc_failure()
       defcompile
 
       func! g:Global(a, b)
-        echo a:a a:b 
+        echo a:a a:b
       endfunc
       Tryit()
   END
@@ -723,6 +723,18 @@ def Test_call_default_args()
       enddef
       g:str = 'works'
       Func()
+  END
+  v9.CheckScriptSuccess(lines)
+enddef
+
+def Test_convert_number_to_float()
+  var lines =<< trim END
+      vim9script
+      def  Foo(a: float, b: float): float
+         return a + b
+      enddef
+
+      assert_equal(5.3, Foo(3.3, 2))
   END
   v9.CheckScriptSuccess(lines)
 enddef
@@ -2138,7 +2150,7 @@ def Test_nested_function_with_args_split()
         )
         # had a double free if the right parenthesis of the nested function is
         # on the next line
-         
+
         enddef|BBBB
       enddef
       # Compile all functions
@@ -2163,8 +2175,8 @@ def Test_error_in_function_args()
         def SecondFunction(J  =
         # Nois
         # one
-         
-         enddef|BBBB
+
+        enddef|BBBB
       enddef
       # Compile all functions
       defcompile
@@ -4311,10 +4323,10 @@ def Test_lambda_argument_type_check()
         return sum
       enddef
 
-      const ml = [3.0, 2, 7]
+      const ml = [3.0, 2, '7']
       echo Scan(ml)->Sum()
   END
-  v9.CheckScriptFailure(lines, 'E1013: Argument 1: type mismatch, expected float but got number')
+  v9.CheckScriptFailure(lines, 'E1013: Argument 1: type mismatch, expected float but got string')
 enddef
 
 def Test_multiple_funcref()
