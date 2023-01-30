@@ -12,6 +12,8 @@
 
 @class MMTextViewHelper;
 
+NS_ASSUME_NONNULL_BEGIN
+
 
 /// The main text view that manages drawing Vim's content using Core Text, and
 /// handles input. We are using this instead of NSTextView because of the
@@ -84,7 +86,7 @@
 //
 // NSFontChanging methods
 //
-- (void)changeFont:(id)sender;
+- (void)changeFont:(nullable id)sender;
 
 //
 // NSMenuItemValidation
@@ -100,7 +102,7 @@
 - (IBAction)paste:(id)sender;
 - (IBAction)undo:(id)sender;
 - (IBAction)redo:(id)sender;
-- (IBAction)selectAll:(id)sender;
+- (IBAction)selectAll:(nullable id)sender;
 
 //
 // MMTextStorage methods
@@ -186,3 +188,5 @@
 @interface MMCoreTextView (ToolTip)
 - (void)setToolTipAtMousePoint:(NSString *)string;
 @end
+
+NS_ASSUME_NONNULL_END

@@ -57,6 +57,7 @@ NSString *MMNonNativeFullScreenShowMenuKey  = @"MMNonNativeFullScreenShowMenu";
 NSString *MMNonNativeFullScreenSafeAreaBehaviorKey = @"MMNonNativeFullScreenSafeAreaBehavior";
 NSString *MMSmoothResizeKey               = @"MMSmoothResize";
 NSString *MMCmdLineAlignBottomKey         = @"MMCmdLineAlignBottom";
+NSString *MMRendererClipToRowKey      = @"MMRendererClipToRow";
 NSString *MMAllowForceClickLookUpKey      = @"MMAllowForceClickLookUp";
 NSString *MMUpdaterPrereleaseChannelKey   = @"MMUpdaterPrereleaseChannel";
 

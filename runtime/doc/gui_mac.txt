@@ -290,6 +290,7 @@ KEY				VALUE ~
 *MMNoTitleBarWindow*		hide title bar [bool]
 *MMTitlebarAppearsTransparent*	enable a transparent titlebar [bool]
 *MMAppearanceModeSelection*	dark mode selection (|macvim-dark-mode|)[bool]
+*MMRendererClipToRow*		clip tall characters to the row they are on [bool]
 *MMSmoothResize*		allow smooth resizing of MacVim window [bool]
 *MMShareFindPboard*		share search text to Find Pasteboard [bool]
 *MMShowAddTabButton*		enable "add tab" button on tabline [bool]

@@ -142,6 +142,10 @@ typedef struct {
     int fraction;
 } GridCellInsertionPoint;
 
+/// A cell in the grid. Each cell represents a grapheme, which could consist of one or more
+/// characters. If textFlags contains DRAW_WIDE, then it's a 'wide' cell, which means a grapheme
+/// takes up two cell spaces to render (e.g. emoji or CJK characters). When this is the case, the
+/// next cell in the grid should be ignored and skipped.
 typedef struct {
     // Note: All objects should be weak references.
     // Fields are grouped by draw order.
@@ -160,7 +164,7 @@ typedef struct {
     unsigned fg;
     unsigned sp;
     int textFlags;
-    NSString* string; // Owned by characterStrings.
+    NSString* string; ///< Owned by characterStrings. Length would be >1 if there are composing chars.
 } GridCell;
 
 typedef struct {
@@ -221,6 +225,16 @@ static void grid_free(Grid *grid) {
 
     BOOL alignCmdLineToBottom; ///< Whether to pin the Vim command-line to the bottom of the window
     int cmdlineRow; ///< Row number (0-indexed) where the cmdline starts. Used for pinning it to the bottom if desired.
+
+    /// Number of rows to expand when redrawing to make sure we don't clip tall
+    /// characters whose glyphs extend beyond the bottom/top of the cell.
+    ///
+    /// Note: This is a short-term hacky solution as it permanently increases
+    /// the number of rows to expand every time we redraw. Eventually we should
+    /// calculate each line's glyphs' bounds before issuing a redraw and use
+    /// that to determine the accurate redraw bounds instead. Currently we
+    /// calculate the glyph run too late (inside the draw call itself).
+    unsigned int redrawExpandRows;
 }
 
 - (instancetype)initWithFrame:(NSRect)frame
@@ -251,6 +265,7 @@ static void grid_free(Grid *grid) {
 
     alignCmdLineToBottom = NO; // this would be updated to the user preferences later
     cmdlineRow = -1; // this would be updated by Vim
+    redrawExpandRows = 0; // start at 0, until we see a tall character. and then we expand it.
 
     return self;
 }
@@ -434,7 +449,7 @@ static void grid_free(Grid *grid) {
     } else {
         font = [newFont retain];
     }
-    fontDescent = ceil(CTFontGetDescent((CTFontRef)font));
+    fontDescent = CTFontGetDescent((CTFontRef)font);
     fontAscent = CTFontGetAscent((CTFontRef)font);
     fontXHeight = CTFontGetXHeight((CTFontRef)font);
 
@@ -735,11 +750,16 @@ static void grid_free(Grid *grid) {
 
 - (void)setNeedsDisplayFromRow:(int)row column:(int)col toRow:(int)row2
                         column:(int)col2 {
+    row -= redrawExpandRows;
+    row2 += redrawExpandRows;
     [self setNeedsDisplayInRect:[self rectForRow:row column:0 numRows:row2-row+1 numColumns:maxColumns]];
 }
 
 - (void)drawRect:(NSRect)rect
 {
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    const BOOL clipTextToRow = [ud boolForKey:MMRendererClipToRowKey]; // Specify whether to clip tall characters by the row boundary.
+
     NSGraphicsContext *context = [NSGraphicsContext currentContext];
 #if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_10
     CGContextRef ctx = context.CGContext;
@@ -773,69 +793,37 @@ static void grid_free(Grid *grid) {
 
     CGContextFillRect(ctx, rect);
 
-    for (size_t r = 0; r < grid.rows; r++) {
-        const CGRect rowRect = [self rectForRow:r column:0 numRows:1 numColumns:grid.cols];
-        const CGRect rowClipRect = CGRectIntersection(rowRect, rect);
-        if (CGRectIsNull(rowClipRect))
-            continue;
-        CGContextSaveGState(ctx);
-        CGContextClipToRect(ctx, rowClipRect);
-        
-        __block NSMutableString *lineString = nil;
-        __block CGFloat lineStringStart = 0;
-        __block CFRange lineStringRange = {};
-        __block GridCell lastStringCell = {};
-        void (^flushLineString)() = ^{
-            if (!lineString.length)
-                return;
-            CGPoint positionsByIndex[lineString.length];
-            for (size_t i = 0, stringIndex = 0; i < lineStringRange.length; i++) {
-                GridCell cell = *grid_cell(&grid, r, lineStringRange.location + i);
-                size_t cell_length = cell.string.length;
-                for (size_t j = 0; j < cell_length; j++)
-                    positionsByIndex[stringIndex++] = CGPointMake(i * cellSize.width, 0);
-                if (cell.textFlags & DRAW_WIDE)
-                    i++;
-            }
-            CGContextSetFillColor(ctx, COMPONENTS(lastStringCell.fg));
-            CGContextSetTextPosition(ctx, lineStringStart, rowRect.origin.y + fontDescent);
-            CGContextSetBlendMode(ctx, kCGBlendModeNormal);
+    // Function to draw all rows
+    void (^drawAllRows)(void (^)(CGContextRef,CGRect,int)) = ^(void (^drawFunc)(CGContextRef,CGRect,int)){
+        for (size_t r = 0; r < grid.rows; r++) {
+            const CGRect rowRect = [self rectForRow:(int)r
+                                             column:0
+                                            numRows:1
+                                         numColumns:grid.cols];
 
-            const NSUInteger lineStringLength = lineString.length;
-            CTLineRef line = [self lineForCharacterString:lineString textFlags:lastStringCell.textFlags];
-            NSArray* glyphRuns = (NSArray*)CTLineGetGlyphRuns(line);
-            if ([glyphRuns count] == 0) {
-                ASLogDebug(@"CTLineGetGlyphRuns no glyphs for: %@", lineString);
-            }
-            for (id obj in glyphRuns) {
-                CTRunRef run = (CTRunRef)obj;
-                CFIndex glyphCount = CTRunGetGlyphCount(run);
-                CFIndex indices[glyphCount];
-                CGPoint positions[glyphCount];
-                CGGlyph glyphs[glyphCount];
-                CTRunGetStringIndices(run, CFRangeMake(0, 0), indices);
-                CTRunGetGlyphs(run, CFRangeMake(0, 0), glyphs);
-                for (CFIndex i = 0; i < glyphCount; i++) {
-                    if (indices[i] >= lineStringLength) {
-                        ASLogDebug(@"Invalid glyph pos index: %ld, len: %lu", (long)indices[i], (unsigned long)lineStringLength);
-                        continue;
-                    }
-                    positions[i] = positionsByIndex[indices[i]];
-                }
-                CTFontRef font = CFDictionaryGetValue(CTRunGetAttributes(run), kCTFontAttributeName);
-                if (!font) {
-                    ASLogDebug(@"Null font for rendering. glyphCount: %ld", (long)glyphCount);
-                }
-                CTFontDrawGlyphs(font, glyphs, positions, glyphCount, ctx);
-            }
+            // Expand the clip rect to include some above/below rows in case we have tall characters.
+            const CGRect rowExpandedRect = [self rectForRow:(int)(r-redrawExpandRows)
+                                                     column:0
+                                                    numRows:(1+redrawExpandRows*2)
+                                                 numColumns:grid.cols];
 
-            CGContextSetBlendMode(ctx, kCGBlendModeCopy);
-            [lineString deleteCharactersInRange:NSMakeRange(0, lineString.length)];
-        };
+            const CGRect rowClipRect = CGRectIntersection(rowExpandedRect, rect);
+            if (CGRectIsNull(rowClipRect))
+                continue;
+            CGContextSaveGState(ctx);
+            if (clipTextToRow)
+                CGContextClipToRect(ctx, rowClipRect);
 
-        BOOL hasStrikeThrough = NO;
+            drawFunc(ctx, rowRect, (int)r);
 
-        for (size_t c = 0; c < grid.cols; c++) {
+            CGContextRestoreGState(ctx);
+        }
+    };
+
+    // Function to draw a row of background colors, signs, and cursor rect. These should go below
+    // any text.
+    void (^drawBackgroundAndCursorFunc)(CGContextRef,CGRect,int) = ^(CGContextRef ctx, CGRect rowRect, int r){
+        for (int c = 0; c < grid.cols; c++) {
             GridCell cell = *grid_cell(&grid, r, c);
             CGRect cellRect = {{rowRect.origin.x + cellSize.width * c, rowRect.origin.y}, cellSize};
             if (cell.textFlags & DRAW_WIDE)
@@ -894,6 +882,184 @@ static void grid_free(Grid *grid) {
                 } else {
                     NSRectFill(rect);
                 }
+            }
+        }
+    };
+
+    // Function to draw a row of text with their corresponding text styles.
+    void (^drawTextFunc)(CGContextRef,CGRect,int) = ^(CGContextRef ctx, CGRect rowRect, int r){
+        __block NSMutableString *lineString = nil;
+        __block CGFloat lineStringStart = 0;
+        __block CFRange lineStringRange = {};
+        __block GridCell lastStringCell = {};
+        void (^flushLineString)() = ^{
+            // This function flushes the current pending line out to be rendered. When ligature is
+            // enabled it could be quite long.  Otherwise, lineString would be just one cell/grapheme. Note
+            // that even one cell can have lineString.length > 1 and also multiple glyphs due to
+            // composing characters (limited by Vim's 'maxcombine').
+            if (!lineString.length)
+                return;
+            size_t cellOffsetByIndex[lineString.length];
+            for (int i = 0, stringIndex = 0; i < lineStringRange.length; i++) {
+                GridCell cell = *grid_cell(&grid, r, lineStringRange.location + i);
+                size_t cell_length = cell.string.length;
+                for (size_t j = 0; j < cell_length; j++) {
+                    cellOffsetByIndex[stringIndex++] = i;
+                }
+                if (cell.textFlags & DRAW_WIDE)
+                    i++;
+            }
+            CGContextSetFillColor(ctx, COMPONENTS(lastStringCell.fg));
+            CGContextSetTextPosition(ctx, lineStringStart, rowRect.origin.y + fontDescent);
+            CGContextSetBlendMode(ctx, kCGBlendModeNormal);
+
+            const NSUInteger lineStringLength = lineString.length;
+            CTLineRef line = [self lineForCharacterString:lineString textFlags:lastStringCell.textFlags];
+            NSArray* glyphRuns = (NSArray*)CTLineGetGlyphRuns(line);
+            if ([glyphRuns count] == 0) {
+                ASLogDebug(@"CTLineGetGlyphRuns no glyphs for: %@", lineString);
+            }
+
+            CGSize accumAdvance = CGSizeZero; // Accumulated advance for the currently cell's glyphs (we can get more than one glyph when we have composing chars)
+            CGPoint expectedGlyphPosition = CGPointZero; // The expected layout glyph position produced by CTLine
+            size_t curCell = -1; // The current cell offset within lineStrangeRange
+
+            for (id obj in glyphRuns) {
+                CTRunRef run = (CTRunRef)obj;
+                CFIndex glyphCount = CTRunGetGlyphCount(run);
+
+                CTFontRef runFont = CFDictionaryGetValue(CTRunGetAttributes(run), kCTFontAttributeName);
+                if (!runFont) {
+                    ASLogDebug(@"Null font for rendering. glyphCount: %ld", (long)glyphCount);
+                }
+
+                CGPoint positions[glyphCount];
+
+                CFIndex indices_storage[glyphCount];
+                const CFIndex* indices = NULL;
+                if ((indices = CTRunGetStringIndicesPtr(run)) == NULL) {
+                    CTRunGetStringIndices(run, CFRangeMake(0, 0), indices_storage);
+                    indices = indices_storage;
+                }
+
+                const CGGlyph* glyphs = NULL;
+                CGGlyph glyphs_storage[glyphCount];
+                if ((glyphs = CTRunGetGlyphsPtr(run)) == NULL) {
+                    CTRunGetGlyphs(run, CFRangeMake(0, 0), glyphs_storage);
+                    glyphs = glyphs_storage;
+                }
+
+                const CGSize* advances = NULL;
+                CGSize advances_storage[glyphCount];
+                if ((advances = CTRunGetAdvancesPtr(run)) == NULL) {
+                    CTRunGetAdvances(run, CFRangeMake(0, 0), advances_storage);
+                    advances = advances_storage;
+                }
+
+                const CGPoint* layoutPositions = CTRunGetPositionsPtr(run);
+                CGPoint layoutPositions_storage[glyphCount];
+                if (layoutPositions == NULL) {
+                    CTRunGetPositions(run, CFRangeMake(0, 0), layoutPositions_storage);
+                    layoutPositions = layoutPositions_storage;
+                }
+
+                const int maxRedrawExpandRows = clipTextToRow ? 0 : 3; // Hard-code a sane maximum for now to prevent degenerate edge cases
+                if (redrawExpandRows < maxRedrawExpandRows) {
+                    // Check if we encounter any glyphs in this line that are too tall and would be
+                    // clipped / not redrawn properly. If we encounter that, increase
+                    // redrawExpandRows and redraw.
+                    // Note: This is kind of a hacky solution. See comments for redrawExpandRows.
+                    CGRect lineBounds = CTRunGetImageBounds(run, ctx, CFRangeMake(0,0));
+                    if (!CGRectIsNull(lineBounds)) {
+                        unsigned int newRedrawExpandRows = 0;
+                        if (lineBounds.origin.y < rowRect.origin.y) {
+                            newRedrawExpandRows = (int)ceil((rowRect.origin.y - lineBounds.origin.y) / cellSize.height);
+                        }
+                        if (lineBounds.origin.y + lineBounds.size.height > rowRect.origin.y + cellSize.height) {
+                            int rowsAbove = (int)ceil(((lineBounds.origin.y + lineBounds.size.height) - (rowRect.origin.y + cellSize.height)) / cellSize.height);
+                            if (rowsAbove > newRedrawExpandRows) {
+                                newRedrawExpandRows = rowsAbove;
+                            }
+                        }
+
+                        if (newRedrawExpandRows > redrawExpandRows) {
+                            redrawExpandRows = newRedrawExpandRows;
+                            if (redrawExpandRows > maxRedrawExpandRows) {
+                                redrawExpandRows = maxRedrawExpandRows;
+                            }
+                            [self setNeedsDisplay:YES];
+                        }
+                    }
+                }
+                else {
+                    redrawExpandRows = maxRedrawExpandRows;
+                }
+
+                for (CFIndex i = 0; i < glyphCount; i++) {
+                    if (indices[i] >= lineStringLength) {
+                        ASLogDebug(@"Invalid glyph pos index: %ld, len: %lu", (long)indices[i], (unsigned long)lineStringLength);
+                        continue;
+                    }
+                    if (curCell != -1 && curCell == cellOffsetByIndex[indices[i]]) {
+                        // We are still in the same cell/grapheme as last glyph. This usually only happens
+                        // when we have 1 or more composing characters (e.g. U+20E3 or U+20D7), and
+                        // Core Text decides to render them as separate glyphs instead of a single
+                        // one (e.g. 'â' will result in a single glyph instead).
+                        //
+                        // Don't do anything to allow the last glyph's advance to accumulate.
+                    } else {
+                        // We are in a new cell/grapheme with a new string to render. This is the
+                        // normal case.
+                        // In this situation we reset the accumulated advances because we render
+                        // every cell aligned to the grid and force everything to a monospace.
+                        accumAdvance = CGSizeZero;
+                        curCell = cellOffsetByIndex[indices[i]];
+                    }
+
+                    // Align the position to the grid cell. Ignore what the typesetter wants (we
+                    // should be using a monospace font anyway, but if you are say entering CJK
+                    // characters font substitution will result in a non-monospaced typesetting)
+                    const CGPoint curCellPosition = CGPointMake(curCell * cellSize.width, 0);
+                    positions[i] = curCellPosition;
+
+                    // Add the accumulated advances, which would be non-zero if this is not the
+                    // first glyph for this cell/character (due to composing chars).
+                    positions[i].x += accumAdvance.width;
+                    positions[i].y += accumAdvance.height;
+
+                    // The expected glyph position should usually match what the layout wants to do.
+                    // Sometimes though the typesetter will offset it slightly (e.g. when rendering
+                    // 'x゙⃣', the first 'x' will be offsetted to give space to the later composing
+                    // chars. Since we are manually rendering to curCellPosition to align to a grid,
+                    // we take the offset and apply that instead of directly using layoutPositions.
+                    positions[i].x += (layoutPositions[i].x - expectedGlyphPosition.x);
+                    positions[i].y += (layoutPositions[i].y - expectedGlyphPosition.y);
+
+                    // Accumulate the glyph's advance
+                    accumAdvance.width += advances[i].width;
+                    accumAdvance.height += advances[i].height;
+                    expectedGlyphPosition.x += advances[i].width;
+                    expectedGlyphPosition.y += advances[i].height;
+
+                }
+                CTFontDrawGlyphs(runFont, glyphs, positions, glyphCount, ctx);
+            }
+
+            CGContextSetBlendMode(ctx, kCGBlendModeCopy);
+            [lineString deleteCharactersInRange:NSMakeRange(0, lineString.length)];
+        };
+
+        BOOL hasStrikeThrough = NO;
+
+        for (int c = 0; c < grid.cols; c++) {
+            GridCell cell = *grid_cell(&grid, r, c);
+            CGRect cellRect = {{rowRect.origin.x + cellSize.width * c, rowRect.origin.y}, cellSize};
+            if (cell.textFlags & DRAW_WIDE)
+                cellRect.size.width *= 2;
+            if (cell.inverted) {
+                cell.bg ^= 0xFFFFFF;
+                cell.fg ^= 0xFFFFFF;
+                cell.sp ^= 0xFFFFFF;
             }
 
             // Text underline styles. We only allow one of them to be active.
@@ -976,7 +1142,8 @@ static void grid_free(Grid *grid) {
 
             // Text strikethrough
             // We delay the rendering of strikethrough and only do it as a second-pass since we want to draw them on top
-            // of text, and text rendering is currently delayed via flushLineString().
+            // of text, and text rendering is currently delayed via flushLineString(). This is important for things like
+            // emojis where the color of the text is different from the underline's color.
             if (cell.textFlags & DRAW_STRIKE) {
                 hasStrikeThrough = YES;
             }
@@ -1007,7 +1174,7 @@ static void grid_free(Grid *grid) {
         if (hasStrikeThrough) {
             // Second pass to render strikethrough. Unfortunately have to duplicate a little bit of code here to loop
             // through the cells.
-            for (size_t c = 0; c < grid.cols; c++) {
+            for (int c = 0; c < grid.cols; c++) {
                 GridCell cell = *grid_cell(&grid, r, c);
                 CGRect cellRect = {{rowRect.origin.x + cellSize.width * c, rowRect.origin.y}, cellSize};
                 if (cell.textFlags & DRAW_WIDE)
@@ -1027,9 +1194,21 @@ static void grid_free(Grid *grid) {
 
             }
         }
+    };
 
-        CGContextRestoreGState(ctx);
-    }
+    // Render passes:
+
+    // 1. Draw background color and cursor rect.
+    drawAllRows(drawBackgroundAndCursorFunc);
+
+    // 2. Draw text.
+    // We need to do this in a separate pass in case some characters are taller than a cell. This
+    // could easily happen when we have composed characters (e.g. T゙̂⃗) that either goes below or above
+    // the cell boundary. We draw the background colors in 1st pass to make sure all the texts will
+    // be drawn on top of them. Also see redrawExpandRows which handles making such tall characters
+    // redraw/clip correctly.
+    drawAllRows(drawTextFunc);
+
     if (thinStrokes) {
         CGContextSetFontSmoothingStyle(ctx, originalSmoothingStyle);
     }
