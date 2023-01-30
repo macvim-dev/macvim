@@ -607,7 +607,7 @@ EXTERN int      fuoptions_bgcolor;
 #define FUOPT_MAXHORZ         0x002
 #define FUOPT_BGCOLOR_HLGROUP 0x004    // if set, fuoptions_bgcolor
                                        // is a highlight group
-                                       // id. Else, it's an explicit 
+                                       // id. Else, it's an explicit
                                        // argb color.
 #endif
 EXTERN int	p_gd;		// 'gdefault'

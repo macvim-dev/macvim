@@ -929,7 +929,8 @@ gui_init_font(char_u *font_list, int fontset UNUSED)
 		// gui_mch_init_font() is called with "*" it brings up the
 		// dialog and returns immediately.  In this case we don't want
 		// it to be called again with NULL, so return here.
-		if (STRCMP(font_name, "*") == 0) {
+		if (STRCMP(font_name, "*") == 0)
+		{
 		    gui_mch_init_font(font_name, FALSE);
 		    return FALSE;
 		}
