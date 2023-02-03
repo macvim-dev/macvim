@@ -53,7 +53,7 @@
     NSString *marketingVersion = [[NSBundle mainBundle]
             objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
     NSString *title = [NSString stringWithFormat:
-            @"Custom Version %@ (%@)", marketingVersion, version];
+            @"Vim %@ (MacVim r%@)", marketingVersion, version];
 
     [self orderFrontStandardAboutPanelWithOptions:
             [NSDictionary dictionaryWithObjectsAndKeys:

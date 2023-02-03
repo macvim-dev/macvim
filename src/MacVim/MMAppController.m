@@ -263,6 +263,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         [NSNumber numberWithBool:NO],     MMRendererClipToRowKey,
         [NSNumber numberWithBool:YES],    MMAllowForceClickLookUpKey,
         [NSNumber numberWithBool:NO],     MMUpdaterPrereleaseChannelKey,
+        @"",                              MMLastUsedBundleVersionKey,
         nil];
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:dict];
@@ -458,6 +459,51 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     }
 
     [self addInputSourceChangedObserver];
+
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+
+    NSString *lastUsedVersion = [ud stringForKey:MMLastUsedBundleVersionKey];
+    NSString *currentVersion = [[NSBundle mainBundle] objectForInfoDictionaryKey:
+            @"CFBundleVersion"];
+    // This will be used for showing a "What's New" dialog box in the future. For
+    // now, just update the stored version for future use so later versions will
+    // be able to tell whether to show this dialog box or not.
+    if (currentVersion && currentVersion.length != 0) {
+        if (!lastUsedVersion || [lastUsedVersion length] == 0) {
+            [ud setValue:currentVersion forKey:MMLastUsedBundleVersionKey];
+        } else {
+            // If the current version is larger, set that to be stored. Don't
+            // want to do it otherwise to prevent testing older versions flipping
+            // the stored version back to an old one.
+            NSArray<NSString*> *lastUsedVersionItems = [lastUsedVersion componentsSeparatedByString:@"."];
+            NSArray<NSString*> *currentVersionItems = [currentVersion componentsSeparatedByString:@"."];
+            // Compare two arrays lexographically. We just assume that version
+            // numbers are also X.Y.Z… with no "beta" etc texts.
+            bool currentVersionLarger = NO;
+            for (int i = 0; i < currentVersionItems.count && i < lastUsedVersionItems.count; i++) {
+                if (i >= currentVersionItems.count) {
+                    currentVersionLarger = NO;
+                    break;
+                }
+                if (i >= lastUsedVersionItems.count) {
+                    currentVersionLarger = YES;
+                    break;
+                }
+                if (currentVersionItems[i].integerValue > lastUsedVersionItems[i].integerValue) {
+                    currentVersionLarger = YES;
+                    break;
+                }
+                else if (currentVersionItems[i].integerValue < lastUsedVersionItems[i].integerValue) {
+                    currentVersionLarger = NO;
+                    break;
+                }
+            }
+
+            if (currentVersionLarger) {
+                [ud setValue:currentVersion forKey:MMLastUsedBundleVersionKey];
+            }
+        }
+    }
 
     ASLogInfo(@"MacVim finished launching");
 }
