@@ -64,6 +64,7 @@ extern NSString *MMCmdLineAlignBottomKey;
 extern NSString *MMRendererClipToRowKey;
 extern NSString *MMAllowForceClickLookUpKey;
 extern NSString *MMUpdaterPrereleaseChannelKey;
+extern NSString *MMLastUsedBundleVersionKey;    // The last used version of MacVim before this launch
 
 
 // Enum for MMUntitledWindowKey

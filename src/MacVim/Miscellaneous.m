@@ -60,6 +60,7 @@ NSString *MMCmdLineAlignBottomKey         = @"MMCmdLineAlignBottom";
 NSString *MMRendererClipToRowKey      = @"MMRendererClipToRow";
 NSString *MMAllowForceClickLookUpKey      = @"MMAllowForceClickLookUp";
 NSString *MMUpdaterPrereleaseChannelKey   = @"MMUpdaterPrereleaseChannel";
+NSString *MMLastUsedBundleVersionKey        = @"MMLastUsedBundleVersion";
 
 
 @implementation NSIndexSet (MMExtras)
