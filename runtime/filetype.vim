@@ -1,7 +1,7 @@
 " Vim support file to detect file types
 "
 " Maintainer:	Bram Moolenaar <Bram@vim.org>
-" Last Change:	2022 Dec 19
+" Last Change:	2023 Feb 02
 
 " Listen very carefully, I will say this only once
 if exists("did_load_filetypes")
@@ -371,6 +371,9 @@ au BufNewFile,BufRead *.ch			call dist#ft#FTchange()
 " ChordPro
 au BufNewFile,BufRead *.chopro,*.crd,*.cho,*.crdpro,*.chordpro	setf chordpro
 
+" Clangd
+au BufNewFile,BufRead .clangd			setf yaml
+
 " Clang-format
 au BufNewFile,BufRead .clang-format		setf yaml
 
@@ -667,6 +670,9 @@ autocmd BufRead,BufNewFile *.fnl		setf fennel
 
 " Fetchmail RC file
 au BufNewFile,BufRead .fetchmailrc		setf fetchmail
+
+" FIRRTL - Flexible Internal Representation for RTL
+au BufNewFile,BufRead *.fir			setf firrtl
 
 " Fish shell
 au BufNewFile,BufRead *.fish			setf fish
@@ -1017,11 +1023,11 @@ au BufNewFile,BufRead *.json-patch		setf json
 au BufNewFile,BufRead *.ipynb			setf json
 
 " Other files that look like json
-au BufNewFile,BufRead .prettierrc,.firebaserc	setf json
+au BufNewFile,BufRead .prettierrc,.firebaserc,.stylelintrc	setf json
 
 " JSONC (JSON with comments)
 au BufNewFile,BufRead *.jsonc,.babelrc,.eslintrc,.jsfmtrc 	setf jsonc
-au BufNewFile,BufRead .jshintc,.hintrc,.swrc,[jt]sconfig*.json 	setf jsonc
+au BufNewFile,BufRead .jshintrc,.hintrc,.swrc,[jt]sconfig*.json	setf jsonc
 
 " JSON
 au BufNewFile,BufRead *.json,*.jsonp,*.webmanifest	setf json
@@ -1031,6 +1037,9 @@ au BufNewFile,BufRead *.jsonnet,*.libsonnet	setf jsonnet
 
 " Julia
 au BufNewFile,BufRead *.jl			setf julia
+
+" KDL
+au BufNewFile,BufRead *.kdl			setf kdl
 
 " Kixtart
 au BufNewFile,BufRead *.kix			setf kix

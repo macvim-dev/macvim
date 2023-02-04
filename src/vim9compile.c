@@ -1741,11 +1741,16 @@ compile_lhs(
 
     if (lhs->lhs_dest != dest_option && lhs->lhs_dest != dest_func_option)
     {
-	if (is_decl && *var_end == ':')
+	if (is_decl && *skipwhite(var_end) == ':')
 	{
 	    char_u *p;
 
 	    // parse optional type: "let var: type = expr"
+	    if (VIM_ISWHITE(*var_end))
+	    {
+		semsg(_(e_no_white_space_allowed_before_colon_str), var_end);
+		return FAIL;
+	    }
 	    if (!VIM_ISWHITE(var_end[1]))
 	    {
 		semsg(_(e_white_space_required_after_str_str), ":", var_end);
@@ -3181,6 +3186,16 @@ compile_def_function(
     }
     ufunc->uf_args_visible = ufunc->uf_args.ga_len;
 
+    // Compiling a function in an interface is done to get the function type.
+    // No code is actually compiled.
+    if (ufunc->uf_class != NULL
+			   && (ufunc->uf_class->class_flags & CLASS_INTERFACE))
+    {
+	ufunc->uf_def_status = UF_NOT_COMPILED;
+	ret = OK;
+	goto erret;
+    }
+
     /*
      * Loop over all the lines of the function and generate instructions.
      */
@@ -3705,7 +3720,7 @@ nextline:
 	    iemsg("Type stack underflow");
 	    goto erret;
 	}
-    }
+    } // END of the loop over all the function body lines.
 
     if (cctx.ctx_scope != NULL)
     {
