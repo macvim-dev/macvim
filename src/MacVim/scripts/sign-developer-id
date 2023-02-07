@@ -27,6 +27,7 @@ else
     # explicit and sign everything in order to be clear what we are doing.
     if [ -d "$macvim_path/Contents/Frameworks/Sparkle.framework/Versions/A" ]; then
         (set -x
+        codesign -f -s "Developer ID Application" -o runtime --timestamp "$macvim_path/Contents/Frameworks/Sparkle.framework/Versions/A/Resources/Autoupdate.app/Contents/MacOS/fileop"
         codesign -f -s "Developer ID Application" -o runtime --timestamp "$macvim_path/Contents/Frameworks/Sparkle.framework/Versions/A/Resources/Autoupdate.app")
     fi
     if [ -d $macvim_path/Contents/Frameworks/Sparkle.framework/Versions/B ]; then
