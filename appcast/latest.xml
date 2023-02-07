@@ -6,12 +6,16 @@
     <description>MacVim</description>
 
     <item>
-      <title>MacVim release-175</title>
+      <title>MacVim release-176</title>
       <description><![CDATA[
 <style>
 :root { supported-color-schemes: light dark; color-scheme: light dark; }
 </style>
 <p>Updated to Vim 9.0.1276</p>
+
+<p>This is the first release in 2023! It took a little longer than I hoped to push this out, but it contains a decent amount of new features and bug / crash fixes, MacVim is now split into a normal binary for macOS 10.13+ and a “legacy” binary for macOS 10.9-10.12. You can also opt-in to a pre-release update channel for getting beta software faster in the future.</p>
+
+<p>Note: r175 had a bug where tabs could crash MacVim, and was skipped in favor of this release (r176), which contains the fix (<a href="https://github.com/macvim-dev/macvim/issues/1361">#1361</a>).</p>
 
 <h1 id="features">Features</h1>
 
@@ -146,30 +150,27 @@
 
       ]]></description>
       <sparkle:fullReleaseNotesLink>https://github.com/macvim-dev/macvim/releases</sparkle:fullReleaseNotesLink>
-      <pubDate>Tue, 07 Feb 2023 01:00:00 -0800</pubDate>
+      <pubDate>Tue, 07 Feb 2023 04:00:00 -0800</pubDate>
       <sparkle:minimumSystemVersion>10.13</sparkle:minimumSystemVersion>
-      <sparkle:version>175</sparkle:version>
-      <sparkle:shortVersionString>9.0.1276 (r175)</sparkle:shortVersionString>
+      <sparkle:version>176</sparkle:version>
+      <sparkle:shortVersionString>9.0.1276 (r176)</sparkle:shortVersionString>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/release-175/MacVim.dmg"
-        sparkle:edSignature="EfKshcUy+Avb5euUwKzd1YsbPSAA6MFZs1uHnOqQFZYeEe/qFAiSsqBSbniH33ZN18z7rsXjFJqwrbzYYYdTCA==" length="25057153"
+        url="https://github.com/macvim-dev/macvim/releases/download/release-176/MacVim.dmg"
+        sparkle:edSignature="JPtefCp4HbL4naub/hokRYPldWuAtaC0d8/IANaauy+z2dimph8cJ1a+b4jLEU22xpDRX/NzqYNGrP0CvA3yAw==" length="25057803"
         />
-      <sparkle:deltas>
-        <enclosure type="application/octet-stream"
-          url="https://github.com/macvim-dev/macvim/releases/download/release-175/174_to_175.delta"
-          sparkle:deltaFrom="174"
-          
-          />
-      </sparkle:deltas>
     </item>
 
     <item>
-      <title>MacVim release-175</title>
+      <title>MacVim release-176</title>
       <description><![CDATA[
 <style>
 :root { supported-color-schemes: light dark; color-scheme: light dark; }
 </style>
 <p>Updated to Vim 9.0.1276</p>
+
+<p>This is the first release in 2023! It took a little longer than I hoped to push this out, but it contains a decent amount of new features and bug / crash fixes, MacVim is now split into a normal binary for macOS 10.13+ and a “legacy” binary for macOS 10.9-10.12. You can also opt-in to a pre-release update channel for getting beta software faster in the future.</p>
+
+<p>Note: r175 had a bug where tabs could crash MacVim, and was skipped in favor of this release (r176), which contains the fix (<a href="https://github.com/macvim-dev/macvim/issues/1361">#1361</a>).</p>
 
 <h1 id="features">Features</h1>
 
@@ -304,22 +305,15 @@
 
       ]]></description>
       <sparkle:fullReleaseNotesLink>https://github.com/macvim-dev/macvim/releases</sparkle:fullReleaseNotesLink>
-      <pubDate>Tue, 07 Feb 2023 01:00:00 -0800</pubDate>
+      <pubDate>Tue, 07 Feb 2023 04:00:00 -0800</pubDate>
       <sparkle:minimumSystemVersion>10.9</sparkle:minimumSystemVersion>
       <sparkle:maximumSystemVersion>10.12.99</sparkle:maximumSystemVersion>
-      <sparkle:version>175</sparkle:version>
-      <sparkle:shortVersionString>9.0.1276 (r175)</sparkle:shortVersionString>
+      <sparkle:version>176</sparkle:version>
+      <sparkle:shortVersionString>9.0.1276 (r176)</sparkle:shortVersionString>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/release-175/MacVim_10.9.dmg"
-        sparkle:edSignature="0CkdTIRB5mvriVbuX3DZXg1V3zoQIQFhzpkvL/py5hZXc1jJNLbD0NWL1IIOertZd9gPoWVbXY/chiEBUuLxDA==" length="22639312"
+        url="https://github.com/macvim-dev/macvim/releases/download/release-176/MacVim_10.9.dmg"
+        sparkle:edSignature="x8AFeWuSwgAxoeCaq4H+h8W26+CY3JNyjg80O550wl72tsPFrhgk8cVKqyoLavnDnrjlgNu7vBwJAexcnlUEBA==" length="22639602"
         />
-      <sparkle:deltas>
-        <enclosure type="application/octet-stream"
-          url="https://github.com/macvim-dev/macvim/releases/download/release-175/174_to_175_10.9.delta"
-          sparkle:deltaFrom="174"
-          
-          />
-      </sparkle:deltas>
     </item>
   </channel>
 </rss>
