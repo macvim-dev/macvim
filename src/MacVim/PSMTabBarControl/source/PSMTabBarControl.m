@@ -476,9 +476,11 @@
     [[NSNotificationCenter defaultCenter] removeObserver:cell];
     if([cell closeButtonTrackingTag] != 0){
         [self removeTrackingRect:[cell closeButtonTrackingTag]];
+        [cell setCloseButtonTrackingTag:0];
     }
     if([cell cellTrackingTag] != 0){
         [self removeTrackingRect:[cell cellTrackingTag]];
+        [cell setCellTrackingTag:0];
     }
 
     // pull from collection
@@ -665,9 +667,11 @@
         [[NSNotificationCenter defaultCenter] removeObserver:cell];
         if([cell closeButtonTrackingTag] != 0){
             [self removeTrackingRect:[cell closeButtonTrackingTag]];
+            [cell setCloseButtonTrackingTag:0];
         }
         if([cell cellTrackingTag] != 0){
             [self removeTrackingRect:[cell cellTrackingTag]];
+            [cell setCellTrackingTag:0];
         }
     }
 
