@@ -1,3 +1,6 @@
+---
+release: 175
+---
 <!DOCTYPE html>
 <html lang="en-us">
   <head>
@@ -14,8 +17,13 @@
     <section class="page-header">
       <h1 class="project-name">MacVim</h1>
       <h2 class="project-tagline">Vim - the text editor - for macOS</h2>
-      <a href="https://github.com/macvim-dev/macvim/releases/download/release-174/MacVim.dmg" class="btn">Download MacVim</a><br />
-      <a href="https://github.com/macvim-dev/macvim/releases/latest">Release Notes (r174)</a>
+      <a href="https://github.com/macvim-dev/macvim/releases/download/release-{{ page.release }}/MacVim.dmg" class="btn">Download MacVim</a><br />
+      <a class="project-release-notes" href="https://github.com/macvim-dev/macvim/releases/latest">Release Notes <small>(r{{ page.release }})</small></a><br />
+      <p class="project-additional-notes">
+          Requires macOS 10.13 or later.<br />
+          For macOS 10.9-10.12, <a href="https://github.com/macvim-dev/macvim/releases/download/release-{{ page.release }}/MacVim_10.9.dmg">download here</a>.<br />
+          Download pre-release beta builds or other versions <a href="https://github.com/macvim-dev/macvim/releases/">here</a>.
+      </p>
     </section>
 
     <section class="main-content">
