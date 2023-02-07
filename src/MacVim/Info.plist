@@ -1309,6 +1309,8 @@
 			</dict>
 		</dict>
 	</array>
+	<key>SUEnableJavaScript</key>
+	<string>YES</string>
 	<key>SUFeedURL</key>
 	<string>https://macvim.org/appcast/latest.xml</string>
 	<key>SUPublicEDKey</key>
