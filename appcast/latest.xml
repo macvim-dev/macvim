@@ -6,318 +6,112 @@
     <description>MacVim</description>
 
     <item>
-      <title>MacVim release-175</title>
+      <title>MacVim release-174</title>
       <description><![CDATA[
 <style>
 :root { supported-color-schemes: light dark; color-scheme: light dark; }
 </style>
-<p>Updated to Vim 9.0.1276</p>
+<p>Updated to Vim 9.0.472.</p>
+
+<h1 id="announcements">Announcements</h1>
+
+<h2 id="sponsors">Sponsors</h2>
+
+<p>MacVim now allows you to sponsor the team! Any amount would be appreciated and it is of course optional. See the announcement (<a href="https://github.com/macvim-dev/macvim/issues/1271">#1271</a>) for more details.</p>
+
+<h2 id="supporting-old-versions-of-macos-1012-or-below">Supporting old versions of macOS (10.12 or below)</h2>
+
+<p>Currently, macOS supports macOS 10.9 or above. However, this is getting harder to do so as time goes on (e.g. the latest Xcode doesn’t support building for it). In the near future, MacVim will mostly target 10.13 (High Sierra) or above, with 10.9 - 10.12 as legacy support. Visit this discussion (<a href="https://github.com/macvim-dev/macvim/issues/1288">#1288</a>) if you would be affected and would like to know more.</p>
 
 <h1 id="features">Features</h1>
 
-<h2 id="dictionary-lookup">Dictionary lookup</h2>
+<h2 id="resizing-macvim-new-options">Resizing MacVim new options</h2>
 
-<p>You can now use Force Touch or Cmd-Ctrl-D to look up definitions of word under the cursor (or selected text in visual mode). This will also preview URLs, and support data types such as phone numbers and addresses. <a href="https://github.com/macvim-dev/macvim/issues/1312">#1312</a> <a href="https://github.com/macvim-dev/macvim/issues/1313">#1313</a></p>
+<p>You can now smoothly drag and resize MacVim without having it constrained to fixed multiples of the text size, by setting the “Smoothly resizes window” under General preference pane. This also allows MacVim to behave better when used with third-party tools (e.g. BetterSnapTool) to snap it to one side of the screen. <a href="https://github.com/macvim-dev/macvim/issues/1276">#1276</a></p>
 
-<p>This feature can also be invoked programmatically from VimScript (see <code>:h macvim-lookup</code>). <a href="https://github.com/macvim-dev/macvim/issues/1315">#1315</a></p>
+<p>The command line can now be pinned to the bottom of the window with a setting (under Appearance preference pane). This makes it look better aligned when using smooth resizing, or in other situations where the window size is not a direct multiples of Vim’s text size (e.g. full screen or guioption+=k). <a href="https://github.com/macvim-dev/macvim/issues/1280">#1280</a></p>
 
-<p><img width="408" alt="definition-url-sponsor-macvim" src="https://user-images.githubusercontent.com/1217449/217007473-22d3eae8-6879-4e0a-aa68-c026f2626c5b.png" /> <img width="169" alt="definition-siri-knowledge-ice-cream" src="https://user-images.githubusercontent.com/1217449/217007485-658c02a9-9c47-4e0c-bcc9-17cbcec4aac3.png" /></p>
+<p>Both features in action:</p>
 
-<h2 id="tool-bar--touch-bar--menu-icons">Tool bar / Touch Bar / menu icons</h2>
+<p><img width="293" height="199" src="https://github.com/macvim-dev/macvim/releases/download/release-174/macvim-smooth-resize-pin-cmdline-bottom-video.gif" /></p>
 
-<p>You can now use SF Symbols for Tool bar and Touch Bar icons, including using different symbol styles such as “palette” or “multicolor”. Menu items can now also use the <code>icon=</code> syntax to specify icons as well. See <code>:help macvim-toolbar-icon</code> for details. <a href="https://github.com/macvim-dev/macvim/issues/1329">#1329</a></p>
+<h2 id="new-supported-text-styles">New supported text styles</h2>
 
-<p><img width="546" alt="macvim toolbar icon" src="https://user-images.githubusercontent.com/1217449/216992739-3cfdfdb3-66a0-4837-bea0-d323fb7699a1.png" /></p>
+<p>Vim highlight groups <code>strikethrough</code>, <code>underdouble</code>, <code>underdotted</code>, <code>underdashed</code> are now supported. <a href="https://github.com/macvim-dev/macvim/issues/1287">#1287</a></p>
 
-<p>The default tool bar also has updated icons to look similar to SF Symbols used by newer macOS versions. <a href="https://github.com/macvim-dev/macvim/issues/1214">#1214</a> by @sfsam</p>
-
-<h2 id="window-management-actions">Window management actions</h2>
-
-<p>There are new <code>macaction</code>’s for managing the MacVim window. The new <code>zoomLeft</code>/<code>zoomRight</code> actions allow you to pin the window to the left/right of the screen, and there are also new actions for interacting with Stage Manager (requires macOS 13+). See <code>:h macvim-actions</code> for details. <a href="https://github.com/macvim-dev/macvim/issues/1330">#1330</a></p>
-
-<p><img width="586" height="380" src="https://github.com/macvim-dev/macvim/releases/download/release-175/macvim-zoomLeftRight.gif" /></p>
-
-<h2 id="pre-release-updates--sparkle-2">Pre-release updates / Sparkle 2</h2>
-
-<p>MacVim now supports pre-release software builds. It’s sometimes hard for us to release frequent updates due to the desire to pick a stable upstream Vim version, needing to test the release on multiple OS versions, making sure there aren’t half-complete or buggy features, and other reasons.</p>
-
-<p>This new feature now allows us to push pre-release beta builds out in a more frequent fashion, which could be useful if there are particular features or fixes that you would like to try out before the next official release. Pre-release builds will be released depending on bug fixes and features instead of a fixed cadence. Do note that these pre-release builds may not be as well-validated and may have half-baked features.</p>
-
-<p>If you are using the built-in auto-updater to update MacVim, you can turn this on by going to Advanced settings pane, and enable “Enable pre-release software updates”.</p>
-
-<p><img width="454" alt="pre-release setting" src="https://user-images.githubusercontent.com/1217449/216992412-d741d4bf-435e-4bff-9df4-a1711f264dbf.png" /></p>
-
-<p>This feature is only available for macOS 10.13 or above.</p>
-
-<p>The auto-updater has also been updated from Sparkle 1.27.1 to 2.3.0 for 10.13+ builds. Legacy (10.9-10.12) builds are still using Sparkle 1.</p>
-
-<p>See <a href="https://github.com/macvim-dev/macvim/issues/1332">#1332</a>.</p>
+<p><img width="389" alt="MacVim new text styles" src="https://user-images.githubusercontent.com/1217449/190359583-7816d046-a097-4f36-8a0a-ac8530f5131f.png" /></p>
 
 <h2 id="new-vim-features">New Vim features</h2>
 
-<p>New <code>smoothscroll</code> option allows you to scroll through a long wrapped line (using Ctrl-E or mouse wheel) without immediately jumping to the next line. (v9.0.0640)</p>
+<p>Virtual text allows you to place custom texts to be displayed inline for diagnostic information and more (e.g. build errors, CSS color preview).  See <code>:help virtual-text</code> for more information.</p>
 
-<p><code>splitscroll</code> option has been renamed <code>splitkeep</code>, with more flexibility than before. (v9.0.0647)</p>
+<p>The default color schemes (e.g. desert) are now fixed to look correct again.</p>
 
-<p>Sound playback on macOS is now supported. You can use <code>has('sound')</code> to check. See <code>help sound</code> for details. (v9.0.0694)</p>
+<p>Misc options and commands:</p>
 
-<p>Terminals now support <code>:confirm</code> for <code>:q</code>, etc, which also means MacVim’s Cmd-W will work properly for terminal windows. (v9.0.0710)</p>
-
-<p>Virtual text had numerous bugs fixed.</p>
-
-<h1 id="general">General</h1>
-
-<h2 id="legacy-build-for-109---1012">Legacy build for 10.9 - 10.12</h2>
-
-<p>Per a previous announcement (<a href="https://github.com/macvim-dev/macvim/issues/1271">#1271</a>), the default MacVim binary will now require macOS 10.13 or above. Users of macOS 10.9 - 10.12 can use a separate “legacy” build which will still be supported. The legacy binary will still have the latest versions of Vim and be supported, but may not have all the latest features (e.g. pre-release builds).</p>
-
-<p>If you are using the auto-updater (Sparkle) to update MacVim, it should “just work” and find the best version for you. If you are downloading MacVim from the website, there is also a link to download the legacy version marked for 10.9+ as well. If you download the normal binary marked for 10.13+ from the website, it won’t work on these older macOS versions.</p>
-
-<p>See <a href="https://github.com/macvim-dev/macvim/issues/1331">#1331</a>.</p>
+<ul>
+  <li><code>set nosplitscroll</code> lets you preserve the windows’ scroll positions when splitting. (v9.0.0445)</li>
+  <li><code>:defer</code> allows you to clean up in a function. (v9.0.0370)</li>
+  <li><code>:echowindow</code> allows you to echo a message to a floating popup message window instead of to the command line. (v9.0.0321)</li>
+</ul>
 
 <h1 id="fixes">Fixes</h1>
 
-<h2 id="coretext-renderer-clipping-and-rendering-bugs">CoreText Renderer clipping and rendering bugs</h2>
-
-<p>Unicode characters with multiple composing characters (e.g. “x⃗”) will now render correctly. <a href="https://github.com/macvim-dev/macvim/issues/1172">#1172</a></p>
-
-<p>Texts (e.g. Tibetan, Zalgo texts) that are taller than the line height will no longer be clipped inappropriately. You can use a new setting <code>MMRendererClipToRow</code> to re-enable clipping if the tall texts are distracting. <a href="https://github.com/macvim-dev/macvim/issues/995">#995</a> / <a href="https://github.com/macvim-dev/macvim/issues/1356">#1356</a></p>
-
-<h2 id="tab-crash">Tab crash</h2>
-
-<p>Fixed a crash when opening new tabs that seems to only occur in macOS 13 Ventura. <a href="https://github.com/macvim-dev/macvim/issues/1333">#1333</a></p>
-
-<h2 id="other-bugs">Other bugs</h2>
-
 <ul>
-  <li>Fixed non-native full screen not working well with the notch on newer MacBook’s when set to not show menu bar. You can also use <code>MMNonNativeFullScreenSafeAreaBehavior</code> to force MacVim to use the notch area as well if you don’t mind some content being obscured. Note that the previous release also claimed it fixed this, but because the binary was built against an old macOS SDK (Big Sur), the fix did not work in the binary release. <a href="https://github.com/macvim-dev/macvim/issues/1261">#1261</a></li>
-  <li>Allow “Open untitled window: never” and “After last window closes: Quit MacVim” to be set together again. Added safeguards to make sure doing so won’t immediately close the app. <a href="https://github.com/macvim-dev/macvim/issues/1338">#1338</a></li>
-  <li>Edit.Cut / Copy menu items will now be properly disabled when there isn’t selected text. <a href="https://github.com/macvim-dev/macvim/issues/1308">#1308</a></li>
-  <li>Fixed potential <code>:emenu</code> crash when the menu is associated with an action in a non-valid mode. <a href="https://github.com/macvim-dev/macvim/issues/1305">#1305</a></li>
-  <li>Fixed bug where just bringing up the right-click (or the MacVim→Services) menu would somehow copy the selected texts to the system clipboard. <a href="https://github.com/macvim-dev/macvim/issues/1300">#1300</a></li>
-  <li>Fixed a Japanese input method bug where using left/right arrow to move to a different section of the input text would previously result in the candidate list not showing up at the correct position. <a href="https://github.com/macvim-dev/macvim/issues/1312">#1312</a></li>
-  <li>Fix non-CoreText renderer not handling text styles like strikethrough correctly (note: this renderer has been deprecated for a while and you should not use it). <a href="https://github.com/macvim-dev/macvim/issues/1296">#1296</a></li>
-  <li>This release uses an older sh/bash syntax file because the latest one in Vim has a bug. <a href="https://github.com/macvim-dev/macvim/issues/1358">#1358</a></li>
+  <li>Fixed non-native full screen not working well with the notch on newer MacBook’s when set to not show menu bar. You can also use <code>MMNonNativeFullScreenSafeAreaBehavior</code> to force MacVim to use the notch area as well if you don’t mind some content being obscured. <a href="https://github.com/macvim-dev/macvim/issues/1261">#1261</a></li>
+  <li>Fixed bad interaction when two settings (“Open untitled window: never” and “After last window closes: Quit MacVim”) are set together. <a href="https://github.com/macvim-dev/macvim/issues/1257">#1257</a></li>
+  <li>Fixed the bundled Vim tutor not working when launching from the Help menu <a href="https://github.com/macvim-dev/macvim/issues/1265">#1265</a>.</li>
+  <li>Fix crashing on launch under macOS 10.9. <a href="https://github.com/macvim-dev/macvim/issues/1212">#1212</a></li>
+  <li>Fixed potential crash when switching appearance mode in MacVim preferences. <a href="https://github.com/macvim-dev/macvim/issues/1270">#1270</a></li>
+  <li>Korean localized menus no longer throw a syntax error on launch. <a href="https://github.com/macvim-dev/macvim/issues/1278">#1278</a></li>
+  <li><code>did_install_default_menus</code> should work in MacVim now. <a href="https://github.com/macvim-dev/macvim/issues/1267">#1267</a></li>
 </ul>
 
-<h1 id="misc">Misc</h1>
+<h1 id="general">General</h1>
 
-<p>New settings:</p>
-
-<ul>
-  <li>“No drop shadows” (Appearance). <a href="https://github.com/macvim-dev/macvim/issues/1301">#1301</a></li>
-  <li>“Treat Ctrl-click as right-click” (Input) (<a href="https://github.com/macvim-dev/macvim/issues/1326">#1326</a>). This was previously configurable via command-line, but now also possible in the settings pane under the new “Input” category.</li>
-</ul>
-
-<p>“About MacVim” now reports the version number in a clearer way with clearly specified release number vs Vim version.</p>
-
-<h1 id="known-issues">Known Issues</h1>
-
-<h2 id="printing">Printing</h2>
-
-<p>Printing using File→Print or <code>:hardcopy</code> is currently not working under macOS 13 Ventura due to its removal of PostScript support in the Preview app. This will be fixed in a later release. See the issue for workarounds. <a href="https://github.com/macvim-dev/macvim/issues/1347">#1347</a></p>
+<p>Sparkle (updater for MacVim) is now updated to 1.27.1 (<a href="https://github.com/macvim-dev/macvim/issues/1284">#1284</a>), and we no longer use DSA keys for signing updates (<a href="https://github.com/macvim-dev/macvim/issues/1285">#1285</a>) as we are using EdDSA already.</p>
 
 <h1 id="scripting">Scripting</h1>
 
 <ul>
   <li>Scripting languages versions:
     <ul>
-      <li>Perl is now built against 5.30, up from 5.18.</li>
-      <li>Ruby is now built against 3.2, up from 3.1.</li>
+      <li>Python is now built against 3.10, up from 3.9.</li>
     </ul>
   </li>
 </ul>
 
 <h1 id="compatibility">Compatibility</h1>
 
-<p>Requires macOS 10.9 or above. (10.9 - 10.12 requires downloading a separate legacy build)</p>
+<p>Requires macOS 10.9 or above.</p>
 
 <p>Script interfaces have compatibility with these versions:</p>
 
 <ul>
   <li>Lua 5.4</li>
-  <li>Perl 5.30</li>
+  <li>Perl 5.18</li>
   <li>Python2 2.7</li>
   <li>Python3 3.10</li>
-  <li>Ruby 3.2</li>
+  <li>Ruby 3.1</li>
 </ul>
 
 <p><br /><small>Read the latest release notes <a href="https://github.com/macvim-dev/macvim/releases/latest">here</a>.</small></p>
 
       ]]></description>
       <sparkle:fullReleaseNotesLink>https://github.com/macvim-dev/macvim/releases</sparkle:fullReleaseNotesLink>
-      <pubDate>Tue, 07 Feb 2023 01:00:00 -0800</pubDate>
-      <sparkle:minimumSystemVersion>10.13</sparkle:minimumSystemVersion>
-      <sparkle:version>175</sparkle:version>
-      <sparkle:shortVersionString>9.0.1276 (r175)</sparkle:shortVersionString>
-      <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/release-175/MacVim.dmg"
-        sparkle:edSignature="EfKshcUy+Avb5euUwKzd1YsbPSAA6MFZs1uHnOqQFZYeEe/qFAiSsqBSbniH33ZN18z7rsXjFJqwrbzYYYdTCA==" length="25057153"
-        />
-      <sparkle:deltas>
-        <enclosure type="application/octet-stream"
-          url="https://github.com/macvim-dev/macvim/releases/download/release-175/174_to_175.delta"
-          sparkle:deltaFrom="174"
-          
-          />
-      </sparkle:deltas>
-    </item>
-
-    <item>
-      <title>MacVim release-175</title>
-      <description><![CDATA[
-<style>
-:root { supported-color-schemes: light dark; color-scheme: light dark; }
-</style>
-<p>Updated to Vim 9.0.1276</p>
-
-<h1 id="features">Features</h1>
-
-<h2 id="dictionary-lookup">Dictionary lookup</h2>
-
-<p>You can now use Force Touch or Cmd-Ctrl-D to look up definitions of word under the cursor (or selected text in visual mode). This will also preview URLs, and support data types such as phone numbers and addresses. <a href="https://github.com/macvim-dev/macvim/issues/1312">#1312</a> <a href="https://github.com/macvim-dev/macvim/issues/1313">#1313</a></p>
-
-<p>This feature can also be invoked programmatically from VimScript (see <code>:h macvim-lookup</code>). <a href="https://github.com/macvim-dev/macvim/issues/1315">#1315</a></p>
-
-<p><img width="408" alt="definition-url-sponsor-macvim" src="https://user-images.githubusercontent.com/1217449/217007473-22d3eae8-6879-4e0a-aa68-c026f2626c5b.png" /> <img width="169" alt="definition-siri-knowledge-ice-cream" src="https://user-images.githubusercontent.com/1217449/217007485-658c02a9-9c47-4e0c-bcc9-17cbcec4aac3.png" /></p>
-
-<h2 id="tool-bar--touch-bar--menu-icons">Tool bar / Touch Bar / menu icons</h2>
-
-<p>You can now use SF Symbols for Tool bar and Touch Bar icons, including using different symbol styles such as “palette” or “multicolor”. Menu items can now also use the <code>icon=</code> syntax to specify icons as well. See <code>:help macvim-toolbar-icon</code> for details. <a href="https://github.com/macvim-dev/macvim/issues/1329">#1329</a></p>
-
-<p><img width="546" alt="macvim toolbar icon" src="https://user-images.githubusercontent.com/1217449/216992739-3cfdfdb3-66a0-4837-bea0-d323fb7699a1.png" /></p>
-
-<p>The default tool bar also has updated icons to look similar to SF Symbols used by newer macOS versions. <a href="https://github.com/macvim-dev/macvim/issues/1214">#1214</a> by @sfsam</p>
-
-<h2 id="window-management-actions">Window management actions</h2>
-
-<p>There are new <code>macaction</code>’s for managing the MacVim window. The new <code>zoomLeft</code>/<code>zoomRight</code> actions allow you to pin the window to the left/right of the screen, and there are also new actions for interacting with Stage Manager (requires macOS 13+). See <code>:h macvim-actions</code> for details. <a href="https://github.com/macvim-dev/macvim/issues/1330">#1330</a></p>
-
-<p><img width="586" height="380" src="https://github.com/macvim-dev/macvim/releases/download/release-175/macvim-zoomLeftRight.gif" /></p>
-
-<h2 id="pre-release-updates--sparkle-2">Pre-release updates / Sparkle 2</h2>
-
-<p>MacVim now supports pre-release software builds. It’s sometimes hard for us to release frequent updates due to the desire to pick a stable upstream Vim version, needing to test the release on multiple OS versions, making sure there aren’t half-complete or buggy features, and other reasons.</p>
-
-<p>This new feature now allows us to push pre-release beta builds out in a more frequent fashion, which could be useful if there are particular features or fixes that you would like to try out before the next official release. Pre-release builds will be released depending on bug fixes and features instead of a fixed cadence. Do note that these pre-release builds may not be as well-validated and may have half-baked features.</p>
-
-<p>If you are using the built-in auto-updater to update MacVim, you can turn this on by going to Advanced settings pane, and enable “Enable pre-release software updates”.</p>
-
-<p><img width="454" alt="pre-release setting" src="https://user-images.githubusercontent.com/1217449/216992412-d741d4bf-435e-4bff-9df4-a1711f264dbf.png" /></p>
-
-<p>This feature is only available for macOS 10.13 or above.</p>
-
-<p>The auto-updater has also been updated from Sparkle 1.27.1 to 2.3.0 for 10.13+ builds. Legacy (10.9-10.12) builds are still using Sparkle 1.</p>
-
-<p>See <a href="https://github.com/macvim-dev/macvim/issues/1332">#1332</a>.</p>
-
-<h2 id="new-vim-features">New Vim features</h2>
-
-<p>New <code>smoothscroll</code> option allows you to scroll through a long wrapped line (using Ctrl-E or mouse wheel) without immediately jumping to the next line. (v9.0.0640)</p>
-
-<p><code>splitscroll</code> option has been renamed <code>splitkeep</code>, with more flexibility than before. (v9.0.0647)</p>
-
-<p>Sound playback on macOS is now supported. You can use <code>has('sound')</code> to check. See <code>help sound</code> for details. (v9.0.0694)</p>
-
-<p>Terminals now support <code>:confirm</code> for <code>:q</code>, etc, which also means MacVim’s Cmd-W will work properly for terminal windows. (v9.0.0710)</p>
-
-<p>Virtual text had numerous bugs fixed.</p>
-
-<h1 id="general">General</h1>
-
-<h2 id="legacy-build-for-109---1012">Legacy build for 10.9 - 10.12</h2>
-
-<p>Per a previous announcement (<a href="https://github.com/macvim-dev/macvim/issues/1271">#1271</a>), the default MacVim binary will now require macOS 10.13 or above. Users of macOS 10.9 - 10.12 can use a separate “legacy” build which will still be supported. The legacy binary will still have the latest versions of Vim and be supported, but may not have all the latest features (e.g. pre-release builds).</p>
-
-<p>If you are using the auto-updater (Sparkle) to update MacVim, it should “just work” and find the best version for you. If you are downloading MacVim from the website, there is also a link to download the legacy version marked for 10.9+ as well. If you download the normal binary marked for 10.13+ from the website, it won’t work on these older macOS versions.</p>
-
-<p>See <a href="https://github.com/macvim-dev/macvim/issues/1331">#1331</a>.</p>
-
-<h1 id="fixes">Fixes</h1>
-
-<h2 id="coretext-renderer-clipping-and-rendering-bugs">CoreText Renderer clipping and rendering bugs</h2>
-
-<p>Unicode characters with multiple composing characters (e.g. “x⃗”) will now render correctly. <a href="https://github.com/macvim-dev/macvim/issues/1172">#1172</a></p>
-
-<p>Texts (e.g. Tibetan, Zalgo texts) that are taller than the line height will no longer be clipped inappropriately. You can use a new setting <code>MMRendererClipToRow</code> to re-enable clipping if the tall texts are distracting. <a href="https://github.com/macvim-dev/macvim/issues/995">#995</a> / <a href="https://github.com/macvim-dev/macvim/issues/1356">#1356</a></p>
-
-<h2 id="tab-crash">Tab crash</h2>
-
-<p>Fixed a crash when opening new tabs that seems to only occur in macOS 13 Ventura. <a href="https://github.com/macvim-dev/macvim/issues/1333">#1333</a></p>
-
-<h2 id="other-bugs">Other bugs</h2>
-
-<ul>
-  <li>Fixed non-native full screen not working well with the notch on newer MacBook’s when set to not show menu bar. You can also use <code>MMNonNativeFullScreenSafeAreaBehavior</code> to force MacVim to use the notch area as well if you don’t mind some content being obscured. Note that the previous release also claimed it fixed this, but because the binary was built against an old macOS SDK (Big Sur), the fix did not work in the binary release. <a href="https://github.com/macvim-dev/macvim/issues/1261">#1261</a></li>
-  <li>Allow “Open untitled window: never” and “After last window closes: Quit MacVim” to be set together again. Added safeguards to make sure doing so won’t immediately close the app. <a href="https://github.com/macvim-dev/macvim/issues/1338">#1338</a></li>
-  <li>Edit.Cut / Copy menu items will now be properly disabled when there isn’t selected text. <a href="https://github.com/macvim-dev/macvim/issues/1308">#1308</a></li>
-  <li>Fixed potential <code>:emenu</code> crash when the menu is associated with an action in a non-valid mode. <a href="https://github.com/macvim-dev/macvim/issues/1305">#1305</a></li>
-  <li>Fixed bug where just bringing up the right-click (or the MacVim→Services) menu would somehow copy the selected texts to the system clipboard. <a href="https://github.com/macvim-dev/macvim/issues/1300">#1300</a></li>
-  <li>Fixed a Japanese input method bug where using left/right arrow to move to a different section of the input text would previously result in the candidate list not showing up at the correct position. <a href="https://github.com/macvim-dev/macvim/issues/1312">#1312</a></li>
-  <li>Fix non-CoreText renderer not handling text styles like strikethrough correctly (note: this renderer has been deprecated for a while and you should not use it). <a href="https://github.com/macvim-dev/macvim/issues/1296">#1296</a></li>
-  <li>This release uses an older sh/bash syntax file because the latest one in Vim has a bug. <a href="https://github.com/macvim-dev/macvim/issues/1358">#1358</a></li>
-</ul>
-
-<h1 id="misc">Misc</h1>
-
-<p>New settings:</p>
-
-<ul>
-  <li>“No drop shadows” (Appearance). <a href="https://github.com/macvim-dev/macvim/issues/1301">#1301</a></li>
-  <li>“Treat Ctrl-click as right-click” (Input) (<a href="https://github.com/macvim-dev/macvim/issues/1326">#1326</a>). This was previously configurable via command-line, but now also possible in the settings pane under the new “Input” category.</li>
-</ul>
-
-<p>“About MacVim” now reports the version number in a clearer way with clearly specified release number vs Vim version.</p>
-
-<h1 id="known-issues">Known Issues</h1>
-
-<h2 id="printing">Printing</h2>
-
-<p>Printing using File→Print or <code>:hardcopy</code> is currently not working under macOS 13 Ventura due to its removal of PostScript support in the Preview app. This will be fixed in a later release. See the issue for workarounds. <a href="https://github.com/macvim-dev/macvim/issues/1347">#1347</a></p>
-
-<h1 id="scripting">Scripting</h1>
-
-<ul>
-  <li>Scripting languages versions:
-    <ul>
-      <li>Perl is now built against 5.30, up from 5.18.</li>
-      <li>Ruby is now built against 3.2, up from 3.1.</li>
-    </ul>
-  </li>
-</ul>
-
-<h1 id="compatibility">Compatibility</h1>
-
-<p>Requires macOS 10.9 or above. (10.9 - 10.12 requires downloading a separate legacy build)</p>
-
-<p>Script interfaces have compatibility with these versions:</p>
-
-<ul>
-  <li>Lua 5.4</li>
-  <li>Perl 5.30</li>
-  <li>Python2 2.7</li>
-  <li>Python3 3.10</li>
-  <li>Ruby 3.2</li>
-</ul>
-
-<p><br /><small>Read the latest release notes <a href="https://github.com/macvim-dev/macvim/releases/latest">here</a>.</small></p>
-
-      ]]></description>
-      <sparkle:fullReleaseNotesLink>https://github.com/macvim-dev/macvim/releases</sparkle:fullReleaseNotesLink>
-      <pubDate>Tue, 07 Feb 2023 01:00:00 -0800</pubDate>
+      <pubDate>Thu, 15 Sep 2022 13:00:00 -0700</pubDate>
       <sparkle:minimumSystemVersion>10.9</sparkle:minimumSystemVersion>
-      <sparkle:maximumSystemVersion>10.12.99</sparkle:maximumSystemVersion>
-      <sparkle:version>175</sparkle:version>
-      <sparkle:shortVersionString>9.0.1276 (r175)</sparkle:shortVersionString>
+      <sparkle:version>174</sparkle:version>
+      <sparkle:shortVersionString>9.0.472"</sparkle:shortVersionString>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/release-175/MacVim_10.9.dmg"
-        sparkle:edSignature="0CkdTIRB5mvriVbuX3DZXg1V3zoQIQFhzpkvL/py5hZXc1jJNLbD0NWL1IIOertZd9gPoWVbXY/chiEBUuLxDA==" length="22639312"
+        url="https://github.com/macvim-dev/macvim/releases/download/release-174/MacVim.dmg"
+        sparkle:edSignature="9PxwXcjRdLvHDpd/si8a46xI6EoivqndvF40+oPXAnH3iHjPeemvfU2GemS4iLa6dfUh8F8RysKdgjv6KhY0AQ==" length="24668528"
         />
       <sparkle:deltas>
         <enclosure type="application/octet-stream"
-          url="https://github.com/macvim-dev/macvim/releases/download/release-175/174_to_175_10.9.delta"
-          sparkle:deltaFrom="174"
-          
+          url="https://github.com/macvim-dev/macvim/releases/download/release-174/173_to_174.delta"
+          sparkle:deltaFrom="173"
+          sparkle:edSignature="Wz7wV/rehdcETi71PudMgYdlS2j8ehitW1KkeK3Z0JtX5PC2OGjbRlnbrDMNoOqjbBdPfmzB59+J4MaqFx3MBQ==" length="2165243"
           />
       </sparkle:deltas>
     </item>

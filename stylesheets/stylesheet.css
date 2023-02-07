@@ -107,15 +107,6 @@ a {
   .project-tagline {
     font-size: 1rem; } }
 
-.project-release-notes {
-    opacity: 0.7;
-}
-
-.project-additional-notes {
-    font-size: smaller;
-    opacity: 0.7;
-}
-
 .main-content :first-child {
   margin-top: 0; }
 .main-content img {
