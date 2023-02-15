@@ -11,6 +11,7 @@ set -e
 
 macvim_path=$1
 
+sparkle_xpcservices_symlink="$macvim_path/Contents/Frameworks/Sparkle.framework/XPCServices"
 sparkle_xpcservices="$macvim_path/Contents/Frameworks/Sparkle.framework/Versions/Current/XPCServices"
 
 if [ -d "$sparkle_xpcservices" ]; then
@@ -19,4 +20,5 @@ if [ -d "$sparkle_xpcservices" ]; then
     # otherwise. See https://sparkle-project.org/documentation/sandboxing/.
     set -x
     rm -rf "$sparkle_xpcservices"
+    rm "$sparkle_xpcservices_symlink"
 fi
