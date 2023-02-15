@@ -4511,7 +4511,7 @@ did_set_num_option(long *pp, long value, long old_value, char *errmsg)
 	did_set_maxcombine();
     else if (pp == &curbuf->b_p_iminsert)	// 'iminsert'
 	errmsg = did_set_iminsert(errmsg);
-#if defined(FEAT_XIM) && defined(FEAT_GUI_GTK)
+#if (defined(FEAT_XIM) && defined(FEAT_GUI_GTK)) || defined(FEAT_GUI_MACVIM)
     else if (pp == &p_imst)			// 'imstyle'
 	errmsg = did_set_imstyle(errmsg);
 #endif
