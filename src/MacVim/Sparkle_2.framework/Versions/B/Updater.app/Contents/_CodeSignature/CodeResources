@@ -34,7 +34,7 @@
 		<dict>
 			<key>hash</key>
 			<data>
-			hIXy3nCBtLeY6/3v3pWwYRJl+sA=
+			XEmDbfZO4yJVTMmOj/YwU4d2X+Q=
 			</data>
 			<key>optional</key>
 			<true/>
@@ -88,7 +88,7 @@
 		<dict>
 			<key>hash</key>
 			<data>
-			+T4u6wvinBvx2z6vcAQKz32lvvE=
+			F/sJkTYIQLPsbOAPJUJMRPa9EeA=
 			</data>
 			<key>optional</key>
 			<true/>
@@ -291,6 +291,15 @@
 			<key>optional</key>
 			<true/>
 		</dict>
+		<key>Resources/zh_HK.lproj/Sparkle.strings</key>
+		<dict>
+			<key>hash</key>
+			<data>
+			6ZtNY99NpdEMxheFf8juphTe30g=
+			</data>
+			<key>optional</key>
+			<true/>
+		</dict>
 		<key>Resources/zh_TW.lproj/Sparkle.strings</key>
 		<dict>
 			<key>hash</key>
@@ -339,7 +348,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			yJXcgwDV0GC2yZWVdhf9UQirDu1yLWTaa+x0vVpYkfo=
+			9e+PJbv/VS2Crb9Ba6ZeADG2ll4RbsGse7NbwIm0IG4=
 			</data>
 			<key>optional</key>
 			<true/>
@@ -393,7 +402,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			a70/+B90B44V8vfbEZUJjfFl7uva424DcaTZOvwCEs8=
+			vIUJXdYI8BMB0xLJANIQk+DDKy2sno6StdPpJSCV++A=
 			</data>
 			<key>optional</key>
 			<true/>
@@ -592,6 +601,15 @@
 			<key>hash2</key>
 			<data>
 			50IP7eJ9NgEFLDIKBJXnmRRzcGT7MmW08hHJr4alKLQ=
+			</data>
+			<key>optional</key>
+			<true/>
+		</dict>
+		<key>Resources/zh_HK.lproj/Sparkle.strings</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			QbOSmL6buAJoDKkEaulr+Wl8BQVUBUiMuUPQ209YhGE=
 			</data>
 			<key>optional</key>
 			<true/>
