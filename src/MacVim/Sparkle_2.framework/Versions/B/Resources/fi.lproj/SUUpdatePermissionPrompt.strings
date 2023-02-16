@@ -11,10 +11,13 @@
 "cCJ-V0-aTi.title" = "Älä tarkista";
 
 /* Class = "NSTextFieldCell"; title = "Check for updates automatically?"; ObjectID = "gmh-T4-BO0"; */
-"gmh-T4-BO0.title" = "Tarkista päivityksiä käynnistyksen yhteydessä?";
+"gmh-T4-BO0.title" = "Tarkista päivitykset käynnistyksen yhteydessä?";
 
 /* Class = "NSButtonCell"; title = "Include anonymous system profile"; ObjectID = "gz7-LM-gNf"; */
 "gz7-LM-gNf.title" = "Sisällytä nimetön järjestelmäprofiili";
+
+/* Class = "NSButtonCell"; title = "Automatically download and install updates"; ObjectID = "AUc-33-qGN"; */
+"AUc-33-qGN.title" = "Hae ja asenna päivitykset automaattisesti";
 
 /* Class = "NSButtonCell"; title = "Check Automatically"; ObjectID = "OhZ-1K-DmA"; */
 "OhZ-1K-DmA.title" = "Tarkista automaattisesti";
