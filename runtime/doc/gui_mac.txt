@@ -1,8 +1,6 @@
-*gui_mac.txt*	For Vim version 8.2.  Last change: 2020 Aug 13
+*gui_mac.txt*						Last change: 2023 Feb 7
 
-
-		  VIM REFERENCE MANUAL    by Bjorn Winckler
-
+			MACVIM REFERENCE MANUAL 
 
 The MacVim Graphical User Interface			*macvim* *gui-macvim*
 
