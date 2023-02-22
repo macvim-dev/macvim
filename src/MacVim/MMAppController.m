@@ -759,6 +759,15 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
                                  andEventID:'MOD '];
 #endif
 
+    // We are hard shutting down the app here by terminating all Vim processes
+    // and then just quit without cleanly removing each Vim controller. We
+    // don't want the straggler controllers to still interact with the now
+    // invalid connections, so we just mark them as uninitialized.
+    for (NSUInteger i = 0, count = [vimControllers count]; i < count; ++i) {
+        MMVimController *vc = [vimControllers objectAtIndex:i];
+        [vc uninitialize];
+    }
+
     // This will invalidate all connections (since they were spawned from this
     // connection).
     [connection invalidate];

@@ -57,6 +57,7 @@
 }
 
 - (id)initWithBackend:(id)backend pid:(int)processIdentifier;
+- (void)uninitialize;
 - (unsigned)vimControllerId;
 - (id)backendProxy;
 - (int)pid;
