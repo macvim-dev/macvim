@@ -248,6 +248,15 @@ static BOOL isUnsafeMessage(int msgid);
     [super dealloc];
 }
 
+/// This should only be called by MMAppController when it's doing an app quit.
+/// We just wait for all Vim processes to terminate instad of individually
+/// closing each MMVimController. We simply unset isInitialized to prevent it
+/// from handling and sending messages to now invalid Vim connections.
+- (void)uninitialize
+{
+    isInitialized = NO;
+}
+
 - (unsigned)vimControllerId
 {
     return identifier;
