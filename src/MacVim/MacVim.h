@@ -62,11 +62,33 @@
 #ifndef NSAppKitVersionNumber10_12
 # define NSAppKitVersionNumber10_12 1504
 #endif
+#ifndef NSAppKitVersionNumber10_12_2
+# define NSAppKitVersionNumber10_12_2 1504.76
+#endif
 #ifndef NSAppKitVersionNumber10_13
 # define NSAppKitVersionNumber10_13 1561
 #endif
 #ifndef NSAppKitVersionNumber10_14
 # define NSAppKitVersionNumber10_14 1671
+#endif
+#ifndef NSAppKitVersionNumber11_0
+# define NSAppKitVersionNumber11_0 2022
+#endif
+
+// Macro to detect runtime OS version. Ideally, we would just like to use
+// @available to test for this because the compiler can optimize it out
+// depending on your min/max OS configuration. However, it was added in Xcode 9
+// (macOS 10.13 SDK). For any code that we want to be compilable for Xcode 8
+// (macOS 10.12) or below, we need to use the macro below which will
+// selectively use NSAppKitVersionNumber instead.
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_13
+// Xcode 9+, can use @available, which is more efficient.
+# define AVAILABLE_MAC_OS(MAJOR, MINOR) @available(macos MAJOR##.##MINOR, *)
+# define AVAILABLE_MAC_OS_PATCH(MAJOR, MINOR, PATCH) @available(macos MAJOR##.##MINOR##.##PATCH, *)
+#else
+// Xcode 8 or below. Use the old-school NSAppKitVersionNumber check.
+# define AVAILABLE_MAC_OS(MAJOR, MINOR) NSAppKitVersionNumber >= NSAppKitVersionNumber##MAJOR##_##MINOR
+# define AVAILABLE_MAC_OS_PATCH(MAJOR, MINOR, PATCH) NSAppKitVersionNumber >= NSAppKitVersionNumber##MAJOR##_##MINOR##_##PATCH
 #endif
 
 // Deprecated constants. Since these are constants, we just need the compiler,
@@ -111,6 +133,10 @@
 // Deprecated constants in 10.13 SDK
 #define NSControlStateValueOn NSOnState
 #define NSControlStateValueOff NSOffState
+
+// Newly introduced symbols in 10.13 SDK
+typedef NSString* NSPasteboardType;
+typedef NSString* NSAttributedStringKey;
 #endif
 
 // Deprecated runtime values. Since these are runtime values, we need to use the

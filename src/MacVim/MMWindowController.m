@@ -142,7 +142,7 @@
     // setting it in macOS 11+.
     BOOL usingTexturedBackground = NO;
 #if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_VERSION_11_0
-    if (@available(macos 11.0, *)) {
+    if (AVAILABLE_MAC_OS(11, 0)) {
         // Don't set the textured background because it's been completely deprecated and won't do anything.
     } else {
         styleMask = styleMask | NSWindowStyleMaskTexturedBackground;
@@ -592,7 +592,7 @@
     
     // Transparent title bar setting
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_10
-    if (@available(macos 10.10, *)) {
+    if (AVAILABLE_MAC_OS(10, 10)) {
         decoratedWindow.titlebarAppearsTransparent = [ud boolForKey:MMTitlebarAppearsTransparentKey];
     }
 #endif
@@ -1800,7 +1800,7 @@
     // See initWithVimController: for textured background deprecation notes.
     BOOL windowTextured = NO;
 #if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_VERSION_11_0
-    if (@available(macos 11.0, *)) {
+    if (AVAILABLE_MAC_OS(11, 0)) {
     } else {
         windowTextured = ([decoratedWindow styleMask] &
                           NSWindowStyleMaskTexturedBackground) != 0;
