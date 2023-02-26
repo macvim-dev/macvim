@@ -177,7 +177,7 @@ static BOOL isUnsafeMessage(int msgid);
     popupMenuItems = [[NSMutableArray alloc] init];
     toolbarItemDict = [[NSMutableDictionary alloc] init];
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12_2
-    if (@available(macos 10.12.2, *)) {
+    if (AVAILABLE_MAC_OS_PATCH(10, 12, 2)) {
         touchbarInfo = [[MMTouchBarInfo alloc] init];
     }
 #endif
@@ -1425,7 +1425,7 @@ static BOOL isUnsafeMessage(int msgid);
 
     if ([rootName isEqual:MMTouchbarMenuName]) {
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12_2
-        if (@available(macos 10.12.2, *)) {
+        if (AVAILABLE_MAC_OS_PATCH(10, 12, 2)) {
             if ([desc count] < 2) // Cannot be 1, as we need at least TouchBar.<menu_name>
                 return;
             if ([desc count] >= 3) // Unfortunately currently Apple does not support nested popover's so we can only do one level nesting
@@ -1509,7 +1509,7 @@ static BOOL isUnsafeMessage(int msgid);
         if ([desc count] >= 4) // Unfortunately currently Apple does not support nested popover's so we can only do one level nesting
             return;
 
-        if (@available(macos 10.12.2, *)) {
+        if (AVAILABLE_MAC_OS_PATCH(10, 12, 2)) {
             MMTouchBarInfo *submenuTouchbar = nil;
             if (![self touchBarItemForDescriptor:desc touchBar:&submenuTouchbar touchBarItem:nil]) {
                 return;
@@ -1597,7 +1597,7 @@ static BOOL isUnsafeMessage(int msgid);
     }
     if ([rootName isEqual:MMTouchbarMenuName]){
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12_2
-        if (@available(macos 10.12.2, *)) {
+        if (AVAILABLE_MAC_OS_PATCH(10, 12, 2)) {
             MMTouchBarInfo *submenuTouchbar = nil;
             if (![self touchBarItemForDescriptor:desc touchBar:&submenuTouchbar touchBarItem:nil]) {
                 return;
@@ -1651,7 +1651,7 @@ static BOOL isUnsafeMessage(int msgid);
 
     if ([rootName isEqual:MMTouchbarMenuName]) {
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12_2
-        if (@available(macos 10.12.2, *)) {
+        if (AVAILABLE_MAC_OS_PATCH(10, 12, 2)) {
             MMTouchBarItemInfo *touchbarItem = nil;
             if (![self touchBarItemForDescriptor:desc touchBar:nil touchBarItem:&touchbarItem]) {
                 return;
@@ -1695,7 +1695,7 @@ static BOOL isUnsafeMessage(int msgid);
 
     if ([rootName isEqual:MMTouchbarMenuName]) {
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12_2
-        if (@available(macos 10.12.2, *)) {
+        if (AVAILABLE_MAC_OS_PATCH(10, 12, 2)) {
             MMTouchBarItemInfo *touchbarItem = nil;
             if (![self touchBarItemForDescriptor:desc touchBar:nil touchBarItem:&touchbarItem]) {
                 return;

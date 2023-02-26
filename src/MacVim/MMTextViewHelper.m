@@ -1072,7 +1072,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     static NSCursor *ibeamCursor = nil;
 
     if (!ibeamCursor) {
-        if (floor(NSAppKitVersionNumber) >= NSAppKitVersionNumber10_14)
+        if (AVAILABLE_MAC_OS(10, 14))
         {
             // macOS 10.14 (Mojave) introduced dark mode, and seems to have
             // added a thick white border around the system I-beam cursor,

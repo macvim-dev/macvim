@@ -8,6 +8,7 @@
  * See README.txt for an overview of the Vim source code.
  */
 
+#import "MacVim.h"
 #import "MMFindReplaceController.h"
 
 
