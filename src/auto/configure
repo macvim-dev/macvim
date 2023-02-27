@@ -5015,7 +5015,7 @@ printf "%s\n" "no" >&6; }
   else
     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 printf "%s\n" "yes" >&6; }
-    XCODEFLAGS="$XCODEFLAGS GCC_PREPROCESSOR_DEFINITIONS='$GCC_PREPROCESSOR_DEFINITIONS DISABLE_SPARKLE=1'"
+    XCODEFLAGS="$XCODEFLAGS GCC_PREPROCESSOR_DEFINITIONS='$GCC_PREPROCESSOR_DEFINITIONS DISABLE_SPARKLE=1' REMOVE_SPARKLE=1"
   fi
 
   if test "$enable_sparkle" == "yes"; then

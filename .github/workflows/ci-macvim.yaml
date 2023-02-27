@@ -242,6 +242,26 @@ jobs:
           ${VIM_BIN} -u NONE -i NONE --not-a-term -esNX -V1 -S ci/if_ver-2.vim -c quit
 
       - name: Smoketest
+        run: |
+          set -o verbose
+
+          # Make sure there isn't any dynamic linkage to third-party dependencies in the built binary, as we should only use
+          # static linkage to avoid dependency hell. Test that all those dylib's are in /usr/lib which is bundled with macOS and not third-party.
+          if otool -L ${VIM_BIN} | grep '\.dylib\s' | grep -v '^\s*/usr/lib/'; then
+            echo 'Found external dynamic linkage!'; false
+          fi
+
+          # Make sure that --disable-sparkle flag will properly exclude all references to Sparkle symbols. This is
+          # necessary because we still use weak linking to Sparkle when that flag is set and so references to Sparkle
+          # wouldn't fail the build (we just remove Sparkle.framework from the built app after the fact).
+          if ${{ matrix.publish == false }}; then
+            # Currently we pass --disable-sparkle flag when publish==false
+            if objdump -t ${MACVIM_BIN} | grep "_SPU\|_SUUpdate"; then
+              echo 'Found references to Sparkle even when using --disable-sparkle'; false
+            fi
+          fi
+
+      - name: Smoketest (publish)
         if: matrix.publish
         run: |
           set -o verbose
@@ -262,12 +282,6 @@ jobs:
 
           # Check that libsodium is working
           macvim_excmd -c 'set cryptmethod=xchacha20'
-
-          # Make sure there isn't any dynamic linkage to third-party dependencies in the built binary, as we should only use
-          # static linkage to avoid dependency hell. Test that all those dylib's are in /usr/lib which is bundled with macOS and not third-party.
-          if otool -L ${VIM_BIN} | grep '\.dylib\s' | grep -v '^\s*/usr/lib/'; then
-            echo 'Found external dynamic linkage!'; false
-          fi
 
           # Make sure we are building universal x86_64 / arm64 builds and didn't accidentally create a thin app.
           check_arch() {
