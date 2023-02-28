@@ -115,8 +115,6 @@ jobs:
 
       - name: Install packages
         if: matrix.publish
-        env:
-          HOMEBREW_NO_AUTO_UPDATE: 1
         run: |
           brew install python3
           brew install ruby
