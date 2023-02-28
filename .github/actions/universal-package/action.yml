@@ -34,8 +34,6 @@ runs:
 
     - name: Install formula
       shell: bash
-      env:
-        HOMEBREW_NO_AUTO_UPDATE: '1'
       run: |
         echo '::group::Install formula'
         formula=${{ inputs.formula }}
