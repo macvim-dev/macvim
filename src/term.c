@@ -2087,7 +2087,7 @@ set_termname(char_u *term)
 #endif
     {
 	// Use the 'keyprotocol' option to adjust the t_TE and t_TI
-	// termcap entries if there is an entry maching "term".
+	// termcap entries if there is an entry matching "term".
 	keyprot_T kpc = match_keyprotocol(term);
 	if (kpc == KEYPROTOCOL_KITTY)
 	    apply_builtin_tcap(term, builtin_kitty, TRUE);
@@ -2098,7 +2098,7 @@ set_termname(char_u *term)
 	// There is no good way to detect that the terminal supports RGB
 	// colors.  Since these termcap entries are non-standard anyway and
 	// only used when the user sets 'termguicolors' we might as well add
-	// them.  But not when one of them was alredy set.
+	// them.  But not when one of them was already set.
 	if (term_strings_not_set(KS_8F)
 		&& term_strings_not_set(KS_8B)
 		&& term_strings_not_set(KS_8U))
@@ -2347,7 +2347,7 @@ set_termname(char_u *term)
  * Avoids that valgrind reports possibly lost memory.
  */
     void
-free_cur_term()
+free_cur_term(void)
 {
 # ifdef HAVE_DEL_CURTERM
     if (cur_term)
@@ -3003,7 +3003,7 @@ term_set_winpos(int x, int y)
  * Return TRUE if we can request the terminal for a response.
  */
     static int
-can_get_termresponse()
+can_get_termresponse(void)
 {
     return cur_tmode == TMODE_RAW
 	    && termcap_active
@@ -3027,7 +3027,7 @@ termrequest_sent(termrequest_T *status)
  * Return TRUE if any of the requests are in STATUS_SENT.
  */
     static int
-termrequest_any_pending()
+termrequest_any_pending(void)
 {
     int	    i;
     time_t  now = time(NULL);
@@ -4373,7 +4373,7 @@ term_cursor_color(char_u *color)
 # endif
 
     int
-blink_state_is_inverted()
+blink_state_is_inverted(void)
 {
 #ifdef FEAT_TERMRESPONSE
     return rbm_status.tr_progress == STATUS_GOT
@@ -5722,7 +5722,7 @@ handle_osc(char_u *tp, char_u *argp, int len, char_u *key_name, int *slen)
 
 		if (i - j >= 15 && STRNCMP(tp + j + 3, "rgb:", 4) == 0
 			    && (is_4digit
-				   || (tp[j + 9] == '/' && tp[i + 12 == '/'])))
+				   || (tp[j + 9] == '/' && tp[j + 12] == '/')))
 		{
 		    char_u *tp_r = tp + j + 7;
 		    char_u *tp_g = tp + j + (is_4digit ? 12 : 10);

@@ -1550,7 +1550,7 @@ find_special_key(
     int
 may_adjust_key_for_ctrl(int modifiers, int key)
 {
-    if (!(modifiers & MOD_MASK_CTRL))
+    if ((modifiers & MOD_MASK_CTRL) == 0)
 	return key;
 
     if (ASCII_ISALPHA(key))
@@ -1566,6 +1566,13 @@ may_adjust_key_for_ctrl(int modifiers, int key)
 	return '^';
     if (key == '-')
 	return '_';
+
+    // On a Belgian keyboard AltGr $ is ']', on other keyboards '$' can only be
+    // obtained with Shift.  Assume that '$' without shift implies a Belgian
+    // keyboard, where CTRL-$ means CTRL-].
+    if (key == '$' && (modifiers & MOD_MASK_SHIFT) == 0)
+	return ']';
+
     return key;
 }
 

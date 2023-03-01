@@ -1451,7 +1451,7 @@ struct type_S {
     int8_T	    tt_min_argcount; // number of non-optional arguments
     char_u	    tt_flags;	    // TTFLAG_ values
     type_T	    *tt_member;	    // for list, dict, func return type
-				    // for class: class_T
+    class_T	    *tt_class;	    // for class and object
     type_T	    **tt_args;	    // func argument types, allocated
 };
 
@@ -4540,6 +4540,7 @@ typedef struct lval_S
     char_u	*ll_newkey;	// New key for Dict in alloc. mem or NULL.
     type_T	*ll_valtype;	// type expected for the value or NULL
     blob_T	*ll_blob;	// The Blob or NULL
+    ufunc_T	*ll_ufunc;	// The function or NULL
 } lval_T;
 
 // Structure used to save the current state.  Used when executing Normal mode
@@ -4800,6 +4801,7 @@ typedef struct {
     textprop_T	*cts_text_props;	// text props (allocated)
     char	cts_has_prop_with_text; // TRUE if if a property inserts text
     int		cts_cur_text_width;     // width of current inserted text
+    int		cts_prop_lines;		// nr of properties above or below
     int		cts_first_char;		// width text props above the line
     int		cts_with_trailing;	// include size of trailing props with
 					// last character
@@ -4807,3 +4809,49 @@ typedef struct {
 #endif
     int		cts_vcol;	    // virtual column at current position
 } chartabsize_T;
+
+/*
+ * Argument for the callback function (opt_did_set_cb_T) invoked after an
+ * option value is modified.
+ */
+typedef struct
+{
+    int		os_flags;
+    char_u	*os_varp;		// pointer to the option variable
+
+    // old value of the option (can be a string, number or a boolean)
+    union
+    {
+	long	number;
+	int	boolean;
+	char_u	*string;
+    } os_oldval;
+
+    // new value of the option (can be a string, number or a boolean)
+    union
+    {
+	long	number;
+	int	boolean;
+	char_u	*string;
+    } os_newval;
+
+    // When set by the called function: Stop processing the option further.
+    // Currently only used for boolean options.
+    int		os_doskip;
+
+    // Option value was checked to be safe, no need to set P_INSECURE
+    // Used for the 'keymap', 'filetype' and 'syntax' options.
+    int		os_value_checked;
+    // Option value changed.  Used for the 'filetype' and 'syntax' options.
+    int		os_value_changed;
+
+    // Used by the 'isident', 'iskeyword', 'isprint' and 'isfname' options.
+    // Set to TRUE if the character table is modified when processing the
+    // option and need to be restored because of a failure.
+    int		os_restore_chartab;
+
+    // If the value specified for an option is not valid and the error message
+    // is parameterized, then the "os_errbuf" buffer is used to store the error
+    // message (when it is not NULL).
+    char	*os_errbuf;
+} optset_T;
