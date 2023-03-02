@@ -2363,7 +2363,7 @@ v:operator	The last operator given in Normal mode.  This is a single
 v:os_appearance The current OS appearance mode. Useful if you want to change
 		options |background| or |colorscheme| according to the
  		appearance of the GUI frontend. See also |OSAppearanceChanged|.
-			value   description~
+			value   description ~
  			0       Light Mode (always 0 on unsupported platforms)
  			1       Dark Mode
  			2       High-Contrast Light Mode
