@@ -1656,7 +1656,7 @@ func Test_string_option_revert_on_failure()
     call add(optlist, ['varsofttabstop', '12', 'a123'])
     call add(optlist, ['vartabstop', '4,20', '4,'])
   endif
-  if has('gui')
+  if has('gui') && has('+winaltkeys')
     call add(optlist, ['winaltkeys', 'no', 'a123'])
   endif
   for opt in optlist

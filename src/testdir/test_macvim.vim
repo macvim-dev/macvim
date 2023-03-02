@@ -5,7 +5,7 @@ CheckFeature gui_macvim
 
 " Tests for basic existence of commands and options to make sure no
 " regressions have accidentally removed them
-func Test_macvim_options_commands()
+func Test_macvim_options_commands_exist()
     call assert_true(exists('+antialias'), 'Missing option "antialias"')
     call assert_true(exists('+blurradius'), 'Missing option "blurradius"')
     call assert_true(exists('+fullscreen'), 'Missing option "fullscreen"')
@@ -61,4 +61,13 @@ func Test_macvim_mappings()
     nnoremap <ForceClick> :let g:marker_value=5<CR>
     call feedkeys("\<ForceClick>", "xt")
     call assert_equal(5, g:marker_value)
+endfunc
+
+" Test that setting invalid values with properly throw invalid argument errors
+func Test_macvim_invalid_options()
+    call assert_fails("let &blur=-1", 'E474:')
+    call assert_fails("let &transparency=-1", 'E474:')
+    call assert_fails("let &transparency=101", 'E474:')
+
+    call assert_fails("let &fuoptions='abcdef'", 'E474:')
 endfunc
