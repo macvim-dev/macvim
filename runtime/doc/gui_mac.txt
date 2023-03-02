@@ -1,4 +1,4 @@
-*gui_mac.txt*						Last change: 2023 Feb 7
+*gui_mac.txt*
 
 			MACVIM REFERENCE MANUAL
 
@@ -186,34 +186,36 @@ The advantage of using the latter method is that the settings relating to file
 opening in the settings panel are respected, and files open instantly if
 |Quickstart| is enabled.
 
-Starting MacVim from a terminal~
+Starting MacVim from a terminal ~
 
-					    *mvim* *macvim-PATH* *macvim-cmdline*
+						    *mvim* *macvim-cmdline*
 MacVim comes bundled with a shell script called "mvim" that can be used to
 launch MacVim from the terminal. It's located at: >
 	/Applications/MacVim.app/Contents/bin/mvim
-
+<
+							*macvim-PATH*
 To be able to easily use it, put this folder in your path: >
 	/Applications/MacVim.app/Contents/bin
 For example, if you use zsh, you can put the following in `~/.zprofile`: >
 	export PATH="/Applications/MacVim.app/Contents/bin:$PATH"
-
+<
 After that, type "mvim" to start MacVim from Terminal. >
 	$ mvim
 You can also specify files to open with. >
 	$ mvim file ...
-Also the bin folder has convenient scripts for diffing and opening file as the file is read-only. >
+Also the bin folder has convenient scripts for diffing and opening file as the
+file is read-only. >
 	* Diff:		mvimdiff
 	* Read-only:	mview
-
+<
 You can still use the normal "vim", "vimdiff", and "view" commands if you want
 to use non-GUI Vim, and "gvim" to launch MacVim ("gvim" works the same way as
 "mvim").
 
-Going from terminal to GUI mode~
+Going from terminal to GUI mode ~
 
 Once in terminal Vim it is possible to start the MacVim GUI by using the
-following command (see |:gui|):
+following command (see |:gui|): >
 	:gui [++opt] [+cmd] [-f|-b] [files...]
 Note: Forking ("-b") currently does not work.
 
@@ -236,8 +238,8 @@ history as the window you just closed (however the next window you open will).
 For these reasons Quickstart is disabled by default.
 
 						*odbeditor* *external-editor*
-MacVim can act as an 'external editor' for macOS applications that support the
-ODB Editor Protocol (or the 'external editor' protocol).  Each application has
+MacVim can act as an "external editor" for macOS applications that support the
+ODB Editor Protocol (or the "external editor" protocol).  Each application has
 different ways of configuring this option, check the application's
 documentation.  Once configured properly MacVim can be used to open files in
 such an application.
@@ -310,7 +312,7 @@ As an example, if you have more than one mouse button and would wish to free
 up Ctrl-click so you can bind it to something else, then the appropriate
 command is: >
 	defaults write org.vim.MacVim MMTranslateCtrlClick 0
-
+<
 If you wish to restore all user defaults to their starting values, open
 Terminal and type: >
 	defaults delete org.vim.MacVim
@@ -387,7 +389,7 @@ a Cocoa application when it is not in focus.
 
 							*Colors.plist*
 Apart from the system colors, it is also possible to use the standard X11
-color names (see http://en.wikipedia.org/wiki/X11_color_names) which usually
+color names (see https://en.wikipedia.org/wiki/X11_color_names) which usually
 come in a file called "rgb.txt".  MacVim does not have such a file, instead it
 keeps these colors in a dictionary called "Colors.plist". The key in this
 dictionary is the name of the color and the value is an RGB value on the form
@@ -416,16 +418,16 @@ highlight color when a window becomes inactive.
 ==============================================================================
 6. Menus						*macvim-menus*
 
-Default Menus~
+Default Menus ~
 
 See |macvim-default-menus|.
 
-Icons~
+Icons ~
 
 Unlike regular Vim, MacVim menus can be customized with an icon.  Simply use
 the "icon=" parameter similar to toolbar. See |macvim-toolbar-icon| for usage.
 
-Customization~
+Customization ~
 
 Menus in macOS behave slightly different from other platforms.  For that
 reason two new commands have been added to Vim.  To understand what these
@@ -620,7 +622,7 @@ The separators work similar to how toolbars work: >
 	:an TouchBar.-Sep-          <Nop>
 	:an TouchBar.-space1-       <Nop>
 	:an TouchBar.-flexspace2-   <Nop>
-
+<
 The first example is a Vim separator (see |menu-separator|) and injects a
 space between two buttons. The second creates a smaller space than a normal
 separator and are specified by names that begin with "-space" and ends with
@@ -668,7 +670,7 @@ ExitFullScreen		|'fullscreen'| mode. To disable, add the following to
 			and emojis in insert and terminal modes. To disable,
 			add the following to your vimrc file: >
 			  let g:macvim_default_touchbar_characterpicker=0
-
+<
 ==============================================================================
 9. Looking up data					*macvim-lookup*
 
@@ -721,10 +723,10 @@ to work, MacVim.app should be located in the /Applications folder.  (You might
 have to logout and then login again before macOS detects the MacVim services.)
 
 These are the currently supported services:
-	* New MacVim Buffer With Selection: Create a new buffer and paste the
-	  currently selected text.
-	* New MacVim Buffer Here: Create a new buffer and set the current
-	  directory to the file or folder that is selected in the Finder.
+* `New MacVim Buffer With Selection`: Create a new buffer and paste the
+  currently selected text.
+* `New MacVim Buffer Here`: Create a new buffer and set the current
+  directory to the file or folder that is selected in the Finder.
 
 The services respect the "Open files from applications" setting in the general
 settings.
@@ -733,8 +735,8 @@ settings.
 12. mvim:// URL handler				*mvim://* *macvim-url-handler*
 
 MacVim supports a custom URL handler for "mvim://" URLs. The handler is
-supposed to be compatible to TextMate's URL scheme as documented at >
-	http://blog.macromates.com/2007/the-textmate-url-scheme/.
+supposed to be compatible to TextMate's URL scheme as documented at:
+	https://macromates.com/blog/2007/the-textmate-url-scheme/
 
 Currently, this means that the format is >
 	mvim://open?<arguments>
@@ -753,7 +755,7 @@ characters to be encoded twice. For example, a space should be encoded into
 "%2520" instead of "%20". A file "/tmp/file name?.txt" would need the
 following link: >
 	mvim://open?url=file:///tmp/file%2520name%253F.txt
-
+<
 MacVim will try to be smart and detect cases where a user has erroneously only
 encoded once, but for best results use double-encoding as described above.
 
@@ -777,7 +779,7 @@ Cmd-.			Interrupt Vim.  Unlike Ctrl-C which is sent as normal
 
 							*Cmd-`* *<D-`>*
 Cmd-`			Cycle to the next window.  On an American keyboard the
-			`-key is located under the Esc-key.  On European
+			key "`" is located under the Esc-key.  On European
 			keyboards this key is often adjacent to the left
 			Shift-key and it may be not even be marked with "`".
 			This Cmd-key combination can only be unmapped via the
@@ -872,12 +874,12 @@ to the previous/next tab in normal mode: >
 
 	nmap <SwipeLeft> gT
 	nmap <SwipeRight> gt
-
+<
 As another example, here is how to switch buffers by swiping left/right: >
 
 	nmap <SwipeLeft> :bN<CR>
 	nmap <SwipeRight> :bn<CR>
-
+<
 See the section on |key-mapping| for more help on how to map keys.
 
 ==============================================================================
@@ -929,16 +931,16 @@ prominent bugs/missing features.
   then opened in Preview where it may be printed. See |hardcopy|.
 
 General bugs and issues are tracked on Github.  If you find new bugs or have
-feature requests then please file an issue there: >
+feature requests then please file an issue there:
 	https://github.com/macvim-dev/macvim/issues
 
 For general discussions, asking questions, you could use the Github
-discussions page: >
+discussions page:
 	https://github.com/macvim-dev/macvim/discussions
 
 There is also a vim_mac mailing list.  You can also post your findings of bugs
-and issues there as well:				*vim_mac_group*   >
-	http://groups.google.com/group/vim_mac
+and issues there as well:				*vim_mac_group*
+	https://groups.google.com/group/vim_mac
 
 ==============================================================================
 17. Hints						*macvim-hints*
@@ -1017,7 +1019,7 @@ If you have not installed the "mvim" script in your path you can provide the
 path to the Vim binary instead.  Thus, if "MacVim.app" resides in the
 Applications folder then you would use the following line: >
 	export EDITOR='/Applications/MacVim.app/Contents/MacOS/Vim -g -f'
-
+<
 Scenario: ~
 You have set MacVim to open from an external program and when you finish
 editing (by closing the MacVim window) you want the external program to regain
