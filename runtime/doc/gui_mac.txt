@@ -1,6 +1,6 @@
 *gui_mac.txt*						Last change: 2023 Feb 7
 
-			MACVIM REFERENCE MANUAL 
+			MACVIM REFERENCE MANUAL
 
 The MacVim Graphical User Interface			*macvim* *gui-macvim*
 
