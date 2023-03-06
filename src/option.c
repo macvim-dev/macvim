@@ -3505,7 +3505,7 @@ did_set_textmode(optset_T *args)
     char *
 did_set_fullscreen(optset_T *args)
 {
-    long old_value = args->os_oldval.number;
+    int old_value = args->os_oldval.boolean;
     if (p_fullscreen && !old_value)
     {
 	guicolor_T fg, bg;
