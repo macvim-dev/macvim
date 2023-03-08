@@ -3700,7 +3700,7 @@ msgstr "escriba  :help<Intro>  o  <F1>  para obtener ayuda     "
 
 # MacVim only
 msgid "type  :help macvim<Enter>     for MacVim help "
-msgstr "       escriba  «:help macvim<Enter>»  para obtener ayuda para MacVim"
+msgstr "escriba  :help macvim<Enter>  para obtener ayuda para MacVim"
 
 msgid "type  :help version9<Enter>   for version info"
 msgstr "escriba  :help version9<Intro>  para obtener información de la versión"

@@ -3561,7 +3561,7 @@ msgstr "输入  :help<Enter>  或  <F1>  查看在线帮助    "
 
 # MacVim only
 msgid "type  :help macvim<Enter>     for MacVim help "
-msgstr "     输入  :help macvim<Enter>     查看 MacVim 的在线帮助"
+msgstr "      输入  :help macvim<Enter>     查看 MacVim 的在线帮助"
 
 msgid "type  :help version9<Enter>   for version info"
 msgstr "输入  :help version9<Enter>   查看版本信息    "
