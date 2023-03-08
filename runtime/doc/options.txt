@@ -3818,7 +3818,6 @@ A jump table for the options with a short description can be found at |Q_op|.
 	they are determined by the size of the window.  'fuoptions' allows you
 	to override part of that behavior if using custom full screen.
 
-
 						*'fuoptions'* *'fuopt'*
 'fuoptions' 'fuopt'	string (default "maxvert,maxhorz")
 			global
@@ -3858,9 +3857,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 <	Don't change size when entering fullscreen, and color the background
 	like the current text background: >
 	  :set fuoptions=background:Normal
-
-
-
+<
 				   *'gdefault'* *'gd'* *'nogdefault'* *'nogd'*
 'gdefault' 'gd'		boolean	(default off)
 			global
