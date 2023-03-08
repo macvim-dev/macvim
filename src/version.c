@@ -3933,11 +3933,10 @@ intro_message(
 	"",
 	N_("type  :q<Enter>               to exit         "),
 	N_("type  :help<Enter>  or  <F1>  for on-line help"),
+	N_("type  :help version9<Enter>   for version info"),
 #ifdef FEAT_GUI_MACVIM
         // TODO: Don't steal the show from version8 help?
 	N_("type  :help macvim<Enter>     for MacVim help "),
-#else
-	N_("type  :help version9<Enter>   for version info"),
 #endif
 	NULL,
 	"",
