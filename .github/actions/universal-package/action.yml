@@ -11,6 +11,7 @@ runs:
   using: 'composite'
   steps:
     - name: Set up formula
+      id: setup-formula
       shell: bash
       run: |
         echo '::group::Set up formula'
@@ -23,6 +24,11 @@ runs:
 
         # Uninstall the already installed formula because we want to build our own
         brew uninstall --ignore-dependencies ${formula} || true
+
+        # Extract Xcode version to serve as part of the key for caching
+        xcode_version=$(xcodebuild -version | tail -1 | sed -E 's/Build version (.*)/\1/')
+        echo "xcode_version=$xcode_version" >> $GITHUB_OUTPUT
+
         echo '::endgroup::'
 
     - name: Cache keg
@@ -30,7 +36,7 @@ runs:
       uses: actions/cache@v3
       with:
         path: /usr/local/Cellar/${{ inputs.formula }}
-        key: ${{ inputs.formula }}-homebrew-cache-patched-unified-${{ hashFiles(format('{0}.rb', inputs.formula)) }}
+        key: ${{ inputs.formula }}-homebrew-cache-patched-unified-xcode${{ steps.setup-formula.outputs.xcode_version }}-${{ hashFiles(format('{0}.rb', inputs.formula)) }}
 
     - name: Install formula
       shell: bash

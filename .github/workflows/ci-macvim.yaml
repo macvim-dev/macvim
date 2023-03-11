@@ -62,7 +62,7 @@ jobs:
 
           # Most up to date OS and Xcode. Used to publish release for the main build.
           - os: macos-12
-            xcode: '14.1'
+            xcode: '14.2'
             publish: true
 
     runs-on: ${{ matrix.os }}
@@ -81,6 +81,13 @@ jobs:
           # Use Sparkle 1 because Sparkle 2 requires newer OS version than our legacy build.
           # Later, we pass the --enable-sparkle_1 flag to configure to set the corresponding ifdef.
           ln -fhs Sparkle_1.framework src/MacVim/Sparkle.framework
+
+      - name: Set up Xcode
+        if: matrix.xcode != ''
+        run: |
+          sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode }}.app/Contents/Developer
+          xcode-select -p
+          xcodebuild -version
 
       # Set up, install, and cache gettext library for localization.
       #
@@ -130,12 +137,6 @@ jobs:
             # We just use system perl to reduce dependencies
             brew unlink perl
           fi
-
-      - name: Set up Xcode
-        if: matrix.xcode != ''
-        run: |
-          sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode }}.app/Contents/Developer
-          xcode-select -p
 
       # All set up steps are done. Build and test MacVim below.
 
