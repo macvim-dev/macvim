@@ -5509,6 +5509,7 @@ MMDialogsTrackPwd	gui_mac.txt	/*MMDialogsTrackPwd*
 MMDisableLaunchAnimation	gui_mac.txt	/*MMDisableLaunchAnimation*
 MMFontPreserveLineSpacing	gui_mac.txt	/*MMFontPreserveLineSpacing*
 MMFullScreenFadeTime	gui_mac.txt	/*MMFullScreenFadeTime*
+MMLoginShell	gui_mac.txt	/*MMLoginShell*
 MMLoginShellArgument	gui_mac.txt	/*MMLoginShellArgument*
 MMLoginShellCommand	gui_mac.txt	/*MMLoginShellCommand*
 MMNativeFullScreen	gui_mac.txt	/*MMNativeFullScreen*
