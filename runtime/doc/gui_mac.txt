@@ -277,6 +277,7 @@ KEY				VALUE ~
 *MMDisableLaunchAnimation*	disable launch animation when opening a new
 				MacVim window [bool]
 *MMFontPreserveLineSpacing*	use the line-spacing as specified by font [bool]
+*MMLoginShell*			use login shell for launching Vim [bool]
 *MMLoginShellArgument*		login shell parameter [string]
 *MMLoginShellCommand*		which shell to use to launch Vim [string]
 *MMFullScreenFadeTime*		fade delay for non-native fullscreen [float]
@@ -326,13 +327,15 @@ new Vim processes via a login shell so that all environment variables are set.
 
 By default MacVim uses the $SHELL environment variable to determine which
 shell to use (if $SHELL is not set "/bin/bash" is used).  It is possible to
-override this choice by setting the user default MMLoginShellCommand to the
+override this choice by setting the user default |MMLoginShellCommand| to the
 shell that should be used (e.g. "/bin/tcsh").  MacVim tries to make the shell
 a login shell by prepending argv[0] with a dash.  If you use an exotic shell
 and need to pass it a parameter to make it a login shell then you can set the
-user default MMLoginShellArgument (e.g. to "-l").  Finally, if the "bash"
+user default |MMLoginShellArgument| (e.g. to "-l").  Finally, if the "bash"
 shell is used, then "-l" is automatically added as an argument.  To override
-this behaviour set MMLoginShellArgument to "--".
+this behaviour set |MMLoginShellArgument| to "--".
+
+To turn off using a login shell, you can set |MMLoginShell| to 0.
 
 ==============================================================================
 4. MacVim appearance					*macvim-appearance*
