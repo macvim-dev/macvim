@@ -1364,6 +1364,15 @@ gui_mch_setmouse(int x UNUSED, int y UNUSED)
     ASLogInfo(@"Not implemented!");
 }
 
+    void
+gui_mch_mousehide(int hide UNUSED)
+{
+    // We don't implement this. `insertVimStateMessage` already sends this to
+    // MacVim, and we handle this in the parent process using NSCursor's
+    // `setHiddenUntilMouseMoves` instead of letting Vim have manual control
+    // over this.
+}
+
 
     void
 mch_set_mouse_shape(int shape)

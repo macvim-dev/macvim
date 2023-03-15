@@ -77,6 +77,7 @@ void gui_mch_set_sp_color(guicolor_T color);
 void gui_mch_set_text_area_pos(int x, int y, int w, int h);
 void gui_mch_set_winpos(int x, int y);
 void gui_mch_setmouse(int x, int y);
+void gui_mch_mousehide(int hide);
 void gui_mch_settitle(char_u *title, char_u *icon);
 void gui_mch_start_blink(void);
 void gui_mch_stop_blink(int may_call_gui_update_cursor);

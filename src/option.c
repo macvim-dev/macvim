@@ -3715,10 +3715,8 @@ did_set_modified(optset_T *args)
     char *
 did_set_mousehide(optset_T *args UNUSED)
 {
-# if !defined(FEAT_GUI_MACVIM)
     if (!p_mh)
 	gui_mch_mousehide(FALSE);
-# endif
     return NULL;
 }
 #endif

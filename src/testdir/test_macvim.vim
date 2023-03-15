@@ -6,6 +6,7 @@ CheckFeature gui_macvim
 " Tests for basic existence of commands and options to make sure no
 " regressions have accidentally removed them
 func Test_macvim_options_commands_exist()
+    " MacVim-specific options
     call assert_true(exists('+antialias'), 'Missing option "antialias"')
     call assert_true(exists('+blurradius'), 'Missing option "blurradius"')
     call assert_true(exists('+fullscreen'), 'Missing option "fullscreen"')
@@ -13,8 +14,10 @@ func Test_macvim_options_commands_exist()
     call assert_true(exists('+macligatures'), 'Missing option "macligatures"')
     call assert_true(exists('+macmeta'), 'Missing option "macmeta"')
     call assert_true(exists('+macthinstrokes'), 'Missing option "macthinstrokes"')
-    call assert_true(exists('+toolbariconsize'), 'Missing option "toolbariconsize"')
     call assert_true(exists('+transparency'), 'Missing option "transparency"')
+
+    " Other GUI options we care about
+    call assert_true(exists('+toolbariconsize'), 'Missing option "toolbariconsize"')
 
     call assert_true(exists(':macaction'), 'Missing command "macaction"')
     call assert_true(exists(':macmenu'), 'Missing command "macmenu"')
