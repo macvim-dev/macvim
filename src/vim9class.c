@@ -148,8 +148,8 @@ add_member(
 	return FAIL;
     ocmember_T *m = ((ocmember_T *)gap->ga_data) + gap->ga_len;
     m->ocm_name = vim_strnsave(varname, varname_end - varname);
-    m->ocm_access = has_public ? ACCESS_ALL
-			      : *varname == '_' ? ACCESS_PRIVATE : ACCESS_READ;
+    m->ocm_access = has_public ? VIM_ACCESS_ALL
+		      : *varname == '_' ? VIM_ACCESS_PRIVATE : VIM_ACCESS_READ;
     m->ocm_type = type;
     if (init_expr != NULL)
 	m->ocm_init = init_expr;
@@ -1260,6 +1260,12 @@ class_object_index(
 	    return FAIL;
 	}
 	cl = rettv->vval.v_object->obj_class;
+    }
+
+    if (cl == NULL)
+    {
+	emsg(_(e_incomplete_type));
+	return FAIL;
     }
 
     if (*name_end == '(')

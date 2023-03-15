@@ -3212,7 +3212,7 @@ update_search_stat(
     proftime_T  start;
 #endif
 
-    vim_memset(stat, 0, sizeof(searchstat_T));
+    CLEAR_POINTER(stat);
 
     if (dirc == 0 && !recompute && !EMPTY_POS(lastpos))
     {

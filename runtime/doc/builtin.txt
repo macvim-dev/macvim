@@ -2996,7 +2996,7 @@ funcref({name} [, {arglist}] [, {dict}])
 		Can also be used as a |method|: >
 			GetFuncname()->funcref([arg])
 <
-				*function()* *partial* *E700* *E922* *E923*
+				*function()* *partial* *E700* *E923*
 function({name} [, {arglist}] [, {dict}])
 		Return a |Funcref| variable that refers to function {name}.
 		{name} can be the name of a user defined function or an
@@ -8665,8 +8665,9 @@ sort({list} [, {how} [, {dict}]])			*sort()* *E702*
 
 		When {how} is given and it is 'n' then all items will be
 		sorted numerical (Implementation detail: this uses the
-		strtod() function to parse numbers, Strings, Lists, Dicts and
-		Funcrefs will be considered as being 0).
+		strtod() function to parse numbers.  Strings, Lists, Dicts and
+		Funcrefs will be considered as being 0).  Note that this won't
+		sort a list of strings with numbers!
 
 		When {how} is given and it is 'N' then all items will be
 		sorted numerical. This is like 'n' but a string containing

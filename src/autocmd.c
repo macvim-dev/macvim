@@ -2520,6 +2520,7 @@ auto_next_pat(
     }
 }
 
+#if defined(FEAT_EVAL) || defined(PROTO)
 /*
  * Get the script context where autocommand "acp" is defined.
  */
@@ -2528,6 +2529,7 @@ acp_script_ctx(AutoPatCmd_T *acp)
 {
     return &acp->script_ctx;
 }
+#endif
 
 /*
  * Get next autocommand command.

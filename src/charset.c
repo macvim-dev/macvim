@@ -907,6 +907,7 @@ vim_isfilec(int c)
     return (c >= 0x100 || (c > 0 && (g_chartab[c] & CT_FNAME_CHAR)));
 }
 
+#if defined(FEAT_SPELL) || defined(PROTO)
 /*
  * Return TRUE if 'c' is a valid file-name character, including characters left
  * out of 'isfname' to make "gf" work, such as comma, space, '@', etc.
@@ -916,6 +917,7 @@ vim_is_fname_char(int c)
 {
     return vim_isfilec(c) || c == ',' || c == ' ' || c == '@';
 }
+#endif
 
 /*
  * return TRUE if 'c' is a valid file-name character or a wildcard character
@@ -2138,7 +2140,8 @@ vim_str2nr(
     varnumber_T		*nptr,	    // return: signed result
     uvarnumber_T	*unptr,	    // return: unsigned result
     int			maxlen,     // max length of string to check
-    int			strict)     // check strictly
+    int			strict,     // check strictly
+    int			*overflow)  // when not NULL set to TRUE for overflow
 {
     char_u	    *ptr = start;
     int		    pre = 0;		// default is decimal
@@ -2209,7 +2212,11 @@ vim_str2nr(
 	    if (un <= UVARNUM_MAX / 2)
 		un = 2 * un + (uvarnumber_T)(*ptr - '0');
 	    else
+	    {
 		un = UVARNUM_MAX;
+		if (overflow != NULL)
+		    *overflow = TRUE;
+	    }
 	    ++ptr;
 	    if (n++ == maxlen)
 		break;
@@ -2234,7 +2241,11 @@ vim_str2nr(
 	    if (un <= UVARNUM_MAX / 8)
 		un = 8 * un + (uvarnumber_T)(*ptr - '0');
 	    else
+	    {
 		un = UVARNUM_MAX;
+		if (overflow != NULL)
+		    *overflow = TRUE;
+	    }
 	    ++ptr;
 	    if (n++ == maxlen)
 		break;
@@ -2258,7 +2269,11 @@ vim_str2nr(
 	    if (un <= UVARNUM_MAX / 16)
 		un = 16 * un + (uvarnumber_T)hex2nr(*ptr);
 	    else
+	    {
 		un = UVARNUM_MAX;
+		if (overflow != NULL)
+		    *overflow = TRUE;
+	    }
 	    ++ptr;
 	    if (n++ == maxlen)
 		break;
@@ -2282,7 +2297,11 @@ vim_str2nr(
 		    || (un == UVARNUM_MAX / 10 && digit <= UVARNUM_MAX % 10))
 		un = 10 * un + digit;
 	    else
+	    {
 		un = UVARNUM_MAX;
+		if (overflow != NULL)
+		    *overflow = TRUE;
+	    }
 	    ++ptr;
 	    if (n++ == maxlen)
 		break;
@@ -2310,7 +2329,11 @@ vim_str2nr(
 	{
 	    // avoid ubsan error for overflow
 	    if (un > VARNUM_MAX)
+	    {
 		*nptr = VARNUM_MIN;
+		if (overflow != NULL)
+		    *overflow = TRUE;
+	    }
 	    else
 		*nptr = -(varnumber_T)un;
 	}
@@ -2318,7 +2341,11 @@ vim_str2nr(
 	{
 	    // prevent a large unsigned number to become negative
 	    if (un > VARNUM_MAX)
+	    {
 		un = VARNUM_MAX;
+		if (overflow != NULL)
+		    *overflow = TRUE;
+	    }
 	    *nptr = (varnumber_T)un;
 	}
     }

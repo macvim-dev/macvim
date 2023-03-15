@@ -203,6 +203,13 @@ def Test_returning_null_object()
   v9.CheckScriptSuccess(lines)
 enddef
 
+def Test_using_null_class()
+  var lines =<< trim END
+      @_ = null_class.member
+  END
+  v9.CheckDefExecAndScriptFailure(lines, ['E715:', 'E1363:'])
+enddef
+
 def Test_class_interface_wrong_end()
   var lines =<< trim END
       vim9script
@@ -238,6 +245,24 @@ def Test_object_not_set()
   lines =<< trim END
       vim9script
 
+      class Class
+          this.id: string
+          def Method1()
+              echo 'Method1' .. this.id
+          enddef
+      endclass
+
+      var obj: Class
+      def Func()
+          obj.Method1()
+      enddef
+      Func()
+  END
+  v9.CheckScriptFailure(lines, 'E1360:')
+
+  lines =<< trim END
+      vim9script
+
       class Background
         this.background = 'dark'
       endclass
@@ -254,6 +279,25 @@ def Test_object_not_set()
       echo Colorscheme.new(bg).GetBackground()
   END
   v9.CheckScriptFailure(lines, 'E1012: Type mismatch; expected object<Background> but got object<Unknown>')
+
+  # TODO: this should not give an error but be handled at runtime
+  lines =<< trim END
+      vim9script
+
+      class Class
+          this.id: string
+          def Method1()
+              echo 'Method1' .. this.id
+          enddef
+      endclass
+
+      var obj = null_object
+      def Func()
+          obj.Method1()
+      enddef
+      Func()
+  END
+  v9.CheckScriptFailure(lines, 'E1363:')
 enddef
 
 def Test_class_member_initializer()

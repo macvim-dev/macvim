@@ -4357,7 +4357,7 @@ f_expandcmd(typval_T *argvars, typval_T *rettv)
     rettv->v_type = VAR_STRING;
     cmdstr = vim_strsave(tv_get_string(&argvars[0]));
 
-    memset(&eap, 0, sizeof(eap));
+    CLEAR_FIELD(eap);
     eap.cmd = cmdstr;
     eap.arg = cmdstr;
     eap.argt |= EX_NOSPC;
@@ -7863,7 +7863,7 @@ max_min(typval_T *argvars, typval_T *rettv, int domax)
 	if (d != NULL)
 	{
 	    todo = (int)d->dv_hashtab.ht_used;
-	    for (hi = d->dv_hashtab.ht_array; todo > 0; ++hi)
+	    FOR_ALL_HASHTAB_ITEMS(&d->dv_hashtab, hi, todo)
 	    {
 		if (!HASHITEM_EMPTY(hi))
 		{

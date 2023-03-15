@@ -2413,8 +2413,7 @@ popup_close_and_callback(win_T *wp, typval_T *arg)
 	    win_enter(owp, FALSE);
 	else
 	{
-	    for (owp = curtab->tp_first_popupwin; owp != NULL;
-							     owp = owp->w_next)
+	    FOR_ALL_POPUPWINS_IN_TAB(curtab, owp)
 		if (owp != curwin && owp->w_buffer->b_term != NULL)
 		    break;
 	    if (owp != NULL)
@@ -3569,8 +3568,7 @@ popup_update_mask(win_T *wp, int width, int height)
 
     if (wp->w_popup_mask == NULL || width == 0 || height == 0)
     {
-	vim_free(wp->w_popup_mask_cells);
-	wp->w_popup_mask_cells = NULL;
+	VIM_CLEAR(wp->w_popup_mask_cells);
 	return;
     }
     if (wp->w_popup_mask_cells != NULL

@@ -726,10 +726,7 @@ diff_redraw(
 clear_diffin(diffin_T *din)
 {
     if (din->din_fname == NULL)
-    {
-	vim_free(din->din_mmfile.ptr);
-	din->din_mmfile.ptr = NULL;
-    }
+	VIM_CLEAR(din->din_mmfile.ptr);
     else
 	mch_remove(din->din_fname);
 }
@@ -2650,7 +2647,7 @@ valid_diff(diff_T *diff)
 {
     diff_T	*dp;
 
-    for (dp = curtab->tp_first_diff; dp != NULL; dp = dp->df_next)
+    FOR_ALL_DIFFBLOCKS_IN_TAB(curtab, dp)
 	if (dp == diff)
 	    return TRUE;
     return FALSE;

@@ -1576,11 +1576,11 @@ get_lval(
 			{
 			    switch (om->ocm_access)
 			    {
-				case ACCESS_PRIVATE:
+				case VIM_ACCESS_PRIVATE:
 					semsg(_(e_cannot_access_private_member_str),
 								 om->ocm_name);
 					return NULL;
-				case ACCESS_READ:
+				case VIM_ACCESS_READ:
 					if ((flags & GLV_READ_ONLY) == 0)
 					{
 					    semsg(_(e_member_is_not_writable_str),
@@ -1588,7 +1588,7 @@ get_lval(
 					    return NULL;
 					}
 					break;
-				case ACCESS_ALL:
+				case VIM_ACCESS_ALL:
 					break;
 			    }
 
@@ -5415,7 +5415,7 @@ set_ref_in_ht(hashtab_T *ht, int copyID, list_stack_T **list_stack)
 	    // it is added to ht_stack, if it contains a list it is added to
 	    // list_stack.
 	    todo = (int)cur_ht->ht_used;
-	    for (hi = cur_ht->ht_array; todo > 0; ++hi)
+	    FOR_ALL_HASHTAB_ITEMS(cur_ht, hi, todo)
 		if (!HASHITEM_EMPTY(hi))
 		{
 		    --todo;
@@ -6885,20 +6885,17 @@ handle_subscript(
 		*arg = skipwhite(p + 2);
 	    else
 		*arg = p + 2;
-	    if (ret == OK)
+	    if (VIM_ISWHITE(**arg))
 	    {
-		if (VIM_ISWHITE(**arg))
-		{
-		    emsg(_(e_no_white_space_allowed_before_parenthesis));
-		    ret = FAIL;
-		}
-		else if ((**arg == '{' && !in_vim9script()) || **arg == '(')
-		    // expr->{lambda}() or expr->(lambda)()
-		    ret = eval_lambda(arg, rettv, evalarg, verbose);
-		else
-		    // expr->name()
-		    ret = eval_method(arg, rettv, evalarg, verbose);
+		emsg(_(e_no_white_space_allowed_before_parenthesis));
+		ret = FAIL;
 	    }
+	    else if ((**arg == '{' && !in_vim9script()) || **arg == '(')
+		// expr->{lambda}() or expr->(lambda)()
+		ret = eval_lambda(arg, rettv, evalarg, verbose);
+	    else
+		// expr->name()
+		ret = eval_method(arg, rettv, evalarg, verbose);
 	}
 	// "." is ".name" lookup when we found a dict or when evaluating and
 	// scriptversion is at least 2, where string concatenation is "..".

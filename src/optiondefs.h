@@ -297,7 +297,7 @@ struct vimoption
 # define ISP_LATIN1 (char_u *)"@,161-255"
 #endif
 
-# define HIGHLIGHT_INIT "8:SpecialKey,~:EndOfBuffer,@:NonText,d:Directory,e:ErrorMsg,i:IncSearch,l:Search,y:CurSearch,m:MoreMsg,M:ModeMsg,n:LineNr,a:LineNrAbove,b:LineNrBelow,N:CursorLineNr,G:CursorLineSign,O:CursorLineFold,r:Question,s:StatusLine,S:StatusLineNC,c:VertSplit,t:Title,v:Visual,V:VisualNOS,w:WarningMsg,W:WildMenu,f:Folded,F:FoldColumn,A:DiffAdd,C:DiffChange,D:DiffDelete,T:DiffText,>:SignColumn,-:Conceal,B:SpellBad,P:SpellCap,R:SpellRare,L:SpellLocal,+:Pmenu,=:PmenuSel,x:PmenuSbar,X:PmenuThumb,*:TabLine,#:TabLineSel,_:TabLineFill,!:CursorColumn,.:CursorLine,o:ColorColumn,q:QuickFixLine,z:StatusLineTerm,Z:StatusLineTermNC"
+# define HIGHLIGHT_INIT "8:SpecialKey,~:EndOfBuffer,@:NonText,d:Directory,e:ErrorMsg,i:IncSearch,l:Search,y:CurSearch,m:MoreMsg,M:ModeMsg,n:LineNr,a:LineNrAbove,b:LineNrBelow,N:CursorLineNr,G:CursorLineSign,O:CursorLineFold,r:Question,s:StatusLine,S:StatusLineNC,c:VertSplit,t:Title,v:Visual,V:VisualNOS,w:WarningMsg,W:WildMenu,f:Folded,F:FoldColumn,A:DiffAdd,C:DiffChange,D:DiffDelete,T:DiffText,>:SignColumn,-:Conceal,B:SpellBad,P:SpellCap,R:SpellRare,L:SpellLocal,+:Pmenu,=:PmenuSel,[:PmenuKind,]:PmenuKindSel,{:PmenuExtra,}:PmenuExtraSel,x:PmenuSbar,X:PmenuThumb,*:TabLine,#:TabLineSel,_:TabLineFill,!:CursorColumn,.:CursorLine,o:ColorColumn,q:QuickFixLine,z:StatusLineTerm,Z:StatusLineTermNC"
 
 // Default python version for pyx* commands
 #if defined(FEAT_PYTHON) && defined(FEAT_PYTHON3)
@@ -917,7 +917,7 @@ static struct vimoption options[] =
 			    {(char_u *)TRUE, (char_u *)0L}
 			    SCTX_INIT},
     {"encoding",    "enc",  P_STRING|P_VI_DEF|P_RCLR|P_NO_ML,
-			    (char_u *)&p_enc, PV_NONE, NULL,
+			    (char_u *)&p_enc, PV_NONE, did_set_encoding,
 			    {(char_u *)ENC_DFLT, (char_u *)0L}
 			    SCTX_INIT},
     {"endoffile",   "eof",  P_BOOL|P_NO_MKRC|P_VI_DEF|P_RSTAT,
@@ -969,7 +969,7 @@ static struct vimoption options[] =
 			    {(char_u *)FALSE, (char_u *)0L} SCTX_INIT},
     {"fileencoding","fenc", P_STRING|P_ALLOCED|P_VI_DEF|P_RSTAT|P_RBUF
 								   |P_NO_MKRC,
-			    (char_u *)&p_fenc, PV_FENC, NULL,
+			    (char_u *)&p_fenc, PV_FENC, did_set_encoding,
 			    {(char_u *)"", (char_u *)0L}
 			    SCTX_INIT},
     {"fileencodings","fencs", P_STRING|P_VI_DEF|P_ONECOMMA,
@@ -999,7 +999,7 @@ static struct vimoption options[] =
 			    {(char_u *)"", (char_u *)0L}
 			    SCTX_INIT},
     {"fillchars",   "fcs",  P_STRING|P_VI_DEF|P_RALL|P_ONECOMMA|P_NODUP,
-			    (char_u *)&p_fcs, PV_FCS, NULL,
+			    (char_u *)&p_fcs, PV_FCS, did_set_chars_option,
 			    {(char_u *)"vert:|,fold:-,eob:~,lastline:@",
 								  (char_u *)0L}
 			    SCTX_INIT},
@@ -1664,7 +1664,7 @@ static struct vimoption options[] =
 			    (char_u *)VAR_WIN, PV_LIST, NULL,
 			    {(char_u *)FALSE, (char_u *)0L} SCTX_INIT},
     {"listchars",   "lcs",  P_STRING|P_VI_DEF|P_RALL|P_ONECOMMA|P_NODUP,
-			    (char_u *)&p_lcs, PV_LCS, NULL,
+			    (char_u *)&p_lcs, PV_LCS, did_set_chars_option,
 			    {(char_u *)"eol:$", (char_u *)0L} SCTX_INIT},
     {"loadplugins", "lpl",  P_BOOL|P_VI_DEF,
 			    (char_u *)&p_lpl, PV_NONE, NULL,
@@ -1722,7 +1722,7 @@ static struct vimoption options[] =
 #endif
 			    SCTX_INIT},
     {"makeencoding","menc", P_STRING|P_VI_DEF,
-			    (char_u *)&p_menc, PV_MENC, NULL,
+			    (char_u *)&p_menc, PV_MENC, did_set_encoding,
 			    {(char_u *)"", (char_u *)0L}
 			    SCTX_INIT},
     {"makeprg",	    "mp",   P_STRING|P_EXPAND|P_VI_DEF|P_SECURE,
@@ -2622,7 +2622,7 @@ static struct vimoption options[] =
 #endif
 			    SCTX_INIT},
     {"term",	    NULL,   P_STRING|P_EXPAND|P_NODEFAULT|P_NO_MKRC|P_VI_DEF|P_RALL,
-			    (char_u *)&T_NAME, PV_NONE, NULL,
+			    (char_u *)&T_NAME, PV_NONE, did_set_term,
 			    {(char_u *)"", (char_u *)0L} SCTX_INIT},
     {"termbidi", "tbidi",   P_BOOL|P_VI_DEF,
 #ifdef FEAT_ARABIC
@@ -2632,7 +2632,7 @@ static struct vimoption options[] =
 #endif
 			    {(char_u *)FALSE, (char_u *)0L} SCTX_INIT},
     {"termencoding", "tenc", P_STRING|P_VI_DEF|P_RCLR,
-			    (char_u *)&p_tenc, PV_NONE, NULL,
+			    (char_u *)&p_tenc, PV_NONE, did_set_encoding,
 			    {(char_u *)"", (char_u *)0L}
 			    SCTX_INIT},
     {"termguicolors", "tgc", P_BOOL|P_VI_DEF|P_VIM|P_RCLR,
@@ -2785,7 +2785,7 @@ static struct vimoption options[] =
 			    (char_u *)&p_ttyscroll, PV_NONE, NULL,
 			    {(char_u *)999L, (char_u *)0L} SCTX_INIT},
     {"ttytype",	    "tty",  P_STRING|P_EXPAND|P_NODEFAULT|P_NO_MKRC|P_VI_DEF|P_RALL,
-			    (char_u *)&T_NAME, PV_NONE, NULL,
+			    (char_u *)&T_NAME, PV_NONE, did_set_term,
 			    {(char_u *)"", (char_u *)0L} SCTX_INIT},
     {"undodir",     "udir", P_STRING|P_EXPAND|P_ONECOMMA|P_NODUP|P_SECURE
 								    |P_VI_DEF,
@@ -3024,7 +3024,7 @@ static struct vimoption options[] =
 // terminal output codes
 #define p_term(sss, vvv) \
 			    {sss, NULL, P_STRING|P_VI_DEF|P_RALL|P_SECURE, \
-			    (char_u *)&vvv, PV_NONE, NULL, \
+			    (char_u *)&vvv, PV_NONE, did_set_term_option, \
 			    {(char_u *)"", (char_u *)0L} SCTX_INIT},
 
     p_term("t_AB", T_CAB)
