@@ -298,7 +298,21 @@ if test "$vim_cv_uname_output" = Darwin; then
         LDFLAGS="$save_ldflags" ])
   else
     if test -z "$MACOSX_DEPLOYMENT_TARGET"; then
-      macosx_deployment_target=`/usr/bin/sw_vers -productVersion|/usr/bin/sed -e 's/^\([[0-9]]*\.[[0-9]]*\).*/\1/'`
+      # Deployment target not specified. We use the current OS' version. We
+      # only want to extract the main OS version but not the minor version for
+      # multiple reasons: it's more predictable if this is built from a CI to
+      # be deployed out (e.g. Homebrew), and sometimes deployment target
+      # that is too new will cause Xcode to complain (e.g. macOS is 13.2 while
+      # Xcode may only support up to 13.1)
+      macosx_major_version=`/usr/bin/sw_vers -productVersion|/usr/bin/sed -e 's/^\([[0-9]]*\)\.[[0-9]]*.*/\1/'`
+      macosx_minor_version=`/usr/bin/sw_vers -productVersion|/usr/bin/sed -e 's/^[[0-9]]*\.\([[0-9]]*\).*/\1/'`
+      if test "$macosx_major_version" = "10"; then
+        # Older versions look like 10.X.Y form where X is the main version.
+        macosx_deployment_target="$macosx_major_version.$macosx_minor_version"
+      else
+        # Since 11.0, We have X.Y.Z, where X is the main version.
+        macosx_deployment_target="$macosx_major_version.0"
+      fi
       XCODEFLAGS="$XCODEFLAGS MACOSX_DEPLOYMENT_TARGET=$macosx_deployment_target"
     else
       XCODEFLAGS="$XCODEFLAGS MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET"
