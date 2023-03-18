@@ -930,8 +930,8 @@ prominent bugs/missing features.
 - Sometimes multibyte characters look "too wide", i.e. they overlap the
   following character.  It might help to change 'ambiwidth', or override the
   automatic font substitution by setting 'guifontwide' manually.
-- Printing.  As a temporary solution <D-p> creates a PostScript file which is
-  then opened in Preview where it may be printed. See |hardcopy|.
+- Built-in printing.  |:hardcopy| / <D-p> creates a PDF file which is then
+  opened in Preview where it may be printed.  See |pexpr-option|.
 
 General bugs and issues are tracked on Github.  If you find new bugs or have
 feature requests then please file an issue there:
