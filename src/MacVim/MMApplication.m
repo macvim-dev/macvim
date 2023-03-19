@@ -52,8 +52,12 @@
             @"CFBundleVersion"];
     NSString *marketingVersion = [[NSBundle mainBundle]
             objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
+
+    BOOL isPrerelease = [version containsSubstring:@"."];
+    NSString *prerelease = isPrerelease ? @"\npre-release" : @"";
+
     NSString *title = [NSString stringWithFormat:
-            @"Vim %@ (MacVim r%@)", marketingVersion, version];
+            @"MacVim r%@ (Vim %@)%@", version, marketingVersion, prerelease];
 
     [self orderFrontStandardAboutPanelWithOptions:
             [NSDictionary dictionaryWithObjectsAndKeys:
