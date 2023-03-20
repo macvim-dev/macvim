@@ -6,7 +6,6 @@ LANGUAGES = \
 		af \
 		ca \
 		cs \
-		cs.cp1250 \
 		da \
 		de \
 		en_GB \
@@ -17,40 +16,49 @@ LANGUAGES = \
 		ga \
 		it \
 		ja \
-		ja.euc-jp \
-		ja.sjis \
-		ko \
 		ko.UTF-8 \
 		lv \
 		nb \
 		nl \
 		no \
 		pl \
-		pl.UTF-8 \
-		pl.cp1250 \
 		pt_BR \
 		ru \
-		ru.cp1251 \
 		sk \
-		sk.cp1250 \
 		sr \
 		sv \
 		tr \
 		uk \
-		uk.cp1251 \
 		vi \
-		zh_CN \
 		zh_CN.UTF-8 \
-		zh_CN.cp936 \
-		zh_TW \
 		zh_TW.UTF-8 \
 
+# MacVim: Don't bundle non-UTF-8 or encoding converted locale files as we always have iconv
+		#cs.cp1250 \
+		#ja.euc-jp \
+		#ja.sjis \
+		#ko \
+		#pl.cp1250 \
+		#pl.UTF-8 \
+		#ru.cp1251 \
+		#sk.cp1250 \
+		#uk.cp1251 \
+		#zh_CN \
+		#zh_CN.cp936 \
+		#zh_TW \
+
+
+# MacVim: We removed the non-UTF-8 base locales for these, so we upgrade the
+# <locale>.UTF-8 ones as base locales.
+LANGUAGES_UTF8_ONLY = \
+		ko \
+		zh_CN \
+		zh_TW \
 
 POFILES = \
 		af.po \
 		ca.po \
 		cs.po \
-		cs.cp1250.po \
 		da.po \
 		de.po \
 		en_GB.po \
@@ -61,33 +69,36 @@ POFILES = \
 		ga.po \
 		it.po \
 		ja.po \
-		ja.euc-jp.po \
-		ja.sjis.po \
-		ko.po \
 		ko.UTF-8.po \
 		lv.po \
 		nb.po \
 		nl.po \
 		no.po \
 		pl.po \
-		pl.UTF-8.po \
-		pl.cp1250.po \
 		pt_BR.po \
 		ru.po \
-		ru.cp1251.po \
 		sk.po \
-		sk.cp1250.po \
 		sr.po \
 		sv.po \
 		tr.po \
 		uk.po \
-		uk.cp1251.po \
 		vi.po \
-		zh_CN.po \
 		zh_CN.UTF-8.po \
-		zh_CN.cp936.po \
-		zh_TW.po \
 		zh_TW.UTF-8.po \
+
+# MacVim: Don't bundle non-UTF-8 or encoding converted locale files as we always have iconv
+		#cs.cp1250.po \
+		#ja.euc-jp.po \
+		#ja.sjis.po \
+		#ko.po \
+		#pl.cp1250.po \
+		#pl.UTF-8.po \
+		#ru.cp1251.po \
+		#sk.cp1250.po \
+		#uk.cp1251.po \
+		#zh_CN.po \
+		#zh_CN.cp936.po \
+		#zh_TW.po \
 
 
 MOFILES = \
@@ -123,25 +134,26 @@ MOFILES = \
 
 
 MOCONVERTED = \
-		cs.cp1250.mo \
-		ja.euc-jp.mo \
-		ja.sjis.mo \
-		ko.mo \
-		pl.UTF-8.mo \
-		pl.cp1250.mo \
-		ru.cp1251.mo \
-		sk.cp1250.mo \
-		uk.cp1251.mo \
-		zh_CN.mo \
-		zh_CN.cp936.mo \
-		zh_TW.mo \
+
+# MacVim: Don't bundle non-UTF-8 or encoding converted locale files as we always have iconv
+		#cs.cp1250.mo \
+		#ja.euc-jp.mo \
+		#ja.sjis.mo \
+		#ko.mo \
+		#pl.cp1250.mo \
+		#pl.UTF-8.mo \
+		#ru.cp1251.mo \
+		#sk.cp1250.mo \
+		#uk.cp1251.mo \
+		#zh_CN.mo \
+		#zh_CN.cp936.mo \
+		#zh_TW.mo \
 
 
 CHECKFILES = \
 		af.ck \
 		ca.ck \
 		cs.ck \
-		cs.cp1250.ck \
 		da.ck \
 		de.ck \
 		en_GB.ck \
@@ -152,31 +164,34 @@ CHECKFILES = \
 		ga.ck \
 		it.ck \
 		ja.ck \
-		ja.euc-jp.ck \
-		ja.sjis.ck \
 		ko.UTF-8.ck \
-		ko.ck \
 		lv.ck \
 		nb.ck \
 		nl.ck \
 		no.ck \
-		pl.UTF-8.ck \
 		pl.ck \
-		pl.cp1250.ck \
 		pt_BR.ck \
 		ru.ck \
-		ru.cp1251.ck \
 		sk.ck \
-		sk.cp1250.ck \
 		sr.ck \
 		sv.ck \
 		tr.ck \
 		uk.ck \
-		uk.cp1251.ck \
 		vi.ck \
 		zh_CN.UTF-8.ck \
-		zh_CN.ck \
-		zh_CN.cp936.ck \
 		zh_TW.UTF-8.ck \
-		zh_TW.ck \
+
+# MacVim: Don't bundle non-UTF-8 or encoding converted locale files as we always have iconv
+		#cs.cp1250.ck \
+		#ja.euc-jp.ck \
+		#ja.sjis.ck \
+		#ko.ck \
+		#pl.cp1250.ck \
+		#pl.UTF-8.ck \
+		#ru.cp1251.ck \
+		#sk.cp1250.ck \
+		#uk.cp1251.ck \
+		#zh_CN.ck \
+		#zh_CN.cp936.ck \
+		#zh_TW.ck \
 

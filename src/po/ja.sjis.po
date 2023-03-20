@@ -3503,10 +3503,6 @@ msgstr "with Photon GUI."
 msgid "with GUI."
 msgstr "with GUI."
 
-# MacVim only
-msgid "with MacVim GUI."
-msgstr "with MacVim GUI."
-
 msgid "  Features included (+) or not (-):\n"
 msgstr "  機能\の一覧 有効(+)/無効(-)\n"
 
@@ -3587,10 +3583,6 @@ msgstr "終了するには           :q<Enter>              "
 
 msgid "type  :help<Enter>  or  <F1>  for on-line help"
 msgstr "オンラインヘルプは     :help<Enter> か <F1>   "
-
-# MacVim only
-msgid "type  :help macvim<Enter>     for MacVim help "
-msgstr "MacVim のオンラインヘルプは     :help macvim<Enter>             "
 
 msgid "type  :help version9<Enter>   for version info"
 msgstr "バージョン情報は       :help version9<Enter>  "
