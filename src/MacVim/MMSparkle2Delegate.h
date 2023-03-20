@@ -8,14 +8,23 @@
 
 #import "Sparkle.framework/Headers/Sparkle.h"
 
-@interface MMSparkle2Delegate : NSObject <SPUUpdaterDelegate, SPUStandardUserDriverDelegate>;
+NS_ASSUME_NONNULL_BEGIN
+
+@interface MMSparkle2Delegate : NSObject <SPUUpdaterDelegate, SPUStandardUserDriverDelegate, SUVersionDisplay>;
 
 // SPUUpdaterDelegate
-- (nonnull NSSet<NSString *> *)allowedChannelsForUpdater:(nonnull SPUUpdater *)updater;
+- (NSSet<NSString *> *)allowedChannelsForUpdater:(SPUUpdater *)updater;
 
 // SPUStandardUserDriverDelegate
-// No need to implement anything for now. Default behaviors work fine.
+- (_Nullable id <SUVersionDisplay>)standardUserDriverRequestsVersionDisplayer;
+
+// SUVersionDisplay
+- (NSString *)formatUpdateDisplayVersionFromUpdate:(SUAppcastItem *)update andBundleDisplayVersion:(NSString * _Nonnull __autoreleasing * _Nonnull)inOutBundleDisplayVersion withBundleVersion:(NSString *)bundleVersion;
+
+- (NSString *)formatBundleDisplayVersion:(NSString *)bundleDisplayVersion withBundleVersion:(NSString *)bundleVersion matchingUpdate:(SUAppcastItem * _Nullable)matchingUpdate;
 
 @end
+
+NS_ASSUME_NONNULL_END
 
 #endif
