@@ -55,6 +55,16 @@ install: $(MOFILES) $(MOCONVERTED)
 	    $(INSTALL_DATA) $$lang.mo $$dir/$(PACKAGE).mo; \
 	    chmod $(FILEMOD) $$dir/$(PACKAGE).mo; \
 	  fi; \
+	done; \
+	# MacVim: We remove non-UTF-8 locales as it does not make sense to ship \
+	# them on macOS. To make sure the base locales like "zh_TW" still works, we \
+	# move them from the encoding-specific ones like "zh_TW.UTF-8" to "zh_TW"
+	for lang_utf8_only in $(LANGUAGES_UTF8_ONLY); do \
+	  dir=$(LOCALEDIR)/$$lang_utf8_only; \
+	  if test -x "$$dir"; then \
+	    rm -rf "$$dir"; \
+	  fi; \
+	  mv "$$dir.UTF-8" "$$dir"; \
 	done
 
 uninstall:
