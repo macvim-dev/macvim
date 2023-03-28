@@ -320,7 +320,7 @@ main
 	params.want_full_screen = FALSE;
 
     /*
-     * When certain to start the GUI, don't check capabilities of terminal.
+     * When certain to start the GUI, don't check terminal capabilities.
      * For GTK we can't be sure, but when started from the desktop it doesn't
      * make sense to try using a terminal.
      */
@@ -1360,7 +1360,11 @@ main_loop(
 	 * update cursor and redraw.
 	 */
 	if (skip_redraw || exmode_active)
+	{
 	    skip_redraw = FALSE;
+	    setcursor();
+	    cursor_on();
+	}
 	else if (do_redraw || stuff_empty())
 	{
 #ifdef FEAT_GUI
