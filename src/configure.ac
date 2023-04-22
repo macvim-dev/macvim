@@ -784,11 +784,17 @@ if test "$enable_luainterp" = "yes" -o "$enable_luainterp" = "dynamic"; then
 	LUA_LIBS="-L${vi_cv_path_lua_pfx}/${lib_multiarch} -lluajit-$vi_cv_version_lua"
       fi
     else
-      if test "X$LUA_INC" != "X"; then
-	dnl Test alternate location using version
-	LUA_LIBS="-L${vi_cv_path_lua_pfx}/lib -llua$vi_cv_version_lua"
+      dnl Test alternate lib location including version
+      if test -d "${vi_cv_path_lua_pfx}/lib/lua$vi_cv_version_lua"; then
+	LUALIBDIR="lib/lua$vi_cv_version_lua"
       else
-	LUA_LIBS="-L${vi_cv_path_lua_pfx}/lib -llua"
+	LUALIBDIR=lib
+      fi
+      if test "X$LUA_INC" != "X"; then
+	dnl Test alternate name including version
+	LUA_LIBS="-L${vi_cv_path_lua_pfx}/${LUALIBDIR} -llua$vi_cv_version_lua"
+      else
+	LUA_LIBS="-L${vi_cv_path_lua_pfx}/${LUALIBDIR} -llua"
       fi
     fi
     if test "$enable_luainterp" = "dynamic"; then
@@ -1678,6 +1684,7 @@ __:
 	@echo "python3_SYSLIBS='$(SYSLIBS)'"
 	@echo "python3_DLLLIBRARY='$(DLLLIBRARY)'"
 	@echo "python3_INSTSONAME='$(INSTSONAME)'"
+	@echo "python3_PYTHONFRAMEWORKPREFIX='$(PYTHONFRAMEWORKPREFIX)'"
 eof
 	    dnl -- delete the lines from make about Entering/Leaving directory
 	    eval "`cd ${PYTHON3_CONFDIR} && make -f "${tmp_mkf}" __ | sed '/ directory /d'`"
@@ -1692,6 +1699,8 @@ eof
 	[
 	  if test "X$python3_DLLLIBRARY" != "X"; then
 	    vi_cv_dll_name_python3="$python3_DLLLIBRARY"
+	  elif test "X$python3_PYTHONFRAMEWORKPREFIX" != "X"; then
+	    vi_cv_dll_name_python3="${python3_PYTHONFRAMEWORKPREFIX}/${python3_INSTSONAME}"
 	  else
 	    vi_cv_dll_name_python3="$python3_INSTSONAME"
 	  fi
@@ -3177,8 +3186,9 @@ if test -z "$SKIP_MOTIF"; then
     dnl Ubuntu has libXm.so in /usr/lib/i386-linux-gnu and elsewhere.  The
     dnl linker will figure out which one to use, we only check if one exists.
     dnl Cygwin uses the .dll.a extension.
+    dnl OpenSUSE appears to use /usr/lib64.
     AC_MSG_CHECKING(for location of Motif GUI libs)
-    gui_libs="`echo $x_libraries|sed 's%/[^/][^/]*$%%'` `echo "$gui_XXX" | sed s/XXX/lib/g` /usr/lib/i386-linux-gnu /usr/lib/x86_64-linux-gnu `echo "$GUI_INC_LOC" | sed s/include/lib/` $GUI_LIB_LOC"
+    gui_libs="`echo $x_libraries|sed 's%/[^/][^/]*$%%'` `echo "$gui_XXX" | sed s/XXX/lib/g` /usr/lib64 /usr/lib/i386-linux-gnu /usr/lib/x86_64-linux-gnu `echo "$GUI_INC_LOC" | sed s/include/lib/` $GUI_LIB_LOC"
     GUI_LIB_LOC=
     for try in $gui_libs; do
       for libtry in "$try"/libXm.a "$try"/libXm.dll.a "$try"/libXm.so* "$try"/libXm.sl "$try"/libXm.dylib; do
@@ -3188,8 +3198,10 @@ if test -z "$SKIP_MOTIF"; then
       done
     done
     if test -n "$GUI_LIB_LOC"; then
-      dnl Remove /usr/lib, it causes trouble on some systems
+      dnl Remove /usr/lib, it causes trouble on some systems.
+      dnl For consistency also remove other standard lib directories.
       if test "$GUI_LIB_LOC" = /usr/lib \
+	   -o "$GUI_LIB_LOC" = /usr/lib64 \
 	   -o "$GUI_LIB_LOC" = /usr/lib/i386-linux-gnu \
 	   -o "$GUI_LIB_LOC" = /usr/lib/x86_64-linux-gnu; then
 	GUI_LIB_LOC=
@@ -3907,7 +3919,8 @@ AC_CHECK_FUNCS(fchdir fchown fchmod fsync getcwd getpseudotty \
 	getpgid setpgid setsid sigaltstack sigstack sigset sigsetjmp sigaction \
 	sigprocmask sigvec strcasecmp strcoll strerror strftime stricmp strncasecmp \
 	strnicmp strpbrk strptime strtol tgetent towlower towupper iswupper \
-	tzset usleep utime utimes mblen ftruncate unsetenv posix_openpt)
+	tzset usleep utime utimes mblen ftruncate unsetenv posix_openpt \
+	clock_gettime)
 AC_FUNC_SELECT_ARGTYPES
 AC_FUNC_FSEEKO
 

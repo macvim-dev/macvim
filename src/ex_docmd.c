@@ -1396,7 +1396,7 @@ handle_did_throw(void)
 {
     char	*p = NULL;
     msglist_T	*messages = NULL;
-    ESTACK_CHECK_DECLARATION
+    ESTACK_CHECK_DECLARATION;
 
     /*
      * If the uncaught exception is a user exception, report it as an
@@ -1422,7 +1422,7 @@ handle_did_throw(void)
 
     estack_push(ETYPE_EXCEPT, current_exception->throw_name,
 					current_exception->throw_lnum);
-    ESTACK_CHECK_SETUP
+    ESTACK_CHECK_SETUP;
     current_exception->throw_name = NULL;
 
     discard_current_exception();	// uses IObuff if 'verbose'
@@ -1452,7 +1452,7 @@ handle_did_throw(void)
 	vim_free(p);
     }
     vim_free(SOURCING_NAME);
-    ESTACK_CHECK_NOW
+    ESTACK_CHECK_NOW;
     estack_pop();
 }
 

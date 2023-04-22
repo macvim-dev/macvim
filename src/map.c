@@ -227,7 +227,7 @@ map_add(
 	int	    is_abbr,
 #ifdef FEAT_EVAL
 	int	    expr,
-	scid_T	    sid,	    // -1 to use current_sctx
+	scid_T	    sid,	    // 0 to use current_sctx
 	int	    scriptversion,
 	linenr_T    lnum,
 #endif
@@ -266,7 +266,7 @@ map_add(
     mp->m_simplified = simplified;
 #ifdef FEAT_EVAL
     mp->m_expr = expr;
-    if (sid > 0)
+    if (sid != 0)
     {
 	mp->m_script_ctx.sc_sid = sid;
 	mp->m_script_ctx.sc_lnum = lnum;
@@ -924,7 +924,7 @@ do_map(
 	if (map_add(map_table, abbr_table, keys, rhs, orig_rhs,
 		    noremap, nowait, silent, mode, abbrev,
 #ifdef FEAT_EVAL
-		    expr, /* sid */ -1, /* scriptversion */ 0, /* lnum */ 0,
+		    expr, /* sid */ 0, /* scriptversion */ 0, /* lnum */ 0,
 #endif
 		    keyround1_simplified) == FAIL)
 	{
@@ -2231,12 +2231,12 @@ check_map_keycodes(void)
     int		abbr;
     int		hash;
     buf_T	*bp;
-    ESTACK_CHECK_DECLARATION
+    ESTACK_CHECK_DECLARATION;
 
     validate_maphash();
     // avoids giving error messages
     estack_push(ETYPE_INTERNAL, (char_u *)"mappings", 0);
-    ESTACK_CHECK_SETUP
+    ESTACK_CHECK_SETUP;
 
     // Do this once for each buffer, and then once for global
     // mappings/abbreviations with bp == NULL
@@ -2293,7 +2293,7 @@ check_map_keycodes(void)
 	if (bp == NULL)
 	    break;
     }
-    ESTACK_CHECK_NOW
+    ESTACK_CHECK_NOW;
     estack_pop();
 }
 
