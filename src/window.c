@@ -1386,12 +1386,6 @@ win_split_ins(
      // Both windows need redrawing.  Update all status lines, in case they
      // show something related to the window count or position.
     redraw_win_later(wp, UPD_NOT_VALID);
-#ifdef FEAT_GUI_MACVIM
-    if (gui.in_use)
-	// The view may have moved, so clear all or display may get corrupted.
-	redraw_win_later(oldwin, UPD_CLEAR);
-    else
-#endif
     redraw_win_later(oldwin, UPD_NOT_VALID);
     status_redraw_all();
 
@@ -7053,10 +7047,6 @@ scroll_to_fraction(win_T *wp, int prev_height)
     void
 win_new_width(win_T *wp, int width)
 {
-#ifdef FEAT_GUI_MACVIM
-    int		resized = wp->w_width != width;
-#endif
-
     // Should we give an error if width < 0?
     wp->w_width = width < 0 ? 0 : width;
     wp->w_lines_valid = 0;
@@ -7066,12 +7056,6 @@ win_new_width(win_T *wp, int width)
     if (wp == curwin && *p_spk == 'c')
 	curs_columns(TRUE);	// validate w_wrow
 
-#ifdef FEAT_GUI_MACVIM
-    if (resized && gui.in_use)
-	// The view may have moved, so clear all or display may get corrupted.
-	redraw_win_later(wp, UPD_CLEAR);
-    else
-#endif
     redraw_win_later(wp, UPD_NOT_VALID);
     wp->w_redr_status = TRUE;
 }
