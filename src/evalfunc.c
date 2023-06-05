@@ -756,6 +756,17 @@ arg_string_list_or_blob(type_T *type, type_T *decl_type UNUSED, argcontext_T *co
 }
 
 /*
+ * Check "type" is a modifiable list of 'any' or a blob or a string.
+ */
+    static int
+arg_string_list_or_blob_mod(type_T *type, type_T *decl_type, argcontext_T *context)
+{
+    if (arg_string_list_or_blob(type, decl_type, context) == FAIL)
+	return FAIL;
+    return arg_type_modifiable(type, context->arg_idx + 1);
+}
+
+/*
  * Check "type" is a job.
  */
     static int
@@ -1009,7 +1020,7 @@ static argcheck_T arg1_float_or_nr[] = {arg_float_or_nr};
 static argcheck_T arg1_job[] = {arg_job};
 static argcheck_T arg1_list_any[] = {arg_list_any};
 static argcheck_T arg1_list_number[] = {arg_list_number};
-static argcheck_T arg1_list_or_blob_mod[] = {arg_list_or_blob_mod};
+static argcheck_T arg1_string_or_list_or_blob_mod[] = {arg_string_list_or_blob_mod};
 static argcheck_T arg1_list_or_dict[] = {arg_list_or_dict};
 static argcheck_T arg1_list_string[] = {arg_list_string};
 static argcheck_T arg1_string_or_list_or_dict[] = {arg_string_or_list_or_dict};
@@ -1750,9 +1761,9 @@ static funcentry_T global_functions[] =
 			ret_number,	    f_bufwinnr},
     {"byte2line",	1, 1, FEARG_1,	    arg1_number,
 			ret_number,	    f_byte2line},
-    {"byteidx",		2, 2, FEARG_1,	    arg2_string_number,
+    {"byteidx",		2, 3, FEARG_1,	    arg3_string_number_bool,
 			ret_number,	    f_byteidx},
-    {"byteidxcomp",	2, 2, FEARG_1,	    arg2_string_number,
+    {"byteidxcomp",	2, 3, FEARG_1,	    arg3_string_number_bool,
 			ret_number,	    f_byteidxcomp},
     {"call",		2, 3, FEARG_1,	    arg3_any_list_dict,
 			ret_any,	    f_call},
@@ -1802,7 +1813,7 @@ static funcentry_T global_functions[] =
 			ret_number,	    f_charclass},
     {"charcol",		1, 2, FEARG_1,	    arg2_string_or_list_number,
 			ret_number,	    f_charcol},
-    {"charidx",		2, 3, FEARG_1,	    arg3_string_number_bool,
+    {"charidx",		2, 4, FEARG_1,	    arg3_string_number_bool,
 			ret_number,	    f_charidx},
     {"chdir",		1, 1, FEARG_1,	    arg1_string,
 			ret_string,	    f_chdir},
@@ -2412,7 +2423,7 @@ static funcentry_T global_functions[] =
 			ret_repeat,	    f_repeat},
     {"resolve",		1, 1, FEARG_1,	    arg1_string,
 			ret_string,	    f_resolve},
-    {"reverse",		1, 1, FEARG_1,	    arg1_list_or_blob_mod,
+    {"reverse",		1, 1, FEARG_1,	    arg1_string_or_list_or_blob_mod,
 			ret_first_arg,	    f_reverse},
     {"round",		1, 1, FEARG_1,	    arg1_float_or_nr,
 			ret_float,	    f_round},
@@ -2604,6 +2615,8 @@ static funcentry_T global_functions[] =
 			ret_number,	    f_strridx},
     {"strtrans",	1, 1, FEARG_1,	    arg1_string,
 			ret_string,	    f_strtrans},
+    {"strutf16len",	1, 2, FEARG_1,	    arg2_string_bool,
+			ret_number,	    f_strutf16len},
     {"strwidth",	1, 1, FEARG_1,	    arg1_string,
 			ret_number,	    f_strwidth},
     {"submatch",	1, 2, FEARG_1,	    arg2_number_bool,
@@ -2788,6 +2801,8 @@ static funcentry_T global_functions[] =
 			ret_dict_any,	    f_undotree},
     {"uniq",		1, 3, FEARG_1,	    arg13_sortuniq,
 			ret_first_arg,	    f_uniq},
+    {"utf16idx",	2, 4, FEARG_1,	    arg3_string_number_bool,
+			ret_number,	    f_utf16idx},
     {"values",		1, 1, FEARG_1,	    arg1_dict_any,
 			ret_list_member,    f_values},
     {"virtcol",		1, 2, FEARG_1,	    arg2_string_or_list_bool,
@@ -3133,6 +3148,9 @@ call_internal_method(
 
     if (global_functions[fi].f_argtype == FEARG_2)
     {
+	if (argcount < 1)
+	    return FCERR_TOOFEW;
+
 	// base value goes second
 	argv[0] = argvars[0];
 	argv[1] = *basetv;
@@ -3141,6 +3159,9 @@ call_internal_method(
     }
     else if (global_functions[fi].f_argtype == FEARG_3)
     {
+	if (argcount < 2)
+	    return FCERR_TOOFEW;
+
 	// base value goes third
 	argv[0] = argvars[0];
 	argv[1] = argvars[1];
@@ -3150,6 +3171,9 @@ call_internal_method(
     }
     else if (global_functions[fi].f_argtype == FEARG_4)
     {
+	if (argcount < 3)
+	    return FCERR_TOOFEW;
+
 	// base value goes fourth
 	argv[0] = argvars[0];
 	argv[1] = argvars[1];
@@ -8948,7 +8972,6 @@ f_screenchar(typval_T *argvars, typval_T *rettv)
 {
     int		row;
     int		col;
-    int		off;
     int		c;
 
     if (in_vim9script()
@@ -8962,11 +8985,9 @@ f_screenchar(typval_T *argvars, typval_T *rettv)
 	c = -1;
     else
     {
-	off = LineOffset[row] + col;
-	if (enc_utf8 && ScreenLinesUC[off] != 0)
-	    c = ScreenLinesUC[off];
-	else
-	    c = ScreenLines[off];
+	char_u buf[MB_MAXBYTES + 1];
+	screen_getbytes(row, col, buf, NULL);
+	c = (*mb_ptr2char)(buf);
     }
     rettv->vval.v_number = c;
 }
@@ -8979,7 +9000,6 @@ f_screenchars(typval_T *argvars, typval_T *rettv)
 {
     int		row;
     int		col;
-    int		off;
     int		c;
     int		i;
 
@@ -8996,18 +9016,18 @@ f_screenchars(typval_T *argvars, typval_T *rettv)
     if (row < 0 || row >= screen_Rows || col < 0 || col >= screen_Columns)
 	return;
 
-    off = LineOffset[row] + col;
-    if (enc_utf8 && ScreenLinesUC[off] != 0)
-	c = ScreenLinesUC[off];
+    char_u buf[MB_MAXBYTES + 1];
+    screen_getbytes(row, col, buf, NULL);
+    int pcc[MAX_MCO];
+    if (enc_utf8)
+	c = utfc_ptr2char(buf, pcc);
     else
-	c = ScreenLines[off];
+	c = (*mb_ptr2char)(buf);
     list_append_number(rettv->vval.v_list, (varnumber_T)c);
 
     if (enc_utf8)
-
-	for (i = 0; i < Screen_mco && ScreenLinesC[i][off] != 0; ++i)
-	    list_append_number(rettv->vval.v_list,
-				       (varnumber_T)ScreenLinesC[i][off]);
+	for (i = 0; i < Screen_mco && pcc[i] != 0; ++i)
+	    list_append_number(rettv->vval.v_list, (varnumber_T)pcc[i]);
 }
 
 /*
@@ -9038,11 +9058,7 @@ f_screenstring(typval_T *argvars, typval_T *rettv)
 {
     int		row;
     int		col;
-    int		off;
-    int		c;
-    int		i;
     char_u	buf[MB_MAXBYTES + 1];
-    int		buflen = 0;
 
     rettv->vval.v_string = NULL;
     rettv->v_type = VAR_STRING;
@@ -9057,18 +9073,7 @@ f_screenstring(typval_T *argvars, typval_T *rettv)
     if (row < 0 || row >= screen_Rows || col < 0 || col >= screen_Columns)
 	return;
 
-    off = LineOffset[row] + col;
-    if (enc_utf8 && ScreenLinesUC[off] != 0)
-	c = ScreenLinesUC[off];
-    else
-	c = ScreenLines[off];
-    buflen += mb_char2bytes(c, buf);
-
-    if (enc_utf8 && ScreenLinesUC[off] != 0)
-	for (i = 0; i < Screen_mco && ScreenLinesC[i][off] != 0; ++i)
-	    buflen += mb_char2bytes(ScreenLinesC[i][off], buf + buflen);
-
-    buf[buflen] = NUL;
+    screen_getbytes(row, col, buf, NULL);
     rettv->vval.v_string = vim_strsave(buf);
 }
 
@@ -9447,7 +9452,7 @@ f_searchpos(typval_T *argvars, typval_T *rettv)
 
 /*
  * Set the cursor or mark position.
- * If 'charpos' is TRUE, then use the column number as a character offset.
+ * If "charpos" is TRUE, then use the column number as a character offset.
  * Otherwise use the column number as a byte offset.
  */
     static void

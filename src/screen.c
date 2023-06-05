@@ -1207,8 +1207,9 @@ screen_putchar(int c, int row, int col, int attr)
 }
 
 /*
- * Get a single character directly from ScreenLines into "bytes[]".
- * Also return its attribute in *attrp;
+ * Get a single character directly from ScreenLines into "bytes", which must
+ * have a size of "MB_MAXBYTES + 1".
+ * If "attrp" is not NULL, return the character's attribute in "*attrp".
  */
     void
 screen_getbytes(int row, int col, char_u *bytes, int *attrp)
@@ -1220,7 +1221,8 @@ screen_getbytes(int row, int col, char_u *bytes, int *attrp)
 	return;
 
     off = LineOffset[row] + col;
-    *attrp = ScreenAttrs[off];
+    if (attrp != NULL)
+	*attrp = ScreenAttrs[off];
     bytes[0] = ScreenLines[off];
     bytes[1] = NUL;
 
@@ -2733,7 +2735,8 @@ give_up:
 #endif
 
     entered = FALSE;
-    --RedrawingDisabled;
+    if (RedrawingDisabled > 0)
+	--RedrawingDisabled;
 
     /*
      * Do not apply autocommands more than 3 times to avoid an endless loop
@@ -4533,7 +4536,7 @@ redrawing(void)
 	return 0;
     else
 #endif
-	return ((!RedrawingDisabled
+	return ((RedrawingDisabled == 0
 #ifdef FEAT_EVAL
 		    || ignore_redraw_flag_for_testing
 #endif
@@ -4695,13 +4698,13 @@ get_encoded_char_adv(char_u **p)
 /*
  * Handle setting 'listchars' or 'fillchars'.
  * "value" points to either the global or the window-local value.
- * "opt_lcs" is TRUE for "listchars" and FALSE for "fillchars".
+ * "is_listchars" is TRUE for "listchars" and FALSE for "fillchars".
  * When "apply" is FALSE do not store the flags, only check for errors.
  * Assume monocell characters.
  * Returns error message, NULL if it's OK.
  */
     static char *
-set_chars_option(win_T *wp, char_u *value, int opt_lcs, int apply)
+set_chars_option(win_T *wp, char_u *value, int is_listchars, int apply)
 {
     int	    round, i, len, len2, entries;
     char_u  *p, *s;
@@ -4710,7 +4713,6 @@ set_chars_option(win_T *wp, char_u *value, int opt_lcs, int apply)
     char_u  *last_lmultispace = NULL; // Last occurrence of "leadmultispace:"
     int	    multispace_len = 0;	      // Length of lcs-multispace string
     int	    lead_multispace_len = 0;  // Length of lcs-leadmultispace string
-    int	    is_listchars = opt_lcs;
 
     struct charstab
     {
@@ -4757,14 +4759,14 @@ set_chars_option(win_T *wp, char_u *value, int opt_lcs, int apply)
 	tab = lcstab;
 	CLEAR_FIELD(lcs_chars);
 	entries = ARRAY_LENGTH(lcstab);
-	if (opt_lcs && wp->w_p_lcs[0] == NUL)
+	if (wp->w_p_lcs[0] == NUL)
 	    value = p_lcs;  // local value is empty, use the global value
     }
     else
     {
 	tab = filltab;
 	entries = ARRAY_LENGTH(filltab);
-	if (!opt_lcs && wp->w_p_fcs[0] == NUL)
+	if (wp->w_p_fcs[0] == NUL)
 	    value = p_fcs;  // local value is empty, us the global value
     }
 

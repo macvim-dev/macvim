@@ -51,8 +51,9 @@ func Test_display_registers()
     call feedkeys("i\<C-R>=2*4\n\<esc>")
     call feedkeys(":ls\n", 'xt')
 
-    let a = execute('display')
-    let b = execute('registers')
+    " these commands work in the sandbox
+    let a = execute('sandbox display')
+    let b = execute('sandbox registers')
 
     call assert_equal(a, b)
     call assert_match('^\nType Name Content\n'
@@ -833,6 +834,23 @@ func Test_end_reg_executing()
 
   nunmap s
   bwipe!
+endfunc
+
+" This was causing a crash because y_append was ending up being NULL
+func Test_zero_y_append()
+  " Run in a separate Vim instance because changing 'encoding' may cause
+  " trouble for later tests.
+  let lines =<< trim END
+      d
+      silent ?n
+      next <sfile>
+      so
+      sil! norm 0VPSP
+      set enc=latin1
+       
+  END
+  call writefile(lines, 'XTest_zero_y_append', 'D')
+  call RunVim([], [], '-u NONE -i NONE -e -s -S XTest_zero_y_append -c qa\!')
 endfunc
 
 " Make sure that y_append is correctly reset

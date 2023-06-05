@@ -29,7 +29,7 @@ static char *(p_ff_values[]) = {FF_UNIX, FF_DOS, FF_MAC, NULL};
 #ifdef FEAT_CRYPT
 static char *(p_cm_values[]) = {"zip", "blowfish", "blowfish2",
  # ifdef FEAT_SODIUM
-    "xchacha20",
+    "xchacha20", "xchacha20v2",
  # endif
     NULL};
 #endif
@@ -134,7 +134,7 @@ didset_string_options(void)
     (void)opt_strings_flags(p_swb, p_swb_values, &swb_flags, TRUE);
 }
 
-#if defined(FEAT_EVAL)
+#if defined(FEAT_EVAL) || defined(PROTO)
 /*
  * Trigger the OptionSet autocommand.
  * "opt_idx"	is the index of the option being set.
@@ -379,7 +379,7 @@ set_string_option_direct(
 	if (idx < 0)	// not found (should not happen)
 	{
 	    semsg(_(e_internal_error_str), "set_string_option_direct()");
-	    siemsg(_("For option %s"), name);
+	    siemsg("For option %s", name);
 	    return;
 	}
     }

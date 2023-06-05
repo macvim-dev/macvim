@@ -301,7 +301,7 @@ get_register(
     if (copy)
     {
 	// If we run out of memory some or all of the lines are empty.
-	if (reg->y_size == 0)
+	if (reg->y_size == 0 || y_current->y_array == NULL)
 	    reg->y_array = NULL;
 	else
 	    reg->y_array = ALLOC_MULT(char_u *, reg->y_size);
@@ -2098,6 +2098,7 @@ do_put(
 		    {
 			// make sure curwin->w_virtcol is updated
 			changed_cline_bef_curs();
+			invalidate_botline();
 			curwin->w_cursor.col += (colnr_T)(totlen - 1);
 		    }
 		    if (VIsual_active)

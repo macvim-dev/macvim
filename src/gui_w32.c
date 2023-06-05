@@ -8535,7 +8535,7 @@ gui_mch_create_beval_area(
 
     if (mesg != NULL && mesgCB != NULL)
     {
-	iemsg(_(e_cannot_create_ballooneval_with_both_message_and_callback));
+	iemsg(e_cannot_create_ballooneval_with_both_message_and_callback);
 	return NULL;
     }
 
@@ -8736,7 +8736,7 @@ test_gui_w32_sendevent_keyboard(dict_T *args)
 	// If there are modifiers in the args, and it is not a keyup event and
 	// vkCode is not a modifier key, then we generate virtual modifier key
 	// messages before sending the actual key message.
-	if(mods && STRICMP(event, "keydown") == 0 && !isModKey)
+	if (mods && STRICMP(event, "keydown") == 0 && !isModKey)
 	{
 	    int n = 0;
 	    if (mods & MOD_MASK_SHIFT)
@@ -8769,7 +8769,7 @@ test_gui_w32_sendevent_keyboard(dict_T *args)
 	if (STRICMP(event, "keyup") == 0)
 	{
 	    inputs[0].ki.dwFlags = KEYEVENTF_KEYUP;
-	    if(!isModKey)
+	    if (!isModKey)
 		unwrapMods = TRUE;
 	}
 

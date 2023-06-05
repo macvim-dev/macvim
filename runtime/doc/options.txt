@@ -1,4 +1,4 @@
-*options.txt*	For Vim version 9.0.  Last change: 2023 Feb 17
+*options.txt*	For Vim version 9.0.  Last change: 2023 May 04
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -922,6 +922,9 @@ A jump table for the options with a short description can be found at |Q_op|.
 	'autowriteall' for that.
 	Some buffers will not be written, specifically when 'buftype' is
 	"nowrite", "nofile", "terminal" or "prompt".
+	USE WITH CARE: If you make temporary changes to a buffer that you
+	don't want to be saved this option may cause it to be saved anyway.
+	Renaming the buffer with ":file {name}" may help avoid this.
 
 			 *'autowriteall'* *'awa'* *'noautowriteall'* *'noawa'*
 'autowriteall' 'awa'	boolean	(default off)
@@ -2526,12 +2529,14 @@ A jump table for the options with a short description can be found at |Q_op|.
 							*pkzip*
 	   zip		PkZip compatible method.  A weak kind of encryption.
 			Backwards compatible with Vim 7.2 and older.
+			Only use if you need to be backwards compatible.
 							*blowfish*
 	   blowfish	Blowfish method.  Medium strong encryption but it has
 			an implementation flaw.  Requires Vim 7.3 or later,
 			files can NOT be read by Vim 7.2 and older.  This adds
 			a "seed" to the file, every time you write the file
 			the encrypted bytes will be different.
+			Obsolete, please do no longer use.
 							*blowfish2*
 	   blowfish2	Blowfish method.  Medium strong encryption.  Requires
 			Vim 7.4.401 or later, files can NOT be read by Vim 7.3
@@ -2553,11 +2558,21 @@ A jump table for the options with a short description can be found at |Q_op|.
 			enabled.
 			Encryption of undo files is not yet supported,
 			therefore no undo file will currently be written.
-			CURRENTLY EXPERIMENTAL: Files written with this method
+			CAREFUL: Files written with this method might have to
+			be read back with the same version of Vim if the
+			binary format changes later.
+			Obsolete, please do no longer use.
+	   xchacha20v2  Same algorithm as with "xchacha20" that correctly
+			stores the key derivation parameters together with the
+			encrypted file.  Should work better in case the
+			parameters in the libsodium library ever change.
+			STILL EXPERIMENTAL: Files written with this method
 			might have to be read back with the same version of
 			Vim if the binary format changes later.
 
-	You should use "blowfish2", also to re-encrypt older files.
+	You should use "blowfish2", also to re-encrypt older files.  The
+	"xchacha20" method provides better encryption, but it does not work
+	with all versions of Vim.
 
 	When reading an encrypted file 'cryptmethod' will be set automatically
 	to the detected method of the file being read.  Thus if you write it
@@ -7786,11 +7801,12 @@ A jump table for the options with a short description can be found at |Q_op|.
 			global
 	When "on" the commands listed below move the cursor to the first
 	non-blank of the line.  When off the cursor is kept in the same column
-	(if possible).  This applies to the commands: CTRL-D, CTRL-U, CTRL-B,
-	CTRL-F, "G", "H", "M", "L", gg, and to the commands "d", "<<" and ">>"
-	with a linewise operator, with "%" with a count and to buffer changing
-	commands (CTRL-^, :bnext, :bNext, etc.).  Also for an Ex command that
-	only has a line number, e.g., ":25" or ":+".
+	(if possible).  This applies to the commands:
+	- CTRL-D, CTRL-U, CTRL-B, CTRL-F, "G", "H", "M", "L", "gg"
+	- "d", "<<" and ">>" with a linewise operator
+	- "%" with a count
+	- buffer changing commands (CTRL-^, :bnext, :bNext, etc.)
+	- Ex commands that only has a line number, e.g., ":25" or ":+".
 	In case of buffer changing commands the cursor is placed at the column
 	where it was the last time the buffer was edited.
 	NOTE: This option is set when 'compatible' is set.
@@ -8044,16 +8060,18 @@ A jump table for the options with a short description can be found at |Q_op|.
 'switchbuf' 'swb'	string	(default "")
 			global
 	This option controls the behavior when switching between buffers.
-	Mostly for |quickfix| commands some values are also used for other
-	commands, as mentioned below.
+	This option is checked, when
+	- jumping to errors with the |quickfix| commands (|:cc|, |:cn|, |:cp|,
+	  etc.)
+	- jumping to a tag using the |:stag| command.
+	- opening a file using the |CTRL-W_f| or |CTRL-W_F| command.
+	- jumping to a buffer using a buffer split command (e.g.  |:sbuffer|,
+	  |:sbnext|, or |:sbrewind|).
 	Possible values (comma-separated list):
-	   useopen	If included, jump to the first open window that
-			contains the specified buffer (if there is one).
-			Otherwise: Do not examine other windows.
-			This setting is checked with |quickfix| commands, when
-			jumping to errors (":cc", ":cn", "cp", etc.).  It is
-			also used in all buffer related split commands, for
-			example ":sbuffer", ":sbnext", or ":sbrewind".
+	   useopen	If included, jump to the first open window in the
+			current tab page that contains the specified buffer
+			(if there is one).  Otherwise: Do not examine other
+			windows.
 	   usetab	Like "useopen", but also consider windows in other tab
 			pages.
 	   split	If included, split the current window before loading

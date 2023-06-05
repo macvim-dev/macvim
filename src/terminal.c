@@ -887,7 +887,7 @@ ex_terminal(exarg_T *eap)
 		tty_type = 'c';
 	    else
 	    {
-		semsg(e_invalid_value_for_argument_str, "type");
+		semsg(_(e_invalid_value_for_argument_str), "type");
 		goto theend;
 	    }
 	    opt.jo_set2 |= JO2_TTY_TYPE;
@@ -1209,6 +1209,24 @@ term_write_job_output(term_T *term, char_u *msg_arg, size_t len_arg)
 }
 
     static void
+position_cursor(win_T *wp, VTermPos *pos)
+{
+    wp->w_wrow = MIN(pos->row, MAX(0, wp->w_height - 1));
+    wp->w_wcol = MIN(pos->col, MAX(0, wp->w_width - 1));
+#ifdef FEAT_PROP_POPUP
+    if (popup_is_popup(wp))
+    {
+	wp->w_wrow += popup_top_extra(wp);
+	wp->w_wcol += popup_left_extra(wp);
+	wp->w_flags |= WFLAG_WCOL_OFF_ADDED | WFLAG_WROW_OFF_ADDED;
+    }
+    else
+	wp->w_flags &= ~(WFLAG_WCOL_OFF_ADDED | WFLAG_WROW_OFF_ADDED);
+#endif
+    wp->w_valid |= (VALID_WCOL|VALID_WROW);
+}
+
+    static void
 update_cursor(term_T *term, int redraw)
 {
     if (term->tl_normal_mode)
@@ -1219,7 +1237,16 @@ update_cursor(term_T *term, int redraw)
 						      term->tl_cursor_pos.col);
     else
 #endif
+    if (!term_job_running(term))
+	// avoid the cursor positioned below the last used line
 	setcursor();
+    else
+    {
+	// do not use the window cursor position
+	position_cursor(curwin, &curbuf->b_term->tl_cursor_pos);
+	windgoto(W_WINROW(curwin) + curwin->w_wrow,
+		 curwin->w_wincol + curwin->w_wcol);
+    }
     if (redraw)
     {
 	aco_save_T	aco;
@@ -2363,24 +2390,6 @@ send_keys_to_term(term_T *term, int c, int modmask, int typed)
     return OK;
 }
 
-    static void
-position_cursor(win_T *wp, VTermPos *pos)
-{
-    wp->w_wrow = MIN(pos->row, MAX(0, wp->w_height - 1));
-    wp->w_wcol = MIN(pos->col, MAX(0, wp->w_width - 1));
-#ifdef FEAT_PROP_POPUP
-    if (popup_is_popup(wp))
-    {
-	wp->w_wrow += popup_top_extra(wp);
-	wp->w_wcol += popup_left_extra(wp);
-	wp->w_flags |= WFLAG_WCOL_OFF_ADDED | WFLAG_WROW_OFF_ADDED;
-    }
-    else
-	wp->w_flags &= ~(WFLAG_WCOL_OFF_ADDED | WFLAG_WROW_OFF_ADDED);
-#endif
-    wp->w_valid |= (VALID_WCOL|VALID_WROW);
-}
-
 /*
  * Handle CTRL-W "": send register contents to the job.
  */
@@ -3315,7 +3324,7 @@ handle_resize(int rows, int cols, void *user)
 }
 
 /*
- * If the number of lines that are stored goes over 'termscrollback' then
+ * If the number of lines that are stored goes over 'termwinscroll' then
  * delete the first 10%.
  * "gap" points to tl_scrollback or tl_scrollback_postponed.
  * "update_buffer" is TRUE when the buffer should be updated.
@@ -6558,7 +6567,7 @@ f_term_setansicolors(typval_T *argvars, typval_T *rettv UNUSED)
     if (argvars[1].vval.v_list->lv_first == &range_list_item
 	    || argvars[1].vval.v_list->lv_len != 16)
     {
-	emsg(_(e_invalid_argument));
+	semsg(_(e_invalid_value_for_argument_str), "\"colors\"");
 	return;
     }
 

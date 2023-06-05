@@ -1370,7 +1370,7 @@ prog_magic_wrong(void)
 
     if (UCHARAT(((bt_regprog_T *)prog)->program) != REGMAGIC)
     {
-	emsg(_(e_corrupted_regexp_program));
+	iemsg(e_corrupted_regexp_program);
 	return TRUE;
     }
     return FALSE;
@@ -1767,10 +1767,7 @@ do_Lower(int *d, int c)
 regtilde(char_u *source, int magic)
 {
     char_u	*newsub = source;
-    char_u	*tmpsub;
     char_u	*p;
-    int		len;
-    int		prevlen;
 
     for (p = newsub; *p; ++p)
     {
@@ -1779,24 +1776,35 @@ regtilde(char_u *source, int magic)
 	    if (reg_prev_sub != NULL)
 	    {
 		// length = len(newsub) - 1 + len(prev_sub) + 1
-		prevlen = (int)STRLEN(reg_prev_sub);
-		tmpsub = alloc(STRLEN(newsub) + prevlen);
+		// Avoid making the text longer than MAXCOL, it will cause
+		// trouble at some point.
+		size_t	prevsublen = STRLEN(reg_prev_sub);
+		size_t  newsublen = STRLEN(newsub);
+		if (prevsublen > MAXCOL || newsublen > MAXCOL
+					    || newsublen + prevsublen > MAXCOL)
+		{
+		    emsg(_(e_resulting_text_too_long));
+		    break;
+		}
+
+		char_u *tmpsub = alloc(newsublen + prevsublen);
 		if (tmpsub != NULL)
 		{
 		    // copy prefix
-		    len = (int)(p - newsub);	// not including ~
-		    mch_memmove(tmpsub, newsub, (size_t)len);
+		    size_t prefixlen = p - newsub;	// not including ~
+		    mch_memmove(tmpsub, newsub, prefixlen);
 		    // interpret tilde
-		    mch_memmove(tmpsub + len, reg_prev_sub, (size_t)prevlen);
+		    mch_memmove(tmpsub + prefixlen, reg_prev_sub,
+							       prevsublen);
 		    // copy postfix
 		    if (!magic)
 			++p;			// back off backslash
-		    STRCPY(tmpsub + len + prevlen, p + 1);
+		    STRCPY(tmpsub + prefixlen + prevsublen, p + 1);
 
-		    if (newsub != source)	// already allocated newsub
+		    if (newsub != source)	// allocated newsub before
 			vim_free(newsub);
 		    newsub = tmpsub;
-		    p = newsub + len + prevlen;
+		    p = newsub + prefixlen + prevsublen;
 		}
 	    }
 	    else if (magic)
@@ -2014,7 +2022,7 @@ vim_regsub_both(
     // Be paranoid...
     if ((source == NULL && expr == NULL) || dest == NULL)
     {
-	emsg(_(e_null_argument));
+	iemsg(e_null_argument);
 	return 0;
     }
     if (prog_magic_wrong())
@@ -2381,7 +2389,7 @@ vim_regsub_both(
 		    else if (*s == NUL) // we hit NUL.
 		    {
 			if (copy)
-			    iemsg(_(e_damaged_match_string));
+			    iemsg(e_damaged_match_string);
 			goto exit;
 		    }
 		    else

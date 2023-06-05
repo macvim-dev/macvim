@@ -2973,12 +2973,13 @@ f_complete_add(typval_T *argvars, typval_T *rettv)
     void
 f_complete_check(typval_T *argvars UNUSED, typval_T *rettv)
 {
-    int		saved = RedrawingDisabled;
-
+    int save_RedrawingDisabled = RedrawingDisabled;
     RedrawingDisabled = 0;
+
     ins_compl_check_keys(0, TRUE);
     rettv->vval.v_number = ins_compl_interrupted();
-    RedrawingDisabled = saved;
+
+    RedrawingDisabled = save_RedrawingDisabled;
 }
 
 /*
@@ -3005,7 +3006,7 @@ ins_compl_update_sequence_numbers(void)
 
     if (compl_dir_forward())
     {
-	// search backwards for the first valid (!= -1) number.
+	// Search backwards for the first valid (!= -1) number.
 	// This should normally succeed already at the first loop
 	// cycle, so it's fast!
 	for (match = compl_curr_match->cp_prev; match != NULL
@@ -3016,8 +3017,7 @@ ins_compl_update_sequence_numbers(void)
 		break;
 	    }
 	if (match != NULL)
-	    // go up and assign all numbers which are not assigned
-	    // yet
+	    // go up and assign all numbers which are not assigned yet
 	    for (match = match->cp_next;
 		    match != NULL && match->cp_number == -1;
 					   match = match->cp_next)
@@ -3025,7 +3025,7 @@ ins_compl_update_sequence_numbers(void)
     }
     else // BACKWARD
     {
-	// search forwards (upwards) for the first valid (!= -1)
+	// Search forwards (upwards) for the first valid (!= -1)
 	// number.  This should normally succeed already at the
 	// first loop cycle, so it's fast!
 	for (match = compl_curr_match->cp_next; match != NULL
@@ -3036,8 +3036,7 @@ ins_compl_update_sequence_numbers(void)
 		break;
 	    }
 	if (match != NULL)
-	    // go down and assign all numbers which are not
-	    // assigned yet
+	    // go down and assign all numbers which are not assigned yet
 	    for (match = match->cp_prev; match
 		    && match->cp_number == -1;
 					   match = match->cp_prev)
@@ -5085,8 +5084,7 @@ ins_complete(int c, int enable_pum)
 show_pum(int prev_w_wrow, int prev_w_leftcol)
 {
     // RedrawingDisabled may be set when invoked through complete().
-    int n = RedrawingDisabled;
-
+    int save_RedrawingDisabled = RedrawingDisabled;
     RedrawingDisabled = 0;
 
     // If the cursor moved or the display scrolled we need to remove the pum
@@ -5097,7 +5095,8 @@ show_pum(int prev_w_wrow, int prev_w_leftcol)
 
     ins_compl_show_pum();
     setcursor();
-    RedrawingDisabled = n;
+
+    RedrawingDisabled = save_RedrawingDisabled;
 }
 
 /*

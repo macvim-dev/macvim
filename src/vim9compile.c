@@ -1580,7 +1580,8 @@ compile_lhs(
 	else
 	{
 	    // No specific kind of variable recognized, just a name.
-	    if (check_reserved_name(lhs->lhs_name, cctx) == FAIL)
+	    if (check_reserved_name(lhs->lhs_name, lhs->lhs_has_index
+						&& *var_end == '.') == FAIL)
 		return FAIL;
 
 	    if (lookup_local(var_start, lhs->lhs_varlen,
@@ -2065,16 +2066,31 @@ compile_load_lhs_with_index(lhs_T *lhs, char_u *var_start, cctx_T *cctx)
 {
     if (lhs->lhs_type->tt_type == VAR_OBJECT)
     {
-	// "this.value": load "this" object and get the value at index
-	// for an object or class member get the type of the member
+	// "this.value": load "this" object and get the value at index for an
+	// object or class member get the type of the member.
+	// Also for "obj.value".
+       char_u *dot = vim_strchr(var_start, '.');
+       if (dot == NULL)
+           return FAIL;
+
 	class_T *cl = lhs->lhs_type->tt_class;
-	type_T *type = class_member_type(cl, var_start + 5,
+	type_T *type = class_member_type(cl, dot + 1,
 					   lhs->lhs_end, &lhs->lhs_member_idx);
 	if (lhs->lhs_member_idx < 0)
 	    return FAIL;
 
-	if (generate_LOAD(cctx, ISN_LOAD, 0, NULL, lhs->lhs_type) == FAIL)
-	    return FAIL;
+	if (dot - var_start == 4 && STRNCMP(var_start, "this", 4) == 0)
+	{
+	    // load "this"
+	    if (generate_LOAD(cctx, ISN_LOAD, 0, NULL, lhs->lhs_type) == FAIL)
+		return FAIL;
+	}
+	else
+	{
+	    // load object variable or argument
+	    if (compile_load_lhs(lhs, var_start, lhs->lhs_type, cctx) == FAIL)
+		return FAIL;
+	}
 	if (cl->class_flags & CLASS_INTERFACE)
 	    return generate_GET_ITF_MEMBER(cctx, cl, lhs->lhs_member_idx, type);
 	return generate_GET_OBJ_MEMBER(cctx, lhs->lhs_member_idx, type);
@@ -2141,7 +2157,7 @@ compile_assign_unlet(
 	dest_type = lhs->lhs_type->tt_type;
 	if (dest_type == VAR_DICT && range)
 	{
-	    emsg(e_cannot_use_range_with_dictionary);
+	    emsg(_(e_cannot_use_range_with_dictionary));
 	    return FAIL;
 	}
 	if (dest_type == VAR_DICT
@@ -2169,7 +2185,7 @@ compile_assign_unlet(
     if (cctx->ctx_skip == SKIP_YES)
 	return OK;
 
-    // Load the dict or list.  On the stack we then have:
+    // Load the dict, list or object.  On the stack we then have:
     // - value (for assignment, not for :unlet)
     // - index
     // - for [a : b] second index
@@ -2646,7 +2662,7 @@ compile_assignment(
 			lhs_type = &t_number;
 		    if (*p != '=' && need_type(rhs_type, lhs_type, FALSE,
 					    -1, 0, cctx, FALSE, FALSE) == FAIL)
-		    goto theend;
+			goto theend;
 		}
 	    }
 	    else if (cmdidx == CMD_final)
@@ -2731,7 +2747,7 @@ compile_assignment(
 	if (lhs.lhs_has_index)
 	{
 	    // Use the info in "lhs" to store the value at the index in the
-	    // list or dict.
+	    // list, dict or object.
 	    if (compile_assign_unlet(var_start, &lhs, TRUE, rhs_type, cctx)
 								       == FAIL)
 	    {
@@ -3470,7 +3486,7 @@ compile_def_function(
 	    }
 	}
 
-	if (cctx.ctx_had_return
+	if ((cctx.ctx_had_return || cctx.ctx_had_throw)
 		&& ea.cmdidx != CMD_elseif
 		&& ea.cmdidx != CMD_else
 		&& ea.cmdidx != CMD_endif
@@ -3478,11 +3494,14 @@ compile_def_function(
 		&& ea.cmdidx != CMD_endwhile
 		&& ea.cmdidx != CMD_catch
 		&& ea.cmdidx != CMD_finally
-		&& ea.cmdidx != CMD_endtry)
+		&& ea.cmdidx != CMD_endtry
+		&& !ignore_unreachable_code_for_testing)
 	{
-	    emsg(_(e_unreachable_code_after_return));
+	    semsg(_(e_unreachable_code_after_str),
+				     cctx.ctx_had_return ? "return" : "throw");
 	    goto erret;
 	}
+	cctx.ctx_had_throw = FALSE;
 
 	p = skipwhite(p);
 	if (ea.cmdidx != CMD_SIZE
@@ -3596,6 +3615,7 @@ compile_def_function(
 		    break;
 	    case CMD_throw:
 		    line = compile_throw(p, &cctx);
+		    cctx.ctx_had_throw = TRUE;
 		    break;
 
 	    case CMD_eval:
@@ -3748,7 +3768,9 @@ nextline:
 	goto erret;
     }
 
-    if (!cctx.ctx_had_return)
+    // TODO: if a function ends in "throw" but there was a return elsewhere we
+    // should not assume the return type is "void".
+    if (!cctx.ctx_had_return && !cctx.ctx_had_throw)
     {
 	if (ufunc->uf_ret_type->tt_type == VAR_UNKNOWN)
 	    ufunc->uf_ret_type = &t_void;

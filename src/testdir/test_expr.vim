@@ -25,7 +25,7 @@ func Test_equal()
   call assert_fails('echo base.method > instance.method')
   call assert_equal(0, test_null_function() == function('min'))
   call assert_equal(1, test_null_function() == test_null_function())
-  call assert_fails('eval 10 == test_unknown()', 'E685:')
+  call assert_fails('eval 10 == test_unknown()', ['E340:', 'E685:'])
 endfunc
 
 func Test_version()
@@ -86,6 +86,21 @@ func Test_op_falsy()
       call assert_equal(456, [] ?? 456)
       call assert_equal(456, {} ?? 456)
       call assert_equal(456, 0.0 ?? 456)
+
+      call assert_equal(456, v:null ?? 456)
+      call assert_equal(456, v:none ?? 456)
+      call assert_equal(456, test_null_string() ?? 456)
+      call assert_equal(456, test_null_blob() ?? 456)
+      call assert_equal(456, test_null_list() ?? 456)
+      call assert_equal(456, test_null_dict() ?? 456)
+      call assert_equal(456, test_null_function() ?? 456)
+      call assert_equal(456, test_null_partial() ?? 456)
+      if has('job')
+        call assert_equal(456, test_null_job() ?? 456)
+      endif
+      if has('channel')
+        call assert_equal(456, test_null_channel() ?? 456)
+      endif
   END
   call v9.CheckLegacyAndVim9Success(lines)
 endfunc
@@ -145,6 +160,9 @@ func Test_strcharpart()
       call assert_equal('edit', "editor"[-10 : 3])
   END
   call v9.CheckLegacyAndVim9Success(lines)
+
+  call assert_fails('call strcharpart("", 0, 0, {})', ['E728:', 'E728:'])
+  call assert_fails('call strcharpart("", 0, 0, -1)', ['E1023:', 'E1023:'])
 endfunc
 
 func Test_getreg_empty_list()
@@ -458,6 +476,9 @@ func Test_printf_misc()
   call v9.CheckLegacyAndVim9Success(lines)
 
   call v9.CheckLegacyAndVim9Failure(["call printf('123', 3)"], "E767:")
+
+  " this was using uninitialized memory
+  call v9.CheckLegacyAndVim9Failure(["eval ''->printf()"], "E119:")
 endfunc
 
 func Test_printf_float()

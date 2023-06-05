@@ -1,7 +1,7 @@
 " Vim support file to detect file types
 "
 " Maintainer:	Bram Moolenaar <Bram@vim.org>
-" Last Change:	2023 Feb 25
+" Last Change:	2023 May 10
 
 " Listen very carefully, I will say this only once
 if exists("did_load_filetypes")
@@ -273,6 +273,9 @@ if has("fname_case")
   autocmd BufRead,BufNewFile *.BUILD,BUILD		setf bzl
 endif
 
+" Busted (Lua unit testing framework - configuration files)
+au BufNewFile,BufRead .busted			setf lua
+
 " C or lpc
 au BufNewFile,BufRead *.c			call dist#ft#FTlpc()
 au BufNewFile,BufRead *.lpc,*.ulpc		setf lpc
@@ -315,6 +318,9 @@ au BufNewFile,BufRead *.cdl			setf cdl
 
 " Conary Recipe
 au BufNewFile,BufRead *.recipe			setf conaryrecipe
+
+" Corn config file
+au BufNewFile,BufRead *.corn			setf corn
 
 " ChainPack Object Notation (CPON)
 au BufNewFile,BufRead *.cpon			setf cpon
@@ -1060,6 +1066,9 @@ au BufNewFile,BufRead .jshintrc,.hintrc,.swrc,[jt]sconfig*.json	setf jsonc
 " JSON
 au BufNewFile,BufRead *.json,*.jsonp,*.webmanifest	setf json
 
+" JSON Lines
+au BufNewFile,BufRead *.jsonl			setf jsonl
+
 " Jsonnet
 au BufNewFile,BufRead *.jsonnet,*.libsonnet	setf jsonnet
 
@@ -1187,6 +1196,9 @@ au BufNewFile,BufRead *.lou,*.lout		setf lout
 " Lua
 au BufNewFile,BufRead *.lua			setf lua
 
+" Luau
+au BufNewFile,BufRead *.luau		setf luau
+
 " Luacheck
 au BufNewFile,BufRead .luacheckrc		setf lua
 
@@ -1261,7 +1273,7 @@ au BufNewFile,BufRead *.hgrc,*hgrc		setf cfg
 au BufNewFile,BufRead *.mmd,*.mmdc,*.mermaid	setf mermaid
 
 " Meson Build system config
-au BufNewFile,BufRead meson.build,meson_options.txt setf meson
+au BufNewFile,BufRead meson.build,meson.options,meson_options.txt setf meson
 au BufNewFile,BufRead *.wrap			setf dosini
 
 " Messages (logs mostly)
@@ -2052,7 +2064,10 @@ au BufNewFile,BufRead *.spy,*.spi		setf spyce
 au BufNewFile,BufRead squid.conf		setf squid
 
 " SQL for Oracle Designer
-au BufNewFile,BufRead *.tyb,*.typ,*.tyc,*.pkb,*.pks	setf sql
+au BufNewFile,BufRead *.tyb,*.tyc,*.pkb,*.pks	setf sql
+
+" *.typ can be either SQL or Typst files
+au BufNewFile,BufRead *.typ			call dist#ft#FTtyp()
 
 " SQL
 au BufNewFile,BufRead *.sql			call dist#ft#SQL()
@@ -2300,8 +2315,8 @@ au BufNewFile,BufRead *.vr,*.vri,*.vrh		setf vera
 " Vagrant (uses Ruby syntax)
 au BufNewFile,BufRead Vagrantfile		setf ruby
 
-" Verilog HDL
-au BufNewFile,BufRead *.v			setf verilog
+" Verilog HDL, V or Coq
+au BufNewFile,BufRead *.v			call dist#ft#FTv()
 
 " Verilog-AMS HDL
 au BufNewFile,BufRead *.va,*.vams		setf verilogams
@@ -2737,6 +2752,9 @@ au BufNewFile,BufRead .login*,.cshrc*  call dist#ft#CSH()
 " tmux configuration with arbitrary extension
 au BufNewFile,BufRead {.,}tmux*.conf*		setf tmux
 
+" Universal Scene Description
+au BufNewFile,BufRead *.usda,*.usd		setf usd
+
 " VHDL
 au BufNewFile,BufRead *.vhdl_[0-9]*		call s:StarSetf('vhdl')
 
@@ -2793,8 +2811,10 @@ augroup END
 " Generic configuration file. Use FALLBACK, it's just guessing!
 au filetypedetect BufNewFile,BufRead,StdinReadPost *
 	\ if !did_filetype() && expand("<amatch>") !~ g:ft_ignore_pat
-	\    && (getline(1) =~ '^#' || getline(2) =~ '^#' || getline(3) =~ '^#'
-	\	|| getline(4) =~ '^#' || getline(5) =~ '^#') |
+	\    && (expand("<amatch>") =~# '\.conf$'
+	\	|| getline(1) =~ '^#' || getline(2) =~ '^#'
+	\	|| getline(3) =~ '^#' || getline(4) =~ '^#'
+	\	|| getline(5) =~ '^#') |
 	\   setf FALLBACK conf |
 	\ endif
 

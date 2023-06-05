@@ -2743,6 +2743,7 @@ oneleft(void)
 	}
 
 	curwin->w_set_curswant = TRUE;
+	adjust_skipcol();
 	return OK;
     }
 
@@ -2763,17 +2764,12 @@ oneleft(void)
 /*
  * Move the cursor up "n" lines in window "wp".
  * Takes care of closed folds.
- * Returns the new cursor line or zero for failure.
  */
-    linenr_T
+    void
 cursor_up_inner(win_T *wp, long n)
 {
     linenr_T	lnum = wp->w_cursor.lnum;
 
-    // This fails if the cursor is already in the first line or the count is
-    // larger than the line number and '-' is in 'cpoptions'
-    if (lnum <= 1 || (n >= lnum && vim_strchr(p_cpo, CPO_MINUS) != NULL))
-	return 0;
     if (n >= lnum)
 	lnum = 1;
     else
@@ -2806,7 +2802,6 @@ cursor_up_inner(win_T *wp, long n)
 	lnum -= n;
 
     wp->w_cursor.lnum = lnum;
-    return lnum;
 }
 
     int
@@ -2814,8 +2809,13 @@ cursor_up(
     long	n,
     int		upd_topline)	    // When TRUE: update topline
 {
-    if (n > 0 && cursor_up_inner(curwin, n) == 0)
+    // This fails if the cursor is already in the first line or the count is
+    // larger than the line number and '-' is in 'cpoptions'
+    linenr_T lnum = curwin->w_cursor.lnum;
+    if (n > 0 && (lnum <= 1
+		       || (n >= lnum && vim_strchr(p_cpo, CPO_MINUS) != NULL)))
 	return FAIL;
+    cursor_up_inner(curwin, n);
 
     // try to advance to the column we want to be at
     coladvance(curwin->w_curswant);
@@ -2829,23 +2829,13 @@ cursor_up(
 /*
  * Move the cursor down "n" lines in window "wp".
  * Takes care of closed folds.
- * Returns the new cursor line or zero for failure.
  */
-    linenr_T
+    void
 cursor_down_inner(win_T *wp, long n)
 {
     linenr_T	lnum = wp->w_cursor.lnum;
     linenr_T	line_count = wp->w_buffer->b_ml.ml_line_count;
 
-#ifdef FEAT_FOLDING
-    // Move to last line of fold, will fail if it's the end-of-file.
-    (void)hasFoldingWin(wp, lnum, NULL, &lnum, TRUE, NULL);
-#endif
-    // This fails if the cursor is already in the last line or would move
-    // beyond the last line and '-' is in 'cpoptions'
-    if (lnum >= line_count
-	    || (lnum + n > line_count && vim_strchr(p_cpo, CPO_MINUS) != NULL))
-	return FAIL;
     if (lnum + n >= line_count)
 	lnum = line_count;
     else
@@ -2857,6 +2847,7 @@ cursor_down_inner(win_T *wp, long n)
 	// count each sequence of folded lines as one logical line
 	while (n--)
 	{
+	    // Move to last line of fold, will fail if it's the end-of-file.
 	    if (hasFoldingWin(wp, lnum, NULL, &last, TRUE, NULL))
 		lnum = last + 1;
 	    else
@@ -2872,7 +2863,6 @@ cursor_down_inner(win_T *wp, long n)
 	lnum += n;
 
     wp->w_cursor.lnum = lnum;
-    return lnum;
 }
 
 /*
@@ -2883,8 +2873,16 @@ cursor_down(
     long	n,
     int		upd_topline)	    // When TRUE: update topline
 {
-    if (n > 0 &&  cursor_down_inner(curwin, n) == 0)
+    linenr_T	lnum = curwin->w_cursor.lnum;
+    linenr_T	line_count = curwin->w_buffer->b_ml.ml_line_count;
+    // This fails if the cursor is already in the last line or would move
+    // beyond the last line and '-' is in 'cpoptions'
+    if (n > 0
+	    && (lnum >= line_count
+		|| (lnum + n > line_count
+				     && vim_strchr(p_cpo, CPO_MINUS) != NULL)))
 	return FAIL;
+    cursor_down_inner(curwin, n);
 
     // try to advance to the column we want to be at
     coladvance(curwin->w_curswant);
@@ -3621,7 +3619,8 @@ ins_esc(
     temp = curwin->w_cursor.col;
     if (disabled_redraw)
     {
-	--RedrawingDisabled;
+	if (RedrawingDisabled > 0)
+	    --RedrawingDisabled;
 	disabled_redraw = FALSE;
     }
     if (!arrow_used)

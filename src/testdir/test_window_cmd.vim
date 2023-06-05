@@ -19,6 +19,24 @@ func Test_window_cmd_ls0_with_split()
   set ls&vim
 endfunc
 
+func Test_window_cmd_ls0_split_scrolling()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+    set laststatus=0
+    call setline(1, range(1, 100))
+    normal! G
+  END
+  call writefile(lines, 'XTestLs0SplitScrolling', 'D')
+  let buf = RunVimInTerminal('-S XTestLs0SplitScrolling', #{rows: 10})
+
+  call term_sendkeys(buf, ":botright split\<CR>")
+  call WaitForAssert({-> assert_match('Bot$', term_getline(buf, 5))})
+  call assert_equal('100', term_getline(buf, 4))
+
+  call StopVimInTerminal(buf)
+endfunc
+
 func Test_window_cmd_cmdwin_with_vsp()
   let efmt = 'Expected 0 but got %d (in ls=%d, %s window)'
   for v in range(0, 2)
@@ -1801,9 +1819,20 @@ endfunc
 
 func Test_splitkeep_misc()
   set splitkeep=screen
-  set splitbelow
 
   call setline(1, range(1, &lines))
+  " Cursor is adjusted to start and end of buffer
+  norm M
+  wincmd s
+  resize 1
+  call assert_equal(1, line('.'))
+  wincmd j
+  norm GM
+  resize 1
+  call assert_equal(&lines, line('.'))
+  only!
+
+  set splitbelow
   norm Gzz
   let top = line('w0')
   " No scroll when aucmd_win is opened
@@ -1915,6 +1944,23 @@ func Test_splitkeep_status()
   call VerifyScreenDump(buf, 'Test_splitkeep_status_1', {})
 
   call StopVimInTerminal(buf)
+endfunc
+
+" skipcol is not reset unnecessarily and is copied to new window
+func Test_splitkeep_skipcol()
+  CheckScreendump
+
+  let lines =<< trim END
+    set splitkeep=topline smoothscroll splitbelow scrolloff=0
+    call setline(1, 'with lots of text in one line '->repeat(6))
+    norm 2
+    wincmd s
+  END
+
+  call writefile(lines, 'XTestSplitkeepSkipcol', 'D')
+  let buf = RunVimInTerminal('-S XTestSplitkeepSkipcol', #{rows: 12, cols: 40})
+
+  call VerifyScreenDump(buf, 'Test_splitkeep_skipcol_1', {})
 endfunc
 
 func Test_new_help_window_on_error()

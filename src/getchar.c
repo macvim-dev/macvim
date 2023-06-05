@@ -43,8 +43,8 @@ static buffheader_T recordbuff = {{NULL, {NUL}}, NULL, 0, 0};
 static int typeahead_char = 0;		// typeahead char that's not flushed
 
 /*
- * when block_redo is TRUE redo buffer will not be changed
- * used by edit() to repeat insertions and 'V' command for redoing
+ * When block_redo is TRUE the redo buffer will not be changed.
+ * Used by edit() to repeat insertions.
  */
 static int	block_redo = FALSE;
 
@@ -133,7 +133,7 @@ get_buffcont(
     for (bp = buffer->bh_first.b_next; bp != NULL; bp = bp->b_next)
 	count += (long_u)STRLEN(bp->b_str);
 
-    if ((count || dozero) && (p = alloc(count + 1)) != NULL)
+    if ((count > 0 || dozero) && (p = alloc(count + 1)) != NULL)
     {
 	p2 = p;
 	for (bp = buffer->bh_first.b_next; bp != NULL; bp = bp->b_next)
@@ -141,7 +141,7 @@ get_buffcont(
 		*p2++ = *str++;
 	*p2 = NUL;
     }
-    return (p);
+    return p;
 }
 
 /*
@@ -214,7 +214,7 @@ add_buff(
     }
     else if (buf->bh_curr == NULL)	// buffer has already been read
     {
-	iemsg(_(e_add_to_internal_buffer_that_was_already_read_from));
+	iemsg(e_add_to_internal_buffer_that_was_already_read_from);
 	return;
     }
     else if (buf->bh_index != 0)
@@ -599,6 +599,29 @@ AppendToRedobuffLit(
 	    add_buff(&redobuff, (char_u *)"048", 3L);
 	else
 	    add_char_buff(&redobuff, c);
+    }
+}
+
+/*
+ * Append "s" to the redo buffer, leaving 3-byte special key codes unmodified
+ * and escaping other K_SPECIAL and CSI bytes.
+ */
+    void
+AppendToRedobuffSpec(char_u *s)
+{
+    if (block_redo)
+	return;
+
+    while (*s != NUL)
+    {
+	if (*s == K_SPECIAL && s[1] != NUL && s[2] != NUL)
+	{
+	    // Insert special key literally.
+	    add_buff(&redobuff, s, 3L);
+	    s += 3;
+	}
+	else
+	    add_char_buff(&redobuff, mb_cptr2char_adv(&s));
     }
 }
 
@@ -1622,8 +1645,8 @@ updatescript(int c)
 }
 
 /*
- * Convert "c" plus "modifiers" to merge the effect of modifyOtherKeys into the
- * character.  Also for when the Kitty key protocol is used.
+ * Convert "c_arg" plus "modifiers" to merge the effect of modifyOtherKeys into
+ * the character.  Also for when the Kitty key protocol is used.
  */
     int
 merge_modifyOtherKeys(int c_arg, int *modifiers)
@@ -2470,14 +2493,14 @@ check_simplify_modifier(int max_offset)
 		{
 		    if (put_string_in_typebuf(offset, 4, new_string, len,
 							NULL, 0, NULL) == FAIL)
-		    return -1;
+			return -1;
 		}
 		else
 		{
 		    tp[2] = modifier;
 		    if (put_string_in_typebuf(offset + 3, 1, new_string, len,
 							NULL, 0, NULL) == FAIL)
-		    return -1;
+			return -1;
 		}
 		return len;
 	    }
@@ -2788,9 +2811,9 @@ handle_mapping(
 	if (no_mapping == 0 || allow_keys != 0)
 	{
 	    if ((typebuf.tb_maplen == 0
-		    || (p_remap && typebuf.tb_noremap[
+			    || (p_remap && typebuf.tb_noremap[
 						    typebuf.tb_off] == RM_YES))
-		&& !*timedout)
+		    && !*timedout)
 		keylen = check_termcode(max_mlen + 1, NULL, 0, NULL);
 	    else
 		keylen = 0;
@@ -3272,7 +3295,7 @@ vgetorpeek(int advance)
  * get a character: 2. from the typeahead buffer
  */
 			c = typebuf.tb_buf[typebuf.tb_off];
-			if (advance)	// remove chars from tb_buf
+			if (advance)	// remove chars from typebuf
 			{
 			    cmd_silent = (typebuf.tb_silent > 0);
 			    if (typebuf.tb_maplen > 0)
@@ -3284,8 +3307,7 @@ vgetorpeek(int advance)
 				gotchars(typebuf.tb_buf
 						 + typebuf.tb_off, 1);
 			    }
-			    KeyNoremap = typebuf.tb_noremap[
-						      typebuf.tb_off];
+			    KeyNoremap = typebuf.tb_noremap[typebuf.tb_off];
 			    del_typebuf(1, 0);
 			}
 			break;  // got character, break the for loop
@@ -3954,14 +3976,6 @@ getcmdkeycmd(
 	    if (c1 == K_ESC)
 		c1 = ESC;
 	}
-	if (c1 == Ctrl_V)
-	{
-	    // CTRL-V is followed by octal, hex or other characters, reverses
-	    // what AppendToRedobuffLit() does.
-	    ++no_reduce_keys;  //  don't merge modifyOtherKeys
-	    c1 = get_literal(TRUE);
-	    --no_reduce_keys;
-	}
 
 	if (got_int)
 	    aborted = TRUE;
@@ -3975,19 +3989,27 @@ getcmdkeycmd(
 	    emsg(_(e_cmd_mapping_must_end_with_cr_before_second_cmd));
 	    aborted = TRUE;
 	}
-	else if (IS_SPECIAL(c1))
+	else if (c1 == K_SNR)
 	{
-	    if (c1 == K_SNR)
-		ga_concat(&line_ga, (char_u *)"<SNR>");
-	    else
-	    {
-		semsg(e_cmd_mapping_must_not_include_str_key,
-					       get_special_key_name(c1, cmod));
-		aborted = TRUE;
-	    }
+	    ga_concat(&line_ga, (char_u *)"<SNR>");
 	}
 	else
-	    ga_append(&line_ga, c1);
+	{
+	    if (cmod != 0)
+	    {
+		ga_append(&line_ga, K_SPECIAL);
+		ga_append(&line_ga, KS_MODIFIER);
+		ga_append(&line_ga, cmod);
+	    }
+	    if (IS_SPECIAL(c1))
+	    {
+		ga_append(&line_ga, K_SPECIAL);
+		ga_append(&line_ga, K_SECOND(c1));
+		ga_append(&line_ga, K_THIRD(c1));
+	    }
+	    else
+		ga_append(&line_ga, c1);
+	}
 
 	cmod = 0;
     }

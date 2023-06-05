@@ -1,4 +1,4 @@
-*pi_netrw.txt*  For Vim version 9.0.  Last change: 2022 Apr 06
+*pi_netrw.txt*  For Vim version 9.0.  Last change: 2023 May 14
 
 	    ------------------------------------------------
 	    NETRW REFERENCE MANUAL    by Charles E. Campbell
@@ -208,7 +208,7 @@ EXTERNAL APPLICATIONS AND PROTOCOLS			*netrw-externapp* {{{2
 	  http:   g:netrw_http_cmd     = "links"      elseif links is available
 	  http:   g:netrw_http_cmd     = "curl"       elseif curl  is available
 	  http:   g:netrw_http_cmd     = "wget"       elseif wget  is available
-          http:   g:netrw_http_cmd     = "fetch"      elseif fetch is available
+	  http:   g:netrw_http_cmd     = "fetch"      elseif fetch is available
 	  http:   *g:netrw_http_put_cmd* = "curl -T"
 	   rcp:   *g:netrw_rcp_cmd*      = "rcp"
 	 rsync:   *g:netrw_rsync_cmd*    = "rsync"     (see |g:netrw_rsync_sep|)
@@ -2871,10 +2871,6 @@ your browsing preferences.  (see also: |netrw-settings|)
 				have patch#1107.  Otherwise, |delete()|
 				is used with the "d" option.
 
-  *g:netrw_localrmdiropt*	=""             Linux/Unix/MacOS/Cygwin
-				=" /c rmdir"                    Windows
-				Options for |g:netrw_localrmdir|
-
   *g:netrw_maxfilenamelen*	=32 by default, selected so as to make long
 				    listings fit on 80 column displays.
 				If your screen is wider, and you have file
@@ -3911,6 +3907,8 @@ netrw:
 ==============================================================================
 12. History						*netrw-history* {{{1
 
+	v172:	Apr 22, 2023	* removed g:netrw_localrmdiropt
+				  removed g:netrw_localrmdir
 	v171:	Oct 09, 2020	* included code in s:NetrwOptionsSafe()
 				  to allow |'bh'| to be set to delete when
 				  rather than hide when g:netrw_fastbrowse
@@ -3995,8 +3993,10 @@ netrw:
 		Nov 09, 2016	* Broke apart the command from the options,
 				  mostly for Windows.  Introduced new netrw
 				  settings: |g:netrw_localcopycmdopt|
-				  |g:netrw_localcopydircmdopt| |g:netrw_localmkdiropt|
-				  |g:netrw_localmovecmdopt| |g:netrw_localrmdiropt|
+				  |g:netrw_localcopydircmdopt|
+				  |g:netrw_localmkdiropt|
+				  |g:netrw_localmovecmdopt|
+				  g:netrw_localrmdiropt
 		Nov 21, 2016	* (mattn) provided a patch for preview; swapped
 				  winwidth() with winheight()
 		Nov 22, 2016	* (glacambre) reported that files containing

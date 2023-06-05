@@ -578,6 +578,12 @@ typedef struct
     buffheader_T sr_old_redobuff;
 } save_redo_T;
 
+typedef enum {
+    XP_PREFIX_NONE,	// prefix not used
+    XP_PREFIX_NO,	// "no" prefix for bool option
+    XP_PREFIX_INV,	// "inv" prefix for bool option
+} xp_prefix_T;
+
 /*
  * used for completion on the command line
  */
@@ -586,6 +592,7 @@ typedef struct expand
     char_u	*xp_pattern;		// start of item to expand
     int		xp_context;		// type of expansion
     int		xp_pattern_len;		// bytes in xp_pattern before cursor
+    xp_prefix_T	xp_prefix;
 #if defined(FEAT_EVAL)
     char_u	*xp_arg;		// completion function
     sctx_T	xp_script_ctx;		// SCTX for completion function
@@ -684,6 +691,12 @@ typedef struct
     int		cmod_did_esilent;	// incremented when emsg_silent is
 } cmdmod_T;
 
+typedef enum {
+    MF_DIRTY_NO = 0,		// no dirty blocks
+    MF_DIRTY_YES,		// there are dirty blocks
+    MF_DIRTY_YES_NOSYNC,	// there are dirty blocks, do not sync yet
+} mfdirty_T;
+
 #define MF_SEED_LEN	8
 
 struct memfile
@@ -705,7 +718,7 @@ struct memfile
     blocknr_T	mf_neg_count;		// number of negative blocks numbers
     blocknr_T	mf_infile_count;	// number of pages in the file
     unsigned	mf_page_size;		// number of bytes in a page
-    int		mf_dirty;		// TRUE if there are dirty blocks
+    mfdirty_T	mf_dirty;
 #ifdef FEAT_CRYPT
     buf_T	*mf_buffer;		// buffer this memfile is for
     char_u	mf_seed[MF_SEED_LEN];	// seed for encryption
@@ -2774,11 +2787,24 @@ typedef struct {
 # define CRYPT_M_BF	1
 # define CRYPT_M_BF2	2
 # define CRYPT_M_SOD    3
-# define CRYPT_M_COUNT	4 // number of crypt methods
+# define CRYPT_M_SOD2   4
+# define CRYPT_M_COUNT	5 // number of crypt methods
 
 // Currently all crypt methods work inplace.  If one is added that isn't then
 // define this.
 # define CRYPT_NOT_INPLACE 1
+
+// Struct for passing arguments down to the crypt_init functions
+typedef struct {
+    char_u	*cat_salt;
+    int		cat_salt_len;
+    char_u	*cat_seed;
+    int		cat_seed_len;
+    char_u	*cat_add;
+    int		cat_add_len;
+    int		cat_init_from_file;
+} crypt_arg_T;
+
 #endif
 
 #ifdef FEAT_PROP_POPUP
@@ -4863,3 +4889,18 @@ typedef struct
     // message (when it is not NULL).
     char	*os_errbuf;
 } optset_T;
+
+/*
+ * Spell checking variables passed from win_update() to win_line().
+ */
+typedef struct {
+    int		spv_has_spell;	    // drawn window has spell checking
+#ifdef FEAT_SPELL
+    int		spv_unchanged;	    // not updating for changed text
+    int		spv_checked_col;    // column in "checked_lnum" up to
+				    // which there are no spell errors
+    linenr_T	spv_checked_lnum;   // line number for "checked_col"
+    int		spv_cap_col;	    // column to check for Cap word
+    linenr_T	spv_capcol_lnum;    // line number for "cap_col"
+#endif
+} spellvars_T;

@@ -272,7 +272,8 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 		*lp = tv_get_number(item);
 		if (*lp < 0)
 		{
-		    semsg(_(e_invalid_value_for_argument_str_str), hi->hi_key, tv_get_string(item));
+		    semsg(_(e_invalid_value_for_argument_str_str),
+					      hi->hi_key, tv_get_string(item));
 		    return FAIL;
 		}
 	    }
@@ -383,7 +384,8 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 		val = tv_get_string(item);
 		if (STRCMP(val, "open") != 0 && STRCMP(val, "close") != 0)
 		{
-		    semsg(_(e_invalid_value_for_argument_str_str), "term_finish", val);
+		    semsg(_(e_invalid_value_for_argument_str_str),
+							   "term_finish", val);
 		    return FAIL;
 		}
 		opt->jo_set2 |= JO2_TERM_FINISH;
@@ -443,10 +445,19 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 	    }
 	    else if (STRCMP(hi->hi_key, "term_cols") == 0)
 	    {
+		int error = FALSE;
+
 		if (!(supported2 & JO2_TERM_COLS))
 		    break;
 		opt->jo_set2 |= JO2_TERM_COLS;
-		opt->jo_term_cols = tv_get_number(item);
+		opt->jo_term_cols = tv_get_number_chk(item, &error);
+		if (error)
+		    return FAIL;
+		if (opt->jo_term_cols < 0 || opt->jo_term_cols > 1000)
+		{
+		    semsg(_(e_invalid_value_for_argument_str), "term_cols");
+		    return FAIL;
+		}
 	    }
 	    else if (STRCMP(hi->hi_key, "vertical") == 0)
 	    {

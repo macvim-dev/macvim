@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 9.0.  Last change: 2023 Feb 25
+*eval.txt*	For Vim version 9.0.  Last change: 2023 Apr 24
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -1580,6 +1580,33 @@ Examples: >
 	echo $"The square root of {{9}} is {sqrt(9)}"
 <	The square root of {9} is 3.0 ~
 
+						*string-offset-encoding*
+A string consists of multiple characters.  How the characters are stored
+depends on 'encoding'.  Most common is UTF-8, which uses one byte for ASCII
+characters, two bytes for other latin characters and more bytes for other
+characters.
+
+A string offset can count characters or bytes.  Other programs may use
+UTF-16 encoding (16-bit words) and an offset of UTF-16 words.  Some functions
+use byte offsets, usually for UTF-8 encoding.  Other functions use character
+offsets, in which case the encoding doesn't matter.
+
+The different offsets for the string "a©😊" are below:
+
+  UTF-8 offsets:
+      [0]: 61, [1]: C2, [2]: A9, [3]: F0, [4]: 9F, [5]: 98, [6]: 8A
+  UTF-16 offsets:
+      [0]: 0061, [1]: 00A9, [2]: D83D, [3]: DE0A
+  UTF-32 (character) offsets:
+      [0]: 00000061, [1]: 000000A9, [2]: 0001F60A
+
+You can use the "g8" and "ga" commands on a character to see the
+decimal/hex/octal values.
+
+The functions |byteidx()|, |utf16idx()| and |charidx()| can be used to convert
+between these indices.  The functions |strlen()|, |strutf16len()| and
+|strcharlen()| return the number of bytes, UTF-16 code units and characters in
+a string respectively.
 
 option						*expr-option* *E112* *E113*
 ------
@@ -1788,6 +1815,8 @@ b:changedtick	The total number of changes to the current buffer.  It is
 		    :	call My_Update()
 		    :endif
 <		You cannot change or delete the b:changedtick variable.
+		If you need more information about the change see
+		|listener_add()|.
 
 						*window-variable* *w:var* *w:*
 A variable name that is preceded with "w:" is local to the current window.  It
@@ -4596,28 +4625,18 @@ getting the scriptnames in a Dictionary ~
 The `:scriptnames` command can be used to get a list of all script files that
 have been sourced.  There is also the `getscriptinfo()` function, but the
 information returned is not exactly the same.  In case you need to manipulate
-the output of `scriptnames` this code can be used: >
-    " Get the output of ":scriptnames" in the scriptnames_output variable.
-    let scriptnames_output = ''
-    redir => scriptnames_output
-    silent scriptnames
-    redir END
+the list, this code can be used as a base: >
 
-    " Split the output into lines and parse each line.	Add an entry to the
-    " "scripts" dictionary.
-    let scripts = {}
-    for line in split(scriptnames_output, "\n")
-      " Only do non-blank lines.
-      if line =~ '\S'
-	" Get the first number in the line.
-	let nr = matchstr(line, '\d\+')
-	" Get the file name, remove the script number " 123: ".
-	let name = substitute(line, '.\+:\s*', '', '')
-	" Add an item to the Dictionary
-	let scripts[nr] = name
-      endif
-    endfor
-    unlet scriptnames_output
+    # Create or update scripts dictionary, indexed by SNR, and return it.
+    def Scripts(scripts: dict<string> = {}): dict<string>
+      for info in getscriptinfo()
+        if scripts->has_key(info.sid)
+          continue
+        endif
+        scripts[info.sid] = info.name
+      endfor
+      return scripts
+    enddef
 
 ==============================================================================
 10. Vim script versions		*vimscript-version* *vimscript-versions*

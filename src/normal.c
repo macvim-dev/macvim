@@ -978,12 +978,15 @@ normal_end:
 	reset_reg_var();
 #endif
 
-    // Reset finish_op, in case it was set
 #ifdef CURSOR_SHAPE
     int prev_finish_op = finish_op;
 #endif
-    finish_op = FALSE;
-    may_trigger_modechanged();
+    if (oap->op_type == OP_NOP)
+    {
+	// Reset finish_op, in case it was set
+	finish_op = FALSE;
+	may_trigger_modechanged();
+    }
 #ifdef CURSOR_SHAPE
     // Redraw the cursor with another shape, if we were in Operator-pending
     // mode or did a replace command.
@@ -998,7 +1001,7 @@ normal_end:
 #endif
 
     if (oap->op_type == OP_NOP && oap->regname == 0
-	    && ca.cmdchar != K_CURSORHOLD)
+						 && ca.cmdchar != K_CURSORHOLD)
 	clear_showcmd();
 
     checkpcmark();		// check if we moved since setting pcmark
@@ -1499,9 +1502,9 @@ prep_redo_num2(
 }
 
 /*
- * check for operator active and clear it
+ * Check for operator active and clear it.
  *
- * return TRUE if operator was active
+ * Beep and return TRUE if an operator was active.
  */
     static int
 checkclearop(oparg_T *oap)
@@ -1515,7 +1518,7 @@ checkclearop(oparg_T *oap)
 /*
  * Check for operator or Visual active.  Clear active operator.
  *
- * Return TRUE if operator or Visual was active.
+ * Beep and return TRUE if an operator or Visual was active.
  */
     static int
 checkclearopq(oparg_T *oap)
@@ -2362,11 +2365,13 @@ nv_screengo(oparg_T *oap, int dir, long dist)
 	    else
 	    {
 		// to previous line
-		if (!cursor_up_inner(curwin, 1))
+		if (curwin->w_cursor.lnum <= 1)
 		{
 		    retval = FAIL;
 		    break;
 		}
+		cursor_up_inner(curwin, 1);
+
 		linelen = linetabsize_str(ml_get_curline());
 		if (linelen > width1)
 		    curwin->w_curswant += (((linelen - width1 - 1) / width2)
@@ -2389,12 +2394,15 @@ nv_screengo(oparg_T *oap, int dir, long dist)
 	    else
 	    {
 		// to next line
-		if (!cursor_down_inner(curwin, 1))
+		if (curwin->w_cursor.lnum
+				       >= curwin->w_buffer->b_ml.ml_line_count)
 		{
 		    retval = FAIL;
 		    break;
 		}
+		cursor_down_inner(curwin, 1);
 		curwin->w_curswant %= width2;
+
 		// Check if the cursor has moved below the number display
 		// when width1 < width2 (with cpoptions+=n). Subtract width2
 		// to get a negative value for w_curswant, which will get
@@ -5774,6 +5782,7 @@ nv_g_home_m_cmd(cmdarg_T *cap)
 	curwin->w_valid &= ~VALID_WCOL;
     }
     curwin->w_set_curswant = TRUE;
+    adjust_skipcol();
 }
 
 /*

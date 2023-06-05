@@ -243,6 +243,9 @@
 #if (defined(UNIX) || defined(VMS)) \
 	&& (!defined(MACOS_X) || defined(HAVE_CONFIG_H))
 # include "os_unix.h"	    // bring lots of system header files
+#else
+  // For all non-Unix systems: use old-fashioned signal().
+# define mch_signal(signum, sighandler) signal(signum, sighandler)
 #endif
 
 // Mark unused function arguments with UNUSED, so that gcc -Wunused-parameter
@@ -2259,6 +2262,7 @@ typedef enum {
     ASSERT_NOTEQUAL,
     ASSERT_MATCH,
     ASSERT_NOTMATCH,
+    ASSERT_FAILS,
     ASSERT_OTHER
 } assert_type_T;
 
@@ -2763,6 +2767,7 @@ typedef char *(*opt_did_set_cb_T)(optset_T *args);
 // flags for find_name_end()
 #define FNE_INCL_BR	1	// include [] in name
 #define FNE_CHECK_START	2	// check name starts with valid character
+#define FNE_ALLOW_CURLY	4	// always allow curly braces name
 
 // BSD is supposed to cover FreeBSD and similar systems.
 #if (defined(SUN_SYSTEM) || defined(BSD) || defined(__FreeBSD_kernel__)) \

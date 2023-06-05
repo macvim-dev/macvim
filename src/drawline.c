@@ -150,6 +150,7 @@ typedef struct {
     // saved "extra" items for when draw_state becomes WL_LINE (again)
     int		saved_n_extra;
     char_u	*saved_p_extra;
+    char_u	*saved_p_extra_free;
     int		saved_extra_attr;
     int		saved_n_attr_skip;
     int		saved_extra_for_textprop;
@@ -230,7 +231,7 @@ handle_foldcolumn(win_T *wp, winlinevars_T *wlv)
 	return;
 
     wlv->n_extra = (int)fill_foldcolumn(wlv->p_extra_free,
-	    wp, FALSE, wlv->lnum);
+							 wp, FALSE, wlv->lnum);
     wlv->p_extra_free[wlv->n_extra] = NUL;
     wlv->p_extra = wlv->p_extra_free;
     wlv->c_extra = NUL;
@@ -389,7 +390,7 @@ handle_lnum_col(
 	  // When there are text properties above the line put the line number
 	  // below them.
 	  if (wlv->row == lnum_row
-		    && (wp->w_skipcol == 0 || wlv->row > wp->w_winrow
+		    && (wp->w_skipcol == 0 || wlv->row > 0
 					       || (wp->w_p_nu && wp->w_p_rnu)))
 	  {
 	      long num;
@@ -665,6 +666,12 @@ text_prop_position(
 	{
 	    before = 0;
 	    after = wp->w_width - cells - win_col_off(wp) - padding;
+	    if (after < 0)
+	    {
+		// text "above" has too much padding to fit
+		padding += after;
+		after = 0;
+	    }
 	}
 	else
 	{
@@ -817,6 +824,7 @@ wlv_screen_line(win_T *wp, winlinevars_T *wlv, int negative_width)
 	    && !(wp->w_p_list && wp->w_lcs_chars.prec != 0))
     {
 	int off = (int)(current_ScreenLine - ScreenLines);
+	int max_off = off + screen_Columns;
 	int skip = 0;
 
 	if (wp->w_p_nu && wp->w_p_rnu)
@@ -830,6 +838,10 @@ wlv_screen_line(win_T *wp, winlinevars_T *wlv, int negative_width)
 
 	for (int i = 0; i < 3 && i + skip < wp->w_width; ++i)
 	{
+	    if ((*mb_off2cells)(off, max_off) > 1)
+		// When the first half of a double-width character is
+		// overwritten, change the second half to a space.
+		ScreenLines[off + 1] = ' ';
 	    ScreenLines[off] = '<';
 	    if (enc_utf8)
 		ScreenLinesUC[off] = 0;
@@ -968,6 +980,9 @@ win_line_start(win_T *wp UNUSED, winlinevars_T *wlv, int save_extra)
 	wlv->draw_state = WL_START;
 	wlv->saved_n_extra = wlv->n_extra;
 	wlv->saved_p_extra = wlv->p_extra;
+	vim_free(wlv->saved_p_extra_free);
+	wlv->saved_p_extra_free = wlv->p_extra_free;
+	wlv->p_extra_free = NULL;
 	wlv->saved_extra_attr = wlv->extra_attr;
 	wlv->saved_n_attr_skip = wlv->n_attr_skip;
 	wlv->saved_extra_for_textprop = wlv->extra_for_textprop;
@@ -1004,6 +1019,9 @@ win_line_continue(winlinevars_T *wlv)
 	wlv->c_extra = wlv->saved_c_extra;
 	wlv->c_final = wlv->saved_c_final;
 	wlv->p_extra = wlv->saved_p_extra;
+	vim_free(wlv->p_extra_free);
+	wlv->p_extra_free = wlv->saved_p_extra_free;
+	wlv->saved_p_extra_free = NULL;
 	wlv->extra_attr = wlv->saved_extra_attr;
 	wlv->n_attr_skip = wlv->saved_n_attr_skip;
 	wlv->extra_for_textprop = wlv->saved_extra_for_textprop;
@@ -1044,8 +1062,11 @@ apply_cursorline_highlight(
 #endif
 
 /*
- * Display line "lnum" of window 'wp' on the screen.
+ * Display line "lnum" of window "wp" on the screen.
  * Start at row "startrow", stop when "endrow" is reached.
+ * When "number_only" is TRUE only update the number column.
+ * "spv" is used to store information for spell checking, kept between
+ * sequential calls for the same window.
  * wp->w_virtcol needs to be valid.
  *
  * Return the number of last row the line occupies.
@@ -1056,8 +1077,8 @@ win_line(
     linenr_T	lnum,
     int		startrow,
     int		endrow,
-    int		nochange UNUSED,	// not updating for changed text
-    int		number_only)		// only update the number column
+    int		number_only,
+    spellvars_T	*spv UNUSED)
 {
     winlinevars_T	wlv;		// variables passed between functions
 
@@ -1133,7 +1154,6 @@ win_line(
     int		reset_extra_attr = FALSE;
 #endif
 #ifdef FEAT_SPELL
-    int		has_spell = FALSE;	// this buffer has spell checking
     int		can_spell = FALSE;
 # define SPWORDLEN 150
     char_u	nextline[SPWORDLEN * 2];// text with start of the next line
@@ -1142,11 +1162,6 @@ win_line(
 					// starts
     int		spell_attr = 0;		// attributes desired by spelling
     int		word_end = 0;		// last byte with same spell_attr
-    static linenr_T  checked_lnum = 0;	// line number for "checked_col"
-    static int	checked_col = 0;	// column in "checked_lnum" up to which
-					// there are no spell errors
-    static int	cap_col = -1;		// column to check for Cap word
-    static linenr_T capcol_lnum = 0;	// line number where "cap_col" used
     int		cur_checked_col = 0;	// checked column for current line
 #endif
     int		extra_check = 0;	// has extra highlighting
@@ -1280,40 +1295,6 @@ win_line(
 	    extra_check = TRUE;
 	    get_term_attr = TRUE;
 	    wlv.win_attr = term_get_attr(wp, lnum, -1);
-	}
-#endif
-
-#ifdef FEAT_SPELL
-	if (spell_check_window(wp))
-	{
-	    // Prepare for spell checking.
-	    has_spell = TRUE;
-	    extra_check = TRUE;
-
-	    // Get the start of the next line, so that words that wrap to the
-	    // next line are found too: "et<line-break>al.".
-	    // Trick: skip a few chars for C/shell/Vim comments
-	    nextline[SPWORDLEN] = NUL;
-	    if (lnum < wp->w_buffer->b_ml.ml_line_count)
-	    {
-		line = ml_get_buf(wp->w_buffer, lnum + 1, FALSE);
-		spell_cat_line(nextline + SPWORDLEN, line, SPWORDLEN);
-	    }
-
-	    // When a word wrapped from the previous line the start of the
-	    // current line is valid.
-	    if (lnum == checked_lnum)
-		cur_checked_col = checked_col;
-	    checked_lnum = 0;
-
-	    // When there was a sentence end in the previous line may require a
-	    // word starting with capital in this line.  In line 1 always check
-	    // the first word.
-	    if (lnum != capcol_lnum)
-		cap_col = -1;
-	    if (lnum == 1)
-		cap_col = 0;
-	    capcol_lnum = 0;
 	}
 #endif
 
@@ -1480,19 +1461,47 @@ win_line(
 	area_highlighting = TRUE;
 #endif
 
-    line = ml_get_buf(wp->w_buffer, lnum, FALSE);
-    ptr = line;
-
 #ifdef FEAT_SPELL
-    if (has_spell && !number_only)
+    if (spv->spv_has_spell && !number_only)
     {
-	// For checking first word with a capital skip white space.
-	if (cap_col == 0)
-	    cap_col = getwhitecols(line);
+	// Prepare for spell checking.
+	extra_check = TRUE;
 
-	// To be able to spell-check over line boundaries copy the end of the
-	// current line into nextline[].  Above the start of the next line was
-	// copied to nextline[SPWORDLEN].
+	// When a word wrapped from the previous line the start of the
+	// current line is valid.
+	if (lnum == spv->spv_checked_lnum)
+	    cur_checked_col = spv->spv_checked_col;
+	// Previous line was not spell checked, check for capital. This happens
+	// for the first line in an updated region or after a closed fold.
+	if (spv->spv_capcol_lnum == 0 && check_need_cap(wp, lnum, 0))
+	    spv->spv_cap_col = 0;
+	else if (lnum != spv->spv_capcol_lnum)
+	    spv->spv_cap_col = -1;
+	spv->spv_checked_lnum = 0;
+
+	// Get the start of the next line, so that words that wrap to the
+	// next line are found too: "et<line-break>al.".
+	// Trick: skip a few chars for C/shell/Vim comments
+	nextline[SPWORDLEN] = NUL;
+	if (lnum < wp->w_buffer->b_ml.ml_line_count)
+	{
+	    line = ml_get_buf(wp->w_buffer, lnum + 1, FALSE);
+	    spell_cat_line(nextline + SPWORDLEN, line, SPWORDLEN);
+	}
+	line = ml_get_buf(wp->w_buffer, lnum, FALSE);
+
+	// If current line is empty, check first word in next line for capital.
+	ptr = skipwhite(line);
+	if (*ptr == NUL)
+	{
+	    spv->spv_cap_col = 0;
+	    spv->spv_capcol_lnum = lnum + 1;
+	}
+	// For checking first word with a capital skip white space.
+	else if (spv->spv_cap_col == 0)
+	    spv->spv_cap_col = ptr - line;
+
+	// Copy the end of the current line into nextline[].
 	if (nextline[SPWORDLEN] == NUL)
 	{
 	    // No next line or it is empty.
@@ -1521,6 +1530,9 @@ win_line(
 	}
     }
 #endif
+
+    line = ml_get_buf(wp->w_buffer, lnum, FALSE);
+    ptr = line;
 
     if (wp->w_p_list)
     {
@@ -1710,7 +1722,7 @@ win_line(
 #ifdef FEAT_SPELL
 	// When spell checking a word we need to figure out the start of the
 	// word and if it's badly spelled or not.
-	if (has_spell)
+	if (spv->spv_has_spell)
 	{
 	    int		len;
 	    colnr_T	linecol = (colnr_T)(ptr - line);
@@ -2314,9 +2326,9 @@ win_line(
 # endif
 			syntax_attr = get_syntax_attr((colnr_T)v,
 # ifdef FEAT_SPELL
-						has_spell ? &can_spell :
+					    spv->spv_has_spell ? &can_spell :
 # endif
-						NULL, FALSE);
+					    NULL, FALSE);
 			prev_syntax_col = v;
 			prev_syntax_attr = syntax_attr;
 		    }
@@ -2755,7 +2767,7 @@ win_line(
 		// @Spell cluster is not used or the current syntax item
 		// contains the @Spell cluster.
 		v = (long)(ptr - line);
-		if (has_spell && v >= word_end && v > cur_checked_col)
+		if (spv->spv_has_spell && v >= word_end && v > cur_checked_col)
 		{
 		    spell_attr = 0;
 		    // do not calculate cap_col at the end of the line or when
@@ -2779,9 +2791,9 @@ win_line(
 			    p = nextline + (prev_ptr - line) - nextlinecol;
 			else
 			    p = prev_ptr;
-			cap_col -= (int)(prev_ptr - line);
-			len = spell_check(wp, p, &spell_hlf, &cap_col,
-								    nochange);
+			spv->spv_cap_col -= (int)(prev_ptr - line);
+			len = spell_check(wp, p, &spell_hlf, &spv->spv_cap_col,
+							    spv->spv_unchanged);
 			word_end = v + len;
 
 			// In Insert mode only highlight a word that
@@ -2802,29 +2814,30 @@ win_line(
 			{
 			    // Remember that the good word continues at the
 			    // start of the next line.
-			    checked_lnum = lnum + 1;
-			    checked_col = (int)((p - nextline)
-							 + len - nextline_idx);
+			    spv->spv_checked_lnum = lnum + 1;
+			    spv->spv_checked_col = (p - nextline) + len
+								- nextline_idx;
 			}
 
 			// Turn index into actual attributes.
 			if (spell_hlf != HLF_COUNT)
 			    spell_attr = highlight_attr[spell_hlf];
 
-			if (cap_col > 0)
+			if (spv->spv_cap_col > 0)
 			{
 			    if (p != prev_ptr
-				   && (p - nextline) + cap_col >= nextline_idx)
+				    && (p - nextline) + spv->spv_cap_col
+								>= nextline_idx)
 			    {
 				// Remember that the word in the next line
 				// must start with a capital.
-				capcol_lnum = lnum + 1;
-				cap_col = (int)((p - nextline) + cap_col
-							       - nextline_idx);
+				spv->spv_capcol_lnum = lnum + 1;
+				spv->spv_cap_col = ((p - nextline)
+					    + spv->spv_cap_col - nextline_idx);
 			    }
 			    else
 				// Compute the actual column.
-				cap_col += (int)(prev_ptr - line);
+				spv->spv_cap_col += (prev_ptr - line);
 			}
 		    }
 		}
@@ -4110,15 +4123,6 @@ win_line(
 	}
 
     }	// for every character in the line
-
-#ifdef FEAT_SPELL
-    // After an empty line check first word for capital.
-    if (*skipwhite(line) == NUL)
-    {
-	capcol_lnum = lnum + 1;
-	cap_col = 0;
-    }
-#endif
 #ifdef FEAT_PROP_POPUP
     vim_free(text_props);
     vim_free(text_prop_idxs);
@@ -4126,5 +4130,6 @@ win_line(
 #endif
 
     vim_free(wlv.p_extra_free);
+    vim_free(wlv.saved_p_extra_free);
     return wlv.row;
 }
