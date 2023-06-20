@@ -1786,7 +1786,6 @@ scrollup(
 	int	    width1 = curwin->w_width - curwin_col_off();
 	int	    width2 = width1 + curwin_col_off2();
 	int	    size = 0;
-	linenr_T    prev_topline = curwin->w_topline;
 	colnr_T	    prev_skipcol = curwin->w_skipcol;
 
 	if (do_sms)
@@ -1850,10 +1849,9 @@ scrollup(
 	    }
 	}
 
-	// TODO: is comparing w_topline with prev_topline still needed?
-	if (curwin->w_topline == prev_topline
-		|| curwin->w_skipcol != prev_skipcol)
-	    // need to redraw because wl_size of the topline may now be invalid
+	if (prev_skipcol > 0 || curwin->w_skipcol > 0)
+	    // need to redraw more, because wl_size of the (new) topline may
+	    // now be invalid
 	    redraw_later(UPD_NOT_VALID);
     }
     else
@@ -2416,10 +2414,14 @@ scroll_cursor_top(int min_scroll, int always)
 	}
 	check_topfill(curwin, FALSE);
 #endif
-	// TODO: if the line doesn't fit may optimize w_skipcol
-	if (curwin->w_topline == curwin->w_cursor.lnum
-		&& curwin->w_skipcol >= curwin->w_cursor.col)
-	    reset_skipcol();
+	if (curwin->w_topline == curwin->w_cursor.lnum)
+	{
+	    validate_virtcol();
+	    if (curwin->w_skipcol >= curwin->w_virtcol)
+		// TODO: if the line doesn't fit may optimize w_skipcol instead
+		// of making it zero
+		reset_skipcol();
+	}
 	if (curwin->w_topline != old_topline
 		|| curwin->w_skipcol != old_skipcol
 #ifdef FEAT_DIFF
