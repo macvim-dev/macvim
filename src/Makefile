@@ -3644,7 +3644,7 @@ macvim-dmg:
 	mkdir -p $(DMGDIR)
 	cp -a $(RELEASEDIR)/MacVim.app $(DMGDIR)/
 	rm -rf $(RELEASEDIR)/$(DMGFILE)
-	create-dmg/create-dmg \
+	MacVim/create-dmg/create-dmg \
 		--volname "MacVim" \
 		--volicon MacVim/icons/MacVim.icns \
 		--background MacVim/dmg/background.png \
