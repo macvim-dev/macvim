@@ -61,8 +61,8 @@ jobs:
             publish_postfix: '_10.9'
 
           # Most up to date OS and Xcode. Used to publish release for the main build.
-          - os: macos-12
-            xcode: '14.2'
+          - os: macos-13
+            xcode: '14.3.1'
             publish: true
 
     runs-on: ${{ matrix.os }}
