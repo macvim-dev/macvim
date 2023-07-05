@@ -312,7 +312,11 @@ jobs:
         run: |
           # Use the --skip-jenkins flag to skip the prettify osascript calls which could fail due to permission issues in
           # CI environment.
-          make -C src macvim-dmg CREATEDMG_FLAGS=--skip-jenkins
+          if ${{ matrix.legacy == true }}; then
+            make -C src macvim-dmg-legacy CREATEDMG_FLAGS=--skip-jenkins
+          else
+            make -C src macvim-dmg CREATEDMG_FLAGS=--skip-jenkins
+          fi
 
           if ${{ matrix.publish_postfix != '' }}; then
             mv src/MacVim/build/Release/MacVim.dmg src/MacVim/build/Release/MacVim${{ matrix.publish_postfix }}.dmg

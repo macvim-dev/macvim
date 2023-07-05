@@ -3633,18 +3633,28 @@ DMGDIR = MacVim/build/dmg
 DMGFILE = MacVim.dmg
 ENTITLEMENTS = MacVim/MacVim.entitlements
 
+# APFS is supported in 10.13+, ULFO (LZFSE compression) in 10.11+.
+DMGFILESYSTEM = APFS
+DMGFORMAT = ULFO
+
 macvim: $(VIMTARGET)
 	xcodebuild -project MacVim/MacVim.xcodeproj $(XCODEFLAGS)
 
 macvim-signed:
 	MacVim/scripts/sign-developer-id $(RELEASEDIR)/MacVim.app $(ENTITLEMENTS)
 
+macvim-dmg-legacy: DMGFILESYSTEM = HFS+
+macvim-dmg-legacy: DMGFORMAT = UDZO
+macvim-dmg-legacy: macvim-dmg
+
 macvim-dmg:
 	rm -rf $(DMGDIR)
 	mkdir -p $(DMGDIR)
 	cp -a $(RELEASEDIR)/MacVim.app $(DMGDIR)/
 	rm -rf $(RELEASEDIR)/$(DMGFILE)
-	create-dmg/create-dmg \
+	MacVim/create-dmg/create-dmg \
+		--filesystem "$(DMGFILESYSTEM)" \
+		--format "$(DMGFORMAT)" \
 		--volname "MacVim" \
 		--volicon MacVim/icons/MacVim.icns \
 		--background MacVim/dmg/background.png \

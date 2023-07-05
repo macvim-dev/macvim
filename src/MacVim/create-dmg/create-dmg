@@ -4,13 +4,18 @@
 
 # Bail out on any unhandled errors
 set -e;
+# Any command that exits with non-zero code will cause the pipeline to fail
+set -o pipefail;
 
-CDMG_VERSION='1.1.0'
+CDMG_VERSION='1.1.1'
 
 # The full path to the "support/" directory this script is using
 # (This will be set up by code later in the script.)
 CDMG_SUPPORT_DIR=""
 
+OS_FULL_VERSION="$(sw_vers | sed -n 2p | cut -d : -f 2 | tr -d '[:space:]' | cut -c1-)"
+OS_MAJOR_VERSION="$(echo $OS_FULL_VERSION | cut -d . -f 1)"
+OS_MINOR_VERSION="$(echo $OS_FULL_VERSION | cut -d . -f 2)"
 WINX=10
 WINY=60
 WINW=500
@@ -18,6 +23,7 @@ WINH=350
 ICON_SIZE=128
 TEXT_SIZE=16
 FORMAT="UDZO"
+FILESYSTEM="HFS+"
 ADD_FILE_SOURCES=()
 ADD_FILE_TARGETS=()
 IMAGEKEY=""
@@ -31,6 +37,26 @@ NOTARIZE=""
 
 function pure_version() {
 	echo "$CDMG_VERSION"
+}
+
+function hdiutil_detach_retry() {
+	# Unmount
+	unmounting_attempts=0
+	until
+		echo "Unmounting disk image..."
+		(( unmounting_attempts++ ))
+		hdiutil detach "$1"
+		exit_code=$?
+		(( exit_code ==  0 )) && break            # nothing goes wrong
+		(( exit_code != 16 )) && exit $exit_code  # exit with the original exit code
+		# The above statement returns 1 if test failed (exit_code == 16).
+		#   It can make the code in the {do... done} block to be executed
+	do
+		(( unmounting_attempts == MAXIMUM_UNMOUNTING_ATTEMPTS )) && exit 16  # patience exhausted, exit with code EBUSY
+		echo "Wait a moment..."
+		sleep $(( 1 * (2 ** unmounting_attempts) ))
+	done
+	unset unmounting_attempts
 }
 
 function version() {
@@ -76,6 +102,8 @@ Options:
       disable automatic mount & copy
   --format <format>
       specify the final disk image format (UDZO|UDBZ|ULFO|ULMO) (default is UDZO)
+  --filesystem <filesystem>
+      specify the disk image filesystem (HFS+|APFS) (default is HFS+, APFS supports macOS 10.13 or newer)
   --add-file <target_name> <file>|<folder> <x> <y>
       add additional file or folder (can be used multiple times)
   --disk-image-size <x>
@@ -91,7 +119,7 @@ Options:
   --notarize <credentials>
       notarize the disk image (waits and staples) with the keychain stored credentials
   --sandbox-safe
-      execute hdiutil with sandbox compatibility and do not bless
+      execute hdiutil with sandbox compatibility and do not bless (not supported for APFS disk images)
   --version
 	    show create-dmg version number
   -h, --help
@@ -162,6 +190,9 @@ while [[ "${1:0:1}" = "-" ]]; do
 		--format)
 			FORMAT="$2"
 			shift; shift;;
+		--filesystem)
+			FILESYSTEM="$2"
+			shift; shift;;
 		--add-file | --add-folder)
 			ADD_FILE_TARGETS+=("$2")
 			ADD_FILE_SOURCES+=("$3")
@@ -230,6 +261,16 @@ if [[ "${DMG_PATH: -4}" != ".dmg" ]]; then
 	exit 1
 fi
 
+if [[ "${FILESYSTEM}" != "HFS+" ]] && [[ "${FILESYSTEM}" != "APFS" ]]; then
+	echo "Unknown disk image filesystem: ${FILESYSTEM}. Run 'create-dmg --help' for help."
+	exit 1
+fi
+
+if [[ "${FILESYSTEM}" == "APFS" ]] && [[ ${SANDBOX_SAFE} -eq 1 ]]; then
+	echo "Creating an APFS disk image that is sandbox safe is not supported."
+	exit 1
+fi
+
 # Main script logic
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -280,7 +321,12 @@ function blocks_to_megabytes() {
 
 function get_size() {
 	# Get block size in disk
-	bytes_size=$(du -s "$1" | sed -e 's/	.*//g')
+	if [[ $OS_MAJOR_VERSION -ge 12 ]]; then
+		bytes_size=$(du -B 512 -s "$1")
+	else
+		bytes_size=$(du -s "$1")
+	fi
+	bytes_size=$(echo $bytes_size | sed -e 's/	.*//g')
 	echo $(blocks_to_megabytes $bytes_size)
 }
 
@@ -291,9 +337,14 @@ if [[ -n "$DISK_IMAGE_SIZE" ]]; then
 fi
 
 if [[ $SANDBOX_SAFE -eq 0 ]]; then
+	if [[ "$FILESYSTEM" == "APFS" ]]; then
+		FILESYSTEM_ARGUMENTS=""
+	else
+		FILESYSTEM_ARGUMENTS="-c c=64,a=16,e=16"
+	fi
 	hdiutil create ${HDIUTIL_VERBOSITY} -srcfolder "$SRC_FOLDER" -volname "${VOLUME_NAME}" \
-		-fs HFS+ -fsargs "-c c=64,a=16,e=16" -format UDRW ${CUSTOM_SIZE} "${DMG_TEMP_NAME}"
-else	
+		-fs "${FILESYSTEM}" -fsargs "${FILESYSTEM_ARGUMENTS}" -format UDRW ${CUSTOM_SIZE} "${DMG_TEMP_NAME}"
+else
 	hdiutil makehybrid ${HDIUTIL_VERBOSITY} -default-volume-name "${VOLUME_NAME}" -hfs -o "${DMG_TEMP_NAME}" "$SRC_FOLDER"
 	hdiutil convert -format UDRW -ov -o "${DMG_TEMP_NAME}" "${DMG_TEMP_NAME}"
 	DISK_IMAGE_SIZE_CUSTOM=$DISK_IMAGE_SIZE
@@ -335,7 +386,7 @@ MOUNT_DIR="/Volumes/${VOLUME_NAME}"
 if [[ -d "${MOUNT_DIR}" ]]; then
 	echo "Unmounting old disk image from $MOUNT_DIR..."
 	DEV_NAME=$(hdiutil info | grep -E --color=never '^/dev/' | sed 1q | awk '{print $1}')
-	hdiutil detach "${DEV_NAME}"
+	hdiutil_detach_retry "${DEV_NAME}"
 fi
 
 echo "Mounting disk image..."
@@ -399,7 +450,7 @@ else
 			true
 		else
 			echo >&2 "Failed running AppleScript"
-			hdiutil detach "${DEV_NAME}"
+			hdiutil_detach_retry "${DEV_NAME}"
 			exit 64
 		fi
 		echo "Done running the AppleScript..."
@@ -416,7 +467,11 @@ echo "Done fixing permissions"
 # Make the top window open itself on mount:
 if [[ $BLESS -eq 1 && $SANDBOX_SAFE -eq 0 ]]; then
 	echo "Blessing started"
-	bless --folder "${MOUNT_DIR}" --openfolder "${MOUNT_DIR}"
+	if [ $(uname -m) == "arm64" ]; then
+		bless --folder "${MOUNT_DIR}"
+	else
+		bless --folder "${MOUNT_DIR}" --openfolder "${MOUNT_DIR}"
+	fi
 	echo "Blessing finished"
 else
 	echo "Skipping blessing on sandbox"
@@ -431,23 +486,7 @@ fi
 echo "Deleting .fseventsd"
 rm -rf "${MOUNT_DIR}/.fseventsd" || true
 
-# Unmount
-unmounting_attempts=0
-until
-  echo "Unmounting disk image..."
-  (( unmounting_attempts++ ))
-  hdiutil detach "${DEV_NAME}"
-	exit_code=$?
-	(( exit_code ==  0 )) && break            # nothing goes wrong
-	(( exit_code != 16 )) && exit $exit_code  # exit with the original exit code
-	# The above statement returns 1 if test failed (exit_code == 16).
-	#   It can make the code in the {do... done} block to be executed
-do
-  (( unmounting_attempts == MAXIMUM_UNMOUNTING_ATTEMPTS )) && exit 16  # patience exhausted, exit with code EBUSY
-	echo "Wait a moment..."
-  sleep $(( 1 * (2 ** unmounting_attempts) ))
-done
-unset unmounting_attempts
+hdiutil_detach_retry "${DEV_NAME}"
 
 # Compress image
 echo "Compressing disk image..."
