@@ -63,7 +63,8 @@ All contents of source\_folder will be copied into the disk image.
 - **--eula \<eula_file\>:** attach a license file to the dmg
 - **--rez \<rez_path\>:** specify custom path to Rez tool used to include license file
 - **--no-internet-enable:** disable automatic mount&copy
-- **--format:** specify the final image format (UDZO|UDBZ|ULFO|ULMO) (default is UDZO) 
+- **--format:** specify the final image format (UDZO|UDBZ|ULFO|ULMO) (default is UDZO)
+- **--filesystem:** specify the image filesystem (HFS+|APFS) (default is HFS+, APFS supports macOS 10.13 or newer)
 - **--add-file \<target_name\> \<file|folder\> \<x\> \<y\>:** add additional file or folder (can be used multiple times)
 - **--disk-image-size \<x\>:** set the disk image size manually to x MB
 - **--hdiutil-verbose:** execute hdiutil in verbose mode
@@ -73,7 +74,7 @@ All contents of source\_folder will be copied into the disk image.
 - **--notarize \<credentials>:** notarize the disk image (waits and staples) with the keychain stored credentials
     For more information check [Apple's documentation](https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution/customizing_the_notarization_workflow)
 - **--skip-jenkins:** skip Finder-prettifying AppleScript, useful in Sandbox and non-GUI environments, [#72](https://github.com/create-dmg/create-dmg/pull/72)
-- **--sandbox-safe:** hdiutil with sandbox compatibility, do not bless and do not execute the cosmetic AppleScript
+- **--sandbox-safe:** hdiutil with sandbox compatibility, do not bless and do not execute the cosmetic AppleScript (not supported for APFS disk images)
 - **--version:** show tool version number
 - **-h, --help:** display the help
 
