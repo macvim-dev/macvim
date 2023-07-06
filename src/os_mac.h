@@ -264,6 +264,14 @@ typedef int clockid_t;
 #  define CLOCK_MONOTONIC 1
 # endif
 
+# if !defined(MAC_OS_X_VERSION_10_12) \
+	|| (MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_12)
+// This happens when building on a newer machine for a min deployment lower
+// than 10.12. The build environment supports clock_gettime(), but the target
+// runtime doesn't.
+#  undef HAVE_CLOCK_GETTIME
+# endif
+
 struct itimerspec
 {
     struct timespec it_interval;  // timer period
