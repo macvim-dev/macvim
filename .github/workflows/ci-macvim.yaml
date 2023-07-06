@@ -237,6 +237,7 @@ jobs:
       - name: Check version
         run: |
           ${VIM_BIN} --version
+          ${VIM_BIN} -u NONE -i NONE --not-a-term -esNX -V1 -c 'echo "\nprof_nsec:" .. has("prof_nsec") .. "\n"' -c quit
           ${VIM_BIN} -u NONE -i NONE --not-a-term -esNX -V1 -S ci/if_ver-1.vim -c quit
           ${VIM_BIN} -u NONE -i NONE --not-a-term -esNX -V1 -S ci/if_ver-2.vim -c quit
 
