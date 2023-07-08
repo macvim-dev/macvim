@@ -51,6 +51,7 @@
     int                 processingFlag;
 
     BOOL                hasShownWindowBefore;
+    BOOL                shouldShowWhatsNewPage;
     
 #if !DISABLE_SPARKLE
 #if USE_SPARKLE_1
@@ -93,6 +94,7 @@
 - (IBAction)selectPreviousWindow:(id)sender;
 - (IBAction)orderFrontPreferencePanel:(id)sender;
 - (IBAction)openWebsite:(id)sender;
+- (IBAction)showWhatsNew:(id)sender;
 - (IBAction)showVimHelp:(id)sender withCmd:(NSString *)cmd;
 - (IBAction)showVimHelp:(id)sender;
 - (IBAction)checkForUpdates:(id)sender;

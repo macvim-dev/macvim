@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="21701" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="21701"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="MMWhatsNewController">
+            <connections>
+                <outlet property="messageTextField" destination="XUz-QT-FW3" id="8pc-Bn-PCo"/>
+                <outlet property="webViewAlignTopConstraint" destination="nCc-BH-lkb" id="OfG-n2-1kd"/>
+                <outlet property="webViewContainer" destination="8RS-tq-hj9" id="rEE-AB-jMX"/>
+                <outlet property="window" destination="QvC-M9-y7g" id="Ito-nG-FBM"/>
+            </connections>
+        </customObject>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="MMApplication"/>
+        <window title="What's New" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" releasedWhenClosed="NO" visibleAtLaunch="NO" animationBehavior="default" id="QvC-M9-y7g">
+            <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
+            <windowCollectionBehavior key="collectionBehavior" fullScreenAuxiliary="YES"/>
+            <rect key="contentRect" x="196" y="240" width="700" height="600"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1512" height="944"/>
+            <value key="minSize" type="size" width="450" height="350"/>
+            <value key="minFullScreenContentSize" type="size" width="580" height="400"/>
+            <view key="contentView" wantsLayer="YES" id="EiT-Mj-1SZ">
+                <rect key="frame" x="0.0" y="0.0" width="700" height="600"/>
+                <autoresizingMask key="autoresizingMask"/>
+                <subviews>
+                    <view wantsLayer="YES" translatesAutoresizingMaskIntoConstraints="NO" id="8RS-tq-hj9" userLabel="WKViewContainer">
+                        <rect key="frame" x="0.0" y="36" width="700" height="534"/>
+                    </view>
+                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Ruu-cv-8kr">
+                        <rect key="frame" x="579" y="2" width="114" height="32"/>
+                        <constraints>
+                            <constraint firstAttribute="width" relation="greaterThanOrEqual" priority="500" constant="100" id="j3i-GA-W4c"/>
+                        </constraints>
+                        <buttonCell key="cell" type="push" title="OK" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="oZp-CL-hcE">
+                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="system"/>
+                            <string key="keyEquivalent" base64-UTF8="YES">
+DQ
+</string>
+                        </buttonCell>
+                        <connections>
+                            <action selector="performClose:" target="QvC-M9-y7g" id="zOg-2h-Pl6"/>
+                        </connections>
+                    </button>
+                    <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="XUz-QT-FW3" userLabel="Message text field">
+                        <rect key="frame" x="-2" y="577" width="704" height="16"/>
+                        <textFieldCell key="cell" allowsUndo="NO" sendsActionOnEndEditing="YES" title="MacVim has been updated to a new version! See below for what's new." id="zJt-Pz-NuM">
+                            <font key="font" metaFont="systemBold"/>
+                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="tEM-a8-ff4">
+                        <rect key="frame" x="10" y="8" width="277" height="18"/>
+                        <buttonCell key="cell" type="check" title="Show this after updating to a new version" bezelStyle="regularSquare" imagePosition="left" inset="2" id="pQm-a6-Afl">
+                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                            <font key="font" metaFont="system"/>
+                        </buttonCell>
+                        <connections>
+                            <binding destination="Ln3-tR-KlL" name="value" keyPath="values.MMShowWhatsNewOnStartup" id="4SL-b6-Qeb"/>
+                        </connections>
+                    </button>
+                </subviews>
+                <constraints>
+                    <constraint firstAttribute="trailing" secondItem="XUz-QT-FW3" secondAttribute="trailing" id="3co-CS-0gZ"/>
+                    <constraint firstItem="Ruu-cv-8kr" firstAttribute="top" secondItem="8RS-tq-hj9" secondAttribute="bottom" priority="700" constant="7" id="3ea-EU-2ex"/>
+                    <constraint firstItem="8RS-tq-hj9" firstAttribute="leading" secondItem="EiT-Mj-1SZ" secondAttribute="leading" id="6xF-no-Gp3"/>
+                    <constraint firstItem="XUz-QT-FW3" firstAttribute="leading" secondItem="EiT-Mj-1SZ" secondAttribute="leading" id="FFF-jU-eTt"/>
+                    <constraint firstItem="Ruu-cv-8kr" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="tEM-a8-ff4" secondAttribute="trailing" priority="700" constant="10" id="Ikv-2X-n1z"/>
+                    <constraint firstAttribute="trailing" secondItem="Ruu-cv-8kr" secondAttribute="trailing" constant="14" id="L5V-iI-8tb"/>
+                    <constraint firstItem="XUz-QT-FW3" firstAttribute="top" secondItem="EiT-Mj-1SZ" secondAttribute="top" constant="7" id="New-Tc-8tx"/>
+                    <constraint firstItem="Ruu-cv-8kr" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="EiT-Mj-1SZ" secondAttribute="leading" priority="300" constant="10" id="SSo-qV-4Sg"/>
+                    <constraint firstAttribute="bottom" secondItem="tEM-a8-ff4" secondAttribute="bottom" constant="9" id="d6g-Jn-Gaa"/>
+                    <constraint firstAttribute="trailing" secondItem="8RS-tq-hj9" secondAttribute="trailing" id="dU7-RY-Cuu"/>
+                    <constraint firstAttribute="bottom" secondItem="Ruu-cv-8kr" secondAttribute="bottom" constant="9" id="dX3-Cr-mUG"/>
+                    <constraint firstItem="tEM-a8-ff4" firstAttribute="leading" secondItem="EiT-Mj-1SZ" secondAttribute="leading" constant="12" id="hGi-fy-3db"/>
+                    <constraint firstItem="8RS-tq-hj9" firstAttribute="top" secondItem="XUz-QT-FW3" secondAttribute="bottom" priority="700" constant="7" id="m8L-ny-YQS"/>
+                    <constraint firstItem="8RS-tq-hj9" firstAttribute="top" secondItem="EiT-Mj-1SZ" secondAttribute="top" priority="200" id="nCc-BH-lkb"/>
+                </constraints>
+            </view>
+            <point key="canvasLocation" x="-653.5" y="-322.5"/>
+        </window>
+        <userDefaultsController representsSharedInstance="YES" id="Ln3-tR-KlL"/>
+    </objects>
+</document>

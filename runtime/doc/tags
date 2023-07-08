@@ -5520,6 +5520,7 @@ MMNonNativeFullScreenShowMenu	gui_mac.txt	/*MMNonNativeFullScreenShowMenu*
 MMRendererClipToRow	gui_mac.txt	/*MMRendererClipToRow*
 MMShareFindPboard	gui_mac.txt	/*MMShareFindPboard*
 MMShowAddTabButton	gui_mac.txt	/*MMShowAddTabButton*
+MMShowWhatsNewOnStartup	gui_mac.txt	/*MMShowWhatsNewOnStartup*
 MMSmoothResize	gui_mac.txt	/*MMSmoothResize*
 MMTabMaxWidth	gui_mac.txt	/*MMTabMaxWidth*
 MMTabMinWidth	gui_mac.txt	/*MMTabMinWidth*

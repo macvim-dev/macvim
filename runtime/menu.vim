@@ -102,16 +102,18 @@ if has("gui_macvim")
   an 9999.1 &Help.MacVim\ Help		    :h gui_mac<CR>
   tln 9999.1 &Help.MacVim\ Help		    <C-W>:h gui_mac<CR>
   an <silent> 9999.2 &Help.MacVim\ Website   <Nop>
-  an 9999.3 &Help.Release\ Notes        <Cmd>silent !open https://github.com/macvim-dev/macvim/releases<CR>
-  tln 9999.3 &Help.Release\ Notes        <Cmd>silent !open https://github.com/macvim-dev/macvim/releases<CR>
-  an 9999.4 &Help.-sep0-		    <Nop>
+  an 9999.3 &Help.What's\ New        <Nop>
+  tln 9999.3 &Help.What's\ New        <Nop>
+  an 9999.4 &Help.Release\ Notes        <Cmd>silent !open https://github.com/macvim-dev/macvim/releases<CR>
+  tln 9999.4 &Help.Release\ Notes        <Cmd>silent !open https://github.com/macvim-dev/macvim/releases<CR>
+  an 9999.5 &Help.-sep0-		    <Nop>
 endif
 if has("gui_macvim")
   " Run vimtutor in GUI mode. Need to make sure to override the PATH so we use
   " this app instead of accidentally opening another installed Vim/MacVim.
-  an 9999.5 &Help.Vim\ Tutor       :silent call system('PATH="$VIM/../../bin":/usr/bin:/bin:/usr/sbin:/sbin $VIM/../../bin/vimtutor -g&')<CR>
-  tln 9999.5 &Help.Vim\ Tutor      <C-W>:silent call system('PATH="$VIM/../../bin":/usr/bin:/bin:/usr/sbin:/sbin $VIM/../../bin/vimtutor -g&')<CR>
-  an 9999.6 &Help.-sep-vim-tutor-  <Nop>
+  an 9999.6 &Help.Vim\ Tutor       :silent call system('PATH="$VIM/../../bin":/usr/bin:/bin:/usr/sbin:/sbin $VIM/../../bin/vimtutor -g&')<CR>
+  tln 9999.6 &Help.Vim\ Tutor      <C-W>:silent call system('PATH="$VIM/../../bin":/usr/bin:/bin:/usr/sbin:/sbin $VIM/../../bin/vimtutor -g&')<CR>
+  an 9999.7 &Help.-sep-vim-tutor-  <Nop>
 endif
 an 9999.10 &Help.&Overview<Tab><F1>	:help<CR>
 an 9999.20 &Help.&User\ Manual		:help usr_toc<CR>
@@ -1312,6 +1314,7 @@ if has("gui_macvim")
 
   macm Help.MacVim\ Help			key=<D-?>
   macm Help.MacVim\ Website			action=openWebsite:
+  macm Help.What's\ New			    action=showWhatsNew:
 endif " if has("gui_macvim")
 
 endif " !exists("did_install_default_menus")

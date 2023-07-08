@@ -24,11 +24,11 @@
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
         <userDefaultsController representsSharedInstance="YES" id="58" userLabel="Shared Defaults"/>
         <customView id="115" userLabel="General">
-            <rect key="frame" x="0.0" y="0.0" width="483" height="337"/>
+            <rect key="frame" x="0.0" y="0.0" width="483" height="362"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
             <subviews>
                 <customView id="5x5-P0-afk" userLabel="Open untitled window">
-                    <rect key="frame" x="20" y="259" width="433" height="58"/>
+                    <rect key="frame" x="20" y="284" width="433" height="58"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <subviews>
                         <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="117">
@@ -73,7 +73,7 @@
                     </subviews>
                 </customView>
                 <customView id="p6o-fo-STi" userLabel="Open files from applications">
-                    <rect key="frame" x="20" y="119" width="433" height="132"/>
+                    <rect key="frame" x="20" y="144" width="433" height="132"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <subviews>
                         <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="116">
@@ -152,7 +152,7 @@
                     </subviews>
                 </customView>
                 <customView id="dlz-JQ-U4e" userLabel="After last window closes">
-                    <rect key="frame" x="20" y="89" width="381" height="22"/>
+                    <rect key="frame" x="20" y="114" width="381" height="22"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <subviews>
                         <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="126">
@@ -185,7 +185,7 @@
                     </subviews>
                 </customView>
                 <customView id="6BL-o0-OrR" userLabel="Window Resizing">
-                    <rect key="frame" x="20" y="64" width="444" height="17"/>
+                    <rect key="frame" x="20" y="89" width="444" height="17"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <subviews>
                         <button id="f9h-8n-asD" userLabel="allow smooth resizing">
@@ -205,6 +205,32 @@
                             <rect key="frame" x="-2" y="0.0" width="187" height="17"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Resizing window:" id="ExQ-6y-pyN" userLabel="Window resizing:">
+                                <font key="font" metaFont="system"/>
+                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                            </textFieldCell>
+                        </textField>
+                    </subviews>
+                </customView>
+                <customView id="nRD-BI-GeM" userLabel="Launch behavior">
+                    <rect key="frame" x="20" y="64" width="444" height="17"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <subviews>
+                        <button toolTip="Show a &quot;What's New&quot; page right after updating to a new version with the latest release notes." id="bxV-yy-NJC">
+                            <rect key="frame" x="188" y="-1" width="258" height="18"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
+                            <buttonCell key="cell" type="check" title="Show what's new after updates" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="ai9-b7-6iD">
+                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                <font key="font" metaFont="system"/>
+                            </buttonCell>
+                            <connections>
+                                <binding destination="58" name="value" keyPath="values.MMShowWhatsNewOnStartup" id="LjF-Lv-00h"/>
+                            </connections>
+                        </button>
+                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="qpS-3j-8OG">
+                            <rect key="frame" x="-2" y="0.0" width="187" height="17"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
+                            <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="When MacVim launches:" id="S5x-il-vbq">
                                 <font key="font" metaFont="system"/>
                                 <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
@@ -244,19 +270,10 @@
                                 <binding destination="58" name="value" keyPath="values.SUAutomaticallyUpdate" id="kyZ-ah-zKf"/>
                             </connections>
                         </button>
-                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="124">
-                            <rect key="frame" x="-2" y="19" width="187" height="17"/>
-                            <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
-                            <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="When MacVim launches:" id="976">
-                                <font key="font" metaFont="system"/>
-                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                            </textFieldCell>
-                        </textField>
                     </subviews>
                 </customView>
             </subviews>
-            <point key="canvasLocation" x="137.5" y="21.5"/>
+            <point key="canvasLocation" x="137.5" y="-27"/>
         </customView>
         <customView id="hr4-G4-3ZG" userLabel="Appearance">
             <rect key="frame" x="0.0" y="0.0" width="483" height="360"/>

@@ -25,5 +25,6 @@ menutrans Zoom\ All Aumentar/reduzir\ todas\ as\ janelas
 menutrans Show\ Next\ Tab Mostrar\ separador\ seguinte
 menutrans Show\ Previous\ Tab Mostrar\ separador\ anterior
 menutrans Bring\ All\ to\ Front Passar\ tudo\ para\ a\ frente
+menutrans What's\ New Novidades
 menutrans Release\ Notes Notas\ de\ lançamento
 menutrans Look\ Up Procurar

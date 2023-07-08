@@ -25,5 +25,6 @@ menutrans Zoom\ All 모두\ 확대/축소
 menutrans Show\ Next\ Tab 다음\ 탭\ 보기
 menutrans Show\ Previous\ Tab 이전\ 탭\ 보기
 menutrans Bring\ All\ to\ Front 모두\ 앞으로\ 가져오기
+menutrans What's\ New 새로운\ 기능
 menutrans Release\ Notes 릴리즈\ 노트
 menutrans Look\ Up 찾아보기
