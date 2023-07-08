@@ -1,5 +1,16 @@
 " Test :setfiletype
 
+func Test_backup_strip()
+  filetype on
+  let fname = 'Xdetect.js~~~~~~~~~~~'
+  call writefile(['one', 'two', 'three'], fname, 'D')
+  exe 'edit ' .. fname
+  call assert_equal('javascript', &filetype)
+
+  bwipe!
+  filetype off
+endfunc
+
 func Test_detection()
   filetype on
   augroup filetypedetect
@@ -495,6 +506,7 @@ def s:GetFilenameChecks(): dict<list<string>>
     pccts: ['file.g'],
     pcmk: ['file.pcmk'],
     pdf: ['file.pdf'],
+    pem: ['file.pem', 'file.cer', 'file.crt', 'file.csr'],
     perl: ['file.plx', 'file.al', 'file.psgi', 'gitolite.rc', '.gitolite.rc', 'example.gitolite.rc', '.latexmkrc', 'latexmkrc'],
     pf: ['pf.conf'],
     pfmain: ['main.cf', 'main.cf.proto'],
@@ -590,7 +602,7 @@ def s:GetFilenameChecks(): dict<list<string>>
     services: ['/etc/services', 'any/etc/services'],
     setserial: ['/etc/serial.conf', 'any/etc/serial.conf'],
     sexplib: ['file.sexp'],
-    sh: ['.bashrc', 'file.bash', '/usr/share/doc/bash-completion/filter.sh', '/etc/udev/cdsymlinks.conf', 'any/etc/udev/cdsymlinks.conf'],
+    sh: ['.bashrc', '.bash_profile', '.bash-profile', '.bash_logout', '.bash-logout', '.bash_aliases', '.bash-aliases', '/tmp/bash-fc-3Ozjlw', '/tmp/bash-fc.3Ozjlw', 'PKGBUILD', 'APKBUILD', 'file.bash', '/usr/share/doc/bash-completion/filter.sh', '/etc/udev/cdsymlinks.conf', 'any/etc/udev/cdsymlinks.conf'],
     sieve: ['file.siv', 'file.sieve'],
     sil: ['file.sil'],
     simula: ['file.sim'],
@@ -790,6 +802,7 @@ def s:GetFilenameChecks(): dict<list<string>>
     zimbu: ['file.zu'],
     zimbutempl: ['file.zut'],
     zir: ['file.zir'],
+    zserio: ['file.zs'],
     zsh: ['.zprofile', '/etc/zprofile', '.zfbfmarks', 'file.zsh',
           '.zcompdump', '.zlogin', '.zlogout', '.zshenv', '.zshrc',
           '.zcompdump-file', '.zlog', '.zlog-file', '.zsh', '.zsh-file',
@@ -802,7 +815,7 @@ enddef
 def s:GetFilenameCaseChecks(): dict<list<string>>
   return {
     modula2: ['file.DEF'],
-    bzl: ['file.BUILD', 'BUILD'],
+    bzl: ['file.BUILD', 'BUILD', 'BUCK'],
   }
 enddef
 

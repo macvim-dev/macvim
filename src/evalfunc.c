@@ -45,6 +45,7 @@ static void f_did_filetype(typval_T *argvars, typval_T *rettv);
 static void f_echoraw(typval_T *argvars, typval_T *rettv);
 static void f_empty(typval_T *argvars, typval_T *rettv);
 static void f_environ(typval_T *argvars, typval_T *rettv);
+static void f_err_teapot(typval_T *argvars, typval_T *rettv);
 static void f_escape(typval_T *argvars, typval_T *rettv);
 static void f_eval(typval_T *argvars, typval_T *rettv);
 static void f_eventhandler(typval_T *argvars, typval_T *rettv);
@@ -1880,6 +1881,8 @@ static funcentry_T global_functions[] =
 			ret_number_bool,    f_empty},
     {"environ",		0, 0, 0,	    NULL,
 			ret_dict_string,    f_environ},
+    {"err_teapot",	0, 1, 0,	    NULL,
+			ret_number_bool,    f_err_teapot},
     {"escape",		2, 2, FEARG_1,	    arg2_string,
 			ret_string,	    f_escape},
     {"eval",		1, 1, FEARG_1,	    arg1_string,
@@ -2223,7 +2226,7 @@ static funcentry_T global_functions[] =
     {"matchend",	2, 4, FEARG_1,	    arg24_match_func,
 			ret_number,	    f_matchend},
     {"matchfuzzy",	2, 3, FEARG_1,	    arg3_list_string_dict,
-			ret_list_string,    f_matchfuzzy},
+			ret_list_any,	    f_matchfuzzy},
     {"matchfuzzypos",	2, 3, FEARG_1,	    arg3_list_string_dict,
 			ret_list_any,	    f_matchfuzzypos},
     {"matchlist",	2, 4, FEARG_1,	    arg24_match_func,
@@ -3923,6 +3926,33 @@ f_environ(typval_T *argvars UNUSED, typval_T *rettv)
 	vim_free(entry);
     }
 #endif
+}
+
+/*
+ * "err_teapot()" function
+ */
+    static void
+f_err_teapot(typval_T *argvars, typval_T *rettv UNUSED)
+{
+    if (argvars[0].v_type != VAR_UNKNOWN)
+    {
+	if (argvars[0].v_type == VAR_STRING)
+	{
+	    char_u *s = tv_get_string_strict(&argvars[0]);
+	    if (s == NULL || *skipwhite(s) == NUL)
+		return;
+	}
+
+	int err = FALSE;
+	int do_503 = eval_expr_to_bool(&argvars[0], &err);
+	if (!err && do_503)
+	{
+	    emsg(_(e_coffee_currently_not_available));
+	    return;
+	}
+    }
+
+    emsg(_(e_im_a_teapot));
 }
 
 /*
@@ -6491,6 +6521,14 @@ f_has(typval_T *argvars, typval_T *rettv)
 		},
 	{"X11",
 #if defined(UNIX) && defined(FEAT_X11)
+		1
+#else
+		0
+#endif
+		},
+	{":tearoff",
+// same #ifdef as used for ex_tearoff().
+#if defined(FEAT_GUI_MSWIN) && defined(FEAT_MENU) && defined(FEAT_TEAROFF)
 		1
 #else
 		0
