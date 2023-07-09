@@ -20,6 +20,12 @@ For the most recent information about sponsoring look on the Vim web site:
 
 More explanations can be found in the |sponsor-faq|.
 
+SPONSOR MACVIM DEVELOPMENT				*macvim-sponsor*
+
+If you would like to support MacVim development itself, visit:
+
+	https://github.com/sponsors/macvim-dev
+
 
 REGISTERED VIM USER						*register*
 
