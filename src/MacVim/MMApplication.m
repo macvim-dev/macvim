@@ -53,7 +53,7 @@
     NSString *marketingVersion = [[NSBundle mainBundle]
             objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
 
-    BOOL isPrerelease = [version containsSubstring:@"."];
+    BOOL isPrerelease = [version rangeOfString:@"."].length > 0;
     NSString *prerelease = isPrerelease ? @"\npre-release" : @"";
 
     NSString *title = [NSString stringWithFormat:

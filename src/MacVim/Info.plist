@@ -1309,6 +1309,8 @@
 			</dict>
 		</dict>
 	</array>
+	<key>MMWhatsNewURL</key>
+	<string>https://macvim.org/release-notes/whatsnew.html</string>
 	<key>SUEnableJavaScript</key>
 	<string>YES</string>
 	<key>SUFeedURL</key>

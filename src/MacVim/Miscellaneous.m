@@ -61,6 +61,7 @@ NSString *MMRendererClipToRowKey      = @"MMRendererClipToRow";
 NSString *MMAllowForceClickLookUpKey      = @"MMAllowForceClickLookUp";
 NSString *MMUpdaterPrereleaseChannelKey   = @"MMUpdaterPrereleaseChannel";
 NSString *MMLastUsedBundleVersionKey        = @"MMLastUsedBundleVersion";
+NSString *MMShowWhatsNewOnStartupKey        = @"MMShowWhatsNewOnStartup";
 
 
 @implementation NSIndexSet (MMExtras)

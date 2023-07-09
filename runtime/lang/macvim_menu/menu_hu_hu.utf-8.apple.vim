@@ -25,5 +25,6 @@ menutrans Zoom\ All Összes\ nagyítása
 menutrans Show\ Next\ Tab Következő\ lap\ megjelenítése
 menutrans Show\ Previous\ Tab Előző\ lap\ megjelenítése
 menutrans Bring\ All\ to\ Front Összes\ előtérbe\ hozása
+menutrans What's\ New Újdonságok
 menutrans Release\ Notes Kibocsátási\ megjegyzések
 menutrans Look\ Up Definiálás

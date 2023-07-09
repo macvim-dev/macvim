@@ -308,6 +308,7 @@ KEY				VALUE ~
 *MMVerticalSplit*		files open in vertical splits [bool]
 *MMZoomBoth*			zoom button maximizes both directions [bool]
 *MMUpdaterPrereleaseChannel*	opt-in to pre-release software update [bool]
+*MMShowWhatsNewOnStartup*	show "What's New" after updating to new version [bool]
 
 As an example, if you have more than one mouse button and would wish to free
 up Ctrl-click so you can bind it to something else, then the appropriate

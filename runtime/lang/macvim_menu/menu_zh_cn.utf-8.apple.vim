@@ -25,5 +25,6 @@ menutrans Zoom\ All 全部缩放
 menutrans Show\ Next\ Tab 显示下一个标签页
 menutrans Show\ Previous\ Tab 显示上一个标签页
 menutrans Bring\ All\ to\ Front 前置全部窗口
+menutrans What's\ New 新功能
 menutrans Release\ Notes 发布说明
 menutrans Look\ Up 查询

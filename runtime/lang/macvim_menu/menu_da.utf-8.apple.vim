@@ -25,5 +25,6 @@ menutrans Zoom\ All Zoom\ alle
 menutrans Show\ Next\ Tab Vis\ næste\ fane
 menutrans Show\ Previous\ Tab Vis\ forrige\ fane
 menutrans Bring\ All\ to\ Front Anbring\ alle\ forrest
+menutrans What's\ New Nyheder
 menutrans Release\ Notes Frigivelsesnoter
 menutrans Look\ Up Slå\ op

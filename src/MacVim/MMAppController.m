@@ -43,6 +43,7 @@
 #import "MMVimView.h"
 #import "MMWindowController.h"
 #import "MMTextView.h"
+#import "MMWhatsNewController.h"
 #import "Miscellaneous.h"
 #import <unistd.h>
 #import <CoreServices/CoreServices.h>
@@ -108,6 +109,8 @@ typedef struct
 
 
 @interface MMAppController (Private)
+- (void)startUpdaterAndWhatsNewPage;
+
 - (MMVimController *)topmostVimController;
 - (int)launchVimProcessWithArguments:(NSArray *)args
                     workingDirectory:(NSString *)cwd;
@@ -264,6 +267,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         [NSNumber numberWithBool:YES],    MMAllowForceClickLookUpKey,
         [NSNumber numberWithBool:NO],     MMUpdaterPrereleaseChannelKey,
         @"",                              MMLastUsedBundleVersionKey,
+        [NSNumber numberWithBool:YES],    MMShowWhatsNewOnStartupKey,
         nil];
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:dict];
@@ -323,7 +327,11 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     updater = [[SUUpdater alloc] init];
 #else
     sparkle2delegate = [[MMSparkle2Delegate alloc] init];
-    updater = [[SPUStandardUpdaterController alloc] initWithUpdaterDelegate:sparkle2delegate userDriverDelegate:sparkle2delegate];
+
+    // We don't immediately start the updater, because if it sees an update
+    // and immediately shows the dialog box it will pop up behind a new MacVim
+    // window. Instead, startUpdaterAndWhatsNewPage will be called later to do so.
+    updater = [[SPUStandardUpdaterController alloc] initWithStartingUpdater:NO updaterDelegate:sparkle2delegate userDriverDelegate:sparkle2delegate];
 #endif
 #endif
 
@@ -501,8 +509,37 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
             if (currentVersionLarger) {
                 [ud setValue:currentVersion forKey:MMLastUsedBundleVersionKey];
+
+                // We have successfully updated to a new version. Show a "What's
+                // New" page to the user with latest release notes if the main
+                // release number has increased (we don't count the pre-release
+                // minor revision number for now).
+                if (lastUsedVersionItems[0].integerValue < currentVersionItems[0].integerValue) {
+
+                    BOOL showWhatsNewSetting = [ud boolForKey:MMShowWhatsNewOnStartupKey];
+
+                    shouldShowWhatsNewPage = showWhatsNewSetting;
+                    [MMWhatsNewController setRequestVersionRange:lastUsedVersion
+                                                              to:currentVersion];
+                }
             }
         }
+    }
+
+    // Start the Sparkle updater and potentially show "What's New". If the user
+    // doesn't want a new untitled MacVim window shown, we immediately do so.
+    // Otherwise we want to do it *after* the untitled window is opened so the
+    // updater / "What's New" page can be shown on top of it. We still schedule
+    // a timer to open it as a backup in case something wrong happened with the
+    // Vim window (e.g. a crash in Vim) but we still want the updater to work since
+    // that update may very well be the fix for the crash.
+    const NSInteger untitledWindowFlag = [ud integerForKey:MMUntitledWindowKey];
+    if ((untitledWindowFlag & MMUntitledWindowOnOpen) == 0) {
+        [self startUpdaterAndWhatsNewPage];
+    } else {
+        // Per above, this is just a backup. startUpdaterAndWhatsNewPage will
+        // not do anything if it's called a second time.
+        [NSTimer scheduledTimerWithTimeInterval:2.0 target:self selector:@selector(startUpdaterAndWhatsNewPage) userInfo:nil repeats:NO];
     }
 
     ASLogInfo(@"MacVim finished launching");
@@ -955,6 +992,11 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     }
 
     hasShownWindowBefore = YES;
+
+    // If this is the first untitled window we defer starting updater/what's new
+    // to now to make sure they can be shown on top. Otherwise calling this will
+    // do nothing so it's safe.
+    [self startUpdaterAndWhatsNewPage];
 }
 
 - (void)setMainMenu:(NSMenu *)mainMenu
@@ -1232,7 +1274,10 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
 - (BOOL)validateMenuItem:(NSMenuItem *)item
 {
-    // For the actions defined in this class we do want them to always be
+    if ([item action] == @selector(showWhatsNew:)) {
+        return [MMWhatsNewController canOpen];
+    }
+    // For most of the actions defined in this class we do want them to always be
     // enabled since they are usually app functionality and independent of
     // each Vim's state.
     return YES;
@@ -1368,6 +1413,12 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     ASLogDebug(@"Open MacVim website");
     [[NSWorkspace sharedWorkspace] openURL:
             [NSURL URLWithString:MMWebsiteString]];
+}
+
+- (IBAction)showWhatsNew:(id)sender
+{
+    ASLogDebug(@"Open What's New page");
+    [MMWhatsNewController openSharedInstance];
 }
 
 - (IBAction)showVimHelp:(id)sender withCmd:(NSString *)cmd
@@ -1770,6 +1821,28 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
 
 @implementation MMAppController (Private)
+
+/// Initializes the Sparkle updater and show a "What's New" page if needed.
+/// Can be called more than once, but later calls will be silently ignored.
+/// This should be called after the initial untitled window is shown to make
+/// sure the updater/"What's New" windows can be shown on top of it.
+- (void)startUpdaterAndWhatsNewPage
+{
+    static BOOL started = NO;
+    if (!started) {
+#if !DISABLE_SPARKLE && !USE_SPARKLE_1
+        [updater startUpdater];
+#endif
+
+        if (shouldShowWhatsNewPage) {
+            // Schedule it to be run later to make sure it will show up on top
+            // of the new untitled window.
+            [MMWhatsNewController performSelectorOnMainThread:@selector(openSharedInstance) withObject:nil waitUntilDone:NO];
+        }
+
+        started = YES;
+    }
+}
 
 - (MMVimController *)topmostVimController
 {

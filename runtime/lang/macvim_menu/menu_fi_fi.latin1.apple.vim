@@ -25,5 +25,6 @@ menutrans Zoom\ All Zoomaa\ kaikki
 menutrans Show\ Next\ Tab Näytä\ seuraava\ välilehti
 menutrans Show\ Previous\ Tab Näytä\ edellinen\ välilehti
 menutrans Bring\ All\ to\ Front Tuo\ kaikki\ eteen
+menutrans What's\ New Uutta
 menutrans Release\ Notes Julkaisutiedot
 menutrans Look\ Up Katso\ lisää

@@ -72,7 +72,10 @@
 		907FF7512521BCE200BADACB /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 907FF74F2521BCE200BADACB /* MainMenu.xib */; };
 		907FF7542521BDA600BADACB /* Preferences.xib in Resources */ = {isa = PBXBuildFile; fileRef = 907FF7522521BDA600BADACB /* Preferences.xib */; };
 		907FF7572521BDC300BADACB /* FindAndReplace.xib in Resources */ = {isa = PBXBuildFile; fileRef = 907FF7552521BDC200BADACB /* FindAndReplace.xib */; };
+		909894382A56EB1E007B84A3 /* WhatsNew.xib in Resources */ = {isa = PBXBuildFile; fileRef = 909894362A56EB1E007B84A3 /* WhatsNew.xib */; };
+		9098943C2A56ECF6007B84A3 /* MMWhatsNewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 9098943B2A56ECF6007B84A3 /* MMWhatsNewController.m */; };
 		90A33BEA28D563DF003A2E2F /* MMSparkle2Delegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 90A33BE928D563DF003A2E2F /* MMSparkle2Delegate.m */; };
+		90B9877D2A579F9500FC95D6 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 90B9877B2A579F9500FC95D6 /* WebKit.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -415,8 +418,12 @@
 		90922ABC221D42F700F1E1F4 /* MMBackend.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MMBackend.h; sourceTree = "<group>"; };
 		90922ABD221D42F700F1E1F4 /* gui_macvim.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = gui_macvim.m; sourceTree = "<group>"; };
 		90922ABE221D42F700F1E1F4 /* MMBackend.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MMBackend.m; sourceTree = "<group>"; };
+		909894372A56EB1E007B84A3 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/WhatsNew.xib; sourceTree = "<group>"; };
+		9098943A2A56ECF6007B84A3 /* MMWhatsNewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MMWhatsNewController.h; sourceTree = "<group>"; };
+		9098943B2A56ECF6007B84A3 /* MMWhatsNewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MMWhatsNewController.m; sourceTree = "<group>"; };
 		90A33BE928D563DF003A2E2F /* MMSparkle2Delegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MMSparkle2Delegate.m; sourceTree = "<group>"; };
 		90A33BEC28D56423003A2E2F /* MMSparkle2Delegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MMSparkle2Delegate.h; sourceTree = "<group>"; };
+		90B9877B2A579F9500FC95D6 /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
 		90F84F1E2521F2270000268B /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ko; path = ko.lproj/MainMenu.strings; sourceTree = "<group>"; };
 		90F84F232521F6480000268B /* ca */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ca; path = ca.lproj/MainMenu.strings; sourceTree = "<group>"; };
 		90F84F242521F6590000268B /* cs */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = cs; path = cs.lproj/MainMenu.strings; sourceTree = "<group>"; };
@@ -455,6 +462,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				90B9877D2A579F9500FC95D6 /* WebKit.framework in Frameworks */,
 				1DFE25A50C527BC4003000F7 /* PSMTabBarControl.framework in Frameworks */,
 				8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */,
 				1D8B5A53104AF9FF002E59D5 /* Carbon.framework in Frameworks */,
@@ -468,6 +476,8 @@
 		080E96DDFE201D6D7F000001 /* MacVim Source */ = {
 			isa = PBXGroup;
 			children = (
+				9098943A2A56ECF6007B84A3 /* MMWhatsNewController.h */,
+				9098943B2A56ECF6007B84A3 /* MMWhatsNewController.m */,
 				1D44972111FCA9B400B0630F /* MMCoreTextView+ToolTip.m */,
 				1D6008890E96A0B2003763F0 /* MMFindReplaceController.h */,
 				1D60088A0E96A0B2003763F0 /* MMFindReplaceController.m */,
@@ -632,6 +642,7 @@
 				907FF7552521BDC200BADACB /* FindAndReplace.xib */,
 				907FF7522521BDA600BADACB /* Preferences.xib */,
 				907FF74F2521BCE200BADACB /* MainMenu.xib */,
+				909894362A56EB1E007B84A3 /* WhatsNew.xib */,
 			);
 			name = Resources;
 			sourceTree = "<group>";
@@ -639,6 +650,7 @@
 		29B97323FDCFA39411CA2CEA /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				90B9877B2A579F9500FC95D6 /* WebKit.framework */,
 				52A364721C4A5789005757EC /* Sparkle.framework */,
 				1D8B5A52104AF9FF002E59D5 /* Carbon.framework */,
 				1D493DB30C52533B00AB718C /* PSMTabBarControl.xcodeproj */,
@@ -990,6 +1002,7 @@
 				1DCD00CF0E50B2B700460166 /* Save.png in Resources */,
 				1DCD00D00E50B2B700460166 /* SaveAll.png in Resources */,
 				1DCD00D10E50B2B700460166 /* SaveSesn.png in Resources */,
+				909894382A56EB1E007B84A3 /* WhatsNew.xib in Resources */,
 				1DCD00D20E50B2B700460166 /* TagJump.png in Resources */,
 				1DCD00D30E50B2B700460166 /* Undo.png in Resources */,
 				1D9C60520EF79C0C0034AD44 /* MacVim.icns in Resources */,
@@ -1124,6 +1137,7 @@
 				1DE3F8EB0D50F84600052B9E /* MMPreferenceController.m in Sources */,
 				0395A8330D71ED7800881434 /* DBPrefsWindowController.m in Sources */,
 				1D80591F0E1185EA001699D1 /* Miscellaneous.m in Sources */,
+				9098943C2A56ECF6007B84A3 /* MMWhatsNewController.m in Sources */,
 				1D145C7F0E5227CE00691AA0 /* MMTextViewHelper.m in Sources */,
 				1D60088B0E96A0B2003763F0 /* MMFindReplaceController.m in Sources */,
 				1DE63FFB0E71820F00959BDB /* MMCoreTextView.m in Sources */,
@@ -1198,6 +1212,14 @@
 				907FF75A2521C09F00BADACB /* Base */,
 			);
 			name = FindAndReplace.xib;
+			sourceTree = "<group>";
+		};
+		909894362A56EB1E007B84A3 /* WhatsNew.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				909894372A56EB1E007B84A3 /* Base */,
+			);
+			name = WhatsNew.xib;
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */

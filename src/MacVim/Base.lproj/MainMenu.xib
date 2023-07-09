@@ -185,6 +185,11 @@
                                     <action selector="openWebsite:" target="235" id="274"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="What's New" id="e16-xE-q4U" userLabel="What's New">
+                                <connections>
+                                    <action selector="showWhatsNew:" target="235" id="dHh-AW-Oxv"/>
+                                </connections>
+                            </menuItem>
                         </items>
                     </menu>
                 </menuItem>

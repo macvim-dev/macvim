@@ -25,5 +25,6 @@ menutrans Zoom\ All Aplicar\ zoom\ a\ todas\ las\ ventanas
 menutrans Show\ Next\ Tab Mostrar\ pestaña\ siguiente
 menutrans Show\ Previous\ Tab Mostrar\ pestaña\ anterior
 menutrans Bring\ All\ to\ Front Traer\ todo\ al\ frente
+menutrans What's\ New Novedades
 menutrans Release\ Notes Notas\ de\ la\ versión
 menutrans Look\ Up Consultar
