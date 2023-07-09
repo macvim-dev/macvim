@@ -8530,6 +8530,7 @@ macvim-services	gui_mac.txt	/*macvim-services*
 macvim-settings	gui_mac.txt	/*macvim-settings*
 macvim-shift-movement	gui_mac.txt	/*macvim-shift-movement*
 macvim-shortcuts	gui_mac.txt	/*macvim-shortcuts*
+macvim-sponsor	sponsor.txt	/*macvim-sponsor*
 macvim-start	gui_mac.txt	/*macvim-start*
 macvim-tablabel	gui_mac.txt	/*macvim-tablabel*
 macvim-todo	gui_mac.txt	/*macvim-todo*

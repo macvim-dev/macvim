@@ -27,6 +27,8 @@ Other relevant documentation:
 
 {Vi does not have a GUI}
 
+This manual is also available at https://macvim.org/docs/gui_mac.txt.html.
+
 ==============================================================================
 1. MacVim differences					*macvim-differences*
 
@@ -248,6 +250,9 @@ A technical note: MacVim handles file open, modified and closed events.  In
 the open event the FTok and Burl parameters are parsed (the latter is ignored
 at the moment though).  In the modified and closed events the Tokn parameter
 is sent back to the server application.
+
+The ODB editor protocol is documented at:
+	https://www.barebones.com/support/develop/odbsuite.html
 
 ==============================================================================
 3. Settings		    *macvim-prefs* *macvim-preferences* *macvim-settings*
@@ -635,13 +640,14 @@ that items after it will be right-aligned, and is specified by names that
 begin with "-flexspace" and ends with "-".
 
 						*macvim-touchbar-icon*
-You can specify icons for Touch Bar buttons the same way for toolbar icons
-(see |macvim-toolbar-icon|).  When a button has an icon, it won't show the menu
-name.  Touch Bar icons should ideally be 36x36 pixels, and no larger than
-44x44 pixels. >
+You can specify icons for Touch Bar buttons the same way as toolbar icons,
+including using SF Symbols (see |macvim-toolbar-icon|).  When a button has an
+icon, it won't show the menu name.  Touch Bar icons should ideally be 36x36
+pixels, and no larger than 44x44 pixels. >
 	:an icon=/home/foo/bar.png          TouchBar.DoThing  :echo 'Do'<CR>
-You can use any image for the icon, but macOS comes with a few default
-template images designed for use with Touch Bar.  Some examples: >
+	:an icon=gearshape.2                TouchBar.Setting  <Nop>
+macOS also comes with a few default template images designed for use with
+Touch Bar.  Some examples: >
 	:an icon=NSTouchBarListViewTemplate TouchBar.ShowList :ls<CR>
 	:an icon=NSTouchBarRefreshTemplate  TouchBar.Refresh  :e!<CR>
 <
@@ -721,7 +727,7 @@ outline.
 ==============================================================================
 11. System services					*macvim-services*
 
-MacVim supports two system services.  These can be accessed from the MacVim
+MacVim provides two system services.  These can be accessed from the MacVim
 submenu in the Services menu or by right-clicking a selection.  For services
 to work, MacVim.app should be located in the /Applications folder.  (You might
 have to logout and then login again before macOS detects the MacVim services.)
@@ -734,6 +740,12 @@ These are the currently supported services:
 
 The services respect the "Open files from applications" setting in the general
 settings.
+
+For the other direction, within MacVim, you can access system services
+associated with selected texts (e.g. opening a URL, converting between
+Traditional/Simplified Chinese, do a web search) by selecting them in visual
+mode and opening the "Services" submenu either by right-clicking on the text,
+or the top-level "MacVim" menu.
 
 ==============================================================================
 12. mvim:// URL handler				*mvim://* *macvim-url-handler*
