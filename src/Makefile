@@ -3678,6 +3678,12 @@ macvim-dmg-release: macvim-signed macvim-dmg
 	@echo "----------------------------------------"
 	@echo "Release MacVim built!"
 
+macvim-dmg-release-legacy: macvim-signed macvim-dmg-legacy
+	MacVim/scripts/sign-developer-id $(RELEASEDIR)/MacVim.dmg $(ENTITLEMENTS)
+	MacVim/scripts/notarize-dmg $(RELEASEDIR)/MacVim.dmg
+	@echo "----------------------------------------"
+	@echo "Release MacVim (legacy format) built!"
+
 # Install only language files to a dest folder. Subset of "install-languages".
 macvim-install-languages:
 	@if test -n "$(MAKEMO)" -a -f $(PODIR)/Makefile; then \
