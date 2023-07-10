@@ -19,8 +19,8 @@ if [ "$remove_sparkle" == "1" ]; then
         # Using a clean up script is easier because there isn't an easy way to tell
         # Xcode not to link/copy it unless we make another target, or dynamically
         # patch the project file.
-        set -x
-        rm -rf "$sparkle_path"
+        (set -x
+        rm -rf "$sparkle_path")
     fi
 else
     sparkle_xpcservices_symlink="$macvim_path/Contents/Frameworks/Sparkle.framework/XPCServices"
@@ -30,8 +30,21 @@ else
         # This only happens when building using Sparkle 2. It contains XPC Services
         # files which are only necessary for sandboxed apps, and not recommended
         # otherwise. See https://sparkle-project.org/documentation/sandboxing/.
-        set -x
+        (set -x
         rm -rf "$sparkle_xpcservices"
-        rm "$sparkle_xpcservices_symlink"
+        rm "$sparkle_xpcservices_symlink")
     fi
 fi
+
+# This is a temporary measure to remove unnecessary files in the runtime
+# folder. Ideally we should move to use Vim's built-in `make install` mechanism
+# instead of copying all the files from the runtime over to the app blindly.
+# See https://github.com/macvim-dev/macvim/issues/1417
+set -x
+rm -rf $macvim_path/Contents/Resources/vim/runtime/indent/testdir
+rm -rf $macvim_path/Contents/Resources/vim/runtime/syntax/testdir
+rm -f $macvim_path/Contents/Resources/vim/runtime/doc/Makefile
+rm -f $macvim_path/Contents/Resources/vim/runtime/indent/Makefile
+rm -f $macvim_path/Contents/Resources/vim/runtime/lang/Makefile
+rm -f $macvim_path/Contents/Resources/vim/runtime/syntax/Makefile
+rm -f $macvim_path/Contents/Resources/vim/runtime/tutor/Makefile
