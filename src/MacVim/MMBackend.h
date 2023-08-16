@@ -21,7 +21,7 @@
     NSConnection        *connection;
     NSConnection        *vimServerConnection;
     id                  appProxy;
-    unsigned            identifier;
+    unsigned long       identifier;
     NSDictionary        *colorDict;
     NSDictionary        *sysColorDict;
     NSDictionary        *actionDict;

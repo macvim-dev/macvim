@@ -34,7 +34,7 @@
 #endif
     >
 {
-    unsigned            identifier;
+    unsigned long       identifier;
     BOOL                isInitialized;
     MMWindowController  *windowController;
     id                  backendProxy;
@@ -58,7 +58,7 @@
 
 - (id)initWithBackend:(id)backend pid:(int)processIdentifier;
 - (void)uninitialize;
-- (unsigned)vimControllerId;
+- (unsigned long)vimControllerId;
 - (id)backendProxy;
 - (int)pid;
 - (void)setServerName:(NSString *)name;
