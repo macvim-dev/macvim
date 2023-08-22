@@ -2333,7 +2333,7 @@ filter_map_one(
     copy_tv(tv, get_vim_var_tv(VV_VAL));
     argv[0] = *get_vim_var_tv(VV_KEY);
     argv[1] = *get_vim_var_tv(VV_VAL);
-    if (eval_expr_typval(expr, argv, 2, fc, newtv) == FAIL)
+    if (eval_expr_typval(expr, FALSE, argv, 2, fc, newtv) == FAIL)
 	goto theend;
     if (filtermap == FILTERMAP_FILTER)
     {
@@ -2735,8 +2735,9 @@ f_count(typval_T *argvars, typval_T *rettv)
 	else
 	    n = dict_count(argvars[0].vval.v_dict, &argvars[1], ic);
     }
-    else
-	semsg(_(e_argument_of_str_must_be_list_or_dictionary), "count()");
+    else if (!error)
+	semsg(_(e_argument_of_str_must_be_list_string_or_dictionary),
+								    "count()");
     rettv->vval.v_number = n;
 }
 
@@ -3000,7 +3001,13 @@ f_reverse(typval_T *argvars, typval_T *rettv)
     if (argvars[0].v_type == VAR_BLOB)
 	blob_reverse(argvars[0].vval.v_blob, rettv);
     else if (argvars[0].v_type == VAR_STRING)
-	string_reverse(argvars[0].vval.v_string, rettv);
+    {
+	rettv->v_type = VAR_STRING;
+	if (argvars[0].vval.v_string != NULL)
+	    rettv->vval.v_string = reverse_text(argvars[0].vval.v_string);
+	else
+	    rettv->vval.v_string = NULL;
+    }
     else if (argvars[0].v_type == VAR_LIST)
 	list_reverse(argvars[0].vval.v_list, rettv);
 }
@@ -3083,7 +3090,7 @@ list_reduce(
 	else
 	    argv[1] = li->li_tv;
 
-	r = eval_expr_typval(expr, argv, 2, fc, rettv);
+	r = eval_expr_typval(expr, TRUE, argv, 2, fc, rettv);
 
 	if (argv[0].v_type != VAR_NUMBER && argv[0].v_type != VAR_UNKNOWN)
 	    clear_tv(&argv[0]);
@@ -3124,7 +3131,7 @@ f_reduce(typval_T *argvars, typval_T *rettv)
 	    && argvars[0].v_type != VAR_LIST
 	    && argvars[0].v_type != VAR_BLOB)
     {
-	semsg(_(e_string_list_or_blob_required), "reduce()");
+	emsg(_(e_string_list_or_blob_required));
 	return;
     }
 

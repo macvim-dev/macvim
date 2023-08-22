@@ -17,7 +17,7 @@
  * ScreenLines[off]  Contains a copy of the whole screen, as it is currently
  *		     displayed (excluding text written by external commands).
  * ScreenAttrs[off]  Contains the associated attributes.
- * ScreenCols[off]   Contains the byte offset in the line. -1 means not
+ * ScreenCols[off]   Contains the virtual columns in the line. -1 means not
  *		     available (below last line), MAXCOL means after the end
  *		     of the line.
  *
@@ -747,7 +747,7 @@ screen_line(
 
 	ScreenCols[off_to] = ScreenCols[off_from];
 	if (char_cells == 2)
-	    ScreenCols[off_to + 1] = ScreenCols[off_from];
+	    ScreenCols[off_to + 1] = ScreenCols[off_from + 1];
 
 	off_to += char_cells;
 	off_from += char_cells;
@@ -4564,7 +4564,7 @@ messaging(void)
     void
 comp_col(void)
 {
-    int last_has_status = (p_ls == 2 || (p_ls == 1 && !ONE_WINDOW));
+    int last_has_status = last_stl_height(FALSE) > 0;
 
     sc_col = 0;
     ru_col = 0;

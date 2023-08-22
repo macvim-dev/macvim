@@ -1,4 +1,4 @@
-*builtin.txt*	For Vim version 9.0.  Last change: 2023 Jun 08
+*builtin.txt*	For Vim version 9.0.  Last change: 2023 Aug 09
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -156,7 +156,7 @@ digraph_setlist({digraphlist})	Boolean	register multiple |digraph|s
 echoraw({expr})			none	output {expr} as-is
 empty({expr})			Number	|TRUE| if {expr} is empty
 environ()			Dict	return environment variables
-err_teapot()			Number	produce error 418
+err_teapot([{expr}])		none	give E418, or E503 if {expr} is |TRUE|
 escape({string}, {chars})	String	escape {chars} in {string} with '\'
 eval({string})			any	evaluate {string} into its value
 eventhandler()			Number	|TRUE| if inside an event handler
@@ -709,13 +709,14 @@ trunc({expr})			Float	truncate Float {expr}
 type({expr})			Number	type of value {expr}
 typename({expr})		String	representation of the type of {expr}
 undofile({name})		String	undo file name for {name}
-undotree()			List	undo file tree
+undotree([{buf}])		List	undo file tree for buffer {buf}
 uniq({list} [, {func} [, {dict}]])
 				List	remove adjacent duplicates from a list
 utf16idx({string}, {idx} [, {countcc} [, {charidx}]])
 				Number	UTF-16 index of byte {idx} in {string}
 values({dict})			List	values in {dict}
-virtcol({expr} [, {list}])	Number or List
+virtcol({expr} [, {list} [, {winid}])
+				Number or List
 					screen column of cursor or mark
 virtcol2col({winid}, {lnum}, {col})
 				Number  byte index of a character on screen
@@ -1251,7 +1252,7 @@ bufload({buf})						*bufload()*
 		refers to an existing file then the file is read.  Otherwise
 		the buffer will be empty.  If the buffer was already loaded
 		then there is no change.  If the buffer is not related to a
-		file the no file is read (e.g., when 'buftype' is "nofile").
+		file then no file is read (e.g., when 'buftype' is "nofile").
 		If there is an existing swap file for the file of the buffer,
 		there will be no dialog, the buffer will be loaded anyway.
 		The {buf} argument is used like with |bufexists()|.
@@ -3552,6 +3553,8 @@ getcompletion({pat}, {type} [, {filtered}])		*getcompletion()*
 		cmdline		|cmdline-completion| result
 		compiler	compilers
 		cscope		|:cscope| suboptions
+		custom,{func}	custom completion, defined via {func}
+		customlist,{func} custom completion, defined via {func}
 		diff_buffer     |:diffget| and |:diffput| completion
 		dir		directory names
 		environment	environment variable names
@@ -4004,6 +4007,9 @@ getqflist([{what}])					*getqflist()*
 			text	description of the error
 			type	type of the error, 'E', '1', etc.
 			valid	|TRUE|: recognized error message
+		        user_data
+			        custom data associated with the item, can be
+				any type.
 
 		When there is no error list or it's empty, an empty list is
 		returned. Quickfix list entries with a non-existing buffer
@@ -6589,7 +6595,11 @@ printf({fmt}, {expr1} ...)				*printf()*
 		The "%" starts a conversion specification.  The following
 		arguments appear in sequence:
 
-			%  [flags]  [field-width]  [.precision]  type
+			% [pos-argument] [flags] [field-width] [.precision] type
+
+		pos-argument
+			At most one positional argument specifier. These
+			take the form {n$}, where n is >= 1.
 
 		flags
 			Zero or more of the following flags:
@@ -6660,6 +6670,13 @@ printf({fmt}, {expr1} ...)				*printf()*
 			:echo printf("%d: %.*s", nr, width, line)
 <		This limits the length of the text used from "line" to
 		"width" bytes.
+
+		If the argument to be formatted is specified using a posional
+		argument specifier, and a '*' is used to indicate that a
+		number argument is to be used to specify the width or
+		precision, the argument(s) to be used must also be specified
+		using a {n$} positional argument specifier. See |printf-$|.
+
 
 		The conversion specifiers and their meanings are:
 
@@ -6750,6 +6767,103 @@ printf({fmt}, {expr1} ...)				*printf()*
 		of "%" items.  If there are not sufficient or too many
 		arguments an error is given.  Up to 18 arguments can be used.
 
+							*printf-$*
+		In certain languages, error and informative messages are
+		more readable when the order of words is different from the
+		corresponding message in English. To accomodate translations
+		having a different word order, positional arguments may be
+		used to indicate this. For instance: >
+
+			#, c-format
+			msgid "%s returning %s"
+			msgstr "waarde %2$s komt terug van %1$s"
+<
+		In this example, the sentence has its 2 string arguments reversed
+		in the output. >
+
+			echo printf(
+				"In The Netherlands, vim's creator's name is: %1$s %2$s",
+				"Bram", "Moolenaar")
+<			In The Netherlands, vim's creator's name is: Bram Moolenaar >
+
+			echo printf(
+				"In Belgium, vim's creator's name is: %2$s %1$s",
+				"Bram", "Moolenaar")
+<			In Belgium, vim's creator's name is: Moolenaar Bram
+
+		Width (and precision) can be specified using the '*' specifier.
+		In this case, you must specify the field width position in the
+		argument list. >
+
+			echo printf("%1$*2$.*3$d", 1, 2, 3)
+<			001 >
+			echo printf("%2$*3$.*1$d", 1, 2, 3)
+<			  2 >
+			echo printf("%3$*1$.*2$d", 1, 2, 3)
+<			03 >
+			echo printf("%1$*2$.*3$g", 1.4142, 2, 3)
+<			1.414
+
+		You can mix specifying the width and/or precision directly
+		and via positional arguments: >
+
+			echo printf("%1$4.*2$f", 1.4142135, 6)
+<			1.414214 >
+			echo printf("%1$*2$.4f", 1.4142135, 6)
+<			1.4142 >
+			echo printf("%1$*2$.*3$f", 1.4142135, 6, 2)
+<			  1.41
+
+							*E1400*
+		You cannot mix positional and non-positional arguments: >
+			echo printf("%s%1$s", "One", "Two")
+<			E1400: Cannot mix positional and non-positional
+			arguments: %s%1$s
+
+							*E1401*
+		You cannot skip a positional argument in a format string: >
+			echo printf("%3$s%1$s", "One", "Two", "Three")
+<			E1401: format argument 2 unused in $-style
+			format: %3$s%1$s
+
+							*E1402*
+		You can re-use a [field-width] (or [precision]) argument: >
+			echo printf("%1$d at width %2$d is: %01$*2$d", 1, 2)
+<			1 at width 2 is: 01
+
+		However, you can't use it as a different type: >
+			echo printf("%1$d at width %2$ld is: %01$*2$d", 1, 2)
+<			E1402: Positional argument 2 used as field
+			width reused as different type: long int/int
+
+							*E1403*
+		When a positional argument is used, but not the correct number
+		or arguments is given, an error is raised: >
+			echo printf("%1$d at width %2$d is: %01$*2$.*3$d", 1, 2)
+<			E1403: Positional argument 3 out of bounds:
+			%1$d at width %2$d is: %01$*2$.*3$d
+
+		Only the first error is reported: >
+			echo printf("%01$*2$.*3$d %4$d", 1, 2)
+<			E1403: Positional argument 3 out of bounds:
+			%01$*2$.*3$d %4$d
+
+							*E1404*
+		A positional argument can be used more than once: >
+			echo printf("%1$s %2$s %1$s", "One", "Two")
+<			One Two One
+
+		However, you can't use a different type the second time: >
+			echo printf("%1$s %2$s %1$d", "One", "Two")
+<			E1404: Positional argument 1 type used
+			inconsistently: int/string
+
+							*E1405*
+		Various other errors that lead to a format string being
+		wrongly formatted lead to: >
+			echo printf("%1$d at width %2$d is: %01$*2$.3$d", 1, 2)
+<			E1405: Invalid format specifier:
+			%1$d at width %2$d is: %01$*2$.3$d
 
 prompt_getprompt({buf})					*prompt_getprompt()*
 		Returns the effective prompt text for buffer {buf}.  {buf} can
@@ -8300,6 +8414,8 @@ setqflist({list} [, {action} [, {what}]])		*setqflist()*
 		    text	description of the error
 		    type	single-character error type, 'E', 'W', etc.
 		    valid	recognized error message
+		    user_data   custom data associated with the item, can be
+				any type.
 
 		The "col", "vcol", "nr", "type" and "text" entries are
 		optional.  Either "lnum" or "pattern" entry can be used to
@@ -10097,9 +10213,10 @@ undofile({name})					*undofile()*
 		Can also be used as a |method|: >
 			GetFilename()->undofile()
 
-undotree()						*undotree()*
-		Return the current state of the undo tree in a dictionary with
-		the following items:
+undotree([{buf}])					*undotree()*
+		Return the current state of the undo tree for the current
+		buffer, or for a specific buffer if {buf} is given.  The
+		result is a dictionary with the following items:
 		  "seq_last"	The highest undo sequence number used.
 		  "seq_cur"	The sequence number of the current position in
 				the undo tree.  This differs from "seq_last"
@@ -10193,7 +10310,7 @@ values({dict})						*values()*
 		Can also be used as a |method|: >
 			mydict->values()
 
-virtcol({expr} [, {list}])				*virtcol()*
+virtcol({expr} [, {list} [, {winid}]])			*virtcol()*
 		The result is a Number, which is the screen column of the file
 		position given with {expr}.  That is, the last screen position
 		occupied by the character at that position, when the screen
@@ -10225,9 +10342,12 @@ virtcol({expr} [, {list}])				*virtcol()*
 			    returns the cursor position.  Differs from |'<| in
 			    that it's updated right away.
 
-		If {list} is present and non-zero then virtcol() returns a List
-		with the first and last screen position occupied by the
+		If {list} is present and non-zero then virtcol() returns a
+		List with the first and last screen position occupied by the
 		character.
+
+		With the optional {winid} argument the values are obtained for
+		that window instead of the current window.
 
 		Note that only marks in the current file can be used.
 		Examples: >
@@ -10240,7 +10360,7 @@ virtcol({expr} [, {list}])				*virtcol()*
 			" With text "	  there", with 't at 'h':
 
 			virtcol("'t")	" returns 6
-<		The first column is 1.  0 is returned for an error.
+<		The first column is 1.  0 or [0, 0] is returned for an error.
 		A more advanced example that echoes the maximum length of
 		all lines: >
 		    echo max(map(range(1, line('$')), "virtcol([v:val, '$'])"))
@@ -10256,6 +10376,9 @@ virtcol2col({winid}, {lnum}, {col})			*virtcol2col()*
 		If {col} is greater than the last virtual column in line
 		{lnum}, then the byte index of the character at the last
 		virtual column is returned.
+
+		For a multi-byte character, the column number of the first
+		byte in the character is returned.
 
 		The {winid} argument can be the window number or the
 		|window-ID|. If this is zero, then the current window is used.
@@ -10887,6 +11010,7 @@ python_dynamic		Python 2.x interface is dynamically loaded. |has-python|
 python3			Python 3.x interface available. |has-python|
 python3_compiled	Compiled with Python 3.x interface. |has-python|
 python3_dynamic		Python 3.x interface is dynamically loaded. |has-python|
+python3_stable		Python 3.x interface is using Python Stable ABI. |has-python|
 pythonx			Python 2.x and/or 3.x interface available. |python_x|
 qnx			QNX version of Vim.
 quickfix		Compiled with |quickfix| support.

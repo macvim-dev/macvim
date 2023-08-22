@@ -3397,7 +3397,7 @@ static char_u *extractSelectedText()
     char_u *ptr = NULL;
     char_u *cpo_save = p_cpo;
     p_cpo = (char_u *)"Bk";
-    char_u *str = replace_termcodes((char_u *)string, &ptr, REPTERM_DO_LT, NULL);
+    char_u *str = replace_termcodes((char_u *)string, &ptr, 0, REPTERM_DO_LT, NULL);
     p_cpo = cpo_save;
 
     if (*ptr != NUL)	/* trailing CTRL-V results in nothing */

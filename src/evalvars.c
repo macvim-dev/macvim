@@ -157,6 +157,7 @@ static struct vimvar
     {VV_NAME("sizeoflong",	 VAR_NUMBER), NULL, VV_RO},
     {VV_NAME("sizeofpointer",	 VAR_NUMBER), NULL, VV_RO},
     {VV_NAME("maxcol",		 VAR_NUMBER), NULL, VV_RO},
+    {VV_NAME("python3_version",	 VAR_NUMBER), NULL, VV_RO},
     // MacVim-specific value go here
     {VV_NAME("os_appearance",    VAR_NUMBER), NULL, VV_RO},
 };
@@ -265,6 +266,10 @@ evalvars_init(void)
     set_vim_var_nr(VV_ECHOSPACE,    sc_col - 1);
 
     set_vim_var_dict(VV_COLORNAMES, dict_alloc());
+
+#ifdef FEAT_PYTHON3
+    set_vim_var_nr(VV_PYTHON3_VERSION, python3_version());
+#endif
 
     // Default for v:register is not 0 but '"'.  This is adjusted once the
     // clipboard has been setup by calling reset_reg_var().
@@ -3841,8 +3846,11 @@ set_var_const(
 		if (sv != NULL)
 		{
 		    // check the type and adjust to bool if needed
-		    where.wt_index = var_idx;
-		    where.wt_variable = TRUE;
+		    if (var_idx > 0)
+		    {
+			where.wt_index = var_idx;
+			where.wt_kind = WT_VARIABLE;
+		    }
 		    if (check_script_var_type(sv, tv, name, where) == FAIL)
 			goto failed;
 		    if (type == NULL)

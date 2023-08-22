@@ -616,10 +616,10 @@ endfunc
 func Test_lua_blob()
   call assert_equal(0z, luaeval('vim.blob("")'))
   call assert_equal(0z31326162, luaeval('vim.blob("12ab")'))
-  call assert_equal(0z00010203, luaeval('vim.blob("\x00\x01\x02\x03")'))
-  call assert_equal(0z8081FEFF, luaeval('vim.blob("\x80\x81\xfe\xff")'))
+  call assert_equal(0z00010203, luaeval('vim.blob("\000\001\002\003")'))
+  call assert_equal(0z8081FEFF, luaeval('vim.blob("\128\129\254\255")'))
 
-  lua b = vim.blob("\x00\x00\x00\x00")
+  lua b = vim.blob("\000\000\000\000")
   call assert_equal(0z00000000, luaeval('b'))
   call assert_equal(4, luaeval('#b'))
   lua b[0], b[1], b[2], b[3] = 1, 32, 256, 0xff
@@ -1230,6 +1230,13 @@ func Test_lua_debug()
   call WaitForAssert({-> assert_match(' All$', term_getline(buf, 10))})
 
   call StopVimInTerminal(buf)
+endfunc
+
+" Test for a crash when a Lua funcref is invoked with parameters from Vim
+func Test_lua_funcref_with_params()
+  let Lua_funcref = luaeval('function(d) local s = "in Lua callback" end')
+  call Lua_funcref({'a' : 'b'})
+  call assert_true(v:true)
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

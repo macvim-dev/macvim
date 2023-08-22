@@ -135,6 +135,16 @@ def Test_class_basic()
   END
   v9.CheckScriptFailure(lines, 'E1069:')
 
+  # Test for unsupported comment specifier
+  lines =<< trim END
+    vim9script
+    class Something
+      # comment
+      #{
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1170:')
+
   lines =<< trim END
       vim9script
 
@@ -162,6 +172,44 @@ def Test_class_basic()
       assert_equal('object<TextPosition>', typename(pos))
   END
   v9.CheckScriptSuccess(lines)
+
+  # When referencing object methods, space cannot be used after a "."
+  lines =<< trim END
+    vim9script
+    class A
+      def Foo(): number
+        return 10
+      enddef
+    endclass
+    var a = A.new()
+    var v = a. Foo()
+  END
+  v9.CheckScriptFailure(lines, 'E1202:')
+
+  # Using an object without specifying a method or a member variable
+  lines =<< trim END
+    vim9script
+    class A
+      def Foo(): number
+        return 10
+      enddef
+    endclass
+    var a = A.new()
+    var v = a.
+  END
+  v9.CheckScriptFailure(lines, 'E15:')
+
+  # Error when parsing the arguments of an object method.
+  lines =<< trim END
+    vim9script
+    class A
+      def Foo()
+      enddef
+    endclass
+    var a = A.new()
+    var v = a.Foo(,)
+  END
+  v9.CheckScriptFailure(lines, 'E15:')
 enddef
 
 def Test_class_defined_twice()
@@ -518,6 +566,83 @@ def Test_class_default_new()
   v9.CheckScriptFailure(lines, 'E119:')
 enddef
 
+
+def Test_class_new_with_object_member()
+  var lines =<< trim END
+      vim9script
+
+      class C
+        this.str: string
+        this.num: number
+        def new(this.str, this.num)
+        enddef
+        def newVals(this.str, this.num)
+        enddef
+      endclass
+
+      def Check()
+        try
+          var c = C.new('cats', 2)
+          assert_equal('cats', c.str)
+          assert_equal(2, c.num)
+
+          c = C.newVals('dogs', 4)
+          assert_equal('dogs', c.str)
+          assert_equal(4, c.num)
+        catch
+          assert_report($'Unexpected exception was caught: {v:exception}')
+        endtry
+      enddef
+
+      Check()
+  END
+  v9.CheckScriptSuccess(lines)
+
+  lines =<< trim END
+      vim9script
+
+      class C
+        this.str: string
+        this.num: number
+        def new(this.str, this.num)
+        enddef
+      endclass
+
+      def Check()
+        try
+          var c = C.new(1, 2)
+        catch
+          assert_report($'Unexpected exception was caught: {v:exception}')
+        endtry
+      enddef
+
+      Check()
+  END
+  v9.CheckScriptFailure(lines, 'E1013:')
+
+  lines =<< trim END
+      vim9script
+
+      class C
+        this.str: string
+        this.num: number
+        def newVals(this.str, this.num)
+        enddef
+      endclass
+
+      def Check()
+        try
+          var c = C.newVals('dogs', 'apes')
+        catch
+          assert_report($'Unexpected exception was caught: {v:exception}')
+        endtry
+      enddef
+
+      Check()
+  END
+  v9.CheckScriptFailure(lines, 'E1013:')
+enddef
+
 def Test_class_object_member_inits()
   var lines =<< trim END
       vim9script
@@ -551,6 +676,15 @@ def Test_class_object_member_inits()
       endclass
   END
   v9.CheckScriptFailure(lines, 'E1330:')
+
+  # Test for initializing an object member with an unknown variable/type
+  lines =<< trim END
+    vim9script
+    class A
+       this.value = init_val
+    endclass
+  END
+  v9.CheckScriptFailureList(lines, ['E121:', 'E1329:'])
 enddef
 
 def Test_class_object_member_access()
@@ -580,6 +714,15 @@ def Test_class_object_member_access()
       assert_fails('trip.four = 4', 'E1334')
   END
   v9.CheckScriptSuccess(lines)
+
+  # Test for a public member variable name beginning with an underscore
+  lines =<< trim END
+    vim9script
+    class A
+      public this._val = 10
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1332:')
 
   lines =<< trim END
       vim9script
@@ -658,6 +801,33 @@ def Test_class_object_member_access()
             .x
   END
   v9.CheckScriptSuccess(lines)
+
+  # Test for "public" cannot be abbreviated
+  lines =<< trim END
+    vim9script
+    class Something
+      pub this.val = 1
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1065:')
+
+  # Test for "public" keyword must be followed by "this" or "static".
+  lines =<< trim END
+    vim9script
+    class Something
+      public val = 1
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1331:')
+
+  # Test for "static" cannot be abbreviated
+  lines =<< trim END
+    vim9script
+    class Something
+      stat this.val = 1
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1065:')
 enddef
 
 def Test_class_object_compare()
@@ -925,6 +1095,42 @@ def Test_class_member()
       s.Method(7)
   END
   v9.CheckScriptFailure(lines, 'E1341: Variable already declared in the class: count')
+
+  # Test for using an invalid type for a member variable
+  lines =<< trim END
+    vim9script
+    class A
+      this.val: xxx
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1010:')
+
+  # Test for no space before or after the '=' when initializing a member
+  # variable
+  lines =<< trim END
+    vim9script
+    class A
+      this.val: number= 10
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1004:')
+  lines =<< trim END
+    vim9script
+    class A
+      this.val: number =10
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1004:')
+
+  # Access a non-existing member
+  lines =<< trim END
+    vim9script
+    class A
+    endclass
+    var a = A.new()
+    var v = a.bar
+  END
+  v9.CheckScriptFailure(lines, 'E1326:')
 enddef
 
 func Test_class_garbagecollect()
@@ -995,6 +1201,18 @@ def Test_class_function()
       assert_equal(2, Value.GetCount())
   END
   v9.CheckScriptSuccess(lines)
+
+  # Test for cleaning up after a class definition failure when using class
+  # functions.
+  lines =<< trim END
+    vim9script
+    class A
+      static def Foo()
+      enddef
+      aaa
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1318:')
 enddef
 
 def Test_class_defcompile()
@@ -1023,6 +1241,40 @@ def Test_class_defcompile()
       defcompile C.Fc
   END
   v9.CheckScriptFailure(lines, 'E1012: Type mismatch; expected number but got string')
+
+  # Trying to compile a function using a non-existing class variable
+  lines =<< trim END
+    vim9script
+    defcompile x.Foo()
+  END
+  v9.CheckScriptFailure(lines, 'E475:')
+
+  # Trying to compile a function using a variable which is not a class
+  lines =<< trim END
+    vim9script
+    var x: number
+    defcompile x.Foo()
+  END
+  v9.CheckScriptFailure(lines, 'E475:')
+
+  # Trying to compile a function without specifying the name
+  lines =<< trim END
+    vim9script
+    class A
+    endclass
+    defcompile A.
+  END
+  v9.CheckScriptFailure(lines, 'E475:')
+
+  # Trying to compile a non-existing class object member function
+  lines =<< trim END
+    vim9script
+    class A
+    endclass
+    var a = A.new()
+    defcompile a.Foo()
+  END
+  v9.CheckScriptFailureList(lines, ['E1334:', 'E475:'])
 enddef
 
 def Test_class_object_to_string()
@@ -1268,6 +1520,127 @@ def Test_class_implements_interface()
       Test()
   END
   v9.CheckScriptSuccess(lines)
+
+  # Interface name after "extends" doesn't end in a space or NUL character
+  lines =<< trim END
+    vim9script
+    interface A
+    endinterface
+    class B extends A"
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1315:')
+
+  # Trailing characters after a class name
+  lines =<< trim END
+    vim9script
+    class A bbb
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E488:')
+
+  # using "implements" with a non-existing class
+  lines =<< trim END
+    vim9script
+    class A implements B
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1346:')
+
+  # using "implements" with a regular class
+  lines =<< trim END
+    vim9script
+    class A
+    endclass
+    class B implements A
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1347:')
+
+  # using "implements" with a variable
+  lines =<< trim END
+    vim9script
+    var T: number = 10
+    class A implements T
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1347:')
+
+  # all the class methods in an "interface" should be implemented
+  lines =<< trim END
+    vim9script
+    interface A
+      static def Foo()
+    endinterface
+    class B implements A
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1349:')
+
+  # implements should be followed by a white space
+  lines =<< trim END
+    vim9script
+    interface A
+    endinterface
+    class B implements A;
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1315:')
+
+  lines =<< trim END
+      vim9script
+
+      interface One
+        static matching: bool
+        static as_any: any
+        static not_matching: number
+      endinterface
+      class Two implements One
+        static not_matching: string
+        static as_any: string
+        static matching: bool
+      endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1406: Member "not_matching": type mismatch, expected number but got string')
+
+  lines =<< trim END
+      vim9script
+
+      interface One
+        def IsEven(nr: number): bool
+      endinterface
+      class Two implements One
+        def IsEven(nr: number): string
+        enddef
+      endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1407: Member "IsEven": type mismatch, expected func(number): bool but got func(number): string')
+
+  lines =<< trim END
+      vim9script
+
+      interface One
+        def IsEven(nr: number): bool
+      endinterface
+      class Two implements One
+        def IsEven(nr: bool): bool
+        enddef
+      endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1407: Member "IsEven": type mismatch, expected func(number): bool but got func(bool): bool')
+
+  lines =<< trim END
+      vim9script
+
+      interface One
+        def IsEven(nr: number): bool
+      endinterface
+      class Two implements One
+        def IsEven(nr: number, ...extra: list<number>): bool
+        enddef
+      endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1407: Member "IsEven": type mismatch, expected func(number): bool but got func(number, ...list<number>): bool')
 enddef
 
 def Test_call_interface_method()
@@ -1640,6 +2013,16 @@ def Test_class_extends()
       assert_equal("object of Success {success: true, value: 'asdf'}", string(v))
   END
   v9.CheckScriptSuccess(lines)
+
+  # class name after "extends" doesn't end in a space or NUL character
+  lines =<< trim END
+    vim9script
+    class A
+    endclass
+    class B extends A"
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1315:')
 enddef
 
 def Test_using_base_class()
@@ -1764,6 +2147,16 @@ def Test_abstract_class()
       endclass
   END
   v9.CheckScriptFailure(lines, 'E1316:')
+
+  # Abstract class cannot have a "new" function
+  lines =<< trim END
+    vim9script
+    abstract class Base
+      def new()
+      enddef
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1359:')
 enddef
 
 def Test_closure_in_class()
@@ -1874,5 +2267,362 @@ def Test_defer_with_object()
   unlet g:result
 enddef
 
+" The following test used to crash Vim (Github issue #12676)
+def Test_extends_method_crashes_vim()
+  var lines =<< trim END
+    vim9script
+
+    class Observer
+    endclass
+
+    class Property
+      this.value: any
+
+      def Set(v: any)
+        if v != this.value
+          this.value = v
+        endif
+      enddef
+
+      def Register(observer: Observer)
+      enddef
+    endclass
+
+    class Bool extends Property
+      this.value: bool
+    endclass
+
+    def Observe(obj: Property, who: Observer)
+      obj.Register(who)
+    enddef
+
+    var p = Bool.new(false)
+    var myObserver = Observer.new()
+
+    Observe(p, myObserver)
+
+    p.Set(true)
+  END
+  v9.CheckScriptSuccess(lines)
+enddef
+
+" Test for calling a method in a class that is extended
+def Test_call_method_in_extended_class()
+  var lines =<< trim END
+    vim9script
+
+    var prop_init_called = false
+    var prop_register_called = false
+
+    class Property
+      def Init()
+        prop_init_called = true
+      enddef
+
+      def Register()
+        prop_register_called = true
+      enddef
+    endclass
+
+    class Bool extends Property
+    endclass
+
+    def Observe(obj: Property)
+      obj.Register()
+    enddef
+
+    var p = Property.new()
+    Observe(p)
+
+    p.Init()
+    assert_true(prop_init_called)
+    assert_true(prop_register_called)
+  END
+  v9.CheckScriptSuccess(lines)
+enddef
+
+" Test for calling a method in the parent class that is extended partially.
+" This used to fail with the 'E118: Too many arguments for function: Text' error
+" message (Github issue #12524).
+def Test_call_method_in_parent_class()
+  var lines =<< trim END
+    vim9script
+
+    class Widget
+      this._lnum: number = 1
+
+      def SetY(lnum: number)
+        this._lnum = lnum
+      enddef
+
+      def Text(): string
+        return ''
+      enddef
+    endclass
+
+    class Foo extends Widget
+      def Text(): string
+        return '<Foo>'
+      enddef
+    endclass
+
+    def Stack(w1: Widget, w2: Widget): list<Widget>
+      w1.SetY(1)
+      w2.SetY(2)
+      return [w1, w2]
+    enddef
+
+    var foo1 = Foo.new()
+    var foo2 = Foo.new()
+    var l = Stack(foo1, foo2)
+  END
+  v9.CheckScriptSuccess(lines)
+enddef
+
+" Test for calling methods from three levels of classes
+def Test_multi_level_method_call()
+  var lines =<< trim END
+    vim9script
+
+    var A_func1: number = 0
+    var A_func2: number = 0
+    var A_func3: number = 0
+    var B_func2: number = 0
+    var B_func3: number = 0
+    var C_func3: number = 0
+
+    class A
+      def Func1()
+        A_func1 += 1
+      enddef
+
+      def Func2()
+        A_func2 += 1
+      enddef
+
+      def Func3()
+        A_func3 += 1
+      enddef
+    endclass
+
+    class B extends A
+      def Func2()
+        B_func2 += 1
+      enddef
+
+      def Func3()
+        B_func3 += 1
+      enddef
+    endclass
+
+    class C extends B
+      def Func3()
+        C_func3 += 1
+      enddef
+    endclass
+
+    def A_CallFuncs(a: A)
+      a.Func1()
+      a.Func2()
+      a.Func3()
+    enddef
+
+    def B_CallFuncs(b: B)
+      b.Func1()
+      b.Func2()
+      b.Func3()
+    enddef
+
+    def C_CallFuncs(c: C)
+      c.Func1()
+      c.Func2()
+      c.Func3()
+    enddef
+
+    var cobj = C.new()
+    A_CallFuncs(cobj)
+    B_CallFuncs(cobj)
+    C_CallFuncs(cobj)
+    assert_equal(3, A_func1)
+    assert_equal(0, A_func2)
+    assert_equal(0, A_func3)
+    assert_equal(3, B_func2)
+    assert_equal(0, B_func3)
+    assert_equal(3, C_func3)
+  END
+  v9.CheckScriptSuccess(lines)
+enddef
+
+" Test for using members from three levels of classes
+def Test_multi_level_member_access()
+  var lines =<< trim END
+    vim9script
+
+    class A
+      this.val1: number = 0
+      this.val2: number = 0
+      this.val3: number = 0
+    endclass
+
+    class B extends A
+      this.val2: number = 0
+      this.val3: number = 0
+    endclass
+
+    class C extends B
+      this.val3: number = 0
+    endclass
+
+    def A_members(a: A)
+      a.val1 += 1
+      a.val2 += 1
+      a.val3 += 1
+    enddef
+
+    def B_members(b: B)
+      b.val1 += 1
+      b.val2 += 1
+      b.val3 += 1
+    enddef
+
+    def C_members(c: C)
+      c.val1 += 1
+      c.val2 += 1
+      c.val3 += 1
+    enddef
+
+    var cobj = C.new()
+    A_members(cobj)
+    B_members(cobj)
+    C_members(cobj)
+    assert_equal(3, cobj.val1)
+    assert_equal(3, cobj.val2)
+    assert_equal(3, cobj.val3)
+  END
+  v9.CheckScriptSuccess(lines)
+enddef
+
+" Test expansion of <stack> with class methods.
+def Test_stack_expansion_with_methods()
+  var lines =<< trim END
+    vim9script
+
+    class C
+        def M1()
+            F0()
+        enddef
+    endclass
+
+    def F0()
+      assert_match('<SNR>\d\+_F\[1\]\.\.C\.M1\[1\]\.\.<SNR>\d\+_F0\[1\]$', expand('<stack>'))
+    enddef
+
+    def F()
+        C.new().M1()
+    enddef
+
+    F()
+  END
+  v9.CheckScriptSuccess(lines)
+enddef
+
+" Test the return type of the new() constructor
+def Test_new_return_type()
+  # new() uses the default return type and there is no return statement
+  var lines =<< trim END
+    vim9script
+
+    class C
+      this._bufnr: number
+
+      def new(this._bufnr)
+        if !bufexists(this._bufnr)
+          this._bufnr = -1
+        endif
+      enddef
+    endclass
+
+    var c = C.new(12345)
+    assert_equal('object<C>', typename(c))
+
+    var v1: C
+    v1 = C.new(12345)
+    assert_equal('object<C>', typename(v1))
+
+    def F()
+      var v2: C
+      v2 = C.new(12345)
+      assert_equal('object<C>', typename(v2))
+    enddef
+    F()
+  END
+  v9.CheckScriptSuccess(lines)
+
+  # new() uses the default return type and an empty 'return' statement
+  lines =<< trim END
+    vim9script
+
+    class C
+      this._bufnr: number
+
+      def new(this._bufnr)
+        if !bufexists(this._bufnr)
+          this._bufnr = -1
+          return
+        endif
+      enddef
+    endclass
+
+    var c = C.new(12345)
+    assert_equal('object<C>', typename(c))
+
+    var v1: C
+    v1 = C.new(12345)
+    assert_equal('object<C>', typename(v1))
+
+    def F()
+      var v2: C
+      v2 = C.new(12345)
+      assert_equal('object<C>', typename(v2))
+    enddef
+    F()
+  END
+  v9.CheckScriptSuccess(lines)
+
+  # new() uses "any" return type and returns "this"
+  lines =<< trim END
+    vim9script
+
+    class C
+      this._bufnr: number
+
+      def new(this._bufnr): any
+        if !bufexists(this._bufnr)
+          this._bufnr = -1
+          return this
+        endif
+      enddef
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1365:')
+
+  # new() uses 'Dict' return type and returns a Dict
+  lines =<< trim END
+    vim9script
+
+    class C
+      this._state: dict<any>
+
+      def new(): dict<any>
+        this._state = {}
+        return this._state
+      enddef
+    endclass
+
+    var c = C.new()
+    assert_equal('object<C>', typename(c))
+  END
+  v9.CheckScriptFailure(lines, 'E1365:')
+enddef
 
 " vim: ts=8 sw=2 sts=2 expandtab tw=80 fdm=marker

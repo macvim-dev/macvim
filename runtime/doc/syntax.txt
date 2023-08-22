@@ -214,10 +214,10 @@ A syntax group name is to be used for syntax items that match the same kind of
 thing.  These are then linked to a highlight group that specifies the color.
 A syntax group name doesn't specify any color or attributes itself.
 
-The name for a highlight or syntax group must consist of ASCII letters, digits
-and the underscore.  As a regexp: "[a-zA-Z0-9_]*".  However, Vim does not give
-an error when using other characters.  The maximum length of a group name is
-about 200 bytes.  *E1249*
+The name for a highlight or syntax group must consist of ASCII letters,
+digits, underscores, dots, or hyphens.  As a regexp: "[a-zA-Z0-9_.-]*".
+However, Vim does not give an error when using other characters.  The maximum
+length of a group name is about 200 bytes.  *E1249*
 
 To be able to allow each user to pick their favorite set of colors, there must
 be preferred names for highlight groups that are common for many languages.
@@ -1579,9 +1579,10 @@ example, FORM files, use this in your startup vimrc: >
 
 FORTH						*forth.vim* *ft-forth-syntax*
 
-Files matching "*.fs" could be F# or Forth.  If the automatic detection
-doesn't work for you, or you don't edit F# at all, use this in your
-startup vimrc: >
+Files matching "*.f" could be Fortran or Forth and those matching "*.fs" could
+be F# or Forth.  If the automatic detection doesn't work for you, or you don't
+edit F# or Fortran at all, use this in your startup vimrc: >
+   :let filetype_f  = "forth"
    :let filetype_fs = "forth"
 
 

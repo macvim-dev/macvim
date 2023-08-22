@@ -1,7 +1,8 @@
 " Vim support file to detect file types
 "
-" Maintainer:	Bram Moolenaar <Bram@vim.org>
-" Last Change:	2023 Jun 09
+" Maintainer:	The Vim Project <https://github.com/vim/vim>
+" Last Change:	2023 Aug 10
+" Former Maintainer:	Bram Moolenaar <Bram@vim.org>
 
 " Listen very carefully, I will say this only once
 if exists("did_load_filetypes")
@@ -244,7 +245,7 @@ au BufNewFile,BufRead *.bib			setf bib
 au BufNewFile,BufRead *.bst			setf bst
 
 " Bicep
-au BufNewFile,BufRead *.bicep			setf bicep
+au BufNewFile,BufRead *.bicep,*.bicepparam			setf bicep
 
 " BIND configuration
 " sudoedit uses namedXXXX.conf
@@ -253,6 +254,9 @@ au BufNewFile,BufRead named*.conf,rndc*.conf,rndc*.key	setf named
 " BIND zone
 au BufNewFile,BufRead named.root		setf bindzone
 au BufNewFile,BufRead *.db			call dist#ft#BindzoneCheck('')
+
+" Blade
+au BufNewFile,BufRead *.blade.php		setf blade
 
 " Blank
 au BufNewFile,BufRead *.bl			setf blank
@@ -720,16 +724,19 @@ au BufNewFile,BufRead auto.master		setf conf
 au BufNewFile,BufRead *.mas,*.master		setf master
 
 " Forth
-au BufNewFile,BufRead *.ft,*.fth		setf forth
+au BufNewFile,BufRead *.ft,*.fth,*.4th		setf forth
 
 " Reva Forth
 au BufNewFile,BufRead *.frt			setf reva
 
 " Fortran
 if has("fname_case")
-  au BufNewFile,BufRead *.F,*.FOR,*.FPP,*.FTN,*.F77,*.F90,*.F95,*.F03,*.F08	 setf fortran
+  au BufNewFile,BufRead *.F,*.FOR,*.FPP,*.FTN,*.F77,*.F90,*.F95,*.F03,*.F08	setf fortran
 endif
-au BufNewFile,BufRead   *.f,*.for,*.fortran,*.fpp,*.ftn,*.f77,*.f90,*.f95,*.f03,*.f08  setf fortran
+au BufNewFile,BufRead *.for,*.fortran,*.fpp,*.ftn,*.f77,*.f90,*.f95,*.f03,*.f08	setf fortran
+
+" Fortran or Forth
+au BufNewFile,BufRead *.f			call dist#ft#FTf()
 
 " Framescript
 au BufNewFile,BufRead *.fsl			setf framescript
@@ -891,6 +898,7 @@ if exists('$XDG_CONFIG_HOME')
 endif
 au BufNewFile,BufRead $HOME/.config/cabal/config setf cabalconfig
 au BufNewFile,BufRead cabal.config		setf cabalconfig
+au BufNewFile,BufRead *.persistentmodels	setf haskellpersistent
 
 " Haste
 au BufNewFile,BufRead *.ht			setf haste
@@ -944,6 +952,9 @@ au BufNewFile,BufRead */etc/host.conf		setf hostconf
 
 " Hosts access
 au BufNewFile,BufRead */etc/hosts.allow,*/etc/hosts.deny  setf hostsaccess
+
+" Hurl
+au BufRead,BufNewFile *.hurl			setf hurl
 
 " Hyper Builder
 au BufNewFile,BufRead *.hb			setf hb
@@ -1056,6 +1067,9 @@ au BufNewFile,BufRead *.json5			setf json5
 
 " JSON Patch (RFC 6902)
 au BufNewFile,BufRead *.json-patch		setf json
+
+" Geojson is also json
+au BufNewFile,BufRead *.geojson			setf json
 
 " Jupyter Notebook is also json
 au BufNewFile,BufRead *.ipynb			setf json
@@ -1558,6 +1572,10 @@ au BufNewFile,BufRead *.rcp			setf pilrc
 " Pine config
 au BufNewFile,BufRead .pinerc,pinerc,.pinercex,pinercex		setf pine
 
+" Pip requirements
+au BufNewFile,BufRead *.pip			setf requirements
+au BufNewFile,BufRead requirements.txt		setf requirements
+
 " Pipenv Pipfiles
 au BufNewFile,BufRead Pipfile			setf toml
 au BufNewFile,BufRead Pipfile.lock		setf json
@@ -1676,6 +1694,9 @@ au BufNewFile,BufRead *.pk			setf poke
 " Protocols
 au BufNewFile,BufRead */etc/protocols		setf protocols
 
+" PyPA manifest files
+au BufNewFile,BufRead MANIFEST.in		setf pymanifest
+
 " Pyret
 au BufNewFile,BufRead *.arr			setf pyret
 
@@ -1689,6 +1710,9 @@ au BufNewFile,BufRead *.ptl,*.pyi,SConstruct		   setf python
 
 " QL
 au BufRead,BufNewFile *.ql,*.qll		setf ql
+
+" QML
+au BufRead,BufNewFile *.qml,*.qbs			setf qml
 
 " QMLdir
 au BufRead,BufNewFile qmldir			setf qmldir
@@ -2314,6 +2338,9 @@ au BufNewFile,BufRead */.config/upstart/*.override	       setf upstart
 " URL shortcut
 au BufNewFile,BufRead *.url			setf urlshortcut
 
+" V
+au BufNewFile,BufRead *.vsh,*.vv			setf v
+
 " Vala
 au BufNewFile,BufRead *.vala			setf vala
 
@@ -2395,6 +2422,9 @@ au BufNewFile,BufRead .wgetrc,wgetrc		setf wget
 
 " Wget2 config
 au BufNewFile,BufRead .wget2rc,wget2rc		setf wget2
+
+" WebGPU Shading Language (WGSL)
+au BufNewFile,BufRead *.wgsl			setf wgsl
 
 " Website MetaLanguage
 au BufNewFile,BufRead *.wml			setf wml
@@ -2484,6 +2514,9 @@ au BufNewFile,BufRead *.fsproj,*.fsproj.user	setf xml
 " VBPROJ files are Visual Studio.NET's XML-based Visual Basic project config files
 au BufNewFile,BufRead *.vbproj,*.vbproj.user	setf xml
 
+" Unison Language
+au BufNewFile,BufRead *.u,*.uu				setf unison
+
 " Qt Linguist translation source and Qt User Interface Files are XML
 " However, for .ts TypeScript is more common.
 au BufNewFile,BufRead *.ui			setf xml
@@ -2529,7 +2562,7 @@ au BufNewFile,BufRead *.yy,*.yxx,*.y++		setf yacc
 au BufNewFile,BufRead *.y			call dist#ft#FTy()
 
 " Yaml
-au BufNewFile,BufRead *.yaml,*.yml		setf yaml
+au BufNewFile,BufRead *.yaml,*.yml,*.eyaml		setf yaml
 
 " Raml
 au BufNewFile,BufRead *.raml			setf raml

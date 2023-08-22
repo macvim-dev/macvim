@@ -1045,8 +1045,11 @@ compile_for(char_u *arg_start, cctx_T *cctx)
 		}
 
 		// Reserve a variable to store "var".
-		where.wt_index = var_list ? idx + 1 : 0;
-		where.wt_variable = TRUE;
+		if (var_list)
+		{
+		    where.wt_index = idx + 1;
+		    where.wt_kind = WT_VARIABLE;
+		}
 		if (lhs_type == &t_any)
 		    lhs_type = item_type;
 		else if (item_type != &t_unknown
@@ -2614,8 +2617,16 @@ compile_return(char_u *arg, int check_return_type, int legacy, cctx_T *cctx)
 	    return NULL;
 	}
 
-	// No argument, return zero.
-	generate_PUSHNR(cctx, 0);
+	if (cctx->ctx_ufunc->uf_flags & FC_NEW)
+	{
+	    // For a class new() constructor, return an object of the class.
+	    generate_instr(cctx, ISN_RETURN_OBJECT);
+	    cctx->ctx_ufunc->uf_ret_type =
+		&cctx->ctx_ufunc->uf_class->class_object_type;
+	}
+	else
+	    // No argument, return zero.
+	    generate_PUSHNR(cctx, 0);
     }
 
     // may need ENDLOOP when inside a :for or :while loop

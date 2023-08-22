@@ -122,6 +122,7 @@ empty_pattern_magic(char_u *p, size_t len, magic_T magic_val)
 typedef struct {
     colnr_T	vs_curswant;
     colnr_T	vs_leftcol;
+    colnr_T	vs_skipcol;
     linenr_T	vs_topline;
 # ifdef FEAT_DIFF
     int		vs_topfill;
@@ -135,6 +136,7 @@ save_viewstate(viewstate_T *vs)
 {
     vs->vs_curswant = curwin->w_curswant;
     vs->vs_leftcol = curwin->w_leftcol;
+    vs->vs_skipcol = curwin->w_skipcol;
     vs->vs_topline = curwin->w_topline;
 # ifdef FEAT_DIFF
     vs->vs_topfill = curwin->w_topfill;
@@ -148,6 +150,7 @@ restore_viewstate(viewstate_T *vs)
 {
     curwin->w_curswant = vs->vs_curswant;
     curwin->w_leftcol = vs->vs_leftcol;
+    curwin->w_skipcol = vs->vs_skipcol;
     curwin->w_topline = vs->vs_topline;
 # ifdef FEAT_DIFF
     curwin->w_topfill = vs->vs_topfill;
@@ -4161,6 +4164,7 @@ get_cmdline_str(void)
 get_cmdline_completion(void)
 {
     cmdline_info_T *p;
+    char_u	*buffer;
 
     if (cmdline_star > 0)
 	return NULL;
@@ -4174,10 +4178,19 @@ get_cmdline_completion(void)
 	return NULL;
 
     char_u *cmd_compl = cmdcomplete_type_to_str(p->xpc->xp_context);
-    if (cmd_compl != NULL)
-	return vim_strsave(cmd_compl);
+    if (cmd_compl == NULL)
+        return NULL;
 
-    return NULL;
+    if (p->xpc->xp_context == EXPAND_USER_LIST || p->xpc->xp_context == EXPAND_USER_DEFINED)
+    {
+	buffer = alloc(STRLEN(cmd_compl) + STRLEN(p->xpc->xp_arg) + 2);
+	if (buffer == NULL)
+	    return NULL;
+	sprintf((char *)buffer, "%s,%s", cmd_compl, p->xpc->xp_arg);
+	return buffer;
+    }
+
+    return vim_strsave(cmd_compl);
 }
 
 /*
@@ -4621,11 +4634,6 @@ open_cmdwin(void)
 		stuffReadbuff((char_u *)p);
 		stuffcharReadbuff(CAR);
 	    }
-	}
-	else if (cmdwin_result == K_XF2)	// :qa typed
-	{
-	    ccline.cmdbuff = vim_strsave((char_u *)"qa");
-	    cmdwin_result = CAR;
 	}
 	else if (cmdwin_result == Ctrl_C)
 	{

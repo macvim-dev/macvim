@@ -2613,7 +2613,7 @@ def Test_map_function_arg()
     var ll: list<number> = [1, 2, 3]
     echo map(ll, Map)
   END
-  v9.CheckDefAndScriptFailure(lines, ['E1013: Argument 2: type mismatch, expected func(?number, ?number): number but got func(number, number): string', 'E1012: Type mismatch; expected number but got string in map()'])
+  v9.CheckDefAndScriptFailure(lines, ['E1013: Argument 2: type mismatch, expected func(?number, ?number): number but got func(number, number): string', 'E1012: Type mismatch; expected number but got string'])
 
   # not declared list can change type
   echo [1, 2, 3]->map((..._) => 'x')
@@ -2631,19 +2631,19 @@ def Test_map_item_type()
     var l: list<number> = [0]
     echo map(l, (_, v) => [])
   END
-  v9.CheckDefAndScriptFailure(lines, ['E1013: Argument 2: type mismatch, expected func(?number, ?number): number but got func(any, any): list<unknown>', 'E1012: Type mismatch; expected number but got list<unknown> in map()'], 2)
+  v9.CheckDefAndScriptFailure(lines, ['E1013: Argument 2: type mismatch, expected func(?number, ?number): number but got func(any, any): list<unknown>', 'E1012: Type mismatch; expected number but got list<unknown>'], 2)
 
   lines =<< trim END
     var l: list<number> = range(2)
     echo map(l, (_, v) => [])
   END
-  v9.CheckDefAndScriptFailure(lines, ['E1013: Argument 2: type mismatch, expected func(?number, ?number): number but got func(any, any): list<unknown>', 'E1012: Type mismatch; expected number but got list<unknown> in map()'], 2)
+  v9.CheckDefAndScriptFailure(lines, ['E1013: Argument 2: type mismatch, expected func(?number, ?number): number but got func(any, any): list<unknown>', 'E1012: Type mismatch; expected number but got list<unknown>'], 2)
 
   lines =<< trim END
     var d: dict<number> = {key: 0}
     echo map(d, (_, v) => [])
   END
-  v9.CheckDefAndScriptFailure(lines, ['E1013: Argument 2: type mismatch, expected func(?string, ?number): number but got func(any, any): list<unknown>', 'E1012: Type mismatch; expected number but got list<unknown> in map()'], 2)
+  v9.CheckDefAndScriptFailure(lines, ['E1013: Argument 2: type mismatch, expected func(?string, ?number): number but got func(any, any): list<unknown>', 'E1012: Type mismatch; expected number but got list<unknown>'], 2)
 enddef
 
 def Test_maparg()
@@ -4811,6 +4811,9 @@ def Test_virtcol()
   v9.CheckDefAndScriptFailure(['virtcol(".", "a")'], [
     'E1013: Argument 2: type mismatch, expected bool but got string',
     'E1212: Bool required for argument 2'])
+  v9.CheckDefAndScriptFailure(['virtcol(".", v:true, [])'], [
+    'E1013: Argument 3: type mismatch, expected number but got list',
+    'E1210: Number required for argument 3'])
   v9.CheckDefExecAndScriptFailure(['virtcol("")'],
     'E1209: Invalid value for a line number')
   new

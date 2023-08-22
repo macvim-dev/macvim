@@ -36,29 +36,19 @@ static void topline_back(lineoff_T *lp);
 static void botline_forw(lineoff_T *lp);
 
 /*
- * Reduce "n" for the screen lines skipped with "wp->w_skipcol".
+ * Get the number of screen lines skipped with "wp->w_skipcol".
  */
     int
-adjust_plines_for_skipcol(win_T *wp, int n)
+adjust_plines_for_skipcol(win_T *wp)
 {
     if (wp->w_skipcol == 0)
-	return n;
+	return 0;
 
-    int off = 0;
     int width = wp->w_width - win_col_off(wp);
     if (wp->w_skipcol >= width)
-    {
-	++off;
-	int skip = wp->w_skipcol - width;
-	width += win_col_off2(wp);
-	while (skip >= width)
-	{
-	    ++off;
-	    skip -= width;
-	}
-    }
-    wp->w_valid &= ~VALID_WROW;
-    return n - off;
+	return (wp->w_skipcol - width) / (width + win_col_off2(wp)) + 1;
+
+    return 0;
 }
 
 /*
@@ -77,7 +67,7 @@ plines_correct_topline(win_T *wp, linenr_T lnum)
 #endif
 	n = plines_win(wp, lnum, FALSE);
     if (lnum == wp->w_topline)
-	n = adjust_plines_for_skipcol(wp, n);
+	n -= adjust_plines_for_skipcol(wp);
     if (n > wp->w_height)
 	n = wp->w_height;
     return n;
@@ -1356,7 +1346,10 @@ curs_columns(
 	    // don't skip more than necessary
 	    if (n > p_lines - curwin->w_height + 1)
 		n = p_lines - curwin->w_height + 1;
-	    curwin->w_skipcol = n * width2;
+	    if (n > 0)
+		curwin->w_skipcol = width1 + (n - 1) * width2;
+	    else
+		curwin->w_skipcol = 0;
 	}
 	else if (extra == 1)
 	{
@@ -1443,7 +1436,6 @@ textpos2screenpos(
 {
     colnr_T	scol = 0, ccol = 0, ecol = 0;
     int		row = 0;
-    int		rowoff = 0;
     colnr_T	coloff = 0;
 
     if (pos->lnum >= wp->w_topline && pos->lnum <= wp->w_botline)
@@ -1456,7 +1448,10 @@ textpos2screenpos(
 
 	is_folded = hasFoldingWin(wp, lnum, &lnum, NULL, TRUE, NULL);
 #endif
-	row = plines_m_win(wp, wp->w_topline, lnum - 1) + 1;
+	row = plines_m_win(wp, wp->w_topline, lnum - 1, FALSE);
+	// "row" should be the screen line where line "lnum" begins, which can
+	// be negative if "lnum" is "w_topline" and "w_skipcol" is non-zero.
+	row -= adjust_plines_for_skipcol(wp);
 
 #ifdef FEAT_DIFF
 	// Add filler lines above this buffer line.
@@ -1468,7 +1463,7 @@ textpos2screenpos(
 #ifdef FEAT_FOLDING
 	if (is_folded)
 	{
-	    row += W_WINROW(wp);
+	    row += W_WINROW(wp) + 1;
 	    coloff = wp->w_wincol + 1 + off;
 	}
 	else
@@ -1481,32 +1476,30 @@ textpos2screenpos(
 	    col += off;
 	    width = wp->w_width - off + win_col_off2(wp);
 
-	    if (lnum == wp->w_topline)
-		col -= wp->w_skipcol;
-
 	    // long line wrapping, adjust row
 	    if (wp->w_p_wrap
 		    && col >= (colnr_T)wp->w_width
 		    && width > 0)
 	    {
 		// use same formula as what is used in curs_columns()
-		rowoff = ((col - wp->w_width) / width + 1);
+		int rowoff = ((col - wp->w_width) / width + 1);
 		col -= rowoff * width;
+		row += rowoff;
 	    }
 	    col -= wp->w_leftcol;
 	    if (col >= wp->w_width)
 		col = -1;
-	    if (col >= 0 && row + rowoff <= wp->w_height)
+	    if (col >= 0 && row >= 0 && row < wp->w_height)
 	    {
 		coloff = col - scol + wp->w_wincol + 1;
-		row += W_WINROW(wp);
+		row += W_WINROW(wp) + 1;
 	    }
 	    else
-		// character is left, right or below of the window
-		row = rowoff = scol = ccol = ecol = 0;
+		// character is out of the window
+		row = scol = ccol = ecol = 0;
 	}
     }
-    *rowp = row + rowoff;
+    *rowp = row;
     *scolp = scol + coloff;
     *ccolp = ccol + coloff;
     *ecolp = ecol + coloff;
@@ -1557,6 +1550,25 @@ f_screenpos(typval_T *argvars UNUSED, typval_T *rettv)
 }
 
 /*
+ * Convert a virtual (screen) column to a character column.  The first column
+ * is one.  For a multibyte character, the column number of the first byte is
+ * returned.
+ */
+    static int
+virtcol2col(win_T *wp, linenr_T lnum, int vcol)
+{
+    int		offset = vcol2col(wp, lnum, vcol);
+    char_u	*line = ml_get_buf(wp->w_buffer, lnum, FALSE);
+    char_u	*p = line + offset;
+
+    // For a multibyte character, need to return the column number of the first
+    // byte.
+    MB_PTR_BACK(line, p);
+
+    return (int)(p - line + 1);
+}
+
+/*
  * "virtcol2col({winid}, {lnum}, {col})" function
  */
     void
@@ -1586,7 +1598,7 @@ f_virtcol2col(typval_T *argvars UNUSED, typval_T *rettv)
     if (error || screencol < 0)
 	return;
 
-    rettv->vval.v_number = vcol2col(wp, lnum, screencol);
+    rettv->vval.v_number = virtcol2col(wp, lnum, screencol);
 }
 #endif
 
