@@ -704,6 +704,14 @@ S_POPMARK(pTHX)
 }
 # endif
 
+// MacVim fix: GIMME_V before 5.32 uses Perl_block_gimme from inline.h. Just
+// use GIMME for simplicity as it's completely inlined without needing to
+// implement Perl_block_gimme().
+# if (PERL_REVISION == 5) && (PERL_VERSION < 32)
+#undef GIMME_V
+#define GIMME_V GIMME
+# endif
+
 /* perl-5.32 needs Perl_POPMARK */
 # if (PERL_REVISION == 5) && (PERL_VERSION >= 32)
 #  define Perl_POPMARK S_POPMARK
