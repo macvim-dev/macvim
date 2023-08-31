@@ -300,7 +300,6 @@
 		90922A3C221D429500F1E1F4 /* if_mzsch.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = if_mzsch.c; path = ../if_mzsch.c; sourceTree = "<group>"; };
 		90922A3D221D429500F1E1F4 /* version.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = version.h; path = ../version.h; sourceTree = "<group>"; };
 		90922A3E221D429500F1E1F4 /* digraph.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = digraph.c; path = ../digraph.c; sourceTree = "<group>"; };
-		90922A3F221D429500F1E1F4 /* gui_at_sb.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = gui_at_sb.c; path = ../gui_at_sb.c; sourceTree = "<group>"; };
 		90922A40221D429500F1E1F4 /* keymap.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = keymap.h; path = ../keymap.h; sourceTree = "<group>"; };
 		90922A41221D429500F1E1F4 /* iscygpty.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = iscygpty.c; path = ../iscygpty.c; sourceTree = "<group>"; };
 		90922A42221D429600F1E1F4 /* if_python3.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = if_python3.c; path = ../if_python3.c; sourceTree = "<group>"; };
@@ -325,7 +324,6 @@
 		90922A56221D429700F1E1F4 /* crypt_zip.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = crypt_zip.c; path = ../crypt_zip.c; sourceTree = "<group>"; };
 		90922A57221D429700F1E1F4 /* hardcopy.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = hardcopy.c; path = ../hardcopy.c; sourceTree = "<group>"; };
 		90922A58221D429700F1E1F4 /* list.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = list.c; path = ../list.c; sourceTree = "<group>"; };
-		90922A59221D429700F1E1F4 /* glbl_ime.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = glbl_ime.h; path = ../glbl_ime.h; sourceTree = "<group>"; };
 		90922A5B221D429700F1E1F4 /* eval.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = eval.c; path = ../eval.c; sourceTree = "<group>"; };
 		90922A5C221D429700F1E1F4 /* userfunc.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = userfunc.c; path = ../userfunc.c; sourceTree = "<group>"; };
 		90922A5D221D429700F1E1F4 /* os_mac.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = os_mac.h; path = ../os_mac.h; sourceTree = "<group>"; };
@@ -341,7 +339,6 @@
 		90922A68221D429800F1E1F4 /* protodef.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = protodef.h; path = ../protodef.h; sourceTree = "<group>"; };
 		90922A69221D429800F1E1F4 /* macros.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = macros.h; path = ../macros.h; sourceTree = "<group>"; };
 		90922A6A221D429800F1E1F4 /* if_cscope.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = if_cscope.c; path = ../if_cscope.c; sourceTree = "<group>"; };
-		90922A6B221D429800F1E1F4 /* gui_at_fs.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = gui_at_fs.c; path = ../gui_at_fs.c; sourceTree = "<group>"; };
 		90922A6C221D429900F1E1F4 /* dosinst.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = dosinst.h; path = ../dosinst.h; sourceTree = "<group>"; };
 		90922A6D221D429900F1E1F4 /* memline.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = memline.c; path = ../memline.c; sourceTree = "<group>"; };
 		90922A6E221D429900F1E1F4 /* proto.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = proto.h; path = ../proto.h; sourceTree = "<group>"; };
@@ -387,7 +384,6 @@
 		90922A9B221D429C00F1E1F4 /* evalfunc.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = evalfunc.c; path = ../evalfunc.c; sourceTree = "<group>"; };
 		90922A9C221D429C00F1E1F4 /* sha256.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = sha256.c; path = ../sha256.c; sourceTree = "<group>"; };
 		90922A9D221D429C00F1E1F4 /* screen.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = screen.c; path = ../screen.c; sourceTree = "<group>"; };
-		90922A9E221D429C00F1E1F4 /* if_cscope.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = if_cscope.h; path = ../if_cscope.h; sourceTree = "<group>"; };
 		90922A9F221D429C00F1E1F4 /* json.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = json.c; path = ../json.c; sourceTree = "<group>"; };
 		90922AA0221D429C00F1E1F4 /* getchar.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = getchar.c; path = ../getchar.c; sourceTree = "<group>"; };
 		90922AA1221D429C00F1E1F4 /* autocmd.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = autocmd.c; path = ../autocmd.c; sourceTree = "<group>"; };
@@ -423,6 +419,12 @@
 		9098943B2A56ECF6007B84A3 /* MMWhatsNewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MMWhatsNewController.m; sourceTree = "<group>"; };
 		90A33BE928D563DF003A2E2F /* MMSparkle2Delegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MMSparkle2Delegate.m; sourceTree = "<group>"; };
 		90A33BEC28D56423003A2E2F /* MMSparkle2Delegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MMSparkle2Delegate.h; sourceTree = "<group>"; };
+		90AF83B32AA15BE50046DA2E /* if_perl.xs */ = {isa = PBXFileReference; explicitFileType = sourcecode.c; name = if_perl.xs; path = ../if_perl.xs; sourceTree = "<group>"; };
+		90AF83B42AA15C660046DA2E /* nv_cmdidxs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = nv_cmdidxs.h; path = ../nv_cmdidxs.h; sourceTree = "<group>"; };
+		90AF83B52AA15C660046DA2E /* alloc.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = alloc.c; path = ../alloc.c; sourceTree = "<group>"; };
+		90AF83B62AA15C660046DA2E /* nv_cmds.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = nv_cmds.h; path = ../nv_cmds.h; sourceTree = "<group>"; };
+		90AF83B72AA15C660046DA2E /* vim9cmds.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = vim9cmds.c; path = ../vim9cmds.c; sourceTree = "<group>"; };
+		90AF83B82AA15C660046DA2E /* termdefs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = termdefs.h; path = ../termdefs.h; sourceTree = "<group>"; };
 		90B9877B2A579F9500FC95D6 /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
 		90F84F1E2521F2270000268B /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ko; path = ko.lproj/MainMenu.strings; sourceTree = "<group>"; };
 		90F84F232521F6480000268B /* ca */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ca; path = ca.lproj/MainMenu.strings; sourceTree = "<group>"; };
@@ -679,6 +681,12 @@
 		90922A3A221D417800F1E1F4 /* Vim Source */ = {
 			isa = PBXGroup;
 			children = (
+				90AF83B52AA15C660046DA2E /* alloc.c */,
+				90AF83B42AA15C660046DA2E /* nv_cmdidxs.h */,
+				90AF83B62AA15C660046DA2E /* nv_cmds.h */,
+				90AF83B82AA15C660046DA2E /* termdefs.h */,
+				90AF83B72AA15C660046DA2E /* vim9cmds.c */,
+				90AF83B32AA15BE50046DA2E /* if_perl.xs */,
 				90922A66221D429800F1E1F4 /* alloc.h */,
 				90922A54221D429700F1E1F4 /* arabic.c */,
 				901C070F2430C8CC00797C2A /* arglist.c */,
@@ -729,10 +737,7 @@
 				90922A80221D429A00F1E1F4 /* findfile.c */,
 				90922A77221D429900F1E1F4 /* fold.c */,
 				90922AA0221D429C00F1E1F4 /* getchar.c */,
-				90922A59221D429700F1E1F4 /* glbl_ime.h */,
 				90922A82221D429A00F1E1F4 /* globals.h */,
-				90922A6B221D429800F1E1F4 /* gui_at_fs.c */,
-				90922A3F221D429500F1E1F4 /* gui_at_sb.c */,
 				90922A55221D429700F1E1F4 /* gui_beval.c */,
 				95241CF225749CC6001E3711 /* gui_xim.c */,
 				90922A4C221D429600F1E1F4 /* gui.c */,
@@ -742,7 +747,6 @@
 				95241CF125749CC6001E3711 /* help.c */,
 				901C07122430C8CC00797C2A /* highlight.c */,
 				90922A6A221D429800F1E1F4 /* if_cscope.c */,
-				90922A9E221D429C00F1E1F4 /* if_cscope.h */,
 				90922AB4221D429C00F1E1F4 /* if_lua.c */,
 				90922A3C221D429500F1E1F4 /* if_mzsch.c */,
 				90922A89221D429B00F1E1F4 /* if_mzsch.h */,
