@@ -209,6 +209,14 @@ export def Exe2filetype(name: string, line1: string): string
   elseif name =~ 'nix-shell'
     return 'nix'
 
+    # Crystal
+  elseif name =~ '^crystal\>'
+    return 'crystal'
+
+    # Rexx
+  elseif name =~ '^\%(rexx\|regina\)\>'
+    return 'rexx'
+
   endif
 
   return ''

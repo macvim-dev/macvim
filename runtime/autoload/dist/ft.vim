@@ -62,7 +62,7 @@ export def FTasmsyntax()
   endif
 enddef
 
-var ft_visual_basic_content = '\cVB_Name\|Begin VB\.\(Form\|MDIForm\|UserControl\)'
+var ft_visual_basic_content = '\c^\s*\%(Attribute\s\+VB_Name\|Begin\s\+\%(VB\.\|{\%(\x\+-\)\+\x\+}\)\)'
 
 # See FTfrm() for Visual Basic form file detection
 export def FTbas()
@@ -146,12 +146,20 @@ export def FTcls()
     return
   endif
 
-  if getline(1) =~ '^\v%(\%|\\)'
-    setf tex
-  elseif getline(1)[0] == '#' && getline(1) =~ 'rexx'
+  var line1 = getline(1)
+  if line1 =~ '^#!.*\<\%(rexx\|regina\)\>'
     setf rexx
-  elseif getline(1) == 'VERSION 1.0 CLASS'
+    return
+  elseif line1 == 'VERSION 1.0 CLASS'
     setf vb
+    return
+  endif
+
+  var nonblank1 = getline(nextnonblank(1))
+  if nonblank1 =~ '^\v%(\%|\\)'
+    setf tex
+  elseif nonblank1 =~ '^\s*\%(/\*\|::\w\)'
+    setf rexx
   else
     setf st
   endif
@@ -321,6 +329,11 @@ enddef
 export def FTfrm()
   if exists("g:filetype_frm")
     exe "setf " .. g:filetype_frm
+    return
+  endif
+
+  if getline(1) == "VERSION 5.00"
+    setf vb
     return
   endif
 
@@ -1195,6 +1208,14 @@ export def FTv()
 
   # No line matched, fall back to "v".
   setf v
+enddef
+
+export def FTvba()
+  if getline(1) =~ '^["#] Vimball Archiver'
+    setf vim
+  else
+    setf vb
+  endif
 enddef
 
 # Uncomment this line to check for compilation errors early

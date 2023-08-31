@@ -210,6 +210,17 @@ def Test_class_basic()
     var v = a.Foo(,)
   END
   v9.CheckScriptFailure(lines, 'E15:')
+
+  lines =<< trim END
+  vim9script
+  class A
+    this.y = {
+      X: 1
+    }
+  endclass
+  var a = A.new()
+  END
+  v9.CheckScriptSuccess(lines)
 enddef
 
 def Test_class_defined_twice()
@@ -326,7 +337,7 @@ def Test_object_not_set()
       var bg: Background           # UNINITIALIZED
       echo Colorscheme.new(bg).GetBackground()
   END
-  v9.CheckScriptFailure(lines, 'E1012: Type mismatch; expected object<Background> but got object<Unknown>')
+  v9.CheckScriptFailure(lines, 'E1360:')
 
   # TODO: this should not give an error but be handled at runtime
   lines =<< trim END
@@ -346,6 +357,46 @@ def Test_object_not_set()
       Func()
   END
   v9.CheckScriptFailure(lines, 'E1363:')
+enddef
+
+def Test_null_object_assign_compare()
+  var lines =<< trim END
+    vim9script
+
+    var nullo = null_object
+    def F(): any
+      return nullo
+    enddef
+    assert_equal('object<Unknown>', typename(F()))
+
+    var o0 = F()
+    assert_true(o0 == null_object)
+    assert_true(o0 == null)
+
+    var o1: any = nullo
+    assert_true(o1 == null_object)
+    assert_true(o1 == null)
+
+    def G()
+      var x = null_object
+    enddef
+
+    class C
+    endclass
+    var o2: C
+    assert_true(o2 == null_object)
+    assert_true(o2 == null)
+
+    o2 = null_object
+    assert_true(o2 == null)
+
+    o2 = C.new()
+    assert_true(o2 != null)
+
+    o2 = null_object
+    assert_true(o2 == null)
+  END
+  v9.CheckScriptSuccess(lines)
 enddef
 
 def Test_class_member_initializer()
@@ -439,7 +490,7 @@ def Test_assignment_with_operator()
       vim9script
 
       class Foo
-        this.x: number
+        public this.x: number
 
         def Add(n: number)
           this.x += n
@@ -668,14 +719,28 @@ def Test_class_object_member_inits()
   END
   v9.CheckScriptFailure(lines, 'E1022:')
 
+  # If the type is not specified for a member, then it should be set during
+  # object creation and not when defining the class.
   lines =<< trim END
       vim9script
-      class TextPosition
-        this.lnum = v:none
+
+      var init_count = 0
+      def Init(): string
+        init_count += 1
+        return 'foo'
+      enddef
+
+      class A
+        this.str1 = Init()
+        this.str2: string = Init()
         this.col = 1
       endclass
+
+      assert_equal(init_count, 0)
+      var a = A.new()
+      assert_equal(init_count, 2)
   END
-  v9.CheckScriptFailure(lines, 'E1330:')
+  v9.CheckScriptSuccess(lines)
 
   # Test for initializing an object member with an unknown variable/type
   lines =<< trim END
@@ -683,8 +748,9 @@ def Test_class_object_member_inits()
     class A
        this.value = init_val
     endclass
+    var a = A.new()
   END
-  v9.CheckScriptFailureList(lines, ['E121:', 'E1329:'])
+  v9.CheckScriptFailure(lines, 'E1001:')
 enddef
 
 def Test_class_object_member_access()
@@ -828,6 +894,15 @@ def Test_class_object_member_access()
     endclass
   END
   v9.CheckScriptFailure(lines, 'E1065:')
+
+  # Test for "static" cannot be followed by "this".
+  lines =<< trim END
+    vim9script
+    class Something
+      static this.val = 1
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1368: Static cannot be followed by "this" in a member name')
 enddef
 
 def Test_class_object_compare()
@@ -1105,6 +1180,61 @@ def Test_class_member()
   END
   v9.CheckScriptFailure(lines, 'E1010:')
 
+  # Test for setting a member on a null object
+  lines =<< trim END
+    vim9script
+    class A
+        public this.val: string
+    endclass
+
+    def F()
+        var obj: A
+        obj.val = ""
+    enddef
+    F()
+  END
+  v9.CheckScriptFailure(lines, 'E1360: Using a null object')
+
+  # Test for accessing a member on a null object
+  lines =<< trim END
+    vim9script
+    class A
+        this.val: string
+    endclass
+
+    def F()
+        var obj: A
+        echo obj.val
+    enddef
+    F()
+  END
+  v9.CheckScriptFailure(lines, 'E1360: Using a null object')
+
+  # Test for setting a member on a null object, at script level
+  lines =<< trim END
+    vim9script
+    class A
+        public this.val: string
+    endclass
+
+    var obj: A
+    obj.val = ""
+  END
+  # FIXME(in source): this should give E1360 as well!
+  v9.CheckScriptFailure(lines, 'E1012: Type mismatch; expected object<A> but got string')
+
+  # Test for accessing a member on a null object, at script level
+  lines =<< trim END
+    vim9script
+    class A
+        this.val: string
+    endclass
+
+    var obj: A
+    echo obj.val
+  END
+  v9.CheckScriptFailure(lines, 'E1360: Using a null object')
+
   # Test for no space before or after the '=' when initializing a member
   # variable
   lines =<< trim END
@@ -1241,6 +1371,18 @@ def Test_class_defcompile()
       defcompile C.Fc
   END
   v9.CheckScriptFailure(lines, 'E1012: Type mismatch; expected number but got string')
+
+  lines =<< trim END
+      vim9script
+
+      class C
+          static def new()
+          enddef
+      endclass
+
+      defcompile C.new
+  END
+  v9.CheckScriptFailure(lines, 'E1370: Cannot define a "new" function as static')
 
   # Trying to compile a function using a non-existing class variable
   lines =<< trim END
@@ -2289,7 +2431,7 @@ def Test_extends_method_crashes_vim()
     endclass
 
     class Bool extends Property
-      this.value: bool
+      this.value2: bool
     endclass
 
     def Observe(obj: Property, who: Observer)
@@ -2337,6 +2479,53 @@ def Test_call_method_in_extended_class()
     p.Init()
     assert_true(prop_init_called)
     assert_true(prop_register_called)
+  END
+  v9.CheckScriptSuccess(lines)
+enddef
+
+def Test_instanceof()
+  var lines =<< trim END
+    vim9script
+
+    class Base1
+    endclass
+
+    class Base2 extends Base1
+    endclass
+
+    interface Intf1
+    endinterface
+
+    class Mix1 implements Intf1
+    endclass
+
+    class Base3 extends Mix1
+    endclass
+
+    var b1 = Base1.new()
+    var b2 = Base2.new()
+    var b3 = Base3.new()
+
+    assert_true(instanceof(b1, Base1))
+    assert_true(instanceof(b2, Base1))
+    assert_false(instanceof(b1, Base2))
+    assert_true(instanceof(b3, Mix1))
+    assert_false(instanceof(b3, []))
+    assert_true(instanceof(b3, [Base1, Base2, Intf1]))
+
+    def Foo()
+      var a1 = Base1.new()
+      var a2 = Base2.new()
+      var a3 = Base3.new()
+
+      assert_true(instanceof(a1, Base1))
+      assert_true(instanceof(a2, Base1))
+      assert_false(instanceof(a1, Base2))
+      assert_true(instanceof(a3, Mix1))
+      assert_false(instanceof(a3, []))
+      assert_true(instanceof(a3, [Base1, Base2, Intf1]))
+    enddef
+    Foo()
   END
   v9.CheckScriptSuccess(lines)
 enddef
@@ -2459,30 +2648,24 @@ def Test_multi_level_member_access()
     vim9script
 
     class A
-      this.val1: number = 0
-      this.val2: number = 0
-      this.val3: number = 0
+      public this.val1: number = 0
     endclass
 
     class B extends A
-      this.val2: number = 0
-      this.val3: number = 0
+      public this.val2: number = 0
     endclass
 
     class C extends B
-      this.val3: number = 0
+      public this.val3: number = 0
     endclass
 
     def A_members(a: A)
       a.val1 += 1
-      a.val2 += 1
-      a.val3 += 1
     enddef
 
     def B_members(b: B)
       b.val1 += 1
       b.val2 += 1
-      b.val3 += 1
     enddef
 
     def C_members(c: C)
@@ -2496,8 +2679,8 @@ def Test_multi_level_member_access()
     B_members(cobj)
     C_members(cobj)
     assert_equal(3, cobj.val1)
-    assert_equal(3, cobj.val2)
-    assert_equal(3, cobj.val3)
+    assert_equal(2, cobj.val2)
+    assert_equal(1, cobj.val3)
   END
   v9.CheckScriptSuccess(lines)
 enddef
@@ -2623,6 +2806,981 @@ def Test_new_return_type()
     assert_equal('object<C>', typename(c))
   END
   v9.CheckScriptFailure(lines, 'E1365:')
+enddef
+
+" Test for checking a member initialization type at run time.
+def Test_runtime_type_check_for_member_init()
+  var lines =<< trim END
+    vim9script
+
+    var retnum: bool = false
+
+    def F(): any
+        retnum = !retnum
+        if retnum
+            return 1
+        else
+            return "hello"
+        endif
+    enddef
+
+    class C
+        this._foo: bool = F()
+    endclass
+
+    var c1 = C.new()
+    var c2 = C.new()
+  END
+  v9.CheckScriptFailure(lines, 'E1012:')
+enddef
+
+" Test for locking a variable referring to an object and reassigning to another
+" object.
+def Test_object_lockvar()
+  var lines =<< trim END
+    vim9script
+
+    class C
+      this.val: number
+      def new(this.val)
+      enddef
+    endclass
+
+    var some_dict: dict<C> = { a: C.new(1), b: C.new(2), c: C.new(3), }
+    lockvar 2 some_dict
+
+    var current: C
+    current = some_dict['c']
+    assert_equal(3, current.val)
+    current = some_dict['b']
+    assert_equal(2, current.val)
+
+    def F()
+      current = some_dict['c']
+    enddef
+
+    def G()
+      current = some_dict['b']
+    enddef
+
+    F()
+    assert_equal(3, current.val)
+    G()
+    assert_equal(2, current.val)
+  END
+  v9.CheckScriptSuccess(lines)
+enddef
+
+" Test for a private object method
+def Test_private_object_method()
+  # Try calling a private method using an object (at the script level)
+  var lines =<< trim END
+    vim9script
+
+    class A
+      def _Foo(): number
+        return 1234
+      enddef
+    endclass
+    var a = A.new()
+    a._Foo()
+  END
+  v9.CheckScriptFailure(lines, 'E1366: Cannot access private method: _Foo()')
+
+  # Try calling a private method using an object (from a def function)
+  lines =<< trim END
+    vim9script
+
+    class A
+      def _Foo(): number
+        return 1234
+      enddef
+    endclass
+    def T()
+      var a = A.new()
+      a._Foo()
+    enddef
+    T()
+  END
+  v9.CheckScriptFailure(lines, 'E1366: Cannot access private method: _Foo()')
+
+  # Use a private method from another object method (in script context)
+  lines =<< trim END
+    vim9script
+
+    class A
+      def _Foo(): number
+        return 1234
+      enddef
+      def Bar(): number
+        return this._Foo()
+      enddef
+    endclass
+    var a = A.new()
+    assert_equal(1234, a.Bar())
+  END
+  v9.CheckScriptSuccess(lines)
+
+  # Use a private method from another object method (def function context)
+  lines =<< trim END
+    vim9script
+
+    class A
+      def _Foo(): number
+        return 1234
+      enddef
+      def Bar(): number
+        return this._Foo()
+      enddef
+    endclass
+    def T()
+      var a = A.new()
+      assert_equal(1234, a.Bar())
+    enddef
+    T()
+  END
+  v9.CheckScriptSuccess(lines)
+
+  # Try calling a private method without the "this" prefix
+  lines =<< trim END
+    vim9script
+
+    class A
+      def _Foo(): number
+        return 1234
+      enddef
+      def Bar(): number
+        return _Foo()
+      enddef
+    endclass
+    var a = A.new()
+    a.Bar()
+  END
+  v9.CheckScriptFailure(lines, 'E117: Unknown function: _Foo')
+
+  # Try calling a private method using the class name
+  lines =<< trim END
+    vim9script
+
+    class A
+      def _Foo(): number
+        return 1234
+      enddef
+    endclass
+    A._Foo()
+  END
+  v9.CheckScriptFailure(lines, 'E1325: Method not found on class "A": _Foo()')
+
+  # Try to use "public" keyword when defining a private method
+  lines =<< trim END
+    vim9script
+
+    class A
+      public def _Foo()
+      enddef
+    endclass
+    var a = A.new()
+    a._Foo()
+  END
+  v9.CheckScriptFailure(lines, 'E1331: Public must be followed by "this" or "static"')
+
+  # Define two private methods with the same name
+  lines =<< trim END
+    vim9script
+
+    class A
+      def _Foo()
+      enddef
+      def _Foo()
+      enddef
+    endclass
+    var a = A.new()
+  END
+  v9.CheckScriptFailure(lines, 'E1355: Duplicate function: _Foo')
+
+  # Define a private method and a object method with the same name
+  lines =<< trim END
+    vim9script
+
+    class A
+      def _Foo()
+      enddef
+      def Foo()
+      enddef
+    endclass
+    var a = A.new()
+  END
+  v9.CheckScriptFailure(lines, 'E1355: Duplicate function: Foo')
+
+  # Define an object method and a private method with the same name
+  lines =<< trim END
+    vim9script
+
+    class A
+      def Foo()
+      enddef
+      def _Foo()
+      enddef
+    endclass
+    var a = A.new()
+  END
+  v9.CheckScriptFailure(lines, 'E1355: Duplicate function: _Foo')
+
+  # Call a public method and a private method from a private method
+  lines =<< trim END
+    vim9script
+
+    class A
+      def Foo(): number
+        return 100
+      enddef
+      def _Bar(): number
+        return 200
+      enddef
+      def _Baz()
+        assert_equal(100, this.Foo())
+        assert_equal(200, this._Bar())
+      enddef
+      def T()
+        this._Baz()
+      enddef
+    endclass
+    var a = A.new()
+    a.T()
+  END
+  v9.CheckScriptSuccess(lines)
+
+  # Try calling a private method from another class
+  lines =<< trim END
+    vim9script
+
+    class A
+      def _Foo(): number
+        return 100
+      enddef
+    endclass
+    class B
+      def Foo(): number
+        var a = A.new()
+        a._Foo()
+      enddef
+    endclass
+    var b = B.new()
+    b.Foo()
+  END
+  v9.CheckScriptFailure(lines, 'E1366: Cannot access private method: _Foo()')
+
+  # Call a private object method from a child class object method
+  lines =<< trim END
+    vim9script
+    class A
+      def _Foo(): number
+        return 1234
+      enddef
+    endclass
+    class B extends A
+      def Bar()
+      enddef
+    endclass
+    class C extends B
+      def Baz(): number
+        return this._Foo()
+      enddef
+    endclass
+    var c = C.new()
+    assert_equal(1234, c.Baz())
+  END
+  v9.CheckScriptSuccess(lines)
+
+  # Call a private object method from a child class object
+  lines =<< trim END
+    vim9script
+    class A
+      def _Foo(): number
+        return 1234
+      enddef
+    endclass
+    class B extends A
+      def Bar()
+      enddef
+    endclass
+    class C extends B
+      def Baz(): number
+      enddef
+    endclass
+    var c = C.new()
+    assert_equal(1234, c._Foo())
+  END
+  v9.CheckScriptFailure(lines, 'E1366: Cannot access private method: _Foo()')
+
+  # Using "_" prefix in a method name should fail outside of a class
+  lines =<< trim END
+    vim9script
+    def _Foo(): number
+      return 1234
+    enddef
+    var a = _Foo()
+  END
+  v9.CheckScriptFailure(lines, 'E1267: Function name must start with a capital: _Foo(): number')
+enddef
+
+" Test for an private class method
+def Test_private_class_method()
+  # Try calling a class private method (at the script level)
+  var lines =<< trim END
+    vim9script
+
+    class A
+      static def _Foo(): number
+        return 1234
+      enddef
+    endclass
+    A._Foo()
+  END
+  v9.CheckScriptFailure(lines, 'E1366: Cannot access private method: _Foo()')
+
+  # Try calling a class private method (from a def function)
+  lines =<< trim END
+    vim9script
+
+    class A
+      static def _Foo(): number
+        return 1234
+      enddef
+    endclass
+    def T()
+      A._Foo()
+    enddef
+    T()
+  END
+  v9.CheckScriptFailure(lines, 'E1366: Cannot access private method: _Foo()')
+
+  # Try calling a class private method using an object (at the script level)
+  lines =<< trim END
+    vim9script
+
+    class A
+      static def _Foo(): number
+        return 1234
+      enddef
+    endclass
+    var a = A.new()
+    a._Foo()
+  END
+  v9.CheckScriptFailure(lines, 'E1325: Method not found on class "A": _Foo()')
+
+  # Try calling a class private method using an object (from a def function)
+  lines =<< trim END
+    vim9script
+
+    class A
+      static def _Foo(): number
+        return 1234
+      enddef
+    endclass
+    def T()
+      var a = A.new()
+      a._Foo()
+    enddef
+    T()
+  END
+  v9.CheckScriptFailure(lines, 'E1325: Method not found on class "A": _Foo()')
+
+  # Use a class private method from an object method
+  lines =<< trim END
+    vim9script
+
+    class A
+      static def _Foo(): number
+        return 1234
+      enddef
+      def Bar()
+        assert_equal(1234, A._Foo())
+      enddef
+    endclass
+    var a = A.new()
+    a.Bar()
+  END
+  v9.CheckScriptSuccess(lines)
+
+  # Use a class private method from another class private method
+  lines =<< trim END
+    vim9script
+
+    class A
+      static def _Foo1(): number
+        return 1234
+      enddef
+      static def _Foo2()
+        assert_equal(1234, A._Foo1())
+      enddef
+      def Bar()
+        A._Foo2()
+      enddef
+    endclass
+    var a = A.new()
+    a.Bar()
+  END
+  v9.CheckScriptSuccess(lines)
+
+  # Declare a class method and a class private method with the same name
+  lines =<< trim END
+    vim9script
+
+    class A
+      static def _Foo()
+      enddef
+      static def Foo()
+      enddef
+    endclass
+    var a = A.new()
+  END
+  v9.CheckScriptFailure(lines, 'E1355: Duplicate function: Foo')
+
+  # Try calling a class private method from another class
+  lines =<< trim END
+    vim9script
+
+    class A
+      static def _Foo(): number
+        return 1234
+      enddef
+    endclass
+    class B
+      def Foo(): number
+        return A._Foo()
+      enddef
+    endclass
+    var b = B.new()
+    assert_equal(1234, b.Foo())
+  END
+  v9.CheckScriptFailure(lines, 'E1366: Cannot access private method: _Foo()')
+
+  # Call a private class method from a child class object method
+  lines =<< trim END
+    vim9script
+    class A
+      static def _Foo(): number
+        return 1234
+      enddef
+    endclass
+    class B extends A
+      def Bar()
+      enddef
+    endclass
+    class C extends B
+      def Baz(): number
+        return A._Foo()
+      enddef
+    endclass
+    var c = C.new()
+    assert_equal(1234, c.Baz())
+  END
+  v9.CheckScriptSuccess(lines)
+
+  # Call a private class method from a child class private class method
+  lines =<< trim END
+    vim9script
+    class A
+      static def _Foo(): number
+        return 1234
+      enddef
+    endclass
+    class B extends A
+      def Bar()
+      enddef
+    endclass
+    class C extends B
+      static def Baz(): number
+        return A._Foo()
+      enddef
+    endclass
+    assert_equal(1234, C.Baz())
+  END
+  v9.CheckScriptSuccess(lines)
+
+  # Call a private class method from a child class object
+  lines =<< trim END
+    vim9script
+    class A
+      static def _Foo(): number
+        return 1234
+      enddef
+    endclass
+    class B extends A
+      def Bar()
+      enddef
+    endclass
+    class C extends B
+      def Baz(): number
+      enddef
+    endclass
+    var c = C.new()
+    assert_equal(1234, C._Foo())
+  END
+  v9.CheckScriptFailure(lines, 'E1366: Cannot access private method: _Foo()')
+enddef
+
+" Test for an interface private object_method
+def Test_interface_private_object_method()
+  # Implement an interface private method and use it from a public method
+  var lines =<< trim END
+    vim9script
+    interface Intf
+      def _Foo(): number
+    endinterface
+    class A implements Intf
+      def _Foo(): number
+        return 1234
+      enddef
+      def Bar(): number
+        return this._Foo()
+      enddef
+    endclass
+    var a = A.new()
+    assert_equal(1234, a.Bar())
+  END
+  v9.CheckScriptSuccess(lines)
+
+  # Call an interface private class method (script context)
+  lines =<< trim END
+    vim9script
+    interface Intf
+      def _Foo(): number
+    endinterface
+    class A implements Intf
+      def _Foo(): number
+        return 1234
+      enddef
+    endclass
+    var a = A.new()
+    assert_equal(1234, a._Foo())
+  END
+  v9.CheckScriptFailure(lines, 'E1366: Cannot access private method: _Foo()')
+
+  # Call an interface private class method (def context)
+  lines =<< trim END
+    vim9script
+    interface Intf
+      def _Foo(): number
+    endinterface
+    class A implements Intf
+      def _Foo(): number
+        return 1234
+      enddef
+    endclass
+    def T()
+      var a = A.new()
+      assert_equal(1234, a._Foo())
+    enddef
+    T()
+  END
+  v9.CheckScriptFailure(lines, 'E1366: Cannot access private method: _Foo()')
+
+  # Implement an interface private object method as a private class method
+  lines =<< trim END
+    vim9script
+    interface Intf
+      def _Foo(): number
+    endinterface
+    class A implements Intf
+      static def _Foo(): number
+        return 1234
+      enddef
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1349: Function "_Foo" of interface "Intf" not implemented')
+enddef
+
+" Test for an interface private class method
+def Test_interface_private_class_method()
+  # Implement an interface private class method and use it from a public method
+  var lines =<< trim END
+    vim9script
+    interface Intf
+      static def _Foo(): number
+    endinterface
+    class A implements Intf
+      static def _Foo(): number
+        return 1234
+      enddef
+      def Bar(): number
+        return A._Foo()
+      enddef
+    endclass
+    var a = A.new()
+    assert_equal(1234, a.Bar())
+  END
+  v9.CheckScriptSuccess(lines)
+
+  # Call an interface private class method (script context)
+  lines =<< trim END
+    vim9script
+    interface Intf
+      static def _Foo(): number
+    endinterface
+    class A implements Intf
+      static def _Foo(): number
+        return 1234
+      enddef
+    endclass
+    assert_equal(1234, A._Foo())
+  END
+  v9.CheckScriptFailure(lines, 'E1366: Cannot access private method: _Foo())')
+
+  # Call an interface private class method (def context)
+  lines =<< trim END
+    vim9script
+    interface Intf
+      static def _Foo(): number
+    endinterface
+    class A implements Intf
+      static def _Foo(): number
+        return 1234
+      enddef
+    endclass
+    def T()
+      assert_equal(1234, A._Foo())
+    enddef
+    T()
+  END
+  v9.CheckScriptFailure(lines, 'E1366: Cannot access private method: _Foo())')
+
+  # Implement an interface private class method as a private object method
+  lines =<< trim END
+    vim9script
+    interface Intf
+      static def _Foo(): number
+    endinterface
+    class A implements Intf
+      def _Foo(): number
+        return 1234
+      enddef
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1349: Function "_Foo" of interface "Intf" not implemented')
+enddef
+
+" Test for using the return value of a class/object method as a function
+" argument.
+def Test_objmethod_funcarg()
+  var lines =<< trim END
+    vim9script
+
+    class C
+      def Foo(): string
+        return 'foo'
+      enddef
+    endclass
+
+    def Bar(a: number, s: string): string
+      return s
+    enddef
+
+    def Baz(c: C)
+      assert_equal('foo', Bar(10, c.Foo()))
+    enddef
+
+    var t = C.new()
+    Baz(t)
+  END
+  v9.CheckScriptSuccess(lines)
+
+  lines =<< trim END
+    vim9script
+
+    class C
+      static def Foo(): string
+        return 'foo'
+      enddef
+    endclass
+
+    def Bar(a: number, s: string): string
+      return s
+    enddef
+
+    def Baz()
+      assert_equal('foo', Bar(10, C.Foo()))
+    enddef
+
+    Baz()
+  END
+  v9.CheckScriptSuccess(lines)
+enddef
+
+" Test for declaring duplicate object and class members
+def Test_dup_member_variable()
+  # Duplicate member variable
+  var lines =<< trim END
+    vim9script
+    class C
+      this.val = 10
+      this.val = 20
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1369: Duplicate member: val')
+
+  # Duplicate private member variable
+  lines =<< trim END
+    vim9script
+    class C
+      this._val = 10
+      this._val = 20
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1369: Duplicate member: _val')
+
+  # Duplicate public member variable
+  lines =<< trim END
+    vim9script
+    class C
+      public this.val = 10
+      public this.val = 20
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1369: Duplicate member: val')
+
+  # Duplicate private member variable
+  lines =<< trim END
+    vim9script
+    class C
+      this.val = 10
+      this._val = 20
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1369: Duplicate member: _val')
+
+  # Duplicate public and private member variable
+  lines =<< trim END
+    vim9script
+    class C
+      this._val = 20
+      public this.val = 10
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1369: Duplicate member: val')
+
+  # Duplicate class member variable
+  lines =<< trim END
+    vim9script
+    class C
+      static s: string = "abc"
+      static _s: string = "def"
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1369: Duplicate member: _s')
+
+  # Duplicate public and private class member variable
+  lines =<< trim END
+    vim9script
+    class C
+      public static s: string = "abc"
+      static _s: string = "def"
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1369: Duplicate member: _s')
+
+  # Duplicate class and object member variable
+  lines =<< trim END
+    vim9script
+    class C
+      static val = 10
+      this.val = 20
+      def new()
+      enddef
+    endclass
+    var c = C.new()
+    assert_equal(10, C.val)
+    assert_equal(20, c.val)
+  END
+  v9.CheckScriptSuccess(lines)
+
+  # Duplicate object member variable in a derived class
+  lines =<< trim END
+    vim9script
+    class A
+      this.val = 10
+    endclass
+    class B extends A
+    endclass
+    class C extends B
+      this.val = 20
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1369: Duplicate member: val')
+
+  # Duplicate object private member variable in a derived class
+  lines =<< trim END
+    vim9script
+    class A
+      this._val = 10
+    endclass
+    class B extends A
+    endclass
+    class C extends B
+      this._val = 20
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1369: Duplicate member: _val')
+
+  # Duplicate object private member variable in a derived class
+  lines =<< trim END
+    vim9script
+    class A
+      this.val = 10
+    endclass
+    class B extends A
+    endclass
+    class C extends B
+      this._val = 20
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1369: Duplicate member: _val')
+
+  # Duplicate object member variable in a derived class
+  lines =<< trim END
+    vim9script
+    class A
+      this._val = 10
+    endclass
+    class B extends A
+    endclass
+    class C extends B
+      this.val = 20
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1369: Duplicate member: val')
+
+  # Duplicate class member variable in a derived class
+  lines =<< trim END
+    vim9script
+    class A
+      static val = 10
+    endclass
+    class B extends A
+    endclass
+    class C extends B
+      static val = 20
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1369: Duplicate member: val')
+
+  # Duplicate private class member variable in a derived class
+  lines =<< trim END
+    vim9script
+    class A
+      static _val = 10
+    endclass
+    class B extends A
+    endclass
+    class C extends B
+      static _val = 20
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1369: Duplicate member: _val')
+
+  # Duplicate private class member variable in a derived class
+  lines =<< trim END
+    vim9script
+    class A
+      static val = 10
+    endclass
+    class B extends A
+    endclass
+    class C extends B
+      static _val = 20
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1369: Duplicate member: _val')
+
+  # Duplicate class member variable in a derived class
+  lines =<< trim END
+    vim9script
+    class A
+      static _val = 10
+    endclass
+    class B extends A
+    endclass
+    class C extends B
+      static val = 20
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1369: Duplicate member: val')
+enddef
+
+" Test for accessing a private member outside a class in a def function
+def Test_private_member_access_outside_class()
+  # private object member variable
+  var lines =<< trim END
+    vim9script
+    class A
+      this._val = 10
+      def GetVal(): number
+        return this._val
+      enddef
+    endclass
+    def T()
+      var a = A.new()
+      a._val = 20
+    enddef
+    T()
+  END
+  v9.CheckScriptFailure(lines, 'E1333: Cannot access private member: _val')
+
+  # access a non-existing private object member variable
+  lines =<< trim END
+    vim9script
+    class A
+      this._val = 10
+    endclass
+    def T()
+      var a = A.new()
+      a._a = 1
+    enddef
+    T()
+  END
+  v9.CheckScriptFailure(lines, 'E1089: Unknown variable: _a = 1')
+enddef
+
+" Test for changing the member access of an interface in a implementation class
+def Test_change_interface_member_access()
+  var lines =<< trim END
+    vim9script
+    interface A
+      public this.val: number
+    endinterface
+    class B implements A
+      this.val = 10
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1367: Access level of member "val" of interface "A" is different')
+
+  lines =<< trim END
+    vim9script
+    interface A
+      this.val: number
+    endinterface
+    class B implements A
+      public this.val = 10
+    endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1367: Access level of member "val" of interface "A" is different')
+enddef
+
+" Test for trying to change a readonly member from a def function
+def Test_readonly_member_change_in_def_func()
+  var lines =<< trim END
+    vim9script
+    class A
+      this.val: number
+    endclass
+    def T()
+      var a = A.new()
+      a.val = 20
+    enddef
+    T()
+  END
+  v9.CheckScriptFailure(lines, 'E46: Cannot change read-only variable "val"')
 enddef
 
 " vim: ts=8 sw=2 sts=2 expandtab tw=80 fdm=marker

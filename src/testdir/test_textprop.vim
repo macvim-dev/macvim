@@ -2602,6 +2602,57 @@ func Test_prop_inserts_text_highlight()
   call StopVimInTerminal(buf)
 endfunc
 
+func Test_prop_inserts_text_normal_gM()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+    call setline(1, '123456789')
+    call prop_type_add('theprop', #{highlight: 'Special'})
+    call prop_add(1, 3, {'type': 'theprop', 'text': 'bbb'})
+    call prop_add(1, 8, {'type': 'theprop', 'text': 'bbb'})
+  END
+  call writefile(lines, 'XscriptPropsNormal_gM', 'D')
+  let buf = RunVimInTerminal('-S XscriptPropsNormal_gM', #{rows: 3, cols: 60})
+  call term_sendkeys(buf, "gM")
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_normal_gM', {})
+
+  call StopVimInTerminal(buf)
+endfunc
+
+func Run_test_prop_inserts_text_normal_gj_gk(cmd)
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+    call setline(1, repeat([repeat('a', 55)], 2))
+    call prop_type_add('theprop', {})
+    call prop_add(1, 41, {'type': 'theprop', 'text': repeat('b', 10)})
+    call prop_add(2, 41, {'type': 'theprop', 'text': repeat('b', 10)})
+  END
+  let lines = insert(lines, a:cmd)
+  call writefile(lines, 'XscriptPropsNormal_gj_gk', 'D')
+  let buf = RunVimInTerminal('-S XscriptPropsNormal_gj_gk', #{rows: 6, cols: 60})
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_normal_gj_gk_1', {})
+  call term_sendkeys(buf, "gj")
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_normal_gj_gk_2', {})
+  call term_sendkeys(buf, "gj")
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_normal_gj_gk_3', {})
+  call term_sendkeys(buf, "gj")
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_normal_gj_gk_4', {})
+  call term_sendkeys(buf, "gk")
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_normal_gj_gk_5', {})
+  call term_sendkeys(buf, "gk")
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_normal_gj_gk_6', {})
+  call term_sendkeys(buf, "gk")
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_normal_gj_gk_7', {})
+
+  call StopVimInTerminal(buf)
+endfunc
+
+func Test_prop_inserts_text_normal_gj_gk()
+  call Run_test_prop_inserts_text_normal_gj_gk('')
+  call Run_test_prop_inserts_text_normal_gj_gk('set virtualedit=all')
+endfunc
+
 func Test_prop_inserts_text_visual_block()
   CheckRunVimInTerminal
 
@@ -2626,6 +2677,176 @@ func Test_prop_inserts_text_visual_block()
   call VerifyScreenDump(buf, 'Test_prop_inserts_text_visual_block_6', {})
   call term_sendkeys(buf, "l")
   call VerifyScreenDump(buf, 'Test_prop_inserts_text_visual_block_7', {})
+
+  call StopVimInTerminal(buf)
+endfunc
+
+func Run_test_prop_inserts_text_showbreak(cmd)
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+    highlight! link LineNr Normal
+    setlocal number showbreak=+ breakindent breakindentopt=shift:2
+    setlocal scrolloff=0 smoothscroll
+    call setline(1, repeat('a', 28))
+    call prop_type_add('theprop', #{highlight: 'Special'})
+    call prop_add(1, 28, #{type: 'theprop', text: repeat('123', 23), text_wrap: 'wrap'})
+    normal! $
+  END
+  let lines = insert(lines, a:cmd)
+  call writefile(lines, 'XscriptPropsShowbreak', 'D')
+  let buf = RunVimInTerminal('-S XscriptPropsShowbreak', #{rows: 6, cols: 30})
+  call term_sendkeys(buf, ":set noruler\<CR>")
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_showbreak_1', {})
+  call term_sendkeys(buf, "\<C-E>")
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_showbreak_2', {})
+  call term_sendkeys(buf, "\<C-E>")
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_showbreak_3', {})
+  call term_sendkeys(buf, "\<C-E>")
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_showbreak_4', {})
+  call term_sendkeys(buf, "\<C-E>")
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_showbreak_5', {})
+  call term_sendkeys(buf, "zbi")
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_showbreak_6', {})
+  call term_sendkeys(buf, "\<BS>")
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_showbreak_7', {})
+  call term_sendkeys(buf, "\<Esc>l")
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_showbreak_8', {})
+  call term_sendkeys(buf, "\<C-E>")
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_showbreak_9', {})
+  call term_sendkeys(buf, "\<C-E>")
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_showbreak_10', {})
+  call term_sendkeys(buf, "\<C-E>")
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_showbreak_11', {})
+  call term_sendkeys(buf, "\<C-E>")
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_showbreak_12', {})
+  call term_sendkeys(buf, "023x$")
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_showbreak_13', {})
+  call term_sendkeys(buf, "\<C-E>")
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_showbreak_14', {})
+  call term_sendkeys(buf, "\<C-E>")
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_showbreak_15', {})
+  call term_sendkeys(buf, "\<C-E>")
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_showbreak_16', {})
+  call term_sendkeys(buf, "zbi")
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_showbreak_17', {})
+  call term_sendkeys(buf, "\<C-U>")
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_showbreak_18', {})
+  call term_sendkeys(buf, "\<Esc>")
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_showbreak_19', {})
+  call term_sendkeys(buf, "\<C-E>")
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_showbreak_20', {})
+  call term_sendkeys(buf, "\<C-E>")
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_showbreak_21', {})
+  call term_sendkeys(buf, "zbx")
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_showbreak_22', {})
+  call term_sendkeys(buf, "26ia\<Esc>a")
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_showbreak_23', {})
+  call term_sendkeys(buf, "\<C-\>\<C-O>:setlocal breakindentopt=\<CR>")
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_showbreak_24', {})
+
+  call StopVimInTerminal(buf)
+endfunc
+
+func Test_prop_inserts_text_showbreak()
+  call Run_test_prop_inserts_text_showbreak('')
+  " because of 'breakindent' the screendumps are the same
+  call Run_test_prop_inserts_text_showbreak('set cpoptions+=n')
+endfunc
+
+func Test_prop_before_tab_skipcol()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+    setlocal list listchars=tab:<-> scrolloff=0 smoothscroll
+    call setline(1, repeat("\t", 4) .. 'a')
+    call prop_type_add('theprop', #{highlight: 'Special'})
+    call prop_add(1, 4, #{type: 'theprop', text: repeat('12', 32), text_wrap: 'wrap'})
+    normal! $
+  END
+  call writefile(lines, 'XscriptPropsBeforeTabSkipcol', 'D')
+  let buf = RunVimInTerminal('-S XscriptPropsBeforeTabSkipcol', #{rows: 6, cols: 30})
+  call VerifyScreenDump(buf, 'Test_prop_before_tab_skipcol_1', {})
+  call term_sendkeys(buf, "\<C-E>")
+  call VerifyScreenDump(buf, 'Test_prop_before_tab_skipcol_2', {})
+  call term_sendkeys(buf, "\<C-E>")
+  call VerifyScreenDump(buf, 'Test_prop_before_tab_skipcol_3', {})
+  call term_sendkeys(buf, "\<C-E>")
+  call VerifyScreenDump(buf, 'Test_prop_before_tab_skipcol_4', {})
+  call term_sendkeys(buf, "zbh")
+  call VerifyScreenDump(buf, 'Test_prop_before_tab_skipcol_5', {})
+  call term_sendkeys(buf, "i")
+  call VerifyScreenDump(buf, 'Test_prop_before_tab_skipcol_6', {})
+  call term_sendkeys(buf, "\<C-O>:setlocal nolist\<CR>")
+  call VerifyScreenDump(buf, 'Test_prop_before_tab_skipcol_7', {})
+  call term_sendkeys(buf, "\<Esc>l")
+  call VerifyScreenDump(buf, 'Test_prop_before_tab_skipcol_8', {})
+  call term_sendkeys(buf, "\<C-E>")
+  call VerifyScreenDump(buf, 'Test_prop_before_tab_skipcol_9', {})
+  call term_sendkeys(buf, "\<C-E>")
+  call VerifyScreenDump(buf, 'Test_prop_before_tab_skipcol_10', {})
+  call term_sendkeys(buf, "\<C-E>")
+  call VerifyScreenDump(buf, 'Test_prop_before_tab_skipcol_11', {})
+
+  call StopVimInTerminal(buf)
+endfunc
+
+func Test_prop_inserts_text_before_linebreak()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+    setlocal linebreak showbreak=+ breakindent breakindentopt=shift:2
+    call setline(1, repeat('a', 50) .. ' ' .. repeat('c', 45))
+    call prop_type_add('theprop', #{highlight: 'Special'})
+    call prop_add(1, 51, #{type: 'theprop', text: repeat('b', 10), text_wrap: 'wrap'})
+    normal! $
+  END
+  call writefile(lines, 'XscriptPropsBeforeLinebreak', 'D')
+  let buf = RunVimInTerminal('-S XscriptPropsBeforeLinebreak', #{rows: 6, cols: 50})
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_before_linebreak_1', {})
+  call term_sendkeys(buf, '05x$')
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_before_linebreak_2', {})
+
+  call StopVimInTerminal(buf)
+endfunc
+
+func Test_prop_inserts_text_before_double_width_wrap()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+    call setline(1, repeat('a', 40) .. '口' .. '12345')
+    call prop_type_add('theprop', #{highlight: 'Special'})
+    call prop_add(1, 41, #{type: 'theprop', text: repeat('b', 9)})
+    normal! $
+  END
+  call writefile(lines, 'XscriptPropsBeforeDoubleWidthWrap', 'D')
+  let buf = RunVimInTerminal('-S XscriptPropsBeforeDoubleWidthWrap', #{rows: 3, cols: 50})
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_before_double_width_wrap_1', {})
+
+  call StopVimInTerminal(buf)
+endfunc
+
+func Test_prop_inserts_text_lcs_extends()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+    setlocal nowrap list listchars=extends:!
+    call setline(1, repeat('a', &columns + 1))
+    call prop_type_add('theprop', #{highlight: 'Special'})
+    call prop_add(1, &columns + 2, #{type: 'theprop', text: 'bbb'})
+  END
+  call writefile(lines, 'XscriptPropsListExtends', 'D')
+  let buf = RunVimInTerminal('-S XscriptPropsListExtends', #{rows: 3, cols: 50})
+  call term_sendkeys(buf, '20l')
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_lcs_extends_1', {})
+  call term_sendkeys(buf, 'zl')
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_lcs_extends_2', {})
+  call term_sendkeys(buf, 'zl')
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_lcs_extends_3', {})
+  call term_sendkeys(buf, 'zl')
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_lcs_extends_4', {})
+  call term_sendkeys(buf, 'zl')
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_lcs_extends_5', {})
 
   call StopVimInTerminal(buf)
 endfunc
@@ -3049,6 +3270,14 @@ func Test_props_with_text_empty_line()
   call VerifyScreenDump(buf, 'Test_prop_with_text_empty_line_4', {})
   call term_sendkeys(buf, "j")
   call VerifyScreenDump(buf, 'Test_prop_with_text_empty_line_5', {})
+  call term_sendkeys(buf, "0\<C-V>2l2k")
+  call VerifyScreenDump(buf, 'Test_prop_with_text_empty_line_6', {})
+  call term_sendkeys(buf, "\<Esc>/aaa\\n\\%V\<CR>")
+  call VerifyScreenDump(buf, 'Test_prop_with_text_empty_line_7', {})
+  call term_sendkeys(buf, "3ggic")
+  call VerifyScreenDump(buf, 'Test_prop_with_text_empty_line_8', {})
+  call term_sendkeys(buf, "\<Esc>/aaa\\nc\\%V\<CR>")
+  call VerifyScreenDump(buf, 'Test_prop_with_text_empty_line_9', {})
 
   call StopVimInTerminal(buf)
 endfunc
@@ -4063,8 +4292,8 @@ func Test_virtual_text_get()
 
   let p = prop_list(1, #{end_lnum: -1})
   call assert_equal(
-        \ #{lnum: 1, id: -1, col: 2, type_bufnr: 0, end: 1,
-        \   type: 'test', length: 1, start: 1,
+        \ #{lnum: 1, col: 2, type_bufnr: 0, end: 1,
+        \   type: 'test', start: 1,
         \   text: ' virtual text1 '}, p[0])
   call assert_equal(
         \ #{lnum: 1, id: 0, col: 3, type_bufnr: 0, end: 1,
@@ -4073,8 +4302,8 @@ func Test_virtual_text_get()
         \ #{lnum: 1, id: 0, col: 5, type_bufnr: 0, end: 1,
         \   type: 'test', length: 0, start: 1}, p[2])
   call assert_equal(
-        \ #{lnum: 1, id: -3, col: 6, type_bufnr: 0, end: 1, type: 'test',
-        \   text_wrap: 'wrap', length: 1, start: 1, text: ' virtual text3 '},
+        \ #{lnum: 1, col: 6, type_bufnr: 0, end: 1, type: 'test',
+        \   text_wrap: 'wrap', start: 1, text: ' virtual text3 '},
         \  p[3])
   call assert_equal('right', p[4].text_align)
 

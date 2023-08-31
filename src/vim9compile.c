@@ -1865,11 +1865,30 @@ compile_lhs(
 	else if (use_class)
 	{
 	    // for an object or class member get the type of the member
-	    class_T *cl = lhs->lhs_type->tt_class;
+	    class_T	*cl = lhs->lhs_type->tt_class;
+	    omacc_T	access;
+
 	    lhs->lhs_member_type = class_member_type(cl, after + 1,
-					   lhs->lhs_end, &lhs->lhs_member_idx);
+					lhs->lhs_end, &lhs->lhs_member_idx,
+					&access);
 	    if (lhs->lhs_member_idx < 0)
 		return FAIL;
+
+	    // If it is private member variable, then accessing it outside the
+	    // class is not allowed.
+	    if ((access != VIM_ACCESS_ALL) && !inside_class(cctx, cl))
+	    {
+		char_u	*m_name;
+		char	*msg;
+
+		m_name = vim_strnsave(after + 1, lhs->lhs_end - after - 1);
+		msg = (access == VIM_ACCESS_PRIVATE)
+				? e_cannot_access_private_member_str
+				: e_cannot_change_readonly_variable_str;
+		semsg(_(msg), m_name);
+		vim_free(m_name);
+		return FAIL;
+	    }
 	}
 	else
 	{
@@ -2075,11 +2094,13 @@ compile_load_lhs_with_index(lhs_T *lhs, char_u *var_start, cctx_T *cctx)
 	// Also for "obj.value".
        char_u *dot = vim_strchr(var_start, '.');
        if (dot == NULL)
-           return FAIL;
+	   return FAIL;
 
-	class_T *cl = lhs->lhs_type->tt_class;
-	type_T *type = class_member_type(cl, dot + 1,
-					   lhs->lhs_end, &lhs->lhs_member_idx);
+	class_T	*cl = lhs->lhs_type->tt_class;
+	omacc_T	access;
+	type_T	*type = class_member_type(cl, dot + 1,
+					   lhs->lhs_end, &lhs->lhs_member_idx,
+					   &access);
 	if (lhs->lhs_member_idx < 0)
 	    return FAIL;
 
@@ -2299,6 +2320,9 @@ push_default_value(
 	case VAR_CHANNEL:
 	    r = generate_PUSHCHANNEL(cctx);
 	    break;
+	case VAR_OBJECT:
+	    r = generate_PUSHOBJ(cctx);
+	    break;
 	case VAR_NUMBER:
 	case VAR_UNKNOWN:
 	case VAR_ANY:
@@ -2306,7 +2330,6 @@ push_default_value(
 	case VAR_VOID:
 	case VAR_INSTR:
 	case VAR_CLASS:
-	case VAR_OBJECT:
 	case VAR_SPECIAL:  // cannot happen
 	    // This is skipped for local variables, they are always
 	    // initialized to zero.  But in a "for" or "while" loop
@@ -3149,6 +3172,19 @@ compile_def_function(
 		    {
 			semsg(_(e_trailing_characters_str), expr);
 			goto erret;
+		    }
+
+		    type_T	*type = get_type_on_stack(&cctx, 0);
+		    if (m->ocm_type->tt_type != type->tt_type)
+		    {
+			// The type of the member initialization expression is
+			// determined at run time.  Add a runtime type check.
+			where_T	where = WHERE_INIT;
+			where.wt_kind = WT_MEMBER;
+			where.wt_func_name = (char *)m->ocm_name;
+			if (need_type_where(type, m->ocm_type, FALSE, -1,
+				    where, &cctx, FALSE, FALSE) == FAIL)
+			    goto erret;
 		    }
 		}
 		else

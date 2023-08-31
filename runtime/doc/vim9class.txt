@@ -178,6 +178,26 @@ number to the total number of lines: >
 	enddef
 
 
+Private methods ~
+If you want object methods to be accessible only from other methods of the
+same class and not used from outside the class, then you can make them
+private.  This is done by prefixing the method name with an underscore: >
+
+    class SomeClass
+	def _Foo(): number
+	  return 10
+	enddef
+	def Bar(): number
+	  return this._Foo()
+	enddef
+    endclass
+<
+Accessing a private method outside the class will result in an error (using
+the above class): >
+
+    var a = SomeClass.new()
+    a._Foo()
+<
 Simplifying the new() method ~
 
 Many constructors take values for the object members.  Thus you very often see
@@ -283,6 +303,22 @@ object members, they cannot use the "this" keyword. >
 
 Inside the class the function can be called by name directly, outside the
 class the class name must be prefixed: `OtherThing.ClearTotalSize()`.
+
+Just like object methods the access can be made private by using an underscore
+as the first character in the method name: >
+
+    class OtherThing
+	static def _Foo()
+	    echo "Foo"
+	enddef
+	def Bar()
+	    OtherThing._Foo()
+	enddef
+    endclass
+<
+							*E1370*
+Note that constructors cannot be declared as "static", because they always
+are.
 
 ==============================================================================
 
@@ -421,6 +457,12 @@ once.  They can appear in any order, although this order is recommended: >
 <							*E1355*
 Each member and function name can be used only once.  It is not possible to
 define a function with the same name and different type of arguments.
+
+
+Member Initialization ~
+If the type of a member is not explicitly specified in a class, then it is set
+to "any" during class definition.  When an object is instantiated from the
+class, then the type of the member is set.
 
 
 Extending a class ~

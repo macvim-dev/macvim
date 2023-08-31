@@ -2,7 +2,7 @@
 "
 " Author: Bram Moolenaar
 " Copyright: Vim license applies, see ":help license"
-" Last Change: 2023 Jun 24
+" Last Change: 2023 Aug 23
 "
 " WORK IN PROGRESS - The basics works stable, more to come
 " Note: In general you need at least GDB 7.12 because this provides the
@@ -229,13 +229,13 @@ endfunc
 func s:CloseBuffers()
   exe 'bwipe! ' . s:ptybuf
   exe 'bwipe! ' . s:commbuf
-  if s:asmbuf > 0
+  if s:asmbuf > 0 && bufexists(s:asmbuf)
     exe 'bwipe! ' . s:asmbuf
   endif
-  if s:varbuf > 0
+  if s:varbuf > 0 && bufexists(s:varbuf)
     exe 'bwipe! ' . s:varbuf
   endif
-  s:running = 0
+  let s:running = 0
   unlet! s:gdbwin
 endfunc
 
@@ -453,6 +453,8 @@ func s:StartDebug_prompt(dict)
     exe 'bwipe! ' . s:promptbuf
     return
   endif
+  exe $'au BufUnload <buffer={s:promptbuf}> ++once ' ..
+	\ 'call job_stop(s:gdbjob, ''kill'')'
   " Mark the buffer modified so that it's not easy to close.
   set modified
   let s:gdb_channel = job_getchannel(s:gdbjob)
@@ -617,9 +619,16 @@ endfunc
 func s:GdbOutCallback(channel, text)
   call ch_log('received from gdb: ' . a:text)
 
+  " Disassembly messages need to be forwarded as-is.
+  if s:parsing_disasm_msg
+    call s:CommOutput(a:channel, a:text)
+    return
+  end
+
   " Drop the gdb prompt, we have our own.
   " Drop status and echo'd commands.
-  if a:text == '(gdb) ' || a:text == '^done' || a:text[0] == '&'
+  if a:text == '(gdb) ' || a:text == '^done' ||
+	\ (a:text[0] == '&' && a:text !~ '^&"disassemble')
     return
   endif
   if a:text =~ '^\^error,msg='
@@ -647,8 +656,9 @@ func s:GdbOutCallback(channel, text)
 endfunc
 
 " Decode a message from gdb.  "quotedText" starts with a ", return the text up
-" to the next ", unescaping characters:
+" to the next unescaped ", unescaping characters:
 " - remove line breaks (unless "literal" is v:true)
+" - change \" to "
 " - change \\t to \t (unless "literal" is v:true)
 " - change \0xhh to \xhh (disabled for now)
 " - change \ooo to octal
@@ -659,24 +669,25 @@ func s:DecodeMessage(quotedText, literal)
     return
   endif
   let msg = a:quotedText
-        \ ->substitute('^"\|".*', '', 'g')
-        " multi-byte characters arrive in octal form
-        " NULL-values must be kept encoded as those break the string otherwise
+        \ ->substitute('^"\|[^\\]\zs".*', '', 'g')
+        \ ->substitute('\\"', '"', 'g')
+        "\ multi-byte characters arrive in octal form
+        "\ NULL-values must be kept encoded as those break the string otherwise
         \ ->substitute('\\000', s:NullRepl, 'g')
         \ ->substitute('\\\o\o\o', {-> eval('"' .. submatch(0) .. '"')}, 'g')
-        " Note: GDB docs also mention hex encodings - the translations below work
-        "       but we keep them out for performance-reasons until we actually see
-        "       those in mi-returns
-        " \ ->substitute('\\0x\(\x\x\)', {-> eval('"\x' .. submatch(1) .. '"')}, 'g')
-        " \ ->substitute('\\0x00', s:NullRepl, 'g')
+        "\ Note: GDB docs also mention hex encodings - the translations below work
+        "\       but we keep them out for performance-reasons until we actually see
+        "\       those in mi-returns
+        "\ \ ->substitute('\\0x\(\x\x\)', {-> eval('"\x' .. submatch(1) .. '"')}, 'g')
+        "\ \ ->substitute('\\0x00', s:NullRepl, 'g')
         \ ->substitute('\\\\', '\', 'g')
         \ ->substitute(s:NullRepl, '\\000', 'g')
   if !a:literal
-          return msg
+    return msg
         \ ->substitute('\\t', "\t", 'g')
         \ ->substitute('\\n', '', 'g')
   else
-          return msg
+    return msg
   endif
 endfunc
 const s:NullRepl = 'XXXNULLXXX'
@@ -709,15 +720,7 @@ func s:EndTermDebug(job, status)
   endif
 
   exe 'bwipe! ' . s:commbuf
-  if s:asmbuf > 0
-    exe 'bwipe! ' . s:asmbuf
-  endif
-  if s:varbuf > 0
-    exe 'bwipe! ' . s:varbuf
-  endif
-  let s:running = 0
   unlet s:gdbwin
-
   call s:EndDebugCommon()
 endfunc
 
@@ -727,6 +730,13 @@ func s:EndDebugCommon()
   if exists('s:ptybuf') && s:ptybuf
     exe 'bwipe! ' . s:ptybuf
   endif
+  if s:asmbuf > 0 && bufexists(s:asmbuf)
+    exe 'bwipe! ' . s:asmbuf
+  endif
+  if s:varbuf > 0 && bufexists(s:varbuf)
+    exe 'bwipe! ' . s:varbuf
+  endif
+  let s:running = 0
 
   " Restore 'signcolumn' in all buffers for which it was set.
   call win_gotoid(s:sourcewin)
@@ -774,12 +784,8 @@ func s:EndPromptDebug(job, status)
     doauto <nomodeline> User TermdebugStopPre
   endif
 
-  let curwinid = win_getid()
-  call win_gotoid(s:gdbwin)
-  set nomodified
-  close
-  if curwinid != s:gdbwin
-    call win_gotoid(curwinid)
+  if bufexists(s:promptbuf)
+    exe 'bwipe! ' . s:promptbuf
   endif
 
   call s:EndDebugCommon()
@@ -789,7 +795,6 @@ endfunc
 
 " Disassembly window - added by Michael Sartain
 "
-" - CommOutput: disassemble $pc
 " - CommOutput: &"disassemble $pc\n"
 " - CommOutput: ~"Dump of assembler code for function main(int, char**):\n"
 " - CommOutput: ~"   0x0000555556466f69 <+0>:\tpush   rbp\n"
@@ -799,7 +804,6 @@ endfunc
 " - CommOutput: ~"End of assembler dump.\n"
 " - CommOutput: ^done
 
-" - CommOutput: disassemble $pc
 " - CommOutput: &"disassemble $pc\n"
 " - CommOutput: &"No function contains specified address.\n"
 " - CommOutput: ^error,msg="No function contains specified address."
@@ -831,12 +835,12 @@ func s:HandleDisasmMsg(msg)
       call s:SendCommand('disassemble $pc,+100')
     endif
     let s:parsing_disasm_msg = 0
-  elseif a:msg =~ '\&\"disassemble \$pc'
+  elseif a:msg =~ '^&"disassemble \$pc'
     if a:msg =~ '+100'
       " This is our second disasm attempt
       let s:parsing_disasm_msg = 2
     endif
-  else
+  elseif a:msg !~ '^&"disassemble'
     let value = substitute(a:msg, '^\~\"[ ]*', '', '')
     let value = substitute(value, '^=>[ ]*', '', '')
     let value = substitute(value, '\\n\"\r$', '', '')
@@ -920,9 +924,10 @@ func s:CommOutput(chan, msg)
         call s:HandleEvaluate(msg)
       elseif msg =~ '^\^error,msg='
         call s:HandleError(msg)
-      elseif msg =~ '^disassemble'
+      elseif msg =~ '^&"disassemble'
         let s:parsing_disasm_msg = 1
         let s:asm_lines = []
+	call s:HandleDisasmMsg(msg)
       elseif msg =~ '^\^done,variables='
 	call s:HandleVariablesMsg(msg)
       endif
@@ -965,6 +970,10 @@ func s:InstallCommands()
     command Continue call term_sendkeys(s:gdbbuf, "continue\r")
   endif
 
+  command -nargs=* Frame call s:Frame(<q-args>)
+  command -count=1 Up call s:Up(<count>)
+  command -count=1 Down call s:Down(<count>)
+
   command -range -nargs=* Evaluate call s:Evaluate(<range>, <q-args>)
   command Gdb call win_gotoid(s:gdbwin)
   command Program call s:GotoProgram()
@@ -983,6 +992,25 @@ func s:InstallCommands()
     let s:k_map_saved = maparg('K', 'n', 0, 1)
     nnoremap K :Evaluate<CR>
   endif
+
+  let map = 1
+  if exists('g:termdebug_config')
+    let map = get(g:termdebug_config, 'map_plus', 1)
+  endif
+  if map
+    let s:plus_map_saved = maparg('+', 'n', 0, 1)
+    nnoremap <expr> + $'<Cmd>{v:count1}Up<CR>'
+  endif
+
+  let map = 1
+  if exists('g:termdebug_config')
+    let map = get(g:termdebug_config, 'map_minus', 1)
+  endif
+  if map
+    let s:minus_map_saved = maparg('-', 'n', 0, 1)
+    nnoremap <expr> - $'<Cmd>{v:count1}Down<CR>'
+  endif
+
 
   if has('menu') && &mouse != ''
     call s:InstallWinbar(0)
@@ -1040,6 +1068,9 @@ func s:DeleteCommands()
   delcommand Arguments
   delcommand Stop
   delcommand Continue
+  delcommand Frame
+  delcommand Up
+  delcommand Down
   delcommand Evaluate
   delcommand Gdb
   delcommand Program
@@ -1055,6 +1086,22 @@ func s:DeleteCommands()
       call mapset(s:k_map_saved)
     endif
     unlet s:k_map_saved
+  endif
+  if exists('s:plus_map_saved')
+    if empty(s:plus_map_saved)
+      nunmap +
+    else
+      call mapset(s:plus_map_saved)
+    endif
+    unlet s:plus_map_saved
+  endif
+  if exists('s:minus_map_saved')
+    if empty(s:minus_map_saved)
+      nunmap -
+    else
+      call mapset(s:minus_map_saved)
+    endif
+    unlet s:minus_map_saved
   endif
 
   if has('menu')
@@ -1170,6 +1217,37 @@ func s:Run(args)
     call s:SendResumingCommand('-exec-arguments ' . a:args)
   endif
   call s:SendResumingCommand('-exec-run')
+endfunc
+
+" :Frame - go to a specfic frame in the stack
+func s:Frame(arg)
+  " Note: we explicit do not use mi's command
+  " call s:SendCommand('-stack-select-frame "' . a:arg .'"')
+  " as we only get a "done" mi response and would have to open the file
+  " 'manually' - using cli command "frame" provides us with the mi response
+  " already parsed and allows for more formats
+  if a:arg =~ '^\d\+$' || a:arg == ''
+    " specify frame by number
+    call s:SendCommand('-interpreter-exec mi "frame ' . a:arg .'"')
+  elseif a:arg =~ '^0x[0-9a-fA-F]\+$'
+    " specify frame by stack address
+    call s:SendCommand('-interpreter-exec mi "frame address ' . a:arg .'"')
+  else
+    " specify frame by function name
+    call s:SendCommand('-interpreter-exec mi "frame function ' . a:arg .'"')
+  endif
+endfunc
+
+" :Up - go a:count frames in the stack "higher"
+func s:Up(count)
+  " the 'correct' one would be -stack-select-frame N, but we don't know N
+  call s:SendCommand($'-interpreter-exec console "up {a:count}"')
+endfunc
+
+" :Down - go a:count frames in the stack "below"
+func s:Down(count)
+  " the 'correct' one would be -stack-select-frame N, but we don't know N
+  call s:SendCommand($'-interpreter-exec console "down {a:count}"')
 endfunc
 
 func s:SendEval(expr)
@@ -1358,7 +1436,7 @@ func s:GotoAsmwinOrCreateIt()
     setlocal signcolumn=no
     setlocal modifiable
 
-    if s:asmbuf > 0
+    if s:asmbuf > 0 && bufexists(s:asmbuf)
       exe 'buffer' . s:asmbuf
     else
       silent file Termdebug-asm-listing
@@ -1420,7 +1498,7 @@ func s:GotoVariableswinOrCreateIt()
     setlocal signcolumn=no
     setlocal modifiable
 
-    if s:varbuf > 0
+    if s:varbuf > 0 && bufexists(s:varbuf)
       exe 'buffer' . s:varbuf
     else
       silent file Termdebug-variables-listing

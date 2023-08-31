@@ -662,11 +662,11 @@ generate_SETTYPE(
 /*
  * Generate an ISN_PUSHOBJ instruction.  Object is always NULL.
  */
-    static int
+    int
 generate_PUSHOBJ(cctx_T *cctx)
 {
     RETURN_OK_IF_SKIP(cctx);
-    if (generate_instr_type(cctx, ISN_PUSHOBJ, &t_any) == NULL)
+    if (generate_instr_type(cctx, ISN_PUSHOBJ, &t_object) == NULL)
 	return FAIL;
     return OK;
 }
@@ -1901,6 +1901,10 @@ generate_CALL(
 
     // drop the argument types
     cctx->ctx_type_stack.ga_len -= argcount;
+
+    // For an object or class method call, drop the object/class type
+    if (ufunc->uf_class != NULL)
+	cctx->ctx_type_stack.ga_len--;
 
     // add return type
     return push_type_stack(cctx, ufunc->uf_ret_type);

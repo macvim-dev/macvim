@@ -539,7 +539,7 @@ check_for_list_arg(typval_T *args, int idx)
 {
     if (args[idx].v_type != VAR_LIST)
     {
-	    semsg(_(e_list_required_for_argument_nr), idx + 1);
+	semsg(_(e_list_required_for_argument_nr), idx + 1);
 	return FAIL;
     }
     return OK;
@@ -968,6 +968,34 @@ check_for_opt_buffer_or_dict_arg(typval_T *args, int idx)
 	    && args[idx].v_type != VAR_DICT)
     {
 	semsg(_(e_string_required_for_argument_nr), idx + 1);
+	return FAIL;
+    }
+    return OK;
+}
+
+/*
+ * Give an error and return FAIL unless "args[idx]" is an object.
+ */
+    int
+check_for_object_arg(typval_T *args, int idx)
+{
+    if (args[idx].v_type != VAR_OBJECT)
+    {
+	semsg(_(e_object_required_for_argument_nr), idx + 1);
+	return FAIL;
+    }
+    return OK;
+}
+
+/*
+ * Give an error and return FAIL unless "args[idx]" is a class or a list.
+ */
+    int
+check_for_class_or_list_arg(typval_T *args, int idx)
+{
+    if (args[idx].v_type != VAR_CLASS && args[idx].v_type != VAR_LIST)
+    {
+	semsg(_(e_list_or_class_required_for_argument_nr), idx + 1);
 	return FAIL;
     }
     return OK;
@@ -1550,12 +1578,15 @@ typval_compare_null(typval_T *tv1, typval_T *tv2)
 #ifdef FEAT_JOB_CHANNEL
 	    case VAR_CHANNEL: return tv->vval.v_channel == NULL;
 #endif
+	    // TODO: null_class handling
+	    // case VAR_CLASS: return tv->vval.v_class == NULL;
 	    case VAR_DICT: return tv->vval.v_dict == NULL;
 	    case VAR_FUNC: return tv->vval.v_string == NULL;
 #ifdef FEAT_JOB_CHANNEL
 	    case VAR_JOB: return tv->vval.v_job == NULL;
 #endif
 	    case VAR_LIST: return tv->vval.v_list == NULL;
+	    case VAR_OBJECT: return tv->vval.v_object == NULL;
 	    case VAR_PARTIAL: return tv->vval.v_partial == NULL;
 	    case VAR_STRING: return tv->vval.v_string == NULL;
 

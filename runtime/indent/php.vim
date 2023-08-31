@@ -4,6 +4,7 @@
 " URL:		https://www.2072productions.com/vim/indent/php.vim
 " Home:		https://github.com/2072/PHP-Indenting-for-VIm
 " Last Change:	2020 Mar 05
+"		2023 Aug 28 by Vim Project (undo_indent)
 " Version:	1.70
 "
 "
@@ -128,7 +129,7 @@ setlocal nolisp
 setlocal indentexpr=GetPhpIndent()
 setlocal indentkeys=0{,0},0),0],:,!^F,o,O,e,*<Return>,=?>,=<?,=*/
 
-
+let b:undo_indent = "setl ai< cin< inde< indk< lisp< si<"
 
 let s:searchpairflags = 'bWr'
 
@@ -327,13 +328,13 @@ endfun
 
 function! FindArrowIndent (lnum)  " {{{
 
-    let parrentArrowPos = -1
+    let parentArrowPos = -1
     let cursorPos = -1
     let lnum = a:lnum
     while lnum > 1
 	let last_line = getline(lnum)
 	if last_line =~ '^\s*->'
-	    let parrentArrowPos = indent(a:lnum)
+	    let parentArrowPos = indent(a:lnum)
 	    break
 	else
 
@@ -355,28 +356,28 @@ function! FindArrowIndent (lnum)  " {{{
 		    else
 		    endif
 		else
-		    let parrentArrowPos = -1
+		    let parentArrowPos = -1
 		    break
 		end
 	    endif
 
 	    if cleanedLnum =~ '->'
 		call cursor(lnum, cursorPos == -1 ? strwidth(cleanedLnum) : cursorPos)
-		let parrentArrowPos = searchpos('->', 'cWb', lnum)[1] - 1
+		let parentArrowPos = searchpos('->', 'cWb', lnum)[1] - 1
 
 		break
 	    else
-		let parrentArrowPos = -1
+		let parentArrowPos = -1
 		break
 	    endif
 	endif
     endwhile
 
-    if parrentArrowPos == -1
-	let parrentArrowPos = indent(lnum) + shiftwidth()
+    if parentArrowPos == -1
+	let parentArrowPos = indent(lnum) + shiftwidth()
     end
 
-    return parrentArrowPos
+    return parentArrowPos
 endfun "}}}
 
 function! FindTheIfOfAnElse (lnum, StopAfterFirstPrevElse) " {{{

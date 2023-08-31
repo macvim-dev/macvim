@@ -1571,9 +1571,12 @@ EXTERN char e_too_many_signs_defined[]
 EXTERN char e_unknown_printer_font_str[]
 	INIT(= N_("E613: Unknown printer font: %s"));
 #endif
-// E614 unused
-// E615 unused
-// E616 unused
+EXTERN char e_class_required[]
+	INIT(= N_("E614: Class required"));
+EXTERN char e_object_required[]
+	INIT(= N_("E615: Object required"));
+EXTERN char e_object_required_for_argument_nr[]
+	INIT(= N_("E616: Object required for argument %d"));
 #ifdef FEAT_GUI_GTK
 EXTERN char e_cannot_be_changed_in_gtk_GUI[]
 	INIT(= N_("E617: Cannot be changed in the GTK GUI"));
@@ -1782,7 +1785,8 @@ EXTERN char e_can_only_compare_list_with_list[]
 	INIT(= N_("E691: Can only compare List with List"));
 EXTERN char e_invalid_operation_for_list[]
 	INIT(= N_("E692: Invalid operation for List"));
-// E693 unused
+EXTERN char e_list_or_class_required_for_argument_nr[]
+	INIT(= N_("E693: List or Class required for argument %d"));
 EXTERN char e_invalid_operation_for_funcrefs[]
 	INIT(= N_("E694: Invalid operation for Funcrefs"));
 EXTERN char e_cannot_index_a_funcref[]
@@ -3485,6 +3489,17 @@ EXTERN char e_warning_pointer_block_corrupted[]
 	INIT(= N_("E1364: Warning: Pointer block corrupted"));
 EXTERN char e_cannot_use_a_return_type_with_new[]
 	INIT(= N_("E1365: Cannot use a return type with the \"new\" function"));
+EXTERN char e_cannot_access_private_method_str[]
+	INIT(= N_("E1366: Cannot access private method: %s"));
+EXTERN char e_member_str_of_interface_str_has_different_access[]
+	INIT(= N_("E1367: Access level of member \"%s\" of interface \"%s\" is different"));
+
+EXTERN char e_static_cannot_be_followed_by_this[]
+	INIT(= N_("E1368: Static cannot be followed by \"this\" in a member name"));
+EXTERN char e_duplicate_member_str[]
+	INIT(= N_("E1369: Duplicate member: %s"));
+EXTERN char e_cannot_define_new_function_as_static[]
+	INIT(= N_("E1370: Cannot define a \"new\" function as static"));
 EXTERN char e_cannot_mix_positional_and_non_positional_str[]
 	INIT(= N_("E1400: Cannot mix positional and non-positional arguments: %s"));
 EXTERN char e_fmt_arg_nr_unused_str[]
@@ -3502,4 +3517,4 @@ EXTERN char e_member_str_type_mismatch_expected_str_but_got_str[]
 EXTERN char e_method_str_type_mismatch_expected_str_but_got_str[]
 	INIT(= N_("E1407: Member \"%s\": type mismatch, expected %s but got %s"));
 
-// E1366 - E1399 unused
+// E1371 - E1399 unused
