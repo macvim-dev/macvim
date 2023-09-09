@@ -4496,6 +4496,7 @@ E1362	vim9class.txt	/*E1362*
 E1363	vim9class.txt	/*E1363*
 E1364	recover.txt	/*E1364*
 E137	starting.txt	/*E137*
+E1370	vim9class.txt	/*E1370*
 E138	starting.txt	/*E138*
 E139	message.txt	/*E139*
 E140	message.txt	/*E140*
@@ -5943,6 +5944,7 @@ abandon	editing.txt	/*abandon*
 abbreviations	map.txt	/*abbreviations*
 abel.vim	syntax.txt	/*abel.vim*
 abs()	builtin.txt	/*abs()*
+abstract-method	vim9class.txt	/*abstract-method*
 acos()	builtin.txt	/*acos()*
 active-buffer	windows.txt	/*active-buffer*
 ada#Create_Tags()	ft_ada.txt	/*ada#Create_Tags()*
@@ -7582,6 +7584,7 @@ g:netrw_wiw	pi_netrw.txt	/*g:netrw_wiw*
 g:netrw_xstrlen	pi_netrw.txt	/*g:netrw_xstrlen*
 g:no_mail_maps	filetype.txt	/*g:no_mail_maps*
 g:no_plugin_maps	filetype.txt	/*g:no_plugin_maps*
+g:plugin_exec	filetype.txt	/*g:plugin_exec*
 g:rust_bang_comment_leader	ft_rust.txt	/*g:rust_bang_comment_leader*
 g:rust_conceal	ft_rust.txt	/*g:rust_conceal*
 g:rust_conceal_mod_path	ft_rust.txt	/*g:rust_conceal_mod_path*
@@ -8135,6 +8138,7 @@ i_CTRL-O	insert.txt	/*i_CTRL-O*
 i_CTRL-P	insert.txt	/*i_CTRL-P*
 i_CTRL-Q	insert.txt	/*i_CTRL-Q*
 i_CTRL-R	insert.txt	/*i_CTRL-R*
+i_CTRL-R_-	insert.txt	/*i_CTRL-R_-*
 i_CTRL-R_=	insert.txt	/*i_CTRL-R_=*
 i_CTRL-R_CTRL-O	insert.txt	/*i_CTRL-R_CTRL-O*
 i_CTRL-R_CTRL-P	insert.txt	/*i_CTRL-R_CTRL-P*
@@ -9304,6 +9308,7 @@ plugin	usr_05.txt	/*plugin*
 plugin-details	filetype.txt	/*plugin-details*
 plugin-filetype	usr_51.txt	/*plugin-filetype*
 plugin-special	usr_51.txt	/*plugin-special*
+plugin_exec	filetype.txt	/*plugin_exec*
 plugin_name.txt	helphelp.txt	/*plugin_name.txt*
 pmbcs-option	print.txt	/*pmbcs-option*
 pmbfn-option	print.txt	/*pmbfn-option*

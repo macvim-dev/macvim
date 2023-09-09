@@ -3500,6 +3500,12 @@ EXTERN char e_duplicate_member_str[]
 	INIT(= N_("E1369: Duplicate member: %s"));
 EXTERN char e_cannot_define_new_function_as_static[]
 	INIT(= N_("E1370: Cannot define a \"new\" function as static"));
+EXTERN char e_abstract_must_be_followed_by_def_or_static[]
+	INIT(= N_("E1371: Abstract must be followed by \"def\" or \"static\""));
+EXTERN char e_abstract_method_in_concrete_class[]
+	INIT(= N_("E1372: Abstract method \"%s\" cannot be defined in a concrete class"));
+EXTERN char e_abstract_method_str_not_found[]
+	INIT(= N_("E1373: Abstract method \"%s\" is not implemented"));
 EXTERN char e_cannot_mix_positional_and_non_positional_str[]
 	INIT(= N_("E1400: Cannot mix positional and non-positional arguments: %s"));
 EXTERN char e_fmt_arg_nr_unused_str[]
@@ -3516,5 +3522,8 @@ EXTERN char e_member_str_type_mismatch_expected_str_but_got_str[]
 	INIT(= N_("E1406: Member \"%s\": type mismatch, expected %s but got %s"));
 EXTERN char e_method_str_type_mismatch_expected_str_but_got_str[]
 	INIT(= N_("E1407: Member \"%s\": type mismatch, expected %s but got %s"));
-
+EXTERN char e_aptypes_is_null_nr_str[]
+	INIT(= "E1408: Internal error: ap_types or ap_types[idx] is NULL: %d: %s");
+EXTERN char e_interface_static_direct_access_str[]
+	INIT(= N_("E1409: Cannot directly access interface \"%s\" static member \"%s\""));
 // E1371 - E1399 unused

@@ -1650,6 +1650,18 @@ win_line(
     }
 #endif
 
+#if defined(FEAT_LINEBREAK) || defined(FEAT_PROP_POPUP)
+    colnr_T vcol_first_char = 0;
+    if (wp->w_p_lbr && !number_only)
+    {
+	chartabsize_T cts;
+	init_chartabsize_arg(&cts, wp, lnum, 0, line, line);
+	(void)win_lbr_chartabsize(&cts, NULL);
+	vcol_first_char = cts.cts_first_char;
+	clear_chartabsize_arg(&cts);
+    }
+#endif
+
     // 'nowrap' or 'wrap' and a single line that doesn't fit: Advance to the
     // first character to be displayed.
     if (wp->w_p_wrap)
@@ -2100,7 +2112,8 @@ win_line(
 							& TP_FLAG_ALIGN_RIGHT);
 			    int	    below = (tp->tp_flags
 							& TP_FLAG_ALIGN_BELOW);
-			    int	    wrap = (tp->tp_flags & TP_FLAG_WRAP);
+			    int	    wrap = tp->tp_col < MAXCOL
+					      || (tp->tp_flags & TP_FLAG_WRAP);
 			    int	    padding = tp->tp_col == MAXCOL
 						 && tp->tp_len > 1
 							  ? tp->tp_len - 1 : 0;
@@ -2879,7 +2892,11 @@ win_line(
 		    char_u  *p = ptr - (mb_off + 1);
 		    chartabsize_T cts;
 
-		    init_chartabsize_arg(&cts, wp, lnum, wlv.vcol, line, p);
+		    init_chartabsize_arg(&cts, wp, lnum, wlv.vcol
+# ifdef FEAT_PROP_POPUP
+							     - vcol_first_char,
+# endif
+								      line, p);
 # ifdef FEAT_PROP_POPUP
 		    // do not want virtual text counted here
 		    cts.cts_has_prop_with_text = FALSE;

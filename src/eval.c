@@ -1025,7 +1025,7 @@ get_lval(
     int		len;
     hashtab_T	*ht = NULL;
     int		quiet = flags & GLV_QUIET;
-    int		writing;
+    int		writing = 0;
     int		vim9script = in_vim9script();
 
     // Clear everything in "lp".
@@ -1179,6 +1179,14 @@ get_lval(
 	if (v == NULL)
 	    return NULL;
 	lp->ll_tv = &v->di_tv;
+    }
+    if (vim9script && writing && lp->ll_tv->v_type == VAR_CLASS
+	    && (lp->ll_tv->vval.v_class->class_flags & CLASS_INTERFACE) != 0)
+    {
+	if (!quiet)
+	    semsg(_(e_interface_static_direct_access_str),
+			    lp->ll_tv->vval.v_class->class_name, lp->ll_name);
+	return NULL;
     }
 
     if (vim9script && (flags & GLV_NO_DECL) == 0)
@@ -5305,6 +5313,8 @@ garbage_collect(int testing)
     abort = abort || set_ref_in_popups(copyID);
 #endif
 
+    abort = abort || set_ref_in_classes(copyID);
+
     if (!abort)
     {
 	/*
@@ -5352,6 +5362,9 @@ free_unref_items(int copyID)
 
     // Go through the list of objects and free items without this copyID.
     did_free |= object_free_nonref(copyID);
+
+    // Go through the list of classes and free items without this copyID.
+    did_free |= class_free_nonref(copyID);
 
 #ifdef FEAT_JOB_CHANNEL
     // Go through the list of jobs and free items without the copyID. This
@@ -5707,7 +5720,7 @@ set_ref_in_item_channel(
  * Mark the class "cl" with "copyID".
  * Also see set_ref_in_item().
  */
-    static int
+    int
 set_ref_in_item_class(
     class_T		*cl,
     int			copyID,
@@ -5716,15 +5729,19 @@ set_ref_in_item_class(
 {
     int abort = FALSE;
 
-    if (cl == NULL || cl->class_copyID == copyID
-				|| (cl->class_flags & CLASS_INTERFACE) != 0)
+    if (cl == NULL || cl->class_copyID == copyID)
 	return FALSE;
 
     cl->class_copyID = copyID;
-    for (int i = 0; !abort && i < cl->class_class_member_count; ++i)
-	abort = abort || set_ref_in_item(
-		&cl->class_members_tv[i],
-		copyID, ht_stack, list_stack);
+    if (cl->class_members_tv != NULL)
+    {
+	// The "class_members_tv" table is allocated only for regular classes
+	// and not for interfaces.
+	for (int i = 0; !abort && i < cl->class_class_member_count; ++i)
+	    abort = abort || set_ref_in_item(
+		    &cl->class_members_tv[i],
+		    copyID, ht_stack, list_stack);
+    }
 
     for (int i = 0; !abort && i < cl->class_class_function_count; ++i)
 	abort = abort || set_ref_in_func(NULL,

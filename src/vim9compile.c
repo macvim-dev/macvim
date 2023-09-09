@@ -1866,27 +1866,29 @@ compile_lhs(
 	{
 	    // for an object or class member get the type of the member
 	    class_T	*cl = lhs->lhs_type->tt_class;
-	    omacc_T	access;
+	    ocmember_T	*m;
 
-	    lhs->lhs_member_type = class_member_type(cl, after + 1,
-					lhs->lhs_end, &lhs->lhs_member_idx,
-					&access);
+	    lhs->lhs_member_type = class_member_type(cl,
+					lhs->lhs_type->tt_type == VAR_OBJECT,
+					after + 1, lhs->lhs_end,
+					&lhs->lhs_member_idx, &m);
 	    if (lhs->lhs_member_idx < 0)
 		return FAIL;
-
+	    if ((cl->class_flags & CLASS_INTERFACE) != 0
+					&& lhs->lhs_type->tt_type == VAR_CLASS)
+	    {
+		semsg(_(e_interface_static_direct_access_str),
+						cl->class_name, m->ocm_name);
+		return FAIL;
+	    }
 	    // If it is private member variable, then accessing it outside the
 	    // class is not allowed.
-	    if ((access != VIM_ACCESS_ALL) && !inside_class(cctx, cl))
+	    if ((m->ocm_access != VIM_ACCESS_ALL) && !inside_class(cctx, cl))
 	    {
-		char_u	*m_name;
-		char	*msg;
-
-		m_name = vim_strnsave(after + 1, lhs->lhs_end - after - 1);
-		msg = (access == VIM_ACCESS_PRIVATE)
+		char *msg = (m->ocm_access == VIM_ACCESS_PRIVATE)
 				? e_cannot_access_private_member_str
 				: e_cannot_change_readonly_variable_str;
-		semsg(_(msg), m_name);
-		vim_free(m_name);
+		semsg(_(msg), m->ocm_name);
 		return FAIL;
 	    }
 	}
@@ -2097,10 +2099,9 @@ compile_load_lhs_with_index(lhs_T *lhs, char_u *var_start, cctx_T *cctx)
 	   return FAIL;
 
 	class_T	*cl = lhs->lhs_type->tt_class;
-	omacc_T	access;
-	type_T	*type = class_member_type(cl, dot + 1,
+	type_T	*type = class_member_type(cl, TRUE, dot + 1,
 					   lhs->lhs_end, &lhs->lhs_member_idx,
-					   &access);
+					   NULL);
 	if (lhs->lhs_member_idx < 0)
 	    return FAIL;
 
@@ -2117,8 +2118,9 @@ compile_load_lhs_with_index(lhs_T *lhs, char_u *var_start, cctx_T *cctx)
 		return FAIL;
 	}
 	if (cl->class_flags & CLASS_INTERFACE)
-	    return generate_GET_ITF_MEMBER(cctx, cl, lhs->lhs_member_idx, type);
-	return generate_GET_OBJ_MEMBER(cctx, lhs->lhs_member_idx, type);
+	    return generate_GET_ITF_MEMBER(cctx, cl, lhs->lhs_member_idx, type,
+									FALSE);
+	return generate_GET_OBJ_MEMBER(cctx, lhs->lhs_member_idx, type, FALSE);
     }
 
     compile_load_lhs(lhs, var_start, NULL, cctx);
@@ -2988,7 +2990,8 @@ get_compile_type(ufunc_T *ufunc)
 #ifdef FEAT_PROFILE
     if (do_profiling == PROF_YES)
     {
-	if (!ufunc->uf_profiling && has_profiling(FALSE, ufunc->uf_name, NULL))
+	if (!ufunc->uf_profiling && has_profiling(FALSE, ufunc->uf_name, NULL,
+							    &ufunc->uf_hash))
 	    func_do_profile(ufunc);
 	if (ufunc->uf_profiling)
 	    return CT_PROFILE;

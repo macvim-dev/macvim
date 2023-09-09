@@ -2144,7 +2144,7 @@ execute_storeindex(isn_T *iptr, ectx_T *ectx)
     // Stack contains:
     // -3 value to be stored
     // -2 index
-    // -1 dict, list, blob or object
+    // -1 dict, list, blob, object or class
     tv = STACK_TV_BOT(-3);
     SOURCING_LNUM = iptr->isn_lnum;
 
@@ -2306,14 +2306,25 @@ execute_storeindex(isn_T *iptr, ectx_T *ectx)
 	}
 	else if (dest_type == VAR_CLASS || dest_type == VAR_OBJECT)
 	{
-	    object_T	    *obj = tv_dest->vval.v_object;
-	    typval_T	    *otv = (typval_T *)(obj + 1);
+	    typval_T	    *otv;
 
-	    class_T	    *itf = iptr->isn_arg.storeindex.si_class;
-	    if (itf != NULL)
-		// convert interface member index to class member index
-		lidx = object_index_from_itf_index(itf, FALSE,
-							 lidx, obj->obj_class);
+	    if (dest_type == VAR_OBJECT)
+	    {
+		object_T	*obj = tv_dest->vval.v_object;
+
+		otv = (typval_T *)(obj + 1);
+		class_T	    *itf = iptr->isn_arg.storeindex.si_class;
+		if (itf != NULL)
+		    // convert interface member index to class member index
+		    lidx = object_index_from_itf_index(itf, FALSE, lidx,
+						       obj->obj_class, FALSE);
+	    }
+	    else
+	    {
+		// VAR_CLASS
+		class_T	*class = tv_dest->vval.v_class;
+		otv = class->class_members_tv;
+	    }
 
 	    clear_tv(&otv[lidx]);
 	    otv[lidx] = *tv;
@@ -3825,6 +3836,7 @@ exec_instructions(ectx_T *ectx)
 		    char_u	*tofree = NULL;
 
 		    --ectx->ec_stack.ga_len;
+		    SOURCING_LNUM = iptr->isn_lnum;
 		    tv = STACK_TV_BOT(0);
 		    if (tv->v_type == VAR_STRING)
 		    {
@@ -3834,7 +3846,6 @@ exec_instructions(ectx_T *ectx)
 		    }
 		    else if (iptr->isn_type == ISN_STOREFUNCOPT)
 		    {
-			SOURCING_LNUM = iptr->isn_lnum;
 			// If the option can be set to a function reference or
 			// a lambda and the passed value is a function
 			// reference, then convert it to the name (string) of
@@ -4250,7 +4261,8 @@ exec_instructions(ectx_T *ectx)
 
 		    // convert the interface index to the object index
 		    int idx = object_index_from_itf_index(mfunc->cmf_itf,
-						    TRUE, mfunc->cmf_idx, cl);
+						    TRUE, mfunc->cmf_idx, cl,
+						    FALSE);
 
 		    if (call_ufunc(cl->class_obj_methods[idx], NULL,
 				mfunc->cmf_argcount, ectx, NULL, NULL) == FAIL)
@@ -4399,7 +4411,8 @@ exec_instructions(ectx_T *ectx)
 
 			// convert the interface index to the object index
 			int idx = object_index_from_itf_index(extra->fre_class,
-					      TRUE, extra->fre_method_idx, cl);
+					      TRUE, extra->fre_method_idx, cl,
+					      FALSE);
 			ufunc = cl->class_obj_methods[idx];
 		    }
 		    else if (extra == NULL || extra->fre_func_name == NULL)
@@ -5378,20 +5391,25 @@ exec_instructions(ectx_T *ectx)
 			goto on_error;
 		    }
 
+		    int is_static = iptr->isn_arg.classmember.cm_static;
 		    int idx;
 		    if (iptr->isn_type == ISN_GET_OBJ_MEMBER)
-			idx = iptr->isn_arg.number;
+			idx = iptr->isn_arg.classmember.cm_idx;
 		    else
 		    {
 			idx = iptr->isn_arg.classmember.cm_idx;
 			// convert the interface index to the object index
 			idx = object_index_from_itf_index(
-					    iptr->isn_arg.classmember.cm_class,
-					    FALSE, idx, obj->obj_class);
+					iptr->isn_arg.classmember.cm_class,
+					FALSE, idx, obj->obj_class, is_static);
 		    }
 
-		    // the members are located right after the object struct
-		    typval_T *mtv = ((typval_T *)(obj + 1)) + idx;
+		    // The members are located right after the object struct.
+		    typval_T *mtv;
+		    if (is_static)
+			mtv = &obj->obj_class->class_members_tv[idx];
+		    else
+			mtv = ((typval_T *)(obj + 1)) + idx;
 		    copy_tv(mtv, tv);
 
 		    // Unreference the object after getting the member, it may
@@ -7138,12 +7156,17 @@ list_instructions(char *pfx, isn_T *instr, int instr_count, ufunc_T *ufunc)
 	    case ISN_MEMBER: smsg("%s%4d MEMBER", pfx, current); break;
 	    case ISN_STRINGMEMBER: smsg("%s%4d MEMBER %s", pfx, current,
 						  iptr->isn_arg.string); break;
-	    case ISN_GET_OBJ_MEMBER: smsg("%s%4d OBJ_MEMBER %d", pfx, current,
-					     (int)iptr->isn_arg.number); break;
-	    case ISN_GET_ITF_MEMBER: smsg("%s%4d ITF_MEMBER %d on %s",
+	    case ISN_GET_OBJ_MEMBER: smsg("%s%4d OBJ_MEMBER %d%s", pfx, current,
+			     (int)iptr->isn_arg.classmember.cm_idx,
+			     iptr->isn_arg.classmember.cm_static
+							? " [STATIC]" : "");
+				     break;
+	    case ISN_GET_ITF_MEMBER: smsg("%s%4d ITF_MEMBER %d on %s%s",
 			     pfx, current,
 			     (int)iptr->isn_arg.classmember.cm_idx,
-			     iptr->isn_arg.classmember.cm_class->class_name);
+			     iptr->isn_arg.classmember.cm_class->class_name,
+			     iptr->isn_arg.classmember.cm_static
+							? " [STATIC]" : "");
 				     break;
 	    case ISN_STORE_THIS: smsg("%s%4d STORE_THIS %d", pfx, current,
 					     (int)iptr->isn_arg.number); break;

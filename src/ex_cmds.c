@@ -2646,11 +2646,17 @@ do_ecmd(
 	goto theend;
     }
 
-    /*
-     * End Visual mode before switching to another buffer, so the text can be
-     * copied into the GUI selection buffer.
-     */
+
+     // End Visual mode before switching to another buffer, so the text can be
+     // copied into the GUI selection buffer.
+     // Careful: may trigger ModeChanged() autocommand
+
+    // Should we block autocommands here?
     reset_VIsual();
+
+    // autocommands freed window :(
+    if (oldwin != NULL && !win_valid(oldwin))
+	oldwin = NULL;
 
 #if defined(FEAT_EVAL)
     if ((command != NULL || newlnum > (linenr_T)0)
@@ -4513,6 +4519,9 @@ ex_substitute(exarg_T *eap)
 		{
 		    nmatch = curbuf->b_ml.ml_line_count - sub_firstlnum + 1;
 		    skip_match = TRUE;
+		    // safety check
+		    if (nmatch < 0)
+			goto skip;
 		}
 
 		// Need room for:
@@ -4644,6 +4653,9 @@ ex_substitute(exarg_T *eap)
 		 */
 		mch_memmove(new_end, sub_firstline + copycol, (size_t)copy_len);
 		new_end += copy_len;
+
+		if ((int)new_start_len - copy_len < sublen)
+		    sublen = new_start_len - copy_len - 1;
 
 #ifdef FEAT_EVAL
 		++textlock;
