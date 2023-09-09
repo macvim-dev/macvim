@@ -273,6 +273,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     [outputQueue release];  outputQueue = nil;
     [drawData release];  drawData = nil;
     [connection release];  connection = nil;
+    [appProxy release];  appProxy = nil;
     [actionDict release];  actionDict = nil;
     [sysColorDict release];  sysColorDict = nil;
     [colorDict release];  colorDict = nil;
@@ -1746,11 +1747,11 @@ static char_u *extractSelectedText()
 {
     NSArray *list = nil;
 
-    if ([self connection]) {
-        id proxy = [connection rootProxy];
-        [proxy setProtocolForProxy:@protocol(MMAppProtocol)];
-
+    if ([self connection] && [connection isValid]) {
         @try {
+            id proxy = [connection rootProxy];
+            [proxy setProtocolForProxy:@protocol(MMAppProtocol)];
+
             list = [proxy serverList];
         }
         @catch (NSException *ex) {
@@ -2535,6 +2536,14 @@ static char_u *extractSelectedText()
 
     ASLogNotice(@"Main connection was lost before process had a chance "
                 "to terminate; preserving swap files.");
+
+    // Just release the connection, in case some autocmd's end up triggering
+    // IPC calls during shutdown. If other code use isValid checks this is a
+    // little unnecessary, but it just helps prevent issues with code that use
+    // the connection or proxy without checking for validity first.
+    [connection release];  connection = nil;
+    [appProxy release];  appProxy = nil;
+
     getout_preserve_modified(1);
 }
 
