@@ -53,6 +53,7 @@ jobs:
           # Oldest version of Xcode supported on GitHub Action to test source code backwards compatibility
           - os: macos-11
             xcode: '11.7'
+            extra: [vimtags]
 
           # Older version of Xcode, and used to publish legacy builds (for macOS 10.9 - 10.12)
           - os: macos-12
@@ -221,27 +222,7 @@ jobs:
           cat src/auto/config.mk
           cat src/auto/config.h
 
-      # Build Vim first, separately from MacVim, so that we can use it to run
-      # vimtags afterwards to get the most correct help tags before we copy
-      # that into the MacVim bundle.
-      - name: Build Vim
-        env:
-          LC_ALL: C
-        run: |
-          set -o verbose
-
-          NPROC=$(getconf _NPROCESSORS_ONLN)
-          echo "Building Vim with ${NPROC} cores"
-
-          make -C src -j${NPROC} Vim
-
-      # Re-generate Vim help tags, because sometimes the Vim's runtime is not
-      # updated to have the latest tags.
-      - name: Update Vim help tags
-        if: matrix.publish
-        run: make -C runtime/doc vimtags VIMEXE=../../src/vim
-
-      - name: Build MacVim
+      - name: Build
         env:
           LC_ALL: C
         run: |
@@ -312,6 +293,13 @@ jobs:
           }
           check_arch "${VIM_BIN}"
           check_arch "${MACVIM_BIN}"
+
+      - name: Check Vim help tags
+        if: contains(matrix.extra, 'vimtags')
+        run: |
+          # Confirm that we can build the help tags, and they match what's in source.
+          make -C runtime/doc vimtags VIMEXE=../../${VIM_BIN}
+          git diff --exit-code -- runtime/doc/tags
 
       - name: Test
         timeout-minutes: 20
