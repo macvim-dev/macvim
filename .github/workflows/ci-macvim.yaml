@@ -21,7 +21,6 @@ env:
   CC: clang
 
   VERSIONER_PERL_VERSION: '5.30'  # macOS default Perl installation uses this to determine which one to use
-  PYTHON3_VERSION: '3.11'         # Make sure to keep src/MacVim/vimrc synced with the Python version here for the Python DLL detection logic.
 
   vi_cv_path_python: /usr/local/bin/python
   vi_cv_path_python3: /usr/local/bin/python3
@@ -29,8 +28,8 @@ env:
   vi_cv_path_ruby: /usr/local/opt/ruby/bin/ruby
   vi_cv_dll_name_perl: /System/Library/Perl/%s/darwin-thread-multi-2level/CORE/libperl.dylib
   vi_cv_dll_name_python: /usr/local/Frameworks/Python.framework/Versions/2.7/Python
-  vi_cv_dll_name_python3: /usr/local/Frameworks/Python.framework/Versions/%s/Python
-  vi_cv_dll_name_python3_arm64: /opt/homebrew/Frameworks/Python.framework/Versions/%s/Python
+  vi_cv_dll_name_python3: /usr/local/Frameworks/Python.framework/Versions/Current/Python
+  vi_cv_dll_name_python3_arm64: /opt/homebrew/Frameworks/Python.framework/Versions/Current/Python
   vi_cv_dll_name_ruby: /usr/local/opt/ruby/lib/libruby.dylib
   vi_cv_dll_name_ruby_arm64: /opt/homebrew/opt/ruby/lib/libruby.dylib
   vi_cv_dll_name_lua_arm64: /opt/homebrew/lib/liblua.dylib
@@ -140,22 +139,8 @@ jobs:
             brew unlink perl
           fi
 
-          # With Perl and Python, we need to manually specify the version number for various reasons
-          # (e.g. library paths include the version number). Because of that, check that the version
-          # matches the expectation and fail if they don't, so we can go and fix it. Only do for
-          # Python because a wrong Perl version would just fail the build later.
-          if [[ "$(python3 --version)" != *"Python $PYTHON3_VERSION"* ]]; then
-            printf "\n"
-            echo "Wrong Python 3 version: $(python3 --version). Expected $PYTHON3_VERSION."
-            printf "\n"
-            echo "This likely happened because Homebrew was updated to point to a newer version of"
-            echo "Python 3. Update PYTHON3_VERSION to fix this."
-            exit -1
-          fi
-
+          # With Perl, we need to manually specify the version number because the dylib path depends on it.
           echo "vi_cv_dll_name_perl=$(printf $vi_cv_dll_name_perl $VERSIONER_PERL_VERSION)" >> $GITHUB_ENV
-          echo "vi_cv_dll_name_python3=$(printf $vi_cv_dll_name_python3 $PYTHON3_VERSION)" >> $GITHUB_ENV
-          echo "vi_cv_dll_name_python3_arm64=$(printf $vi_cv_dll_name_python3_arm64 $PYTHON3_VERSION)" >> $GITHUB_ENV
 
       # All set up steps are done. Build and test MacVim below.
 
@@ -176,6 +161,7 @@ jobs:
               --enable-perlinterp=dynamic
               --enable-pythoninterp=dynamic
               --enable-python3interp=dynamic
+              --with-python3-stable-abi=3.9 # macOS and Xcode currently ships 3.9, so we don't want go higher than that.
               --enable-rubyinterp=dynamic
               --enable-luainterp=dynamic
               --with-lua-prefix=/usr/local
