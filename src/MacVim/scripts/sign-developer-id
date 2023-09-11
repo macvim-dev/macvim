@@ -42,6 +42,7 @@ else
     set -x
     codesign -f -s "Developer ID Application" -o runtime --timestamp "$macvim_path/Contents/Frameworks/PSMTabBarControl.framework"
     codesign -f -s "Developer ID Application" -o runtime --timestamp "$macvim_path/Contents/Library/QuickLook/QLStephen.qlgenerator/Contents/MacOS/QLStephen"
+    codesign -f -s "Developer ID Application" -o runtime --timestamp --entitlements $entitlements "$macvim_path/Contents/bin/xxd"
     codesign -f -s "Developer ID Application" -o runtime --timestamp --entitlements $entitlements "$macvim_path/Contents/MacOS/Vim"
     codesign -f -s "Developer ID Application" -o runtime --timestamp --entitlements $entitlements "$macvim_path"
 fi

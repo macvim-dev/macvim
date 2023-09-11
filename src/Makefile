@@ -1297,7 +1297,7 @@ MACVIMGUI_LIBS1	=
 MACVIMGUI_LIBS2	=
 MACVIMGUI_INSTALL = install_normal
 MACVIMGUI_TARGETS =
-MACVIMGUI_MAN_TARGETS =
+MACVIMGUI_MAN_TARGETS = yes
 MACVIMGUI_TESTTARGET = gui
 MACVIMGUI_BUNDLE = macvim
 MACVIMGUI_TESTARG = VIMPROG=../$(RELEASEDIR)/MacVim.app/Contents/MacOS/$(VIMTARGET)
@@ -2365,13 +2365,17 @@ installrtbase: $(HELPSOURCE)/vim.1 $(DEST_VIM) $(VIMTARGET) $(DEST_RT) \
 # Generate the help tags with ":helptags" to handle all languages.
 # Move the distributed tags file aside and restore it, to avoid it being
 # different from the repository.
-	cd $(HELPSOURCE); if test -z "$(CROSS_COMPILING)" -a -f tags; then \
-		mv -f tags tags.dist; fi
-	@echo generating help tags
-	# We can assume Vim was build, but it may not have been installed,
-	# thus use the executable in the current directory.
-	-@BUILD_DIR="`pwd`"; cd $(HELPSOURCE); if test -z "$(CROSS_COMPILING)"; then \
-		$(MAKE) VIMEXE="$$BUILD_DIR/$(VIMTARGET)" vimtags; fi
+## MacVim: Commented out as we don't need to generate vim tags at runtime
+## anymore as we are guaranteed by CI that vim tags are correct. This step will
+## change the mod dates of the doc/ folder which makes dependency analysis think
+## something has changed.
+##	cd $(HELPSOURCE); if test -z "$(CROSS_COMPILING)" -a -f tags; then \
+##		mv -f tags tags.dist; fi
+##	@echo generating help tags
+##	# We can assume Vim was build, but it may not have been installed,
+##	# thus use the executable in the current directory.
+##	-@BUILD_DIR="`pwd`"; cd $(HELPSOURCE); if test -z "$(CROSS_COMPILING)"; then \
+##		$(MAKE) VIMEXE="$$BUILD_DIR/$(VIMTARGET)" vimtags; fi
 	cd $(HELPSOURCE); \
 		files=`ls *.txt tags`; \
 		files="$$files `ls *.??x tags-?? 2>/dev/null || true`"; \
@@ -2380,7 +2384,8 @@ installrtbase: $(HELPSOURCE)/vim.1 $(DEST_VIM) $(VIMTARGET) $(DEST_RT) \
 		chmod $(HELPMOD) $$files
 	$(INSTALL_DATA)  $(HELPSOURCE)/*.pl $(DEST_HELP)
 	chmod $(SCRIPTMOD) $(DEST_HELP)/*.pl
-	cd $(HELPSOURCE); if test -f tags.dist; then mv -f tags.dist tags; fi
+## MacVim: See above for why we shouldn't build vimtags anymore
+##	cd $(HELPSOURCE); if test -f tags.dist; then mv -f tags.dist tags; fi
 # install the menu files
 	$(INSTALL_DATA) $(SCRIPTSOURCE)/menu.vim $(SYS_MENU_FILE)
 	chmod $(VIMSCRIPTMOD) $(SYS_MENU_FILE)
@@ -2620,7 +2625,8 @@ install-languages: languages $(DEST_LANG) $(DEST_KMAP)
 	fi
 	if test -d $(LANGSOURCE); then \
 	   $(INSTALL_DATA) $(LANGSOURCE)/README.txt $(LANGSOURCE)/*.vim $(DEST_LANG); \
-	   chmod $(FILEMOD) $(DEST_LANG)/README.txt $(DEST_LANG)/*.vim; \
+	   $(INSTALL_DATA_R) $(LANGSOURCE)/macvim_menu $(DEST_LANG); \
+	   chmod $(FILEMOD) $(DEST_LANG)/README.txt $(DEST_LANG)/*.vim $(DEST_LANG)/macvim_menu/*.vim; \
 	fi
 	if test -d $(KMAPSOURCE); then \
 	   $(INSTALL_DATA) $(KMAPSOURCE)/README.txt $(KMAPSOURCE)/*.vim $(DEST_KMAP); \
@@ -3634,7 +3640,9 @@ Makefile:
 
 ##############################################################################
 ### MacVim GUI
-.PHONY: macvim macvim-dmg macvimclean macvim-signed macvim-dmg-release macvim-install-languages
+.PHONY: macvim macvim-dmg macvim-dmg-legacy macvimclean macvim-signed macvim-dmg-release macvim-dmg-release-legacy macvim-install-runtime
+
+RUNTIME_FOLDER_LIST = MacVim/build/runtime_folder_list.xcfilelist
 
 RELEASEDIR = MacVim/build/Release
 DMGDIR = MacVim/build/dmg
@@ -3645,7 +3653,14 @@ ENTITLEMENTS = MacVim/MacVim.entitlements
 DMGFILESYSTEM = APFS
 DMGFORMAT = ULFO
 
-macvim: $(VIMTARGET)
+$(RUNTIME_FOLDER_LIST):
+	# Generate a stub runtime folder list, used for incremental builds.
+	# Xcode's dependnecy management requires this file to exist at start
+	# of build, even though this file is only generated during build time.
+	mkdir -p MacVim/build
+	touch $(RUNTIME_FOLDER_LIST)
+
+macvim: $(VIMTARGET) $(RUNTIME_FOLDER_LIST)
 	xcodebuild -project MacVim/MacVim.xcodeproj $(XCODEFLAGS)
 
 macvim-signed:
@@ -3690,12 +3705,7 @@ macvim-dmg-release-legacy: macvim-signed macvim-dmg-legacy
 	@echo "----------------------------------------"
 	@echo "Release MacVim (legacy format) built!"
 
-# Install only language files to a dest folder. Subset of "install-languages".
-macvim-install-languages:
-	@if test -n "$(MAKEMO)" -a -f $(PODIR)/Makefile; then \
-	   cd $(PODIR); $(MAKE) prefix=$(DESTDIR)$(prefix) LOCALEDIR=$(DEST_LANG) \
-	   INSTALL_DATA=$(INSTALL_DATA) FILEMOD=$(FILEMOD) install; \
-	fi
+macvim-install-runtime: installruntime installmanlinks installtools $(INSTALL_LANGS)
 
 ###############################################################################
 #

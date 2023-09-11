@@ -10121,6 +10121,8 @@ printf %s "checking for MacVim GUI... " >&6; }
 printf "%s\n" "yes" >&6; };
     GUITYPE=MACVIMGUI
         datadir='${prefix}/MacVim.app/Contents/Resources'
+    mandir='${prefix}/MacVim.app/Contents/man'
+    bindir='${prefix}/MacVim.app/Contents/bin'
   elif test -z "$SKIP_CARBON" -a "x$CARBON" = "xyes"; then
     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for Carbon GUI" >&5
 printf %s "checking for Carbon GUI... " >&6; }

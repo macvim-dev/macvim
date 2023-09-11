@@ -34,6 +34,7 @@ env:
   vi_cv_dll_name_ruby_arm64: /opt/homebrew/opt/ruby/lib/libruby.dylib
   vi_cv_dll_name_lua_arm64: /opt/homebrew/lib/liblua.dylib
 
+  MACVIM_APP: src/MacVim/build/Release/MacVim.app
   VIM_BIN: src/MacVim/build/Release/MacVim.app/Contents/MacOS/Vim
   MACVIM_BIN: src/MacVim/build/Release/MacVim.app/Contents/MacOS/MacVim
 
@@ -245,6 +246,12 @@ jobs:
               echo 'Found references to Sparkle even when using --disable-sparkle'; false
             fi
           fi
+
+          # Make sure man pages were bundled
+          man -M `pwd`/${MACVIM_APP}/Contents/man -w mvim
+
+          # Make sure xxd was bundled
+          echo "AB" | ${MACVIM_APP}/Contents/bin/xxd | grep "4142"
 
       - name: Smoketest (publish)
         if: matrix.publish
