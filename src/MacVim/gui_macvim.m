@@ -1007,8 +1007,7 @@ gui_mch_show_toolbar(int showit)
  * If a font is not going to be used, free its structure.
  */
     void
-gui_mch_free_font(font)
-    GuiFont	font;
+gui_mch_free_font(GuiFont font)
 {
     if (font != NOFONT) {
         ASLogDebug(@"font=%p", font);
@@ -1494,8 +1493,7 @@ gui_mch_replace_dialog(exarg_T *eap)
 
 
     void
-ex_macaction(eap)
-    exarg_T	*eap;
+ex_macaction(exarg_T *eap)
 {
     if (!gui.in_use) {
         emsg(_("E9000-M: Command only available in GUI mode"));
@@ -2616,7 +2614,12 @@ void f_showdefinition(typval_T *argvars, typval_T *rettv UNUSED)
         // just pass the output of screenpos() directly into the 2nd argument).
         varnumber_T lnum = 0, col = 0;
         {
-            typval_T args[1] = { {VAR_UNKNOWN} };
+            typval_T arg_winid_unknown;
+            init_tv(&arg_winid_unknown);
+            arg_winid_unknown.v_type = VAR_UNKNOWN;
+
+            typval_T args[1] = { arg_winid_unknown };
+
             typval_T lrettv;
 
             f_getcurpos(args, &lrettv);
@@ -2628,22 +2631,24 @@ void f_showdefinition(typval_T *argvars, typval_T *rettv UNUSED)
         }
         {
             typval_T arg_winid;
+            init_tv(&arg_winid);
             arg_winid.v_type = VAR_NUMBER;
             arg_winid.vval.v_number = curwin->w_id;
 
             typval_T arg_lnum;
+            init_tv(&arg_lnum);
             arg_lnum.v_type = VAR_NUMBER;
             arg_lnum.vval.v_number = lnum;
 
             typval_T arg_col;
+            init_tv(&arg_col);
             arg_col.v_type = VAR_NUMBER;
             arg_col.vval.v_number = col;
 
-            typval_T args[4] = {
+            typval_T args[3] = {
                 arg_winid,
                 arg_lnum,
                 arg_col,
-                {VAR_UNKNOWN}
             };
             typval_T lrettv;
 
