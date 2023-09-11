@@ -35,16 +35,3 @@ else
         rm "$sparkle_xpcservices_symlink")
     fi
 fi
-
-# This is a temporary measure to remove unnecessary files in the runtime
-# folder. Ideally we should move to use Vim's built-in `make install` mechanism
-# instead of copying all the files from the runtime over to the app blindly.
-# See https://github.com/macvim-dev/macvim/issues/1417
-set -x
-rm -rf $macvim_path/Contents/Resources/vim/runtime/indent/testdir
-rm -rf $macvim_path/Contents/Resources/vim/runtime/syntax/testdir
-rm -f $macvim_path/Contents/Resources/vim/runtime/doc/Makefile
-rm -f $macvim_path/Contents/Resources/vim/runtime/indent/Makefile
-rm -f $macvim_path/Contents/Resources/vim/runtime/lang/Makefile
-rm -f $macvim_path/Contents/Resources/vim/runtime/syntax/Makefile
-rm -f $macvim_path/Contents/Resources/vim/runtime/tutor/Makefile

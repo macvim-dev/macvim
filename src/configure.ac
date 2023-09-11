@@ -2778,6 +2778,8 @@ if test "x$MACOS_X" = "xyes"; then
     GUITYPE=MACVIMGUI
     dnl Sorry for the hard coded default
     datadir='${prefix}/MacVim.app/Contents/Resources'
+    mandir='${prefix}/MacVim.app/Contents/man'
+    bindir='${prefix}/MacVim.app/Contents/bin'
   elif test -z "$SKIP_CARBON" -a "x$CARBON" = "xyes"; then
     AC_MSG_CHECKING(for Carbon GUI)
     dnl already did the check, just give the message

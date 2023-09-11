@@ -13,7 +13,7 @@ SYNOPSIS
 
        ex
        view
-       gvim gview evim eview
+       mvim gvim gview evim eview
        rvim rview rgvim rgview
 
 DESCRIPTION
@@ -78,9 +78,9 @@ DESCRIPTION
        view      Start in read-only mode.  You will be protected from  writing
                  the files.  Can also be done with the "-R" argument.
 
-       gvim gview
-                 The GUI version.  Starts a new window.  Can also be done with
-                 the "-g" argument.
+       mvim gvim gview
+                 The GUI version (MacVim).  Starts a new window.  Can also be
+                 done with the "-g" argument.
 
        evim eview
                  The GUI version in easy mode.  Starts a new window.  Can also

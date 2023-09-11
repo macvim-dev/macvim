@@ -51,16 +51,15 @@
 		1DCD00D20E50B2B700460166 /* TagJump.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DCD00BD0E50B2B700460166 /* TagJump.png */; };
 		1DCD00D30E50B2B700460166 /* Undo.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DCD00BE0E50B2B700460166 /* Undo.png */; };
 		1DD04DEC0C529C5E006CDC2B /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 1DD04DEB0C529C5E006CDC2B /* Credits.rtf */; };
-		1DD0C20C0C60FFB4008CD84A /* gvimrc in Copy Vim Runtime Files */ = {isa = PBXBuildFile; fileRef = 1DD0C20A0C60FF9A008CD84A /* gvimrc */; };
+		1DD0C20C0C60FFB4008CD84A /* gvimrc in Copy default vimrc files */ = {isa = PBXBuildFile; fileRef = 1DD0C20A0C60FF9A008CD84A /* gvimrc */; };
 		1DD3D51E0D82D4C9006E4320 /* ibeam.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DD3D51D0D82D4C9006E4320 /* ibeam.png */; };
 		1DD66ECE0C803D3600EBDAB3 /* MMApplication.m in Sources */ = {isa = PBXBuildFile; fileRef = 1DD66ECC0C803D3600EBDAB3 /* MMApplication.m */; };
 		1DD9F5E50C85D60500E8D5A5 /* SystemColors.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1DD9F5E40C85D60500E8D5A5 /* SystemColors.plist */; };
 		1DE3F8EB0D50F84600052B9E /* MMPreferenceController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1DE3F8E90D50F84600052B9E /* MMPreferenceController.m */; };
-		1DE608B40C587FDA0055263D /* runtime in Copy Vim Runtime Files */ = {isa = PBXBuildFile; fileRef = 1DE602470C587FD10055263D /* runtime */; };
 		1DE63FFB0E71820F00959BDB /* MMCoreTextView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1DE63FFA0E71820F00959BDB /* MMCoreTextView.m */; };
 		1DE8CC620C5E2AAD003F56E3 /* Actions.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1DE8CC610C5E2AAD003F56E3 /* Actions.plist */; };
 		1DE9B9500D341AB8008FEDD4 /* MMWindow.m in Sources */ = {isa = PBXBuildFile; fileRef = 1DE9B94E0D341AB8008FEDD4 /* MMWindow.m */; };
-		1DED78600C6DE43D0079945F /* vimrc in Copy Vim Runtime Files */ = {isa = PBXBuildFile; fileRef = 1DED785F0C6DE43D0079945F /* vimrc */; };
+		1DED78600C6DE43D0079945F /* vimrc in Copy default vimrc files */ = {isa = PBXBuildFile; fileRef = 1DED785F0C6DE43D0079945F /* vimrc */; };
 		1DFE25A50C527BC4003000F7 /* PSMTabBarControl.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1D493DB90C52533B00AB718C /* PSMTabBarControl.framework */; };
 		52818B031C1C08CE00F59085 /* QLStephen.qlgenerator in Copy QuickLookPlugin */ = {isa = PBXBuildFile; fileRef = 52818AFF1C1C075300F59085 /* QLStephen.qlgenerator */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		528DA66A1426D4F9003380F1 /* macvim-askpass in Copy Scripts */ = {isa = PBXBuildFile; fileRef = 528DA6691426D4EB003380F1 /* macvim-askpass */; };
@@ -133,17 +132,16 @@
 			name = "Copy Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		1DE608B80C58807F0055263D /* Copy Vim Runtime Files */ = {
+		1DE608B80C58807F0055263D /* Copy default vimrc files */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = vim;
 			dstSubfolderSpec = 7;
 			files = (
-				1DED78600C6DE43D0079945F /* vimrc in Copy Vim Runtime Files */,
-				1DD0C20C0C60FFB4008CD84A /* gvimrc in Copy Vim Runtime Files */,
-				1DE608B40C587FDA0055263D /* runtime in Copy Vim Runtime Files */,
+				1DED78600C6DE43D0079945F /* vimrc in Copy default vimrc files */,
+				1DD0C20C0C60FFB4008CD84A /* gvimrc in Copy default vimrc files */,
 			);
-			name = "Copy Vim Runtime Files";
+			name = "Copy default vimrc files";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		52818B021C1C088000F59085 /* Copy QuickLookPlugin */ = {
@@ -880,8 +878,9 @@
 				1D0DCAD80BA3604D00B6CCFA /* Copy Executables */,
 				1D9EB2840C366D7B0074B739 /* Copy Frameworks */,
 				52818B021C1C088000F59085 /* Copy QuickLookPlugin */,
-				1DE608B80C58807F0055263D /* Copy Vim Runtime Files */,
-				90BD4EF224E0E8B700BF29F2 /* Copy locale message translation files */,
+				1DE608B80C58807F0055263D /* Copy default vimrc files */,
+				9050374C2AAEFA2500E9846A /* Generate runtime folder list */,
+				90BD4EF224E0E8B700BF29F2 /* Copy Vim runtime / localization files */,
 				1D1C31F00EFFBFD6003FE9A5 /* Make Document Icons */,
 				528DA6671426D456003380F1 /* Copy Scripts */,
 				52283AB71EBA200C00A6F6B9 /* Copy mvim scripts */,
@@ -1054,6 +1053,27 @@
 			shellScript = "BINPATH=$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/bin\nmkdir -p \"${BINPATH}\"\ncp -a \"${SRCROOT}/mvim\" \"${BINPATH}/mvim\"\nchmod 755 \"${BINPATH}/mvim\"\n(cd \"${BINPATH}\"; for f in vim vimdiff view gvim gvimdiff gview mvimdiff mview; do ln -fs mvim $f; done)\n";
 			showEnvVarsInLog = 0;
 		};
+		9050374C2AAEFA2500E9846A /* Generate runtime folder list */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Generate runtime folder list";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(OBJROOT)/runtime_folder_list.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Generate a list of folders that will affect the runtime folder output, so\n# that incremental build can use it to only install them if the runtime folders\n# have changed. The main reason we have to manually generate it is because\n# Xcode's \"Input File Lists\" doesn't support recursion/wildcards.\n\nfind -s ../../runtime -type d > \"${OBJROOT}\"/runtime_folder_list_new.xcfilelist\n\nif cmp -s \"${OBJROOT}\"/runtime_folder_list.xcfilelist \"${OBJROOT}\"/runtime_folder_list_new.xcfilelist; then\n    rm \"${OBJROOT}\"/runtime_folder_list_new.xcfilelist\nelse\n    mv -f \"${OBJROOT}\"/runtime_folder_list_new.xcfilelist \"${OBJROOT}\"/runtime_folder_list.xcfilelist\nfi\n";
+			showEnvVarsInLog = 0;
+		};
 		9099B3CA2914B272005C9F32 /* Clean up build */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
@@ -1074,25 +1094,27 @@
 			shellScript = "./scripts/cleanup-after-build \"$BUILT_PRODUCTS_DIR/$WRAPPER_NAME\" \"$REMOVE_SPARKLE\"\n";
 			showEnvVarsInLog = 0;
 		};
-		90BD4EF224E0E8B700BF29F2 /* Copy locale message translation files */ = {
+		90BD4EF224E0E8B700BF29F2 /* Copy Vim runtime / localization files */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			inputFileListPaths = (
+				$OBJROOT/runtime_folder_list.xcfilelist,
 			);
 			inputPaths = (
+				"$(SRCROOT)/../xxd/xxd",
 				"$(SRCROOT)/../po",
 			);
-			name = "Copy locale message translation files";
+			name = "Copy Vim runtime / localization files";
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/vim/runtime/lang",
+				$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/vim/runtime,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "# Copy all the locale translation files from the po folder to\n# runtime/lang/<lang>/LC_MESSAGES/vim.mo. Need to do this because unlike normal\n# Vim, MacVim is distributed as a standalone app package and therefore we don't\n# want to install these files to a global location (e.g.\n# /usr/local/share/locale/). This is similar to how Windows installation\n# (po/Make_mvc.mak) works.\ncd \"${SRCROOT}\"/..\nmake macvim-install-languages DEST_LANG=\"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/vim/runtime/lang\"\n";
+			shellPath = /bin/zsh;
+			shellScript = "# Copy the runtime files to the app bundle, under Resources/vim/runtime folder.\n# We cannot do a direct copy of the runtime folder as it contains misc test\n# scripts and also man pages and we should use the Vim's defined rules to\n# install them properly.\n\n# Note that this will also install man pages, under a \"man\" folder. This is\n# useful if the user really wants to point their man page to MacVim's verison\n# instead of builtin Vim, using MANPATH=/Applications/MacVim.app/Contents/man).\n\n# prefix: Reset to empty as it's set to /Applications for fallback rt-folder\n# VIMNAME: Use the default \"vim\" to make sure man pages use that instead of \"Vim\"\n# VIMRTDIR: Make sure to use \"runtime\" as by default it uses a \"vim90\" style folder which is mostly a relic.\n\ncd \"${SRCROOT}\"/..\nmake \\\n    DESTDIR=\"${TARGET_BUILD_DIR}\" \\\n    prefix= \\\n    VIMNAME=vim \\\n    VIMRTDIR=/runtime \\\n    macvim-install-runtime\n\n# Also add man pages for \"mvim\"\nfor curdir in \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH\"/man/**/man1; do\n    (cd $curdir; ln -f -s gvim.1 mvim.1)\ndone\n";
 			showEnvVarsInLog = 0;
 		};
 		90C052E1251E889500E2D81E /* Copy vimtutor */ = {
@@ -1112,10 +1134,11 @@
 			outputPaths = (
 				$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/bin/vimtutor,
 				$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/bin/gvimtutor,
+				$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/bin/mvimtutor,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "BINPATH=$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/bin\nmkdir -p \"${BINPATH}\"\ncp -a \"${SRCROOT}/../vimtutor\" \"${BINPATH}/vimtutor\"\ncp -a \"${SRCROOT}/../gvimtutor\" \"${BINPATH}/gvimtutor\"\nchmod 755 \"${BINPATH}/vimtutor\"\nchmod 755 \"${BINPATH}/gvimtutor\"\ncd \"${BINPATH}\"\nln -fs gvimtutor mvimtutor \n";
+			shellScript = "# We could potentially use make installtutorbin installgtutorbin\n# but this works and we need to do the symlink anyway.\nBINPATH=$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/bin\nmkdir -p \"${BINPATH}\"\ncp -a \"${SRCROOT}/../vimtutor\" \"${BINPATH}/vimtutor\"\ncp -a \"${SRCROOT}/../gvimtutor\" \"${BINPATH}/gvimtutor\"\nchmod 755 \"${BINPATH}/vimtutor\"\nchmod 755 \"${BINPATH}/gvimtutor\"\ncd \"${BINPATH}\"\nln -fs gvimtutor mvimtutor \n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
