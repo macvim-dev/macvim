@@ -304,7 +304,9 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     // unlikely to fix it, we graciously give them the default connection.)
     connection = [[NSConnection alloc] initWithReceivePort:[NSPort port]
                                                   sendPort:nil];
-    [connection setRootObject:self];
+    NSProtocolChecker *rootObject = [NSProtocolChecker protocolCheckerWithTarget:self
+                                                                        protocol:@protocol(MMAppProtocol)];
+    [connection setRootObject:rootObject];
     [connection setRequestTimeout:MMRequestTimeout];
     [connection setReplyTimeout:MMReplyTimeout];
 
@@ -315,6 +317,20 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     if (![connection registerName:name]) {
         ASLogCrit(@"Failed to register connection with name '%@'", name);
         [connection release];  connection = nil;
+
+        NSAlert *alert = [[NSAlert alloc] init];
+        [alert addButtonWithTitle:NSLocalizedString(@"OK",
+            @"Dialog button")];
+        [alert setMessageText:NSLocalizedString(@"MacVim cannot be opened",
+            @"MacVim cannot be opened, title")];
+        [alert setInformativeText:[NSString stringWithFormat:NSLocalizedString(
+            @"MacVim could not set up its connection. It's likely you already have MacVim opened elsewhere.",
+            @"MacVim already opened, text")]];
+        [alert setAlertStyle:NSAlertStyleCritical];
+        [alert runModal];
+        [alert release];
+
+        [[NSApplication sharedApplication] terminate:nil];
     }
 
     // Register help search handler to support search Vim docs via the Help menu
@@ -859,7 +875,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
 - (void)removeVimController:(id)controller
 {
-    ASLogDebug(@"Remove Vim controller pid=%d id=%d (processingFlag=%d)",
+    ASLogDebug(@"Remove Vim controller pid=%d id=%lu (processingFlag=%d)",
                [controller pid], [controller vimControllerId], processingFlag);
 
     NSUInteger idx = [vimControllers indexOfObject:controller];
@@ -1540,7 +1556,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     return nil;
 }
 
-- (unsigned)connectBackend:(byref in id <MMBackendProtocol>)proxy pid:(int)pid
+- (unsigned long)connectBackend:(byref in id <MMBackendProtocol>)proxy pid:(int)pid
 {
     ASLogDebug(@"pid=%d", pid);
 
@@ -1570,21 +1586,21 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 }
 
 - (oneway void)processInput:(in bycopy NSArray *)queue
-              forIdentifier:(unsigned)identifier
+              forIdentifier:(unsigned long)identifier
 {
     // NOTE: Input is not handled immediately since this is a distributed
     // object call and as such can arrive at unpredictable times.  Instead,
     // queue the input and process it when the run loop is updated.
 
     if (!(queue && identifier)) {
-        ASLogWarn(@"Bad input for identifier=%d", identifier);
+        ASLogWarn(@"Bad input for identifier=%lu", identifier);
         return;
     }
 
-    ASLogDebug(@"QUEUE for identifier=%d: <<< %@>>>", identifier,
+    ASLogDebug(@"QUEUE for identifier=%lu: <<< %@>>>", identifier,
                debugStringForMessageQueue(queue));
 
-    NSNumber *key = [NSNumber numberWithUnsignedInt:identifier];
+    NSNumber *key = [NSNumber numberWithUnsignedLong:identifier];
     NSArray *q = [inputQueues objectForKey:key];
     if (q) {
         q = [q arrayByAddingObjectsFromArray:queue];
@@ -2715,7 +2731,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     NSEnumerator *e = [queues keyEnumerator];
     NSNumber *key;
     while ((key = [e nextObject])) {
-        unsigned ukey = [key unsignedIntValue];
+        unsigned long ukey = [key unsignedLongValue];
         int i = 0, count = [vimControllers count];
         for (i = 0; i < count; ++i) {
             MMVimController *vc = [vimControllers objectAtIndex:i];
@@ -2737,7 +2753,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         }
 
         if (i == count) {
-            ASLogWarn(@"No Vim controller for identifier=%d", ukey);
+            ASLogWarn(@"No Vim controller for identifier=%lu", ukey);
         }
     }
 
@@ -2758,7 +2774,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
 - (void)addVimController:(MMVimController *)vc
 {
-    ASLogDebug(@"Add Vim controller pid=%d id=%d",
+    ASLogDebug(@"Add Vim controller pid=%d id=%lu",
             [vc pid], [vc vimControllerId]);
 
     int pid = [vc pid];

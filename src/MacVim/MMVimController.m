@@ -56,8 +56,6 @@ static NSTimeInterval MMBackendProxyRequestTimeout = 0;
 // Timeout used for setDialogReturn:.
 static NSTimeInterval MMSetDialogReturnTimeout = 1.0;
 
-static unsigned identifierCounter = 1;
-
 static BOOL isUnsafeMessage(int msgid);
 
 
@@ -168,8 +166,15 @@ static BOOL isUnsafeMessage(int msgid);
     if (!(self = [super init]))
         return nil;
 
-    // TODO: Come up with a better way of creating an identifier.
-    identifier = identifierCounter++;
+    // Use a random identifier. Currently, MMBackend connects using a public
+    // NSConnection, which has security implications. Using random identifiers
+    // make it much harder for third-party attacker to spoof.
+    int secSuccess = SecRandomCopyBytes(kSecRandomDefault, sizeof(identifier), &identifier);
+    if (secSuccess != errSecSuccess) {
+        // Don't know what concrete reasons secure random would fail, but just
+        // as a failsafe, use a less secure option.
+        identifier = ((unsigned long)arc4random()) << 32 | (unsigned long)arc4random();
+    }
 
     windowController =
         [[MMWindowController alloc] initWithVimController:self];
@@ -257,7 +262,7 @@ static BOOL isUnsafeMessage(int msgid);
     isInitialized = NO;
 }
 
-- (unsigned)vimControllerId
+- (unsigned long)vimControllerId
 {
     return identifier;
 }
@@ -436,7 +441,7 @@ static BOOL isUnsafeMessage(int msgid);
         [backendProxy processInput:msgid data:data];
     }
     @catch (NSException *ex) {
-        ASLogDebug(@"processInput:data: failed: pid=%d id=%d msg=%s reason=%@",
+        ASLogDebug(@"processInput:data: failed: pid=%d id=%lu msg=%s reason=%@",
                 pid, identifier, MMVimMsgIDStrings[msgid], ex);
     }
 }
@@ -468,7 +473,7 @@ static BOOL isUnsafeMessage(int msgid);
     }
     @catch (NSException *ex) {
         sendOk = NO;
-        ASLogDebug(@"processInput:data: failed: pid=%d id=%d msg=%s reason=%@",
+        ASLogDebug(@"processInput:data: failed: pid=%d id=%lu msg=%s reason=%@",
                 pid, identifier, MMVimMsgIDStrings[msgid], ex);
     }
     @finally {
@@ -500,7 +505,7 @@ static BOOL isUnsafeMessage(int msgid);
         ASLogDebug(@"eval(%@)=%@", expr, eval);
     }
     @catch (NSException *ex) {
-        ASLogDebug(@"evaluateExpression: failed: pid=%d id=%d reason=%@",
+        ASLogDebug(@"evaluateExpression: failed: pid=%d id=%lu reason=%@",
                 pid, identifier, ex);
     }
 
@@ -517,7 +522,7 @@ static BOOL isUnsafeMessage(int msgid);
                                          errorString:errstr];
         ASLogDebug(@"eval(%@)=%@", expr, eval);
     } @catch (NSException *ex) {
-        ASLogDebug(@"evaluateExpressionCocoa: failed: pid=%d id=%d reason=%@",
+        ASLogDebug(@"evaluateExpressionCocoa: failed: pid=%d id=%lu reason=%@",
                 pid, identifier, ex);
         *errstr = [ex reason];
     }
@@ -556,7 +561,7 @@ static BOOL isUnsafeMessage(int msgid);
         [windowController processInputQueueDidFinish];
     }
     @catch (NSException *ex) {
-        ASLogDebug(@"Exception: pid=%d id=%d reason=%@", pid, identifier, ex);
+        ASLogDebug(@"Exception: pid=%d id=%lu reason=%@", pid, identifier, ex);
     }
 }
 
@@ -1275,7 +1280,7 @@ static BOOL isUnsafeMessage(int msgid);
                                                 noteNewRecentFilePath:path];
     }
     @catch (NSException *ex) {
-        ASLogDebug(@"Exception: pid=%d id=%d reason=%@", pid, identifier, ex);
+        ASLogDebug(@"Exception: pid=%d id=%lu reason=%@", pid, identifier, ex);
     }
     @finally {
         [conn setRequestTimeout:oldTimeout];
@@ -1308,7 +1313,7 @@ static BOOL isUnsafeMessage(int msgid);
         [backendProxy setDialogReturn:ret];
     }
     @catch (NSException *ex) {
-        ASLogDebug(@"setDialogReturn: failed: pid=%d id=%d reason=%@",
+        ASLogDebug(@"setDialogReturn: failed: pid=%d id=%lu reason=%@",
                 pid, identifier, ex);
     }
 }
@@ -2089,7 +2094,7 @@ static BOOL isUnsafeMessage(int msgid);
 
 - (void)scheduleClose
 {
-    ASLogDebug(@"pid=%d id=%d", pid, identifier);
+    ASLogDebug(@"pid=%d id=%lu", pid, identifier);
 
     // NOTE!  This message can arrive at pretty much anytime, e.g. while
     // the run loop is the 'event tracking' mode.  This means that Cocoa may

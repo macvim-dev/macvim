@@ -74,6 +74,7 @@
 		909894382A56EB1E007B84A3 /* WhatsNew.xib in Resources */ = {isa = PBXBuildFile; fileRef = 909894362A56EB1E007B84A3 /* WhatsNew.xib */; };
 		9098943C2A56ECF6007B84A3 /* MMWhatsNewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 9098943B2A56ECF6007B84A3 /* MMWhatsNewController.m */; };
 		90A33BEA28D563DF003A2E2F /* MMSparkle2Delegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 90A33BE928D563DF003A2E2F /* MMSparkle2Delegate.m */; };
+		90AF83AB2A8C37F70046DA2E /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 90AF83A92A8C37F70046DA2E /* Security.framework */; };
 		90B9877D2A579F9500FC95D6 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 90B9877B2A579F9500FC95D6 /* WebKit.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
 /* End PBXBuildFile section */
 
@@ -423,6 +424,7 @@
 		90AF83B62AA15C660046DA2E /* nv_cmds.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = nv_cmds.h; path = ../nv_cmds.h; sourceTree = "<group>"; };
 		90AF83B72AA15C660046DA2E /* vim9cmds.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = vim9cmds.c; path = ../vim9cmds.c; sourceTree = "<group>"; };
 		90AF83B82AA15C660046DA2E /* termdefs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = termdefs.h; path = ../termdefs.h; sourceTree = "<group>"; };
+		90AF83A92A8C37F70046DA2E /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		90B9877B2A579F9500FC95D6 /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
 		90F84F1E2521F2270000268B /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ko; path = ko.lproj/MainMenu.strings; sourceTree = "<group>"; };
 		90F84F232521F6480000268B /* ca */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ca; path = ca.lproj/MainMenu.strings; sourceTree = "<group>"; };
@@ -462,6 +464,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				90AF83AB2A8C37F70046DA2E /* Security.framework in Frameworks */,
 				90B9877D2A579F9500FC95D6 /* WebKit.framework in Frameworks */,
 				1DFE25A50C527BC4003000F7 /* PSMTabBarControl.framework in Frameworks */,
 				8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */,
@@ -650,6 +653,7 @@
 		29B97323FDCFA39411CA2CEA /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				90AF83A92A8C37F70046DA2E /* Security.framework */,
 				90B9877B2A579F9500FC95D6 /* WebKit.framework */,
 				52A364721C4A5789005757EC /* Sparkle.framework */,
 				1D8B5A52104AF9FF002E59D5 /* Carbon.framework */,

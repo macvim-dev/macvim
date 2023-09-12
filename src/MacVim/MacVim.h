@@ -197,9 +197,9 @@ typedef NSString* NSAttributedStringKey;
 // connectBackend:pid: and processInput:forIdentifier:).
 //
 @protocol MMAppProtocol
-- (unsigned)connectBackend:(byref in id <MMBackendProtocol>)proxy pid:(int)pid;
+- (unsigned long)connectBackend:(byref in id <MMBackendProtocol>)proxy pid:(int)pid;
 - (oneway void)processInput:(in bycopy NSArray *)queue
-              forIdentifier:(unsigned)identifier;
+              forIdentifier:(unsigned long)identifier;
 - (NSArray *)serverList;
 @end
 
