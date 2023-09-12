@@ -6,89 +6,65 @@
     <description>MacVim</description>
 
     <item>
-      <title>MacVim release-177</title>
+      <title>MacVim release-178</title>
       <description><![CDATA[
 <style>
 :root { supported-color-schemes: light dark; color-scheme: light dark; }
 h1 { padding-bottom: .3em; border-bottom: 1px solid gray; }
 </style>
 
-<p>Updated to Vim 9.0.1677</p>
+<p>Updated to Vim 9.0.1897</p>
 
-<h1 id="announcements">Announcements</h1>
+<h1 id="special-notes">Special Notes</h1>
 
-<h2 id="website">Website</h2>
+<p>As some of you may have read, Bram Moolenaar, the creator of Vim, has <a href="https://groups.google.com/g/vim_announce/c/tWahca9zkt4">passed away</a> recently. He has worked tirelessly on Vim for more than 30 years and this release is dedicated to him. If you would like, you could pay your respects at <a href="https://github.com/vim/vim/discussions/12737">this discussion thread</a>.</p>
 
-<p>The official website for MacVim is now <a href="https://macvim.org">https://macvim.org</a>. Previously it just
-forwarded to <a href="https://macvim-dev.github.io/macvim/">https://macvim-dev.github.io/macvim/</a>. You can also now read the MacVim
-documentation at <a href="https://macvim.org/docs/gui_mac.txt.html">https://macvim.org/docs/gui_mac.txt.html</a>. <a href="https://github.com/macvim-dev/macvim/issues/1385">#1385</a></p>
+<p>The Vim project has transitioned to new maintainers, and MacVim will continue to be supported as long as Vim is around.</p>
 
 <h1 id="features">Features</h1>
 
-<h2 id="updater--whats-new-page">Updater / What’s New page</h2>
+<h2 id="more-flexible-python-integration">More flexible Python integration</h2>
 
-<p>There is now a “What’s New” page that will automatically be shown whenever
-MacVim detected that it has been updated to a new version (can be disabled in
-Settings). The page will also include all the release notes if you have
-updated across multiple versions. This feature is useful for users who turned
-on “Automatically install updates” or installs MacVim through other methods
-like Homebrew but would still like to see the release notes when a new version
-comes out. You can also access it through the Help menu. <a href="https://github.com/macvim-dev/macvim/issues/1414">#1414</a></p>
-
-<p>MacVim should now report its version in a much more consistent manner in the
-“About MacVim” page and when the updater reports there is a new version. It
-should look something like “r176 (Vim 9.0.1276)” where “r176” is the MacVim
-release number and the 9.0.1276 is the bundled Vim version. <a href="https://github.com/macvim-dev/macvim/issues/1293">#1293</a> <a href="https://github.com/macvim-dev/macvim/issues/1393">#1393</a></p>
-
-<p>Sparkle (updater for MacVim) is now updated to 2.4.2. <a href="https://github.com/macvim-dev/macvim/issues/1416">#1416</a></p>
+<p>MacVim now allows you to use Python runtime (via <code>pythonthreedll</code>, used for Python plugins) of any version at or above 3.9. Previously you had to use the exact same version that was used to build MacVim (Python 3.11). The Python detection logic is also updated to always just find the latest version of Homebrew Python instead of a fixed one, and it will also now locate the default macOS / Xcode Python provided by the Xcode Command Line Tools if that is the only Python available. This should hopefully make configuring Python for MacVim a lot more seamless.  See <a href="https://macvim.org/docs/redirect.html?tag=python3-stable-abi"><code>:h python3-stable-abi</code></a>. Vim <a href="https://github.com/vim/vim/commit/c13b3d1350b60b94fe87f0761ea31c0e7fb6ebf3">v9.0.1776</a> / <a href="https://github.com/macvim-dev/macvim/issues/1428">#1428</a>.</p>
 
 <h2 id="new-vim-features">New Vim features</h2>
 
 <ul>
-  <li>New bundled colorschemes: wildcharm/retrobox/sorbet/zaibatsu (<a href="https://github.com/vim/vim/pull/12163">vim/vim#12163</a>)</li>
-  <li>File encryption now has a new <code>cryptmethod</code>: <code>xchacha20v2</code>, which is designed to be more forward compatible with future Vim versions than <code>xchacha20</code>.  (<a href="https://github.com/vim/vim/commit/aae583441bcdbb0bfef3b8a1d193e04ae09ca95d">v9.0.1481</a>)</li>
-  <li><code>switchbuf</code> works for more commands. (<a href="https://github.com/vim/vim/commit/54be5fb382d2bf25fd1b17ddab8b21f599019b81">v9.0.1546</a>)</li>
-  <li>Statusline now supports multiple alignment “%=” items. (<a href="https://github.com/vim/vim/commit/3ec78f973fdaec2cea8e036ed38037b2fe40670b">v9.0.1300</a>)</li>
-  <li>New UTF-16 utility functions (<code>strutf16len</code> and <code>utf16idx</code>) (<a href="https://github.com/vim/vim/commit/67672ef097dd708244ff042a8364994da2b91e75">v9.0.1485</a>)</li>
-  <li>Misc ‘smoothscroll’ bugs fixes</li>
+  <li>New built-in support for <a href="https://editorconfig.org/">EditorConfig</a> via an optional package. Use <code>packadd editorconfig</code> to activate it. See <a href="https://github.com/vim/vim/issues/12902">vim/vim#12902</a>.</li>
+  <li><code>g&lt;End&gt;</code> now goes to the first non-blank char. <a href="https://github.com/vim/vim/commit/b5f6fe9ca2661d06bc0be839447ce1995450b9de">v9.0.1753</a></li>
+  <li>API changes
+    <ul>
+      <li><code>undotree()</code> now takes a bufnr <a href="https://github.com/vim/vim/commit/5fee11114975b7405b7ccd3ee8758e54bf559760">v9.0.1686</a></li>
+      <li><code>printf()</code> now takes positional arguments <a href="https://github.com/vim/vim/commit/0c6181fec4c362eb9682d5af583341eb20cb1af5">v9.0.1704</a></li>
+      <li><code>virtcol()</code> now takes winid <a href="https://github.com/vim/vim/commit/825cf813fa0fddf085fcbd3194781e875320ff63">v9.0.1728</a></li>
+      <li>quickfix items can now have user data <a href="https://github.com/vim/vim/commit/ca6ac99077d2e6d020a34267aa5e0fbc4d23dc38">v9.0.1688</a></li>
+    </ul>
+  </li>
+  <li>Miscellaneous security fixes.</li>
 </ul>
 
-<h1 id="general">General</h1>
+<h1 id="security-fixes">Security Fixes</h1>
 
 <ul>
-  <li>Removed non-Unicode localization files, which helps cut down on app size. <a href="https://github.com/macvim-dev/macvim/issues/1397">#1397</a></li>
-  <li>Miscellaneous documentation fixes. <a href="https://github.com/macvim-dev/macvim/issues/1415">#1415</a> <a href="https://github.com/macvim-dev/macvim/issues/1375">#1375</a> <a href="https://github.com/macvim-dev/macvim/issues/1386">#1386</a> <a href="https://github.com/macvim-dev/macvim/issues/1363">#1363</a> (by @dkav)</li>
-  <li>The disk image for MacVim (MacVim.dmg) is now in APFS and uses better
-compression for better efficiency. <a href="https://github.com/macvim-dev/macvim/issues/1409">#1409</a></li>
+    <li>Fixed insecure usages of interprocess communication in MacVim (<a href="https://github.com/macvim-dev/macvim/security/advisories/GHSA-9jgj-jfwg-99fv">CVE-2023-41036</a>)</li>
 </ul>
 
 <h1 id="fixes">Fixes</h1>
 
 <ul>
-  <li>Printing a file in macOS 13 Ventura (using <code>:hardcopy</code> or File→Print) should
-work again. <a href="https://github.com/macvim-dev/macvim/issues/1390">#1390</a></li>
-  <li>Fixed a broken symlink to XPCServices in the Sparkle framework. <a href="https://github.com/macvim-dev/macvim/issues/1367">#1367</a></li>
-  <li>Fixed MacVim to not throw (safe) Objective C exceptions when quitting. <a href="https://github.com/macvim-dev/macvim/issues/1371">#1371</a></li>
-  <li>Fixed welcome message not being aligned properly in Simplified Chinese and
-show the Vim 9 prompt. <a href="https://github.com/macvim-dev/macvim/issues/1381">#1381</a></li>
-  <li>Removed some unnecessary test files in the runtime folders which were
-included erroneously. <a href="https://github.com/macvim-dev/macvim/issues/1418">#1418</a></li>
+  <li>Fixed MacVim to correctly set up the runtime folder in the app bundle.  As a corollary, <code>xxd</code> is now bundled with MacVim like most other Vim distributions, and MacVim.app now provides man page for the CLI vim commands if the user wants to associate man pages with the <code>mvim</code> comamnd (see <a href="https://macvim.org/docs/redirect.html?tag=macvim-PATH"><code>:h macvim-PATH</code></a>). <a href="https://github.com/macvim-dev/macvim/issues/1430">#1430</a></li>
+  <li>Fixed Vim occasionally crashing and/or hung when autocmd calls <code>serverlist()</code> on exit. <a href="https://github.com/macvim-dev/macvim/issues/1427">#1427</a></li>
 </ul>
 
 <h1 id="scripting">Scripting</h1>
 
 <ul>
-  <li>Scripting languages versions:
-    <ul>
-      <li>Python is now built against 3.11, up from 3.10.</li>
-    </ul>
-  </li>
+  <li>Scripting languages versions: Python now supports 3.9 or above.</li>
 </ul>
 
 <h1 id="compatibility">Compatibility</h1>
 
-<p>Requires macOS 10.9 or above. (10.9 - 10.12 requires downloading a
-separate legacy build)</p>
+<p>Requires macOS 10.9 or above. (10.9 - 10.12 requires downloading a separate legacy build)</p>
 
 <p>Script interfaces have compatibility with these versions:</p>
 
@@ -96,121 +72,96 @@ separate legacy build)</p>
   <li>Lua 5.4</li>
   <li>Perl 5.30</li>
   <li>Python2 2.7</li>
-  <li>Python3 3.11</li>
+  <li>Python3 3.9 or above</li>
   <li>Ruby 3.2</li>
 </ul>
-
 
 <p><br /><small><a href="https://github.com/macvim-dev/macvim/releases/latest">Latest release notes &gt;</a></small></p>
       ]]></description>
       <sparkle:fullReleaseNotesLink>https://github.com/macvim-dev/macvim/releases</sparkle:fullReleaseNotesLink>
-      <pubDate>Mon, 10 Jul 2023 01:00:00 +0000</pubDate>
+      <pubDate>Tue, 12 Sep 2023 10:00:00 +0000</pubDate>
       <sparkle:minimumSystemVersion>10.13</sparkle:minimumSystemVersion>
-      <sparkle:version>177</sparkle:version>
-      <sparkle:shortVersionString>9.0.1677</sparkle:shortVersionString>
+      <sparkle:version>178</sparkle:version>
+      <sparkle:shortVersionString>9.0.1897</sparkle:shortVersionString>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/release-177/MacVim.dmg"
-        sparkle:edSignature="/JcNqohmd5TT8h3Y8kcKvZQ5xd8afMg9qPmNQeoL8m6Lvl+5KwXYT5Exoa0pOTwKlNon+SdQYkf/vlTnw8prAg==" length="20695588"
+        url="https://github.com/macvim-dev/macvim/releases/download/release-178/MacVim.dmg"
+        sparkle:edSignature="7nF9mfK07y4qT+Pselfafc4tCmIkUqfJ6VpzKNQLzFbG6XIlaZUOMvAHNrif1/VFsmNrTjyQnw000qW1JwWlAw==" length="20500004"
         />
       <sparkle:deltas>
         <enclosure type="application/octet-stream"
-          url="https://github.com/macvim-dev/macvim/releases/download/release-177/176_to_177.delta"
-          sparkle:deltaFrom="176"
-          sparkle:edSignature="MbGdaSLuvbgRd8Lb1V5H8cYu7/knNCM/ZyCFeEXe73s6Hmw4A+xF3v3Z/kWldlSJoDvSINJn1f4VsYA+MjVDCg==" length="1729886"
+          url="https://github.com/macvim-dev/macvim/releases/download/release-178/177_to_178.delta"
+          sparkle:deltaFrom="177"
+          sparkle:edSignature="yj+JMio861rA+l7tM4PRDExi1vC+j3c+vqgyURsgjGrMIWPx38HqGWxchkl4gtNZT9WwQ6VF08BcxFwMjLEJBQ==" length="1419422"
           />
         <enclosure type="application/octet-stream"
-          url="https://github.com/macvim-dev/macvim/releases/download/release-177/176.1_to_177.delta"
-          sparkle:deltaFrom="176.1"
-          sparkle:edSignature="Rdea9N252CDJuuHEvWW0tzb8JOvSDeGIHX92Pwl+moXYuauJNE5ZbHcA47mLd9nPM9du3m3kFkCvTQde3uufCg==" length="1550242"
+          url="https://github.com/macvim-dev/macvim/releases/download/release-178/176_to_178.delta"
+          sparkle:deltaFrom="176"
+          sparkle:edSignature="9+tOwUlAmHTHQdiY+F1LlK/uDF3AZE8Jywq2ziGTC6EmVTl9Z4NMmV2S0hjRK1iNFIEZAwDOwKkQGr3gRKTSAw==" length="2344046"
           />
       </sparkle:deltas>
 
     </item>
 
     <item>
-      <title>MacVim release-177</title>
+      <title>MacVim release-178</title>
       <description><![CDATA[
 <style>
 :root { supported-color-schemes: light dark; color-scheme: light dark; }
 h1 { padding-bottom: .3em; border-bottom: 1px solid gray; }
 </style>
 
-<p>Updated to Vim 9.0.1677</p>
+<p>Updated to Vim 9.0.1897</p>
 
-<h1 id="announcements">Announcements</h1>
+<h1 id="special-notes">Special Notes</h1>
 
-<h2 id="website">Website</h2>
+<p>As some of you may have read, Bram Moolenaar, the creator of Vim, has <a href="https://groups.google.com/g/vim_announce/c/tWahca9zkt4">passed away</a> recently. He has worked tirelessly on Vim for more than 30 years and this release is dedicated to him. If you would like, you could pay your respects at <a href="https://github.com/vim/vim/discussions/12737">this discussion thread</a>.</p>
 
-<p>The official website for MacVim is now <a href="https://macvim.org">https://macvim.org</a>. Previously it just
-forwarded to <a href="https://macvim-dev.github.io/macvim/">https://macvim-dev.github.io/macvim/</a>. You can also now read the MacVim
-documentation at <a href="https://macvim.org/docs/gui_mac.txt.html">https://macvim.org/docs/gui_mac.txt.html</a>. <a href="https://github.com/macvim-dev/macvim/issues/1385">#1385</a></p>
+<p>The Vim project has transitioned to new maintainers, and MacVim will continue to be supported as long as Vim is around.</p>
 
 <h1 id="features">Features</h1>
 
-<h2 id="updater--whats-new-page">Updater / What’s New page</h2>
+<h2 id="more-flexible-python-integration">More flexible Python integration</h2>
 
-<p>There is now a “What’s New” page that will automatically be shown whenever
-MacVim detected that it has been updated to a new version (can be disabled in
-Settings). The page will also include all the release notes if you have
-updated across multiple versions. This feature is useful for users who turned
-on “Automatically install updates” or installs MacVim through other methods
-like Homebrew but would still like to see the release notes when a new version
-comes out. You can also access it through the Help menu. <a href="https://github.com/macvim-dev/macvim/issues/1414">#1414</a></p>
-
-<p>MacVim should now report its version in a much more consistent manner in the
-“About MacVim” page and when the updater reports there is a new version. It
-should look something like “r176 (Vim 9.0.1276)” where “r176” is the MacVim
-release number and the 9.0.1276 is the bundled Vim version. <a href="https://github.com/macvim-dev/macvim/issues/1293">#1293</a> <a href="https://github.com/macvim-dev/macvim/issues/1393">#1393</a></p>
-
-<p>Sparkle (updater for MacVim) is now updated to 2.4.2. <a href="https://github.com/macvim-dev/macvim/issues/1416">#1416</a></p>
+<p>MacVim now allows you to use Python runtime (via <code>pythonthreedll</code>, used for Python plugins) of any version at or above 3.9. Previously you had to use the exact same version that was used to build MacVim (Python 3.11). The Python detection logic is also updated to always just find the latest version of Homebrew Python instead of a fixed one, and it will also now locate the default macOS / Xcode Python provided by the Xcode Command Line Tools if that is the only Python available. This should hopefully make configuring Python for MacVim a lot more seamless.  See <a href="https://macvim.org/docs/redirect.html?tag=python3-stable-abi"><code>:h python3-stable-abi</code></a>. Vim <a href="https://github.com/vim/vim/commit/c13b3d1350b60b94fe87f0761ea31c0e7fb6ebf3">v9.0.1776</a> / <a href="https://github.com/macvim-dev/macvim/issues/1428">#1428</a>.</p>
 
 <h2 id="new-vim-features">New Vim features</h2>
 
 <ul>
-  <li>New bundled colorschemes: wildcharm/retrobox/sorbet/zaibatsu (<a href="https://github.com/vim/vim/pull/12163">vim/vim#12163</a>)</li>
-  <li>File encryption now has a new <code>cryptmethod</code>: <code>xchacha20v2</code>, which is designed to be more forward compatible with future Vim versions than <code>xchacha20</code>.  (<a href="https://github.com/vim/vim/commit/aae583441bcdbb0bfef3b8a1d193e04ae09ca95d">v9.0.1481</a>)</li>
-  <li><code>switchbuf</code> works for more commands. (<a href="https://github.com/vim/vim/commit/54be5fb382d2bf25fd1b17ddab8b21f599019b81">v9.0.1546</a>)</li>
-  <li>Statusline now supports multiple alignment “%=” items. (<a href="https://github.com/vim/vim/commit/3ec78f973fdaec2cea8e036ed38037b2fe40670b">v9.0.1300</a>)</li>
-  <li>New UTF-16 utility functions (<code>strutf16len</code> and <code>utf16idx</code>) (<a href="https://github.com/vim/vim/commit/67672ef097dd708244ff042a8364994da2b91e75">v9.0.1485</a>)</li>
-  <li>Misc ‘smoothscroll’ bugs fixes</li>
+  <li>New built-in support for <a href="https://editorconfig.org/">EditorConfig</a> via an optional package. Use <code>packadd editorconfig</code> to activate it. See <a href="https://github.com/vim/vim/issues/12902">vim/vim#12902</a>.</li>
+  <li><code>g&lt;End&gt;</code> now goes to the first non-blank char. <a href="https://github.com/vim/vim/commit/b5f6fe9ca2661d06bc0be839447ce1995450b9de">v9.0.1753</a></li>
+  <li>API changes
+    <ul>
+      <li><code>undotree()</code> now takes a bufnr <a href="https://github.com/vim/vim/commit/5fee11114975b7405b7ccd3ee8758e54bf559760">v9.0.1686</a></li>
+      <li><code>printf()</code> now takes positional arguments <a href="https://github.com/vim/vim/commit/0c6181fec4c362eb9682d5af583341eb20cb1af5">v9.0.1704</a></li>
+      <li><code>virtcol()</code> now takes winid <a href="https://github.com/vim/vim/commit/825cf813fa0fddf085fcbd3194781e875320ff63">v9.0.1728</a></li>
+      <li>quickfix items can now have user data <a href="https://github.com/vim/vim/commit/ca6ac99077d2e6d020a34267aa5e0fbc4d23dc38">v9.0.1688</a></li>
+    </ul>
+  </li>
+  <li>Miscellaneous security fixes.</li>
 </ul>
 
-<h1 id="general">General</h1>
+<h1 id="security-fixes">Security Fixes</h1>
 
 <ul>
-  <li>Removed non-Unicode localization files, which helps cut down on app size. <a href="https://github.com/macvim-dev/macvim/issues/1397">#1397</a></li>
-  <li>Miscellaneous documentation fixes. <a href="https://github.com/macvim-dev/macvim/issues/1415">#1415</a> <a href="https://github.com/macvim-dev/macvim/issues/1375">#1375</a> <a href="https://github.com/macvim-dev/macvim/issues/1386">#1386</a> <a href="https://github.com/macvim-dev/macvim/issues/1363">#1363</a> (by @dkav)</li>
-  <li>The disk image for MacVim (MacVim.dmg) is now in APFS and uses better
-compression for better efficiency. <a href="https://github.com/macvim-dev/macvim/issues/1409">#1409</a></li>
+    <li>Fixed insecure usages of interprocess communication in MacVim (<a href="https://github.com/macvim-dev/macvim/security/advisories/GHSA-9jgj-jfwg-99fv">CVE-2023-41036</a>)</li>
 </ul>
 
 <h1 id="fixes">Fixes</h1>
 
 <ul>
-  <li>Printing a file in macOS 13 Ventura (using <code>:hardcopy</code> or File→Print) should
-work again. <a href="https://github.com/macvim-dev/macvim/issues/1390">#1390</a></li>
-  <li>Fixed a broken symlink to XPCServices in the Sparkle framework. <a href="https://github.com/macvim-dev/macvim/issues/1367">#1367</a></li>
-  <li>Fixed MacVim to not throw (safe) Objective C exceptions when quitting. <a href="https://github.com/macvim-dev/macvim/issues/1371">#1371</a></li>
-  <li>Fixed welcome message not being aligned properly in Simplified Chinese and
-show the Vim 9 prompt. <a href="https://github.com/macvim-dev/macvim/issues/1381">#1381</a></li>
-  <li>Removed some unnecessary test files in the runtime folders which were
-included erroneously. <a href="https://github.com/macvim-dev/macvim/issues/1418">#1418</a></li>
+  <li>Fixed MacVim to correctly set up the runtime folder in the app bundle.  As a corollary, <code>xxd</code> is now bundled with MacVim like most other Vim distributions, and MacVim.app now provides man page for the CLI vim commands if the user wants to associate man pages with the <code>mvim</code> comamnd (see <a href="https://macvim.org/docs/redirect.html?tag=macvim-PATH"><code>:h macvim-PATH</code></a>). <a href="https://github.com/macvim-dev/macvim/issues/1430">#1430</a></li>
+  <li>Fixed Vim occasionally crashing and/or hung when autocmd calls <code>serverlist()</code> on exit. <a href="https://github.com/macvim-dev/macvim/issues/1427">#1427</a></li>
 </ul>
 
 <h1 id="scripting">Scripting</h1>
 
 <ul>
-  <li>Scripting languages versions:
-    <ul>
-      <li>Python is now built against 3.11, up from 3.10.</li>
-    </ul>
-  </li>
+  <li>Scripting languages versions: Python now supports 3.9 or above.</li>
 </ul>
 
 <h1 id="compatibility">Compatibility</h1>
 
-<p>Requires macOS 10.9 or above. (10.9 - 10.12 requires downloading a
-separate legacy build)</p>
+<p>Requires macOS 10.9 or above. (10.9 - 10.12 requires downloading a separate legacy build)</p>
 
 <p>Script interfaces have compatibility with these versions:</p>
 
@@ -218,22 +169,21 @@ separate legacy build)</p>
   <li>Lua 5.4</li>
   <li>Perl 5.30</li>
   <li>Python2 2.7</li>
-  <li>Python3 3.11</li>
+  <li>Python3 3.9 or above</li>
   <li>Ruby 3.2</li>
 </ul>
-
 
 <p><br /><small><a href="https://github.com/macvim-dev/macvim/releases/latest">Latest release notes &gt;</a></small></p>
       ]]></description>
       <sparkle:fullReleaseNotesLink>https://github.com/macvim-dev/macvim/releases</sparkle:fullReleaseNotesLink>
-      <pubDate>Mon, 10 Jul 2023 01:00:00 +0000</pubDate>
+      <pubDate>Tue, 12 Sep 2023 10:00:00 +0000</pubDate>
       <sparkle:minimumSystemVersion>10.9</sparkle:minimumSystemVersion>
       <sparkle:maximumSystemVersion>10.12.99</sparkle:maximumSystemVersion>
-      <sparkle:version>177</sparkle:version>
-      <sparkle:shortVersionString>9.0.1677</sparkle:shortVersionString>
+      <sparkle:version>178</sparkle:version>
+      <sparkle:shortVersionString>9.0.1897</sparkle:shortVersionString>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/release-177/MacVim_10.9.dmg"
-        sparkle:edSignature="quIKBW+jSiQ96U0+Nlepl1SWftobgP3DLI/h4y02Sx5cqiG0sLL4Mgujs4rj5lxedpLNuP8l8Nrb12x/28tlAw==" length="21775795"
+        url="https://github.com/macvim-dev/macvim/releases/download/release-178/MacVim_10.9.dmg"
+        sparkle:edSignature="J6pAck+OmVue5YvG8jmiVnyvcP1wOxcx5rt/Jy7X/MOF5oU9d4yrWp2MLN7vbHov1Xt6j32hFyNoJTeXEV+yCQ==" length="21596471"
         />
     </item>
 
