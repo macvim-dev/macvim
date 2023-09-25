@@ -1180,14 +1180,6 @@ get_lval(
 	    return NULL;
 	lp->ll_tv = &v->di_tv;
     }
-    if (vim9script && writing && lp->ll_tv->v_type == VAR_CLASS
-	    && (lp->ll_tv->vval.v_class->class_flags & CLASS_INTERFACE) != 0)
-    {
-	if (!quiet)
-	    semsg(_(e_interface_static_direct_access_str),
-			    lp->ll_tv->vval.v_class->class_name, lp->ll_name);
-	return NULL;
-    }
 
     if (vim9script && (flags & GLV_NO_DECL) == 0)
     {
@@ -1568,14 +1560,17 @@ get_lval(
 			switch (om->ocm_access)
 			{
 			    case VIM_ACCESS_PRIVATE:
-				semsg(_(e_cannot_access_private_member_str),
+				semsg(_(e_cannot_access_private_variable_str),
 					om->ocm_name);
 				return NULL;
 			    case VIM_ACCESS_READ:
+				// If [idx] or .key following, read only OK.
+				if (*p == '[' || *p == '.')
+				    break;
 				if ((flags & GLV_READ_ONLY) == 0)
 				{
-				    semsg(_(e_member_is_not_writable_str),
-					    om->ocm_name);
+				    semsg(_(e_variable_is_not_writable_str),
+					    om->ocm_name, cl->class_name);
 				    return NULL;
 				}
 				break;
@@ -1590,16 +1585,12 @@ get_lval(
 					lp->ll_tv->vval.v_object + 1)) + m_idx;
 			else
 			    lp->ll_tv = &cl->class_members_tv[m_idx];
-			break;
 		    }
 		}
 
 		if (lp->ll_valtype == NULL)
 		{
-		    if (v_type == VAR_OBJECT)
-			semsg(_(e_object_member_not_found_str), key);
-		    else
-			semsg(_(e_class_member_not_found_str), key);
+		    member_not_found_msg(cl, v_type, key, p - key);
 		    return NULL;
 		}
 	    }

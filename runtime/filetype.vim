@@ -184,6 +184,9 @@ au BufNewFile,BufRead *.atl,*.as		setf atlas
 " Atom is based on XML
 au BufNewFile,BufRead *.atom			setf xml
 
+" Authzed
+au BufNewFile,BufRead *.zed			setf authzed
+
 " Autoit v3
 au BufNewFile,BufRead *.au3			setf autoit
 
@@ -1180,6 +1183,9 @@ endif
 
 " SBCL implementation of Common Lisp
 au BufNewFile,BufRead sbclrc,.sbclrc		setf lisp
+
+" Liquidsoap
+au BufNewFile,BufRead *.liq			setf liquidsoap
 
 " Liquid
 au BufNewFile,BufRead *.liquid			setf liquid

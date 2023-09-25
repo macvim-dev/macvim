@@ -442,7 +442,7 @@ static void(*py3_PyEval_RestoreThread)(PyThreadState *);
 static PyThreadState*(*py3_PyEval_SaveThread)(void);
 static int (*py3_PyArg_Parse)(PyObject *, char *, ...);
 static int (*py3_PyArg_ParseTuple)(PyObject *, char *, ...);
-static int (*py3_PyMem_Free)(void *);
+static void (*py3_PyMem_Free)(void *);
 static void* (*py3_PyMem_Malloc)(size_t);
 static int (*py3_Py_IsInitialized)(void);
 static void (*py3_PyErr_Clear)(void);
@@ -1425,7 +1425,7 @@ ex_py3(exarg_T *eap)
 	    p_pyx = 3;
 
 	DoPyCommand(script == NULL ? (char *) eap->arg : (char *) script,
-		(rangeinitializer) init_range_cmd,
+		init_range_cmd,
 		(runner) run_cmd,
 		(void *) eap);
     }
@@ -1491,7 +1491,7 @@ ex_py3file(exarg_T *eap)
 
     // Execute the file
     DoPyCommand(buffer,
-	    (rangeinitializer) init_range_cmd,
+	    init_range_cmd,
 	    (runner) run_cmd,
 	    (void *) eap);
 }
@@ -1503,7 +1503,7 @@ ex_py3do(exarg_T *eap)
 	p_pyx = 3;
 
     DoPyCommand((char *)eap->arg,
-	    (rangeinitializer)init_range_cmd,
+	    init_range_cmd,
 	    (runner)run_do,
 	    (void *)eap);
 }
@@ -1533,7 +1533,7 @@ OutputSetattro(PyObject *self, PyObject *nameobj, PyObject *val)
 {
     GET_ATTR_STRING(name, nameobj);
 
-    return OutputSetattr((OutputObject *)(self), name, val);
+    return OutputSetattr(self, name, val);
 }
 
 ///////////////////////////////////////////////////////
@@ -1611,7 +1611,7 @@ BufferSetattro(PyObject *self, PyObject *nameobj, PyObject *val)
 {
     GET_ATTR_STRING(name, nameobj);
 
-    return BufferSetattr((BufferObject *)(self), name, val);
+    return BufferSetattr(self, name, val);
 }
 
 //////////////////
@@ -1837,7 +1837,7 @@ WindowSetattro(PyObject *self, PyObject *nameobj, PyObject *val)
 {
     GET_ATTR_STRING(name, nameobj);
 
-    return WindowSetattr((WindowObject *)(self), name, val);
+    return WindowSetattr(self, name, val);
 }
 
 // Tab page list object - Definitions
@@ -1911,7 +1911,7 @@ DictionaryGetattro(PyObject *self, PyObject *nameobj)
 DictionarySetattro(PyObject *self, PyObject *nameobj, PyObject *val)
 {
     GET_ATTR_STRING(name, nameobj);
-    return DictionarySetattr((DictionaryObject *)(self), name, val);
+    return DictionarySetattr(self, name, val);
 }
 
 // List object - Definitions
@@ -1931,7 +1931,7 @@ ListGetattro(PyObject *self, PyObject *nameobj)
 ListSetattro(PyObject *self, PyObject *nameobj, PyObject *val)
 {
     GET_ATTR_STRING(name, nameobj);
-    return ListSetattr((ListObject *)(self), name, val);
+    return ListSetattr(self, name, val);
 }
 
 // Function object - Definitions
@@ -2053,7 +2053,7 @@ LineToString(const char *str)
 do_py3eval(char_u *str, typval_T *rettv)
 {
     DoPyCommand((char *) str,
-	    (rangeinitializer) init_range_eval,
+	    init_range_eval,
 	    (runner) run_eval,
 	    (void *) rettv);
     if (rettv->v_type == VAR_UNKNOWN)
@@ -2070,7 +2070,7 @@ set_ref_in_python3(int copyID)
 }
 
     int
-python3_version()
+python3_version(void)
 {
 #ifdef USE_LIMITED_API
     return Py_LIMITED_API;

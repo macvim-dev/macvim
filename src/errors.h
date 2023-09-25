@@ -1573,8 +1573,7 @@ EXTERN char e_unknown_printer_font_str[]
 #endif
 EXTERN char e_class_required[]
 	INIT(= N_("E614: Class required"));
-EXTERN char e_object_required[]
-	INIT(= N_("E615: Object required"));
+// E615 unused
 EXTERN char e_object_required_for_argument_nr[]
 	INIT(= N_("E616: Object required for argument %d"));
 #ifdef FEAT_GUI_GTK
@@ -2526,8 +2525,8 @@ EXTERN char e_no_line_number_to_use_for_sflnum[]
 	INIT(= N_("E961: No line number to use for \"<sflnum>\""));
 EXTERN char e_invalid_action_str_2[]
 	INIT(= N_("E962: Invalid action: '%s'"));
-EXTERN char e_setting_str_to_value_with_wrong_type[]
-	INIT(= N_("E963: Setting %s to value with wrong type"));
+EXTERN char e_setting_v_str_to_value_with_wrong_type[]
+	INIT(= N_("E963: Setting v:%s to value with wrong type"));
 #endif
 #ifdef FEAT_PROP_POPUP
 EXTERN char_u e_invalid_column_number_nr[]
@@ -3382,8 +3381,8 @@ EXTERN char e_white_space_required_after_name_str[]
 	INIT(= N_("E1315: White space required after name: %s"));
 EXTERN char e_class_can_only_be_defined_in_vim9_script[]
 	INIT(= N_("E1316: Class can only be defined in Vim9 script"));
-EXTERN char e_invalid_object_member_declaration_str[]
-	INIT(= N_("E1317: Invalid object member declaration: %s"));
+EXTERN char e_invalid_object_variable_declaration_str[]
+	INIT(= N_("E1317: Invalid object variable declaration: %s"));
 EXTERN char e_not_valid_command_in_class_str[]
 	INIT(= N_("E1318: Not a valid command in a class: %s"));
 EXTERN char e_using_class_as_number[]
@@ -3400,34 +3399,31 @@ EXTERN char e_using_object_as_string[]
 	INIT(= N_("E1324: Using an object as a String"));
 EXTERN char e_method_not_found_on_class_str_str[]
 	INIT(= N_("E1325: Method not found on class \"%s\": %s"));
-EXTERN char e_member_not_found_on_object_str_str[]
-	INIT(= N_("E1326: Member not found on object \"%s\": %s"));
+EXTERN char e_variable_not_found_on_object_str_str[]
+	INIT(= N_("E1326: Variable not found on object \"%s\": %s"));
 EXTERN char e_object_required_found_str[]
 	INIT(= N_("E1327: Object required, found %s"));
 EXTERN char e_constructor_default_value_must_be_vnone_str[]
 	INIT(= N_("E1328: Constructor default value must be v:none: %s"));
-EXTERN char e_cannot_get_object_member_type_from_initializer_str[]
-	INIT(= N_("E1329: Cannot get object member type from initializer: %s"));
-EXTERN char e_invalid_type_for_object_member_str[]
-	INIT(= N_("E1330: Invalid type for object member: %s"));
+// E1329 unused
+EXTERN char e_invalid_type_for_object_variable_str[]
+	INIT(= N_("E1330: Invalid type for object variable: %s"));
 EXTERN char e_public_must_be_followed_by_this_or_static[]
 	INIT(= N_("E1331: Public must be followed by \"this\" or \"static\""));
-EXTERN char e_public_member_name_cannot_start_with_underscore_str[]
-	INIT(= N_("E1332: Public member name cannot start with underscore: %s"));
-EXTERN char e_cannot_access_private_member_str[]
-	INIT(= N_("E1333: Cannot access private member: %s"));
-EXTERN char e_object_member_not_found_str[]
-	INIT(= N_("E1334: Object member not found: %s"));
-EXTERN char e_member_is_not_writable_str[]
-	INIT(= N_("E1335: Member is not writable: %s"));
+EXTERN char e_public_variable_name_cannot_start_with_underscore_str[]
+	INIT(= N_("E1332: Public variable name cannot start with underscore: %s"));
+EXTERN char e_cannot_access_private_variable_str[]
+	INIT(= N_("E1333: Cannot access private variable: %s"));
+// E1334 unused
+EXTERN char e_variable_is_not_writable_str[]
+	INIT(= N_("E1335: Variable \"%s\" in class \"%s\" is not writable"));
 #endif
 EXTERN char e_internal_error_shortmess_too_long[]
 	INIT(= "E1336: Internal error: shortmess too long");
 #ifdef FEAT_EVAL
-EXTERN char e_class_member_not_found_str[]
-	INIT(= N_("E1337: Class member not found: %s"));
-EXTERN char e_member_not_found_on_class_str_str[]
-	INIT(= N_("E1338: Member not found on class \"%s\": %s"));
+EXTERN char e_class_variable_str_not_found_in_class_str[]
+	INIT(= N_("E1337: Class variable \"%s\" not found in class \"%s\""));
+// E1338 unused
 #endif
 #ifdef FEAT_PROP_POPUP
 EXTERN char e_cannot_add_textprop_with_text_after_using_textprop_with_negative_id[]
@@ -3442,18 +3438,18 @@ EXTERN char e_interface_can_only_be_defined_in_vim9_script[]
 	INIT(= N_("E1342: Interface can only be defined in Vim9 script"));
 EXTERN char e_interface_name_must_start_with_uppercase_letter_str[]
 	INIT(= N_("E1343: Interface name must start with an uppercase letter: %s"));
-EXTERN char e_cannot_initialize_member_in_interface[]
-	INIT(= N_("E1344: Cannot initialize a member in an interface"));
+EXTERN char e_cannot_initialize_variable_in_interface[]
+	INIT(= N_("E1344: Cannot initialize a variable in an interface"));
 EXTERN char e_not_valid_command_in_interface_str[]
 	INIT(= N_("E1345: Not a valid command in an interface: %s"));
 EXTERN char e_interface_name_not_found_str[]
 	INIT(= N_("E1346: Interface name not found: %s"));
 EXTERN char e_not_valid_interface_str[]
 	INIT(= N_("E1347: Not a valid interface: %s"));
-EXTERN char e_member_str_of_interface_str_not_implemented[]
-	INIT(= N_("E1348: Member \"%s\" of interface \"%s\" not implemented"));
-EXTERN char e_function_str_of_interface_str_not_implemented[]
-	INIT(= N_("E1349: Function \"%s\" of interface \"%s\" not implemented"));
+EXTERN char e_variable_str_of_interface_str_not_implemented[]
+	INIT(= N_("E1348: Variable \"%s\" of interface \"%s\" is not implemented"));
+EXTERN char e_method_str_of_interface_str_not_implemented[]
+	INIT(= N_("E1349: Method \"%s\" of interface \"%s\" is not implemented"));
 EXTERN char e_duplicate_implements[]
 	INIT(= N_("E1350: Duplicate \"implements\""));
 EXTERN char e_duplicate_interface_after_implements_str[]
@@ -3468,12 +3464,12 @@ EXTERN char e_duplicate_function_str[]
 	INIT(= N_("E1355: Duplicate function: %s"));
 EXTERN char e_super_must_be_followed_by_dot[]
 	INIT(= N_("E1356: \"super\" must be followed by a dot"));
-EXTERN char e_using_super_not_in_class_function[]
-	INIT(= N_("E1357: Using \"super\" not in a class function"));
+EXTERN char e_using_super_not_in_class_method[]
+	INIT(= N_("E1357: Using \"super\" not in a class method"));
 EXTERN char e_using_super_not_in_child_class[]
 	INIT(= N_("E1358: Using \"super\" not in a child class"));
-EXTERN char e_cannot_define_new_function_in_abstract_class[]
-	INIT(= N_("E1359: Cannot define a \"new\" function in an abstract class"));
+EXTERN char e_cannot_define_new_method_in_abstract_class[]
+	INIT(= N_("E1359: Cannot define a \"new\" method in an abstract class"));
 EXTERN char e_using_null_object[]
 	INIT(= N_("E1360: Using a null object"));
 #endif
@@ -3487,25 +3483,52 @@ EXTERN char e_incomplete_type[]
 #endif
 EXTERN char e_warning_pointer_block_corrupted[]
 	INIT(= N_("E1364: Warning: Pointer block corrupted"));
-EXTERN char e_cannot_use_a_return_type_with_new[]
-	INIT(= N_("E1365: Cannot use a return type with the \"new\" function"));
+#ifdef FEAT_EVAL
+EXTERN char e_cannot_use_a_return_type_with_new_method[]
+	INIT(= N_("E1365: Cannot use a return type with the \"new\" method"));
 EXTERN char e_cannot_access_private_method_str[]
 	INIT(= N_("E1366: Cannot access private method: %s"));
-EXTERN char e_member_str_of_interface_str_has_different_access[]
-	INIT(= N_("E1367: Access level of member \"%s\" of interface \"%s\" is different"));
-
+EXTERN char e_variable_str_of_interface_str_has_different_access[]
+	INIT(= N_("E1367: Access level of variable \"%s\" of interface \"%s\" is different"));
 EXTERN char e_static_cannot_be_followed_by_this[]
-	INIT(= N_("E1368: Static cannot be followed by \"this\" in a member name"));
-EXTERN char e_duplicate_member_str[]
-	INIT(= N_("E1369: Duplicate member: %s"));
-EXTERN char e_cannot_define_new_function_as_static[]
-	INIT(= N_("E1370: Cannot define a \"new\" function as static"));
+	INIT(= N_("E1368: Static cannot be followed by \"this\" in a variable name"));
+EXTERN char e_duplicate_variable_str[]
+	INIT(= N_("E1369: Duplicate variable: %s"));
+EXTERN char e_cannot_define_new_method_as_static[]
+	INIT(= N_("E1370: Cannot define a \"new\" method as static"));
 EXTERN char e_abstract_must_be_followed_by_def_or_static[]
 	INIT(= N_("E1371: Abstract must be followed by \"def\" or \"static\""));
 EXTERN char e_abstract_method_in_concrete_class[]
 	INIT(= N_("E1372: Abstract method \"%s\" cannot be defined in a concrete class"));
 EXTERN char e_abstract_method_str_not_found[]
 	INIT(= N_("E1373: Abstract method \"%s\" is not implemented"));
+EXTERN char e_class_variable_str_accessible_only_inside_class_str[]
+	INIT(= N_("E1374: Class variable \"%s\" accessible only inside class \"%s\""));
+EXTERN char e_class_variable_str_accessible_only_using_class_str[]
+	INIT(= N_("E1375: Class variable \"%s\" accessible only using class \"%s\""));
+EXTERN char e_object_variable_str_accessible_only_using_object_str[]
+	INIT(= N_("E1376: Object variable \"%s\" accessible only using class \"%s\" object"));
+EXTERN char e_method_str_of_class_str_has_different_access[]
+	INIT(= N_("E1377: Access level of method \"%s\" is different in class \"%s\""));
+EXTERN char e_static_member_not_supported_in_interface[]
+	INIT(= N_("E1378: Static member not supported in an interface"));
+EXTERN char e_private_variable_not_supported_in_interface[]
+	INIT(= N_("E1379: Private variable not supported in an interface"));
+EXTERN char e_private_method_not_supported_in_interface[]
+	INIT(= N_("E1380: Private method not supported in an interface"));
+EXTERN char e_interface_cannot_use_implements[]
+	INIT(= N_("E1381: Interface cannot use \"implements\""));
+EXTERN char e_variable_str_type_mismatch_expected_str_but_got_str[]
+	INIT(= N_("E1382: Variable \"%s\": type mismatch, expected %s but got %s"));
+EXTERN char e_method_str_type_mismatch_expected_str_but_got_str[]
+	INIT(= N_("E1383: Method \"%s\": type mismatch, expected %s but got %s"));
+EXTERN char e_class_method_str_accessible_only_inside_class_str[]
+	INIT(= N_("E1384: Class method \"%s\" accessible only inside class \"%s\""));
+EXTERN char e_class_method_str_accessible_only_using_class_str[]
+	INIT(= N_("E1385: Class method \"%s\" accessible only using class \"%s\""));
+EXTERN char e_object_method_str_accessible_only_using_object_str[]
+	INIT(= N_("E1386: Object method \"%s\" accessible only using class \"%s\" object"));
+#endif
 EXTERN char e_cannot_mix_positional_and_non_positional_str[]
 	INIT(= N_("E1400: Cannot mix positional and non-positional arguments: %s"));
 EXTERN char e_fmt_arg_nr_unused_str[]
@@ -3518,12 +3541,6 @@ EXTERN char e_positional_arg_num_type_inconsistent_str_str[]
 	INIT(= N_("E1404: Positional argument %d type used inconsistently: %s/%s"));
 EXTERN char e_invalid_format_specifier_str[]
 	INIT(= N_("E1405: Invalid format specifier: %s"));
-EXTERN char e_member_str_type_mismatch_expected_str_but_got_str[]
-	INIT(= N_("E1406: Member \"%s\": type mismatch, expected %s but got %s"));
-EXTERN char e_method_str_type_mismatch_expected_str_but_got_str[]
-	INIT(= N_("E1407: Method \"%s\": type mismatch, expected %s but got %s"));
 EXTERN char e_aptypes_is_null_nr_str[]
 	INIT(= "E1408: Internal error: ap_types or ap_types[idx] is NULL: %d: %s");
-EXTERN char e_interface_static_direct_access_str[]
-	INIT(= N_("E1409: Cannot directly access interface \"%s\" static member \"%s\""));
-// E1371 - E1399 unused
+// E1387 - E1399 unused

@@ -599,8 +599,17 @@ call_dfunc(
 
     // For an object method move the object from just before the arguments to
     // the first local variable.
-    if (ufunc->uf_flags & FC_OBJECT)
+    if (IS_OBJECT_METHOD(ufunc))
     {
+	if (obj->v_type == VAR_OBJECT && obj->vval.v_object == NULL
+					    && !IS_CONSTRUCTOR_METHOD(ufunc))
+	{
+	    // If this is not a constructor method, then a valid object is
+	    // needed.
+	    emsg(_(e_using_null_object));
+	    return FAIL;
+	}
+
 	*STACK_TV_VAR(0) = *obj;
 	obj->v_type = VAR_UNKNOWN;
     }
@@ -1148,7 +1157,7 @@ func_return(ectx_T *ectx)
     // Clear the arguments.  If this was an object method also clear the
     // object, it is just before the arguments.
     int top = ectx->ec_frame_idx - argcount;
-    if (dfunc->df_ufunc->uf_flags & FC_OBJECT)
+    if (IS_OBJECT_METHOD(dfunc->df_ufunc))
 	--top;
     for (idx = top; idx < ectx->ec_frame_idx; ++idx)
 	clear_tv(STACK_TV(idx));
@@ -2172,8 +2181,7 @@ execute_storeindex(isn_T *iptr, ectx_T *ectx)
 	    {
 		if (*member == '_')
 		{
-		    semsg(_(e_cannot_access_private_member_str),
-			    m->ocm_name);
+		    semsg(_(e_cannot_access_private_variable_str), m->ocm_name);
 		    status = FAIL;
 		}
 
@@ -2181,8 +2189,7 @@ execute_storeindex(isn_T *iptr, ectx_T *ectx)
 	    }
 	    else
 	    {
-		semsg(_(e_member_not_found_on_object_str_str),
-						       cl->class_name, member);
+		member_not_found_msg(cl, VAR_OBJECT, member, 0);
 		status = FAIL;
 	    }
 	}
@@ -4463,7 +4470,7 @@ exec_instructions(ectx_T *ectx)
 		    ea.cmd = ea.arg = iptr->isn_arg.string;
 		    ga_init2(&lines_to_free, sizeof(char_u *), 50);
 		    SOURCING_LNUM = iptr->isn_lnum;
-		    define_function(&ea, NULL, &lines_to_free, 0);
+		    define_function(&ea, NULL, &lines_to_free, 0, NULL, 0);
 		    ga_clear_strings(&lines_to_free);
 		}
 		break;

@@ -1,7 +1,7 @@
 /* vim9class.c */
 int object_index_from_itf_index(class_T *itf, int is_method, int idx, class_T *cl, int is_static);
 void ex_class(exarg_T *eap);
-type_T *class_member_type(class_T *cl, int is_object, char_u *name, char_u *name_end, int *member_idx, ocmember_T **m);
+type_T *class_member_type(class_T *cl, int is_object, char_u *name, char_u *name_end, int *member_idx);
 void ex_enum(exarg_T *eap);
 void ex_type(exarg_T *eap);
 int class_object_index(char_u **arg, typval_T *rettv, evalarg_T *evalarg, int verbose);
@@ -26,6 +26,8 @@ int set_ref_in_classes(int copyID);
 void object_created(object_T *obj);
 void object_cleared(object_T *obj);
 int object_free_nonref(int copyID);
+void method_not_found_msg(class_T *cl, vartype_T v_type, char_u *name, size_t len);
+void member_not_found_msg(class_T *cl, vartype_T v_type, char_u *name, size_t len);
 void f_instanceof(typval_T *argvars, typval_T *rettv);
 int class_instance_of(class_T *cl, class_T *other_cl);
 /* vim: set ft=c : */
