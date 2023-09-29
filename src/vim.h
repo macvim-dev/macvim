@@ -173,9 +173,11 @@
 # if defined(FEAT_NORMAL) && !defined(FEAT_CLIPBOARD)
 #  define FEAT_CLIPBOARD
 # endif
-# if defined(FEAT_HUGE) && !defined(FEAT_SOUND) && \
-   defined(MAC_OS_X_VERSION_MIN_REQUIRED) && \
-    MAC_OS_X_VERSION_MIN_REQUIRED >= 101100
+// MacVim: Disabling the version check which is too strict. Pending upstream fix.
+//# if defined(FEAT_HUGE) && !defined(FEAT_SOUND) && \
+//   defined(MAC_OS_X_VERSION_MIN_REQUIRED) && \
+//    MAC_OS_X_VERSION_MIN_REQUIRED >= 101100
+# if defined(FEAT_HUGE) && !defined(FEAT_SOUND)
 #  define FEAT_SOUND
 # endif
 # if defined(FEAT_SOUND)
