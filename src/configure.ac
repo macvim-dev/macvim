@@ -851,15 +851,21 @@ if test "$enable_luainterp" = "yes" -o "$enable_luainterp" = "dynamic"; then
 	  done
 	  sover=""
 	done
-	if test "X$sover" = "X"; then
-	  AC_MSG_RESULT(no)
-	  lua_ok="no"
-	  vi_cv_dll_name_lua="liblua${luajit}.${ext}"
-	else
-	  AC_MSG_RESULT(yes)
-	  lua_ok="yes"
-	  vi_cv_dll_name_lua="liblua${luajit}${sover}$sover2"
-	fi
+        # MacVim change: allow client to provide their own vi_cv_dll_name_lua
+        # as at runtime Vim will not be able to find the dylib if it's in
+        # /usr/local/lib which is not automatically searched by dlopen()
+        # without a full path.
+        if test "Xvi_cv_dll_name_lua" = "X"; then
+          if test "X$sover" = "X"; then
+            AC_MSG_RESULT(no)
+            lua_ok="no"
+            vi_cv_dll_name_lua="liblua${luajit}.${ext}"
+          else
+            AC_MSG_RESULT(yes)
+            lua_ok="yes"
+            vi_cv_dll_name_lua="liblua${luajit}${sover}$sover2"
+          fi
+        fi
       fi
       AC_DEFINE(DYNAMIC_LUA)
       LUA_LIBS=""
@@ -4939,4 +4945,4 @@ dnl write output files
 AC_CONFIG_FILES(auto/config.mk:config.mk.in)
 AC_OUTPUT
 
-dnl vim: set sw=2 tw=78 fo+=l:
+dnl vim: set sw=2 tw=78 ts=8 fo+=l:
