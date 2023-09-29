@@ -15,9 +15,6 @@
 
 static int	cmd_showtail;	// Only show path tail in lists ?
 
-static int      ExpandGeneric(char_u *pat, expand_T *xp, regmatch_T *regmatch,
-			      char_u ***matches, int *numMatches,
-			      char_u *((*func)(expand_T *, int)), int escaped);
 static int	ExpandFromContext(expand_T *xp, char_u *, char_u ***, int *, int);
 static char_u	*showmatches_gettail(char_u *s);
 static int	expand_showtail(expand_T *xp);
@@ -54,6 +51,8 @@ cmdline_fuzzy_completion_supported(expand_T *xp)
 	    && xp->xp_context != EXPAND_FILETYPE
 	    && xp->xp_context != EXPAND_HELP
 	    && xp->xp_context != EXPAND_OLD_SETTING
+	    && xp->xp_context != EXPAND_STRING_SETTING
+	    && xp->xp_context != EXPAND_SETTING_SUBTRACT
 	    && xp->xp_context != EXPAND_OWNSYNTAX
 	    && xp->xp_context != EXPAND_PACKADD
 	    && xp->xp_context != EXPAND_RUNTIME
@@ -696,8 +695,7 @@ win_redr_status_matches(
     static char_u *
 get_next_or_prev_match(
 	int		mode,
-	expand_T	*xp,
-	char_u		*orig_save)
+	expand_T	*xp)
 {
     int findex = xp->xp_selected;
     int ht;
@@ -757,14 +755,14 @@ get_next_or_prev_match(
     // When wrapping around, return the original string, set findex to -1.
     if (findex < 0)
     {
-	if (orig_save == NULL)
+	if (xp->xp_orig == NULL)
 	    findex = xp->xp_numfiles - 1;
 	else
 	    findex = -1;
     }
     if (findex >= xp->xp_numfiles)
     {
-	if (orig_save == NULL)
+	if (xp->xp_orig == NULL)
 	    findex = 0;
 	else
 	    findex = -1;
@@ -780,7 +778,7 @@ get_next_or_prev_match(
     xp->xp_selected = findex;
 
     if (findex == -1)
-	return vim_strsave(orig_save);
+	return vim_strsave(xp->xp_orig);
 
     return vim_strsave(xp->xp_files[findex]);
 }
@@ -915,8 +913,8 @@ find_longest_match(expand_T *xp, int options)
  * Return NULL for failure.
  *
  * "orig" is the originally expanded string, copied to allocated memory.  It
- * should either be kept in orig_save or freed.  When "mode" is WILD_NEXT or
- * WILD_PREV "orig" should be NULL.
+ * should either be kept in "xp->xp_orig" or freed.  When "mode" is WILD_NEXT
+ * or WILD_PREV "orig" should be NULL.
  *
  * Results are cached in xp->xp_files and xp->xp_numfiles, except when "mode"
  * is WILD_EXPAND_FREE or WILD_ALL.
@@ -956,7 +954,6 @@ ExpandOne(
     int		mode)
 {
     char_u	*ss = NULL;
-    static char_u *orig_save = NULL;	// kept value of orig
     int		orig_saved = FALSE;
     int		i;
     long_u	len;
@@ -964,13 +961,13 @@ ExpandOne(
     // first handle the case of using an old match
     if (mode == WILD_NEXT || mode == WILD_PREV
 	    || mode == WILD_PAGEUP || mode == WILD_PAGEDOWN)
-	return get_next_or_prev_match(mode, xp, orig_save);
+	return get_next_or_prev_match(mode, xp);
 
     if (mode == WILD_CANCEL)
-	ss = vim_strsave(orig_save ? orig_save : (char_u *)"");
+	ss = vim_strsave(xp->xp_orig ? xp->xp_orig : (char_u *)"");
     else if (mode == WILD_APPLY)
 	ss = vim_strsave(xp->xp_selected == -1
-			    ? (orig_save ? orig_save : (char_u *)"")
+			    ? (xp->xp_orig ? xp->xp_orig : (char_u *)"")
 			    : xp->xp_files[xp->xp_selected]);
 
     // free old names
@@ -978,7 +975,7 @@ ExpandOne(
     {
 	FreeWild(xp->xp_numfiles, xp->xp_files);
 	xp->xp_numfiles = -1;
-	VIM_CLEAR(orig_save);
+	VIM_CLEAR(xp->xp_orig);
 
 	// The entries from xp_files may be used in the PUM, remove it.
 	if (compl_match_array != NULL)
@@ -991,8 +988,8 @@ ExpandOne(
 
     if (xp->xp_numfiles == -1 && mode != WILD_APPLY && mode != WILD_CANCEL)
     {
-	vim_free(orig_save);
-	orig_save = orig;
+	vim_free(xp->xp_orig);
+	xp->xp_orig = orig;
 	orig_saved = TRUE;
 
 	ss = ExpandOne_start(mode, xp, str, options);
@@ -1045,7 +1042,7 @@ ExpandOne(
     if (mode == WILD_EXPAND_FREE || mode == WILD_ALL)
 	ExpandCleanup(xp);
 
-    // Free "orig" if it wasn't stored in "orig_save".
+    // Free "orig" if it wasn't stored in "xp->xp_orig".
     if (!orig_saved)
 	vim_free(orig);
 
@@ -1075,6 +1072,7 @@ ExpandCleanup(expand_T *xp)
 	FreeWild(xp->xp_numfiles, xp->xp_files);
 	xp->xp_numfiles = -1;
     }
+    VIM_CLEAR(xp->xp_orig);
 }
 
 /*
@@ -3106,6 +3104,10 @@ ExpandFromContext(
     if (xp->xp_context == EXPAND_SETTINGS
 	    || xp->xp_context == EXPAND_BOOL_SETTINGS)
 	ret = ExpandSettings(xp, &regmatch, pat, numMatches, matches, fuzzy);
+    else if (xp->xp_context == EXPAND_STRING_SETTING)
+	ret = ExpandStringSetting(xp, &regmatch, numMatches, matches);
+    else if (xp->xp_context == EXPAND_SETTING_SUBTRACT)
+	ret = ExpandSettingSubtract(xp, &regmatch, numMatches, matches);
     else if (xp->xp_context == EXPAND_MAPPINGS)
 	ret = ExpandMappings(pat, &regmatch, numMatches, matches);
 #if defined(FEAT_EVAL)
@@ -3134,7 +3136,7 @@ ExpandFromContext(
  *
  * Returns OK when no problems encountered, FAIL for error (out of memory).
  */
-    static int
+    int
 ExpandGeneric(
     char_u	*pat,
     expand_T	*xp,
@@ -3239,6 +3241,7 @@ ExpandGeneric(
     // applies to the completion context. Menus and scriptnames should be kept
     // in the specified order.
     if (!fuzzy && xp->xp_context != EXPAND_MENUNAMES
+					&& xp->xp_context != EXPAND_STRING_SETTING
 					&& xp->xp_context != EXPAND_MENUS
 					&& xp->xp_context != EXPAND_SCRIPTNAMES)
 	sort_matches = TRUE;

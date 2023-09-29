@@ -150,7 +150,7 @@ If you try to set an object variable that doesn't exist you get an error: >
 A object variable cannot be accessed using the class name.
 
 Private variables ~
-							*E1332* *E1333*
+					*private-variable* *E1332* *E1333*
 On the other hand, if you do not want the object variables to be read directly,
 you can make them private.  This is done by prefixing an underscore to the
 name: >
@@ -182,7 +182,7 @@ number to the total number of lines: >
 	enddef
 <
 Private methods ~
-							*E1366*
+						*private-method* *E1366*
 If you want object methods to be accessible only from other methods of the
 same class and not used from outside the class, then you can make them
 private.  This is done by prefixing the method name with an underscore: >
@@ -203,7 +203,7 @@ the above class): >
     a._Foo()
 <
 Simplifying the new() method ~
-
+						*new()* *constructor*
 Many constructors take values for the object variables.  Thus you very often
 see this pattern: >
 
@@ -216,7 +216,8 @@ see this pattern: >
 	      this.col = col
 	   enddef
 	 endclass
-
+<
+							*E1390*
 Not only is this text you need to write, it also has the type of each
 variables twice.  Since this is so common a shorter way to write new() is
 provided: >
@@ -257,9 +258,14 @@ If the class extends a parent class, the same thing happens.  In the second
 step the object variables of the parent class are initialized first.  There is
 no need to call "super()" or "new()" on the parent.
 
-						*E1365*
+							*E1365*
 When defining the new() method the return type should not be specified.  It
 always returns an object of the class.
+
+							*E1386*
+When invoking an object method, the method name should be preceded by the
+object variable name.  A object method cannot be invoked using the class
+name.
 
 ==============================================================================
 
@@ -281,7 +287,7 @@ prefix in the class where they are defined: >
 Since the name is used as-is, shadowing the name by a method argument name
 or local variable name is not allowed.
 
-							*E1374* *E1375*
+					    *E1374* *E1375* *E1384* *E1385*
 To access a class member outside of the class where it is defined, the class
 name prefix must be used.  A class member cannot be accessed using an object.
 
@@ -464,10 +470,10 @@ The interface name can be used as a type: >
 	   echo $'the surface is {shape.Surface()}'
 	endfor
 <
-						*E1378* *E1379* *E1380*
-An interface can have only instance variables (read-only and read-write
-access) and methods.  An interface cannot contain private variables, private
-methods, class variables and class methods.
+					*E1378* *E1379* *E1380* *E1387*
+An interface can contain only object methods and read-only object variables.
+An interface cannot contain read-write and private object variables, private
+object methods, class variables and class methods.
 
 An interface can extend another interface using "extends".  The sub-interface
 inherits all the instance variables and methods from the super interface.
@@ -524,6 +530,10 @@ If the type of a variable is not explicitly specified in a class, then it is
 set to "any" during class definition.  When an object is instantiated from the
 class, then the type of the variable is set.
 
+The following reserved keyword names cannot be used as an object or class
+variable name: "super", "this", "true", "false", "null", "null_blob",
+"null_dict", "null_function", "null_list", "null_partial", "null_string",
+"null_channel" and "null_job".
 
 Extending a class ~
 							*extends*
@@ -537,9 +547,11 @@ Object variables from the base class are all taken over by the child class.  It
 is not possible to override them (unlike some other languages).
 
 						*E1356* *E1357* *E1358*
-Object methods of the base class can be overruled.  The signature (arguments,
-argument types and return type) must be exactly the same.  The method of the
-base class can be called by prefixing "super.".
+Object methods of the base class can be overruled.  The number of arguments
+must be exactly the same.  The method argument type can be a contra-variant
+type of the base class method argument type.  The method return value type can
+be a covariant type of the base class method return value type.  The method of
+the base class can be called by prefixing "super.".
 
 						*E1377*
 The access level of a method (public or private) in a child class should be
@@ -563,7 +575,7 @@ will be added automatically.
 
 
 A class implementing an interface ~
-						*implements* *E1346* *E1347*
+					*implements* *E1346* *E1347* *E1389*
 A class can implement one or more interfaces.  The "implements" keyword can
 only appear once *E1350* .  Multiple interfaces can be specified, separated by
 commas.  Each interface name can appear only once. *E1351*
@@ -577,7 +589,7 @@ interface, which is often done in many languages, especially Java.
 
 
 Items in a class ~
-						*E1318* *E1325*
+						*E1318* *E1325* *E1388*
 Inside a class, in between `:class` and `:endclass`, these items can appear:
 - An object variable declaration: >
 	this._privateVariableName: memberType
@@ -650,7 +662,7 @@ even when the variable name is invalid. *E1360* *E1362* *E1363*
 
 
 Default constructor ~
-
+							*default-constructor*
 In case you define a class without a new() method, one will be automatically
 defined.  This default constructor will have arguments for all the object
 variables, in the order they were specified.  Thus if your class looks like: >

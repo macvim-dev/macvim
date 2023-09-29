@@ -2401,6 +2401,7 @@ EXTERN char e_io_file_requires_name_to_be_set[]
 #ifdef FEAT_EVAL
 EXTERN char e_invalid_callback_argument[]
 	INIT(= N_("E921: Invalid callback argument"));
+// E922 unused
 EXTERN char e_second_argument_of_function_must_be_list_or_dict[]
 	INIT(= N_("E923: Second argument of function() must be a list or a dict"));
 #endif
@@ -2795,7 +2796,7 @@ EXTERN char e_no_white_space_allowed_after_dot[]
 	INIT(= N_("E1074: No white space allowed after dot"));
 EXTERN char e_namespace_not_supported_str[]
 	INIT(= N_("E1075: Namespace not supported: %s"));
-// E1076 was deleted
+// E1076 unused (was deleted)
 EXTERN char e_missing_argument_type_for_str[]
 	INIT(= N_("E1077: Missing argument type for %s"));
 #endif
@@ -2863,6 +2864,7 @@ PLURAL_MSG(e_one_argument_too_many, "E1106: One argument too many",
 
 EXTERN char e_string_list_dict_or_blob_required[]
 	INIT(= N_("E1107: String, List, Dict or Blob required"));
+// E1108 unused
 EXTERN char e_list_item_nr_is_not_list[]
 	INIT(= N_("E1109: List item %d is not a List"));
 EXTERN char e_list_item_nr_does_not_contain_3_numbers[]
@@ -3215,6 +3217,7 @@ EXTERN char e_list_dict_blob_or_string_required_for_argument_nr[]
 	INIT(= N_("E1251: List, Dictionary, Blob or String required for argument %d"));
 EXTERN char e_string_list_or_blob_required_for_argument_nr[]
 	INIT(= N_("E1252: String, List or Blob required for argument %d"));
+// E1253 unused
 EXTERN char e_cannot_use_script_variable_in_for_loop[]
 	INIT(= N_("E1254: Cannot use script variable in for loop"));
 #endif
@@ -3528,19 +3531,32 @@ EXTERN char e_class_method_str_accessible_only_using_class_str[]
 	INIT(= N_("E1385: Class method \"%s\" accessible only using class \"%s\""));
 EXTERN char e_object_method_str_accessible_only_using_object_str[]
 	INIT(= N_("E1386: Object method \"%s\" accessible only using class \"%s\" object"));
+EXTERN char e_public_variable_not_supported_in_interface[]
+	INIT(= N_("E1387: Public variable not supported in an interface"));
+EXTERN char e_public_keyword_not_supported_for_method[]
+	INIT(= N_("E1388: Public keyword not supported for a method"));
+EXTERN char e_missing_name_after_implements[]
+	INIT(= N_("E1389: Missing name after implements"));
+EXTERN char e_cannot_use_an_object_variable_except_with_the_new_method_str[]
+	INIT(= N_("E1390: Cannot use an object variable \"this.%s\" except with the \"new\" method"));
+EXTERN char e_cannot_lock_object_variable_str[]
+	INIT(= N_("E1391: Cannot (un)lock variable \"%s\" in class \"%s\""));
+EXTERN char e_cannot_lock_class_variable_str[]
+	INIT(= N_("E1392: Cannot (un)lock class variable \"%s\" in class \"%s\""));
 #endif
+// E1393 - E1499 unused (reserved for Vim9 class support)
 EXTERN char e_cannot_mix_positional_and_non_positional_str[]
-	INIT(= N_("E1400: Cannot mix positional and non-positional arguments: %s"));
+	INIT(= N_("E1500: Cannot mix positional and non-positional arguments: %s"));
 EXTERN char e_fmt_arg_nr_unused_str[]
-	INIT(= N_("E1401: format argument %d unused in $-style format: %s"));
+	INIT(= N_("E1501: format argument %d unused in $-style format: %s"));
 EXTERN char e_positional_num_field_spec_reused_str_str[]
-	INIT(= N_("E1402: Positional argument %d used as field width reused as different type: %s/%s"));
+	INIT(= N_("E1502: Positional argument %d used as field width reused as different type: %s/%s"));
 EXTERN char e_positional_nr_out_of_bounds_str[]
-	INIT(= N_("E1403: Positional argument %d out of bounds: %s"));
+	INIT(= N_("E1503: Positional argument %d out of bounds: %s"));
 EXTERN char e_positional_arg_num_type_inconsistent_str_str[]
-	INIT(= N_("E1404: Positional argument %d type used inconsistently: %s/%s"));
+	INIT(= N_("E1504: Positional argument %d type used inconsistently: %s/%s"));
 EXTERN char e_invalid_format_specifier_str[]
-	INIT(= N_("E1405: Invalid format specifier: %s"));
+	INIT(= N_("E1505: Invalid format specifier: %s"));
+// E1506 - E1519 unused
 EXTERN char e_aptypes_is_null_nr_str[]
-	INIT(= "E1408: Internal error: ap_types or ap_types[idx] is NULL: %d: %s");
-// E1387 - E1399 unused
+	INIT(= "E1520: Internal error: ap_types or ap_types[idx] is NULL: %d: %s");

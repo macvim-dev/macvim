@@ -610,6 +610,7 @@ typedef struct expand
 					// file name completion
     int		xp_col;			// cursor position in line
     int		xp_selected;		// selected index in completion
+    char_u	*xp_orig;		// originally expanded string
     char_u	**xp_files;		// list of files
     char_u	*xp_line;		// text being completed
 #define EXPAND_BUF_LEN 256
@@ -4554,6 +4555,11 @@ typedef struct
  *	"tv"	    points to the (first) list item value
  *	"li"	    points to the (first) list item
  *	"range", "n1", "n2" and "empty2" indicate what items are used.
+ * For a member in a class/object: TODO: verify fields
+ *	"name"	    points to the (expanded) variable name.
+ *	"exp_name"  NULL or non-NULL, to be freed later.
+ *	"tv"	    points to the (first) list item value
+ *	"oi"	    index into member array, see _type to determine which array
  * For an existing Dict item:
  *	"name"	    points to the (expanded) variable name.
  *	"exp_name"  NULL or non-NULL, to be freed later.
@@ -4590,6 +4596,11 @@ typedef struct lval_S
     type_T	*ll_valtype;	// type expected for the value or NULL
     blob_T	*ll_blob;	// The Blob or NULL
     ufunc_T	*ll_ufunc;	// The function or NULL
+    object_T	*ll_object;	// The object or NULL, class is not NULL
+    class_T	*ll_class;	// The class or NULL, object may be NULL
+    int		ll_oi;		// The object/class member index
+    int		ll_is_root;	// Special case. ll_tv is lval_root,
+				// ignore the rest.
 } lval_T;
 
 // Structure used to save the current state.  Used when executing Normal mode
@@ -4806,14 +4817,19 @@ typedef enum {
     WT_ARGUMENT,
     WT_VARIABLE,
     WT_MEMBER,
-    WT_METHOD,
+    WT_METHOD,		// object method
+    WT_METHOD_ARG,	// object method argument type
+    WT_METHOD_RETURN	// object method return type
 } wherekind_T;
 
-// Struct used to pass to error messages about where the error happened.
+// Struct used to pass the location of a type check.  Used in error messages to
+// indicate where the error happened.  Also used for doing covariance type
+// check for object method return type and contra-variance type check for
+// object method arguments.
 typedef struct {
     char	*wt_func_name;  // function name or NULL
     char	wt_index;	// argument or variable index, 0 means unknown
-    wherekind_T	wt_kind;	// "variable" when TRUE, "argument" otherwise
+    wherekind_T	wt_kind;	// type check location
 } where_T;
 
 #define WHERE_INIT {NULL, 0, WT_UNKNOWN}
@@ -4921,6 +4937,34 @@ typedef struct
     // message (when it is not NULL).
     char	*os_errbuf;
 } optset_T;
+
+/*
+ * Argument for the callback function (opt_expand_cb_T) invoked after a string
+ * option value is expanded for cmdline completion.
+ */
+typedef struct
+{
+    // Pointer to the option variable. It's always a string.
+    char_u	*oe_varp;
+    // The original option value, escaped.
+    char_u	*oe_opt_value;
+
+    // TRUE if using set+= instead of set=
+    int		oe_append;
+    // TRUE if we would like to add the original option value as the first
+    // choice.
+    int		oe_include_orig_val;
+
+    // Regex from the cmdline, for matching potential options against.
+    regmatch_T	*oe_regmatch;
+    // The expansion context.
+    expand_T	*oe_xp;
+
+    // The full argument passed to :set. For example, if the user inputs
+    // ':set dip=icase,algorithm:my<Tab>', oe_xp->xp_pattern will only have
+    // 'my', but oe_set_arg will contain the whole 'icase,algorithm:my'.
+    char_u	*oe_set_arg;
+} optexpand_T;
 
 /*
  * Spell checking variables passed from win_update() to win_line().

@@ -498,13 +498,19 @@ typedef struct {
 typedef struct {
     class_T	*cm_class;
     int		cm_idx;
-    int		cm_static;
 } classmember_T;
+
 // arguments to ISN_STOREINDEX
 typedef struct {
     vartype_T	si_vartype;
     class_T	*si_class;
 } storeindex_T;
+
+// arguments to ISN_LOCKUNLOCK
+typedef struct {
+    char_u	*string;	// for exec_command
+    int		is_arg;		// is lval_root a function arg
+} lockunlock_T;
 
 /*
  * Instruction
@@ -562,6 +568,7 @@ struct isn_S {
 	construct_T	    construct;
 	classmember_T	    classmember;
 	storeindex_T	    storeindex;
+	lockunlock_T	    lockunlock;
     } isn_arg;
 };
 
