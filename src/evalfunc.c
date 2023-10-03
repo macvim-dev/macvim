@@ -6502,6 +6502,13 @@ f_has(typval_T *argvars, typval_T *rettv)
 		0
 #endif
 		},
+	{"xattr",
+#ifdef FEAT_XATTR
+		1
+#else
+		0
+#endif
+		},
 	{"xim",
 #ifdef FEAT_XIM
 		1

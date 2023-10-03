@@ -579,7 +579,7 @@ set_string_option(
     }
 #endif
     if ((errmsg = did_set_string_option(opt_idx, varp, oldval, value, errbuf,
-		    opt_flags, &value_checked)) == NULL)
+		    opt_flags, OP_NONE, &value_checked)) == NULL)
 	did_set_option(opt_idx, opt_flags, TRUE, value_checked);
 
 #if defined(FEAT_EVAL)
@@ -733,11 +733,11 @@ did_set_option_listflag(char_u *val, char_u *flags, char *errbuf)
 /*
  * Expand an option that accepts a list of string values.
  */
-    int
+    static int
 expand_set_opt_string(
 	optexpand_T *args,
 	char **values,
-	int numValues,
+	size_t numValues,
 	int *numMatches,
 	char_u ***matches)
 {
@@ -819,7 +819,7 @@ expand_set_opt_callback(expand_T *xp, int idx)
 /*
  * Expand an option with a callback that iterates through a list of possible names.
  */
-    int
+    static int
 expand_set_opt_generic(
 	optexpand_T *args,
 	char_u *((*func)(expand_T *, int)),
@@ -850,7 +850,7 @@ expand_set_opt_generic(
 /*
  * Expand an option which is a list of flags.
  */
-    int
+    static int
 expand_set_opt_listflag(
 	optexpand_T *args,
 	char_u *flags,
@@ -863,7 +863,7 @@ expand_set_opt_listflag(
     int	    append = args->oe_append;
     int	    include_orig_val = args->oe_include_orig_val && (*option_val != NUL);
 
-    int num_flags = STRLEN(flags);
+    size_t num_flags = STRLEN(flags);
 
     // Assume we only have small number of flags, so just allocate max size.
     *matches = ALLOC_MULT(char_u *, num_flags + 1);
@@ -940,7 +940,7 @@ expand_set_ambiwidth(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_ambw_values,
-	    sizeof(p_ambw_values) / sizeof(p_ambw_values[0]) - 1,
+	    ARRAY_LENGTH(p_ambw_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -993,7 +993,7 @@ expand_set_background(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_bg_values,
-	    sizeof(p_bg_values) / sizeof(p_bg_values[0]) - 1,
+	    ARRAY_LENGTH(p_bg_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -1021,7 +1021,7 @@ expand_set_backspace(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_bs_values,
-	    sizeof(p_bs_values) / sizeof(p_bs_values[0]) - 1,
+	    ARRAY_LENGTH(p_bs_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -1069,7 +1069,7 @@ expand_set_backupcopy(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_bkc_values,
-	    sizeof(p_bkc_values) / sizeof(p_bkc_values[0]) - 1,
+	    ARRAY_LENGTH(p_bkc_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -1102,7 +1102,7 @@ expand_set_belloff(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_bo_values,
-	    sizeof(p_bo_values) / sizeof(p_bo_values[0]) - 1,
+	    ARRAY_LENGTH(p_bo_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -1131,7 +1131,7 @@ expand_set_breakindentopt(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_briopt_values,
-	    sizeof(p_briopt_values) / sizeof(p_briopt_values[0]) - 1,
+	    ARRAY_LENGTH(p_briopt_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -1157,7 +1157,7 @@ expand_set_browsedir(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_bsdir_values,
-	    sizeof(p_bsdir_values) / sizeof(p_bsdir_values[0]) - 1,
+	    ARRAY_LENGTH(p_bsdir_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -1178,7 +1178,7 @@ expand_set_bufhidden(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_bufhidden_values,
-	    sizeof(p_bufhidden_values) / sizeof(p_bufhidden_values[0]) - 1,
+	    ARRAY_LENGTH(p_bufhidden_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -1209,7 +1209,7 @@ expand_set_buftype(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_buftype_values,
-	    sizeof(p_buftype_values) / sizeof(p_buftype_values[0]) - 1,
+	    ARRAY_LENGTH(p_buftype_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -1229,7 +1229,7 @@ expand_set_casemap(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_cmp_values,
-	    sizeof(p_cmp_values) / sizeof(p_cmp_values[0]) - 1,
+	    ARRAY_LENGTH(p_cmp_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -1241,7 +1241,7 @@ expand_set_clipboard(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_cb_values,
-	    sizeof(p_cb_values) / sizeof(p_cb_values[0]) - 1,
+	    ARRAY_LENGTH(p_cb_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -1467,7 +1467,7 @@ expand_set_complete(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_cpt_values,
-	    sizeof(p_cpt_values) / sizeof(p_cpt_values[0]) - 1,
+	    ARRAY_LENGTH(p_cpt_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -1491,7 +1491,7 @@ expand_set_completeopt(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_cot_values,
-	    sizeof(p_cot_values) / sizeof(p_cot_values[0]) - 1,
+	    ARRAY_LENGTH(p_cot_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -1531,7 +1531,7 @@ expand_set_completeslash(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_csl_values,
-	    sizeof(p_csl_values) / sizeof(p_csl_values[0]) - 1,
+	    ARRAY_LENGTH(p_csl_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -1583,6 +1583,10 @@ did_set_cryptkey(optset_T *args)
     // Make sure the ":set" command doesn't show the new value in the
     // history.
     remove_key_from_history();
+
+    if (args->os_op != OP_NONE)
+	// Don't allow set+=/-=/^= as they can allow for substring guessing
+	return e_invalid_argument;
 
     if (STRCMP(curbuf->b_p_key, args->os_oldval.string) != 0)
     {
@@ -1666,7 +1670,7 @@ expand_set_cryptmethod(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_cm_values,
-	    sizeof(p_cm_values) / sizeof(p_cm_values[0]) - 1,
+	    ARRAY_LENGTH(p_cm_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -1724,7 +1728,7 @@ expand_set_cursorlineopt(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_culopt_values,
-	    sizeof(p_culopt_values) / sizeof(p_culopt_values[0]) - 1,
+	    ARRAY_LENGTH(p_culopt_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -1745,7 +1749,7 @@ expand_set_debug(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_debug_values,
-	    sizeof(p_debug_values) / sizeof(p_debug_values[0]) - 1,
+	    ARRAY_LENGTH(p_debug_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -1771,14 +1775,14 @@ expand_set_diffopt(optexpand_T *args, int *numMatches, char_u ***matches)
     if (xp->xp_pattern > args->oe_set_arg && *(xp->xp_pattern-1) == ':')
     {
 	// Within "algorithm:", we have a subgroup of possible options.
-	int algo_len = STRLEN("algorithm:");
+	int algo_len = (int)STRLEN("algorithm:");
 	if (xp->xp_pattern - args->oe_set_arg >= algo_len &&
 		STRNCMP(xp->xp_pattern - algo_len, "algorithm:", algo_len) == 0)
 	{
 	    return expand_set_opt_string(
 		    args,
 		    p_dip_algorithm_values,
-		    sizeof(p_dip_algorithm_values) / sizeof(p_dip_algorithm_values[0]) - 1,
+		    ARRAY_LENGTH(p_dip_algorithm_values) - 1,
 		    numMatches,
 		    matches);
 	}
@@ -1788,7 +1792,7 @@ expand_set_diffopt(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_dip_values,
-	    sizeof(p_dip_values) / sizeof(p_dip_values[0]) - 1,
+	    ARRAY_LENGTH(p_dip_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -1813,7 +1817,7 @@ expand_set_display(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_dy_values,
-	    sizeof(p_dy_values) / sizeof(p_dy_values[0]) - 1,
+	    ARRAY_LENGTH(p_dy_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -1833,7 +1837,7 @@ expand_set_eadirection(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_ead_values,
-	    sizeof(p_ead_values) / sizeof(p_ead_values[0]) - 1,
+	    ARRAY_LENGTH(p_ead_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -2011,7 +2015,7 @@ expand_set_fileformat(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_ff_values,
-	    sizeof(p_ff_values) / sizeof(p_ff_values[0]) - 1,
+	    ARRAY_LENGTH(p_ff_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -2070,7 +2074,7 @@ expand_set_foldclose(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_fcl_values,
-	    sizeof(p_fcl_values) / sizeof(p_fcl_values[0]) - 1,
+	    ARRAY_LENGTH(p_fcl_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -2146,7 +2150,7 @@ expand_set_foldmethod(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_fdm_values,
-	    sizeof(p_fdm_values) / sizeof(p_fdm_values[0]) - 1,
+	    ARRAY_LENGTH(p_fdm_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -2166,7 +2170,7 @@ expand_set_foldopen(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_fdo_values,
-	    sizeof(p_fdo_values) / sizeof(p_fdo_values[0]) - 1,
+	    ARRAY_LENGTH(p_fdo_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -2387,7 +2391,7 @@ expand_set_highlight(optexpand_T *args, int *numMatches, char_u ***matches)
     char_u	    *p;
     expand_T	    *xp = args->oe_xp;
     static char_u   hl_flags[HLF_COUNT] = HL_FLAGS;
-    int		    i;
+    size_t	    i;
     int		    count = 0;
 
     if (xp->xp_pattern > args->oe_set_arg && *(xp->xp_pattern-1) == ':')
@@ -2452,15 +2456,15 @@ expand_set_highlight(optexpand_T *args, int *numMatches, char_u ***matches)
     // the returned match.
 
     // Note: Keep this in sync with highlight_changed()
-    static char p_hl_mode_values[] =
+    static char_u p_hl_mode_values[] =
 	{':', 'b', 'i', '-', 'n', 'r', 's', 'u', 'c', '2', 'd', '=', 't'};
-    int num_hl_modes = sizeof(p_hl_mode_values) / sizeof(p_hl_mode_values[0]);
+    size_t num_hl_modes = ARRAY_LENGTH(p_hl_mode_values);
 
     *matches = ALLOC_MULT(char_u *, num_hl_modes);
     if (*matches == NULL)
 	return FAIL;
 
-    int pattern_len = STRLEN(xp->xp_pattern);
+    size_t pattern_len = STRLEN(xp->xp_pattern);
 
     for (i = 0; i < num_hl_modes; i++)
     {
@@ -2582,7 +2586,7 @@ expand_set_jumpoptions(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_jop_values,
-	    sizeof(p_jop_values) / sizeof(p_jop_values[0]) - 1,
+	    ARRAY_LENGTH(p_jop_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -2666,7 +2670,7 @@ expand_set_keymodel(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_km_values,
-	    sizeof(p_km_values) / sizeof(p_km_values[0]) - 1,
+	    ARRAY_LENGTH(p_km_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -2698,7 +2702,7 @@ expand_set_keyprotocol(optexpand_T *args, int *numMatches, char_u ***matches)
 	return expand_set_opt_string(
 		args,
 		p_kpc_protocol_values,
-		sizeof(p_kpc_protocol_values) / sizeof(p_kpc_protocol_values[0]) - 1,
+		ARRAY_LENGTH(p_kpc_protocol_values) - 1,
 		numMatches,
 		matches);
     }
@@ -2731,7 +2735,7 @@ expand_set_lispoptions(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_lop_values,
-	    sizeof(p_lop_values) / sizeof(p_lop_values[0]) - 1,
+	    ARRAY_LENGTH(p_lop_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -2837,7 +2841,7 @@ expand_set_mousemodel(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_mousem_values,
-	    sizeof(p_mousem_values) / sizeof(p_mousem_values[0]) - 1,
+	    ARRAY_LENGTH(p_mousem_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -2872,7 +2876,7 @@ expand_set_nrformats(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_nf_values,
-	    sizeof(p_nf_values) / sizeof(p_nf_values[0]) - 1,
+	    ARRAY_LENGTH(p_nf_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -2946,29 +2950,29 @@ expand_set_popupoption(optexpand_T *args, int *numMatches, char_u ***matches)
     if (xp->xp_pattern > args->oe_set_arg && *(xp->xp_pattern-1) == ':')
     {
 	// Within "highlight:"/"border:"/"align:", we have a subgroup of possible options.
-	int border_len = STRLEN("border:");
+	int border_len = (int)STRLEN("border:");
 	if (xp->xp_pattern - args->oe_set_arg >= border_len &&
 		STRNCMP(xp->xp_pattern - border_len, "border:", border_len) == 0)
 	{
 	    return expand_set_opt_string(
 		    args,
 		    p_popup_option_border_values,
-		    sizeof(p_popup_option_border_values) / sizeof(p_popup_option_border_values[0]) - 1,
+		    ARRAY_LENGTH(p_popup_option_border_values) - 1,
 		    numMatches,
 		    matches);
 	}
-	int align_len = STRLEN("align:");
+	int align_len = (int)STRLEN("align:");
 	if (xp->xp_pattern - args->oe_set_arg >= align_len &&
 		STRNCMP(xp->xp_pattern - align_len, "align:", align_len) == 0)
 	{
 	    return expand_set_opt_string(
 		    args,
 		    p_popup_option_align_values,
-		    sizeof(p_popup_option_align_values) / sizeof(p_popup_option_align_values[0]) - 1,
+		    ARRAY_LENGTH(p_popup_option_align_values) - 1,
 		    numMatches,
 		    matches);
 	}
-	int highlight_len = STRLEN("highlight:");
+	int highlight_len = (int)STRLEN("highlight:");
 	if (xp->xp_pattern - args->oe_set_arg >= highlight_len &&
 		STRNCMP(xp->xp_pattern - highlight_len, "highlight:", highlight_len) == 0)
 	{
@@ -2985,7 +2989,7 @@ expand_set_popupoption(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_popup_option_values,
-	    sizeof(p_popup_option_values) / sizeof(p_popup_option_values[0]) - 1,
+	    ARRAY_LENGTH(p_popup_option_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -3028,7 +3032,7 @@ did_set_printencoding(optset_T *args UNUSED)
     static char_u *
 get_printoptions_names(expand_T *xp UNUSED, int idx)
 {
-    if (idx >= (int)(sizeof(printer_opts) / sizeof(printer_opts[0])))
+    if (idx >= (int)ARRAY_LENGTH(printer_opts))
 	return NULL;
     return (char_u*)printer_opts[idx].name;
 }
@@ -3121,7 +3125,7 @@ expand_set_rightleftcmd(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_rlc_values,
-	    sizeof(p_rlc_values) / sizeof(p_rlc_values[0]) - 1,
+	    ARRAY_LENGTH(p_rlc_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -3153,7 +3157,7 @@ expand_set_scrollopt(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_scbopt_values,
-	    sizeof(p_scbopt_values) / sizeof(p_scbopt_values[0]) - 1,
+	    ARRAY_LENGTH(p_scbopt_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -3176,7 +3180,7 @@ expand_set_selection(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_sel_values,
-	    sizeof(p_sel_values) / sizeof(p_sel_values[0]) - 1,
+	    ARRAY_LENGTH(p_sel_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -3196,7 +3200,7 @@ expand_set_selectmode(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_slm_values,
-	    sizeof(p_slm_values) / sizeof(p_slm_values[0]) - 1,
+	    ARRAY_LENGTH(p_slm_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -3227,7 +3231,7 @@ expand_set_sessionoptions(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_ssop_values,
-	    sizeof(p_ssop_values) / sizeof(p_ssop_values[0]) - 1,
+	    ARRAY_LENGTH(p_ssop_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -3286,7 +3290,7 @@ expand_set_showcmdloc(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_sloc_values,
-	    sizeof(p_sloc_values) / sizeof(p_sloc_values[0]) - 1,
+	    ARRAY_LENGTH(p_sloc_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -3318,7 +3322,7 @@ expand_set_signcolumn(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_scl_values,
-	    sizeof(p_scl_values) / sizeof(p_scl_values[0]) - 1,
+	    ARRAY_LENGTH(p_scl_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -3388,7 +3392,7 @@ expand_set_spelloptions(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_spo_values,
-	    sizeof(p_spo_values) / sizeof(p_spo_values[0]) - 1,
+	    ARRAY_LENGTH(p_spo_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -3411,7 +3415,7 @@ expand_set_spellsuggest(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_sps_values,
-	    sizeof(p_sps_values) / sizeof(p_sps_values[0]) - 1,
+	    ARRAY_LENGTH(p_sps_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -3432,7 +3436,7 @@ expand_set_splitkeep(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_spk_values,
-	    sizeof(p_spk_values) / sizeof(p_spk_values[0]) - 1,
+	    ARRAY_LENGTH(p_spk_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -3463,7 +3467,7 @@ expand_set_swapsync(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_sws_values,
-	    sizeof(p_sws_values) / sizeof(p_sws_values[0]) - 1,
+	    ARRAY_LENGTH(p_sws_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -3483,7 +3487,7 @@ expand_set_switchbuf(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_swb_values,
-	    sizeof(p_swb_values) / sizeof(p_swb_values[0]) - 1,
+	    ARRAY_LENGTH(p_swb_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -3535,7 +3539,7 @@ expand_set_tagcase(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_tc_values,
-	    sizeof(p_tc_values) / sizeof(p_tc_values[0]) - 1,
+	    ARRAY_LENGTH(p_tc_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -3680,7 +3684,7 @@ expand_set_termwintype(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_twt_values,
-	    sizeof(p_twt_values) / sizeof(p_twt_values[0]) - 1,
+	    ARRAY_LENGTH(p_twt_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -3724,7 +3728,7 @@ expand_set_toolbar(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_toolbar_values,
-	    sizeof(p_toolbar_values) / sizeof(p_toolbar_values[0]) - 1,
+	    ARRAY_LENGTH(p_toolbar_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -3752,7 +3756,7 @@ expand_set_toolbariconsize(optexpand_T *args, int *numMatches, char_u ***matches
     return expand_set_opt_string(
 	    args,
 	    p_tbis_values,
-	    sizeof(p_tbis_values) / sizeof(p_tbis_values[0]) - 1,
+	    ARRAY_LENGTH(p_tbis_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -3786,7 +3790,7 @@ expand_set_ttymouse(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_ttym_values,
-	    sizeof(p_ttym_values) / sizeof(p_ttym_values[0]) - 1,
+	    ARRAY_LENGTH(p_ttym_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -4002,7 +4006,7 @@ expand_set_virtualedit(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_ve_values,
-	    sizeof(p_ve_values) / sizeof(p_ve_values[0]) - 1,
+	    ARRAY_LENGTH(p_ve_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -4043,7 +4047,7 @@ expand_set_wildmode(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_wim_values,
-	    sizeof(p_wim_values) / sizeof(p_wim_values[0]) - 1,
+	    ARRAY_LENGTH(p_wim_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -4063,7 +4067,7 @@ expand_set_wildoptions(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_wop_values,
-	    sizeof(p_wop_values) / sizeof(p_wop_values[0]) - 1,
+	    ARRAY_LENGTH(p_wop_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -4097,7 +4101,7 @@ expand_set_winaltkeys(optexpand_T *args, int *numMatches, char_u ***matches)
     return expand_set_opt_string(
 	    args,
 	    p_wak_values,
-	    sizeof(p_wak_values) / sizeof(p_wak_values[0]) - 1,
+	    ARRAY_LENGTH(p_wak_values) - 1,
 	    numMatches,
 	    matches);
 }
@@ -4238,6 +4242,7 @@ did_set_string_option(
     char_u	*value,			// new value of the option
     char	*errbuf,		// buffer for errors, or NULL
     int		opt_flags,		// OPT_LOCAL and/or OPT_GLOBAL
+    set_op_T    op,			// OP_ADDING/OP_PREPENDING/OP_REMOVING
     int		*value_checked)		// value was checked to be safe, no
 					// need to set P_INSECURE
 {
@@ -4276,6 +4281,7 @@ did_set_string_option(
 	args.os_varp = (char_u *)varp;
 	args.os_idx = opt_idx;
 	args.os_flags = opt_flags;
+	args.os_op = op;
 	args.os_oldval.string = oldval;
 	args.os_newval.string = value;
 	args.os_errbuf = errbuf;

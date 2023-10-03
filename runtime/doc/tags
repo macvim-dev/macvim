@@ -1506,6 +1506,7 @@ $quote	eval.txt	/*$quote*
 +wildmenu	various.txt	/*+wildmenu*
 +windows	various.txt	/*+windows*
 +writebackup	various.txt	/*+writebackup*
++xattr	various.txt	/*+xattr*
 +xfontset	various.txt	/*+xfontset*
 +xim	various.txt	/*+xim*
 +xpm	various.txt	/*+xpm*
@@ -4511,7 +4512,7 @@ E136	starting.txt	/*E136*
 E1360	vim9class.txt	/*E1360*
 E1361	syntax.txt	/*E1361*
 E1362	vim9class.txt	/*E1362*
-E1363	vim9class.txt	/*E1363*
+E1363	vim9.txt	/*E1363*
 E1364	recover.txt	/*E1364*
 E1365	vim9class.txt	/*E1365*
 E1366	vim9class.txt	/*E1366*
@@ -4542,6 +4543,8 @@ E1388	vim9class.txt	/*E1388*
 E1389	vim9class.txt	/*E1389*
 E139	message.txt	/*E139*
 E1390	vim9class.txt	/*E1390*
+E1391	eval.txt	/*E1391*
+E1392	eval.txt	/*E1392*
 E140	message.txt	/*E140*
 E141	message.txt	/*E141*
 E142	message.txt	/*E142*
@@ -4560,8 +4563,12 @@ E1502	builtin.txt	/*E1502*
 E1503	builtin.txt	/*E1503*
 E1504	builtin.txt	/*E1504*
 E1505	builtin.txt	/*E1505*
+E1506	editing.txt	/*E1506*
+E1508	editing.txt	/*E1508*
+E1509	editing.txt	/*E1509*
 E151	helphelp.txt	/*E151*
 E152	helphelp.txt	/*E152*
+E1520	builtin.txt	/*E1520*
 E153	helphelp.txt	/*E153*
 E154	helphelp.txt	/*E154*
 E155	sign.txt	/*E155*
@@ -5056,6 +5063,8 @@ E610	editing.txt	/*E610*
 E611	eval.txt	/*E611*
 E612	sign.txt	/*E612*
 E613	print.txt	/*E613*
+E614	builtin.txt	/*E614*
+E616	builtin.txt	/*E616*
 E617	options.txt	/*E617*
 E618	print.txt	/*E618*
 E619	print.txt	/*E619*
@@ -5139,6 +5148,7 @@ E69	pattern.txt	/*E69*
 E690	eval.txt	/*E690*
 E691	eval.txt	/*E691*
 E692	eval.txt	/*E692*
+E693	builtin.txt	/*E693*
 E694	eval.txt	/*E694*
 E695	eval.txt	/*E695*
 E696	eval.txt	/*E696*
@@ -5152,6 +5162,7 @@ E702	builtin.txt	/*E702*
 E703	eval.txt	/*E703*
 E704	eval.txt	/*E704*
 E705	eval.txt	/*E705*
+E706	builtin.txt	/*E706*
 E707	eval.txt	/*E707*
 E708	eval.txt	/*E708*
 E709	eval.txt	/*E709*
@@ -11391,6 +11402,7 @@ x-resources	version5.txt	/*x-resources*
 x11-clientserver	remote.txt	/*x11-clientserver*
 x11-cut-buffer	gui_x11.txt	/*x11-cut-buffer*
 x11-selection	gui_x11.txt	/*x11-selection*
+xattr	editing.txt	/*xattr*
 xf86conf.vim	syntax.txt	/*xf86conf.vim*
 xfontset	mbyte.txt	/*xfontset*
 xfree-xterm	syntax.txt	/*xfree-xterm*

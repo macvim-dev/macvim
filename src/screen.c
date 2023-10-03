@@ -4730,6 +4730,8 @@ static struct charstab lcstab[] =
 #else
     {NULL,			"conceal"},
 #endif
+    {NULL,			"multispace"},
+    {NULL,			"leadmultispace"},
 };
 
 /*
@@ -4743,7 +4745,7 @@ static struct charstab lcstab[] =
     static char *
 set_chars_option(win_T *wp, char_u *value, int is_listchars, int apply)
 {
-    int	    round, i, len, len2, entries;
+    int	    round, i, len, entries;
     char_u  *p, *s;
     int	    c1 = 0, c2 = 0, c3 = 0;
     char_u  *last_multispace = NULL;  // Last occurrence of "multispace:"
@@ -4821,58 +4823,12 @@ set_chars_option(win_T *wp, char_u *value, int is_listchars, int apply)
 	    for (i = 0; i < entries; ++i)
 	    {
 		len = (int)STRLEN(tab[i].name);
-		if (STRNCMP(p, tab[i].name, len) == 0
+		if (!(STRNCMP(p, tab[i].name, len) == 0
 			&& p[len] == ':'
-			&& p[len + 1] != NUL)
-		{
-		    c2 = c3 = 0;
-		    s = p + len + 1;
-		    c1 = get_encoded_char_adv(&s);
-		    if (char2cells(c1) > 1)
-			return e_invalid_argument;
-		    if (tab[i].cp == &lcs_chars.tab2)
-		    {
-			if (*s == NUL)
-			    return e_invalid_argument;
-			c2 = get_encoded_char_adv(&s);
-			if (char2cells(c2) > 1)
-			    return e_invalid_argument;
-			if (!(*s == ',' || *s == NUL))
-			{
-			    c3 = get_encoded_char_adv(&s);
-			    if (char2cells(c3) > 1)
-				return e_invalid_argument;
-			}
-		    }
+			&& p[len + 1] != NUL))
+		    continue;
 
-		    if (*s == ',' || *s == NUL)
-		    {
-			if (round > 0)
-			{
-			    if (tab[i].cp == &lcs_chars.tab2)
-			    {
-				lcs_chars.tab1 = c1;
-				lcs_chars.tab2 = c2;
-				lcs_chars.tab3 = c3;
-			    }
-			    else if (tab[i].cp != NULL)
-				*(tab[i].cp) = c1;
-
-			}
-			p = s;
-			break;
-		    }
-		}
-	    }
-
-	    if (i == entries)
-	    {
-		len = (int)STRLEN("multispace");
-		len2 = (int)STRLEN("leadmultispace");
-		if (is_listchars
-			&& STRNCMP(p, "multispace", len) == 0
-			&& p[len] == ':'
-			&& p[len + 1] != NUL)
+		if (is_listchars && strcmp(tab[i].name, "multispace") == 0)
 		{
 		    s = p + len + 1;
 		    if (round == 0)
@@ -4904,14 +4860,12 @@ set_chars_option(win_T *wp, char_u *value, int is_listchars, int apply)
 			}
 			p = s;
 		    }
+		    break;
 		}
 
-		else if (is_listchars
-			&& STRNCMP(p, "leadmultispace", len2) == 0
-			&& p[len2] == ':'
-			&& p[len2 + 1] != NUL)
+		if (is_listchars && strcmp(tab[i].name, "leadmultispace") == 0)
 		{
-		    s = p + len2 + 1;
+		    s = p + len + 1;
 		    if (round == 0)
 		    {
 			// get length of lcs-leadmultispace string in first
@@ -4942,10 +4896,50 @@ set_chars_option(win_T *wp, char_u *value, int is_listchars, int apply)
 			}
 			p = s;
 		    }
+		    break;
 		}
-		else
+
+		c2 = c3 = 0;
+		s = p + len + 1;
+		c1 = get_encoded_char_adv(&s);
+		if (char2cells(c1) > 1)
 		    return e_invalid_argument;
+		if (tab[i].cp == &lcs_chars.tab2)
+		{
+		    if (*s == NUL)
+			return e_invalid_argument;
+		    c2 = get_encoded_char_adv(&s);
+		    if (char2cells(c2) > 1)
+			return e_invalid_argument;
+		    if (!(*s == ',' || *s == NUL))
+		    {
+			c3 = get_encoded_char_adv(&s);
+			if (char2cells(c3) > 1)
+			    return e_invalid_argument;
+		    }
+		}
+
+		if (*s == ',' || *s == NUL)
+		{
+		    if (round > 0)
+		    {
+			if (tab[i].cp == &lcs_chars.tab2)
+			{
+			    lcs_chars.tab1 = c1;
+			    lcs_chars.tab2 = c2;
+			    lcs_chars.tab3 = c3;
+			}
+			else if (tab[i].cp != NULL)
+			    *(tab[i].cp) = c1;
+
+		    }
+		    p = s;
+		    break;
+		}
 	    }
+
+	    if (i == entries)
+		return e_invalid_argument;
 
 	    if (*p == ',')
 		++p;

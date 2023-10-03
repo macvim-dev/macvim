@@ -304,7 +304,7 @@ as the first character in the name, and it can be made public by prefixing
 							*class-method*
 Class methods are also declared with "static".  They can use the class
 variables but they have no access to the object variables, they cannot use the
-"this" keyword.
+"this" keyword:
 >
 	class OtherThing
 	   this.size: number
@@ -547,11 +547,9 @@ Object variables from the base class are all taken over by the child class.  It
 is not possible to override them (unlike some other languages).
 
 						*E1356* *E1357* *E1358*
-Object methods of the base class can be overruled.  The number of arguments
-must be exactly the same.  The method argument type can be a contra-variant
-type of the base class method argument type.  The method return value type can
-be a covariant type of the base class method return value type.  The method of
-the base class can be called by prefixing "super.".
+Object methods of the base class can be overruled.  The signature (arguments,
+argument types and return type) must be exactly the same.  The method of the
+base class can be called by prefixing "super.".
 
 						*E1377*
 The access level of a method (public or private) in a child class should be
@@ -658,7 +656,7 @@ When a variable is declared to have the type of an object, but it is not
 initialized, the value is null.  When trying to use this null object Vim often
 does not know what class was supposed to be used.  Vim then cannot check if
 a variable name is correct and you will get an "Using a null object" error,
-even when the variable name is invalid. *E1360* *E1362* *E1363*
+even when the variable name is invalid. *E1360* *E1362*
 
 
 Default constructor ~
