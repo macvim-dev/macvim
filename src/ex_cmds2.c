@@ -155,7 +155,7 @@ browse_save_fname(buf_T *buf)
 /*
  * "Save changes" dialog that conforms to the Apple HIG.
  */
-    int
+    static int
 vim_dialog_save_changes(buf_T *buf)
 {
     char_u	buff[IOSIZE];
@@ -181,7 +181,7 @@ vim_dialog_save_changes(buf_T *buf)
  * "Save all changes" dialog that tries to emulate the above "Save changes"
  * dialog for the case of several modified buffers.
  */
-    int
+    static int
 vim_dialog_save_all_changes(buf_T *buf)
 {
     char_u	buff[IOSIZE];

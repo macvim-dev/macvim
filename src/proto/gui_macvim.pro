@@ -1,6 +1,6 @@
-void macvim_early_init();
+void macvim_early_init(void);
 void gui_mch_prepare(int *argc, char **argv);
-void gui_macvim_after_fork_init();
+void gui_macvim_after_fork_init(void);
 int gui_mch_init_check(void);
 int gui_mch_init(void);
 void gui_mch_exit(int rc);
@@ -35,6 +35,7 @@ void gui_mch_draw_menubar(void);
 void gui_mch_enable_menu(int flag);
 void gui_mch_show_toolbar(int showit);
 void gui_mch_free_font(GuiFont font);
+GuiFont gui_mch_retain_font(GuiFont font);
 GuiFont gui_mch_get_font(char_u *name, int giveErrorIfMissing);
 char_u *gui_mch_get_fontname(GuiFont font, char_u *name);
 int gui_mch_init_font(char_u *font_name, int fontset);
@@ -72,7 +73,7 @@ int gui_mch_get_scrollbar_xpadding(void);
 int gui_mch_get_scrollbar_ypadding(void);
 void gui_mch_set_scrollbar_thumb(scrollbar_T *sb, long val, long size, long max);
 void gui_mch_set_shellsize(int width, int height, int min_width, int min_height, int base_width, int base_height, int direction);
-void gui_mch_resize_view();
+void gui_mch_resize_view(void);
 void gui_mch_set_sp_color(guicolor_T color);
 void gui_mch_set_text_area_pos(int x, int y, int w, int h);
 void gui_mch_set_winpos(int x, int y);
@@ -83,7 +84,7 @@ void gui_mch_start_blink(void);
 void gui_mch_stop_blink(int may_call_gui_update_cursor);
 void gui_mch_toggle_tearoffs(int enable);
 void mch_set_mouse_shape(int shape);
-void gui_mch_def_colors();
+void gui_mch_def_colors(void);
 void ex_macaction(exarg_T *eap);
 void gui_make_popup(char_u *path_name, int mouse_pos);
 
@@ -99,7 +100,7 @@ void gui_mch_enter_fullscreen(guicolor_T bg);
 void gui_mch_leave_fullscreen(void);
 void gui_mch_fuopt_update(void);
 
-void gui_macvim_update_modified_flag();
+void gui_macvim_update_modified_flag(void);
 void gui_macvim_add_to_find_pboard(char_u *pat);
 void gui_macvim_set_antialias(int antialias);
 void gui_macvim_set_ligatures(int ligatures);
@@ -115,7 +116,7 @@ void odb_end(void);
 char_u *get_macaction_name(expand_T *xp, int idx);
 int is_valid_macaction(char_u *action);
 
-void gui_macvim_wait_for_startup();
+void gui_macvim_wait_for_startup(void);
 void gui_macvim_get_window_layout(int *count, int *layout);
 
 void gui_mch_find_dialog(exarg_T *eap);
@@ -132,7 +133,7 @@ void *gui_mch_register_sign(char_u *signfile);
 
 void gui_mch_destroy_sign(void *sign);
 
-void *gui_macvim_new_autoreleasepool();
+void *gui_macvim_new_autoreleasepool(void);
 void gui_macvim_release_autoreleasepool(void *pool);
 
 void f_showdefinition(typval_T *argvars, typval_T *rettv);

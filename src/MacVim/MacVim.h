@@ -505,7 +505,7 @@ extern NSString *VimFindPboardType;
 
 extern int ASLogLevel;
 
-void ASLInit();
+void ASLInit(void);
 
 #if defined(MM_USE_ASL)
 

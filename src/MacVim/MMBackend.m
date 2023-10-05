@@ -28,6 +28,7 @@
  */
 
 #import "MMBackend.h"
+#include "gui_macvim.pro"
 
 
 
@@ -55,11 +56,6 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
 vimmenu_T *menu_for_descriptor(NSArray *desc);
 
 static id evalExprCocoa(NSString * expr, NSString ** errstr);
-
-void im_preedit_start_macvim();
-void im_preedit_end_macvim();
-void im_preedit_abandon_macvim();
-void im_preedit_changed_macvim(char *preedit_string, int cursor_index);
 
 enum {
     MMBlinkStateNone = 0,
@@ -147,9 +143,6 @@ static struct specialkey
     /* End of list marker: */
     {0, 0, 0}
 };
-
-
-extern GuiFont gui_mch_retain_font(GuiFont font);
 
 
 @interface NSString (MMServerNameCompare)
@@ -1375,7 +1368,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 /// Extracts the text currently selected in visual mode, and returns it.
 ///
 /// @return the string representing the selected text, or NULL if failure.
-static char_u *extractSelectedText()
+static char_u *extractSelectedText(void)
 {
     // Note: Most of the functionality in Vim that allows for extracting useful
     // text from a selection are in the register & clipboard utility functions.

@@ -49,7 +49,7 @@ vimmenu_T *menu_for_descriptor(NSArray *desc);
 // -- Initialization --------------------------------------------------------
 
     void
-macvim_early_init()
+macvim_early_init(void)
 {
     NSBundle *bundle = [NSBundle mainBundle];
     if (bundle) {
@@ -145,7 +145,7 @@ gui_mch_prepare(int *argc, char **argv)
 
 /* Called directly after forking (even if we didn't fork). */
     void
-gui_macvim_after_fork_init()
+gui_macvim_after_fork_init(void)
 {
     ASLInit();
     ASLogDebug(@"");
@@ -606,7 +606,7 @@ gui_mch_set_sp_color(guicolor_T color)
  * Set default colors.
  */
     void
-gui_mch_def_colors()
+gui_mch_def_colors(void)
 {
     MMBackend *backend = [MMBackend sharedInstance];
 
@@ -1385,8 +1385,6 @@ mch_set_mouse_shape(int shape)
 // -- Input Method ----------------------------------------------------------
 
 #if defined(FEAT_EVAL)
-void call_imactivatefunc(int active);
-int call_imstatusfunc(void);
 # ifdef FEAT_GUI
 #  define USE_IMACTIVATEFUNC (!gui.in_use && *p_imaf != NUL)
 #  define USE_IMSTATUSFUNC (!gui.in_use && *p_imsf != NUL)
@@ -1819,7 +1817,7 @@ gui_mch_set_shellsize(
  * adding / removing a toolbar) when guioptions 'k' is set.
  */
     void
-gui_mch_resize_view()
+gui_mch_resize_view(void)
 {
     [[MMBackend sharedInstance] resizeView];
 }
@@ -1892,14 +1890,14 @@ gui_mch_enter_fullscreen(guicolor_T bg)
 
 
     void
-gui_mch_leave_fullscreen()
+gui_mch_leave_fullscreen(void)
 {
     [[MMBackend sharedInstance] leaveFullScreen];
 }
 
 
     void
-gui_mch_fuopt_update()
+gui_mch_fuopt_update(void)
 {
     if (!gui.in_use)
         return;
@@ -1916,7 +1914,7 @@ gui_mch_fuopt_update()
 
 
     void
-gui_macvim_update_modified_flag()
+gui_macvim_update_modified_flag(void)
 {
     [[MMBackend sharedInstance] updateModifiedFlag];
 }
@@ -1983,7 +1981,7 @@ gui_macvim_set_thinstrokes(int thinStrokes)
 }
 
     void
-gui_macvim_wait_for_startup()
+gui_macvim_wait_for_startup(void)
 {
     MMBackend *backend = [MMBackend sharedInstance];
     if ([backend waitForAck])
@@ -2006,7 +2004,7 @@ gui_macvim_get_window_layout(int *count, int *layout)
 }
 
     void *
-gui_macvim_new_autoreleasepool()
+gui_macvim_new_autoreleasepool(void)
 {
     return (void *)[[NSAutoreleasePool alloc] init];
 }
