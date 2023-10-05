@@ -1509,10 +1509,11 @@ typedef enum {
  * Entry for an object or class member variable.
  */
 typedef struct {
-    char_u	*ocm_name;   // allocated
+    char_u	*ocm_name;	// allocated
     omacc_T	ocm_access;
+    int		ocm_has_type;	// type specified explicitly
     type_T	*ocm_type;
-    char_u	*ocm_init;   // allocated
+    char_u	*ocm_init;	// allocated
 } ocmember_T;
 
 // used for the lookup table of a class member index and object method index
@@ -4612,6 +4613,16 @@ typedef struct lval_S
     int		ll_is_root;	// Special case. ll_tv is lval_root,
 				// ignore the rest.
 } lval_T;
+
+/**
+ * This may be used to specify the base type that get_lval() uses when
+ * following a chain, for example a[idx1][idx2].
+ */
+typedef struct lval_root_S {
+    typval_T	*lr_tv;
+    class_T	*lr_cl_exec;	// executing class for access checking
+    int		lr_is_arg;
+} lval_root_T;
 
 // Structure used to save the current state.  Used when executing Normal mode
 // commands while in any other mode.

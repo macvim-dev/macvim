@@ -1737,11 +1737,14 @@ compile_lhs(
 		if (is_decl)
 		{
 		    // if we come here with what looks like an assignment like
-		    // .= but which has been reject by assignment_len() from
+		    // .= but which has been rejected by assignment_len() from
 		    // may_compile_assignment give a better error message
 		    char_u *p = skipwhite(lhs->lhs_end);
 		    if (p[0] == '.' && p[1] == '=')
 			emsg(_(e_dot_equal_not_supported_with_script_version_two));
+		    else if (p[0] == ':')
+			// type specified in a non-var assignment
+			semsg(_(e_trailing_characters_str), p);
 		    else
 			semsg(_(e_variable_already_declared_str), lhs->lhs_name);
 		    return FAIL;
@@ -1766,6 +1769,9 @@ compile_lhs(
 		}
 		lhs->lhs_dest = dest_class_member;
 		lhs->lhs_class = cctx->ctx_ufunc->uf_class;
+		lhs->lhs_type =
+		    class_member_type_by_idx(cctx->ctx_ufunc->uf_class,
+					FALSE, lhs->lhs_classmember_idx);
 	    }
 	    else
 	    {
@@ -3308,7 +3314,15 @@ compile_def_function(
 		    }
 
 		    type_T	*type = get_type_on_stack(&cctx, 0);
-		    if (m->ocm_type->tt_type != type->tt_type)
+		    if (m->ocm_type->tt_type == VAR_ANY
+			    && !m->ocm_has_type
+			    && type->tt_type != VAR_SPECIAL)
+		    {
+			// If the member variable type is not yet set, then use
+			// the initialization expression type.
+			m->ocm_type = type;
+		    }
+		    else if (m->ocm_type->tt_type != type->tt_type)
 		    {
 			// The type of the member initialization expression is
 			// determined at run time.  Add a runtime type check.
