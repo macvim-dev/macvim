@@ -634,7 +634,7 @@ im_commit_cb(GtkIMContext *context UNUSED,
 im_preedit_start_cb(GtkIMContext *context UNUSED, gpointer data UNUSED)
 # else
     void
-im_preedit_start_macvim()
+im_preedit_start_macvim(void)
 # endif
 {
 #ifdef XIM_DEBUG
@@ -655,7 +655,7 @@ im_preedit_start_macvim()
 im_preedit_end_cb(GtkIMContext *context UNUSED, gpointer data UNUSED)
 # else
     void
-im_preedit_end_macvim()
+im_preedit_end_macvim(void)
 # endif
 {
 #ifdef XIM_DEBUG
@@ -681,7 +681,7 @@ im_preedit_end_macvim()
 
 #ifdef FEAT_GUI_MACVIM
     void
-im_preedit_abandon_macvim()
+im_preedit_abandon_macvim(void)
 {
     /* Abandon preedit text, don't send any backspace sequences. */
     im_preedit_cursor = 0;

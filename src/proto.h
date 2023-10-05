@@ -344,7 +344,4 @@ int clip_mch_own_selection(Clipboard_T *cbd);
 void clip_mch_request_selection(Clipboard_T *cbd);
 void clip_mch_set_selection(Clipboard_T *cbd);
 # endif
-# if defined(MACOS_X) && defined(FEAT_GUI)
-void macosx_fork();
-# endif
 #endif // !PROTO && !NOPROTO

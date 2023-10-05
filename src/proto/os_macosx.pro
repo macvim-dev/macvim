@@ -4,4 +4,7 @@ bool sound_mch_play(const char_u* event, long sound_id, soundcb_T *callback, boo
 void sound_mch_stop(long sound_id);
 void sound_mch_clear(void);
 void sound_mch_free(void);
+
+// MacVim
+void macosx_fork(void);
 /* vim: set ft=c : */

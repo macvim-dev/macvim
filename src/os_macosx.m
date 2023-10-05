@@ -524,7 +524,7 @@ sound_mch_free(void)
 #endif
 
     void
-macosx_fork()
+macosx_fork(void)
 {
     pid_t pid;
     int   i;

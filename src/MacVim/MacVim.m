@@ -253,7 +253,7 @@ debugStringForMessageQueue(NSArray *queue)
 
 
     void
-ASLInit()
+ASLInit(void)
 {
     NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
 
