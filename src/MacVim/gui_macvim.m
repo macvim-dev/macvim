@@ -30,8 +30,10 @@ static int MMMaxMRU = 10;
 // Enabled when files passed on command line should not be added to MRU.
 static BOOL MMNoMRU = NO;
 
-static NSString *MMDefaultFontName = @"Menlo Regular";
+static NSString *MMDefaultFontName = @"Menlo-Regular";
 static int MMDefaultFontSize       = 11;
+static char *MMDefaultFontStr      = "Menlo-Regular:h11";
+static char *MMDefaultFontSizeStr  = "h11";
 static int MMMinFontSize           = 6;
 static int MMMaxFontSize           = 100;
 
@@ -1151,6 +1153,48 @@ gui_macvim_font_with_name(char_u *name)
     }
 
     return NOFONT;
+}
+
+/**
+ * Cmdline expansion for setting 'guifont' / 'guifontwide'. Will enumerate
+ * through all fonts for completion. When setting 'guifont' it will only show
+ * monospace fonts as it's unlikely other fonts would be useful.
+ */
+    void
+gui_mch_expand_font(optexpand_T *args, void *param, int (*add_match)(char_u *val))
+{
+    expand_T *xp = args->oe_xp;
+    int wide = *(int *)param;
+
+    if (args->oe_include_orig_val && *args->oe_opt_value == NUL && !wide)
+    {
+	// If guifont is empty, and we want to fill in the orig value, suggest
+	// the default so the user can modify it.
+	if (add_match((char_u *)MMDefaultFontStr) != OK)
+	    return;
+    }
+
+    if (xp->xp_pattern > args->oe_set_arg && *(xp->xp_pattern-1) == ':')
+    {
+        // Fill in the existing font size to help switching only font family
+        char_u *colon = vim_strchr(p_guifont, ':');
+        if (colon != NULL)
+            add_match(colon + 1);
+        else
+            add_match((char_u*)MMDefaultFontSizeStr);
+        return;
+    }
+
+    NSFontManager *fontManager = [NSFontManager sharedFontManager];
+    NSArray<NSString *> *availableFonts;
+    if (wide)
+        availableFonts = [fontManager availableFonts];
+    else
+        availableFonts = [fontManager availableFontNamesWithTraits:NSFixedPitchFontMask];
+    for (NSString *font in availableFonts) {
+        if (add_match((char_u*)[font UTF8String]) != OK)
+            return;
+    }
 }
 
 // -- Scrollbars ------------------------------------------------------------

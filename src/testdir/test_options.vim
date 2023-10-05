@@ -569,6 +569,13 @@ func Test_set_completion_string_values()
   call assert_equal([], getcompletion('set hl+=8'..hl_display_modes, 'cmdline'))
 
   "
+  " MacVim options
+  "
+  call assert_equal(getcompletion('set fuoptions+=', 'cmdline')[0], 'maxvert')
+  call assert_equal(getcompletion('set fuoptions+=maxvert,background:', 'cmdline')[0], '#')
+  call assert_equal(getcompletion('set fuoptions+=maxvert,background:No*ext', 'cmdline')[0], 'NonText')
+
+  "
   " Test flag lists
   "
 

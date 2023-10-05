@@ -849,7 +849,7 @@ expand_set_opt_generic(
     return ret;
 }
 
-# if defined(FEAT_GUI_MSWIN) || defined(FEAT_GUI_GTK)
+# if defined(FEAT_GUI_MSWIN) || defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MACVIM)
 static garray_T *expand_cb_ga;
 static optexpand_T *expand_cb_args;
 
@@ -2351,7 +2351,7 @@ expand_set_guifont(optexpand_T *args, int *numMatches, char_u ***matches)
     if (!gui.in_use)
 	return FAIL;
 
-# if defined(FEAT_GUI_MSWIN) || defined(FEAT_GUI_GTK)
+# if defined(FEAT_GUI_MSWIN) || defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MACVIM)
     char_u **varp = (char_u **)args->oe_varp;
     int wide = (varp == &p_guifontwide);
 
@@ -4258,6 +4258,45 @@ did_set_fuoptions(optset_T *args UNUSED)
     if (check_fuoptions() != OK)
 	return e_invalid_argument;
     return NULL;
+}
+
+    static char_u *
+get_fuopt_background_value(expand_T *xp, int idx)
+{
+    // "background:" supports '#' for expicit RGB color, or highlight names.
+    if (idx == 0)
+	return (char_u *)"#";
+    return get_highlight_name(xp, idx - 1);
+}
+
+    int
+expand_set_fuoptions(optexpand_T *args, int *numMatches, char_u ***matches)
+{
+    expand_T *xp = args->oe_xp;
+
+    if (xp->xp_pattern > args->oe_set_arg && *(xp->xp_pattern-1) == ':')
+    {
+	// Within "background:", we have a subgroup of possible options.
+	int bg_len = STRLEN("background:");
+	if (xp->xp_pattern - args->oe_set_arg >= bg_len &&
+		STRNCMP(xp->xp_pattern - bg_len, "background:", bg_len) == 0)
+	{
+	    return expand_set_opt_generic(
+		    args,
+		    get_fuopt_background_value,
+		    numMatches,
+		    matches);
+	}
+	return FAIL;
+    }
+
+    static char *(p_fuopt_values[]) = {"maxvert", "maxhorz", "background:", NULL};
+    return expand_set_opt_string(
+	    args,
+	    p_fuopt_values,
+	    ARRAY_LENGTH(p_fuopt_values) - 1,
+	    numMatches,
+	    matches);
 }
 #endif
 

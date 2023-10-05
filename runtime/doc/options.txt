@@ -3873,7 +3873,9 @@ A jump table for the options with a short description can be found at |Q_op|.
 	In non-native fullscreen mode, MacVim can be configured to either show
 	all the content filling up the whole screen, or only use part of the
 	screen to show the content, centered.  This option controls the size
-	of the Vim control as well as the color of the unused screen area.
+	of the Vim control as well as the color of the unused screen area.  It
+	is a comma-separated list of values as follows:
+
 	value	effect	~
         maxvert	When entering fullscreen, 'lines' is set to the maximum number
 		of lines fitting on the screen in fullscreen mode. If unset,
