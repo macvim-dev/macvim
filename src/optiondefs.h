@@ -1175,9 +1175,9 @@ static struct vimoption options[] =
 			    {(char_u *)NULL, (char_u *)0L}
 #endif
 			    SCTX_INIT},
-    {"fuoptions",  "fuopt", P_STRING|P_COMMA|P_NODUP|P_VI_DEF,
+    {"fuoptions",  "fuopt", P_STRING|P_COMMA|P_NODUP|P_VI_DEF|P_COLON,
 #ifdef FEAT_FULLSCREEN
-			    (char_u *)&p_fuoptions, PV_NONE, did_set_fuoptions, NULL,
+			    (char_u *)&p_fuoptions, PV_NONE, did_set_fuoptions, expand_set_fuoptions,
 			    {(char_u *)"maxvert,maxhorz", (char_u *)0L}
 #else
 			    (char_u *)NULL, PV_NONE, NULL, NULL,

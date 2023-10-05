@@ -40,6 +40,7 @@ GuiFont gui_mch_get_font(char_u *name, int giveErrorIfMissing);
 char_u *gui_mch_get_fontname(GuiFont font, char_u *name);
 int gui_mch_init_font(char_u *font_name, int fontset);
 void gui_mch_set_font(GuiFont font);
+void gui_mch_expand_font(optexpand_T *args, void *param, int (*add_match)(char_u *val));
 int gui_mch_adjust_charheight(void);
 int gui_mch_adjust_charwidth(void);
 void gui_mch_beep(void);

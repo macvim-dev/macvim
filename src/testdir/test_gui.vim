@@ -625,6 +625,28 @@ func Test_expand_guifont()
 
     let &guifontwide = guifontwide_saved
     let &guifont     = guifont_saved
+  elseif has('gui_macvim')
+    let guifont_saved = &guifont
+    let guifontwide_saved = &guifontwide
+
+    " Test recalling default and existing option, and suggesting current font
+    " size
+    set guifont=
+    call assert_equal('Menlo-Regular:h11', getcompletion('set guifont=', 'cmdline')[0])
+    set guifont=Monaco:h12
+    call assert_equal('Monaco:h12', getcompletion('set guifont=', 'cmdline')[0])
+    call assert_equal('h12', getcompletion('set guifont=Menlo\ Italic:', 'cmdline')[0])
+
+    " Test auto-completion working for font names
+    call assert_equal(['Menlo-Regular'], getcompletion('set guifont=Menl*lar$', 'cmdline'))
+    call assert_equal(['Menlo-Regular'], getcompletion('set guifontwide=Menl*lar$', 'cmdline'))
+
+    " Make sure non-monospace fonts are filtered out only in 'guifont'
+    call assert_equal([], getcompletion('set guifont=Hel*tica$', 'cmdline'))
+    call assert_equal(['Helvetica'], getcompletion('set guifontwide=Hel*tica$', 'cmdline'))
+
+    let &guifontwide = guifontwide_saved
+    let &guifont     = guifont_saved
   else
     call assert_equal([], getcompletion('set guifont=', 'cmdline'))
   endif
