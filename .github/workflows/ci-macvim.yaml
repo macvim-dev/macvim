@@ -126,7 +126,10 @@ jobs:
       - name: Install packages
         if: matrix.publish
         run: |
-          brew install python3
+          # We no longer need to install/update Python 3, as it's guaranteed to
+          # be installed on runners. Since we use stable ABI, the exact version
+          # on CI does not matter.
+
           brew install ruby
           brew install lua
 
@@ -146,8 +149,8 @@ jobs:
           #
           # This will be removed in the future as Python2 has been completely
           # unsupported for years.
-          curl https://www.python.org/ftp/python/2.7.16/python-2.7.16-macosx10.9.pkg -o ~/Downloads/python-2.7.16-macosx10.9.pkg
-          sudo installer -pkg ~/Downloads/python-2.7.16-macosx10.9.pkg -target /
+          curl https://www.python.org/ftp/python/2.7.18/python-2.7.18-macosx10.9.pkg -o ~/Downloads/python-2.7.18-macosx10.9.pkg
+          sudo installer -pkg ~/Downloads/python-2.7.18-macosx10.9.pkg -target /
 
       # All set up steps are done. Build and test MacVim below.
 
