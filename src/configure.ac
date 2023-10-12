@@ -280,13 +280,20 @@ if test "$vim_cv_uname_output" = Darwin; then
     AC_MSG_CHECKING(if SDK is supported)
     save_cflags="$CFLAGS"
     save_ldflags="$LDFLAGS"
+
+    dnl Old location of SDKs and also in Command-Line Tools
     sdkflags="$DEVELOPER_DIR/SDKs/MacOSX$MACSDK"
     if test "x$MACSDK" = "x10.4"; then
       sdkflags="$sdkflags""u"
     fi
+    if ! test -d "$sdkflags.sdk"; then
+      dnl Location of SDKs in Xcode
+      sdkflags="$DEVELOPER_DIR/Platforms/MacOSX.platform/Developer/SDKs/MacOSX$MACSDK"
+    fi
     sdkflags="$sdkflags.sdk -mmacosx-version-min=$MACSDK"
+
     CFLAGS="$CFLAGS -isysroot $sdkflags"
-    LDFLAGS="$LDFLAGS -Wl,-syslibroot,$sdkflags"
+    LDFLAGS="$LDFLAGS -isysroot $sdkflags"
     AC_LINK_IFELSE([AC_LANG_PROGRAM([ ], [ ])],
       [ AC_MSG_RESULT([yes])
         XCODEFLAGS="$XCODEFLAGS -sdk macosx$MACSDK MACOSX_DEPLOYMENT_TARGET=$MACSDK" ],

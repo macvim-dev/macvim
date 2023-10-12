@@ -123,6 +123,7 @@ src/MacVim/qlstephen/QuickLookStephen.xcodeproj/*.pbxuser
 src/MacVim/qlstephen/QuickLookStephen.xcodeproj/xcuserdata
 src/MacVim/qlstephen/build
 src/MacVim/build
+src/MacVim/auto
 src/MacVim/DerivedData
 src/TAGS
 src/Vim

@@ -3642,7 +3642,7 @@ Makefile:
 ### MacVim GUI
 .PHONY: macvim macvim-dmg macvim-dmg-legacy macvimclean macvim-signed macvim-dmg-release macvim-dmg-release-legacy macvim-install-runtime
 
-RUNTIME_FOLDER_LIST = MacVim/build/runtime_folder_list.xcfilelist
+RUNTIME_FOLDER_LIST = MacVim/auto/runtime_folder_list.xcfilelist
 
 RELEASEDIR = MacVim/build/Release
 DMGDIR = MacVim/build/dmg
@@ -3657,7 +3657,7 @@ $(RUNTIME_FOLDER_LIST):
 	# Generate a stub runtime folder list, used for incremental builds.
 	# Xcode's dependnecy management requires this file to exist at start
 	# of build, even though this file is only generated during build time.
-	mkdir -p MacVim/build
+	mkdir -p MacVim/auto
 	touch $(RUNTIME_FOLDER_LIST)
 
 macvim: $(VIMTARGET) $(RUNTIME_FOLDER_LIST)
@@ -3689,7 +3689,7 @@ macvim-dmg:
 
 macvimclean:
 	if test -d MacVim; then \
-		rm -rf MacVim/build MacVim/qlstephen/build xxd/xxd.dSYM; \
+		rm -rf MacVim/auto MacVim/build MacVim/qlstephen/build xxd/xxd.dSYM; \
 	fi
 
 # Create a release DMG image that is signed and notaraized

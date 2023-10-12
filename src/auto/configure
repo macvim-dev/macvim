@@ -4960,13 +4960,18 @@ fi
 printf %s "checking if SDK is supported... " >&6; }
     save_cflags="$CFLAGS"
     save_ldflags="$LDFLAGS"
-    sdkflags="$DEVELOPER_DIR/SDKs/MacOSX$MACSDK"
+
+        sdkflags="$DEVELOPER_DIR/SDKs/MacOSX$MACSDK"
     if test "x$MACSDK" = "x10.4"; then
       sdkflags="$sdkflags""u"
     fi
+    if ! test -d "$sdkflags.sdk"; then
+            sdkflags="$DEVELOPER_DIR/Platforms/MacOSX.platform/Developer/SDKs/MacOSX$MACSDK"
+    fi
     sdkflags="$sdkflags.sdk -mmacosx-version-min=$MACSDK"
+
     CFLAGS="$CFLAGS -isysroot $sdkflags"
-    LDFLAGS="$LDFLAGS -Wl,-syslibroot,$sdkflags"
+    LDFLAGS="$LDFLAGS -isysroot $sdkflags"
     cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
