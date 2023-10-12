@@ -268,6 +268,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         [NSNumber numberWithBool:NO],     MMUpdaterPrereleaseChannelKey,
         @"",                              MMLastUsedBundleVersionKey,
         [NSNumber numberWithBool:YES],    MMShowWhatsNewOnStartupKey,
+        [NSNumber numberWithBool:0],      MMScrollOneDirectionOnlyKey,
         nil];
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:dict];

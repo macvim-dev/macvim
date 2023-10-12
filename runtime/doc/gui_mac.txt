@@ -260,9 +260,9 @@ The ODB editor protocol is documented at:
 3. Settings		    *macvim-prefs* *macvim-preferences* *macvim-settings*
 
 Some settings are global to the MacVim application and would not make sense as
-Vim options.  These settings are stored in the user defaults database and can
-be accessed via the "MacVim.Settings…" ("MacVim.Preferences…" in macOS 12
-Monterey and older) menu item.
+Vim options (see |macvim-options|).  These settings are stored in the user
+defaults database and can be accessed via the "MacVim.Settings…"
+("MacVim.Preferences…" in macOS 12 Monterey and older) menu item.
 
 							*macvim-user-defaults*
 Not all entries in the user defaults database are exposed via the settings
@@ -299,6 +299,7 @@ KEY				VALUE ~
 *MMTitlebarAppearsTransparent*	enable a transparent titlebar [bool]
 *MMAppearanceModeSelection*	dark mode selection (|macvim-dark-mode|)[bool]
 *MMRendererClipToRow*		clip tall characters to the row they are on [bool]
+*MMScrollOneDirectionOnly*	scroll along one axis only when using trackpad [bool]
 *MMSmoothResize*		allow smooth resizing of MacVim window [bool]
 *MMShareFindPboard*		share search text to Find Pasteboard [bool]
 *MMShowAddTabButton*		enable "add tab" button on tabline [bool]

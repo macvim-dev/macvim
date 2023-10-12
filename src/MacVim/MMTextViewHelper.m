@@ -305,15 +305,44 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 
 #if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7
     if ([event hasPreciseScrollingDeltas]) {
-        NSSize cellSize = [textView cellSize];
-        float thresholdX = cellSize.width;
-        float thresholdY = cellSize.height;
-        scrollingDeltaX += [event scrollingDeltaX];
+        const NSEventPhase phase = event.phase;
+        NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+
+        CGFloat eventScrollingDeltaX = event.scrollingDeltaX;
+        CGFloat eventScrollingDeltaY = event.scrollingDeltaY;
+
+        // If user wants to only scroll in one direction to prevent accidental
+        // side scroll, we lock that in at the beginning of a scroll gesture.
+        // Note that we choose Y if both X and Y deltas exist, because most of
+        // the time, the user is doing a vertical scroll.
+        if (phase == NSEventPhaseMayBegin || phase == NSEventPhaseBegan) {
+            scrollingDirection = ScrollingDirectionUnknown;
+        }
+        if (scrollingDirection == ScrollingDirectionUnknown) {
+            if (event.scrollingDeltaY != 0) {
+                scrollingDirection = ScrollingDirectionVertical;
+            } else if (event.scrollingDeltaX != 0) {
+                scrollingDirection = ScrollingDirectionHorizontal;
+            }
+        }
+        if ([ud boolForKey:MMScrollOneDirectionOnlyKey]) {
+            if (scrollingDirection == ScrollingDirectionVertical) {
+                eventScrollingDeltaX = 0;
+            } else if (scrollingDirection == ScrollingDirectionHorizontal) {
+                eventScrollingDeltaY = 0;
+            }
+        }
+
+        const NSSize cellSize = [textView cellSize];
+        const float thresholdX = cellSize.width;
+        const float thresholdY = cellSize.height;
+
+        scrollingDeltaX += eventScrollingDeltaX;
         if (fabs(scrollingDeltaX) > thresholdX) {
             dx = roundf(scrollingDeltaX / thresholdX);
             scrollingDeltaX -= thresholdX * dx;
         }
-        scrollingDeltaY += [event scrollingDeltaY];
+        scrollingDeltaY += eventScrollingDeltaY;
         if (fabs(scrollingDeltaY) > thresholdY) {
             dy = roundf(scrollingDeltaY / thresholdY);
             scrollingDeltaY -= thresholdY * dy;

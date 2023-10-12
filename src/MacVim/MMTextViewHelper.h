@@ -22,6 +22,12 @@
 
 
 @interface MMTextViewHelper : NSObject {
+    enum ScrollingDirection {
+        ScrollingDirectionUnknown = 0,
+        ScrollingDirectionVertical,
+        ScrollingDirectionHorizontal,
+    };
+
     id                  textView;
     BOOL                isDragging;
     int                 dragRow;
@@ -38,6 +44,7 @@
     NSDate              *mouseDownTime;
     CGFloat             scrollingDeltaX;
     CGFloat             scrollingDeltaY;
+    enum ScrollingDirection scrollingDirection; ///< The fixed scrolling direction when using track pad (if configured to use it)
 
     // Input Manager
     NSRange             imRange;

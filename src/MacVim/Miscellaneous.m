@@ -53,15 +53,16 @@ NSString *MMSuppressTerminationAlertKey   = @"MMSuppressTerminationAlert";
 NSString *MMNativeFullScreenKey           = @"MMNativeFullScreen";
 NSString *MMUseMouseTimeKey               = @"MMUseMouseTime";
 NSString *MMFullScreenFadeTimeKey         = @"MMFullScreenFadeTime";
-NSString *MMNonNativeFullScreenShowMenuKey  = @"MMNonNativeFullScreenShowMenu";
-NSString *MMNonNativeFullScreenSafeAreaBehaviorKey = @"MMNonNativeFullScreenSafeAreaBehavior";
+NSString *MMNonNativeFullScreenShowMenuKey          = @"MMNonNativeFullScreenShowMenu";
+NSString *MMNonNativeFullScreenSafeAreaBehaviorKey  = @"MMNonNativeFullScreenSafeAreaBehavior";
 NSString *MMSmoothResizeKey               = @"MMSmoothResize";
 NSString *MMCmdLineAlignBottomKey         = @"MMCmdLineAlignBottom";
-NSString *MMRendererClipToRowKey      = @"MMRendererClipToRow";
+NSString *MMRendererClipToRowKey          = @"MMRendererClipToRow";
 NSString *MMAllowForceClickLookUpKey      = @"MMAllowForceClickLookUp";
 NSString *MMUpdaterPrereleaseChannelKey   = @"MMUpdaterPrereleaseChannel";
-NSString *MMLastUsedBundleVersionKey        = @"MMLastUsedBundleVersion";
-NSString *MMShowWhatsNewOnStartupKey        = @"MMShowWhatsNewOnStartup";
+NSString *MMLastUsedBundleVersionKey      = @"MMLastUsedBundleVersion";
+NSString *MMShowWhatsNewOnStartupKey      = @"MMShowWhatsNewOnStartup";
+NSString *MMScrollOneDirectionOnlyKey     = @"MMScrollOneDirectionOnly";
 
 
 @implementation NSIndexSet (MMExtras)
