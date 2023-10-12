@@ -147,6 +147,10 @@
         }
         [_addTabButton setNeedsDisplay:YES];
     }
+
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= 140000
+    [self setClipsToBounds:YES];
+#endif
 }
 
 - (id)initWithFrame:(NSRect)frame
