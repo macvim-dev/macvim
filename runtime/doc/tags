@@ -5586,6 +5586,7 @@ MMNoTitleBarWindow	gui_mac.txt	/*MMNoTitleBarWindow*
 MMNonNativeFullScreenSafeAreaBehavior	gui_mac.txt	/*MMNonNativeFullScreenSafeAreaBehavior*
 MMNonNativeFullScreenShowMenu	gui_mac.txt	/*MMNonNativeFullScreenShowMenu*
 MMRendererClipToRow	gui_mac.txt	/*MMRendererClipToRow*
+MMScrollOneDirectionOnly	gui_mac.txt	/*MMScrollOneDirectionOnly*
 MMShareFindPboard	gui_mac.txt	/*MMShareFindPboard*
 MMShowAddTabButton	gui_mac.txt	/*MMShowAddTabButton*
 MMShowWhatsNewOnStartup	gui_mac.txt	/*MMShowWhatsNewOnStartup*
