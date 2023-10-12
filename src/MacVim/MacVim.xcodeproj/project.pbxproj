@@ -1075,7 +1075,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Generate a list of folders that will affect the runtime folder output, so\n# that incremental build can use it to only install them if the runtime folders\n# have changed. The main reason we have to manually generate it is because\n# Xcode's \"Input File Lists\" doesn't support recursion/wildcards.\n\nfind -s ../../runtime -type d > \"${OBJROOT}\"/runtime_folder_list_new.xcfilelist\n\nif cmp -s \"${OBJROOT}\"/runtime_folder_list.xcfilelist \"${OBJROOT}\"/runtime_folder_list_new.xcfilelist; then\n    rm \"${OBJROOT}\"/runtime_folder_list_new.xcfilelist\nelse\n    mv -f \"${OBJROOT}\"/runtime_folder_list_new.xcfilelist \"${OBJROOT}\"/runtime_folder_list.xcfilelist\nfi\n";
+			shellScript = "# Generate a list of folders that will affect the runtime folder output, so\n# that incremental build can use it to only install them if the runtime folders\n# have changed. The main reason we have to manually generate it is because\n# Xcode's \"Input File Lists\" doesn't support recursion/wildcards.\n\nfind -s ../../runtime -type d > \"${OBJROOT}\"/runtime_folder_list_new.xcfilelist\n\nif cmp -s \"${SRCROOT}\"/auto/runtime_folder_list.xcfilelist \"${OBJROOT}\"/runtime_folder_list_new.xcfilelist; then\n    rm \"${OBJROOT}\"/runtime_folder_list_new.xcfilelist\nelse\n    mv -f \"${OBJROOT}\"/runtime_folder_list_new.xcfilelist \"${SRCROOT}\"/auto/runtime_folder_list.xcfilelist\nfi\n";
 			showEnvVarsInLog = 0;
 		};
 		9099B3CA2914B272005C9F32 /* Clean up build */ = {
@@ -1104,7 +1104,7 @@
 			files = (
 			);
 			inputFileListPaths = (
-				$OBJROOT/runtime_folder_list.xcfilelist,
+				$SRCROOT/auto/runtime_folder_list.xcfilelist,
 			);
 			inputPaths = (
 				"$(SRCROOT)/../xxd/xxd",
