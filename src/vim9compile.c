@@ -1148,7 +1148,7 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx, garray_T *lines_to_free)
 					    ASSIGN_CONST, ufunc->uf_func_type);
 	if (lvar == NULL)
 	    goto theend;
-	if (generate_FUNCREF(cctx, ufunc, NULL, 0, &funcref_isn_idx) == FAIL)
+	if (generate_FUNCREF(cctx, ufunc, NULL, FALSE, 0, &funcref_isn_idx) == FAIL)
 	    goto theend;
 	r = generate_STORE(cctx, ISN_STORE, lvar->lv_idx, NULL);
     }
@@ -1616,7 +1616,7 @@ lhs_class_member_modifiable(lhs_T *lhs, char_u	*var_start, cctx_T *cctx)
 	char *msg = (m->ocm_access == VIM_ACCESS_PRIVATE)
 				? e_cannot_access_private_variable_str
 				: e_variable_is_not_writable_str;
-	semsg(_(msg), m->ocm_name, cl->class_name);
+	emsg_var_cl_define(msg, m->ocm_name, 0, cl);
 	return FALSE;
     }
 
@@ -1770,7 +1770,7 @@ compile_lhs(
 		lhs->lhs_dest = dest_class_member;
 		lhs->lhs_class = cctx->ctx_ufunc->uf_class;
 		lhs->lhs_type =
-		    class_member_type_by_idx(cctx->ctx_ufunc->uf_class,
+		    oc_member_type_by_idx(cctx->ctx_ufunc->uf_class,
 					FALSE, lhs->lhs_classmember_idx);
 	    }
 	    else
@@ -2011,16 +2011,33 @@ compile_lhs(
 	    // for an object or class member get the type of the member
 	    class_T	*cl = lhs->lhs_type->tt_class;
 	    int		is_object = lhs->lhs_type->tt_type == VAR_OBJECT;
+	    char_u	*name = var_start + lhs->lhs_varlen + 1;
+	    size_t	namelen = lhs->lhs_end - var_start - lhs->lhs_varlen - 1;
 
-	    if (!lhs_class_member_modifiable(lhs, var_start, cctx))
+	    ocmember_T	*m = member_lookup(cl, lhs->lhs_type->tt_type,
+					name, namelen, &lhs->lhs_member_idx);
+	    if (m == NULL)
+	    {
+		member_not_found_msg(cl, lhs->lhs_type->tt_type, name, namelen);
 		return FAIL;
+	    }
 
-	    lhs->lhs_member_type = class_member_type(cl,
-					is_object,
-					after + 1, lhs->lhs_end,
-					&lhs->lhs_member_idx);
-	    if (lhs->lhs_member_idx < 0)
+	    // If it is private member variable, then accessing it outside the
+	    // class is not allowed.
+	    // If it is a read only class variable, then it can be modified
+	    // only inside the class where it is defined.
+	    if ((m->ocm_access != VIM_ACCESS_ALL) &&
+		    ((is_object && !inside_class(cctx, cl))
+		     || (!is_object && cctx->ctx_ufunc->uf_class != cl)))
+	    {
+		char *msg = (m->ocm_access == VIM_ACCESS_PRIVATE)
+					? e_cannot_access_private_variable_str
+					: e_variable_is_not_writable_str;
+		emsg_var_cl_define(msg, m->ocm_name, 0, cl);
 		return FAIL;
+	    }
+
+	    lhs->lhs_member_type = m->ocm_type;
 	}
 	else
 	{
@@ -2237,7 +2254,7 @@ compile_load_lhs_with_index(lhs_T *lhs, char_u *var_start, cctx_T *cctx)
 	   return FAIL;
 
 	class_T	*cl = lhs->lhs_type->tt_class;
-	type_T	*type = class_member_type(cl, TRUE, dot + 1,
+	type_T	*type = oc_member_type(cl, TRUE, dot + 1,
 					  lhs->lhs_end, &lhs->lhs_member_idx);
 	if (lhs->lhs_member_idx < 0)
 	    return FAIL;
@@ -2257,6 +2274,22 @@ compile_load_lhs_with_index(lhs_T *lhs, char_u *var_start, cctx_T *cctx)
 	if (cl->class_flags & CLASS_INTERFACE)
 	    return generate_GET_ITF_MEMBER(cctx, cl, lhs->lhs_member_idx, type);
 	return generate_GET_OBJ_MEMBER(cctx, lhs->lhs_member_idx, type);
+    }
+    else if (lhs->lhs_type->tt_type == VAR_CLASS)
+    {
+	// "<classname>.value": load class variable "classname.value"
+       char_u *dot = vim_strchr(var_start, '.');
+       if (dot == NULL)
+	   return FAIL;
+
+	class_T	*cl = lhs->lhs_type->tt_class;
+	ocmember_T *m = class_member_lookup(cl, dot + 1,
+						lhs->lhs_end - dot - 1,
+						&lhs->lhs_member_idx);
+	if (m == NULL)
+	    return FAIL;
+
+	return generate_CLASSMEMBER(cctx, TRUE, cl, lhs->lhs_member_idx);
     }
 
     compile_load_lhs(lhs, var_start, NULL, cctx);

@@ -194,6 +194,7 @@ int expand_set_wildoptions(optexpand_T *args, int *numMatches, char_u ***matches
 int expand_set_winaltkeys(optexpand_T *args, int *numMatches, char_u ***matches);
 int expand_set_wincolor(optexpand_T *args, int *numMatches, char_u ***matches);
 int check_ff_value(char_u *p);
+char_u *get_fileformat_name(expand_T *xp, int idx);
 int check_fuoptions(void);
 void save_clear_shm_value(void);
 void restore_shm_value(void);
