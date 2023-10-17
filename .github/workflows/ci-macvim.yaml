@@ -20,6 +20,8 @@ env:
 
   CC: clang
 
+  MAKE_BUILD_ARGS: LINK_AS_NEEDED=yes # In macOS we never over-specify link dependencies and we already check against external deps in smoketest. With LTO, linking takes a while, so we want to avoid using link.sh.
+
   VERSIONER_PERL_VERSION: '5.30'  # macOS default Perl installation uses this to determine which one to use
 
   vi_cv_path_python: /Library/Frameworks/Python.framework/Versions/2.7/bin/python
@@ -186,6 +188,13 @@ jobs:
             sed -i.bak -f ci/config.mk.clang-12.sed src/auto/config.mk
           fi
 
+          if ${{ matrix.publish == true && ! matrix.legacy }}; then
+            # Only do O3/link-time optimizations for publish builds, so the other ones can still finish quickly to give
+            # quick feedbacks. Only do this for non-legacy builds now as it seems the older toolchain doesn't work as
+            # well for this.
+            sed -i.bak -f ci/config.mk.optimized.sed src/auto/config.mk
+          fi
+
       - name: Modify configure result
         if: matrix.publish
         run: |
@@ -211,12 +220,11 @@ jobs:
         env:
           LC_ALL: C
         run: |
-          set -o verbose
-
           NPROC=$(getconf _NPROCESSORS_ONLN)
           echo "Building MacVim with ${NPROC} cores"
 
-          make -j${NPROC}
+          set -o verbose
+          make ${MAKE_BUILD_ARGS} -j${NPROC}
 
       - name: Check version
         run: |
@@ -292,15 +300,25 @@ jobs:
           make -C runtime/doc vimtags VIMEXE=../../${VIM_BIN}
           git diff --exit-code -- runtime/doc/tags
 
+      - name: Build test binaries
+        run: |
+          # Build the unit test binaries first. With link-time-optimization they take some time to link. Running them
+          # separately de-couples them from the timeout in tests, and allow us to build in parallel jobs (since tests
+          # can't run in parallel).
+          NPROC=$(getconf _NPROCESSORS_ONLN)
+
+          set -o verbose
+          make ${MAKE_BUILD_ARGS} -j${NPROC} -C src unittesttargets
+
       - name: Test
         timeout-minutes: 20
-        run: make test
+        run: make ${MAKE_BUILD_ARGS} test
 
       - name: Test GUI
         timeout-minutes: 20
         run: |
-          make -C src/testdir clean
-          make -C src testgui
+          make ${MAKE_BUILD_ARGS} -C src/testdir clean
+          make ${MAKE_BUILD_ARGS} -C src testgui
 
       # Creates a DMG package of MacVim. Note that this doesn't create a GitHub release for us, because we would prefer to
       # do it manually, for two reasons: 1) signing / notarization are currently done out of CI, 2) we want to manually
