@@ -158,6 +158,13 @@ func Test_complete_wildmenu()
   call feedkeys(":sign \<Tab>\<PageUp>\<Left>\<Right>\<C-A>\<C-B>\"\<CR>", 'tx')
   call assert_equal('"TestWildMenu', @:)
 
+  " Test for Ctrl-E/Ctrl-Y being able to cancel / accept a match
+  call feedkeys(":sign un zz\<Left>\<Left>\<Left>\<Tab>\<C-E> yy\<C-B>\"\<CR>", 'tx')
+  call assert_equal('"sign un yy zz', @:)
+
+  call feedkeys(":sign un zz\<Left>\<Left>\<Left>\<Tab>\<Tab>\<C-Y> yy\<C-B>\"\<CR>", 'tx')
+  call assert_equal('"sign unplace yy zz', @:)
+
   " cleanup
   %bwipe
   set nowildmenu
@@ -171,6 +178,7 @@ func Test_wildmenu_screendump()
   [SCRIPT]
   call writefile(lines, 'XTest_wildmenu', 'D')
 
+  " Test simple wildmenu
   let buf = RunVimInTerminal('-S XTest_wildmenu', {'rows': 8})
   call term_sendkeys(buf, ":vim\<Tab>")
   call VerifyScreenDump(buf, 'Test_wildmenu_1', {})
@@ -181,9 +189,23 @@ func Test_wildmenu_screendump()
   call term_sendkeys(buf, "\<Tab>")
   call VerifyScreenDump(buf, 'Test_wildmenu_3', {})
 
+  " Looped back to the original value
   call term_sendkeys(buf, "\<Tab>\<Tab>")
   call VerifyScreenDump(buf, 'Test_wildmenu_4', {})
+
+  " Test that the wild menu is cleared properly
+  call term_sendkeys(buf, " ")
+  call VerifyScreenDump(buf, 'Test_wildmenu_5', {})
+
+  " Test that a different wildchar still works
+  call term_sendkeys(buf, "\<Esc>:set wildchar=<Esc>\<CR>")
+  call term_sendkeys(buf, ":vim\<Esc>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_1', {})
+
+  " Double-<Esc> is a hard-coded method to escape while wildchar=<Esc>. Make
+  " sure clean up is properly done in edge case like this.
   call term_sendkeys(buf, "\<Esc>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_6', {})
 
   " clean up
   call StopVimInTerminal(buf)
@@ -1090,6 +1112,9 @@ func Test_cmdline_complete_argopt()
   call assert_equal('edit', getcompletion('read ++bin ++edi', 'cmdline')[0])
 
   call assert_equal(['fileformat='], getcompletion('edit ++ff', 'cmdline'))
+  " Test ++ff in the middle of the cmdline
+  call feedkeys(":edit ++ff zz\<Left>\<Left>\<Left>\<C-A>\<C-B>\"\<CR>", 'xt')
+  call assert_equal("\"edit ++fileformat= zz", @:)
 
   call assert_equal('dos', getcompletion('write ++ff=d', 'cmdline')[0])
   call assert_equal('mac', getcompletion('args ++fileformat=m', 'cmdline')[0])
@@ -2570,6 +2595,16 @@ func Test_wildmenu_pum()
   call term_sendkeys(buf, "\<PageUp>")
   call VerifyScreenDump(buf, 'Test_wildmenu_pum_50', {})
 
+  " pressing <C-E> to end completion should work in middle of the line too
+  call term_sendkeys(buf, "\<Esc>:set wildchazz\<Left>\<Left>\<Tab>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_pum_51', {})
+  call term_sendkeys(buf, "\<C-E>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_pum_52', {})
+
+  " pressing <C-Y> should select the current match and end completion
+  call term_sendkeys(buf, "\<Esc>:set wildchazz\<Left>\<Left>\<Tab>\<C-Y>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_pum_53', {})
+
   call term_sendkeys(buf, "\<C-U>\<CR>")
   call StopVimInTerminal(buf)
 endfunc
@@ -2636,10 +2671,11 @@ func Test_wildmenu_pum_from_terminal()
   call StopVimInTerminal(buf)
 endfunc
 
-func Test_wildmenu_pum_clear_entries()
+func Test_wildmenu_pum_odd_wildchar()
   CheckRunVimInTerminal
 
-  " This was using freed memory.  Run in a terminal to get the pum to update.
+  " Test odd wildchar interactions with pum. Make sure they behave properly
+  " and don't lead to memory corruption due to improperly cleaned up memory.
   let lines =<< trim END
     set wildoptions=pum
     set wildchar=<C-E>
@@ -2647,10 +2683,35 @@ func Test_wildmenu_pum_clear_entries()
   call writefile(lines, 'XwildmenuTest', 'D')
   let buf = RunVimInTerminal('-S XwildmenuTest', #{rows: 10})
 
-  call term_sendkeys(buf, ":\<C-E>\<C-E>")
-  call VerifyScreenDump(buf, 'Test_wildmenu_pum_clear_entries_1', {})
+  call term_sendkeys(buf, ":\<C-E>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_pum_odd_wildchar_1', {})
 
-  set wildoptions& wildchar&
+  " <C-E> being a wildchar takes priority over its original functionality
+  call term_sendkeys(buf, "\<C-E>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_pum_odd_wildchar_2', {})
+
+  call term_sendkeys(buf, "\<Esc>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_pum_odd_wildchar_3', {})
+
+  " Escape key can be wildchar too. Double-<Esc> is hard-coded to escape
+  " command-line, and we need to make sure to clean up properly.
+  call term_sendkeys(buf, ":set wildchar=<Esc>\<CR>")
+  call term_sendkeys(buf, ":\<Esc>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_pum_odd_wildchar_1', {})
+
+  call term_sendkeys(buf, "\<Esc>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_pum_odd_wildchar_3', {})
+
+  " <C-\> can also be wildchar. <C-\><C-N> however will still escape cmdline
+  " and we again need to make sure we clean up properly.
+  call term_sendkeys(buf, ":set wildchar=<C-\\>\<CR>")
+  call term_sendkeys(buf, ":\<C-\>\<C-\>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_pum_odd_wildchar_1', {})
+
+  call term_sendkeys(buf, "\<C-N>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_pum_odd_wildchar_3', {})
+
+  call StopVimInTerminal(buf)
 endfunc
 
 " Test for completion after a :substitute command followed by a pipe (|)
@@ -3249,6 +3310,17 @@ func Test_fuzzy_completion_custom_func()
   call feedkeys(":Fuzzy ttt\<C-A>\<C-B>\"\<CR>", 'tx')
   call assert_equal("\"Fuzzy TestFOrmat", @:)
   delcom Fuzzy
+  set wildoptions&
+endfunc
+
+" Test for fuzzy completion in the middle of a cmdline instead of at the end
+func Test_fuzzy_completion_in_middle()
+  set wildoptions=fuzzy
+  call feedkeys(":set ildar wrap\<Left>\<Left>\<Left>\<Left>\<Left>\<C-A>\<C-B>\"\<CR>", 'tx')
+  call assert_equal("\"set wildchar wildcharm wrap", @:)
+
+  call feedkeys(":args ++odng zz\<Left>\<Left>\<Left>\<C-A>\<C-B>\"\<CR>", 'tx')
+  call assert_equal("\"args ++encoding= zz", @:)
   set wildoptions&
 endfunc
 

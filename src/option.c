@@ -4418,6 +4418,21 @@ did_set_weirdinvert(optset_T *args)
 }
 
 /*
+ * Process the new 'wildchar' / 'wildcharm' option value.
+ */
+    char *
+did_set_wildchar(optset_T *args)
+{
+    long c = *(long *)args->os_varp;
+
+    // Don't allow key values that wouldn't work as wildchar.
+    if (c == Ctrl_C || c == '\n' || c == '\r' || c == K_KENTER)
+	return e_invalid_argument;
+
+    return NULL;
+}
+
+/*
  * Process the new 'window' option value.
  */
     char *
@@ -8152,7 +8167,7 @@ ExpandSettingSubtract(
 	{
 	    // Don't suggest anything if cmdline is non-empty. Vim's set-=
 	    // behavior requires consecutive strings and it's usually
-	    // unintuitive to users if ther try to subtract multiple flags at
+	    // unintuitive to users if they try to subtract multiple flags at
 	    // once.
 	    return FAIL;
 	}
