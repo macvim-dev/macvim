@@ -504,8 +504,8 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
             NSArray<NSString*> *currentVersionItems = [currentVersion componentsSeparatedByString:@"."];
             // Compare two arrays lexographically. We just assume that version
             // numbers are also X.Y.Z… with no "beta" etc texts.
-            bool currentVersionLarger = NO;
-            for (int i = 0; i < currentVersionItems.count && i < lastUsedVersionItems.count; i++) {
+            BOOL currentVersionLarger = NO;
+            for (int i = 0; i < currentVersionItems.count || i < lastUsedVersionItems.count; i++) {
                 if (i >= currentVersionItems.count) {
                     currentVersionLarger = NO;
                     break;
@@ -527,18 +527,14 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
             if (currentVersionLarger) {
                 [ud setValue:currentVersion forKey:MMLastUsedBundleVersionKey];
 
-                // We have successfully updated to a new version. Show a "What's
-                // New" page to the user with latest release notes if the main
-                // release number has increased (we don't count the pre-release
-                // minor revision number for now).
-                if (lastUsedVersionItems[0].integerValue < currentVersionItems[0].integerValue) {
+                // We have successfully updated to a new version. Show a
+                // "What's New" page to the user with latest release notes
+                // unless they configured not to.
+                BOOL showWhatsNewSetting = [ud boolForKey:MMShowWhatsNewOnStartupKey];
 
-                    BOOL showWhatsNewSetting = [ud boolForKey:MMShowWhatsNewOnStartupKey];
-
-                    shouldShowWhatsNewPage = showWhatsNewSetting;
-                    [MMWhatsNewController setRequestVersionRange:lastUsedVersion
-                                                              to:currentVersion];
-                }
+                shouldShowWhatsNewPage = showWhatsNewSetting;
+                [MMWhatsNewController setRequestVersionRange:lastUsedVersion
+                                                          to:currentVersion];
             }
         }
     }
