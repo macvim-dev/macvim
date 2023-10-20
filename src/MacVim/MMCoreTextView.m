@@ -760,6 +760,17 @@ static void grid_free(Grid *grid) {
     NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
     const BOOL clipTextToRow = [ud boolForKey:MMRendererClipToRowKey]; // Specify whether to clip tall characters by the row boundary.
 
+
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_VERSION_14_0
+    // On macOS 14+ by default views don't clip their content, which is good as it allows tall texts
+    // on first line to be drawn fully without getting clipped. However, in this case we should make
+    // sure the background color fill is clipped properly, as otherwise it will interfere with
+    // non-native fullscreen's background color setting.
+    const BOOL clipBackground = !self.clipsToBounds;
+#else
+    const BOOL clipBackground = NO;
+#endif
+
     NSGraphicsContext *context = [NSGraphicsContext currentContext];
 #if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_10
     CGContextRef ctx = context.CGContext;
@@ -791,7 +802,14 @@ static void grid_free(Grid *grid) {
     const unsigned defaultBg = defaultBackgroundColor.argbInt;
     CGContextSetFillColor(ctx, COMPONENTS(defaultBg));
 
+    if (clipBackground) {
+        CGContextSaveGState(ctx);
+        CGContextClipToRect(ctx, self.bounds);
+    }
     CGContextFillRect(ctx, rect);
+    if (clipBackground) {
+        CGContextRestoreGState(ctx);
+    }
 
     // Function to draw all rows
     void (^drawAllRows)(void (^)(CGContextRef,CGRect,int)) = ^(void (^drawFunc)(CGContextRef,CGRect,int)){
