@@ -83,8 +83,7 @@ static NSString *_latestVersion;
                           _latestVersion];
     }
     else {
-        // We just updated to a new version. Show a message to user and also
-        // requests specifically these new versions for the welcome message
+        // Just show the current version MacVim has
         NSString *currentVersion = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleVersion"];
 
         whatsNewURLStr = [NSString stringWithFormat:@"%@?version=%@",
