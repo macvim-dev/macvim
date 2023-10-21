@@ -1278,7 +1278,17 @@
     // Calling setFrameSizeKeepGUISize: instead of setFrameSize: prevents a
     // degenerate case where frameSizeMayHaveChanged: ends up resizing the window
     // *again* causing windowDidResize: to be called.
-    [vimView setFrameSizeKeepGUISize:[self contentSize]];
+    if (fullScreenWindow == nil) {
+        [vimView setFrameSizeKeepGUISize:[self contentSize]];
+    } else {
+        // Non-native full screen mode is more complicated and needs to
+        // re-layout the Vim view to properly account for the menu bar / notch,
+        // and misc fuopt configuration.
+        // This code is similar to what's done in processInputQueueDidFinish.
+        NSRect desiredFrame = [fullScreenWindow getDesiredFrame];
+        [vimView setFrameOrigin:desiredFrame.origin];
+        [vimView setFrameSizeKeepGUISize:desiredFrame.size];
+    }
 }
 
 - (void)windowDidChangeBackingProperties:(NSNotification *)notification
