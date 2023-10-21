@@ -1,0 +1,7 @@
+# Customize GitHub release notes generation. This is only used for pre-release builds for now as
+# main releases have hand-written release notes.
+changelog:
+  exclude:
+    labels:
+      - dependencies
+      - Non User Facing
