@@ -376,29 +376,48 @@ enum {
     [self setFrame:[screen frame] display:NO];
 }
 
-/// Get the view offset to allow us space to show the menu bar, or account for "safe area" (a.k.a. notch) in certain MacBook Pro's.
+/// Get the view offset to allow us space to show the menu bar, or account for "safe area" (a.k.a.
+/// notch) in certain MacBook Pro's.
 - (NSEdgeInsets) viewOffset {
     NSEdgeInsets offset = NSEdgeInsetsMake(0, 0, 0, 0);
+
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    const BOOL showMenu = [ud boolForKey:MMNonNativeFullScreenShowMenuKey];
 
 #if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_VERSION_12_0)
     // Account for newer MacBook Pro's which have a notch, which can be queried using the safe area API.
     if (@available(macos 12.0, *)) {
-        const int safeAreaBehavior = [[NSUserDefaults standardUserDefaults]
-                                      integerForKey:MMNonNativeFullScreenSafeAreaBehaviorKey];
+        const int safeAreaBehavior = [ud integerForKey:MMNonNativeFullScreenSafeAreaBehaviorKey];
 
-        // The safe area utilization is configuration. Right now, we only have two choices.
-        // In the future there may be more, e.g. showing tabs in the safe area.
-        if (safeAreaBehavior == 0) {
-            offset = [[self screen] safeAreaInsets];
+        // The safe area utilization is configuration. Right now, we only have two choices:
+        // - 0: avoid the safe area (default)
+        // - 1: draw into the safe area, which would cause some contents to be obscured.
+        // In the future there may be more. E.g. we can draw tabs in the safe area.
+        // If menu is shown, we ignore this because this doesn't make sense.
+        if (safeAreaBehavior == 0 || showMenu) {
+            offset = [self screen].safeAreaInsets;
         }
     }
 #endif
 
-    if ([[NSUserDefaults standardUserDefaults]
-          boolForKey:MMNonNativeFullScreenShowMenuKey]) {
-        const CGFloat menuBarHeight = [[[NSApplication sharedApplication] mainMenu] menuBarHeight];
-        if (menuBarHeight > offset.top) {
-            offset.top = menuBarHeight;
+    if (showMenu) {
+        // Offset by menu height
+        if (offset.top == 0) {
+            const CGFloat menuBarHeight = [[[NSApplication sharedApplication] mainMenu] menuBarHeight];
+            if (menuBarHeight > offset.top) {
+                offset.top = menuBarHeight;
+            }
+        } else {
+            // Unfortunately, if there is a notch (safe area != 0), menuBarHeight does *not* return
+            // the menu height shown in the main screen, so we need to calculate it otherwise.
+            // visibleArea is supposed to give us this information but it's oddly off by one, leading
+            // to a one-pixel black line, so we need to manually increment it by one. Yes, it sucks.
+            NSRect visibleFrame = [self screen].visibleFrame;
+            visibleFrame.size.height += 1;
+            const CGFloat menuBarHeight = [self screen].frame.size.height - NSMaxY(visibleFrame);
+            if (menuBarHeight > offset.top) {
+                offset.top = menuBarHeight;
+            }
         }
     }
 
@@ -482,6 +501,16 @@ enum {
     return selfScreenNum == primaryScreenNum;
 }
 
+/// Returns true when this screen has a dock and menu shown.
+///
+/// @note
+/// This does not reliably detect whether the dock is on the current screen or
+/// not as there is no API to reliably detect this. We are mostly guessing here
+/// but if the user sets the dock to display on left/right on a horizontal
+/// layout, it may be on the other screen.
+/// Also, technically when not using separate spaces, it's possible for the
+/// menu to be on one screen and dock on the other.
+/// This should be revisited in the future.
 - (BOOL)screenHasDockAndMenu
 {
     return NSScreen.screensHaveSeparateSpaces || [self isOnPrimaryScreen];
