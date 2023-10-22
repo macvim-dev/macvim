@@ -3643,7 +3643,7 @@ Makefile:
 
 ##############################################################################
 ### MacVim GUI
-.PHONY: macvim macvim-dmg macvim-dmg-legacy macvimclean macvim-signed macvim-dmg-release macvim-dmg-release-legacy macvim-install-runtime
+.PHONY: macvim macvim-dmg macvim-dmg-legacy macvimclean macvim-signed macvim-dmg-release macvim-dmg-release-legacy macvim-install-runtime macvim-xcodeproj-compat
 
 RUNTIME_FOLDER_LIST = MacVim/auto/runtime_folder_list.xcfilelist
 
@@ -3709,6 +3709,12 @@ macvim-dmg-release-legacy: macvim-signed macvim-dmg-legacy
 	@echo "Release MacVim (legacy format) built!"
 
 macvim-install-runtime: installruntime installmanlinks installtools $(INSTALL_LANGS)
+
+# Build projects for older versions of Xcode for compatibility
+MacVim/MacVim_xcode8.xcodeproj/project.pbxproj: MacVim/MacVim.xcodeproj/project.pbxproj MacVim/scripts/gen-xcodeproj-compat
+	MacVim/scripts/gen-xcodeproj-compat
+
+macvim-xcodeproj-compat: MacVim/MacVim_xcode8.xcodeproj/project.pbxproj
 
 ###############################################################################
 #
