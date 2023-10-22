@@ -97,11 +97,11 @@ src/kword_test
 # From MacVim
 .*.swp
 .DS_Store
-src/MacVim/MacVim.xcodeproj/*.mode1
-src/MacVim/MacVim.xcodeproj/*.mode1v3
-src/MacVim/MacVim.xcodeproj/*.pbxuser
-src/MacVim/MacVim.xcodeproj/project.xcworkspace
-src/MacVim/MacVim.xcodeproj/xcuserdata
+src/MacVim/MacVim*.xcodeproj/*.mode1
+src/MacVim/MacVim*.xcodeproj/*.mode1v3
+src/MacVim/MacVim*.xcodeproj/*.pbxuser
+src/MacVim/MacVim*.xcodeproj/project.xcworkspace
+src/MacVim/MacVim*.xcodeproj/xcuserdata
 src/MacVim/icons/*.pyc
 src/MacVim/icons/*.ttf
 src/MacVim/icons/*.reg

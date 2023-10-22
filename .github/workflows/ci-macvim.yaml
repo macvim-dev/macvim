@@ -56,7 +56,7 @@ jobs:
           # Oldest version of Xcode supported on GitHub Action to test source code backwards compatibility
           - os: macos-11
             xcode: '11.7'
-            extra: [vimtags]
+            extra: [vimtags, check-xcodeproj-compat]
 
           # Older version of Xcode, and used to publish legacy builds (for macOS 10.9 - 10.12)
           - os: macos-12
@@ -299,6 +299,16 @@ jobs:
           # Confirm that we can build the help tags, and they match what's in source.
           make -C runtime/doc vimtags VIMEXE=../../${VIM_BIN}
           git diff --exit-code -- runtime/doc/tags
+
+      - name: Check Xcode project compatibility version
+        if: contains(matrix.extra, 'check-xcodeproj-compat')
+        run: |
+          # Confirm that the compatibility version of xcodeproj is correct and not outdated.
+          rm -rf src/MacVim/MacVim_xcode8.xcodeproj
+          make -C src macvim-xcodeproj-compat
+          if ! git diff --exit-code -- src/MacVim/MacVim_xcode8.xcodeproj; then
+            echo 'MacVim_xcode8.xcodeproj is outdated. Run "make -C src macvim-xcodeproj-compat" to re-generate it.'; false
+          fi
 
       - name: Build test binaries
         run: |
