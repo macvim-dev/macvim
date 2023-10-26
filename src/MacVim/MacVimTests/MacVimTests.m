@@ -1,0 +1,334 @@
+//
+// MacVimTests.m
+//
+// Contains unit tests and end-to-end app tests. Currently everything is in one
+// file as we only have a few tests. As we expand test coverage we should split
+// them up and refactor to more logical components.
+//
+
+#import <XCTest/XCTest.h>
+
+#import <objc/runtime.h>
+
+#import "Miscellaneous.h"
+#import "MMAppController.h"
+#import "MMApplication.h"
+#import "MMTextView.h"
+#import "MMWindowController.h"
+#import "MMVimController.h"
+#import "MMVimView.h"
+
+// Expose private methods for testing purposes
+@interface MMAppController (Private)
++ (NSDictionary*)parseOpenURL:(NSURL*)url;
+@end
+
+@interface MMVimController (Private)
+- (void)handleMessage:(int)msgid data:(NSData *)data;
+@end
+
+// Test harness
+@interface MMAppController (Tests)
+- (NSMutableArray*)vimControllers;
+@end
+
+@implementation MMAppController (Tests)
+- (NSMutableArray*)vimControllers {
+    return vimControllers;
+}
+@end
+
+@interface MacVimTests : XCTestCase
+
+@end
+
+@implementation MacVimTests
+
+/// Wait for a Vim controller to be added/removed. By the time this is fulfilled
+/// the Vim window should be ready and visible.
+- (void)waitForVimController:(int)delta {
+    NSArray *vimControllers = [MMAppController.sharedInstance vimControllers];
+    const int desiredCount = (int)vimControllers.count + delta;
+    [self waitForExpectations:@[[[XCTNSPredicateExpectation alloc]
+                                 initWithPredicate:[NSPredicate predicateWithBlock:^(id vimControllers, NSDictionary<NSString *,id> *bindings) {
+                                    return (BOOL)((int)[(NSArray*)vimControllers count] == desiredCount);
+                                 }]
+                                 object:vimControllers]]
+                      timeout:5];
+}
+
+/// Wait for event handling to be finished at the main loop.
+- (void)waitForEventHandling {
+    // Inject a custom event. By the time we handle this event all queued events
+    // will have been consumed.
+    const NSInteger appEventType = 1687648131; // magic number to prevent collisions
+    XCTestExpectation *expectation = [self expectationWithDescription:@"EventHandling"];
+
+    SEL sel = @selector(sendEvent:);
+    Method method = class_getInstanceMethod([MMApplication class], sel);
+
+    IMP origIMP = method_getImplementation(method);
+    IMP newIMP = imp_implementationWithBlock(^(id self, NSEvent *event) {
+        typedef void (*fn)(id,SEL,NSEvent*);
+        if (event.type == NSEventTypeApplicationDefined && event.data1 == appEventType) {
+            [expectation fulfill];
+        } else {
+            ((fn)origIMP)(self, sel, event);
+        }
+    });
+
+    NSApplication* app = [NSApplication sharedApplication];
+    NSEvent* customEvent = [NSEvent otherEventWithType:NSEventTypeApplicationDefined
+                                              location:NSMakePoint(50, 50)
+                                         modifierFlags:0
+                                             timestamp:100
+                                          windowNumber:[[NSApp mainWindow] windowNumber]
+                                               context:0
+                                               subtype:0
+                                                 data1:appEventType
+                                                 data2:0];
+
+    method_setImplementation(method, newIMP);
+
+    [app postEvent:customEvent atStart:NO];
+    [self waitForExpectations:@[expectation] timeout:10];
+
+    method_setImplementation(method, origIMP);
+}
+
+/// Wait for Vim to process all pending messages in its queue.
+- (void)waitForVimProcess {
+    // Implement this by sending a loopback message (Vim will send the message
+    // back to us) as a synchronization mechanism as Vim handles its messages
+    // sequentially.
+    XCTestExpectation *expectation = [self expectationWithDescription:@"VimLoopBack"];
+
+    SEL sel = @selector(handleMessage:data:);
+    Method method = class_getInstanceMethod([MMVimController class], sel);
+
+    IMP origIMP = method_getImplementation(method);
+    IMP newIMP = imp_implementationWithBlock(^(id self, int msgid, NSData *data) {
+        typedef void (*fn)(id,SEL,int,NSData*);
+        if (msgid == LoopBackMsgID) {
+            [expectation fulfill];
+        } else {
+            ((fn)origIMP)(self, sel, msgid, data);
+        }
+    });
+
+    method_setImplementation(method, newIMP);
+
+    [[MMAppController.sharedInstance keyVimController] sendMessage:LoopBackMsgID data:nil];
+    [self waitForExpectations:@[expectation] timeout:10];
+
+    method_setImplementation(method, origIMP);
+}
+
+/// Wait for both event handling to be finished at the main loop and for Vim to
+/// process all pending messages in its queue.
+- (void)waitForEventHandlingAndVimProcess {
+    [self waitForEventHandling];
+    [self waitForVimProcess];
+}
+
+/// Wait for a fixed timeout before fulfilling expectation.
+///
+/// @note Should only be used for quick iteration / debugging unless we cannot
+/// find an alternative way to specify an expectation, as timeouts tend to be
+/// fragile and take more time to complete.
+- (void)waitTimeout:(double)delaySecs {
+    XCTestExpectation *expectation = [self expectationWithDescription:@"Timeout"];
+    dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delaySecs * NSEC_PER_SEC));
+    dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
+        [expectation fulfill];
+    });
+    [self waitForExpectations:@[expectation] timeout:delaySecs + 10];
+}
+
+/// Send a single key to MacVim via event handling system.
+- (void)sendKeyToVim:(NSString*)chars withMods:(int)mods {
+    NSApplication* app = [NSApplication sharedApplication];
+    NSEvent* keyEvent = [NSEvent keyEventWithType:NSEventTypeKeyDown
+                                         location:NSMakePoint(50, 50)
+                                    modifierFlags:mods
+                                        timestamp:100
+                                     windowNumber:[[NSApp mainWindow] windowNumber]
+                                          context:0
+                                       characters:chars
+                      charactersIgnoringModifiers:chars
+                                        isARepeat:NO
+                                          keyCode:0];
+
+    [app postEvent:keyEvent atStart:NO];
+}
+
+/// Send a string to MacVim via event handling system. Each character will be
+/// sent separately as if the user typed it.
+- (void)sendStringToVim:(NSString*)chars withMods:(int)mods {
+    for (NSUInteger i = 0; i < chars.length; i++) {
+        unichar ch = [chars characterAtIndex:i];
+        NSString *str = [NSString stringWithCharacters:&ch length:1];
+        [self sendKeyToVim:str withMods:mods];
+    }
+}
+
+- (void)testCompareSemanticVersions {
+    // bogus values evaluate to 0
+    XCTAssertEqual(0,  compareSemanticVersions(@"bogus", @""));
+    XCTAssertEqual(0,  compareSemanticVersions(@"bogus", @"0"));
+    XCTAssertEqual(0,  compareSemanticVersions(@"", @""));
+
+    // single values
+    XCTAssertEqual(1,  compareSemanticVersions(@"", @"1"));
+    XCTAssertEqual(-1, compareSemanticVersions(@"1", @""));
+    XCTAssertEqual(1,  compareSemanticVersions(@"100", @"101"));
+    XCTAssertEqual(-1, compareSemanticVersions(@"101", @"100"));
+
+    // multiple semantic values
+    XCTAssertEqual(1,  compareSemanticVersions(@"100", @"100.1"));
+    XCTAssertEqual(-1, compareSemanticVersions(@"100.1", @"100"));
+    XCTAssertEqual(1,  compareSemanticVersions(@"100.2", @"100.3"));
+    XCTAssertEqual(-1, compareSemanticVersions(@"100.10", @"100.2")); // double digit after the dot to make sure we are parsing it properly
+    XCTAssertEqual(0,  compareSemanticVersions(@"234.5", @"234.5"));
+    XCTAssertEqual(-1, compareSemanticVersions(@"234.5.1", @"234.5"));
+    XCTAssertEqual(1,  compareSemanticVersions(@"234.5", @"234.5.0"));
+}
+
+/// Tests that parseOpenURL complies with the spec. See ":h macvim-url-handler".
+- (void)testParseOpenURL {
+    XCTAssertEqualObjects([MMAppController parseOpenURL:[NSURL URLWithString:@"mvim://open?"]], @{});
+    XCTAssertEqualObjects([MMAppController parseOpenURL:[NSURL URLWithString:@"mvim://open?url=file:///foo/bar"]], @{@"url": @"file:///foo/bar"});
+
+    // Test that we correctly decode the URL, where special characters like space need to be double encoded.
+    XCTAssertEqualObjects([MMAppController parseOpenURL:[NSURL URLWithString:@"mvim://open?url=file:///foo/bar%2520file"]], @{@"url": @"file:///foo/bar%20file"});
+    XCTAssertEqualObjects([[NSURL URLWithString:@"file:///foo/bar%20file"] path], @"/foo/bar file");
+    // Test opportunistic single-encoding for compatibility with old behaviors and other tools.
+    XCTAssertEqualObjects([MMAppController parseOpenURL:[NSURL URLWithString:@"mvim://open?url=file:///foo/bar%20file"]], @{@"url": @"file:///foo/bar%20file"});
+
+    // Test mixed single/double-encoding.
+    XCTAssertEqualObjects([MMAppController parseOpenURL:[NSURL URLWithString:@"mvim://open?url=file:///foo/bar%20%2520file%253F"]], @{@"url": @"file:///foo/bar%20%20file%3F"});
+
+    // Test that with certain special characters like "&", you have to encode at least once, as otherwise it will be interpreted as a separator.
+    XCTAssertEqualObjects([MMAppController parseOpenURL:[NSURL URLWithString:@"mvim://open?url=file:///foo&bar"]], @{@"url": @"file:///foo"}); // lost the "bar" in the path
+    XCTAssertEqualObjects([MMAppController parseOpenURL:[NSURL URLWithString:@"mvim://open?url=file:///foo%26bar"]], @{@"url": @"file:///foo&bar"});
+    XCTAssertEqualObjects([[NSURL URLWithString:@"file:///foo&bar"] path], @"/foo&bar");
+    XCTAssertEqualObjects([MMAppController parseOpenURL:[NSURL URLWithString:@"mvim://open?url=file:///foo%2526bar"]], @{@"url": @"file:///foo%26bar"});
+    XCTAssertEqualObjects([[NSURL URLWithString:@"file:///foo%26bar"] path], @"/foo&bar");
+
+    // Test that '%' in a file name is a special case, where only double-encoding works. The opportunistic single-encoding doesn't work here.
+    XCTAssertEqualObjects([MMAppController parseOpenURL:[NSURL URLWithString:@"mvim://open?url=file:///foo%bar"]], @{}); // This should fail at decoding step
+    XCTAssertEqualObjects([MMAppController parseOpenURL:[NSURL URLWithString:@"mvim://open?url=file:///foo%25bar"]], @{@"url": @"file:///foo%bar"}); // Not valid file URL
+    XCTAssertEqualObjects([[NSURL URLWithString:@"file:///foo%bar"] path], nil); // Invalid decoded file URL leads to nil
+    XCTAssertEqualObjects([MMAppController parseOpenURL:[NSURL URLWithString:@"mvim://open?url=file:///foo%2525bar"]], @{@"url": @"file:///foo%25bar"});
+    XCTAssertEqualObjects([[NSURL URLWithString:@"file:///foo%25bar"] path], @"/foo%bar");
+}
+
+/// Test that the "Vim Tutor" menu item works and can be used to launch the
+/// bundled vimtutor. Previously this was silently broken by Vim v8.2.3502
+/// and fixed in https://github.com/macvim-dev/macvim/pull/1265.
+- (void)testVimTutor {
+    MMAppController *app = MMAppController.sharedInstance;
+
+    // Adding a new window is necessary for the vimtutor menu to show up as it's
+    // not part of the global menu
+    [app openNewWindow:NewWindowClean activate:YES];
+    [self waitForVimController:1];
+
+    // Find the vimtutor menu and run it.
+    NSMenu *mainMenu = [NSApp mainMenu];
+    NSMenu *helpMenu = [mainMenu findHelpMenu];
+    NSMenuItem *vimTutorMenu = nil;
+    for (NSInteger i = 0; i < helpMenu.numberOfItems; ++i) {
+        NSMenuItem *menuItem = [helpMenu itemAtIndex:i];
+        if ([menuItem.title isEqualToString:@"Vim Tutor"])
+            vimTutorMenu = menuItem;
+    }
+    XCTAssertNotNil(vimTutorMenu);
+    XCTAssertEqual(vimTutorMenu.action, @selector(vimMenuItemAction:));
+    [[[app keyVimController] windowController] vimMenuItemAction:vimTutorMenu];
+
+    // Make sure the menu item actually opened a new window and point to a tutor buffer
+    [self waitForVimController:1];
+
+    NSString *bufname = [[app keyVimController] evaluateVimExpression:@"bufname()"];
+    XCTAssertTrue([bufname containsString:@"tutor"]);
+
+    // Clean up
+    [[app keyVimController] sendMessage:VimShouldCloseMsgID data:nil];
+    [self waitForVimController:-1];
+    [[app keyVimController] sendMessage:VimShouldCloseMsgID data:nil];
+    [self waitForVimController:-1];
+}
+
+/// Test that cmdline row calculation (used by MMCmdLineAlignBottom) is correct.
+/// This is an integration test as the calculation is done in Vim, which has
+/// special logic to account for "Press Enter" and "--more--" prompts when showing
+/// messages.
+- (void) testCmdlineRowCalculation {
+    MMAppController *app = MMAppController.sharedInstance;
+
+    [app openNewWindow:NewWindowClean activate:YES];
+    [self waitForVimController:1];
+
+    MMTextView *textView = [[[[app keyVimController] windowController] vimView] textView];
+    const int numLines = [textView maxRows];
+    const int numCols = [textView maxColumns];
+
+    // Define convenience macro (don't use functions to preserve line numbers in callstack)
+#define ASSERT_NUM_CMDLINES(expected) \
+{ \
+    const int cmdlineRow = [[[app keyVimController] objectForVimStateKey:@"cmdline_row"] intValue]; \
+    const int numBottomLines = numLines - cmdlineRow; \
+    XCTAssertEqual(expected, numBottomLines); \
+}
+
+    // Default value
+    [self waitForEventHandlingAndVimProcess];
+    ASSERT_NUM_CMDLINES(1);
+
+    // Print more lines than we have room for to trigger "Press Enter"
+    [self sendStringToVim:@":echo join(repeat(['test line'], 3), \"\\n\")\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    ASSERT_NUM_CMDLINES(1);
+
+    // Test non-1 cmdheight works
+    [self sendStringToVim:@":set cmdheight=3\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    ASSERT_NUM_CMDLINES(3);
+
+    // Test typing enough characters to cause cmdheight to grow
+    [self sendStringToVim:[@":\"" stringByPaddingToLength:numCols * 3 - 1 withString:@"a" startingAtIndex:0] withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    ASSERT_NUM_CMDLINES(3);
+
+    [self sendStringToVim:@"bbbb" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    ASSERT_NUM_CMDLINES(4);
+
+    [self sendStringToVim:@"\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    ASSERT_NUM_CMDLINES(3);
+
+    // Printing just enough lines within cmdheight should not affect anything
+    [self sendStringToVim:@":echo join(repeat(['test line'], 3), \"\\n\")\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    ASSERT_NUM_CMDLINES(3);
+
+    // Printing more lines than cmdheight will once again trigger "Press Enter"
+    [self sendStringToVim:@":echo join(repeat(['test line'], 4), \"\\n\")\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    ASSERT_NUM_CMDLINES(1);
+
+    // Printing more lines than the screen will trigger "--more--" prompt
+    [self sendStringToVim:@":echo join(repeat(['test line'], 2000), \"\\n\")\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    ASSERT_NUM_CMDLINES(1);
+
+#undef ASSERT_NUM_CMDLINES
+
+    // Clean up
+    [[app keyVimController] sendMessage:VimShouldCloseMsgID data:nil];
+    [self waitForVimController:-1];
+}
+
+@end

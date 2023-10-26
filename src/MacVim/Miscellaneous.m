@@ -263,7 +263,7 @@ NSString *MMScrollOneDirectionOnlyKey     = @"MMScrollOneDirectionOnly";
 
 
     NSView *
-showHiddenFilesView()
+showHiddenFilesView(void)
 {
     // Return a new button object for each NSOpenPanel -- several of them
     // could be displayed at once.
@@ -320,12 +320,12 @@ normalizeFilenames(NSArray *filenames)
 
 
     BOOL
-shouldUseYosemiteTabBarStyle()
+shouldUseYosemiteTabBarStyle(void)
 { 
     return floor(NSAppKitVersionNumber) >= NSAppKitVersionNumber10_10;
 }
     BOOL
-shouldUseMojaveTabBarStyle()
+shouldUseMojaveTabBarStyle(void)
 {
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_14
     if (@available(macos 10.14, *)) {
@@ -360,7 +360,7 @@ getCurrentAppearance(NSAppearance *appearance){
 /// Returns the pasteboard type to use for retrieving file names from a list of
 /// files.
 /// @return The pasteboard type that can be passed to NSPasteboard for registration.
-NSPasteboardType getPasteboardFilenamesType()
+NSPasteboardType getPasteboardFilenamesType(void)
 {
 #if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_13
     return NSPasteboardTypeFileURL;
@@ -407,3 +407,29 @@ NSArray<NSString*>* extractPasteboardFilenames(NSPasteboard *pboard)
 #endif
 }
 
+/// Compare two version strings (must be in integers separated by dots) and see
+/// if one is larger.
+///
+/// @return 1 if newVersion is newer, 0 if equal, -1 if oldVersion newer.
+int compareSemanticVersions(NSString *oldVersion, NSString *newVersion)
+{
+    NSArray<NSString*> *oldVersionItems = [oldVersion componentsSeparatedByString:@"."];
+    NSArray<NSString*> *newVersionItems = [newVersion componentsSeparatedByString:@"."];
+    // Compare two arrays lexographically. We just assume that version
+    // numbers are also X.Y.Z… with no "beta" etc texts.
+    for (int i = 0; i < oldVersionItems.count || i < newVersionItems.count; i++) {
+        if (i >= newVersionItems.count) {
+            return -1;
+        }
+        if (i >= oldVersionItems.count) {
+            return 1;
+        }
+        if (newVersionItems[i].integerValue > oldVersionItems[i].integerValue) {
+            return 1;
+        }
+        else if (newVersionItems[i].integerValue < oldVersionItems[i].integerValue) {
+            return -1;
+        }
+    }
+    return 0;
+}

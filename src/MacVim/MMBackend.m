@@ -2319,6 +2319,10 @@ static char_u *extractSelectedText(void)
         [self setImState:NO];
     } else if (BackingPropertiesChangedMsgID == msgid) {
         [self redrawScreen];
+    } else if (LoopBackMsgID == msgid) {
+        // This is a debug message used for confirming a message has been
+        // received and echoed back to caller for synchronization purpose.
+        [self queueMessage:msgid data:nil];
     } else {
         ASLogWarn(@"Unknown message received (msgid=%d)", msgid);
     }

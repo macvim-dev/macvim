@@ -162,7 +162,7 @@ enum {
 // Create a view with a "show hidden files" button to be used as accessory for
 // open/save panels.  This function assumes ownership of the view so do not
 // release it.
-NSView *showHiddenFilesView();
+NSView *showHiddenFilesView(void);
 
 
 // Convert filenames (which are in a variant of decomposed form, NFD, on HFS+)
@@ -175,11 +175,13 @@ NSView *showHiddenFilesView();
 NSString *normalizeFilename(NSString *filename);
 NSArray *normalizeFilenames(NSArray *filenames);
 
-BOOL shouldUseYosemiteTabBarStyle();
-BOOL shouldUseMojaveTabBarStyle();
+BOOL shouldUseYosemiteTabBarStyle(void);
+BOOL shouldUseMojaveTabBarStyle(void);
 
 int getCurrentAppearance(NSAppearance *appearance);
 
 // Pasteboard helpers
-NSPasteboardType getPasteboardFilenamesType();
+NSPasteboardType getPasteboardFilenamesType(void);
 NSArray<NSString*>* extractPasteboardFilenames(NSPasteboard *pboard);
+
+int compareSemanticVersions(NSString *oldVersion, NSString *newVersion);
