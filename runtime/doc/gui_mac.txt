@@ -264,6 +264,10 @@ Vim options (see |macvim-options|).  These settings are stored in the user
 defaults database and can be accessed via the "MacVim.Settings…"
 ("MacVim.Preferences…" in macOS 12 Monterey and older) menu item.
 
+If you want to open MacVim with its default settings, you can open it by
+passing `-IgnoreUserDefaults 1` to the launch arguments (see the man page on
+the "open" for how to do so).
+
 							*macvim-user-defaults*
 Not all entries in the user defaults database are exposed via the settings
 panel, usually because they should not be changed by the user under normal

@@ -81,6 +81,17 @@
                                     <action selector="newWindow:" target="235" id="251"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="New Clean Window" keyEquivalent="N" id="6vC-1c-PzC" userLabel="New Clean Window">
+                                <connections>
+                                    <action selector="newWindowCleanAndActivate:" target="-1" id="0IK-4B-mIA"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="New Clean Window (No Defaults)" alternate="YES" keyEquivalent="N" id="I52-K0-dKN" userLabel="New Clean Window (No Defaults)">
+                                <modifierMask key="keyEquivalentModifierMask" option="YES" command="YES"/>
+                                <connections>
+                                    <action selector="newWindowCleanNoDefaultsAndActivate:" target="-1" id="nAy-O6-DrK"/>
+                                </connections>
+                            </menuItem>
                             <menuItem title="Open…" keyEquivalent="o" id="261">
                                 <connections>
                                     <action selector="fileOpen:" target="235" id="277"/>
@@ -203,6 +214,12 @@
                     <attributedString key="attributedTitle"/>
                     <connections>
                         <action selector="newWindowAndActivate:" target="235" id="350"/>
+                    </connections>
+                </menuItem>
+                <menuItem title="New Clean Window" id="pDQ-Dc-v9a" userLabel="New Clean Window">
+                    <attributedString key="attributedTitle"/>
+                    <connections>
+                        <action selector="newWindowCleanAndActivate:" target="-1" id="p1b-M2-0zQ"/>
                     </connections>
                 </menuItem>
             </items>

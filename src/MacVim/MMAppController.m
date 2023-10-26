@@ -166,6 +166,95 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
 @implementation MMAppController
 
+/// Register the default settings for MacVim. Supports an optional
+/// "-IgnoreUserDefaults 1" command-line argument, which will override
+/// persisted user settings to have a clean environment.
++ (void)registerDefaults
+{
+    int tabMinWidthKey;
+    int tabMaxWidthKey;
+    int tabOptimumWidthKey;
+    if (shouldUseYosemiteTabBarStyle()) {
+        tabMinWidthKey = 120;
+        tabMaxWidthKey = 0;
+        tabOptimumWidthKey = 0;
+    } else {
+        tabMinWidthKey = 64;
+        tabMaxWidthKey = 6*64;
+        tabOptimumWidthKey = 132;
+    }
+
+    NSUserDefaults *ud = NSUserDefaults.standardUserDefaults;
+
+    NSDictionary *macvimDefaults = [NSDictionary dictionaryWithObjectsAndKeys:
+        [NSNumber numberWithBool:NO],     MMNoWindowKey,
+        [NSNumber numberWithInt:tabMinWidthKey],
+                                          MMTabMinWidthKey,
+        [NSNumber numberWithInt:tabMaxWidthKey],
+                                          MMTabMaxWidthKey,
+        [NSNumber numberWithInt:tabOptimumWidthKey],
+                                          MMTabOptimumWidthKey,
+        [NSNumber numberWithBool:YES],    MMShowAddTabButtonKey,
+        [NSNumber numberWithInt:2],       MMTextInsetLeftKey,
+        [NSNumber numberWithInt:1],       MMTextInsetRightKey,
+        [NSNumber numberWithInt:1],       MMTextInsetTopKey,
+        [NSNumber numberWithInt:1],       MMTextInsetBottomKey,
+        @"MMTypesetter",                  MMTypesetterKey,
+        [NSNumber numberWithFloat:1],     MMCellWidthMultiplierKey,
+        [NSNumber numberWithFloat:-1],    MMBaselineOffsetKey,
+        [NSNumber numberWithBool:YES],    MMTranslateCtrlClickKey,
+        [NSNumber numberWithInt:0],       MMOpenInCurrentWindowKey,
+        [NSNumber numberWithBool:NO],     MMNoFontSubstitutionKey,
+        [NSNumber numberWithBool:YES],    MMFontPreserveLineSpacingKey,
+        [NSNumber numberWithBool:YES],    MMLoginShellKey,
+        [NSNumber numberWithInt:MMRendererCoreText],
+                                          MMRendererKey,
+        [NSNumber numberWithInt:MMUntitledWindowAlways],
+                                          MMUntitledWindowKey,
+        [NSNumber numberWithBool:NO],     MMNoWindowShadowKey,
+        [NSNumber numberWithBool:NO],     MMDisableLaunchAnimationKey,
+        [NSNumber numberWithInt:0],       MMAppearanceModeSelectionKey,
+        [NSNumber numberWithBool:NO],     MMNoTitleBarWindowKey,
+        [NSNumber numberWithBool:NO],     MMTitlebarAppearsTransparentKey,
+        [NSNumber numberWithBool:NO],     MMZoomBothKey,
+        @"",                              MMLoginShellCommandKey,
+        @"",                              MMLoginShellArgumentKey,
+        [NSNumber numberWithBool:YES],    MMDialogsTrackPwdKey,
+        [NSNumber numberWithInt:3],       MMOpenLayoutKey,
+        [NSNumber numberWithBool:NO],     MMVerticalSplitKey,
+        [NSNumber numberWithInt:0],       MMPreloadCacheSizeKey,
+        [NSNumber numberWithInt:0],       MMLastWindowClosedBehaviorKey,
+#ifdef INCLUDE_OLD_IM_CODE
+        [NSNumber numberWithBool:YES],    MMUseInlineImKey,
+#endif // INCLUDE_OLD_IM_CODE
+        [NSNumber numberWithBool:NO],     MMSuppressTerminationAlertKey,
+        [NSNumber numberWithBool:YES],    MMNativeFullScreenKey,
+        [NSNumber numberWithDouble:0.0],  MMFullScreenFadeTimeKey,
+        [NSNumber numberWithBool:NO],     MMNonNativeFullScreenShowMenuKey,
+        [NSNumber numberWithInt:0],       MMNonNativeFullScreenSafeAreaBehaviorKey,
+        [NSNumber numberWithBool:YES],    MMShareFindPboardKey,
+        [NSNumber numberWithBool:NO],     MMSmoothResizeKey,
+        [NSNumber numberWithBool:NO],     MMCmdLineAlignBottomKey,
+        [NSNumber numberWithBool:NO],     MMRendererClipToRowKey,
+        [NSNumber numberWithBool:YES],    MMAllowForceClickLookUpKey,
+        [NSNumber numberWithBool:NO],     MMUpdaterPrereleaseChannelKey,
+        @"",                              MMLastUsedBundleVersionKey,
+        [NSNumber numberWithBool:YES],    MMShowWhatsNewOnStartupKey,
+        [NSNumber numberWithBool:0],      MMScrollOneDirectionOnlyKey,
+        nil];
+
+    [ud registerDefaults:macvimDefaults];
+
+    NSArray<NSString *> *arguments = NSProcessInfo.processInfo.arguments;
+    if ([arguments containsObject:@"-IgnoreUserDefaults"]) {
+        NSDictionary<NSString *, id> *argDefaults = [ud volatileDomainForName:NSArgumentDomain];
+        NSMutableDictionary<NSString *, id> *combinedDefaults = [NSMutableDictionary dictionaryWithCapacity: macvimDefaults.count];
+        [combinedDefaults setDictionary:macvimDefaults];
+        [combinedDefaults addEntriesFromDictionary:argDefaults];
+        [ud setVolatileDomain:combinedDefaults forName:NSArgumentDomain];
+    }
+}
+
 + (void)initialize
 {
     static BOOL initDone = NO;
@@ -176,7 +265,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
     // HACK! The following user default must be reset, else Ctrl-q (or
     // whichever key is specified by the default) will be blocked by the input
-    // manager (interpretKeyEvents: swallows that key).  (We can't use
+    // manager (interpreargumenttKeyEvents: swallows that key).  (We can't use
     // NSUserDefaults since it only allows us to write to the registration
     // domain and this preference has "higher precedence" than that so such a
     // change would have no effect.)
@@ -205,73 +294,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         [NSWindow setAllowsAutomaticWindowTabbing:NO];
     }
 
-    int tabMinWidthKey;
-    int tabMaxWidthKey;
-    int tabOptimumWidthKey;
-    if (shouldUseYosemiteTabBarStyle()) {
-        tabMinWidthKey = 120;
-        tabMaxWidthKey = 0;
-        tabOptimumWidthKey = 0;
-    } else {
-        tabMinWidthKey = 64;
-        tabMaxWidthKey = 6*64;
-        tabOptimumWidthKey = 132;
-    }
-
-    NSDictionary *dict = [NSDictionary dictionaryWithObjectsAndKeys:
-        [NSNumber numberWithBool:NO],     MMNoWindowKey,
-        [NSNumber numberWithInt:tabMinWidthKey],
-                                          MMTabMinWidthKey,
-        [NSNumber numberWithInt:tabMaxWidthKey],
-                                          MMTabMaxWidthKey,
-        [NSNumber numberWithInt:tabOptimumWidthKey],
-                                          MMTabOptimumWidthKey,
-        [NSNumber numberWithBool:YES],    MMShowAddTabButtonKey,
-        [NSNumber numberWithInt:2],       MMTextInsetLeftKey,
-        [NSNumber numberWithInt:1],       MMTextInsetRightKey,
-        [NSNumber numberWithInt:1],       MMTextInsetTopKey,
-        [NSNumber numberWithInt:1],       MMTextInsetBottomKey,
-        @"MMTypesetter",                  MMTypesetterKey,
-        [NSNumber numberWithFloat:1],     MMCellWidthMultiplierKey,
-        [NSNumber numberWithFloat:-1],    MMBaselineOffsetKey,
-        [NSNumber numberWithBool:YES],    MMTranslateCtrlClickKey,
-        [NSNumber numberWithInt:0],       MMOpenInCurrentWindowKey,
-        [NSNumber numberWithBool:NO],     MMNoFontSubstitutionKey,
-        [NSNumber numberWithBool:YES],    MMFontPreserveLineSpacingKey,
-        [NSNumber numberWithBool:YES],    MMLoginShellKey,
-        [NSNumber numberWithInt:MMRendererCoreText],
-                                          MMRendererKey,
-        [NSNumber numberWithInt:MMUntitledWindowAlways],
-                                          MMUntitledWindowKey,
-        [NSNumber numberWithBool:NO],     MMNoWindowShadowKey,
-        [NSNumber numberWithBool:NO],     MMZoomBothKey,
-        @"",                              MMLoginShellCommandKey,
-        @"",                              MMLoginShellArgumentKey,
-        [NSNumber numberWithBool:YES],    MMDialogsTrackPwdKey,
-        [NSNumber numberWithInt:3],       MMOpenLayoutKey,
-        [NSNumber numberWithBool:NO],     MMVerticalSplitKey,
-        [NSNumber numberWithInt:0],       MMPreloadCacheSizeKey,
-        [NSNumber numberWithInt:0],       MMLastWindowClosedBehaviorKey,
-#ifdef INCLUDE_OLD_IM_CODE
-        [NSNumber numberWithBool:YES],    MMUseInlineImKey,
-#endif // INCLUDE_OLD_IM_CODE
-        [NSNumber numberWithBool:NO],     MMSuppressTerminationAlertKey,
-        [NSNumber numberWithBool:YES],    MMNativeFullScreenKey,
-        [NSNumber numberWithDouble:0.0],  MMFullScreenFadeTimeKey,
-        [NSNumber numberWithBool:NO],     MMNonNativeFullScreenShowMenuKey,
-        [NSNumber numberWithInt:0],       MMNonNativeFullScreenSafeAreaBehaviorKey,
-        [NSNumber numberWithBool:YES],    MMShareFindPboardKey,
-        [NSNumber numberWithBool:NO],     MMSmoothResizeKey,
-        [NSNumber numberWithBool:NO],     MMCmdLineAlignBottomKey,
-        [NSNumber numberWithBool:NO],     MMRendererClipToRowKey,
-        [NSNumber numberWithBool:YES],    MMAllowForceClickLookUpKey,
-        [NSNumber numberWithBool:NO],     MMUpdaterPrereleaseChannelKey,
-        @"",                              MMLastUsedBundleVersionKey,
-        [NSNumber numberWithBool:YES],    MMShowWhatsNewOnStartupKey,
-        [NSNumber numberWithBool:0],      MMScrollOneDirectionOnlyKey,
-        nil];
-
-    [[NSUserDefaults standardUserDefaults] registerDefaults:dict];
+    [MMAppController registerDefaults];
 
     NSArray *types = [NSArray arrayWithObject:NSPasteboardTypeString];
     [NSApp registerServicesMenuSendTypes:types returnTypes:types];
@@ -1296,25 +1319,60 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     return YES;
 }
 
-- (IBAction)newWindow:(id)sender
+/// Open a new Vim window, potentially taking from cached (if preload is used).
+///
+/// @param mode Determine whether to use clean mode or not. Preload will only
+/// be used if using normal mode.
+///
+/// @param activate Activate the window after it's opened.
+- (void)openNewWindow:(enum NewWindowMode)mode activate:(BOOL)activate
 {
-    ASLogDebug(@"Open new window");
+    if (activate)
+        [self activateWhenNextWindowOpens];
 
     // A cached controller requires no loading times and results in the new
     // window popping up instantaneously.  If the cache is empty it may take
     // 1-2 seconds to start a new Vim process.
-    MMVimController *vc = [self takeVimControllerFromCache];
+    MMVimController *vc = (mode == NewWindowNormal) ? [self takeVimControllerFromCache] : nil;
     if (vc) {
         [[vc backendProxy] acknowledgeConnection];
     } else {
-        [self launchVimProcessWithArguments:nil workingDirectory:nil];
+        NSArray *args = (mode == NewWindowNormal) ? nil
+            : (mode == NewWindowClean ? @[@"--clean"]
+                                      : @[@"--clean", @"-u", @"NONE"]);
+        [self launchVimProcessWithArguments:args workingDirectory:nil];
     }
+}
+
+- (IBAction)newWindow:(id)sender
+{
+    ASLogDebug(@"Open new window");
+    [self openNewWindow:NewWindowNormal activate:NO];
+}
+
+- (IBAction)newWindowClean:(id)sender
+{
+    [self openNewWindow:NewWindowClean activate:NO];
+}
+
+- (IBAction)newWindowCleanNoDefaults:(id)sender
+{
+    [self openNewWindow:NewWindowCleanNoDefaults activate:NO];
 }
 
 - (IBAction)newWindowAndActivate:(id)sender
 {
-    [self activateWhenNextWindowOpens];
-    [self newWindow:sender];
+    [self openNewWindow:NewWindowNormal activate:YES];
+}
+
+- (IBAction)newWindowCleanAndActivate:(id)sender
+{
+    [self openNewWindow:NewWindowClean activate:YES];
+}
+
+- (IBAction)newWindowCleanNoDefaultsAndActivate:(id)sender
+{
+    [self openNewWindow:NewWindowCleanNoDefaults activate:YES];
 }
 
 - (IBAction)fileOpen:(id)sender

@@ -232,7 +232,7 @@
     // This makes windows animate when opened
     if ([win respondsToSelector:@selector(setAnimationBehavior:)]) {
         if (![[NSUserDefaults standardUserDefaults]
-              boolForKey:MMDisableLaunchAnimation]) {
+              boolForKey:MMDisableLaunchAnimationKey]) {
             [win setAnimationBehavior:NSWindowAnimationBehaviorDocumentWindow];
         }
     }
