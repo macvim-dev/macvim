@@ -160,7 +160,9 @@ enddef
 
 " File menu
 if has("gui_macvim")
-  an <silent> 10.290 &File.New\ Window		    <Nop>
+  an <silent> 10.290 &File.New\ Window                          <Nop>
+  an <silent> 10.291 &File.New\ Clean\ Window		        <Nop>
+  an <silent> 10.292 &File.New\ Clean\ Window\ (No\ Defaults)   <Nop>
   an  10.295 &File.New\ Tab			    :tabnew<CR>
   tln 10.295 &File.New\ Tab			    <C-W>:tabnew<CR>
   an <silent> 10.310 &File.Open…		    <Nop>
@@ -1267,6 +1269,8 @@ if has("gui_macvim")
   " action message is specified here via the :macmenu command.
   "
   macm File.New\ Window				key=<D-n> action=newWindow:
+  macm File.New\ Clean\ Window		        key=<D-N> action=newWindowClean:
+  macm File.New\ Clean\ Window\ (No\ Defaults)  key=<D-M-N> action=newWindowCleanNoDefaults: alt=YES
   macm File.New\ Tab				key=<D-t>
   macm File.Open…				key=<D-o> action=fileOpen:
   macm File.Open\ Tab\.\.\.<Tab>:tabnew		key=<D-T>
@@ -1417,4 +1421,4 @@ if has("touchbar")
   endif
 endif
 
-" vim: set sw=2 :
+" vim: set sw=2 tabstop=8 :

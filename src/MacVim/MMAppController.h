@@ -32,6 +32,12 @@
     , NSMenuItemValidation
 #endif
 > {
+    enum NewWindowMode {
+        NewWindowNormal = 0,
+        NewWindowClean,
+        NewWindowCleanNoDefaults,
+    };
+
     NSConnection        *connection;
     NSMutableArray      *vimControllers;
     NSString            *openSelectionString;
@@ -82,13 +88,22 @@
 - (void)refreshAllResizeConstraints;
 - (void)refreshAllTextViews;
 
+- (void)openNewWindow:(enum NewWindowMode)mode activate:(BOOL)activate;
+
 //
 // NSMenuItemValidation
 //
 - (BOOL)validateMenuItem:(NSMenuItem *)item;
 
+//
+// Actions exposed to Vim
+//
 - (IBAction)newWindow:(id)sender;
+- (IBAction)newWindowClean:(id)sender;
+- (IBAction)newWindowCleanNoDefaults:(id)sender;
 - (IBAction)newWindowAndActivate:(id)sender;
+- (IBAction)newWindowCleanAndActivate:(id)sender;
+- (IBAction)newWindowCleanNoDefaultsAndActivate:(id)sender;
 - (IBAction)fileOpen:(id)sender;
 - (IBAction)selectNextWindow:(id)sender;
 - (IBAction)selectPreviousWindow:(id)sender;
@@ -105,6 +120,9 @@
 - (IBAction)stayInBack:(id)sender;
 - (IBAction)stayLevelNormal:(id)sender;
 
+//
+// NSUserInterfaceItemSearching
+//
 - (NSArray<NSString *> *)localizedTitlesForItem:(id)item;
 - (void)searchForItemsWithSearchString:(NSString *)searchString
                            resultLimit:(NSInteger)resultLimit

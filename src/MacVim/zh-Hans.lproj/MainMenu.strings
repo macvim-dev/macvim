@@ -16,6 +16,15 @@
 /* Class = "NSMenuItem"; title = "MacVim Help"; ObjectID = "275"; */
 "275.title" = "MacVim帮助";
 
+/* Class = "NSMenuItem"; title = "New Clean Window"; ObjectID = "6vC-1c-PzC"; */
+"6vC-1c-PzC.title" = "新建干净窗口";
+
+/* Class = "NSMenuItem"; title = "New Clean Window (No Defaults)"; ObjectID = "I52-K0-dKN"; */
+"I52-K0-dKN.title" = "新建干净窗口（不用 Defaults）";
+
+/* Class = "NSMenuItem"; title = "New Clean Window"; ObjectID = "pDQ-Dc-v9a"; */
+"pDQ-Dc-v9a.title" = "新建干净窗口";
+
 // The strings below are untranslated
 
 /* Class = "NSMenu"; title = "MainMenu"; ObjectID = "29"; */

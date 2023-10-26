@@ -36,6 +36,10 @@
 	<string></string>
 	<key>newWindow:</key>
 	<string></string>
+	<key>newWindowClean:</key>
+	<string></string>
+	<key>newWindowCleanNoDefaults:</key>
+	<string></string>
 	<key>openWebsite:</key>
 	<string></string>
 	<key>showWhatsNew:</key>
@@ -86,11 +90,11 @@
 	<string></string>
 	<key>stayLevelNormal:</key>
 	<string></string>
-    <key>_removeWindowFromStageManagerSet:</key>
-    <string></string>
-    <key>joinAllStageManagerSets:</key>
-    <string></string>
-    <key>unjoinAllStageManagerSets:</key>
-    <string></string>
+	<key>_removeWindowFromStageManagerSet:</key>
+	<string></string>
+	<key>joinAllStageManagerSets:</key>
+	<string></string>
+	<key>unjoinAllStageManagerSets:</key>
+	<string></string>
 </dict>
 </plist>

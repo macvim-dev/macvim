@@ -38,7 +38,7 @@ extern NSString *MMAppearanceModeSelectionKey;
 extern NSString *MMNoTitleBarWindowKey;
 extern NSString *MMTitlebarAppearsTransparentKey;
 extern NSString *MMNoWindowShadowKey;
-extern NSString *MMDisableLaunchAnimation;
+extern NSString *MMDisableLaunchAnimationKey;
 extern NSString *MMLoginShellKey;
 extern NSString *MMUntitledWindowKey;
 extern NSString *MMZoomBothKey;
