@@ -344,6 +344,7 @@ extern const char * const MMVimMsgIDStrings[];
     MSG(EnableThinStrokesMsgID) \
     MSG(DisableThinStrokesMsgID) \
     MSG(ShowDefinitionMsgID) \
+    MSG(LoopBackMsgID) /* Simple message that Vim will reflect back to MacVim */ \
     MSG(LastMsgID) \
 
 enum {

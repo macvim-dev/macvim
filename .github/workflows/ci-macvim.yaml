@@ -87,6 +87,11 @@ jobs:
           # Later, we pass the --enable-sparkle_1 flag to configure to set the corresponding ifdef.
           ln -fhs Sparkle_1.framework src/MacVim/Sparkle.framework
 
+          # Sparkle shows a dialog asking if the user wants to check for updates on 2nd launch of
+          # MacVim. On Sparkle 1 this is annoyingly a modal dialog box and interferes with tests.
+          # Just disable it by pre-setting to not check for updates.
+          defaults write org.vim.MacVim SUEnableAutomaticChecks 0
+
       - name: Set up Xcode
         if: matrix.xcode != ''
         run: |
@@ -310,7 +315,12 @@ jobs:
             echo 'MacVim_xcode8.xcodeproj is outdated. Run "make -C src macvim-xcodeproj-compat" to re-generate it.'; false
           fi
 
-      - name: Build test binaries
+      - name: Test MacVim
+        timeout-minutes: 10
+        run: |
+          make ${MAKE_BUILD_ARGS} -C src macvim-tests
+
+      - name: Build Vim test binaries
         run: |
           # Build the unit test binaries first. With link-time-optimization they take some time to link. Running them
           # separately de-couples them from the timeout in tests, and allow us to build in parallel jobs (since tests
@@ -320,11 +330,11 @@ jobs:
           set -o verbose
           make ${MAKE_BUILD_ARGS} -j${NPROC} -C src unittesttargets
 
-      - name: Test
+      - name: Test Vim
         timeout-minutes: 20
         run: make ${MAKE_BUILD_ARGS} test
 
-      - name: Test GUI
+      - name: Test Vim (GUI)
         timeout-minutes: 20
         run: |
           make ${MAKE_BUILD_ARGS} -C src/testdir clean

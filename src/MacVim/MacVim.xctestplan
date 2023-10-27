@@ -1,0 +1,32 @@
+{
+  "configurations" : [
+    {
+      "id" : "6F3712E8-FA03-4BC3-99F0-F08F08C9C4F4",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "commandLineArgumentEntries" : [
+      {
+        "argument" : "-IgnoreUserDefaults 1"
+      },
+      {
+        "argument" : "-MMUntitledWindow 0"
+      }
+    ],
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:MacVim.xcodeproj",
+        "identifier" : "908A1E052AE496D200AB5862",
+        "name" : "MacVimTests"
+      }
+    }
+  ],
+  "version" : 1
+}

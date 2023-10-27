@@ -72,6 +72,7 @@
 		907FF7512521BCE200BADACB /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 907FF74F2521BCE200BADACB /* MainMenu.xib */; };
 		907FF7542521BDA600BADACB /* Preferences.xib in Resources */ = {isa = PBXBuildFile; fileRef = 907FF7522521BDA600BADACB /* Preferences.xib */; };
 		907FF7572521BDC300BADACB /* FindAndReplace.xib in Resources */ = {isa = PBXBuildFile; fileRef = 907FF7552521BDC200BADACB /* FindAndReplace.xib */; };
+		908A1E092AE496D200AB5862 /* MacVimTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 908A1E082AE496D200AB5862 /* MacVimTests.m */; };
 		909894382A56EB1E007B84A3 /* WhatsNew.xib in Resources */ = {isa = PBXBuildFile; fileRef = 909894362A56EB1E007B84A3 /* WhatsNew.xib */; };
 		9098943C2A56ECF6007B84A3 /* MMWhatsNewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 9098943B2A56ECF6007B84A3 /* MMWhatsNewController.m */; };
 		90A33BEA28D563DF003A2E2F /* MMSparkle2Delegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 90A33BE928D563DF003A2E2F /* MMSparkle2Delegate.m */; };
@@ -107,6 +108,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = 8D57630D048677EA00EA77CD;
 			remoteInfo = QuickLookStephen;
+		};
+		908A1E0A2AE496D200AB5862 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 29B97313FDCFA39411CA2CEA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 8D1107260486CEB800E47090;
+			remoteInfo = MacVim;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -296,6 +304,9 @@
 		907FF7622521C2FB00BADACB /* zh-Hant */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hant"; path = "zh-Hant.lproj/MainMenu.strings"; sourceTree = "<group>"; };
 		907FF7632521CBAC00BADACB /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/MainMenu.strings"; sourceTree = "<group>"; };
 		907FF7642521CBC500BADACB /* ja */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ja; path = ja.lproj/MainMenu.strings; sourceTree = "<group>"; };
+		908A1E002AE4965900AB5862 /* MacVim.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = MacVim.xctestplan; sourceTree = "<group>"; };
+		908A1E062AE496D200AB5862 /* MacVimTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MacVimTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		908A1E082AE496D200AB5862 /* MacVimTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MacVimTests.m; sourceTree = "<group>"; };
 		90922A3B221D429500F1E1F4 /* misc2.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = misc2.c; path = ../misc2.c; sourceTree = "<group>"; };
 		90922A3C221D429500F1E1F4 /* if_mzsch.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = if_mzsch.c; path = ../if_mzsch.c; sourceTree = "<group>"; };
 		90922A3D221D429500F1E1F4 /* version.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = version.h; path = ../version.h; sourceTree = "<group>"; };
@@ -419,13 +430,13 @@
 		9098943B2A56ECF6007B84A3 /* MMWhatsNewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MMWhatsNewController.m; sourceTree = "<group>"; };
 		90A33BE928D563DF003A2E2F /* MMSparkle2Delegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MMSparkle2Delegate.m; sourceTree = "<group>"; };
 		90A33BEC28D56423003A2E2F /* MMSparkle2Delegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MMSparkle2Delegate.h; sourceTree = "<group>"; };
+		90AF83A92A8C37F70046DA2E /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		90AF83B32AA15BE50046DA2E /* if_perl.xs */ = {isa = PBXFileReference; explicitFileType = sourcecode.c; name = if_perl.xs; path = ../if_perl.xs; sourceTree = "<group>"; };
 		90AF83B42AA15C660046DA2E /* nv_cmdidxs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = nv_cmdidxs.h; path = ../nv_cmdidxs.h; sourceTree = "<group>"; };
 		90AF83B52AA15C660046DA2E /* alloc.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = alloc.c; path = ../alloc.c; sourceTree = "<group>"; };
 		90AF83B62AA15C660046DA2E /* nv_cmds.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = nv_cmds.h; path = ../nv_cmds.h; sourceTree = "<group>"; };
 		90AF83B72AA15C660046DA2E /* vim9cmds.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = vim9cmds.c; path = ../vim9cmds.c; sourceTree = "<group>"; };
 		90AF83B82AA15C660046DA2E /* termdefs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = termdefs.h; path = ../termdefs.h; sourceTree = "<group>"; };
-		90AF83A92A8C37F70046DA2E /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		90B9877B2A579F9500FC95D6 /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
 		90F84F1E2521F2270000268B /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ko; path = ko.lproj/MainMenu.strings; sourceTree = "<group>"; };
 		90F84F232521F6480000268B /* ca */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ca; path = ca.lproj/MainMenu.strings; sourceTree = "<group>"; };
@@ -471,6 +482,13 @@
 				8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */,
 				1D8B5A53104AF9FF002E59D5 /* Carbon.framework in Frameworks */,
 				52A364731C4A5789005757EC /* Sparkle.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		908A1E032AE496D200AB5862 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -546,6 +564,7 @@
 			isa = PBXGroup;
 			children = (
 				8D1107320486CEB800E47090 /* MacVim.app */,
+				908A1E062AE496D200AB5862 /* MacVimTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -614,11 +633,13 @@
 		29B97314FDCFA39411CA2CEA /* MacVim */ = {
 			isa = PBXGroup;
 			children = (
+				908A1E002AE4965900AB5862 /* MacVim.xctestplan */,
 				1D493D640C52482B00AB718C /* Executables */,
 				080E96DDFE201D6D7F000001 /* MacVim Source */,
 				29B97317FDCFA39411CA2CEA /* Resources */,
 				1DE602460C587F760055263D /* Vim Resources */,
 				90922A3A221D417800F1E1F4 /* Vim Source */,
+				908A1E072AE496D200AB5862 /* MacVimTests */,
 				29B97323FDCFA39411CA2CEA /* Frameworks */,
 				52818AF81C1C073400F59085 /* QuickLook Plugin */,
 				19C28FACFE9D520D11CA2CBB /* Products */,
@@ -679,6 +700,14 @@
 				52818AFF1C1C075300F59085 /* QLStephen.qlgenerator */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		908A1E072AE496D200AB5862 /* MacVimTests */ = {
+			isa = PBXGroup;
+			children = (
+				908A1E082AE496D200AB5862 /* MacVimTests.m */,
+			);
+			path = MacVimTests;
 			sourceTree = "<group>";
 		};
 		90922A3A221D417800F1E1F4 /* Vim Source */ = {
@@ -904,6 +933,24 @@
 			productReference = 8D1107320486CEB800E47090 /* MacVim.app */;
 			productType = "com.apple.product-type.application";
 		};
+		908A1E052AE496D200AB5862 /* MacVimTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 908A1E0C2AE496D200AB5862 /* Build configuration list for PBXNativeTarget "MacVimTests" */;
+			buildPhases = (
+				908A1E022AE496D200AB5862 /* Sources */,
+				908A1E032AE496D200AB5862 /* Frameworks */,
+				908A1E042AE496D200AB5862 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				908A1E0B2AE496D200AB5862 /* PBXTargetDependency */,
+			);
+			name = MacVimTests;
+			productName = MacVimTests;
+			productReference = 908A1E062AE496D200AB5862 /* MacVimTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -912,6 +959,12 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 0710;
+				TargetAttributes = {
+					908A1E052AE496D200AB5862 = {
+						CreatedOnToolsVersion = 15.0.1;
+						TestTargetID = 8D1107260486CEB800E47090;
+					};
+				};
 			};
 			buildConfigurationList = C01FCF4E08A954540054247B /* Build configuration list for PBXProject "MacVim" */;
 			compatibilityVersion = "Xcode 6.3";
@@ -957,6 +1010,7 @@
 			projectRoot = "";
 			targets = (
 				8D1107260486CEB800E47090 /* MacVim */,
+				908A1E052AE496D200AB5862 /* MacVimTests */,
 			);
 		};
 /* End PBXProject section */
@@ -1018,6 +1072,13 @@
 				907FF7542521BDA600BADACB /* Preferences.xib in Resources */,
 				907FF7512521BCE200BADACB /* MainMenu.xib in Resources */,
 				907FF7572521BDC300BADACB /* FindAndReplace.xib in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		908A1E042AE496D200AB5862 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1177,6 +1238,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		908A1E022AE496D200AB5862 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				908A1E092AE496D200AB5862 /* MacVimTests.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -1189,6 +1258,11 @@
 			isa = PBXTargetDependency;
 			name = QuickLookStephen;
 			targetProxy = 52818B001C1C084100F59085 /* PBXContainerItemProxy */;
+		};
+		908A1E0B2AE496D200AB5862 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 8D1107260486CEB800E47090 /* MacVim */;
+			targetProxy = 908A1E0A2AE496D200AB5862 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -1257,6 +1331,123 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		908A1E0D2AE496D200AB5862 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MacVim.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MacVim";
+			};
+			name = Debug;
+		};
+		908A1E0E2AE496D200AB5862 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MacVim.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MacVim";
+			};
+			name = Release;
+		};
 		C01FCF4B08A954540054247B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1353,6 +1544,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		908A1E0C2AE496D200AB5862 /* Build configuration list for PBXNativeTarget "MacVimTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				908A1E0D2AE496D200AB5862 /* Debug */,
+				908A1E0E2AE496D200AB5862 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		C01FCF4A08A954540054247B /* Build configuration list for PBXNativeTarget "MacVim" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

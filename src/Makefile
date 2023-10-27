@@ -3666,6 +3666,9 @@ $(RUNTIME_FOLDER_LIST):
 macvim: $(VIMTARGET) $(RUNTIME_FOLDER_LIST)
 	xcodebuild -project MacVim/MacVim.xcodeproj $(XCODEFLAGS)
 
+macvim-tests:
+	xcodebuild test -project MacVim/MacVim.xcodeproj -scheme MacVim $(XCODEFLAGS)
+
 macvim-signed:
 	MacVim/scripts/sign-developer-id $(RELEASEDIR)/MacVim.app $(ENTITLEMENTS)
 
