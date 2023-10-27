@@ -17,6 +17,7 @@
         "argument" : "-MMUntitledWindow 0"
       }
     ],
+    "testExecutionOrdering" : "random",
     "testTimeoutsEnabled" : true
   },
   "testTargets" : [

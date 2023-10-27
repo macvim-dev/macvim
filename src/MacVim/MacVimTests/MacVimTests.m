@@ -44,17 +44,44 @@
 
 @implementation MacVimTests
 
-/// Wait for a Vim controller to be added/removed. By the time this is fulfilled
-/// the Vim window should be ready and visible.
-- (void)waitForVimController:(int)delta {
-    NSArray *vimControllers = [MMAppController.sharedInstance vimControllers];
-    const int desiredCount = (int)vimControllers.count + delta;
-    [self waitForExpectations:@[[[XCTNSPredicateExpectation alloc]
-                                 initWithPredicate:[NSPredicate predicateWithBlock:^(id vimControllers, NSDictionary<NSString *,id> *bindings) {
-                                    return (BOOL)((int)[(NSArray*)vimControllers count] == desiredCount);
-                                 }]
-                                 object:vimControllers]]
-                      timeout:5];
+/// Wait for Vim window to open and is ready to go
+- (void)waitForVimOpen {
+    XCTestExpectation *expectation = [self expectationWithDescription:@"VimOpen"];
+
+    SEL sel = @selector(windowControllerWillOpen:);
+    Method method = class_getInstanceMethod([MMAppController class], sel);
+
+    IMP origIMP = method_getImplementation(method);
+    IMP newIMP = imp_implementationWithBlock(^(id self, MMWindowController *w) {
+        typedef void (*fn)(id,SEL,MMWindowController*);
+        ((fn)origIMP)(self, sel, w);
+        [expectation fulfill];
+    });
+
+    method_setImplementation(method, newIMP);
+    [self waitForExpectations:@[expectation] timeout:10];
+    method_setImplementation(method, origIMP);
+
+    [self waitForEventHandlingAndVimProcess];
+}
+
+/// Wait for a Vim window to be closed
+- (void)waitForVimClose {
+    XCTestExpectation *expectation = [self expectationWithDescription:@"VimClose"];
+
+    SEL sel = @selector(removeVimController:);
+    Method method = class_getInstanceMethod([MMAppController class], sel);
+
+    IMP origIMP = method_getImplementation(method);
+    IMP newIMP = imp_implementationWithBlock(^(id self, id controller) {
+        typedef void (*fn)(id,SEL,id);
+        ((fn)origIMP)(self, sel, controller);
+        [expectation fulfill];
+    });
+
+    method_setImplementation(method, newIMP);
+    [self waitForExpectations:@[expectation] timeout:10];
+    method_setImplementation(method, origIMP);
 }
 
 /// Wait for event handling to be finished at the main loop.
@@ -232,7 +259,7 @@
     // Adding a new window is necessary for the vimtutor menu to show up as it's
     // not part of the global menu
     [app openNewWindow:NewWindowClean activate:YES];
-    [self waitForVimController:1];
+    [self waitForVimOpen];
 
     // Find the vimtutor menu and run it.
     NSMenu *mainMenu = [NSApp mainMenu];
@@ -248,16 +275,79 @@
     [[[app keyVimController] windowController] vimMenuItemAction:vimTutorMenu];
 
     // Make sure the menu item actually opened a new window and point to a tutor buffer
-    [self waitForVimController:1];
+    // Note that `vimtutor` opens Vim twice. Once to copy the file. Another time to
+    // actually open the copied file.
+    [self waitForVimOpen];
+    [self waitForVimOpen];
 
     NSString *bufname = [[app keyVimController] evaluateVimExpression:@"bufname()"];
     XCTAssertTrue([bufname containsString:@"tutor"]);
 
     // Clean up
     [[app keyVimController] sendMessage:VimShouldCloseMsgID data:nil];
-    [self waitForVimController:-1];
+    [self waitForVimClose];
     [[app keyVimController] sendMessage:VimShouldCloseMsgID data:nil];
-    [self waitForVimController:-1];
+    [self waitForVimClose];
+
+    XCTAssertEqual(0, [app vimControllers].count);
+}
+
+/// Test that opening Vim documentation from Help menu works as expected even
+/// with odd characters.
+- (void)testHelpMenuDocumentationTag {
+    MMAppController *app = MMAppController.sharedInstance;
+    XCTAssertEqual(0, app.vimControllers.count);
+
+    [NSApp activateIgnoringOtherApps:YES];
+
+    // Test help menu when no window is shown
+    [app performActionForItem:@[@"", @"m'"]];
+    [self waitForVimOpen];
+    MMVimController *vim = [app keyVimController];
+
+    XCTAssertEqualObjects(@"help", [vim evaluateVimExpression:@"&buftype"]);
+    NSString *curLine = [vim evaluateVimExpression:@"getline('.')"];
+    XCTAssertTrue([curLine containsString:@"*m'*"]);
+    [vim sendMessage:VimShouldCloseMsgID data:nil];
+    vim = nil;
+    [self waitForVimClose];
+
+    // Test help menu when there's already a Vim window
+    [app openNewWindow:NewWindowClean activate:YES];
+    [self waitForVimOpen];
+    vim = [app keyVimController];
+
+#define ASSERT_HELP_PATTERN(pattern) \
+do { \
+    [app performActionForItem:@[@"foobar.txt", @pattern]]; \
+    [self waitForVimProcess]; \
+    XCTAssertEqualObjects(@"help", [vim evaluateVimExpression:@"&buftype"]); \
+    curLine = [vim evaluateVimExpression:@"getline('.')"]; \
+    XCTAssertTrue([curLine containsString:@("*" pattern "*")]); \
+} while(0)
+
+    ASSERT_HELP_PATTERN("macvim-touchbar");
+    ASSERT_HELP_PATTERN("++enc");
+    ASSERT_HELP_PATTERN("v_CTRL-\\_CTRL-G");
+    ASSERT_HELP_PATTERN("/\\%<v");
+
+    // '<' characters need to be concatenated to not be interpreted as keys
+    ASSERT_HELP_PATTERN("c_<Down>");
+    ASSERT_HELP_PATTERN("c_<C-R>_<C-W>");
+
+    // single-quote characters should be escaped properly when passed to help
+    ASSERT_HELP_PATTERN("'display'");
+    ASSERT_HELP_PATTERN("m'");
+
+    // Test both single-quote and '<'
+    ASSERT_HELP_PATTERN("/\\%<'m");
+    ASSERT_HELP_PATTERN("'<");
+
+#undef ASSERT_HELP_PATTERN
+
+    // Clean up
+    [vim sendMessage:VimShouldCloseMsgID data:nil];
+    [self waitForVimClose];
 }
 
 /// Test that cmdline row calculation (used by MMCmdLineAlignBottom) is correct.
@@ -268,7 +358,7 @@
     MMAppController *app = MMAppController.sharedInstance;
 
     [app openNewWindow:NewWindowClean activate:YES];
-    [self waitForVimController:1];
+    [self waitForVimOpen];
 
     MMTextView *textView = [[[[app keyVimController] windowController] vimView] textView];
     const int numLines = [textView maxRows];
@@ -276,11 +366,11 @@
 
     // Define convenience macro (don't use functions to preserve line numbers in callstack)
 #define ASSERT_NUM_CMDLINES(expected) \
-{ \
+do { \
     const int cmdlineRow = [[[app keyVimController] objectForVimStateKey:@"cmdline_row"] intValue]; \
     const int numBottomLines = numLines - cmdlineRow; \
     XCTAssertEqual(expected, numBottomLines); \
-}
+} while(0)
 
     // Default value
     [self waitForEventHandlingAndVimProcess];
@@ -328,7 +418,7 @@
 
     // Clean up
     [[app keyVimController] sendMessage:VimShouldCloseMsgID data:nil];
-    [self waitForVimController:-1];
+    [self waitForVimClose];
 }
 
 @end
