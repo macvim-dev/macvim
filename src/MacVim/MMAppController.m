@@ -1676,6 +1676,8 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     return item;
 }
 
+/// Invoked when user typed on the help menu search bar. Will parse doc tags
+/// and search among them for the search string and return the match items.
 - (void)searchForItemsWithSearchString:(NSString *)searchString
                            resultLimit:(NSInteger)resultLimit
                     matchedItemHandler:(void (^)(NSArray *items))handleMatchedItems
@@ -1748,6 +1750,8 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     handleMatchedItems(ret);
 }
 
+/// Invoked when user clicked on a Help menu item for a documentation tag
+/// previously returned by searchForItemsWithSearchString.
 - (void)performActionForItem:(id)item
 {
     // When opening a help page, either open a new Vim instance, or reuse the
@@ -1758,8 +1762,27 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
                                         @":help %@", item[1]]];
         return;
     }
-    [vimController addVimInput:[NSString stringWithFormat:
-                                @"<C-\\><C-N>:help %@<CR>", item[1]]];
+
+    // Vim is already open. We want to send it a message to open help. However,
+    // we're using `addVimInput`, which always treats input like "<Up>" as a key
+    // while we want to type it literally. The only way to do so is to manually
+    // split it up and concatenate the results together and pass it to :execute.
+    NSString *helpStr = item[1];
+
+    NSMutableString *cmd = [NSMutableString stringWithCapacity:40 + helpStr.length];
+    [cmd setString:@"<C-\\><C-N>:exe 'help "];
+
+    NSArray<NSString*> *splitComponents = [helpStr componentsSeparatedByString:@"<"];
+    for (NSUInteger i = 0; i < splitComponents.count; i++) {
+        if (i != 0) {
+            [cmd appendString:@"<'..'"];
+        }
+        NSString *component = splitComponents[i];
+        component = [component stringByReplacingOccurrencesOfString:@"'" withString:@"''"];
+        [cmd appendString:component];
+    }
+    [cmd appendString:@"'<CR>"];
+    [vimController addVimInput:cmd];
 }
 // End NSUserInterfaceItemSearching
 
