@@ -170,7 +170,7 @@ static CGSSetWindowBackgroundBlurRadiusFunction* GetCGSSetWindowBackgroundBlurRa
         }
         CGSSetWindowBackgroundBlurRadiusFunction* function = GetCGSSetWindowBackgroundBlurRadiusFunction();
         if (function) {
-            function(con, [self windowNumber], radius);
+            function(con, (int)[self windowNumber], radius);
         }
     }
 }

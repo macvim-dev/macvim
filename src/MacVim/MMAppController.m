@@ -567,7 +567,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
     // The user default MMUntitledWindow can be set to control whether an
     // untitled window should open on 'Open' and 'Reopen' events.
-    int untitledWindowFlag = [ud integerForKey:MMUntitledWindowKey];
+    NSInteger untitledWindowFlag = [ud integerForKey:MMUntitledWindowKey];
 
     BOOL isAppOpenEvent = [desc eventID] == kAEOpenApplication;
     if (isAppOpenEvent && (untitledWindowFlag & MMUntitledWindowOnOpen) == 0)
@@ -700,7 +700,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
                                 boolForKey:MMSuppressTerminationAlertKey]) {
         // No unmodified buffers, but give a warning if there are multiple
         // windows and/or tabs open.
-        int numWindows = [vimControllers count];
+        int numWindows = (int)[vimControllers count];
         int numTabs = 0;
 
         // Count the number of open tabs
@@ -1065,7 +1065,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
             [fileMenu removeItemAtIndex:dummyIdx];
 
             NSMenu *recentFilesParentMenu = [recentFilesMenuItem menu];
-            int idx = [recentFilesParentMenu indexOfItem:recentFilesMenuItem];
+            NSInteger idx = [recentFilesParentMenu indexOfItem:recentFilesMenuItem];
             if (idx >= 0) {
                 [[recentFilesMenuItem retain] autorelease];
                 [recentFilesParentMenu removeItemAtIndex:idx];
@@ -1133,7 +1133,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
     // The meaning of "layout" is defined by the WIN_* defines in main.c.
     NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
-    int layout = [ud integerForKey:MMOpenLayoutKey];
+    NSInteger layout = [ud integerForKey:MMOpenLayoutKey];
     BOOL splitVert = [ud boolForKey:MMVerticalSplitKey];
     BOOL openInCurrentWindow = [ud boolForKey:MMOpenInCurrentWindowKey];
 
@@ -1166,7 +1166,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
             // selection will be lost when selectionRange is set.
             NSDictionary *args = [NSDictionary dictionaryWithObjectsAndKeys:
                                   firstFile, @"filename",
-                                  [NSNumber numberWithInt:layout], @"layout",
+                                  [NSNumber numberWithInt:(int)layout], @"layout",
                                   nil];
             [vc sendMessage:SelectAndFocusOpenedFileMsgID data:[args dictionaryAsData]];
         }
@@ -1188,7 +1188,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     // b) Open any remaining files
     //
 
-    [arguments setObject:[NSNumber numberWithInt:layout] forKey:@"layout"];
+    [arguments setObject:[NSNumber numberWithInt:(int)layout] forKey:@"layout"];
     [arguments setObject:filenames forKey:@"filenames"];
     // (Indicate that files should be opened from now on.)
     [arguments setObject:[NSNumber numberWithBool:NO] forKey:@"dontOpen"];
@@ -1202,7 +1202,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     }
 
     BOOL openOk = YES;
-    int numFiles = [filenames count];
+    int numFiles = (int)[filenames count];
     if (MMLayoutWindows == layout && numFiles > 1) {
         // Open one file at a time in a new window, but don't open too many at
         // once (at most cap+1 windows will open).  If the user has increased
@@ -1246,7 +1246,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
 - (void)refreshAllAppearances
 {
-    unsigned count = [vimControllers count];
+    const NSUInteger count = [vimControllers count];
     for (unsigned i = 0; i < count; ++i) {
         MMVimController *vc = [vimControllers objectAtIndex:i];
         [vc.windowController refreshApperanceMode];
@@ -1256,7 +1256,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 /// Refresh all Vim text views' fonts.
 - (void)refreshAllFonts
 {
-    unsigned count = [vimControllers count];
+    const NSUInteger count = [vimControllers count];
     for (unsigned i = 0; i < count; ++i) {
         MMVimController *vc = [vimControllers objectAtIndex:i];
         [vc.windowController refreshFonts];
@@ -1267,7 +1267,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 /// and resize the windows to match the constraints.
 - (void)refreshAllResizeConstraints
 {
-    const unsigned count = [vimControllers count];
+    const NSUInteger count = [vimControllers count];
     for (unsigned i = 0; i < count; ++i) {
         MMVimController *vc = [vimControllers objectAtIndex:i];
         [vc.windowController updateResizeConstraints:YES];
@@ -1278,7 +1278,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 /// cmdline alignment properties to make sure they are pinned properly.
 - (void)refreshAllTextViews
 {
-    unsigned count = [vimControllers count];
+    const NSUInteger count = [vimControllers count];
     for (unsigned i = 0; i < count; ++i) {
         MMVimController *vc = [vimControllers objectAtIndex:i];
         [vc.windowController.vimView.textView updateCmdlineRow];
@@ -1408,7 +1408,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 {
     ASLogDebug(@"Select next window");
 
-    unsigned i, count = [vimControllers count];
+    NSUInteger i, count = [vimControllers count];
     if (!count) return;
 
     NSWindow *keyWindow = [NSApp keyWindow];
@@ -1430,7 +1430,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 {
     ASLogDebug(@"Select previous window");
 
-    unsigned i, count = [vimControllers count];
+    NSUInteger i, count = [vimControllers count];
     if (!count) return;
 
     NSWindow *keyWindow = [NSApp keyWindow];
@@ -1542,7 +1542,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     // any new Vim process will pick up on the changed setting.
     CFPreferencesSetAppValue(
             (CFStringRef)MMRendererKey,
-            (CFPropertyListRef)[NSNumber numberWithInt:renderer],
+            (CFPropertyListRef)[NSNumber numberWithInt:(int)renderer],
             kCFPreferencesCurrentApplication);
     CFPreferencesAppSynchronize(kCFPreferencesCurrentApplication);
 
@@ -1578,7 +1578,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 {
     NSWindow *keyWindow = [NSApp keyWindow];
     if (keyWindow) {
-        unsigned i, count = [vimControllers count];
+        NSUInteger i, count = [vimControllers count];
         for (i = 0; i < count; ++i) {
             MMVimController *vc = [vimControllers objectAtIndex:i];
             if ([[[vc windowController] window] isEqual:keyWindow])
@@ -1660,7 +1660,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 {
     NSMutableArray *array = [NSMutableArray array];
 
-    unsigned i, count = [vimControllers count];
+    NSUInteger i, count = [vimControllers count];
     for (i = 0; i < count; ++i) {
         MMVimController *controller = [vimControllers objectAtIndex:i];
         if ([controller serverName])
@@ -1931,7 +1931,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     NSEnumerator *e = [[NSApp orderedWindows] objectEnumerator];
     id window;
     while ((window = [e nextObject]) && [window isVisible]) {
-        unsigned i, count = [vimControllers count];
+        NSUInteger i, count = [vimControllers count];
         for (i = 0; i < count; ++i) {
             MMVimController *vc = [vimControllers objectAtIndex:i];
             if ([[[vc windowController] window] isEqual:window])
@@ -1939,7 +1939,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         }
     }
 
-    unsigned i, count = [vimControllers count];
+    NSUInteger i, count = [vimControllers count];
     for (i = 0; i < count; ++i) {
         MMVimController *vc = [vimControllers objectAtIndex:i];
         if ([[[vc windowController] window] isVisible]) {
@@ -2016,7 +2016,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
     NSString *firstMissingFile = nil;
     NSMutableArray *files = [NSMutableArray array];
-    unsigned i, count = [filenames count];
+    NSUInteger i, count = [filenames count];
 
     for (i = 0; i < count; ++i) {
         NSString *name = [filenames objectAtIndex:i];
@@ -2076,7 +2076,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
             @"map([\"%@\"],\"bufloaded(v:val)\")",
             [files componentsJoinedByString:@"\",\""]];
 
-    unsigned i, count = [vimControllers count];
+    NSUInteger i, count = [vimControllers count];
     for (i = 0; i < count && [files count] > 0; ++i) {
         MMVimController *vc = [vimControllers objectAtIndex:i];
 
@@ -2428,12 +2428,12 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 {
     // The maximum number of Vim processes to keep in the cache can be
     // controlled via the user default "MMPreloadCacheSize".
-    int maxCacheSize = [[NSUserDefaults standardUserDefaults]
+    NSInteger maxCacheSize = [[NSUserDefaults standardUserDefaults]
             integerForKey:MMPreloadCacheSizeKey];
     if (maxCacheSize < 0) maxCacheSize = 0;
     else if (maxCacheSize > 10) maxCacheSize = 10;
 
-    return maxCacheSize;
+    return (int)maxCacheSize;
 }
 
 - (MMVimController *)takeVimControllerFromCache
@@ -2445,7 +2445,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     // This method may return nil even though the cache might be non-empty; the
     // caller should handle this by starting a new Vim process.
 
-    int i, count = [cachedVimControllers count];
+    NSUInteger i, count = [cachedVimControllers count];
     if (0 == count) return nil;
 
     // Locate the first Vim controller with up-to-date rc-files sourced.
@@ -2461,7 +2461,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         // Clear out cache entries whose vimrc/gvimrc files were sourced before
         // the latest modification date for those files.  This ensures that the
         // latest rc-files are always sourced for new windows.
-        [self clearPreloadCacheWithCount:i];
+        [self clearPreloadCacheWithCount:(int)i];
     }
 
     if ([cachedVimControllers count] == 0) {
@@ -2497,7 +2497,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         return;
 
     if (count < 0)
-        count = [cachedVimControllers count];
+        count = (int)[cachedVimControllers count];
 
     // Make sure the preloaded Vim processes get killed or they'll just hang
     // around being useless until MacVim is terminated.
@@ -2618,9 +2618,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
             (CFArrayRef)pathsToWatch, kFSEventStreamEventIdSinceNow,
             MMEventStreamLatency, kFSEventStreamCreateFlagNone);
 
-    FSEventStreamScheduleWithRunLoop(fsEventStream,
-            [[NSRunLoop currentRunLoop] getCFRunLoop],
-            kCFRunLoopDefaultMode);
+    FSEventStreamSetDispatchQueue(fsEventStream, dispatch_get_main_queue());
 
     FSEventStreamStart(fsEventStream);
     ASLogDebug(@"Started FS event stream");
@@ -2734,9 +2732,9 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
         // Send input to execute to the child process
         [input appendString:@"\n"];
-        int bytes = [input lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+        NSUInteger bytes = [input lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
 
-        if (write(ds[1], [input UTF8String], bytes) != bytes) return -1;
+        if (write(ds[1], [input UTF8String], (size_t)bytes) != (ssize_t)bytes) return -1;
         if (close(ds[1]) == -1) return -1;
 
         ++numChildProcesses;
@@ -2797,7 +2795,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     NSNumber *key;
     while ((key = [e nextObject])) {
         unsigned long ukey = [key unsignedLongValue];
-        int i = 0, count = [vimControllers count];
+        NSUInteger i = 0, count = [vimControllers count];
         for (i = 0; i < count; ++i) {
             MMVimController *vc = [vimControllers objectAtIndex:i];
             if (ukey == [vc vimControllerId]) {
@@ -2882,7 +2880,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         *cmdline = nil;
 
     NSArray *filenames = [args objectForKey:@"filenames"];
-    int numFiles = filenames ? [filenames count] : 0;
+    NSUInteger numFiles = filenames ? [filenames count] : 0;
     BOOL openFiles = ![[args objectForKey:@"dontOpen"] boolValue];
 
     if (numFiles <= 0 || !openFiles)
@@ -3029,7 +3027,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
 - (void)inputSourceChanged:(NSNotification *)notification
 {
-    unsigned i, count = [vimControllers count];
+    NSUInteger i, count = [vimControllers count];
     for (i = 0; i < count; ++i) {
         MMVimController *controller = [vimControllers objectAtIndex:i];
         MMWindowController *wc = [controller windowController];

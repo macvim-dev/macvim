@@ -32,7 +32,7 @@
     BOOL                isDragging;
     int                 dragRow;
     int                 dragColumn;
-    int                 dragFlags;
+    unsigned            dragFlags;
     NSPoint             dragPoint;
     BOOL                isAutoscrolling;
     int                 mouseShape;

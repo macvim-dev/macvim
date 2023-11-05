@@ -391,7 +391,7 @@ enum {
 };
 
 enum {
-    MMGestureSwipeLeft,
+    MMGestureSwipeLeft = 0,
     MMGestureSwipeRight,
     MMGestureSwipeUp,
     MMGestureSwipeDown,

@@ -333,7 +333,7 @@ static BOOL isUnsafeMessage(int msgid);
     NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
 
     // Default to opening in tabs if layout is invalid or set to "windows".
-    int layout = [ud integerForKey:MMOpenLayoutKey];
+    NSInteger layout = [ud integerForKey:MMOpenLayoutKey];
     if (layout < 0 || layout > MMLayoutTabs)
         layout = MMLayoutTabs;
 
@@ -342,7 +342,7 @@ static BOOL isUnsafeMessage(int msgid);
         layout = MMLayoutVerticalSplit;
 
     NSDictionary *args = [NSDictionary dictionaryWithObjectsAndKeys:
-            [NSNumber numberWithInt:layout],    @"layout",
+            [NSNumber numberWithInt:(int)layout], @"layout",
             filenames,                          @"filenames",
             [NSNumber numberWithBool:force],    @"forceOpen",
             nil];
@@ -374,7 +374,7 @@ static BOOL isUnsafeMessage(int msgid);
     NSDictionary *args = [NSDictionary dictionaryWithObjectsAndKeys:
                           [NSNumber numberWithInt:layout],    @"layout",
                           @[filename],                        @"filenames",
-                          [NSNumber numberWithInt:tabIndex + 1],    @"tabpage",
+                          [NSNumber numberWithInt:(int)tabIndex + 1],    @"tabpage",
                           nil];
     
     [self sendMessage:OpenWithArgumentsMsgID data:[args dictionaryAsData]];
@@ -403,12 +403,13 @@ static BOOL isUnsafeMessage(int msgid);
 - (void)dropString:(NSString *)string
 {
     ASLogInfo(@"%@", string);
-    int len = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding] + 1;
-    if (len > 0) {
+    NSUInteger len = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding] + 1;
+    if (len > 0 && len < INT_MAX) {
         NSMutableData *data = [NSMutableData data];
+        int len_int = (int)len;
 
-        [data appendBytes:&len length:sizeof(int)];
-        [data appendBytes:[string UTF8String] length:len];
+        [data appendBytes:&len_int length:sizeof(int)];
+        [data appendBytes:[string UTF8String] length:len_int];
 
         [self sendMessage:DropStringMsgID data:data];
     }
@@ -630,9 +631,9 @@ static BOOL isUnsafeMessage(int msgid);
 {
     NSMutableArray *delayQueue = nil;
 
-    unsigned i, count = [queue count];
+    unsigned i, count = (unsigned)[queue count];
     if (count % 2) {
-        ASLogWarn(@"Uneven number of components (%d) in command queue.  "
+        ASLogWarn(@"Uneven number of components (%u) in command queue.  "
                   "Skipping...", count);
         return;
     }
@@ -1333,8 +1334,8 @@ static BOOL isUnsafeMessage(int msgid);
                                 : [mainMenu itemArray];
 
     NSMenuItem *item = nil;
-    int i, count = [rootItems count];
-    for (i = 0; i < count; ++i) {
+    NSUInteger i, count;
+    for (i = 0, count = rootItems.count; i < count; ++i) {
         item = [rootItems objectAtIndex:i];
         if ([[item title] isEqual:rootName])
             break;
@@ -1342,8 +1343,7 @@ static BOOL isUnsafeMessage(int msgid);
 
     if (i == count) return nil;
 
-    count = [desc count];
-    for (i = 1; i < count; ++i) {
+    for (i = 1, count = desc.count; i < count; ++i) {
         item = [[item submenu] itemWithTitle:[desc objectAtIndex:i]];
         if (!item) return nil;
     }
@@ -1361,8 +1361,7 @@ static BOOL isUnsafeMessage(int msgid);
                                : [mainMenu itemArray];
 
     NSMenu *menu = nil;
-    int i, count = [rootItems count];
-    for (i = 0; i < count; ++i) {
+    for (NSUInteger i = 0, count = rootItems.count; i < count; ++i) {
         NSMenuItem *item = [rootItems objectAtIndex:i];
         if ([[item title] isEqual:rootName]) {
             menu = [item submenu];
@@ -1372,8 +1371,7 @@ static BOOL isUnsafeMessage(int msgid);
 
     if (!menu) return nil;
 
-    count = [desc count] - 1;
-    for (i = 1; i < count; ++i) {
+    for (NSUInteger i = 1, count = desc.count - 1; i < count; ++i) {
         NSMenuItem *item = [menu itemWithTitle:[desc objectAtIndex:i]];
         menu = [item submenu];
         if (!menu) return nil;
@@ -1386,15 +1384,13 @@ static BOOL isUnsafeMessage(int msgid);
 {
     // Search only the top-level menus.
 
-    unsigned i, count = [popupMenuItems count];
-    for (i = 0; i < count; ++i) {
+    for (NSUInteger i = 0, count = popupMenuItems.count; i < count; ++i) {
         NSMenuItem *item = [popupMenuItems objectAtIndex:i];
         if ([title isEqual:[item title]])
             return [item submenu];
     }
 
-    count = [mainMenu numberOfItems];
-    for (i = 0; i < count; ++i) {
+    for (NSInteger i = 0, count = mainMenu.numberOfItems; i < count; ++i) {
         NSMenuItem *item = [mainMenu itemAtIndex:i];
         if ([title isEqual:[item title]])
             return [item submenu];
@@ -1414,7 +1410,7 @@ static BOOL isUnsafeMessage(int msgid);
         if (!toolbar) {
             // NOTE! Each toolbar must have a unique identifier, else each
             // window will have the same toolbar.
-            NSString *ident = [NSString stringWithFormat:@"%d", identifier];
+            NSString *ident = [NSString stringWithFormat:@"%lu", identifier];
             toolbar = [[NSToolbar alloc] initWithIdentifier:ident];
 
             [toolbar setShowsBaselineSeparator:NO];
@@ -1751,7 +1747,7 @@ static BOOL isUnsafeMessage(int msgid);
             NSArray<NSString*> *splitComponents = [sfSymbolName componentsSeparatedByString:@":"];
             sfSymbolName = splitComponents[0];
 
-            for (int i = 1, count = splitComponents.count; i < count; i++) {
+            for (NSUInteger i = 1, count = splitComponents.count; i < count; i++) {
                 NSString *component = splitComponents[i];
                 if ([component isEqualToString:@"monochrome"]) {
                     monochrome = YES;
@@ -1927,7 +1923,7 @@ static BOOL isUnsafeMessage(int msgid);
 
     [self addToolbarItemToDictionaryWithLabel:label toolTip:tip icon:icon];
 
-    int maxIdx = [[toolbar items] count];
+    int maxIdx = (int)[[toolbar items] count];
     if (maxIdx < idx) idx = maxIdx;
 
     [toolbar insertItemWithItemIdentifier:label atIndex:idx];
@@ -1993,7 +1989,7 @@ static BOOL isUnsafeMessage(int msgid);
     }
     [touchbarInfo.itemDict setObject:touchbarItemInfo forKey:label];
 
-    int maxIdx = [touchbarInfo.itemOrder count];
+    int maxIdx = (int)[touchbarInfo.itemOrder count];
     if (maxIdx < idx) idx = maxIdx;
     [touchbarInfo.itemOrder insertObject:label atIndex:idx];
 
@@ -2160,7 +2156,7 @@ static BOOL isUnsafeMessage(int msgid);
 
         [panel beginSheetModalForWindow:[windowController window]
                       completionHandler:^(NSInteger result) {
-            [self savePanelDidEnd:panel code:result context:nil];
+            [self savePanelDidEnd:panel code:(int)result context:nil];
         }];
     } else {
         NSOpenPanel *panel = [NSOpenPanel openPanel];
@@ -2177,7 +2173,7 @@ static BOOL isUnsafeMessage(int msgid);
 
         [panel beginSheetModalForWindow:[windowController window]
                       completionHandler:^(NSInteger result) {
-            [self savePanelDidEnd:panel code:result context:nil];
+            [self savePanelDidEnd:panel code:(int)result context:nil];
         }];
     }
 }
@@ -2216,8 +2212,7 @@ static BOOL isUnsafeMessage(int msgid);
         [alert setInformativeText:@""];
     }
 
-    unsigned i, count = [buttonTitles count];
-    for (i = 0; i < count; ++i) {
+    for (NSUInteger i = 0, count = buttonTitles.count; i < count; ++i) {
         NSString *title = [buttonTitles objectAtIndex:i];
         // NOTE: The title of the button may contain the character '&' to
         // indicate that the following letter should be the key equivalent
@@ -2318,7 +2313,7 @@ static BOOL isUnsafeMessage(int msgid);
 #if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_10
     [super beginSheetModalForWindow:window
                   completionHandler:^(NSModalResponse code) {
-                      [delegate alertDidEnd:self code:code context:NULL];
+                      [delegate alertDidEnd:self code:(int)code context:NULL];
                   }];
 #else
     [super beginSheetModalForWindow:window
@@ -2334,8 +2329,7 @@ static BOOL isUnsafeMessage(int msgid);
     rect.origin.y = rect.size.height;
 
     NSArray *subviews = [contentView subviews];
-    unsigned i, count = [subviews count];
-    for (i = 0; i < count; ++i) {
+    for (NSUInteger i = 0, count = subviews.count; i < count; ++i) {
         NSView *view = [subviews objectAtIndex:i];
         if ([view isKindOfClass:[NSTextField class]]
                 && [view frame].origin.y < rect.origin.y) {

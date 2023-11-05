@@ -10,6 +10,8 @@
 
 #import "PSMMojaveTabStyle.h"
 
+#import "PSMRolloverButton.h"
+
 #if HAS_MOJAVE_TAB_STYLE
 
 #define kPSMMetalObjectCounterRadius 7.0
@@ -108,21 +110,23 @@ void MojaveNSDrawWindowBackground(NSRect rect, NSColor *color)
 
     BOOL isHighlight = [cell isHighlighted];
 
-    if (isKeyWindow) {
-        if (isSelected) {
-            backgroundColor = [NSColor colorNamed:@"MojaveTabBackgroundActiveSelected" bundle:[PSMTabBarControl bundle]];
-        } else if (isHighlight) {
-            backgroundColor = [NSColor colorNamed:@"MojaveTabBackgroundActiveHighlight" bundle:[PSMTabBarControl bundle]];
+    if (@available(macos 10.13, *)) {
+        if (isKeyWindow) {
+            if (isSelected) {
+                backgroundColor = [NSColor colorNamed:@"MojaveTabBackgroundActiveSelected" bundle:[PSMTabBarControl bundle]];
+            } else if (isHighlight) {
+                backgroundColor = [NSColor colorNamed:@"MojaveTabBackgroundActiveHighlight" bundle:[PSMTabBarControl bundle]];
+            } else {
+                backgroundColor = [NSColor colorNamed:@"MojaveTabBackgroundActive" bundle:[PSMTabBarControl bundle]];
+            }
         } else {
-            backgroundColor = [NSColor colorNamed:@"MojaveTabBackgroundActive" bundle:[PSMTabBarControl bundle]];
-        }
-    } else {
-        if (isSelected) {
-            backgroundColor = [NSColor colorNamed:@"MojaveTabBackgroundInactiveSelected" bundle:[PSMTabBarControl bundle]];
-        } else if (isHighlight) {
-            backgroundColor = [NSColor colorNamed:@"MojaveTabBackgroundInactiveHighlight" bundle:[PSMTabBarControl bundle]];
-        } else {
-            backgroundColor = [NSColor colorNamed:@"MojaveTabBackgroundInactive" bundle:[PSMTabBarControl bundle]];
+            if (isSelected) {
+                backgroundColor = [NSColor colorNamed:@"MojaveTabBackgroundInactiveSelected" bundle:[PSMTabBarControl bundle]];
+            } else if (isHighlight) {
+                backgroundColor = [NSColor colorNamed:@"MojaveTabBackgroundInactiveHighlight" bundle:[PSMTabBarControl bundle]];
+            } else {
+                backgroundColor = [NSColor colorNamed:@"MojaveTabBackgroundInactive" bundle:[PSMTabBarControl bundle]];
+            }
         }
     }
 
@@ -131,10 +135,15 @@ void MojaveNSDrawWindowBackground(NSRect rect, NSColor *color)
 
 - (NSColor *)borderColor:(BOOL)isKeyWindow
 {
-    if (isKeyWindow) {
-        return [NSColor colorNamed:@"MojaveTabBorderActive" bundle:[PSMTabBarControl bundle]];
-    } else {
-        return [NSColor colorNamed:@"MojaveTabBorderInactive" bundle:[PSMTabBarControl bundle]];
+    if (@available(macos 10.13, *)) {
+        if (isKeyWindow) {
+            return [NSColor colorNamed:@"MojaveTabBorderActive" bundle:[PSMTabBarControl bundle]];
+        } else {
+            return [NSColor colorNamed:@"MojaveTabBorderInactive" bundle:[PSMTabBarControl bundle]];
+        }
+    }
+    else {
+        return nil;
     }
 }
 
@@ -438,12 +447,14 @@ void MojaveNSDrawWindowBackground(NSRect rect, NSColor *color)
             button = closeButton;
         }
         if ([cell closeButtonOver]) {
-            NSAppearanceName appearanceName = [controlView.effectiveAppearance bestMatchFromAppearancesWithNames:@[NSAppearanceNameAqua, NSAppearanceNameAccessibilityHighContrastAqua, NSAppearanceNameDarkAqua, NSAppearanceNameAccessibilityHighContrastDarkAqua]];
-            
-            if ([appearanceName isEqualToString:NSAppearanceNameDarkAqua] || [appearanceName isEqualToString:NSAppearanceNameAccessibilityHighContrastDarkAqua]) {
-                button = closeButtonOverDark;
-            } else {
-                button = closeButtonOver;
+            if (@available(macos 10.14, *)) {
+                NSAppearanceName appearanceName = [controlView.effectiveAppearance bestMatchFromAppearancesWithNames:@[NSAppearanceNameAqua, NSAppearanceNameAccessibilityHighContrastAqua, NSAppearanceNameDarkAqua, NSAppearanceNameAccessibilityHighContrastDarkAqua]];
+
+                if ([appearanceName isEqualToString:NSAppearanceNameDarkAqua] || [appearanceName isEqualToString:NSAppearanceNameAccessibilityHighContrastDarkAqua]) {
+                    button = closeButtonOverDark;
+                } else {
+                    button = closeButtonOver;
+                }
             }
         }
         if ([cell closeButtonPressed]) button = closeButtonDown;

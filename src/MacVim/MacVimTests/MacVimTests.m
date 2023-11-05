@@ -44,7 +44,7 @@
 
 @implementation MacVimTests
 
-/// Wait for Vim window to open and is ready to go
+/// Wait for Vim window to open
 - (void)waitForVimOpen {
     XCTestExpectation *expectation = [self expectationWithDescription:@"VimOpen"];
 
@@ -61,7 +61,11 @@
     method_setImplementation(method, newIMP);
     [self waitForExpectations:@[expectation] timeout:10];
     method_setImplementation(method, origIMP);
+}
 
+/// Wait for Vim window to open and is ready to go
+- (void)waitForVimOpenAndMessages {
+    [self waitForVimOpen];
     [self waitForEventHandlingAndVimProcess];
 }
 
@@ -259,7 +263,7 @@
     // Adding a new window is necessary for the vimtutor menu to show up as it's
     // not part of the global menu
     [app openNewWindow:NewWindowClean activate:YES];
-    [self waitForVimOpen];
+    [self waitForVimOpenAndMessages];
 
     // Find the vimtutor menu and run it.
     NSMenu *mainMenu = [NSApp mainMenu];
@@ -278,7 +282,7 @@
     // Note that `vimtutor` opens Vim twice. Once to copy the file. Another time to
     // actually open the copied file.
     [self waitForVimOpen];
-    [self waitForVimOpen];
+    [self waitForVimOpenAndMessages];
 
     NSString *bufname = [[app keyVimController] evaluateVimExpression:@"bufname()"];
     XCTAssertTrue([bufname containsString:@"tutor"]);
@@ -302,7 +306,7 @@
 
     // Test help menu when no window is shown
     [app performActionForItem:@[@"", @"m'"]];
-    [self waitForVimOpen];
+    [self waitForVimOpenAndMessages];
     MMVimController *vim = [app keyVimController];
 
     XCTAssertEqualObjects(@"help", [vim evaluateVimExpression:@"&buftype"]);
@@ -314,7 +318,7 @@
 
     // Test help menu when there's already a Vim window
     [app openNewWindow:NewWindowClean activate:YES];
-    [self waitForVimOpen];
+    [self waitForVimOpenAndMessages];
     vim = [app keyVimController];
 
 #define ASSERT_HELP_PATTERN(pattern) \
@@ -358,7 +362,7 @@ do { \
     MMAppController *app = MMAppController.sharedInstance;
 
     [app openNewWindow:NewWindowClean activate:YES];
-    [self waitForVimOpen];
+    [self waitForVimOpenAndMessages];
 
     MMTextView *textView = [[[[app keyVimController] windowController] vimView] textView];
     const int numLines = [textView maxRows];

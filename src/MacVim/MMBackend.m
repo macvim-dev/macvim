@@ -48,8 +48,8 @@
 static unsigned MMServerMax = 1000;
 
 // TODO: Move to separate file.
-static int eventModifierFlagsToVimModMask(int modifierFlags);
-static int eventModifierFlagsToVimMouseModMask(int modifierFlags);
+static unsigned eventModifierFlagsToVimModMask(unsigned modifierFlags);
+static unsigned eventModifierFlagsToVimMouseModMask(unsigned modifierFlags);
 static int eventButtonNumberToVimMouseButton(int buttonNumber);
 
 // In gui_macvim.m
@@ -2081,7 +2081,7 @@ static char_u *extractSelectedText(void)
 
         int row = *((int*)bytes);  bytes += sizeof(int);
         int col = *((int*)bytes);  bytes += sizeof(int);
-        int flags = *((int*)bytes);  bytes += sizeof(int);
+        unsigned flags = *((unsigned*)bytes);  bytes += sizeof(unsigned);
         float dy = *((float*)bytes);  bytes += sizeof(float);
         float dx = *((float*)bytes);  bytes += sizeof(float);
 
@@ -2122,7 +2122,7 @@ static char_u *extractSelectedText(void)
         int row = *((int*)bytes);  bytes += sizeof(int);
         int col = *((int*)bytes);  bytes += sizeof(int);
         int button = *((int*)bytes);  bytes += sizeof(int);
-        int flags = *((int*)bytes);  bytes += sizeof(int);
+        unsigned flags = *((unsigned*)bytes);  bytes += sizeof(unsigned);
         int repeat = *((int*)bytes);  bytes += sizeof(int);
 
         button = eventButtonNumberToVimMouseButton(button);
@@ -2136,7 +2136,7 @@ static char_u *extractSelectedText(void)
 
         int row = *((int*)bytes);  bytes += sizeof(int);
         int col = *((int*)bytes);  bytes += sizeof(int);
-        int flags = *((int*)bytes);  bytes += sizeof(int);
+        unsigned flags = *((unsigned*)bytes);  bytes += sizeof(unsigned);
 
         flags = eventModifierFlagsToVimMouseModMask(flags);
 
@@ -2147,7 +2147,7 @@ static char_u *extractSelectedText(void)
 
         int row = *((int*)bytes);  bytes += sizeof(int);
         int col = *((int*)bytes);  bytes += sizeof(int);
-        int flags = *((int*)bytes);  bytes += sizeof(int);
+        unsigned flags = *((unsigned*)bytes);  bytes += sizeof(unsigned);
 
         flags = eventModifierFlagsToVimMouseModMask(flags);
 
@@ -2607,7 +2607,7 @@ static char_u *extractSelectedText(void)
 
     const void *bytes = [data bytes];
     int32_t ident = *((int32_t*)bytes);  bytes += sizeof(int32_t);
-    int hitPart = *((int*)bytes);  bytes += sizeof(int);
+    unsigned hitPart = *((unsigned*)bytes);  bytes += sizeof(unsigned);
     float fval = *((float*)bytes);  bytes += sizeof(float);
     scrollbar_T *sb = gui_find_scrollbar(ident);
 
@@ -2765,7 +2765,7 @@ static char_u *extractSelectedText(void)
 #ifdef FEAT_DND
     char_u  dropkey[3] = { CSI, KS_EXTRA, (char_u)KE_DROP };
     const void *bytes = [data bytes];
-    int len = *((int*)bytes);  bytes += sizeof(int);
+    int len = *((int*)bytes);  bytes += sizeof(int); // unused
     NSMutableString *string = [NSMutableString stringWithUTF8String:bytes];
 
     // Replace unrecognized end-of-line sequences with \x0a (line feed).
@@ -2778,7 +2778,7 @@ static char_u *extractSelectedText(void)
                                        options:0 range:range];
     }
 
-    len = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+    len = (int)[string lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
     char_u *s = (char_u*)[string UTF8String];
     if (input_conv.vc_type != CONV_NONE)
         s = string_convert(&input_conv, s, &len);
@@ -3517,9 +3517,9 @@ static char_u *extractSelectedText(void)
 - (void)handleGesture:(NSData *)data
 {
     const void *bytes = [data bytes];
-    int flags = *((int*)bytes);  bytes += sizeof(int);
+    unsigned flags = *((int*)bytes);  bytes += sizeof(int);
     int gesture = *((int*)bytes);  bytes += sizeof(int);
-    int modifiers = eventModifierFlagsToVimModMask(flags);
+    unsigned modifiers = eventModifierFlagsToVimModMask(flags);
     char_u string[6];
 
     string[3] = CSI;
@@ -3761,7 +3761,7 @@ static char_u *extractSelectedText(void)
 
 
 
-static int eventModifierFlagsToVimModMask(int modifierFlags)
+static unsigned eventModifierFlagsToVimModMask(unsigned modifierFlags)
 {
     int modMask = 0;
 
@@ -3777,9 +3777,9 @@ static int eventModifierFlagsToVimModMask(int modifierFlags)
     return modMask;
 }
 
-static int eventModifierFlagsToVimMouseModMask(int modifierFlags)
+static unsigned eventModifierFlagsToVimMouseModMask(unsigned modifierFlags)
 {
-    int modMask = 0;
+    unsigned modMask = 0;
 
     if (modifierFlags & NSEventModifierFlagShift)
         modMask |= MOUSE_SHIFT;

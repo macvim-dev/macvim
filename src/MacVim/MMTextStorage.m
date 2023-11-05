@@ -808,8 +808,8 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
 - (NSRect)rectForRowsInRange:(NSRange)range
 {
     NSRect rect = { {0, 0}, {0, 0} };
-    unsigned start = range.location > maxRows ? maxRows : range.location;
-    unsigned length = range.length;
+    NSUInteger start = range.location > maxRows ? maxRows : range.location;
+    NSUInteger length = range.length;
 
     if (start+length > maxRows)
         length = maxRows - start;
@@ -823,8 +823,8 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
 - (NSRect)rectForColumnsInRange:(NSRange)range
 {
     NSRect rect = { {0, 0}, {0, 0} };
-    unsigned start = range.location > maxColumns ? maxColumns : range.location;
-    unsigned length = range.length;
+    NSUInteger start = range.location > maxColumns ? maxColumns : range.location;
+    NSUInteger length = range.length;
 
     if (start+length > maxColumns)
         length = maxColumns - start;
@@ -1026,7 +1026,7 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
         return NSMakeRange(row*(actualColumns+1) + col, cells);
 
     NSString *string = [backingStore string];
-    unsigned stringLen = [string length];
+    NSUInteger stringLen = [string length];
     NSRange r, range = { NSNotFound, 0 };
     unsigned idx;
     int i;
@@ -1035,7 +1035,7 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
             || col+cells > actualColumns) {
 #if MM_TS_PARANOIA_LOG
         ASLogErr(@"row=%d col=%d cells=%d is out of range (length=%d)",
-                 row, col, cells, stringLen);
+                 row, col, cells, (int)stringLen);
 #endif
         return range;
     }
@@ -1149,7 +1149,7 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
 
         *pcol = i;
         cache->col = i;
-        cache->colOffset = idx - range.location;
+        cache->colOffset = idx - (unsigned)range.location;
 #endif
     }
 #else
@@ -1238,7 +1238,7 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
 
         [backingStore replaceCharactersInRange:invalidRange withString:@" "];
 
-        end = NSMaxRange(invalidRange);
+        end = (unsigned)NSMaxRange(invalidRange);
         range.length -= end - range.location;
         range.location = end;
     }

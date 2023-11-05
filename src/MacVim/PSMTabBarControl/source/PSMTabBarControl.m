@@ -396,7 +396,7 @@
 
 - (void)setToolTip:(NSString *)value forTabViewItem:(NSTabViewItem *)tvi
 {
-    int i, cellCount = [_cells count];
+    NSUInteger i, cellCount = [_cells count];
     for (i = 0; i < cellCount; i++) {
         PSMTabBarCell *cell = [_cells objectAtIndex:i];
         if ([cell representedObject] == tvi)
@@ -665,7 +665,7 @@
 
     // size all cells appropriately and create tracking rects
     // nuke old tracking rects
-    int i, cellCount = [_cells count];
+    unsigned i, cellCount = (unsigned)[_cells count];
     for(i = 0; i < cellCount; i++){
         id cell = [_cells objectAtIndex:i];
         [[NSNotificationCenter defaultCenter] removeObserver:cell];
@@ -1100,7 +1100,7 @@
         if (delegate && [delegate respondsToSelector:@selector(tabView:didDragTabViewItem:toIndex:)]) {
             NSUInteger idx = [[self representedTabViewItems] indexOfObject:tvi];
             if (NSNotFound != idx) {
-                [delegate tabView:[self tabView] didDragTabViewItem:tvi toIndex:idx];
+                [delegate tabView:[self tabView] didDragTabViewItem:tvi toIndex:(int)idx];
             }
         }
 #endif
@@ -1470,7 +1470,7 @@
 
 - (PSMTabBarCell *)lastVisibleTab
 {
-    int i, cellCount = [_cells count];
+    NSUInteger i, cellCount = [_cells count];
     for(i = 0; i < cellCount; i++){
         if([[_cells objectAtIndex:i] isInOverflowMenu])
             return [_cells objectAtIndex:(i-1)];
@@ -1480,12 +1480,12 @@
 
 - (int)numberOfVisibleTabs
 {
-    int i, cellCount = [_cells count];
+    NSUInteger i, cellCount = [_cells count];
     for(i = 0; i < cellCount; i++){
         if([[_cells objectAtIndex:i] isInOverflowMenu])
-            return i+1;
+            return (int)i+1;
     }
-    return cellCount;
+    return (int)cellCount;
 }
     
 

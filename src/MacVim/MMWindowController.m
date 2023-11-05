@@ -1153,7 +1153,7 @@
 
 - (IBAction)findAndReplace:(id)sender
 {
-    int tag = [sender tag];
+    NSInteger tag = [sender tag];
     MMFindReplaceController *fr = [MMFindReplaceController sharedInstance];
     int flags = 0;
 

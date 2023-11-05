@@ -279,9 +279,9 @@
     [textStorage endEditing];
 
     if (cursorRow >= 0) {
-        unsigned off = [textStorage characterIndexForRow:cursorRow
+        NSUInteger off = [textStorage characterIndexForRow:cursorRow
                                                   column:cursorCol];
-        unsigned maxoff = [[textStorage string] length];
+        NSUInteger maxoff = [[textStorage string] length];
         if (off > maxoff) off = maxoff;
 
         [self setSelectedRange:NSMakeRange(off, 0)];
@@ -435,8 +435,8 @@
 - (NSSize)constrainRows:(int *)rows columns:(int *)cols toSize:(NSSize)size
 {
     NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
-    int right = [ud integerForKey:MMTextInsetRightKey];
-    int bot = [ud integerForKey:MMTextInsetBottomKey];
+    NSInteger right = [ud integerForKey:MMTextInsetRightKey];
+    NSInteger bot = [ud integerForKey:MMTextInsetBottomKey];
 
     size.width -= [self textContainerOrigin].x + right;
     size.height -= [self textContainerOrigin].y + bot;
@@ -456,8 +456,8 @@
     NSSize size = [(MMTextStorage*)[self textStorage] size];
 
     NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
-    int right = [ud integerForKey:MMTextInsetRightKey];
-    int bot = [ud integerForKey:MMTextInsetBottomKey];
+    NSInteger right = [ud integerForKey:MMTextInsetRightKey];
+    NSInteger bot = [ud integerForKey:MMTextInsetBottomKey];
 
     size.width += [self textContainerOrigin].x + right;
     size.height += [self textContainerOrigin].y + bot;
@@ -471,8 +471,8 @@
     NSSize size = { MMMinColumns*cellSize.width, MMMinRows*cellSize.height };
 
     NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
-    int right = [ud integerForKey:MMTextInsetRightKey];
-    int bot = [ud integerForKey:MMTextInsetBottomKey];
+    NSInteger right = [ud integerForKey:MMTextInsetRightKey];
+    NSInteger bot = [ud integerForKey:MMTextInsetBottomKey];
 
     size.width += [self textContainerOrigin].x + right;
     size.height += [self textContainerOrigin].y + bot;
@@ -589,7 +589,7 @@
 
         inset.height -= baseline;
 
-        int len = [[helper markedText] length];
+        int len = (int)[[helper markedText] length];
         // The following implementation should be re-written with
         // more efficient way...
 
