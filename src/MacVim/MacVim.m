@@ -51,7 +51,7 @@ int ASLogLevel = MM_ASL_LEVEL_DEFAULT;
 debugStringForMessageQueue(NSArray *queue)
 {
     NSMutableString *s = [NSMutableString new];
-    unsigned i, count = [queue count];
+    NSUInteger i, count = [queue count];
     int item = 0, menu = 0, enable = 0, remove = 0;
     int sets = 0, sett = 0, shows = 0, cres = 0, dess = 0;
     for (i = 0; i < count; i += 2) {

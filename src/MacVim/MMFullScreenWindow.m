@@ -387,7 +387,7 @@ enum {
 #if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_VERSION_12_0)
     // Account for newer MacBook Pro's which have a notch, which can be queried using the safe area API.
     if (@available(macos 12.0, *)) {
-        const int safeAreaBehavior = [ud integerForKey:MMNonNativeFullScreenSafeAreaBehaviorKey];
+        const NSInteger safeAreaBehavior = [ud integerForKey:MMNonNativeFullScreenSafeAreaBehaviorKey];
 
         // The safe area utilization is configuration. Right now, we only have two choices:
         // - 0: avoid the safe area (default)

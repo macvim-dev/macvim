@@ -356,8 +356,8 @@ static void grid_free(Grid *grid) {
     // Note: This doesn't really take alignCmdLineToBottom into account right now.
 
     NSRect rect = { {0, 0}, {0, 0} };
-    unsigned start = range.location > maxRows ? maxRows : range.location;
-    unsigned length = range.length;
+    NSUInteger start = range.location > maxRows ? maxRows : range.location;
+    NSUInteger length = range.length;
 
     if (start + length > maxRows)
         length = maxRows - start;
@@ -382,8 +382,8 @@ static void grid_free(Grid *grid) {
     // only used to place the scrollbars inside MMVimView.)
 
     NSRect rect = { {0, 0}, {0, 0} };
-    unsigned start = range.location > maxColumns ? maxColumns : range.location;
-    unsigned length = range.length;
+    NSUInteger start = range.location > maxColumns ? maxColumns : range.location;
+    NSUInteger length = range.length;
 
     if (start+length > maxColumns)
         length = maxColumns - start;
@@ -918,8 +918,8 @@ static void grid_free(Grid *grid) {
             if (!lineString.length)
                 return;
             size_t cellOffsetByIndex[lineString.length];
-            for (int i = 0, stringIndex = 0; i < lineStringRange.length; i++) {
-                GridCell cell = *grid_cell(&grid, r, lineStringRange.location + i);
+            for (int i = 0, stringIndex = 0; i < (int)lineStringRange.length; i++) {
+                GridCell cell = *grid_cell(&grid, r, (int)lineStringRange.location + i);
                 size_t cell_length = cell.string.length;
                 for (size_t j = 0; j < cell_length; j++) {
                     cellOffsetByIndex[stringIndex++] = i;
@@ -1249,8 +1249,8 @@ static void grid_free(Grid *grid) {
     int desiredRows = maxRows;
     int desiredCols = maxColumns;
     NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
-    int right = [ud integerForKey:MMTextInsetRightKey];
-    int bot = [ud integerForKey:MMTextInsetBottomKey];
+    NSInteger right = [ud integerForKey:MMTextInsetRightKey];
+    NSInteger bot = [ud integerForKey:MMTextInsetBottomKey];
 
     if (size.height != desiredSize.height) {
         float fh = cellSize.height;
@@ -1281,8 +1281,8 @@ static void grid_free(Grid *grid) {
     // Compute the size the text view should be for the entire text area and
     // inset area to be visible with the present number of rows and columns.
     NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
-    int right = [ud integerForKey:MMTextInsetRightKey];
-    int bot = [ud integerForKey:MMTextInsetBottomKey];
+    NSInteger right = [ud integerForKey:MMTextInsetRightKey];
+    NSInteger bot = [ud integerForKey:MMTextInsetBottomKey];
 
     return NSMakeSize(maxColumns * cellSize.width + insetSize.width + right,
                       maxRows * cellSize.height + insetSize.height + bot);
@@ -1292,8 +1292,8 @@ static void grid_free(Grid *grid) {
 {
     // Compute the smallest size the text view is allowed to be.
     NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
-    int right = [ud integerForKey:MMTextInsetRightKey];
-    int bot = [ud integerForKey:MMTextInsetBottomKey];
+    NSInteger right = [ud integerForKey:MMTextInsetRightKey];
+    NSInteger bot = [ud integerForKey:MMTextInsetBottomKey];
 
     return NSMakeSize(MMMinColumns * cellSize.width + insetSize.width + right,
                       MMMinRows * cellSize.height + insetSize.height + bot);
@@ -1308,7 +1308,7 @@ static void grid_free(Grid *grid) {
 
     if (newFont) {
         NSString *name = [newFont fontName];
-        unsigned len = [name lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+        unsigned len = (unsigned)[name lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
         if (len > 0) {
             NSMutableData *data = [NSMutableData data];
             float pointSize = [newFont pointSize];
@@ -1393,7 +1393,7 @@ static void grid_free(Grid *grid) {
     if (alignCmdLineToBottom) {
         // Account for the gap we added to pin cmdline to the bottom of the window
         const NSRect frame = [self bounds];
-        const int insetBottom = [[NSUserDefaults standardUserDefaults] integerForKey:MMTextInsetBottomKey];
+        const NSInteger insetBottom = [[NSUserDefaults standardUserDefaults] integerForKey:MMTextInsetBottomKey];
         const CGFloat gapHeight = frame.size.height - grid.rows*cellSize.height - insetSize.height - insetBottom;
         const CGFloat cmdlineRowY = insetSize.height + cmdlineRow*cellSize.height + 1;
         if (point.y > cmdlineRowY) {
@@ -1443,7 +1443,7 @@ static void grid_free(Grid *grid) {
     // Note that we don't do this for filling the bottom since it's used only for cmdline which isn't usually
     // colored anyway.
     if (col + nc == grid.cols) {
-        const int insetRight = [[NSUserDefaults standardUserDefaults] integerForKey:MMTextInsetRightKey];
+        const NSInteger insetRight = [[NSUserDefaults standardUserDefaults] integerForKey:MMTextInsetRightKey];
         CGFloat extraWidth = frame.size.width - insetRight - (rect.size.width + rect.origin.x);
         rect.size.width += extraWidth;
     }
@@ -1451,7 +1451,7 @@ static void grid_free(Grid *grid) {
     // When configured to align cmdline to bottom, need to adjust the rect with an additional gap to pin
     // the rect to the bottom.
     if (alignCmdLineToBottom) {
-        const int insetBottom = [[NSUserDefaults standardUserDefaults] integerForKey:MMTextInsetBottomKey];
+        const NSInteger insetBottom = [[NSUserDefaults standardUserDefaults] integerForKey:MMTextInsetBottomKey];
         const CGFloat gapHeight = frame.size.height - grid.rows*cellSize.height - insetSize.height - insetBottom;
         if (row >= cmdlineRow) {
             rect.origin.y -= gapHeight;
@@ -1613,9 +1613,9 @@ static void rowColFromUtfRange(const Grid* grid, NSRange range,
     int outFirstLineLen = -1;
 
     const int gridSize = grid->cols * grid->rows;
-    NSUInteger utfIndex = 0;
+    int utfIndex = 0;
     for (int i = 0; i < gridSize; i++) {
-        if (utfIndex >= range.location) {
+        if (utfIndex >= (int)range.location) {
             // We are now past the start of the character.
             const int curRow = i / grid->cols;
             const int curCol = i % grid->cols;
@@ -1627,7 +1627,7 @@ static void rowColFromUtfRange(const Grid* grid, NSRange range,
                 outCol = curCol;
             }
 
-            if (utfIndex >= range.location + range.length) {
+            if (utfIndex >= (int)range.location + (int)range.length) {
                 // Record the end if we found it.
                 if (outFirstLineNumCols == -1) {
                     outFirstLineLen = utfIndex - startUtfIndex;
@@ -1647,7 +1647,7 @@ static void rowColFromUtfRange(const Grid* grid, NSRange range,
         }
 
         NSString *str = grid->cells[i].string;
-        utfIndex += str == nil ? 1 : str.length; // Note: nil string means empty space.
+        utfIndex += str == nil ? 1 : (int)str.length; // Note: nil string means empty space.
 
         if (grid->cells[i].textFlags & DRAW_WIDE) {
             i += 1;
@@ -2480,7 +2480,7 @@ static int ReadDrawCmd(const void **bytesRef, struct DrawCmd *drawCmd)
   backgroundColor:(int)bg specialColor:(int)sp
 {
     const BOOL wide = flags & DRAW_WIDE ? YES : NO;
-    __block size_t cells_filled = 0;
+    __block int cells_filled = 0;
     [string enumerateSubstringsInRange:NSMakeRange(0, string.length)
                                options:NSStringEnumerationByComposedCharacterSequences
                             usingBlock:^(NSString *substring, NSRange substringRange, NSRange enclosingRange, BOOL *stop) {
@@ -2524,14 +2524,14 @@ static int ReadDrawCmd(const void **bytesRef, struct DrawCmd *drawCmd)
               scrollBottom:(int)bottom left:(int)left right:(int)right
                      color:(int)color
 {
-    for (size_t r = row; r + count <= MIN(grid.rows - 1, bottom); r++) {
+    for (int r = row; r + count <= MIN(grid.rows - 1, bottom); r++) {
         memcpy(grid_cell(&grid, r, left),
                grid_cell(&grid, r + count, left),
                sizeof(GridCell) * (MIN(grid.cols, right + 1) - MIN(grid.cols, left)));
     }
     const GridCell clearCell = { .bg = color };
-    for (size_t r = bottom - count + 1; r <= MIN(grid.rows - 1, bottom); r++) {
-        for (size_t c = left; c <= MIN(grid.cols - 1, right); c++)
+    for (int r = bottom - count + 1; r <= MIN(grid.rows - 1, bottom); r++) {
+        for (int c = left; c <= MIN(grid.cols - 1, right); c++)
             *grid_cell(&grid, r, c) = clearCell;
     }
     [self setNeedsDisplayFromRow:row column:left toRow:bottom column:right];
@@ -2541,14 +2541,14 @@ static int ReadDrawCmd(const void **bytesRef, struct DrawCmd *drawCmd)
             scrollBottom:(int)bottom left:(int)left right:(int)right
                    color:(int)color
 {
-    for (size_t r = MIN(grid.rows - 1, bottom); r >= row + count; r--) {
+    for (int r = MIN(grid.rows - 1, bottom); r >= row + count; r--) {
         memcpy(grid_cell(&grid, r, left),
                grid_cell(&grid, r - count, left),
                sizeof(GridCell) * (MIN(grid.cols, right + 1) - MIN(grid.cols, left)));
     }
     const GridCell clearCell = { .bg = color };
-    for (size_t r = row; r < MIN(grid.rows, row + count); r++) {
-        for (size_t c = left; c <= right; c++)
+    for (int r = row; r < MIN(grid.rows, row + count); r++) {
+        for (int c = left; c <= right; c++)
             *grid_cell(&grid, r, c) = clearCell;
     }
     [self setNeedsDisplayFromRow:row column:left toRow:bottom column:right];
@@ -2558,8 +2558,8 @@ static int ReadDrawCmd(const void **bytesRef, struct DrawCmd *drawCmd)
                    column:(int)col2 color:(int)color
 {
     const GridCell clearCell = { .bg = color };
-    for (size_t r = row1; r <= row2; r++) {
-        for (size_t c = col1; c <= col2; c++)
+    for (int r = row1; r <= row2; r++) {
+        for (int c = col1; c <= col2; c++)
             *grid_cell_safe(&grid, r, c) = clearCell;
     }
     [self setNeedsDisplayFromRow:row1 column:col1 toRow:row2 column:col2];
@@ -2568,8 +2568,8 @@ static int ReadDrawCmd(const void **bytesRef, struct DrawCmd *drawCmd)
 - (void)clearAll
 {
     const GridCell clearCell = { .bg = defaultBackgroundColor.argbInt };
-    for (size_t r = 0; r < maxRows; r++) {
-        for (size_t c = 0; c < maxColumns; c++)
+    for (int r = 0; r < maxRows; r++) {
+        for (int c = 0; c < maxColumns; c++)
             *grid_cell(&grid, r, c) = clearCell;
     }
     self.needsDisplay = YES;
@@ -2590,8 +2590,8 @@ static int ReadDrawCmd(const void **bytesRef, struct DrawCmd *drawCmd)
 - (void)invertBlockFromRow:(int)row column:(int)col numRows:(int)nrows
                    numColumns:(int)ncols
 {
-    for (size_t r = row; r < row + nrows; r++) {
-        for (size_t c = col; c < col + ncols; c++) {
+    for (int r = row; r < row + nrows; r++) {
+        for (int c = col; c < col + ncols; c++) {
             grid_cell_safe(&grid, r, c)->inverted ^= 1;
         }
     }

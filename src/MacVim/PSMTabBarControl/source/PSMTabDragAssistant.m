@@ -146,8 +146,8 @@ static PSMTabDragAssistant *sharedDragAssistant = nil;
     [self setDestinationTabBar:control];
     [_participatingTabBars addObject:control];
     [self setDraggedCell:cell];
-    [self setDraggedCellIndex:[[control cells] indexOfObject:cell]];
-    
+    [self setDraggedCellIndex:(int)[[control cells] indexOfObject:cell]];
+
     NSRect cellFrame = [cell frame];
     // list of widths for animation
     int i;
@@ -175,7 +175,7 @@ static PSMTabDragAssistant *sharedDragAssistant = nil;
     [cell setHighlighted:NO];
     NSSize offset = NSZeroSize;
     [pboard declareTypes:[NSArray arrayWithObjects:@"PSMTabBarControlItemPBType", nil] owner: nil];
-    [pboard setString:[[NSNumber numberWithInt:[[control cells] indexOfObject:cell]] stringValue] forType:@"PSMTabBarControlItemPBType"];
+    [pboard setString:[[NSNumber numberWithInt:(int)[[control cells] indexOfObject:cell]] stringValue] forType:@"PSMTabBarControlItemPBType"];
     _animationTimer = [NSTimer scheduledTimerWithTimeInterval:(1.0/30.0) target:self selector:@selector(animateDrag:) userInfo:nil repeats:YES];
     [control dragImage:dragImage at:cellFrame.origin offset:offset event:event pasteboard:pboard source:control slideBack:YES];
 }
@@ -279,7 +279,7 @@ static PSMTabDragAssistant *sharedDragAssistant = nil;
 {
     BOOL removeFlag = YES;
     NSMutableArray *cells = [control cells];
-    int i, cellCount = [cells count];
+    int i, cellCount = (unsigned)[cells count];
     float xPos = [[control psmTabStyle] leftMarginForTabBarControl];
     
     // identify target cell
@@ -359,7 +359,7 @@ layout:
     // called upon first drag - must distribute placeholders
     [self distributePlaceholdersInTabBar:control];
     // replace dragged cell with a placeholder, and clean up surrounding cells
-    int cellIndex = [[control cells] indexOfObject:cell];
+    NSUInteger cellIndex = [[control cells] indexOfObject:cell];
     PSMTabBarCell *pc = [[[PSMTabBarCell alloc] initPlaceholderWithFrame:[[self draggedCell] frame] expanded:YES inControlView:control] autorelease];
     [[control cells] replaceObjectAtIndex:cellIndex withObject:pc];
     [[control cells] removeObjectAtIndex:(cellIndex + 1)];
@@ -386,7 +386,7 @@ layout:
 
 - (void)removeAllPlaceholdersFromTabBar:(PSMTabBarControl *)control
 {
-    int i, cellCount = [[control cells] count];
+    NSUInteger i, cellCount = [[control cells] count];
     for(i = (cellCount - 1); i >= 0; i--){
         PSMTabBarCell *cell = [[control cells] objectAtIndex:i];
         if([cell isPlaceholder])

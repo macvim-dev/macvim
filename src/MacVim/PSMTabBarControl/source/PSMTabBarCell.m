@@ -363,8 +363,8 @@
         [aCoder encodeInt:_currentStep forKey:@"currentStep"];
         [aCoder encodeBool:_isPlaceholder forKey:@"isPlaceholder"];
         [aCoder encodeInt:_tabState forKey:@"tabState"];
-        [aCoder encodeInt:_closeButtonTrackingTag forKey:@"closeButtonTrackingTag"];
-        [aCoder encodeInt:_cellTrackingTag forKey:@"cellTrackingTag"];
+        [aCoder encodeInteger:_closeButtonTrackingTag forKey:@"closeButtonTrackingTag"];
+        [aCoder encodeInteger:_cellTrackingTag forKey:@"cellTrackingTag"];
         [aCoder encodeBool:_closeButtonOver forKey:@"closeButtonOver"];
         [aCoder encodeBool:_closeButtonPressed forKey:@"closeButtonPressed"];
         [aCoder encodeObject:_indicator forKey:@"indicator"];
@@ -386,8 +386,8 @@
             _currentStep = [aDecoder decodeIntForKey:@"currentStep"];
             _isPlaceholder = [aDecoder decodeBoolForKey:@"isPlaceholder"];
             _tabState = [aDecoder decodeIntForKey:@"tabState"];
-            _closeButtonTrackingTag = [aDecoder decodeIntForKey:@"closeButtonTrackingTag"];
-            _cellTrackingTag = [aDecoder decodeIntForKey:@"cellTrackingTag"];
+            _closeButtonTrackingTag = [aDecoder decodeIntegerForKey:@"closeButtonTrackingTag"];
+            _cellTrackingTag = [aDecoder decodeIntegerForKey:@"cellTrackingTag"];
             _closeButtonOver = [aDecoder decodeBoolForKey:@"closeButtonOver"];
             _closeButtonPressed = [aDecoder decodeBoolForKey:@"closeButtonPressed"];
             _indicator = [[aDecoder decodeObjectForKey:@"indicator"] retain];

@@ -71,7 +71,7 @@ NSString *MMScrollOneDirectionOnlyKey     = @"MMScrollOneDirectionOnly";
 {
     NSMutableIndexSet *idxSet = [NSMutableIndexSet indexSet];
     NSArray *array = [list componentsSeparatedByString:@"\n"];
-    unsigned i, count = [array count];
+    NSUInteger i, count = [array count];
 
     for (i = 0; i < count; ++i) {
         NSString *entry = [array objectAtIndex:i];
@@ -125,11 +125,11 @@ NSString *MMScrollOneDirectionOnlyKey     = @"MMScrollOneDirectionOnly";
 
 - (int)indexOfItemWithAction:(SEL)action
 {
-    int i, count = [self numberOfItems];
+    NSUInteger i, count = [self numberOfItems];
     for (i = 0; i < count; ++i) {
         NSMenuItem *item = [self itemAtIndex:i];
         if ([item action] == action)
-            return i;
+            return (int)i;
     }
 
     return -1;
@@ -144,7 +144,7 @@ NSString *MMScrollOneDirectionOnlyKey     = @"MMScrollOneDirectionOnly";
 - (NSMenu *)findMenuContainingItemWithAction:(SEL)action
 {
     // NOTE: We only look for the action in the submenus of 'self'
-    int i, count = [self numberOfItems];
+    NSUInteger i, count = [self numberOfItems];
     for (i = 0; i < count; ++i) {
         NSMenu *menu = [[self itemAtIndex:i] submenu];
         NSMenuItem *item = [menu itemWithAction:action];
@@ -307,7 +307,7 @@ normalizeFilenames(NSArray *filenames)
     if (!filenames)
         return outnames;
 
-    unsigned i, count = [filenames count];
+    NSUInteger i, count = [filenames count];
     for (i = 0; i < count; ++i) {
         NSString *nfkc = normalizeFilename([filenames objectAtIndex:i]);
         [outnames addObject:nfkc];

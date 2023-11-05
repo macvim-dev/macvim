@@ -21,7 +21,7 @@
 - (void)sendEvent:(NSEvent *)event
 {
     NSEventType type = [event type];
-    unsigned flags = [event modifierFlags];
+    NSUInteger flags = [event modifierFlags];
 
     // HACK! Intercept 'help' key presses and clear the 'help key flag', else
     // Cocoa turns the mouse cursor into a question mark and goes into 'context

@@ -102,9 +102,9 @@ enum {
     }
 
     // Allow control of text view inset via MMTextInset* user defaults.
-    int left = [ud integerForKey:MMTextInsetLeftKey];
-    int top = [ud integerForKey:MMTextInsetTopKey];
-    [textView setTextContainerInset:NSMakeSize(left, top)];
+    [textView setTextContainerInset:NSMakeSize(
+        [ud integerForKey:MMTextInsetLeftKey],
+        [ud integerForKey:MMTextInsetTopKey])];
 
     [textView setAutoresizingMask:NSViewNotSizable];
     [self addSubview:textView];
@@ -127,24 +127,24 @@ enum {
 
     if (shouldUseYosemiteTabBarStyle() || shouldUseMojaveTabBarStyle()) {
         CGFloat screenWidth = [[NSScreen mainScreen] frame].size.width;
-        int tabMaxWidth = [ud integerForKey:MMTabMaxWidthKey];
+        int tabMaxWidth = (int)[ud integerForKey:MMTabMaxWidthKey];
         if (tabMaxWidth == 0)
-            tabMaxWidth = screenWidth;
-        int tabOptimumWidth = [ud integerForKey:MMTabOptimumWidthKey];
+            tabMaxWidth = (int)screenWidth;
+        int tabOptimumWidth = (int)[ud integerForKey:MMTabOptimumWidthKey];
         if (tabOptimumWidth == 0)
-            tabOptimumWidth = screenWidth;
+            tabOptimumWidth = (int)screenWidth;
         
         NSString* tabStyleName = shouldUseMojaveTabBarStyle() ? @"Mojave" : @"Yosemite";
 
         [tabBarControl setStyleNamed:tabStyleName];
-        [tabBarControl setCellMinWidth:[ud integerForKey:MMTabMinWidthKey]];
+        [tabBarControl setCellMinWidth:(int)[ud integerForKey:MMTabMinWidthKey]];
         [tabBarControl setCellMaxWidth:tabMaxWidth];
         [tabBarControl setCellOptimumWidth:tabOptimumWidth];
     } else {
-        [tabBarControl setCellMinWidth:[ud integerForKey:MMTabMinWidthKey]];
-        [tabBarControl setCellMaxWidth:[ud integerForKey:MMTabMaxWidthKey]];
+        [tabBarControl setCellMinWidth:(int)[ud integerForKey:MMTabMinWidthKey]];
+        [tabBarControl setCellMaxWidth:(int)[ud integerForKey:MMTabMaxWidthKey]];
         [tabBarControl setCellOptimumWidth:
-                                     [ud integerForKey:MMTabOptimumWidthKey]];
+                                     (int)[ud integerForKey:MMTabOptimumWidthKey]];
     }
 
     [tabBarControl setShowAddTabButton:[ud boolForKey:MMShowAddTabButtonKey]];
@@ -275,8 +275,7 @@ enum {
     [tabBarControl removeFromSuperviewWithoutNeedingDisplay];
     [textView removeFromSuperviewWithoutNeedingDisplay];
 
-    unsigned i, count = [scrollbars count];
-    for (i = 0; i < count; ++i) {
+    for (NSUInteger i = 0, count = scrollbars.count; i < count; ++i) {
         MMScroller *sb = [scrollbars objectAtIndex:i];
         [sb removeFromSuperviewWithoutNeedingDisplay];
     }
@@ -367,8 +366,7 @@ enum {
     // take care of which tab to select so set the vimTaskSelectedTab flag to
     // prevent the tab selection message to be passed on to the VimTask.
     vimTaskSelectedTab = YES;
-    int i, count = [[self tabView] numberOfTabViewItems];
-    for (i = count-1; i >= tabIdx; --i) {
+    for (NSInteger i = [self tabView].numberOfTabViewItems-1; i >= tabIdx; --i) {
         id tvi = [tabViewItems objectAtIndex:i];
         [[self tabView] removeTabViewItem:tvi];
     }
@@ -406,7 +404,7 @@ enum {
     // The documentation claims initWithIdentifier can be given a nil identifier, but the API itself
     // is decorated such that doing so produces a warning, so the tab count is used as identifier.
     NSInteger identifier = [[self tabView] numberOfTabViewItems];
-    NSTabViewItem *tvi = [[NSTabViewItem alloc] initWithIdentifier:[NSNumber numberWithInt:identifier]];
+    NSTabViewItem *tvi = [[NSTabViewItem alloc] initWithIdentifier:[NSNumber numberWithInt:(int)identifier]];
 
     // NOTE: If this is the first tab it will be automatically selected.
     vimTaskSelectedTab = YES;
@@ -477,11 +475,11 @@ enum {
 {
     NSMutableData *data = [NSMutableData data];
     int32_t ident = [(MMScroller*)sender scrollerId];
-    int hitPart = [sender hitPart];
+    unsigned hitPart = (unsigned)[sender hitPart];
     float value = [sender floatValue];
 
     [data appendBytes:&ident length:sizeof(int32_t)];
-    [data appendBytes:&hitPart length:sizeof(int)];
+    [data appendBytes:&hitPart length:sizeof(unsigned)];
     [data appendBytes:&value length:sizeof(float)];
 
     [vimController sendMessage:ScrollbarEventMsgID data:data];
@@ -675,8 +673,7 @@ enum {
 
 - (BOOL)bottomScrollbarVisible
 {
-    unsigned i, count = [scrollbars count];
-    for (i = 0; i < count; ++i) {
+    for (NSUInteger i = 0, count = scrollbars.count; i < count; ++i) {
         MMScroller *scroller = [scrollbars objectAtIndex:i];
         if ([scroller type] == MMScrollerTypeBottom && ![scroller isHidden])
             return YES;
@@ -687,8 +684,7 @@ enum {
 
 - (BOOL)leftScrollbarVisible
 {
-    unsigned i, count = [scrollbars count];
-    for (i = 0; i < count; ++i) {
+    for (NSUInteger i = 0, count = scrollbars.count; i < count; ++i) {
         MMScroller *scroller = [scrollbars objectAtIndex:i];
         if ([scroller type] == MMScrollerTypeLeft && ![scroller isHidden])
             return YES;
@@ -699,8 +695,7 @@ enum {
 
 - (BOOL)rightScrollbarVisible
 {
-    unsigned i, count = [scrollbars count];
-    for (i = 0; i < count; ++i) {
+    for (NSUInteger i = 0, count = scrollbars.count; i < count; ++i) {
         MMScroller *scroller = [scrollbars objectAtIndex:i];
         if ([scroller type] == MMScrollerTypeRight && ![scroller isHidden])
             return YES;
@@ -718,11 +713,10 @@ enum {
 
     // HACK!  Find the lowest left&right vertical scrollbars This hack
     // continues further down.
-    unsigned lowestLeftSbIdx = (unsigned)-1;
-    unsigned lowestRightSbIdx = (unsigned)-1;
-    unsigned rowMaxLeft = 0, rowMaxRight = 0;
-    unsigned i, count = [scrollbars count];
-    for (i = 0; i < count; ++i) {
+    NSUInteger lowestLeftSbIdx = (NSUInteger)-1;
+    NSUInteger lowestRightSbIdx = (NSUInteger)-1;
+    NSUInteger rowMaxLeft = 0, rowMaxRight = 0;
+    for (NSUInteger i = 0, count = scrollbars.count; i < count; ++i) {
         MMScroller *scroller = [scrollbars objectAtIndex:i];
         if (![scroller isHidden]) {
             NSRange range = [scroller range];
@@ -743,7 +737,7 @@ enum {
     }
 
     // Place the scrollbars.
-    for (i = 0; i < count; ++i) {
+    for (NSUInteger i = 0, count = scrollbars.count; i < count; ++i) {
         MMScroller *scroller = [scrollbars objectAtIndex:i];
         if ([scroller isHidden])
             continue;
@@ -853,11 +847,10 @@ enum {
 
 - (MMScroller *)scrollbarForIdentifier:(int32_t)ident index:(unsigned *)idx
 {
-    unsigned i, count = [scrollbars count];
-    for (i = 0; i < count; ++i) {
+    for (NSUInteger i = 0, count = scrollbars.count; i < count; ++i) {
         MMScroller *scroller = [scrollbars objectAtIndex:i];
         if ([scroller scrollerId] == ident) {
-            if (idx) *idx = i;
+            if (idx) *idx = (unsigned)i;
             return scroller;
         }
     }

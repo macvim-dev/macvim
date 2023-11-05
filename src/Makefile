@@ -3698,7 +3698,7 @@ macvimclean:
 		rm -rf MacVim/auto MacVim/build MacVim/qlstephen/build xxd/xxd.dSYM; \
 	fi
 
-# Create a release DMG image that is signed and notaraized
+# Create a release DMG image that is signed and notarized
 macvim-dmg-release: macvim-signed macvim-dmg
 	MacVim/scripts/sign-developer-id $(RELEASEDIR)/MacVim.dmg $(ENTITLEMENTS)
 	MacVim/scripts/notarize-dmg $(RELEASEDIR)/MacVim.dmg

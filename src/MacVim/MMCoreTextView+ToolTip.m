@@ -143,7 +143,7 @@ static const NSTrackingRectTag kTrackingRectTag = 0xBADFACE;
 {
     int i;
     for (i = 0; i < count; ++i) {
-        int tag = tags[i];
+        const NSInteger tag = tags[i];
         if (tag == 0)
             continue;
         //DCHECK(tag == kTrackingRectTag);
@@ -155,7 +155,7 @@ static const NSTrackingRectTag kTrackingRectTag = 0xBADFACE;
 - (void)_sendToolTipMouseExited
 {
     // Nothing matters except window, trackingNumber, and userData.
-    int windowNumber = [[self window] windowNumber];
+    NSInteger windowNumber = [[self window] windowNumber];
     NSEvent *fakeEvent = [NSEvent enterExitEventWithType:NSEventTypeMouseExited
                                                 location:NSMakePoint(0, 0)
                                            modifierFlags:0
@@ -172,7 +172,7 @@ static const NSTrackingRectTag kTrackingRectTag = 0xBADFACE;
 - (void)_sendToolTipMouseEntered
 {
     // Nothing matters except window, trackingNumber, and userData.
-    int windowNumber = [[self window] windowNumber];
+    NSInteger windowNumber = [[self window] windowNumber];
     NSEvent *fakeEvent = [NSEvent enterExitEventWithType:NSEventTypeMouseEntered
                                                 location:NSMakePoint(0, 0)
                                            modifierFlags:0

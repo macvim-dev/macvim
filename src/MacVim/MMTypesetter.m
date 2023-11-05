@@ -119,7 +119,7 @@
 
     // Note that we always start laying out lines from the beginning of a line,
     // even if 'startCharIdx' may be somewhere in the middle.
-    unsigned startCharIdx = [lm characterIndexForGlyphAtIndex:startGlyphIdx];
+    NSUInteger startCharIdx = [lm characterIndexForGlyphAtIndex:startGlyphIdx];
     if (startCharIdx >= [text length])
         return;
 
@@ -162,7 +162,7 @@
     NSRange glyphRange = { startGlyphIdx, 0 };
     NSRect lineRect = { {0, line*cellSize.height},
                         {[ts actualColumns]*cellSize.width, cellSize.height} };
-    int endLine = line + maxNumLines;
+    int endLine = line + (int)maxNumLines;
     if (endLine > actualRows)
         endLine = actualRows;
 

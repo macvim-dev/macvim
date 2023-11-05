@@ -44,7 +44,7 @@ static float MMDragAreaSize = 73.0f;
 - (BOOL)inputManagerHandleMouseEvent:(NSEvent *)event;
 - (void)sendMarkedText:(NSString *)text position:(int32_t)pos;
 - (void)abandonMarkedText;
-- (void)sendGestureEvent:(int)gesture flags:(int)flags;
+- (void)sendGestureEvent:(int)gesture flags:(unsigned)flags;
 @end
 
 
@@ -147,7 +147,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 
     [self hideMouseCursor];
 
-    unsigned flags = [event modifierFlags];
+    NSUInteger flags = [event modifierFlags];
     id mmta = [[[self vimController] vimState] objectForKey:@"p_mmta"];
     NSString *string = [event characters];
     NSString *unmod  = [event charactersIgnoringModifiers];
@@ -372,12 +372,12 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     int row, col;
     NSPoint pt = [textView convertPoint:[event locationInWindow] fromView:nil];
     if ([textView convertPoint:pt toRow:&row column:&col]) {
-        int flags = [event modifierFlags];
+        unsigned flags = (unsigned)[event modifierFlags];
         NSMutableData *data = [NSMutableData data];
 
         [data appendBytes:&row length:sizeof(int)];
         [data appendBytes:&col length:sizeof(int)];
-        [data appendBytes:&flags length:sizeof(int)];
+        [data appendBytes:&flags length:sizeof(unsigned)];
         [data appendBytes:&dy length:sizeof(float)];
         [data appendBytes:&dx length:sizeof(float)];
 
@@ -395,8 +395,8 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     if (![textView convertPoint:pt toRow:&row column:&col])
         return;
 
-    int button = [event buttonNumber];
-    int flags = [event modifierFlags];
+    int button = (int)[event buttonNumber];
+    unsigned flags = (unsigned)[event modifierFlags];
     int repeat = 0;
 
     if (useMouseTime) {
@@ -428,7 +428,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     [data appendBytes:&row length:sizeof(int)];
     [data appendBytes:&col length:sizeof(int)];
     [data appendBytes:&button length:sizeof(int)];
-    [data appendBytes:&flags length:sizeof(int)];
+    [data appendBytes:&flags length:sizeof(unsigned)];
     [data appendBytes:&repeat length:sizeof(int)];
 
     [[self vimController] sendMessage:MouseDownMsgID data:data];
@@ -444,12 +444,12 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     if (![textView convertPoint:pt toRow:&row column:&col])
         return;
 
-    int flags = [event modifierFlags];
+    unsigned flags = (unsigned)[event modifierFlags];
     NSMutableData *data = [NSMutableData data];
 
     [data appendBytes:&row length:sizeof(int)];
     [data appendBytes:&col length:sizeof(int)];
-    [data appendBytes:&flags length:sizeof(int)];
+    [data appendBytes:&flags length:sizeof(unsigned)];
 
     [[self vimController] sendMessage:MouseUpMsgID data:data];
 
@@ -461,7 +461,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     if ([self inputManagerHandleMouseEvent:event])
         return;
 
-    int flags = [event modifierFlags];
+    unsigned flags = (unsigned)[event modifierFlags];
     int row, col;
     NSPoint pt = [textView convertPoint:[event locationInWindow] fromView:nil];
     if (![textView convertPoint:pt toRow:&row column:&col])
@@ -473,7 +473,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 
         [data appendBytes:&row length:sizeof(int)];
         [data appendBytes:&col length:sizeof(int)];
-        [data appendBytes:&flags length:sizeof(int)];
+        [data appendBytes:&flags length:sizeof(unsigned)];
 
         [[self vimController] sendMessage:MouseDraggedMsgID data:data];
     }
@@ -523,7 +523,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     else if (dy < 0) type = MMGestureSwipeDown;
     else return;
 
-    [self sendGestureEvent:type flags:[event modifierFlags]];
+    [self sendGestureEvent:type flags:(unsigned)[event modifierFlags]];
 }
 
 - (void)pressureChangeWithEvent:(NSEvent *)event
@@ -553,7 +553,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
                 //   https://searchfox.org/mozilla-central/source/widget/cocoa/nsChildView.mm
                 [textView quickLookWithEvent:event];
             } else {
-                [self sendGestureEvent:MMGestureForceClick flags:[event modifierFlags]];
+                [self sendGestureEvent:MMGestureForceClick flags:(unsigned)[event modifierFlags]];
             }
         }
     } else {
@@ -622,8 +622,8 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     if (newFont) {
         NSString *name = [newFont displayName];
         NSString *wideName = [newFontWide displayName];
-        unsigned len = [name lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
-        unsigned wideLen = [wideName lengthOfBytesUsingEncoding:
+        unsigned len = (unsigned)[name lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+        unsigned wideLen = (unsigned)[wideName lengthOfBytesUsingEncoding:
                                                         NSUTF8StringEncoding];
         if (len > 0) {
             NSMutableData *data = [NSMutableData data];
@@ -709,7 +709,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
             imRange = range;
         }
 
-        [self sendMarkedText:text position:range.location];
+        [self sendMarkedText:text position:(int32_t)range.location];
         return;
     }
 
@@ -842,7 +842,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
         }
     }
 
-    return [self firstRectForCharacterRange:row column:col length:range.length];
+    return [self firstRectForCharacterRange:row column:col length:(int)range.length];
 }
 
 - (NSRect)firstRectForCharacterRange:(int)row column:(int)col length:(int)numColumns
@@ -980,9 +980,9 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     }
 
     const char *chars = [key UTF8String];
-    unsigned length = [key lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+    unsigned length = (unsigned)[key lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
     unsigned keyCode = [currentEvent keyCode];
-    unsigned flags = [currentEvent modifierFlags];
+    unsigned flags = (unsigned)[currentEvent modifierFlags];
 
     // The low 16 bits are not used for modifier flags by NSEvent.  Use
     // these bits for custom flags.
@@ -1002,7 +1002,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 
 - (void)doInsertText:(NSString *)text
 {
-    unsigned length = [text lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+    unsigned length = (unsigned)[text lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
     if (0 == length)
         return;
 
@@ -1018,7 +1018,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     if (currentEvent) {
         // HACK! Keys on the numeric key pad are treated as special keys by Vim
         // so we need to pass on key code and modifier flags in this situation.
-        unsigned mods = [currentEvent modifierFlags];
+        unsigned mods = (unsigned)[currentEvent modifierFlags];
         if (mods & NSEventModifierFlagNumericPad) {
             flags = mods & NSEventModifierFlagDeviceIndependentFlagsMask;
             keyCode = [currentEvent keyCode];
@@ -1071,7 +1071,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 
         [data appendBytes:&dragRow length:sizeof(int)];
         [data appendBytes:&col length:sizeof(int)];
-        [data appendBytes:&dragFlags length:sizeof(int)];
+        [data appendBytes:&dragFlags length:sizeof(unsigned)];
 
         [[self vimController] sendMessage:MouseDraggedMsgID data:data];
 
@@ -1174,10 +1174,10 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 {
     NSRect rect = [textView frame];
     NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
-    int left = [ud integerForKey:MMTextInsetLeftKey];
-    int top = [ud integerForKey:MMTextInsetTopKey];
-    int right = [ud integerForKey:MMTextInsetRightKey];
-    int bot = [ud integerForKey:MMTextInsetBottomKey];
+    NSUInteger left = [ud integerForKey:MMTextInsetLeftKey];
+    NSUInteger top = [ud integerForKey:MMTextInsetTopKey];
+    NSUInteger right = [ud integerForKey:MMTextInsetRightKey];
+    NSUInteger bot = [ud integerForKey:MMTextInsetBottomKey];
 
     rect.origin.x = left;
     rect.origin.y = top;
@@ -1206,7 +1206,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 
     NSMutableData *data = [NSMutableData data];
     unsigned len = text == nil ? 0
-                    : [text lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+                    : (unsigned)[text lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
 
     [data appendBytes:&pos length:sizeof(int32_t)];
     [data appendBytes:&len length:sizeof(unsigned)];
@@ -1229,11 +1229,11 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     [[NSTextInputContext currentInputContext] discardMarkedText];
 }
 
-- (void)sendGestureEvent:(int)gesture flags:(int)flags
+- (void)sendGestureEvent:(int)gesture flags:(unsigned)flags
 {
     NSMutableData *data = [NSMutableData data];
 
-    [data appendBytes:&flags length:sizeof(int)];
+    [data appendBytes:&flags length:sizeof(unsigned)];
     [data appendBytes:&gesture length:sizeof(int)];
 
     [[self vimController] sendMessage:GestureMsgID data:data];
