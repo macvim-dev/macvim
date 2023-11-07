@@ -1890,7 +1890,7 @@ def Test_assign_funcref_args()
     var FuncAnyVA: func(...any): number
     FuncAnyVA = (v): number => v
   END
-  v9.CheckScriptFailure(lines, 'E1012: Type mismatch; expected func(...any): number but got func(any): number')
+  v9.CheckScriptFailure(lines, 'E1180: Variable arguments type must be a list: any')
 
   # varargs must match
   lines =<< trim END
@@ -1898,7 +1898,7 @@ def Test_assign_funcref_args()
     var FuncAnyVA: func(...any): number
     FuncAnyVA = (v1, v2): number => v1 + v2
   END
-  v9.CheckScriptFailure(lines, 'E1012: Type mismatch; expected func(...any): number but got func(any, any): number')
+  v9.CheckScriptFailure(lines, 'E1180: Variable arguments type must be a list: any')
 
   # varargs must match
   lines =<< trim END
@@ -1906,7 +1906,7 @@ def Test_assign_funcref_args()
     var FuncAnyVA: func(...any): number
     FuncAnyVA = (v1: list<any>): number => 3
   END
-  v9.CheckScriptFailure(lines, 'E1012: Type mismatch; expected func(...any): number but got func(list<any>): number')
+  v9.CheckScriptFailure(lines, 'E1180: Variable arguments type must be a list: any')
 enddef
 
 def Test_assign_funcref_arg_any()
@@ -2984,6 +2984,77 @@ def Test_heredoc_expr()
       END
   LINES
   v9.CheckDefAndScriptFailure(lines, 'E15: Invalid expression: "}"')
+enddef
+
+" Test for assigning to a multi-dimensional list item.
+def Test_list_item_assign()
+  var lines =<< trim END
+    vim9script
+
+    def Foo()
+      var l: list<list<string>> = [['x', 'x', 'x'], ['y', 'y', 'y']]
+      var z: number = 1
+
+      [l[1][2], z] = ['a', 20]
+      assert_equal([['x', 'x', 'x'], ['y', 'y', 'a']], l)
+    enddef
+    Foo()
+  END
+  v9.CheckSourceSuccess(lines)
+
+  lines =<< trim END
+    vim9script
+
+    var l: list<list<string>> = [['x', 'x', 'x'], ['y', 'y', 'y']]
+    var z: number = 1
+
+    [l[1][2], z] = ['a', 20]
+    assert_equal([['x', 'x', 'x'], ['y', 'y', 'a']], l)
+  END
+  v9.CheckSourceSuccess(lines)
+enddef
+
+" Test for assigning to a multi-dimensional dict item.
+def Test_dict_item_assign()
+  # This used to fail with the error "E1105: Cannot convert list to string"
+  # (Github issue #13485)
+  var lines =<< trim END
+    vim9script
+    def F()
+      var d: dict<dict<number>> = {a: {b: 0}}
+
+      for group in keys(d)
+        d['a']['b'] += 1
+      endfor
+      assert_equal({a: {b: 1}}, d)
+    enddef
+    F()
+  END
+  v9.CheckSourceSuccess(lines)
+
+  # This used to crash Vim
+  lines =<< trim END
+    vim9script
+    def F()
+      var d: dict<dict<number>> = {a: {b: 0}}
+      d['a']['b'] += 1
+      assert_equal({a: {b: 1}}, d)
+    enddef
+    F()
+  END
+  v9.CheckSourceSuccess(lines)
+
+  # Assignment at script level
+  lines =<< trim END
+    vim9script
+    var d: dict<dict<number>> = {a: {b: 0}}
+
+    for group in keys(d)
+      d['a']['b'] += 1
+    endfor
+    assert_equal({a: {b: 1}}, d)
+  END
+  v9.CheckSourceSuccess(lines)
 enddef
 
 " vim: ts=8 sw=2 sts=2 expandtab tw=80 fdm=marker

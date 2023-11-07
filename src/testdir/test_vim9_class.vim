@@ -35,7 +35,7 @@ def Test_class_basic()
   END
   v9.CheckSourceFailure(lines, 'E475: Invalid argument: noclass Something', 2)
 
-  # Only the completed word "class" should be recognized
+  # Only the complete word "class" should be recognized
   lines =<< trim END
     vim9script
     abstract classy Something
@@ -132,7 +132,7 @@ def Test_class_basic()
     endclass
     var obj = Something.new()
   END
-  v9.CheckSourceFailure(lines, 'E1326: Variable not found on object "Something": state', 1)
+  v9.CheckSourceFailure(lines, 'E1326: Variable "state" not found in object "Something"', 1)
 
   # Space before ":" in a member variable declaration
   lines =<< trim END
@@ -170,7 +170,7 @@ def Test_class_basic()
     if A
     endif
   END
-  v9.CheckSourceFailure(lines, 'E1319: Using a class as a Number', 4)
+  v9.CheckSourceFailure(lines, 'E1319: Using a Class as a Number', 4)
 
   # Test for using object as a bool
   lines =<< trim END
@@ -181,7 +181,7 @@ def Test_class_basic()
     if a
     endif
   END
-  v9.CheckSourceFailure(lines, 'E1320: Using an object as a Number', 5)
+  v9.CheckSourceFailure(lines, 'E1320: Using an Object as a Number', 5)
 
   # Test for using class as a float
   lines =<< trim END
@@ -190,7 +190,7 @@ def Test_class_basic()
     endclass
     sort([1.1, A], 'f')
   END
-  v9.CheckSourceFailure(lines, 'E1321: Using a class as a Float', 4)
+  v9.CheckSourceFailure(lines, 'E1321: Using a Class as a Float', 4)
 
   # Test for using object as a float
   lines =<< trim END
@@ -200,7 +200,7 @@ def Test_class_basic()
     var a = A.new()
     sort([1.1, a], 'f')
   END
-  v9.CheckSourceFailure(lines, 'E1322: Using an object as a Float', 5)
+  v9.CheckSourceFailure(lines, 'E1322: Using an Object as a Float', 5)
 
   # Test for using class as a string
   lines =<< trim END
@@ -209,7 +209,7 @@ def Test_class_basic()
     endclass
     :exe 'call ' .. A
   END
-  v9.CheckSourceFailure(lines, 'E1323: Using a class as a String', 4)
+  v9.CheckSourceFailure(lines, 'E1323: Using a Class as a String', 4)
 
   # Test for using object as a string
   lines =<< trim END
@@ -219,7 +219,7 @@ def Test_class_basic()
     var a = A.new()
     :exe 'call ' .. a
   END
-  v9.CheckSourceFailure(lines, 'E1324: Using an object as a String', 5)
+  v9.CheckSourceFailure(lines, 'E1324: Using an Object as a String', 5)
 
   # Test creating a class with member variables and methods, calling a object
   # method.  Check for using type() and typename() with a class and an object.
@@ -648,7 +648,7 @@ def Test_member_any_used_as_object()
     var outer_obj = Outer.new(inner_obj)
     F(outer_obj)
   END
-  v9.CheckSourceFailure(lines, 'E1326: Variable not found on object "Inner": someval', 1)
+  v9.CheckSourceFailure(lines, 'E1326: Variable "someval" not found in object "Inner"', 1)
 enddef
 
 " Nested assignment to a object variable which is of another class type
@@ -1092,7 +1092,7 @@ def Test_instance_variable_access()
     trip.three = 33
     assert_equal(33, trip.three)
 
-    assert_fails('trip.four = 4', 'E1326: Variable not found on object "Triple": four')
+    assert_fails('trip.four = 4', 'E1326: Variable "four" not found in object "Triple"')
   END
   v9.CheckSourceSuccess(lines)
 
@@ -1743,7 +1743,7 @@ def Test_class_member()
     var a = A.new()
     var v = a.bar
   END
-  v9.CheckSourceFailure(lines, 'E1337: Class variable "bar" not found in class "A"', 5)
+  v9.CheckSourceFailure(lines, 'E1326: Variable "bar" not found in object "A"', 5)
 enddef
 
 " These messages should show the defining class of the variable (base class),
@@ -2080,7 +2080,7 @@ def Test_class_defcompile()
     var a = A.new()
     defcompile a.Foo()
   END
-  v9.CheckSourceFailureList(lines, ['E1326: Variable not found on object "A": Foo', 'E475: Invalid argument: a.Foo()'])
+  v9.CheckSourceFailureList(lines, ['E1326: Variable "Foo" not found in object "A"', 'E475: Invalid argument: a.Foo()'])
 enddef
 
 def Test_class_object_to_string()
@@ -3055,7 +3055,7 @@ def Test_abstract_class()
     endclass
     var p = Base.new('Peter')
   END
-  v9.CheckSourceFailure(lines, 'E1325: Method not found on class "Base": new', 8)
+  v9.CheckSourceFailure(lines, 'E1325: Method "new" not found in class "Base"', 8)
 
   lines =<< trim END
     abstract class Base
@@ -4186,8 +4186,8 @@ enddef
 def Test_lockvar_islocked()
   # Can't lock class/object variable
   # Lock class/object variable's value
-  # Lock item of variabl's value (a list item)
-  # varible is at index 1 within class/object
+  # Lock item of variable's value (a list item)
+  # variable is at index 1 within class/object
   var lines =<< trim END
     vim9script
 
@@ -4478,7 +4478,7 @@ def Test_lockvar_islocked_notfound()
     var obj = C.new()
     obj.Islocked("this.notobjmember")
   END
-  v9.CheckSourceFailure(lines, 'E1326: Variable not found on object "C": notobjmember')
+  v9.CheckSourceFailure(lines, 'E1326: Variable "notobjmember" not found in object "C"')
 
   # access a script variable through methods
   lines =<< trim END
@@ -4938,7 +4938,7 @@ def Test_private_class_method()
     var c = C.new()
     assert_equal(1234, C._Foo())
   END
-  v9.CheckSourceFailure(lines, 'E1325: Method not found on class "C": _Foo', 16)
+  v9.CheckSourceFailure(lines, 'E1325: Method "_Foo" not found in class "C"', 16)
 enddef
 
 " Test for using the return value of a class/object method as a function
@@ -5227,7 +5227,7 @@ def Test_private_member_access_outside_class()
     enddef
     T()
   END
-  v9.CheckSourceFailure(lines, 'E1326: Variable not found on object "A": _a', 2)
+  v9.CheckSourceFailure(lines, 'E1326: Variable "_a" not found in object "A"', 2)
 
   # private static member variable
   lines =<< trim END
@@ -5384,7 +5384,7 @@ def Test_class_variable_access_using_object()
     var a = A.new()
     echo a.svar2
   END
-  v9.CheckSourceFailure(lines, 'E1337: Class variable "svar2" not found in class "A"', 8)
+  v9.CheckSourceFailure(lines, 'E1375: Class variable "svar2" accessible only using class "A"', 8)
 
   # Cannot write to a class variable using an object in script context
   lines =<< trim END
@@ -5567,7 +5567,26 @@ def Test_abstract_method()
       enddef
     endclass
   END
-  v9.CheckSourceSuccess(lines)
+  v9.CheckSourceFailure(lines, 'E1404: Abstract cannot be used in an interface', 3)
+
+  # Use abstract static method in an interface
+  lines =<< trim END
+    vim9script
+    interface A
+      abstract static def Foo()
+      enddef
+    endinterface
+  END
+  v9.CheckSourceFailure(lines, 'E1404: Abstract cannot be used in an interface', 3)
+
+  # Use abstract static variable in an interface
+  lines =<< trim END
+    vim9script
+    interface A
+      abstract static foo: number = 10
+    endinterface
+  END
+  v9.CheckSourceFailure(lines, 'E1404: Abstract cannot be used in an interface', 3)
 
   # Abbreviate the "abstract" keyword
   lines =<< trim END
@@ -5585,7 +5604,7 @@ def Test_abstract_method()
       abstract this.val = 10
     endclass
   END
-  v9.CheckSourceFailure(lines, 'E1371: Abstract must be followed by "def" or "static"', 3)
+  v9.CheckSourceFailure(lines, 'E1371: Abstract must be followed by "def"', 3)
 
   # Use a static abstract method
   lines =<< trim END
@@ -5593,14 +5612,8 @@ def Test_abstract_method()
     abstract class A
       abstract static def Foo(): number
     endclass
-    class B extends A
-      static def Foo(): number
-        return 4
-      enddef
-    endclass
-    assert_equal(4, B.Foo())
   END
-  v9.CheckSourceSuccess(lines)
+  v9.CheckSourceFailure(lines, 'E1371: Abstract must be followed by "def"', 3)
 
   # Type mismatch between abstract method and concrete method
   lines =<< trim END
@@ -5615,17 +5628,6 @@ def Test_abstract_method()
     endclass
   END
   v9.CheckSourceFailure(lines, 'E1383: Method "Foo": type mismatch, expected func(string, number): list<number> but got func(number, string): list<string>', 9)
-
-  # Use an abstract class to invoke an abstract method
-  # FIXME: This should fail
-  lines =<< trim END
-    vim9script
-    abstract class A
-      abstract static def Foo()
-    endclass
-    A.Foo()
-  END
-  v9.CheckSourceSuccess(lines)
 
   # Invoke an abstract method from a def function
   lines =<< trim END
@@ -5643,6 +5645,18 @@ def Test_abstract_method()
     enddef
     var b = B.new()
     Bar(b)
+  END
+  v9.CheckSourceSuccess(lines)
+
+  # Use a static method in an abstract class
+  lines =<< trim END
+    vim9script
+    abstract class A
+      static def Foo(): string
+        return 'foo'
+      enddef
+    endclass
+    assert_equal('foo', A.Foo())
   END
   v9.CheckSourceSuccess(lines)
 enddef
@@ -5859,7 +5873,7 @@ def Test_class_variable()
     var a = A.new()
     var i = a.val
   END
-  v9.CheckSourceFailure(lines, 'E1337: Class variable "val" not found in class "A"', 7)
+  v9.CheckSourceFailure(lines, 'E1375: Class variable "val" accessible only using class "A"', 7)
 
   # Modifying a class variable using an object at function level
   lines =<< trim END
@@ -8335,6 +8349,240 @@ def Test_classmethod_timer_callback()
     Foo()
   END
   v9.CheckSourceSuccess(lines)
+enddef
+
+" Test for using a class variable as the first and/or second operand of a binary
+" operator.
+def Test_class_variable_as_operands()
+  var lines =<< trim END
+    vim9script
+    class Tests
+      static truthy: bool = true
+      public static TruthyFn: func
+      static list: list<any> = []
+      static four: number = 4
+      static str: string = 'hello'
+
+      static def Str(): string
+        return str
+      enddef
+
+      static def Four(): number
+        return four
+      enddef
+
+      static def List(): list<any>
+        return list
+      enddef
+
+      static def Truthy(): bool
+        return truthy
+      enddef
+
+      def TestOps()
+        assert_true(Tests.truthy == truthy)
+        assert_true(truthy == Tests.truthy)
+        assert_true(Tests.list isnot [])
+        assert_true([] isnot Tests.list)
+        assert_equal(2, Tests.four >> 1)
+        assert_equal(16, 1 << Tests.four)
+        assert_equal(8, Tests.four + four)
+        assert_equal(8, four + Tests.four)
+        assert_equal('hellohello', Tests.str .. str)
+        assert_equal('hellohello', str .. Tests.str)
+
+        # Using class variable for list indexing
+        var l = range(10)
+        assert_equal(4, l[Tests.four])
+        assert_equal([4, 5, 6], l[Tests.four : Tests.four + 2])
+
+        # Using class variable for Dict key
+        var d = {hello: 'abc'}
+        assert_equal('abc', d[Tests.str])
+      enddef
+    endclass
+
+    def TestOps2()
+      assert_true(Tests.truthy == Tests.Truthy())
+      assert_true(Tests.Truthy() == Tests.truthy)
+      assert_true(Tests.truthy == Tests.TruthyFn())
+      assert_true(Tests.TruthyFn() == Tests.truthy)
+      assert_true(Tests.list is Tests.List())
+      assert_true(Tests.List() is Tests.list)
+      assert_equal(2, Tests.four >> 1)
+      assert_equal(16, 1 << Tests.four)
+      assert_equal(8, Tests.four + Tests.Four())
+      assert_equal(8, Tests.Four() + Tests.four)
+      assert_equal('hellohello', Tests.str .. Tests.Str())
+      assert_equal('hellohello', Tests.Str() .. Tests.str)
+
+      # Using class variable for list indexing
+      var l = range(10)
+      assert_equal(4, l[Tests.four])
+      assert_equal([4, 5, 6], l[Tests.four : Tests.four + 2])
+
+      # Using class variable for Dict key
+      var d = {hello: 'abc'}
+      assert_equal('abc', d[Tests.str])
+    enddef
+
+    Tests.TruthyFn = Tests.Truthy
+    var t = Tests.new()
+    t.TestOps()
+    TestOps2()
+
+    assert_true(Tests.truthy == Tests.Truthy())
+    assert_true(Tests.Truthy() == Tests.truthy)
+    assert_true(Tests.truthy == Tests.TruthyFn())
+    assert_true(Tests.TruthyFn() == Tests.truthy)
+    assert_true(Tests.list is Tests.List())
+    assert_true(Tests.List() is Tests.list)
+    assert_equal(2, Tests.four >> 1)
+    assert_equal(16, 1 << Tests.four)
+    assert_equal(8, Tests.four + Tests.Four())
+    assert_equal(8, Tests.Four() + Tests.four)
+    assert_equal('hellohello', Tests.str .. Tests.Str())
+    assert_equal('hellohello', Tests.Str() .. Tests.str)
+
+    # Using class variable for list indexing
+    var l = range(10)
+    assert_equal(4, l[Tests.four])
+    assert_equal([4, 5, 6], l[Tests.four : Tests.four + 2])
+
+    # Using class variable for Dict key
+    var d = {hello: 'abc'}
+    assert_equal('abc', d[Tests.str])
+  END
+  v9.CheckSourceSuccess(lines)
+enddef
+
+" Test for checking the type of the key used to access an object dict member.
+def Test_dict_member_key_type_check()
+  var lines =<< trim END
+    vim9script
+
+    abstract class State
+      this.numbers: dict<string> = {0: 'nil', 1: 'unity'}
+    endclass
+
+    class Test extends State
+      def ObjMethodTests()
+        var cursor: number = 0
+        var z: number = 0
+        [this.numbers[cursor]] = ['zero.1']
+        assert_equal({0: 'zero.1', 1: 'unity'}, this.numbers)
+        [this.numbers[string(cursor)], z] = ['zero.2', 1]
+        assert_equal({0: 'zero.2', 1: 'unity'}, this.numbers)
+        [z, this.numbers[string(cursor)]] = [1, 'zero.3']
+        assert_equal({0: 'zero.3', 1: 'unity'}, this.numbers)
+        [this.numbers[cursor], z] = ['zero.4', 1]
+        assert_equal({0: 'zero.4', 1: 'unity'}, this.numbers)
+        [z, this.numbers[cursor]] = [1, 'zero.5']
+        assert_equal({0: 'zero.5', 1: 'unity'}, this.numbers)
+      enddef
+
+      static def ClassMethodTests(that: State)
+        var cursor: number = 0
+        var z: number = 0
+        [that.numbers[cursor]] = ['zero.1']
+        assert_equal({0: 'zero.1', 1: 'unity'}, that.numbers)
+        [that.numbers[string(cursor)], z] = ['zero.2', 1]
+        assert_equal({0: 'zero.2', 1: 'unity'}, that.numbers)
+        [z, that.numbers[string(cursor)]] = [1, 'zero.3']
+        assert_equal({0: 'zero.3', 1: 'unity'}, that.numbers)
+        [that.numbers[cursor], z] = ['zero.4', 1]
+        assert_equal({0: 'zero.4', 1: 'unity'}, that.numbers)
+        [z, that.numbers[cursor]] = [1, 'zero.5']
+        assert_equal({0: 'zero.5', 1: 'unity'}, that.numbers)
+      enddef
+
+      def new()
+      enddef
+
+      def newMethodTests()
+        var cursor: number = 0
+        var z: number
+        [this.numbers[cursor]] = ['zero.1']
+        assert_equal({0: 'zero.1', 1: 'unity'}, this.numbers)
+        [this.numbers[string(cursor)], z] = ['zero.2', 1]
+        assert_equal({0: 'zero.2', 1: 'unity'}, this.numbers)
+        [z, this.numbers[string(cursor)]] = [1, 'zero.3']
+        assert_equal({0: 'zero.3', 1: 'unity'}, this.numbers)
+        [this.numbers[cursor], z] = ['zero.4', 1]
+        assert_equal({0: 'zero.4', 1: 'unity'}, this.numbers)
+        [z, this.numbers[cursor]] = [1, 'zero.5']
+        assert_equal({0: 'zero.5', 1: 'unity'}, this.numbers)
+      enddef
+    endclass
+
+    def DefFuncTests(that: Test)
+      var cursor: number = 0
+      var z: number
+      [that.numbers[cursor]] = ['zero.1']
+      assert_equal({0: 'zero.1', 1: 'unity'}, that.numbers)
+      [that.numbers[string(cursor)], z] = ['zero.2', 1]
+      assert_equal({0: 'zero.2', 1: 'unity'}, that.numbers)
+      [z, that.numbers[string(cursor)]] = [1, 'zero.3']
+      assert_equal({0: 'zero.3', 1: 'unity'}, that.numbers)
+      [that.numbers[cursor], z] = ['zero.4', 1]
+      assert_equal({0: 'zero.4', 1: 'unity'}, that.numbers)
+      [z, that.numbers[cursor]] = [1, 'zero.5']
+      assert_equal({0: 'zero.5', 1: 'unity'}, that.numbers)
+    enddef
+
+    Test.newMethodTests()
+    Test.new().ObjMethodTests()
+    Test.ClassMethodTests(Test.new())
+    DefFuncTests(Test.new())
+
+    const test: Test = Test.new()
+    var cursor: number = 0
+    [test.numbers[cursor], cursor] = ['zero', 1]
+    [cursor, test.numbers[cursor]] = [1, 'one']
+    assert_equal({0: 'zero', 1: 'one'}, test.numbers)
+  END
+  v9.CheckSourceSuccess(lines)
+
+  lines =<< trim END
+    vim9script
+
+    class A
+      this.numbers: dict<string> = {a: '1', b: '2'}
+
+      def new()
+      enddef
+
+      def Foo()
+        var z: number
+        [this.numbers.a, z] = [{}, 10]
+      enddef
+    endclass
+
+    var a = A.new()
+    a.Foo()
+  END
+  v9.CheckSourceFailure(lines, 'E1012: Type mismatch; expected string but got dict<unknown>', 2)
+
+  lines =<< trim END
+    vim9script
+
+    class A
+      this.numbers: dict<number> = {a: 1, b: 2}
+
+      def new()
+      enddef
+
+      def Foo()
+        var x: string = 'a'
+        var y: number
+        [this.numbers[x], y] = [{}, 10]
+      enddef
+    endclass
+
+    var a = A.new()
+    a.Foo()
+  END
+  v9.CheckSourceFailure(lines, 'E1012: Type mismatch; expected number but got dict<unknown>', 3)
 enddef
 
 " vim: ts=8 sw=2 sts=2 expandtab tw=80 fdm=marker

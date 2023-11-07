@@ -238,6 +238,7 @@ compile_member(int is_slice, int *keeping_dict, cctx_T *cctx)
 	    case VAR_INSTR:
 	    case VAR_CLASS:
 	    case VAR_OBJECT:
+	    case VAR_TYPEALIAS:
 	    case VAR_UNKNOWN:
 	    case VAR_ANY:
 	    case VAR_VOID:
@@ -379,6 +380,8 @@ compile_class_object_index(cctx_T *cctx, char_u **arg, type_T *type)
 	    }
 	    if (type->tt_type == VAR_CLASS)
 	    {
+		// Remove the class type from the stack
+		--cctx->ctx_type_stack.ga_len;
 		if (generate_CLASSMEMBER(cctx, TRUE, cl, m_idx) == FAIL)
 		    return FAIL;
 	    }
@@ -475,6 +478,8 @@ compile_class_object_index(cctx_T *cctx, char_u **arg, type_T *type)
 	    }
 
 	    *arg = name_end;
+	    // Remove the class type from the stack
+	    --cctx->ctx_type_stack.ga_len;
 	    return generate_CLASSMEMBER(cctx, TRUE, cl, idx);
 	}
 

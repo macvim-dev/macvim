@@ -1558,25 +1558,26 @@ early_ret:
 	    }
 
 	    if (!is_class)
-		// ignore "abstract" in an interface (as all the methods in an
-		// interface are abstract.
-		p = skipwhite(pa + 8);
-	    else
 	    {
-		if (!is_abstract)
-		{
-		    semsg(_(e_abstract_method_in_concrete_class), pa);
-		    break;
-		}
-
-		abstract_method = TRUE;
-		p = skipwhite(pa + 8);
-		if (STRNCMP(p, "def", 3) != 0 && STRNCMP(p, "static", 6) != 0)
-		{
-		    emsg(_(e_abstract_must_be_followed_by_def_or_static));
-		    break;
-		}
+		// "abstract" not supported in an interface
+		emsg(_(e_abstract_cannot_be_used_in_interface));
+		break;
 	    }
+
+	    if (!is_abstract)
+	    {
+		semsg(_(e_abstract_method_in_concrete_class), pa);
+		break;
+	    }
+
+	    p = skipwhite(pa + 8);
+	    if (STRNCMP(p, "def", 3) != 0)
+	    {
+		emsg(_(e_abstract_must_be_followed_by_def));
+		break;
+	    }
+
+	    abstract_method = TRUE;
 	}
 
 	int has_static = FALSE;
@@ -2095,12 +2096,132 @@ ex_enum(exarg_T *eap UNUSED)
 }
 
 /*
- * Handle ":type".
+ * Type aliases (:type)
+ */
+
+    void
+typealias_free(typealias_T *ta)
+{
+    // ta->ta_type is freed in clear_type_list()
+    vim_free(ta->ta_name);
+    vim_free(ta);
+}
+
+    void
+typealias_unref(typealias_T *ta)
+{
+    if (ta != NULL && --ta->ta_refcount <= 0)
+	typealias_free(ta);
+}
+
+/*
+ * Handle ":type".  Create an alias for a type specification.
  */
     void
 ex_type(exarg_T *eap UNUSED)
 {
-    // TODO
+    char_u	*arg = eap->arg;
+
+    if (!current_script_is_vim9()
+		|| (cmdmod.cmod_flags & CMOD_LEGACY)
+		|| !getline_equal(eap->getline, eap->cookie, getsourceline))
+    {
+	emsg(_(e_type_can_only_be_defined_in_vim9_script));
+	return;
+    }
+
+    if (*arg == NUL)
+    {
+	emsg(_(e_missing_typealias_name));
+	return;
+    }
+
+    if (!ASCII_ISUPPER(*arg))
+    {
+	semsg(_(e_type_name_must_start_with_uppercase_letter_str), arg);
+	return;
+    }
+
+    char_u *name_end = find_name_end(arg, NULL, NULL, FNE_CHECK_START);
+    if (!IS_WHITE_OR_NUL(*name_end))
+    {
+	semsg(_(e_white_space_required_after_name_str), arg);
+	return;
+    }
+    char_u *name_start = arg;
+
+    arg = skipwhite(name_end);
+    if (*arg != '=')
+    {
+	semsg(_(e_missing_equal_str), arg);
+	return;
+    }
+    if (!IS_WHITE_OR_NUL(*(arg + 1)))
+    {
+	semsg(_(e_white_space_required_after_str_str), "=", arg);
+	return;
+    }
+    arg++;
+    arg = skipwhite(arg);
+
+    if (*arg == NUL)
+    {
+	emsg(_(e_missing_typealias_type));
+	return;
+    }
+
+    scriptitem_T    *si = SCRIPT_ITEM(current_sctx.sc_sid);
+    type_T *type = parse_type(&arg, &si->sn_type_list, TRUE);
+    if (type == NULL)
+	return;
+
+    if (*arg != NUL)
+    {
+	// some text after the type
+	semsg(_(e_trailing_characters_str), arg);
+	return;
+    }
+
+    int cc = *name_end;
+    *name_end = NUL;
+
+    typval_T tv;
+    tv.v_type = VAR_UNKNOWN;
+    if (eval_variable_import(name_start, &tv) == OK)
+    {
+	if (tv.v_type == VAR_TYPEALIAS)
+	    semsg(_(e_typealias_already_exists_for_str), name_start);
+	else
+	    semsg(_(e_redefining_script_item_str), name_start);
+	clear_tv(&tv);
+	goto done;
+    }
+
+    // Create a script-local variable for the type alias.
+    if (type->tt_type != VAR_OBJECT)
+    {
+	tv.v_type = VAR_TYPEALIAS;
+	tv.v_lock = 0;
+	tv.vval.v_typealias = ALLOC_CLEAR_ONE(typealias_T);
+	++tv.vval.v_typealias->ta_refcount;
+	tv.vval.v_typealias->ta_name = vim_strsave(name_start);
+	tv.vval.v_typealias->ta_type = type;
+    }
+    else
+    {
+	// When creating a type alias for a class, use the class type itself to
+	// create the type alias variable.  This is needed to use the type
+	// alias to invoke class methods (e.g. new()) and use class variables.
+	tv.v_type = VAR_CLASS;
+	tv.v_lock = 0;
+	tv.vval.v_class = type->tt_class;
+	++tv.vval.v_class->class_refcount;
+    }
+    set_var_const(name_start, current_sctx.sc_sid, NULL, &tv, FALSE,
+						ASSIGN_CONST | ASSIGN_FINAL, 0);
+
+done:
+    *name_end = cc;
 }
 
 /*
@@ -2340,7 +2461,7 @@ class_object_index(
 	}
 
 	if (did_emsg == did_emsg_save)
-	    member_not_found_msg(cl, is_object, name, len);
+	    member_not_found_msg(cl, rettv->v_type, name, len);
     }
 
     return FAIL;
@@ -2973,8 +3094,8 @@ method_not_found_msg(class_T *cl, vartype_T v_type, char_u *name, size_t len)
 		    method_name, cl->class_name);
     }
     else
-	semsg(_(e_method_not_found_on_class_str_str), cl->class_name,
-		method_name);
+	semsg(_(e_method_not_found_on_class_str_str), method_name,
+	        cl->class_name);
     vim_free(method_name);
 }
 
@@ -2992,8 +3113,8 @@ member_not_found_msg(class_T *cl, vartype_T v_type, char_u *name, size_t len)
 	    semsg(_(e_class_variable_str_accessible_only_using_class_str),
 		    varname, cl->class_name);
 	else
-	    semsg(_(e_variable_not_found_on_object_str_str), cl->class_name,
-		    varname);
+	    semsg(_(e_variable_not_found_on_object_str_str), varname,
+		    cl->class_name);
     }
     else
     {
@@ -3048,6 +3169,7 @@ f_instanceof(typval_T *argvars, typval_T *rettv)
     typval_T	*object_tv = &argvars[0];
     typval_T	*classinfo_tv = &argvars[1];
     listitem_T	*li;
+    class_T	*c;
 
     rettv->vval.v_number = VVAL_FALSE;
 
@@ -3062,25 +3184,35 @@ f_instanceof(typval_T *argvars, typval_T *rettv)
     {
 	FOR_ALL_LIST_ITEMS(classinfo_tv->vval.v_list, li)
 	{
-	    if (li->li_tv.v_type != VAR_CLASS)
+	    if (li->li_tv.v_type != VAR_CLASS && !tv_class_alias(&li->li_tv))
 	    {
 		emsg(_(e_class_required));
 		return;
 	    }
 
-	    if (class_instance_of(object_tv->vval.v_object->obj_class,
-			li->li_tv.vval.v_class) == TRUE)
+	    if (li->li_tv.v_type == VAR_TYPEALIAS)
+		c = li->li_tv.vval.v_typealias->ta_type->tt_class;
+	    else
+		c = li->li_tv.vval.v_class;
+
+	    if (class_instance_of(object_tv->vval.v_object->obj_class, c)
+								== TRUE)
 	    {
 		rettv->vval.v_number = VVAL_TRUE;
 		return;
 	    }
 	}
+
+	return;
     }
-    else if (classinfo_tv->v_type == VAR_CLASS)
-    {
-	rettv->vval.v_number = class_instance_of(object_tv->vval.v_object->obj_class,
-		classinfo_tv->vval.v_class);
-    }
+
+    if (classinfo_tv->v_type == VAR_TYPEALIAS)
+	c = classinfo_tv->vval.v_typealias->ta_type->tt_class;
+    else
+	c = classinfo_tv->vval.v_class;
+
+    rettv->vval.v_number =
+		class_instance_of(object_tv->vval.v_object->obj_class, c);
 }
 
 #endif // FEAT_EVAL

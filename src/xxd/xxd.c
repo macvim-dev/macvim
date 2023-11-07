@@ -88,6 +88,8 @@
 #endif
 #if defined(WIN32) || defined(CYGWIN)
 # include <io.h>	/* for setmode() */
+#endif
+#ifdef WIN32
 # include <windows.h>
 #endif
 #ifdef UNIX
@@ -136,7 +138,7 @@ extern void perror __P((char *));
 # endif
 #endif
 
-char version[] = "xxd 2023-10-08 by Juergen Weigert et al.";
+char version[] = "xxd 2023-10-25 by Juergen Weigert et al.";
 #ifdef WIN32
 char osver[] = " (Win32)";
 #else
@@ -418,19 +420,13 @@ huntype(
             }
           else /* HEX_BITS */
             {
-              n1 = parse_hex_digit(c);
-              if (n1 >= 0)
-                {
-                  want_off = (want_off << 4) | n1;
-                }
-
-              if (bt < 0)
-                {
-                  p = 0;
+	      if (n1 < 0)
+	        {
+	          p = 0;
                   bcnt = 0;
-                  b = 0;
-                  continue;
-                }
+	          continue;
+	        }
+	      want_off = (want_off << 4) | n1;
             }
           continue;
         }

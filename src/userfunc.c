@@ -6251,7 +6251,17 @@ handle_defer_one(funccall_T *funccal)
 	char_u *name = dr->dr_name;
 	dr->dr_name = NULL;
 
+	// If the deferred function is called after an exception, then only the
+	// first statement in the function will be executed (because of the
+	// exception).  So save and restore the try/catch/throw exception
+	// state.
+	exception_state_T estate;
+	exception_state_save(&estate);
+	exception_state_clear();
+
 	call_func(name, -1, &rettv, dr->dr_argcount, dr->dr_argvars, &funcexe);
+
+	exception_state_restore(&estate);
 
 	clear_tv(&rettv);
 	vim_free(name);

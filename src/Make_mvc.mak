@@ -420,7 +420,6 @@ NBDEBUG_DEFS	= -DNBDEBUG
 NBDEBUG_INCL	= nbdebug.h
 NBDEBUG_SRC	= nbdebug.c
 !  endif
-NETBEANS_LIB	= WSock32.lib
 ! endif
 
 # DirectWrite (DirectX)
@@ -473,7 +472,7 @@ CHANNEL_PRO	= proto/job.pro proto/channel.pro
 CHANNEL_OBJ	= $(OBJDIR)/job.obj $(OBJDIR)/channel.obj
 CHANNEL_DEFS	= -DFEAT_JOB_CHANNEL -DFEAT_IPV6 -DHAVE_INET_NTOP
 
-NETBEANS_LIB	= WSock32.lib Ws2_32.lib
+NETBEANS_LIB	= Ws2_32.lib
 !endif
 
 # need advapi32.lib for GetUserName()
@@ -1273,7 +1272,7 @@ $(XPM_OBJ) $(OUTDIR)\version.obj $(LINKARGS2)
 $(VIM): $(VIM).exe
 
 $(OUTDIR):
-	if not exist $(OUTDIR)/nul  mkdir $(OUTDIR)
+	if not exist $(OUTDIR)/nul  mkdir $(OUTDIR:/=\)
 
 CFLAGS_INST = /nologo /O2 -DNDEBUG -DWIN32 -DWINVER=$(WINVER) -D_WIN32_WINNT=$(WINVER) $(CFLAGS_DEPR)
 

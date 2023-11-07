@@ -513,9 +513,6 @@ endif # RUBY
 DEF_GUI=-DFEAT_GUI_MSWIN -DFEAT_CLIPBOARD
 DEFINES=-DWIN32 -DWINVER=$(WINVER) -D_WIN32_WINNT=$(WINVER) \
 	-DHAVE_PATHDEF -DFEAT_$(FEATURES) -DHAVE_STDINT_H
-ifeq ($(ARCH),x86-64)
-DEFINES+=-DMS_WIN64
-endif
 
 #>>>>> end of choices
 ###########################################################################
@@ -926,7 +923,7 @@ endif
 
 ifeq ($(CHANNEL),yes)
 OBJ += $(OUTDIR)/job.o $(OUTDIR)/channel.o
-LIB += -lwsock32 -lws2_32
+LIB += -lws2_32
 endif
 
 ifeq ($(DIRECTX),yes)

@@ -818,6 +818,9 @@ au BufNewFile,BufRead *.gleam			setf gleam
 " GLSL
 au BufNewFile,BufRead *.glsl			setf glsl
 
+" GN (generate ninja) files
+au BufNewFile,BufRead *.gn,*.gni		setf gn
+
 " GP scripts (2.0 and onward)
 au BufNewFile,BufRead *.gp,.gprc		setf gp
 
@@ -1030,6 +1033,9 @@ au BufNewFile,BufRead *.jal,*.JAL		setf jal
 
 " Jam
 au BufNewFile,BufRead *.jpl,*.jpr		setf jam
+
+" Janet
+au BufNewFile,BufRead *.janet			setf janet
 
 " Java
 au BufNewFile,BufRead *.java,*.jav		setf java
@@ -1456,6 +1462,9 @@ au BufNewFile,BufRead {env,config}.nu		setf nu
 " Oblivion Language and Oblivion Script Extender
 au BufNewFile,BufRead *.obl,*.obse,*.oblivion,*.obscript  setf obse
 
+" Objdump
+au BufNewFile,BufRead *.objdump,*.cppobjdump  setf objdump
+
 " OCaml
 au BufNewFile,BufRead *.ml,*.mli,*.mll,*.mly,.ocamlinit,*.mlt,*.mlp,*.mlip,*.mli.cppo,*.ml.cppo setf ocaml
 
@@ -1503,7 +1512,7 @@ au BufNewFile,BufRead *.nmconnection			setf confini
 " Pacman hooks
 au BufNewFile,BufRead *.hook
 	\ if getline(1) == '[Trigger]' |
-	\   setf conf |
+	\   setf confini |
 	\ endif
 
 " Pam conf
@@ -1998,9 +2007,8 @@ au BufNewFile,BufRead .tcshrc,*.tcsh,tcsh.tcshrc,tcsh.login	call dist#ft#SetFile
 " (patterns ending in a start further below)
 au BufNewFile,BufRead .login,.cshrc,csh.cshrc,csh.login,csh.logout,*.csh,.alias  call dist#ft#CSH()
 
-" Zig and Zir (Zig Intermediate Representation)
-au BufNewFile,BufRead *.zig			setf zig
-au BufNewFile,BufRead *.zir			setf zir
+" Zig and Zig Object Notation (ZON)
+au BufNewFile,BufRead *.zig,*.zon		setf zig
 
 " Zserio
 au BufNewFile,BufRead *.zs			setf zserio
@@ -2859,6 +2867,9 @@ au BufNewFile,BufRead XF86Config*
 	\|  let b:xf86conf_xfree86_version = 3
 	\|endif
 	\|call s:StarSetf('xf86conf')
+
+" XKB
+au BufNewFile,BufRead */usr/share/X11/xkb/{compat,geometry,keycodes,symbols,types}/*	call s:StarSetf('xkb')
 
 " X11 xmodmap
 au BufNewFile,BufRead *xmodmap*			call s:StarSetf('xmodmap')

@@ -1883,6 +1883,14 @@ set_var_lval(
 	    if (eval_variable(lp->ll_name, (int)STRLEN(lp->ll_name),
 				 lp->ll_sid, &tv, &di, EVAL_VAR_VERBOSE) == OK)
 	    {
+		if (di != NULL && di->di_tv.v_type == VAR_TYPEALIAS)
+		{
+		    semsg(_(e_cannot_modify_typealias),
+					di->di_tv.vval.v_typealias->ta_name);
+		    clear_tv(&tv);
+		    return;
+		}
+
 		if ((di == NULL
 			 || (!var_check_ro(di->di_flags, lp->ll_name, FALSE)
 			   && !tv_check_lock(&di->di_tv, lp->ll_name, FALSE)))
@@ -2013,6 +2021,7 @@ tv_op(typval_T *tv1, typval_T *tv2, char_u *op)
 	    case VAR_INSTR:
 	    case VAR_CLASS:
 	    case VAR_OBJECT:
+	    case VAR_TYPEALIAS:
 		break;
 
 	    case VAR_BLOB:
@@ -4036,7 +4045,8 @@ eval8(
 
 	    if (!equal_type(want_type, actual, 0))
 	    {
-		if (want_type == &t_bool && actual != &t_bool
+		if (want_type->tt_type == VAR_BOOL
+					&& actual->tt_type != VAR_BOOL
 					&& (actual->tt_flags & TTFLAG_BOOL_OK))
 		{
 		    int n = tv2bool(rettv);
@@ -5004,6 +5014,7 @@ check_can_index(typval_T *rettv, int evaluate, int verbose)
 	case VAR_INSTR:
 	case VAR_CLASS:
 	case VAR_OBJECT:
+	case VAR_TYPEALIAS:
 	    if (verbose)
 		emsg(_(e_cannot_index_special_variable));
 	    return FAIL;
@@ -5109,6 +5120,7 @@ eval_index_inner(
 	case VAR_INSTR:
 	case VAR_CLASS:
 	case VAR_OBJECT:
+	case VAR_TYPEALIAS:
 	    break; // not evaluating, skipping over subscript
 
 	case VAR_NUMBER:
@@ -6046,6 +6058,7 @@ set_ref_in_item(
 	case VAR_FLOAT:
 	case VAR_STRING:
 	case VAR_BLOB:
+	case VAR_TYPEALIAS:
 	case VAR_INSTR:
 	    // Types that do not contain any other item
 	    break;
@@ -6328,6 +6341,13 @@ echo_string_core(
 	case VAR_SPECIAL:
 	    *tofree = NULL;
 	    r = (char_u *)get_var_special_name(tv->vval.v_number);
+	    break;
+
+	case VAR_TYPEALIAS:
+	    *tofree = vim_strsave(tv->vval.v_typealias->ta_name);
+	    r = *tofree;
+	    if (r == NULL)
+		r = (char_u *)"";
 	    break;
     }
 
@@ -7201,6 +7221,7 @@ item_copy(
 	case VAR_INSTR:
 	case VAR_CLASS:
 	case VAR_OBJECT:
+	case VAR_TYPEALIAS:
 	    copy_tv(from, to);
 	    break;
 	case VAR_LIST:

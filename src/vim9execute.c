@@ -1140,7 +1140,17 @@ invoke_defer_funcs(ectx_T *ectx)
 	char_u *name = functv->vval.v_string;
 	functv->vval.v_string = NULL;
 
+	// If the deferred function is called after an exception, then only the
+	// first statement in the function will be executed (because of the
+	// exception).  So save and restore the try/catch/throw exception
+	// state.
+	exception_state_T estate;
+	exception_state_save(&estate);
+	exception_state_clear();
+
 	(void)call_func(name, -1, &rettv, argcount, argvars, &funcexe);
+
+	exception_state_restore(&estate);
 
 	clear_tv(&rettv);
 	vim_free(name);
@@ -3797,6 +3807,13 @@ exec_instructions(ectx_T *ectx)
 	    case ISN_STORE:
 		--ectx->ec_stack.ga_len;
 		tv = STACK_TV_VAR(iptr->isn_arg.number);
+		if (STACK_TV_BOT(0)->v_type == VAR_TYPEALIAS)
+		{
+		    semsg(_(e_using_typealias_as_value),
+				STACK_TV_BOT(0)->vval.v_typealias->ta_name);
+		    clear_tv(STACK_TV_BOT(0));
+		    goto on_error;
+		}
 		clear_tv(tv);
 		*tv = *STACK_TV_BOT(0);
 		break;
@@ -7507,6 +7524,7 @@ tv2bool(typval_T *tv)
 	case VAR_INSTR:
 	case VAR_CLASS:
 	case VAR_OBJECT:
+	case VAR_TYPEALIAS:
 	    break;
     }
     return FALSE;

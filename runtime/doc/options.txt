@@ -1,4 +1,4 @@
-*options.txt*	For Vim version 9.0.  Last change: 2023 Oct 14
+*options.txt*	For Vim version 9.0.  Last change: 2023 Oct 23
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -71,7 +71,7 @@ achieve special effects.  These options come in three forms:
 			  'ttytype'
 			Warning: This may have a lot of side effects.
 
-						*:set-args* *:set=* *E487* *E521*
+					    *:set-args* *:set=* *E487* *E521*
 :se[t] {option}={value}		or
 :se[t] {option}:{value}
 			Set string or number option to {value}.
@@ -1609,6 +1609,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 	current working directory to the |$HOME| directory like in Unix.
 	When off, those commands just print the current directory name.
 	On Unix this option has no effect.
+	This option cannot be set from a |modeline| or in the |sandbox|, for
+	security reasons.
 	NOTE: This option is reset when 'compatible' is set.
 
 						*'cdpath'* *'cd'* *E344* *E346*
@@ -1986,6 +1988,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 	'delcombine'	+ off		unicode: delete whole char combination
 	'digraph'	+ off		no digraphs
 	'esckeys'	& off		no <Esc>-keys in Insert mode
+					this also disables |modifyOtherKeys|
+					and |xterm-bracketed-paste|
 	'expandtab'	+ off		tabs not expanded to spaces
 	'fileformats'	& ""		no automatic file format detection,
 			  "dos,unix"	except for MS-Windows
@@ -3230,9 +3234,9 @@ A jump table for the options with a short description can be found at |Q_op|.
 	won't work by default.
 	NOTE: This option is set to the Vi default value when 'compatible' is
 	set and to the Vim default value when 'compatible' is reset.
-	NOTE: when this option is off then the |modifyOtherKeys| functionality
-	is disabled while in Insert mode to avoid ending Insert mode with any
-	key that has a modifier.
+	NOTE: when this option is off then the |modifyOtherKeys| and
+	|xterm-bracketed-paste| functionality is disabled while in Insert mode
+	to avoid ending Insert mode with any key that has a modifier.
 
 						*'eventignore'* *'ei'*
 'eventignore' 'ei'	string	(default "")
@@ -4415,8 +4419,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 	|hl-PmenuSel|	 =  popup menu selected line
 	|hl-PmenuKind|	 [  popup menu "kind" normal line
 	|hl-PmenuKindSel|  ]  popup menu "kind" selected line
-	|hl-PmenuExtra|	 {  popup menu "kind" normal line
-	|hl-PmenuExtraSel| }  popup menu "kind" selected line
+	|hl-PmenuExtra|	 {  popup menu "extra" normal line
+	|hl-PmenuExtraSel| }  popup menu "extra" selected line
 	|hl-PmenuSbar|	 x  popup menu scrollbar
 	|hl-PmenuThumb|	 X  popup menu scrollbar thumb
 
@@ -5719,7 +5723,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 <	If you have less than 512 Mbyte |:mkspell| may fail for some
 	languages, no matter what you set 'mkspellmem' to.
 
-	This option cannot be set from a |modeline| or in the |sandbox|.
+	This option cannot be set from a |modeline| or in the |sandbox|, for
+	security reasons.
 
 				   *'modeline'* *'ml'* *'nomodeline'* *'noml'*
 'modeline' 'ml'		boolean	(Vim default: on (off for root),
@@ -5878,7 +5883,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 
 	The 'mousemodel' option is set by the |:behave| command.
 
-	      *'mousemoveevent'* *'mousemev'* *'nomousemoveevent'* *'nomousemev'*
+	    *'mousemoveevent'* *'mousemev'* *'nomousemoveevent'* *'nomousemev'*
 'mousemoveevent' 'mousemev'  boolean	(default off)
 			global
 			{only works in the GUI}
@@ -6121,6 +6126,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 				*'packpath'* *'pp'*
 'packpath' 'pp'		string	(default: see 'runtimepath')
 	Directories used to find packages.  See |packages|.
+	This option cannot be set from a |modeline| or in the |sandbox|, for
+	security reasons.
 
 
 						*'paragraphs'* *'para'*
@@ -6205,6 +6212,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 			feature}
 	Expression which is evaluated to apply a patch to a file and generate
 	the resulting new version of the file.  See |diff-patchexpr|.
+	This option cannot be set from a |modeline| or in the |sandbox|, for
+	security reasons.
 
 					*'patchmode'* *'pm'* *E205* *E206*
 'patchmode' 'pm'	string	(default "")
@@ -7287,6 +7296,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 	When 'shellxquote' is set to "(" then the characters listed in this
 	option will be escaped with a '^' character.  This makes it possible
 	to execute most external commands with cmd.exe.
+	This option cannot be set from a |modeline| or in the |sandbox|, for
+	security reasons.
 
 						*'shellxquote'* *'sxq'*
 'shellxquote' 'sxq'	string	(default: "";
@@ -8127,7 +8138,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 	This option controls the behavior when switching between buffers.
 	This option is checked, when
 	- jumping to errors with the |quickfix| commands (|:cc|, |:cn|, |:cp|,
-	  etc.)
+	  etc.).
 	- jumping to a tag using the |:stag| command.
 	- opening a file using the |CTRL-W_f| or |CTRL-W_F| command.
 	- jumping to a buffer using a buffer split command (e.g.  |:sbuffer|,
@@ -8343,6 +8354,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 	function and an example.  The value can be the name of a function, a
 	|lambda| or a |Funcref|. See |option-value-function| for more
 	information.
+	This option cannot be set from a |modeline| or in the |sandbox|, for
+	security reasons.
 
 						*'taglength'* *'tl'*
 'taglength' 'tl'	number	(default 0)
@@ -9115,12 +9128,14 @@ A jump table for the options with a short description can be found at |Q_op|.
 	Setting 'verbosefile' to a new value is like making it empty first.
 	The difference with |:redir| is that verbose messages are not
 	displayed when 'verbosefile' is set.
+	This option cannot be set from a |modeline| or in the |sandbox|, for
+	security reasons.
 
 						*'viewdir'* *'vdir'*
-'viewdir' 'vdir'	string	(default for Amiga "home:vimfiles/view",
+'viewdir' 'vdir'	string	(default for Amiga: "home:vimfiles/view",
 					 for Win32: "$HOME/vimfiles/view",
 					 for Unix: "$HOME/.vim/view",
-					 for macOS: "$VIM/vimfiles/view"
+					 for macOS: "$VIM/vimfiles/view",
 					 for VMS: "sys$login:vimfiles/view")
 			global
 			{not available when compiled without the |+mksession|
