@@ -4987,6 +4987,8 @@ typedef struct
     // is parameterized, then the "os_errbuf" buffer is used to store the error
     // message (when it is not NULL).
     char	*os_errbuf;
+    // length of the error buffer
+    size_t	os_errbuflen;
 } optset_T;
 
 /*

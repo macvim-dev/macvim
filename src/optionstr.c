@@ -229,11 +229,12 @@ trigger_optionset_string(
 #endif
 
     static char *
-illegal_char(char *errbuf, int c)
+illegal_char(char *errbuf, size_t errbuflen, int c)
 {
     if (errbuf == NULL)
 	return "";
-    sprintf((char *)errbuf, _(e_illegal_character_str), (char *)transchar(c));
+    vim_snprintf((char *)errbuf, errbuflen, _(e_illegal_character_str),
+		    (char *)transchar(c));
     return errbuf;
 }
 
@@ -525,7 +526,8 @@ set_string_option(
     int		opt_idx,
     char_u	*value,
     int		opt_flags,	// OPT_LOCAL and/or OPT_GLOBAL
-    char	*errbuf)
+    char	*errbuf,
+    size_t	errbuflen)
 {
     char_u	*s;
     char_u	**varp;
@@ -579,7 +581,7 @@ set_string_option(
     }
 #endif
     if ((errmsg = did_set_string_option(opt_idx, varp, oldval, value, errbuf,
-		    opt_flags, OP_NONE, &value_checked)) == NULL)
+		    errbuflen, opt_flags, OP_NONE, &value_checked)) == NULL)
 	did_set_option(opt_idx, opt_flags, TRUE, value_checked);
 
 #if defined(FEAT_EVAL)
@@ -615,7 +617,8 @@ valid_filetype(char_u *val)
 check_stl_option(char_u *s)
 {
     int		groupdepth = 0;
-    static char errbuf[80];
+    static char errbuf[ERR_BUFLEN];
+    int		errbuflen = ERR_BUFLEN;
 
     while (*s)
     {
@@ -656,7 +659,7 @@ check_stl_option(char_u *s)
 	}
 	if (vim_strchr(STL_ALL, *s) == NULL)
 	{
-	    return illegal_char(errbuf, *s);
+	    return illegal_char(errbuf, errbuflen, *s);
 	}
 	if (*s == '{')
 	{
@@ -664,7 +667,7 @@ check_stl_option(char_u *s)
 
 	    if (reevaluate && *++s == '}')
 		// "}" is not allowed immediately after "%{%"
-		return illegal_char(errbuf, '}');
+		return illegal_char(errbuf, errbuflen, '}');
 	    while ((*s != '}' || (reevaluate && s[-1] != '%')) && *s)
 		s++;
 	    if (*s != '}')
@@ -719,13 +722,17 @@ did_set_opt_strings(char_u *val, char **values, int list)
  * An option which is a list of flags is set.  Valid values are in 'flags'.
  */
     static char *
-did_set_option_listflag(char_u *val, char_u *flags, char *errbuf)
+did_set_option_listflag(
+	char_u *val,
+	char_u *flags,
+	char *errbuf,
+	size_t errbuflen)
 {
     char_u	*s;
 
     for (s = val; *s; ++s)
 	if (vim_strchr(flags, *s) == NULL)
-	    return illegal_char(errbuf, *s);
+	    return illegal_char(errbuf, errbuflen, *s);
 
     return NULL;
 }
@@ -1467,7 +1474,7 @@ did_set_comments(optset_T *args)
 	    if (vim_strchr((char_u *)COM_ALL, *s) == NULL
 		    && !VIM_ISDIGIT(*s) && *s != '-')
 	    {
-		errmsg = illegal_char(args->os_errbuf, *s);
+		errmsg = illegal_char(args->os_errbuf, args->os_errbuflen, *s);
 		break;
 	    }
 	    ++s;
@@ -1523,7 +1530,7 @@ did_set_complete(optset_T *args)
 	if (!*s)
 	    break;
 	if (vim_strchr((char_u *)".wbuksid]tU", *s) == NULL)
-	    return illegal_char(args->os_errbuf, *s);
+	    return illegal_char(args->os_errbuf, args->os_errbuflen, *s);
 	if (*++s != NUL && *s != ',' && *s != ' ')
 	{
 	    if (s[-1] == 'k' || s[-1] == 's')
@@ -1540,7 +1547,7 @@ did_set_complete(optset_T *args)
 	    {
 		if (args->os_errbuf != NULL)
 		{
-		    sprintf((char *)args->os_errbuf,
+		    vim_snprintf((char *)args->os_errbuf, args->os_errbuflen,
 			    _(e_illegal_character_after_chr), *--s);
 		    return args->os_errbuf;
 		}
@@ -1640,7 +1647,8 @@ did_set_concealcursor(optset_T *args)
 {
     char_u	**varp = (char_u **)args->os_varp;
 
-    return did_set_option_listflag(*varp, (char_u *)COCU_ALL, args->os_errbuf);
+    return did_set_option_listflag(*varp, (char_u *)COCU_ALL, args->os_errbuf,
+		    args->os_errbuflen);
 }
 
     int
@@ -1658,7 +1666,8 @@ did_set_cpoptions(optset_T *args)
 {
     char_u	**varp = (char_u **)args->os_varp;
 
-    return did_set_option_listflag(*varp, (char_u *)CPO_ALL, args->os_errbuf);
+    return did_set_option_listflag(*varp, (char_u *)CPO_ALL, args->os_errbuf,
+		    args->os_errbuflen);
 }
 
     int
@@ -2291,7 +2300,8 @@ did_set_formatoptions(optset_T *args)
 {
     char_u	**varp = (char_u **)args->os_varp;
 
-    return did_set_option_listflag(*varp, (char_u *)FO_ALL, args->os_errbuf);
+    return did_set_option_listflag(*varp, (char_u *)FO_ALL, args->os_errbuf,
+		    args->os_errbuflen);
 }
 
     int
@@ -2432,7 +2442,8 @@ did_set_guioptions(optset_T *args)
     char_u	**varp = (char_u **)args->os_varp;
     char *errmsg;
 
-    errmsg = did_set_option_listflag(*varp, (char_u *)GO_ALL, args->os_errbuf);
+    errmsg = did_set_option_listflag(*varp, (char_u *)GO_ALL, args->os_errbuf,
+		    args->os_errbuflen);
     if (errmsg != NULL)
 	return errmsg;
 
@@ -2936,8 +2947,8 @@ did_set_mouse(optset_T *args)
 {
     char_u	**varp = (char_u **)args->os_varp;
 
-    return did_set_option_listflag(*varp, (char_u *)MOUSE_ALL,
-							args->os_errbuf);
+    return did_set_option_listflag(*varp, (char_u *)MOUSE_ALL, args->os_errbuf,
+		    args->os_errbuflen);
 }
 
     int
@@ -3374,7 +3385,8 @@ did_set_shortmess(optset_T *args)
 {
     char_u	**varp = (char_u **)args->os_varp;
 
-    return did_set_option_listflag(*varp, (char_u *)SHM_ALL, args->os_errbuf);
+    return did_set_option_listflag(*varp, (char_u *)SHM_ALL, args->os_errbuf,
+		    args->os_errbuflen);
 }
 
     int
@@ -4040,7 +4052,7 @@ did_set_viminfo(optset_T *args)
 	// Check it's a valid character
 	if (vim_strchr((char_u *)"!\"%'/:<@cfhnrs", *s) == NULL)
 	{
-	    errmsg = illegal_char(args->os_errbuf, *s);
+	    errmsg = illegal_char(args->os_errbuf, args->os_errbuflen, *s);
 	    break;
 	}
 	if (*s == 'n')	// name is always last one
@@ -4067,7 +4079,7 @@ did_set_viminfo(optset_T *args)
 	    {
 		if (args->os_errbuf != NULL)
 		{
-		    sprintf(args->os_errbuf,
+		    vim_snprintf(args->os_errbuf, args->os_errbuflen,
 			    _(e_missing_number_after_angle_str_angle),
 			    transchar_byte(*(s - 1)));
 		    errmsg = args->os_errbuf;
@@ -4150,7 +4162,8 @@ did_set_whichwrap(optset_T *args)
 
     // Add ',' to the list flags because 'whichwrap' is a flag
     // list that is comma-separated.
-    return did_set_option_listflag(*varp, (char_u *)(WW_ALL ","), args->os_errbuf);
+    return did_set_option_listflag(*varp, (char_u *)(WW_ALL ","),
+		    args->os_errbuf, args->os_errbuflen);
 }
 
     int
@@ -4409,6 +4422,7 @@ did_set_string_option(
     char_u	*oldval,		// previous value of the option
     char_u	*value,			// new value of the option
     char	*errbuf,		// buffer for errors, or NULL
+    size_t	errbuflen,		// length of error buffer
     int		opt_flags,		// OPT_LOCAL and/or OPT_GLOBAL
     set_op_T    op,			// OP_ADDING/OP_PREPENDING/OP_REMOVING
     int		*value_checked)		// value was checked to be safe, no
@@ -4453,6 +4467,7 @@ did_set_string_option(
 	args.os_oldval.string = oldval;
 	args.os_newval.string = value;
 	args.os_errbuf = errbuf;
+	args.os_errbuflen = errbuflen;
 	// Invoke the option specific callback function to validate and apply
 	// the new option value.
 	errmsg = did_set_cb(&args);

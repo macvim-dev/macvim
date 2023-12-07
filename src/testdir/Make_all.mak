@@ -207,6 +207,7 @@ NEW_TESTS = \
 	test_matchadd_conceal \
 	test_matchadd_conceal_utf8 \
 	test_matchfuzzy \
+	test_matchparen \
 	test_memory_usage \
 	test_menu \
 	test_messages \

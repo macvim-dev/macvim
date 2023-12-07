@@ -498,10 +498,11 @@ handle_breakindent(win_T *wp, winlinevars_T *wlv)
     {
 	wlv->draw_state = WL_BRI;
 	// if wlv->need_showbreak is set, breakindent also applies
-	if (wp->w_p_bri && (wlv->row != wlv->startrow || wlv->need_showbreak)
+	if (wp->w_p_bri && (wlv->row > wlv->startrow
 # ifdef FEAT_DIFF
-		&& wlv->filler_lines == 0
+		    + wlv->filler_lines
 # endif
+		    || wlv->need_showbreak)
 # ifdef FEAT_PROP_POPUP
 		&& !wlv->dont_use_showbreak
 # endif
@@ -1149,6 +1150,7 @@ win_line(
 #ifdef FEAT_PROP_POPUP
     int		did_line = FALSE;	// set to TRUE when line text done
     int		text_prop_count;
+    int		last_textprop_text_idx = -1;
     int		text_prop_next = 0;	// next text property to use
     textprop_T	*text_props = NULL;
     int		*text_prop_idxs = NULL;
@@ -1615,6 +1617,11 @@ win_line(
 	{
 	    area_highlighting = TRUE;
 	    extra_check = TRUE;
+
+	    /* Find the last text property that inserts text. */
+	    for (int i = 0; i < text_prop_count; ++i)
+		if (text_props[i].tp_id < 0)
+		    last_textprop_text_idx = i;
 
 	    // When skipping virtual text the props need to be sorted.  The
 	    // order is reversed!
@@ -3795,7 +3802,7 @@ win_line(
 		    || (wlv.n_extra > 0 && (wlv.c_extra != NUL
 						     || *wlv.p_extra != NUL))
 #ifdef FEAT_PROP_POPUP
-		    || text_prop_next < text_prop_count
+		    || text_prop_next <= last_textprop_text_idx
 #endif
 		   ))
 	{
@@ -4087,7 +4094,7 @@ win_line(
 #endif
 #ifdef FEAT_PROP_POPUP
 		    || text_prop_above || text_prop_follows
-		    || text_prop_next < text_prop_count
+		    || text_prop_next <= last_textprop_text_idx
 #endif
 		    || (wp->w_p_list && wp->w_lcs_chars.eol != NUL
 						&& wlv.p_extra != at_end_str)

@@ -909,4 +909,55 @@ func Test_smoothscroll_zero_width_scroll_cursor_bot()
   call StopVimInTerminal(buf)
 endfunc
 
+" scroll_cursor_top() should reset skipcol when it changes topline
+func Test_smoothscroll_cursor_top()
+  CheckScreendump
+
+  let lines =<< trim END
+      set smoothscroll scrolloff=2
+      new | 11resize | wincmd j
+      call setline(1, ['line1', 'line2', 'line3'->repeat(20), 'line4'])
+      exe "norm G3\<C-E>k"
+  END
+  call writefile(lines, 'XSmoothScrollCursorTop', 'D')
+  let buf = RunVimInTerminal('-u NONE -S XSmoothScrollCursorTop', #{rows: 12, cols: 40})
+  call VerifyScreenDump(buf, 'Test_smoothscroll_cursor_top', {})
+
+  call StopVimInTerminal(buf)
+endfunc
+
+" Division by zero, shouldn't crash
+func Test_smoothscroll_crash()
+  CheckScreendump
+
+  let lines =<< trim END
+      20 new
+      vsp
+      put =repeat('aaaa', 20)
+      set nu fdc=1  smoothscroll cpo+=n
+      vert resize 0
+      exe "norm! 0\<c-e>"
+  END
+  call writefile(lines, 'XSmoothScrollCrash', 'D')
+  let buf = RunVimInTerminal('-u NONE -S XSmoothScrollCrash', #{rows: 12, cols: 40})
+  call term_sendkeys(buf, "2\<C-E>\<C-L>")
+
+  call StopVimInTerminal(buf)
+endfunc
+
+func Test_smoothscroll_insert_bottom()
+  CheckScreendump
+
+  let lines =<< trim END
+    call setline(1, repeat([repeat('A very long line ...', 10)], 5))
+    set wrap smoothscroll scrolloff=0
+  END
+  call writefile(lines, 'XSmoothScrollInsertBottom', 'D')
+  let buf = RunVimInTerminal('-u NONE -S XSmoothScrollInsertBottom', #{rows: 9, cols: 40})
+  call term_sendkeys(buf, "Go123456789\<CR>")
+  call VerifyScreenDump(buf, 'Test_smoothscroll_insert_bottom', {})
+
+  call StopVimInTerminal(buf)
+endfunc
+
 " vim: shiftwidth=2 sts=2 expandtab

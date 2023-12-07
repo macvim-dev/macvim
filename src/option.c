@@ -1950,6 +1950,7 @@ do_set_option_string(
 	int	    cp_val,
 	char_u	    *varp_arg,
 	char	    *errbuf,
+	size_t	    errbuflen,
 	int	    *value_checked,
 	char	    **errmsg)
 {
@@ -2048,7 +2049,7 @@ do_set_option_string(
 	// be triggered that can cause havoc.
 	*errmsg = did_set_string_option(
 			opt_idx, (char_u **)varp, oldval, newval, errbuf,
-			opt_flags, op, value_checked);
+			errbuflen, opt_flags, op, value_checked);
 
 	secure = secure_saved;
     }
@@ -2305,7 +2306,7 @@ do_set_option_value(
 	{
 	    // string option
 	    if (do_set_option_string(opt_idx, opt_flags, &arg, nextchar, op,
-					flags, cp_val, varp, errbuf,
+					flags, cp_val, varp, errbuf, errbuflen,
 					&value_checked, &errmsg) == FAIL)
 	    {
 		if (errmsg != NULL)
@@ -2597,12 +2598,12 @@ do_set(
 	{
 	    int		stopopteval = FALSE;
 	    char	*errmsg = NULL;
-	    char	errbuf[80];
+	    char	errbuf[ERR_BUFLEN];
 	    char_u	*startarg = arg;
 
 	    errmsg = do_set_option(opt_flags, &arg, arg_start, &startarg,
 					&did_show, &stopopteval, errbuf,
-					sizeof(errbuf));
+					ERR_BUFLEN);
 	    if (stopopteval)
 		break;
 
@@ -3954,7 +3955,7 @@ did_set_paste(optset_T *args UNUSED)
  * Process the updated 'previewwindow' option value.
  */
     char *
-did_set_previewwindow(optset_T *args)
+did_set_previewwindow(optset_T *args UNUSED)
 {
     if (!curwin->w_p_pvw)
 	return NULL;
@@ -5501,7 +5502,8 @@ set_option_value(
     int		opt_idx;
     char_u	*varp;
     long_u	flags;
-    static char	errbuf[80];
+    static char	errbuf[ERR_BUFLEN];
+    int		errbuflen = ERR_BUFLEN;
 
     opt_idx = findoption(name);
     if (opt_idx < 0)
@@ -5544,7 +5546,7 @@ set_option_value(
 	}
 #endif
 	if (flags & P_STRING)
-	    return set_string_option(opt_idx, string, opt_flags, errbuf);
+	    return set_string_option(opt_idx, string, opt_flags, errbuf, errbuflen);
 
 	varp = get_varp_scope(&(options[opt_idx]), opt_flags);
 	if (varp != NULL)	// hidden option is not changed

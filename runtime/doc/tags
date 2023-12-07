@@ -4568,6 +4568,7 @@ E1507	builtin.txt	/*E1507*
 E1508	editing.txt	/*E1508*
 E1509	editing.txt	/*E1509*
 E151	helphelp.txt	/*E151*
+E1510	change.txt	/*E1510*
 E152	helphelp.txt	/*E152*
 E153	helphelp.txt	/*E153*
 E154	helphelp.txt	/*E154*
@@ -5100,7 +5101,6 @@ E645	netbeans.txt	/*E645*
 E646	netbeans.txt	/*E646*
 E647	netbeans.txt	/*E647*
 E648	netbeans.txt	/*E648*
-E649	netbeans.txt	/*E649*
 E65	pattern.txt	/*E65*
 E650	netbeans.txt	/*E650*
 E651	netbeans.txt	/*E651*
@@ -7772,6 +7772,7 @@ gd	pattern.txt	/*gd*
 gdb	debug.txt	/*gdb*
 gdb-version	terminal.txt	/*gdb-version*
 ge	motion.txt	/*ge*
+gender-neutral	helphelp.txt	/*gender-neutral*
 get()	builtin.txt	/*get()*
 get-ms-debuggers	debug.txt	/*get-ms-debuggers*
 getbufinfo()	builtin.txt	/*getbufinfo()*
@@ -9225,10 +9226,12 @@ null	vim9.txt	/*null*
 null-variable	eval.txt	/*null-variable*
 null_blob	vim9.txt	/*null_blob*
 null_channel	vim9.txt	/*null_channel*
+null_class	vim9.txt	/*null_class*
 null_dict	vim9.txt	/*null_dict*
 null_function	vim9.txt	/*null_function*
 null_job	vim9.txt	/*null_job*
 null_list	vim9.txt	/*null_list*
+null_object	vim9.txt	/*null_object*
 null_partial	vim9.txt	/*null_partial*
 null_string	vim9.txt	/*null_string*
 number_relativenumber	options.txt	/*number_relativenumber*
@@ -9499,8 +9502,6 @@ printf-s	builtin.txt	/*printf-s*
 printf-x	builtin.txt	/*printf-x*
 printing	print.txt	/*printing*
 printing-formfeed	print.txt	/*printing-formfeed*
-private-method	vim9class.txt	/*private-method*
-private-variable	vim9class.txt	/*private-variable*
 profile	repeat.txt	/*profile*
 profiling	repeat.txt	/*profiling*
 profiling-variable	eval.txt	/*profiling-variable*
@@ -9525,6 +9526,8 @@ prop_type_change()	textprop.txt	/*prop_type_change()*
 prop_type_delete()	textprop.txt	/*prop_type_delete()*
 prop_type_get()	textprop.txt	/*prop_type_get()*
 prop_type_list()	textprop.txt	/*prop_type_list()*
+protected-method	vim9class.txt	/*protected-method*
+protected-variable	vim9class.txt	/*protected-variable*
 ps1-about	ft_ps1.txt	/*ps1-about*
 ps1-compiler	ft_ps1.txt	/*ps1-compiler*
 ps1-folding	ft_ps1.txt	/*ps1-folding*
@@ -9533,6 +9536,7 @@ ps1-syntax	ft_ps1.txt	/*ps1-syntax*
 psql	ft_sql.txt	/*psql*
 ptcap.vim	syntax.txt	/*ptcap.vim*
 pterm-mouse	options.txt	/*pterm-mouse*
+public-variable	vim9class.txt	/*public-variable*
 pum_getpos()	builtin.txt	/*pum_getpos()*
 pumvisible()	builtin.txt	/*pumvisible()*
 put	change.txt	/*put*
@@ -9672,6 +9676,7 @@ rcp	pi_netrw.txt	/*rcp*
 read-in-close-cb	channel.txt	/*read-in-close-cb*
 read-messages	insert.txt	/*read-messages*
 read-only-share	editing.txt	/*read-only-share*
+read-only-variable	vim9class.txt	/*read-only-variable*
 read-stdin	version5.txt	/*read-stdin*
 readblob()	builtin.txt	/*readblob()*
 readdir()	builtin.txt	/*readdir()*
@@ -10600,6 +10605,7 @@ termdebug-customizing	terminal.txt	/*termdebug-customizing*
 termdebug-events	terminal.txt	/*termdebug-events*
 termdebug-example	terminal.txt	/*termdebug-example*
 termdebug-frames	terminal.txt	/*termdebug-frames*
+termdebug-mappings	terminal.txt	/*termdebug-mappings*
 termdebug-prompt	terminal.txt	/*termdebug-prompt*
 termdebug-starting	terminal.txt	/*termdebug-starting*
 termdebug-stepping	terminal.txt	/*termdebug-stepping*
@@ -11159,6 +11165,7 @@ vim-modes-intro	intro.txt	/*vim-modes-intro*
 vim-raku	ft_raku.txt	/*vim-raku*
 vim-script-intro	usr_41.txt	/*vim-script-intro*
 vim-script-library	eval.txt	/*vim-script-library*
+vim-security	intro.txt	/*vim-security*
 vim-use	intro.txt	/*vim-use*
 vim-variable	eval.txt	/*vim-variable*
 vim.b	if_lua.txt	/*vim.b*
@@ -11170,6 +11177,7 @@ vim.w	if_lua.txt	/*vim.w*
 vim7	version7.txt	/*vim7*
 vim8	version8.txt	/*vim8*
 vim9	vim9.txt	/*vim9*
+vim9-access-modes	vim9class.txt	/*vim9-access-modes*
 vim9-autoload	vim9.txt	/*vim9-autoload*
 vim9-boolean	vim9.txt	/*vim9-boolean*
 vim9-classes	vim9.txt	/*vim9-classes*

@@ -45,8 +45,9 @@ adjust_plines_for_skipcol(win_T *wp)
 	return 0;
 
     int width = wp->w_width - win_col_off(wp);
-    if (wp->w_skipcol >= width)
-	return (wp->w_skipcol - width) / (width + win_col_off2(wp)) + 1;
+    int w2 = width + win_col_off2(wp);
+    if (wp->w_skipcol >= width && w2 > 0)
+	return (wp->w_skipcol - width) / w2 + 1;
 
     return 0;
 }
@@ -2423,7 +2424,9 @@ scroll_cursor_top(int min_scroll, int always)
 	}
 	check_topfill(curwin, FALSE);
 #endif
-	if (curwin->w_topline == curwin->w_cursor.lnum)
+	if (curwin->w_topline != old_topline)
+	    reset_skipcol();
+	else if (curwin->w_topline == curwin->w_cursor.lnum)
 	{
 	    validate_virtcol();
 	    if (curwin->w_skipcol >= curwin->w_virtcol)

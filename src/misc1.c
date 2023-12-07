@@ -720,6 +720,8 @@ get_mode(char_u *buf)
 	    buf[i++] = 'v';
 	else if (exmode_active == EXMODE_NORMAL)
 	    buf[i++] = 'e';
+	if ((State & MODE_CMDLINE) && cmdline_overstrike())
+	    buf[i++] = 'r';
     }
     else
     {
@@ -982,7 +984,8 @@ get_number(
 	c = safe_vgetc();
 	if (VIM_ISDIGIT(c))
 	{
-	    n = n * 10 + c - '0';
+	    if (vim_append_digit_int(&n, c - '0') == FAIL)
+		return 0;
 	    msg_putchar(c);
 	    ++typed;
 	}
@@ -2822,3 +2825,33 @@ may_trigger_modechanged(void)
     restore_v_event(v_event, &save_v_event);
 #endif
 }
+
+// For overflow detection, add a digit safely to an int value.
+    int
+vim_append_digit_int(int *value, int digit)
+{
+    int x = *value;
+    if (x > ((INT_MAX - digit) / 10))
+	return FAIL;
+    *value = x * 10 + digit;
+    return OK;
+}
+
+// For overflow detection, add a digit safely to a long value.
+    int
+vim_append_digit_long(long *value, int digit)
+{
+    long x = *value;
+    if (x > ((LONG_MAX - (long)digit) / 10))
+	return FAIL;
+    *value = x * 10 + (long)digit;
+    return OK;
+}
+
+// Return something that fits into an int.
+    int
+trim_to_int(vimlong_T x)
+{
+    return x > INT_MAX ? INT_MAX : x < INT_MIN ? INT_MIN : x;
+}
+

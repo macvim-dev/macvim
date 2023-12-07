@@ -1424,6 +1424,43 @@ func Test_textprop_text_priority()
   call StopVimInTerminal(buf)
 endfunc
 
+func Test_textprop_in_empty_popup()
+  CheckScreendump
+
+  let lines =<< trim END
+    vim9script
+
+    hi def link FilterMenuMatch Constant
+    prop_type_add('FilterMenuMatch', {
+      highlight: "FilterMenuMatch",
+      override: true,
+      priority: 1000,
+      combine: true,
+    })
+
+    var winid = popup_create([{text: "hello", props: [
+      {col: 1, length: 1, type: 'FilterMenuMatch'},
+      {col: 2, length: 1, type: 'FilterMenuMatch'},
+    ]}], {
+      minwidth: 20,
+      minheight: 10,
+      cursorline: false,
+      highlight: "None",
+      border: [],
+    })
+
+    win_execute(winid, "setl nu cursorline cursorlineopt=both")
+    popup_settext(winid, [])
+    redraw
+  END
+  call writefile(lines, 'XtestPropEmptyPopup', 'D')
+  let buf = RunVimInTerminal('-S XtestPropEmptyPopup', #{rows: 20, cols: 40})
+  call VerifyScreenDump(buf, 'Test_prop_in_empty_popup', {})
+
+  " clean up
+  call StopVimInTerminal(buf)
+endfunc
+
 func Test_textprop_with_syntax()
   CheckScreendump
 
@@ -4370,6 +4407,21 @@ func Test_virtual_text_get()
   call assert_equal('right', p[4].text_align)
 
   call prop_type_delete('test')
+  bwipe!
+endfunc
+
+" This used to throw: E967
+func Test_textprop_notype_join()
+  new Xtextprop_no_type_join
+  call setline(1, range(1, 3))
+  call cursor(1, 1)
+  let name = 'a'
+  call prop_type_add(name, {})
+  call prop_add(line('.'), col('.'), { 'type': name })
+  call prop_type_delete(name, {})
+  join
+  call assert_equal(["1 2", "3"], getline(1, '$'))
+
   bwipe!
 endfunc
 
