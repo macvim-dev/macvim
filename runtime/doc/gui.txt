@@ -1129,11 +1129,22 @@ That's all.  XLFDs are not used.  For Chinese this is reported to work well: >
 <
 (Replace gui_gtk2 with gui_gtk3 for the GTK+ 3 GUI)
 
-For Mac OSX you can use something like this: >
-    :set guifont=Monaco:h10
-Also see 'macatsui', it can help fix display problems {not in MacVim}.
-In MacVim, fonts with spaces are set like this: >
+MacVim							*macvim-guifont*
+
+For MacVim you can use something like this: >
+    :set guifont=Menlo:h10
+Fonts with spaces are set like this: >
     :set guifont=DejaVu\ Sans\ Mono:h13
+To use bold/italic fonts, use the fully specified PostScript name of the
+font, like so: >
+    :set guifont=Menlo-Bold:h13
+To use the system native monospace font (which is SF Mono in new macOS
+versions), use the `-monospace-` keyword: >
+    :set guifont=-monospace-:h12
+You can also specify the font weight of the native monospace font (refer to
+Apple documentation for `NSFontWeight` for possible values): >
+    :set guifont=-monospace-Light:h11
+    :set guifont=-monospace-Medium:h11
 <
 Mono-spaced fonts					*E236*
 

@@ -1299,9 +1299,10 @@ static void grid_free(Grid *grid) {
                       MMMinRows * cellSize.height + insetSize.height + bot);
 }
 
-// Called when font panel selection has been made. Send the selected font to
-// MMBackend so it would set guifont which will send a message back to MacVim to
-// call MMWindowController::setFont.
+// Called when font panel selection has been made or when adjusting font size
+// using modifyFont/NSSizeUpFontAction. Send the selected font to MMBackend so
+// it would set guifont which will send a message back to MacVim to call
+// MMWindowController::setFont.
 - (void)changeFont:(id)sender
 {
     NSFont *newFont = [sender convertFont:font];
@@ -1319,9 +1320,23 @@ static void grid_free(Grid *grid) {
             [data appendBytes:&len length:sizeof(unsigned)];
             [data appendBytes:[name UTF8String] length:len];
 
+            // We don't update guifontwide for now, as panel font selection
+            // shouldn't affect them. This does mean Cmd +/- does not work for
+            // them for now.
+            const unsigned wideLen = 0;
+            [data appendBytes:&wideLen length:sizeof(unsigned)];
+
             [[self vimController] sendMessage:SetFontMsgID data:data];
         }
     }
+}
+
+- (NSFontPanelModeMask)validModesForFontPanel:(NSFontPanel *)fontPanel
+{
+    // Lets the user pick only the font face / size, as other properties as not
+    // useful. Still enable text/document colors as these affect the preview.
+    // Otherwise it could just be white text on white background in the preview.
+    return NSFontPanelModesMaskStandardModes & (~NSFontPanelModeMaskAllEffects | NSFontPanelModeMaskTextColorEffect | NSFontPanelModeMaskDocumentColorEffect);
 }
 
 /// Specifies whether the menu item should be enabled/disabled.

@@ -10,6 +10,8 @@
 
 #import <objc/runtime.h>
 
+#import <Cocoa/Cocoa.h>
+
 #import "Miscellaneous.h"
 #import "MMAppController.h"
 #import "MMApplication.h"
@@ -419,6 +421,37 @@ do { \
     ASSERT_NUM_CMDLINES(1);
 
 #undef ASSERT_NUM_CMDLINES
+
+    // Clean up
+    [[app keyVimController] sendMessage:VimShouldCloseMsgID data:nil];
+    [self waitForVimClose];
+}
+
+/// Test that using "-monospace-" for system default monospace font works.
+- (void) testGuifontSystemMonospace {
+    MMAppController *app = MMAppController.sharedInstance;
+
+    [app openNewWindow:NewWindowClean activate:YES];
+    [self waitForVimOpenAndMessages];
+
+    MMTextView *textView = [[[[app keyVimController] windowController] vimView] textView];
+    XCTAssertEqualObjects(@"Menlo-Regular", [[textView font] fontName]);
+
+    [self sendStringToVim:@":set guifont=-monospace-\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    XCTAssertEqualObjects([textView font], [NSFont monospacedSystemFontOfSize:11 weight:NSFontWeightRegular]);
+
+    [self sendStringToVim:@":set guifont=-monospace-Heavy:h12\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    XCTAssertEqualObjects([textView font], [NSFont monospacedSystemFontOfSize:12 weight:NSFontWeightHeavy]);
+
+    [[[app keyVimController] windowController] fontSizeUp:nil];
+    [self waitForEventHandlingAndVimProcess];
+    XCTAssertEqualObjects([textView font], [NSFont monospacedSystemFontOfSize:13 weight:NSFontWeightHeavy]);
+
+    [[[app keyVimController] windowController] fontSizeDown:nil];
+    [self waitForEventHandlingAndVimProcess];
+    XCTAssertEqualObjects([textView font], [NSFont monospacedSystemFontOfSize:12 weight:NSFontWeightHeavy]);
 
     // Clean up
     [[app keyVimController] sendMessage:VimShouldCloseMsgID data:nil];

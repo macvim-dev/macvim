@@ -40,6 +40,8 @@ NSString *MMRendererKey	       = @"MMRenderer";
 // Vim find pasteboard type (string contains Vim regex patterns)
 NSString *VimFindPboardType = @"VimFindPboardType";
 
+NSString *MMSystemFontAlias = @"-monospace-";
+
 int ASLogLevel = MM_ASL_LEVEL_DEFAULT;
 
 

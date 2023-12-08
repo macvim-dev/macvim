@@ -433,7 +433,8 @@ enum {
 
 extern NSString *VimFindPboardType;
 
-
+// Alias for system monospace font name
+extern NSString *MMSystemFontAlias;
 
 
 @interface NSString (MMExtras)

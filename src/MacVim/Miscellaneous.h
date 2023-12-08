@@ -153,7 +153,8 @@ enum {
 
 
 @interface NSNumber (MMExtras)
-// HACK to allow font size to be changed via menu (bound to Cmd+/Cmd-)
+// Used by modifyFont:/convertFont: to allow font size to be changed via menu
+// (bound to Cmd+/Cmd-) or using macaction fontSizeUp:/fontSizeDown:.
 - (NSInteger)tag;
 @end
 

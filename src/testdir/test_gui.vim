@@ -433,6 +433,28 @@ func Test_set_guifont()
   let &guifont = guifont_saved
 endfunc
 
+func Test_set_guifont_macvim()
+  CheckFeature gui_macvim
+  let guifont_saved = &guifont
+  let guifontwide_saved = &guifontwide
+
+  set guifont=-monospace-
+  call assert_equal('-monospace-:h11', getfontname())
+  set guifont=-monospace-Semibold
+  call assert_equal('-monospace-Semibold:h11', getfontname())
+
+  call assert_fails('set guifont=-monospace-SemiboldInvalidWeight', 'E596')
+
+  set guifont=Menlo\ Regular
+  call assert_equal('Menlo Regular:h11', getfontname())
+
+  set guifont=
+  call assert_equal('Menlo-Regular:h11', getfontname())
+
+  let &guifontwide = guifontwide_saved
+  let &guifont     = guifont_saved
+endfunc
+
 func Test_set_guifontset()
   CheckFeature xfontset
   let skipped = ''
@@ -640,6 +662,13 @@ func Test_expand_guifont()
     " Test auto-completion working for font names
     call assert_equal(['Menlo-Regular'], getcompletion('set guifont=Menl*lar$', 'cmdline'))
     call assert_equal(['Menlo-Regular'], getcompletion('set guifontwide=Menl*lar$', 'cmdline'))
+
+    " Test system monospace font option. It's always the first option after
+    " the existing font.
+    call assert_equal('-monospace-', getcompletion('set guifont=', 'cmdline')[1])
+    call assert_equal('-monospace-', getcompletion('set guifont=-monospace-', 'cmdline')[0])
+    call assert_equal('-monospace-UltraLight', getcompletion('set guifont=-monospace-', 'cmdline')[1])
+    call assert_equal(['-monospace-Medium'], getcompletion('set guifont=-monospace-Med', 'cmdline'))
 
     " Make sure non-monospace fonts are filtered out only in 'guifont'
     call assert_equal([], getcompletion('set guifont=Hel*tica$', 'cmdline'))

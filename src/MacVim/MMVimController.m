@@ -900,7 +900,44 @@ static BOOL isUnsafeMessage(int msgid);
             NSString *name = [[NSString alloc]
                     initWithBytes:(void*)bytes length:len
                          encoding:NSUTF8StringEncoding];
-            NSFont *font = [NSFont fontWithName:name size:size];
+            NSFont *font = nil;
+            if ([name hasPrefix:MMSystemFontAlias]) {
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_15
+                if (@available(macos 10.15, *)) {
+                    NSFontWeight fontWeight = NSFontWeightRegular;
+                    if (name.length > MMSystemFontAlias.length) {
+                        const NSRange cmpRange = NSMakeRange(MMSystemFontAlias.length, name.length - MMSystemFontAlias.length);
+                        if ([name compare:@"UltraLight" options:NSCaseInsensitiveSearch range:cmpRange] == NSOrderedSame)
+                            fontWeight = NSFontWeightUltraLight;
+                        else if ([name compare:@"Thin" options:NSCaseInsensitiveSearch range:cmpRange] == NSOrderedSame)
+                            fontWeight = NSFontWeightThin;
+                        else if ([name compare:@"Light" options:NSCaseInsensitiveSearch range:cmpRange] == NSOrderedSame)
+                            fontWeight = NSFontWeightLight;
+                        else if ([name compare:@"Regular" options:NSCaseInsensitiveSearch range:cmpRange] == NSOrderedSame)
+                            fontWeight = NSFontWeightRegular;
+                        else if ([name compare:@"Medium" options:NSCaseInsensitiveSearch range:cmpRange] == NSOrderedSame)
+                            fontWeight = NSFontWeightMedium;
+                        else if ([name compare:@"Semibold" options:NSCaseInsensitiveSearch range:cmpRange] == NSOrderedSame)
+                            fontWeight = NSFontWeightSemibold;
+                        else if ([name compare:@"Bold" options:NSCaseInsensitiveSearch range:cmpRange] == NSOrderedSame)
+                            fontWeight = NSFontWeightBold;
+                        else if ([name compare:@"Heavy" options:NSCaseInsensitiveSearch range:cmpRange] == NSOrderedSame)
+                            fontWeight = NSFontWeightHeavy;
+                        else if ([name compare:@"Black" options:NSCaseInsensitiveSearch range:cmpRange] == NSOrderedSame)
+                            fontWeight = NSFontWeightBlack;
+                    }
+                    font = [NSFont monospacedSystemFontOfSize:size weight:fontWeight];
+                }
+                else
+#endif
+                {
+                    // Fallback to Menlo on older macOS versions that don't support the system monospace font API
+                    font = [NSFont fontWithName:@"Menlo-Regular" size:size];
+                }
+            }
+            else {
+                font = [NSFont fontWithName:name size:size];
+            }
             if (!font) {
                 // This should only happen if the system default font has changed
                 // name since MacVim was compiled in which case we fall back on
