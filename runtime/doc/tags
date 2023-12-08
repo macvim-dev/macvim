@@ -8622,6 +8622,7 @@ macvim-encoding	gui_mac.txt	/*macvim-encoding*
 macvim-find	gui_mac.txt	/*macvim-find*
 macvim-full-screen	gui_mac.txt	/*macvim-full-screen*
 macvim-gestures	gui_mac.txt	/*macvim-gestures*
+macvim-guifont	gui.txt	/*macvim-guifont*
 macvim-help-menu	gui_mac.txt	/*macvim-help-menu*
 macvim-hints	gui_mac.txt	/*macvim-hints*
 macvim-internal-variables	gui_mac.txt	/*macvim-internal-variables*

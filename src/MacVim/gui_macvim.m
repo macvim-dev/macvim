@@ -32,10 +32,12 @@ static BOOL MMNoMRU = NO;
 
 static NSString *MMDefaultFontName = @"Menlo-Regular";
 static int MMDefaultFontSize       = 11;
-static char *MMDefaultFontStr      = "Menlo-Regular:h11";
 static char *MMDefaultFontSizeStr  = "h11";
 static int MMMinFontSize           = 6;
 static int MMMaxFontSize           = 100;
+
+// This is duplicated in MMVimController. Could consolidate in the future.
+static NSString *(system_font_weights[]) = { @"UltraLight", @"Thin", @"Light", @"Regular", @"Medium", @"Semibold", @"Bold", @"Heavy", @"Black" };
 
 static BOOL MMShareFindPboard      = YES;
 
@@ -1141,6 +1143,22 @@ gui_macvim_font_with_name(char_u *name)
                                  componentsJoinedByString:@" "];
     }
 
+    const BOOL isSystemFont = [fontName hasPrefix:MMSystemFontAlias];
+    if (isSystemFont) {
+        if (fontName.length > MMSystemFontAlias.length) {
+            BOOL invalidWeight = YES;
+            const NSRange cmpRange = NSMakeRange(MMSystemFontAlias.length, fontName.length - MMSystemFontAlias.length);
+            for (size_t i = 0; i < ARRAY_LENGTH(system_font_weights); i++) {
+                if ([fontName compare:system_font_weights[i] options:NSCaseInsensitiveSearch range:cmpRange] == NSOrderedSame) {
+                    invalidWeight = NO;
+                    break;
+                }
+            }
+            if (invalidWeight)
+                return NOFONT;
+        }
+    }
+
     if (!parseFailed && [fontName length] > 0) {
         if (size < MMMinFontSize) size = MMMinFontSize;
         if (size > MMMaxFontSize) size = MMMaxFontSize;
@@ -1148,6 +1166,7 @@ gui_macvim_font_with_name(char_u *name)
         // If the default font is requested we don't need to check if NSFont
         // can load it.  Otherwise we ask NSFont if it can load it.
         if ([fontName isEqualToString:MMDefaultFontName]
+                || isSystemFont
                 || [NSFont fontWithName:fontName size:size])
             return [[NSString alloc] initWithFormat:@"%@:h%d", fontName, size];
     }
@@ -1170,7 +1189,9 @@ gui_mch_expand_font(optexpand_T *args, void *param, int (*add_match)(char_u *val
     {
 	// If guifont is empty, and we want to fill in the orig value, suggest
 	// the default so the user can modify it.
-	if (add_match((char_u *)MMDefaultFontStr) != OK)
+        NSString *defaultFontStr = [NSString stringWithFormat:@"%@:h%d",
+                 MMDefaultFontName, MMDefaultFontSize];
+	if (add_match((char_u *)[defaultFontStr UTF8String]) != OK)
 	    return;
     }
 
@@ -1183,6 +1204,27 @@ gui_mch_expand_font(optexpand_T *args, void *param, int (*add_match)(char_u *val
         else
             add_match((char_u*)MMDefaultFontSizeStr);
         return;
+    }
+
+    if (!wide) {
+        // Add system-native monospace font alias to completion.
+        char buf[40];
+        [MMSystemFontAlias getCString:buf maxLength:ARRAY_LENGTH(buf) encoding:NSASCIIStringEncoding];
+        if (add_match((char_u*)buf) != OK)
+            return;
+        const size_t fontAliasLen = STRLEN(buf);
+        if (STRNCMP(xp->xp_pattern, buf, fontAliasLen) == 0) {
+            // We additionally complete with font weights like "bold". We only
+            // do so if starting with "-monospace-" already to avoid spamming
+            // the user with too many variations on this.
+            for (size_t i = 0; i < ARRAY_LENGTH(system_font_weights); i++) {
+                [system_font_weights[i] getCString:buf+fontAliasLen
+                                         maxLength:ARRAY_LENGTH(buf)-fontAliasLen
+                                          encoding:NSASCIIStringEncoding];
+                if (add_match((char_u*)buf) != OK)
+                    return;
+            }
+        }
     }
 
     NSFontManager *fontManager = [NSFontManager sharedFontManager];

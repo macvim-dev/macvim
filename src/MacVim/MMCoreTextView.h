@@ -87,6 +87,7 @@ NS_ASSUME_NONNULL_BEGIN
 // NSFontChanging methods
 //
 - (void)changeFont:(nullable id)sender;
+- (NSFontPanelModeMask)validModesForFontPanel:(NSFontPanel *)fontPanel;
 
 //
 // NSMenuItemValidation

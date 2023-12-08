@@ -118,6 +118,9 @@ These are the non-standard options that MacVim supports:
 	'fuoptions'	'macligatures'	'macmeta'	'macthinstrokes'
 	'toolbariconsize'	'transparency'
 
+These are GUI-related Vim options that have MacVim-specific behaviors:
+	'guifont'
+
 							*macvim-commands*
 These are the non-standard commands that MacVim supports:
 	|:macaction|	|:macmenu|
