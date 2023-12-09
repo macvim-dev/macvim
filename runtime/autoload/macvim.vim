@@ -88,7 +88,19 @@ enddef
 #   PreviewConvertPostScript doesn't work.
 export def PreviewConvertPostScript(deltimer = 10000): number
   # Convert PS to PDF because Preview can't use PS files in macOS 13+
-  system($"pstopdf {v:fname_in} -o {v:fname_in}.pdf")
+  if executable('/usr/bin/pstopdf')
+    system($"/usr/bin/pstopdf {v:fname_in} -o {v:fname_in}.pdf")
+  else
+    # Starting in macOS 14, pstopdf is no longer bundled. We just require the
+    # user to install ps2pdf as it's the simplest solution for a relatively
+    # niche feature today (printing).
+    if executable('ps2pdf')
+      system($"ps2pdf {v:fname_in} {v:fname_in}.pdf")
+    else
+      echoerr 'Cannot find ps2pdf. You can install it by installing Ghostscript. This is necessary in macOS 14+ for printing to work.'
+      return 1
+    endif
+  endif
   if v:shell_error != 0
     return v:shell_error
   endif
