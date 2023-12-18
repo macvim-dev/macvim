@@ -360,7 +360,7 @@ jobs:
 
       - name: Upload MacVim image
         if: startsWith(github.ref, 'refs/tags/') && matrix.publish
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: MacVim${{ matrix.publish_postfix  }}.dmg
           path: src/MacVim/build/Release/MacVim${{ matrix.publish_postfix }}.dmg
