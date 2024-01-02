@@ -681,7 +681,7 @@ ex_listdo(exarg_T *eap)
 	    ++i;
 
 	    // execute the command
-	    do_cmdline(eap->arg, eap->getline, eap->cookie,
+	    do_cmdline(eap->arg, eap->ea_getline, eap->cookie,
 						DOCMD_VERBOSE + DOCMD_NOWAIT);
 
 	    if (eap->cmdidx == CMD_bufdo)

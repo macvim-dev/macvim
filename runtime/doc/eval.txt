@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 9.0.  Last change: 2023 Nov 20
+*eval.txt*	For Vim version 9.0.  Last change: 2023 Dec 09
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -879,7 +879,8 @@ Expression syntax summary, from least to most significant:
 	expr5 isnot expr5	different |List|, |Dictionary| or |Blob|
 				instance
 
-|expr5|	expr6 << expr6		bitwise left shift
+|expr5|	expr6
+	expr6 << expr6		bitwise left shift
 	expr6 >> expr6		bitwise right shift
 
 |expr6|	expr7
@@ -2569,6 +2570,8 @@ v:t_blob	Value of |Blob| type.  Read-only.  See: |type()|
 v:t_class	Value of |class| type.  Read-only.  See: |type()|
 					*v:t_object* *t_object-variable*
 v:t_object	Value of |object| type.  Read-only.  See: |type()|
+					*v:t_typealias* *t_typealias-variable*
+v:t_typealias	Value of |typealias| type.  Read-only.  See: |type()|
 
 				*v:termresponse* *termresponse-variable*
 v:termresponse	The escape sequence returned by the terminal for the |t_RV|
@@ -4839,7 +4842,7 @@ have Vim execute random executables or may have forbidden to do so for
 specific filetypes by setting the "<filetype>_exec" variable (|plugin_exec|).
 
 It returns |true| or |false| to indicate whether the plugin should run the given
-exectuable.  It takes the following arguments:
+executable.  It takes the following arguments:
 
 	argument	type ~
 

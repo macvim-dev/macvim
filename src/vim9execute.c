@@ -398,6 +398,9 @@ check_ufunc_arg_types(ufunc_T *ufunc, int argcount, int off, ectx_T *ectx)
 	if (argv[i].v_type == VAR_SPECIAL
 		&& argv[i].vval.v_number == VVAL_NONE)
 	    continue;
+	// only pass values to user functions, never types
+	if (check_typval_is_value(&argv[i]) == FAIL)
+	    return FAIL;
 
 	if (i < ufunc->uf_args.ga_len && ufunc->uf_arg_types != NULL)
 	    type = ufunc->uf_arg_types[i];
@@ -3813,10 +3816,8 @@ exec_instructions(ectx_T *ectx)
 	    case ISN_STORE:
 		--ectx->ec_stack.ga_len;
 		tv = STACK_TV_VAR(iptr->isn_arg.number);
-		if (STACK_TV_BOT(0)->v_type == VAR_TYPEALIAS)
+		if (check_typval_is_value(STACK_TV_BOT(0)) == FAIL)
 		{
-		    semsg(_(e_using_typealias_as_value),
-				STACK_TV_BOT(0)->vval.v_typealias->ta_name);
 		    clear_tv(STACK_TV_BOT(0));
 		    goto on_error;
 		}
@@ -4454,7 +4455,11 @@ exec_instructions(ectx_T *ectx)
 		else
 		{
 		    *tv = *STACK_TV_VAR(0);
-		    ++tv->vval.v_object->obj_refcount;
+		    object_T *obj = tv->vval.v_object;
+		    ++obj->obj_refcount;
+
+		    // Lock all the constant object variables
+		    obj_lock_const_vars(obj);
 		}
 		// FALLTHROUGH
 
@@ -4463,6 +4468,12 @@ exec_instructions(ectx_T *ectx)
 		{
 		    garray_T	*trystack = &ectx->ec_trystack;
 		    trycmd_T    *trycmd = NULL;
+
+		    ///////////////////////////////////////////////////
+		    // TODO: If FAIL, line number in output not correct
+		    ///////////////////////////////////////////////////
+		    if (check_typval_is_value(STACK_TV_BOT(-1)) == FAIL)
+			goto theend;
 
 		    if (trystack->ga_len > 0)
 			trycmd = ((trycmd_T *)trystack->ga_data)
@@ -5023,7 +5034,6 @@ exec_instructions(ectx_T *ectx)
 	    case ISN_COMPAREFUNC:
 	    case ISN_COMPARESTRING:
 	    case ISN_COMPAREBLOB:
-	    case ISN_COMPARECLASS:
 	    case ISN_COMPAREOBJECT:
 		{
 		    typval_T	*tv1 = STACK_TV_BOT(-2);
@@ -5057,11 +5067,6 @@ exec_instructions(ectx_T *ectx)
 		    else if (iptr->isn_type == ISN_COMPAREBLOB)
 		    {
 			status = typval_compare_blob(tv1, tv2, exprtype, &res);
-		    }
-		    else if (iptr->isn_type == ISN_COMPARECLASS)
-		    {
-			status = typval_compare_class(tv1, tv2,
-							exprtype, FALSE, &res);
 		    }
 		    else // ISN_COMPAREOBJECT
 		    {
@@ -7195,7 +7200,6 @@ list_instructions(char *pfx, isn_T *instr, int instr_count, ufunc_T *ufunc)
 	    case ISN_COMPARELIST:
 	    case ISN_COMPAREDICT:
 	    case ISN_COMPAREFUNC:
-	    case ISN_COMPARECLASS:
 	    case ISN_COMPAREOBJECT:
 	    case ISN_COMPAREANY:
 		   {
@@ -7234,7 +7238,6 @@ list_instructions(char *pfx, isn_T *instr, int instr_count, ufunc_T *ufunc)
 			   case ISN_COMPARELIST: type = "COMPARELIST"; break;
 			   case ISN_COMPAREDICT: type = "COMPAREDICT"; break;
 			   case ISN_COMPAREFUNC: type = "COMPAREFUNC"; break;
-			   case ISN_COMPARECLASS: type = "COMPARECLASS"; break;
 			   case ISN_COMPAREOBJECT:
 						 type = "COMPAREOBJECT"; break;
 			   case ISN_COMPAREANY: type = "COMPAREANY"; break;

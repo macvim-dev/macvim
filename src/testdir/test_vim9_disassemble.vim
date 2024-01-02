@@ -3062,15 +3062,15 @@ def Test_disassemble_interface_static_member()
   var lines =<< trim END
     vim9script
     interface I
-      this.o_var: number
-      this.o_var2: number
+      var o_var: number
+      var o_var2: number
     endinterface
 
     class C implements I
-      public static s_var: number
-      this.o_var: number
-      public static s_var2: number
-      this.o_var2: number
+      public static var s_var: number
+      var o_var: number
+      public static var s_var2: number
+      var o_var2: number
     endclass
 
     def F1(i: I)
@@ -3124,7 +3124,7 @@ def Test_disassemble_class_variable()
     vim9script
 
     class A
-      public static val = 10
+      public static var val = 10
       def Foo(): number
         val = 20
         return val
@@ -3173,7 +3173,7 @@ def Test_disassemble_ifargnotset()
   var lines =<< trim END
     vim9script
     class A
-      this.val: number = 10
+      var val: number = 10
     endclass
     g:instr = execute('disassemble A.new')
   END
@@ -3193,7 +3193,7 @@ def Test_disassemble_ifargnotset()
   unlet g:instr
 enddef
 
-" Disassemble instructions for ISN_COMPARECLASS and ISN_COMPAREOBJECT
+" Disassemble instructions for ISN_COMPAREOBJECT
 def Test_disassemble_compare_class_object()
   var lines =<< trim END
     vim9script
@@ -3202,8 +3202,6 @@ def Test_disassemble_compare_class_object()
     class B
     endclass
     def Foo(a: A, b: B)
-      if A == B
-      endif
       if a == b
       endif
     enddef
@@ -3211,19 +3209,13 @@ def Test_disassemble_compare_class_object()
   END
   v9.CheckScriptSuccess(lines)
   assert_match('<SNR>\d*_Foo\_s*' ..
-    'if A == B\_s*' ..
-    '0 LOADSCRIPT A-0 from .*\_s*' ..
-    '1 LOADSCRIPT B-1 from .*\_s*' ..
-    '2 COMPARECLASS ==\_s*' ..
+    'if a == b\_s*' ..
+    '0 LOAD arg\[-2\]\_s*' ..
+    '1 LOAD arg\[-1\]\_s*' ..
+    '2 COMPAREOBJECT ==\_s*' ..
     '3 JUMP_IF_FALSE -> 4\_s*' ..
     'endif\_s*' ..
-    'if a == b\_s*' ..
-    '4 LOAD arg\[-2\]\_s*' ..
-    '5 LOAD arg\[-1\]\_s*' ..
-    '6 COMPAREOBJECT ==\_s*' ..
-    '7 JUMP_IF_FALSE -> 8\_s*' ..
-    'endif\_s*' ..
-    '8 RETURN void', g:instr)
+    '4 RETURN void', g:instr)
   unlet g:instr
 enddef
 

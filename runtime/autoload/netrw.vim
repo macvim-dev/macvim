@@ -5315,7 +5315,8 @@ fun! s:NetrwBrowseUpDir(islocal)
    endif
    call s:RestorePosn(s:netrw_posn)
    let curdir= substitute(curdir,'^.*[\/]','','')
-   call search('\<'.curdir.'/','wc')
+   let curdir= '\<'. escape(curdir, '~'). '/'
+   call search(curdir,'wc')
   endif
 "  call Dret("s:NetrwBrowseUpDir")
 endfun
@@ -10380,7 +10381,7 @@ fun! s:NetrwRemoteListing()
    let w:netrw_bannercnt= s:bannercnt
   endif
   if !exists("w:netrw_bannercnt") && exists("b:bannercnt")
-   let w:netrw_bannercnt= s:bannercnt
+   let w:netrw_bannercnt= b:bannercnt
   endif
 
   call s:RemotePathAnalysis(b:netrw_curdir)
@@ -10962,6 +10963,10 @@ fun! s:LocalBrowseRefresh()
 "   call Dret("s:LocalBrowseRefresh : don't refresh when focus not on netrw window")
    return
   endif
+  if !empty(getcmdwintype())
+    " cannot move away from cmdline window, see :h E11
+    return
+  endif
   if exists("s:netrw_events") && s:netrw_events == 1
    " s:LocalFastBrowser gets called (indirectly) from a
    let s:netrw_events= 2
@@ -11274,6 +11279,10 @@ endfun
 fun! s:NetrwLocalRename(path) range
 "  call Dfunc("NetrwLocalRename(path<".a:path.">)")
 
+  if !exists("w:netrw_bannercnt")
+   let w:netrw_bannercnt= b:netrw_bannercnt
+  endif
+
   " preparation for removing multiple files/directories
   let ykeep     = @@
   let ctr       = a:firstline
@@ -11374,6 +11383,10 @@ endfun
 fun! s:NetrwLocalRm(path) range
 "  call Dfunc("s:NetrwLocalRm(path<".a:path.">)")
 "  call Decho("firstline=".a:firstline." lastline=".a:lastline,'~'.expand("<slnum>"))
+
+  if !exists("w:netrw_bannercnt")
+   let w:netrw_bannercnt= b:netrw_bannercnt
+  endif
 
   " preparation for removing multiple files/directories
   let ykeep = @@

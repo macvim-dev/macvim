@@ -14,6 +14,7 @@ LANGUAGES = \
 		fi \
 		fr \
 		ga \
+		hu \
 		it \
 		ja \
 		ko.UTF-8 \
@@ -67,6 +68,7 @@ POFILES = \
 		fi.po \
 		fr.po \
 		ga.po \
+		hu.po \
 		it.po \
 		ja.po \
 		ko.UTF-8.po \
@@ -113,6 +115,7 @@ MOFILES = \
 		fi.mo \
 		fr.mo \
 		ga.mo \
+		hu.mo \
 		it.mo \
 		ja.mo \
 		ko.UTF-8.mo \
@@ -162,6 +165,7 @@ CHECKFILES = \
 		fi.ck \
 		fr.ck \
 		ga.ck \
+		hu.ck \
 		it.ck \
 		ja.ck \
 		ko.UTF-8.ck \
