@@ -4894,7 +4894,7 @@ if test "x$MACOS_X" = "xyes"; then
   dnl Set CFBundleShortVersionString of Info.plist
   vim_major_version_string=`/usr/bin/grep -m 1 'define.*VIM_VERSION_MAJOR' $srcdir/version.h|sed -E -e 's/^.*([[0-9]]+).*/\1/'`
   vim_minor_version_string=`/usr/bin/grep -m 1 'define.*VIM_VERSION_MINOR' $srcdir/version.h|sed -E -e 's/^.*([[0-9]]+).*/\1/'`
-  snapshot=`/usr/bin/grep -C2 "Add new patch number below this line" $srcdir/version.c|tail -1|sed -E -e 's/^ *([[0-9]]+),.*/\1/'`
+  snapshot=`/usr/bin/grep -C2 "Add new patch number below this line" $srcdir/version.c|tail -1|sed -E -e 's/^ *([[0-9]]+).*/\1/'`
   vim_short_version_string="$vim_major_version_string.$vim_minor_version_string.$snapshot"
 
   if echo "$vim_short_version_string" | /usr/bin/grep -q "^[[[:digit:]]]\+\.[[[:digit:]]]\+\.[[[:digit:]]]\+$"; then
