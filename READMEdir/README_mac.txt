@@ -1,4 +1,4 @@
-README_mac.txt for version 9.0 of Vim: Vi IMproved.
+README_mac.txt for version 9.1 of Vim: Vi IMproved.
 
 How to install MacVim?
 ========================
