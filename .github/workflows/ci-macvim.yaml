@@ -67,7 +67,7 @@ jobs:
 
           # Most up to date OS and Xcode. Used to publish release for the main build.
           - os: macos-13
-            xcode: '15.0'
+            xcode: '15.1'
             publish: true
 
     runs-on: ${{ matrix.os }}
