@@ -6,60 +6,90 @@
     <description>MacVim</description>
 
     <item>
-      <title>MacVim release-178</title>
+      <title>MacVim release-179</title>
       <description><![CDATA[
 <style>
 :root { supported-color-schemes: light dark; color-scheme: light dark; }
 h1 { padding-bottom: .3em; border-bottom: 1px solid gray; }
 </style>
 
-<p>Updated to Vim 9.0.1897</p>
+<p>Updated to Vim 9.1.0</p>
 
-<h1 id="special-notes">Special Notes</h1>
+<p>Happy New Year! See <a href="https://github.com/macvim-dev/macvim/discussions/1472">#1472</a> for a retrospective of 2023 and future roadmap.</p>
 
-<p>As some of you may have read, Bram Moolenaar, the creator of Vim, has <a href="https://groups.google.com/g/vim_announce/c/tWahca9zkt4">passed away</a> recently. He has worked tirelessly on Vim for more than 30 years and this release is dedicated to him. If you would like, you could pay your respects at <a href="https://github.com/vim/vim/discussions/12737">this discussion thread</a>.</p>
-
-<p>The Vim project has transitioned to new maintainers, and MacVim will continue to be supported as long as Vim is around.</p>
+<p>Also, Vim 9.1 is now released! See <a href="https://www.vim.org/vim-9.1-released.php">announcement</a>.</p>
 
 <h1 id="features">Features</h1>
 
-<h2 id="more-flexible-python-integration">More flexible Python integration</h2>
+<h2 id="system-monospace-font-sf-mono">System monospace font (SF Mono)</h2>
 
-<p>MacVim now allows you to use Python runtime (via <code>pythonthreedll</code>, used for Python plugins) of any version at or above 3.9. Previously you had to use the exact same version that was used to build MacVim (Python 3.11). The Python detection logic is also updated to always just find the latest version of Homebrew Python instead of a fixed one, and it will also now locate the default macOS / Xcode Python provided by the Xcode Command Line Tools if that is the only Python available. This should hopefully make configuring Python for MacVim a lot more seamless.  See <a href="https://macvim.org/docs/redirect.html?tag=python3-stable-abi"><code>:h python3-stable-abi</code></a>. Vim <a href="https://github.com/vim/vim/commit/c13b3d1350b60b94fe87f0761ea31c0e7fb6ebf3">v9.0.1776</a> / <a href="https://github.com/macvim-dev/macvim/issues/1428">#1428</a>.</p>
+<p>MacVim’s <code>guifont</code> option now supports a new <code>-monospace-</code> value, which instructs it to use the system monospace font, which is SF Mono in recent macOS versions. As mentioned below (New Vim features), you can now use tab-completion to see the available values in cmdline. See <a href="https://macvim.org/docs/redirect.html?tag=macvim-guifont"><code>:h macvim-guifont</code></a> for more details on how to use it (including using different font weights). <a href="https://github.com/macvim-dev/macvim/issues/1463">#1463</a></p>
+
+<p>Note: I’m contemplating changing the MacVim default value for <code>guifont</code> to be <code>-monospace-</code> in the future so MacVim will always use the native monospace font instead of being hard-coded to Menlo. This makes it more consistent with Apple Terminal and Xcode. Feel free to leave a comment on <a href="https://github.com/macvim-dev/macvim/issues/1277">#1277</a> if you have opinions on this.</p>
+
+<p><img width="310" alt="Menlo (default) vs SF Mono" src="https://github.com/macvim-dev/macvim/assets/1217449/56e4a7b7-9f9d-4cfa-9e6a-bb4baffc6d30" /></p>
 
 <h2 id="new-vim-features">New Vim features</h2>
 
 <ul>
-  <li>New built-in support for <a href="https://editorconfig.org/">EditorConfig</a> via an optional package. Use <code>packadd editorconfig</code> to activate it. See <a href="https://github.com/vim/vim/issues/12902">vim/vim#12902</a>.</li>
-  <li><code>g&lt;End&gt;</code> now goes to the first non-blank char. <a href="https://github.com/vim/vim/commit/b5f6fe9ca2661d06bc0be839447ce1995450b9de">v9.0.1753</a></li>
-  <li>API changes
+  <li>Command-line tab completion improvements and bug fixes (see <a href="https://macvim.org/docs/redirect.html?tag=cmdline-completion"><code>:h cmdline-completion</code></a> and <a href="https://macvim.org/docs/redirect.html?tag=complete-set-option"><code>:h complete-set-option</code></a>)
     <ul>
-      <li><code>undotree()</code> now takes a bufnr <a href="https://github.com/vim/vim/commit/5fee11114975b7405b7ccd3ee8758e54bf559760">v9.0.1686</a></li>
-      <li><code>printf()</code> now takes positional arguments <a href="https://github.com/vim/vim/commit/0c6181fec4c362eb9682d5af583341eb20cb1af5">v9.0.1704</a></li>
-      <li><code>virtcol()</code> now takes winid <a href="https://github.com/vim/vim/commit/825cf813fa0fddf085fcbd3194781e875320ff63">v9.0.1728</a></li>
-      <li>quickfix items can now have user data <a href="https://github.com/vim/vim/commit/ca6ac99077d2e6d020a34267aa5e0fbc4d23dc38">v9.0.1688</a></li>
+      <li>Most string option values can now be completed. <a href="https://github.com/vim/vim/commit/900894b09a95398dfc75599e9f0aa2ea25723384">v9.0.1958</a></li>
+      <li>MacVim options (guifont, fuoptions) also support tab completion. <a href="https://github.com/macvim-dev/macvim/issues/1436">#1436</a></li>
+      <li>++opt (e.g. <code>:e ++</code>) and <code>:terminal ++</code> completion work as well. <a href="https://github.com/vim/vim/commit/989426be6e9ae23d2413943890206cbe15d9df38">v9.0.2025</a></li>
+      <li><img width="497" alt="listchars" src="https://github.com/macvim-dev/macvim/assets/1217449/27a17e85-30ed-43d9-b67b-d15ecf116042" /></li>
     </ul>
   </li>
+  <li>New options:
+    <ul>
+      <li><code>set jumpoptions=stack</code>. Ported from Neovim. <a href="https://github.com/vim/vim/commit/87018255e3ad0f4dfa03e20318836d24af721caf">v9.0.1921</a></li>
+    </ul>
+  </li>
+  <li>API changes
+    <ul>
+      <li><code>getmousepos()</code> returns a new “coladd” for tab characters. <a href="https://github.com/vim/vim/commit/f5a94d5165bb9e390797da50a1fa7a87df3fbee4">v9.0.2032</a></li>
+    </ul>
+  </li>
+  <li><code>:Man</code> now works properly when <code>gdefault</code> is set. <a href="https://github.com/vim/vim/issues/13097">vim/vim#13097</a></li>
+  <li>A new small Vim script library that may expand in the future. See <a href="https://macvim.org/docs/redirect.html?tag=vim-script-library"><code>:h vim-script-library</code></a>.</li>
+  <li>Vim9 script improvements.</li>
   <li>Miscellaneous security fixes.</li>
 </ul>
 
-<h1 id="security-fixes">Security Fixes</h1>
+<h2 id="misc">Misc</h2>
+
+<p>New settings:</p>
 
 <ul>
-    <li>Fixed insecure usages of interprocess communication in MacVim (<a href="https://github.com/macvim-dev/macvim/security/advisories/GHSA-9jgj-jfwg-99fv">CVE-2023-41036</a>)</li>
+  <li>“Scroll in one direction only” (Input). Prevents accidental horizontal scrolling when scrolling vertically using a trackpad. <a href="https://github.com/macvim-dev/macvim/issues/1442">#1442</a></li>
+</ul>
+
+<p>Clean mode (<a href="https://github.com/macvim-dev/macvim/issues/1453">#1453</a>):</p>
+
+<ul>
+  <li>Vim can be opened in clean mode (does not use .vimrc or plugins) via the new menu item “New Clean Window”. The new menu isn’t localized in most languages. Please comment on the issue if you would like to help in localization.</li>
+  <li>MacVim can be launched without loading user defaults for a clean experience via a command-line flag. See <a href="https://macvim.org/docs/redirect.html?tag=macvim-settings"><code>:h macvim-settings</code></a>.</li>
+</ul>
+
+<h1 id="general">General</h1>
+
+<ul>
+  <li>Sparkle (updater for MacVim) is now updated to 2.5.2. The updater can now show multiple release notes when updating MacVim across multiple versions. <a href="https://github.com/macvim-dev/macvim/issues/1446">#1446</a> <a href="https://github.com/macvim-dev/macvim/issues/1469">#1469</a></li>
+  <li>Binary release is now built with more optimized compiler settings. Vim will now run slightly faster than before. <a href="https://github.com/macvim-dev/macvim/issues/1444">#1444</a></li>
+  <li>macOS 14 Sonoma:
+    <ul>
+      <li>Binary release is now built using the macOS 14 SDK (<a href="https://github.com/macvim-dev/macvim/issues/1434">#1434</a>, <a href="https://github.com/macvim-dev/macvim/issues/1440">#1440</a>, <a href="https://github.com/macvim-dev/macvim/issues/1448">#1448</a>). One small change is that very tall characters (e.g. “นี้”) on the first line will now draw into the title bar instead of being clipped.</li>
+      <li>Fixed printing with <code>:hardcopy</code> under macOS 14. <em>NOTE:</em> Starting from macOS 14, you have to install <code>ps2pdf</code> (available from Ghostscript) yourself before you can print. See <a href="https://github.com/macvim-dev/macvim/issues/1464">#1464</a></li>
+    </ul>
+  </li>
+  <li>Python 2 support: The default location for locating the Python 2 lib in the binary release is now under /Library/Frameworks rather than /usr/local. Note: Python 2 has long been obsolete. If you rely on Python 2 plugins, consider this a warning as it’s only supported as long as it’s feasible and could be removed in the future. <a href="https://github.com/macvim-dev/macvim/issues/1434">#1434</a></li>
 </ul>
 
 <h1 id="fixes">Fixes</h1>
 
 <ul>
-  <li>Fixed MacVim to correctly set up the runtime folder in the app bundle.  As a corollary, <code>xxd</code> is now bundled with MacVim like most other Vim distributions, and MacVim.app now provides man page for the CLI vim commands if the user wants to associate man pages with the <code>mvim</code> comamnd (see <a href="https://macvim.org/docs/redirect.html?tag=macvim-PATH"><code>:h macvim-PATH</code></a>). <a href="https://github.com/macvim-dev/macvim/issues/1430">#1430</a></li>
-  <li>Fixed Vim occasionally crashing and/or hung when autocmd calls <code>serverlist()</code> on exit. <a href="https://github.com/macvim-dev/macvim/issues/1427">#1427</a></li>
-</ul>
-
-<h1 id="scripting">Scripting</h1>
-
-<ul>
-  <li>Scripting languages versions: Python now supports 3.9 or above.</li>
+  <li>Fixed non-native full screen mode when using a MacBook with a notch and having the “Show menu bar in non-native mode” option set. Changing the screen resolution while using non-native full screen also works properly now. <a href="https://github.com/macvim-dev/macvim/issues/1450">#1450</a></li>
+  <li>Fixed Help menu’s documentation search not working with tags with special characters like <code>&lt;Down&gt;</code>. <a href="https://github.com/macvim-dev/macvim/issues/1455">#1455</a></li>
 </ul>
 
 <h1 id="compatibility">Compatibility</h1>
@@ -79,84 +109,119 @@ h1 { padding-bottom: .3em; border-bottom: 1px solid gray; }
 <p><br /><small><a href="https://github.com/macvim-dev/macvim/releases/latest">Latest release notes &gt;</a></small></p>
       ]]></description>
       <sparkle:fullReleaseNotesLink>https://github.com/macvim-dev/macvim/releases</sparkle:fullReleaseNotesLink>
-      <pubDate>Tue, 12 Sep 2023 10:00:00 +0000</pubDate>
+      <pubDate>Thu, 04 Jan 2024 08:00:00 +0000</pubDate>
       <sparkle:minimumSystemVersion>10.13</sparkle:minimumSystemVersion>
-      <sparkle:version>178</sparkle:version>
-      <sparkle:shortVersionString>9.0.1897</sparkle:shortVersionString>
+      <sparkle:version>179</sparkle:version>
+      <sparkle:shortVersionString>9.1.0</sparkle:shortVersionString>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/release-178/MacVim.dmg"
-        sparkle:edSignature="7nF9mfK07y4qT+Pselfafc4tCmIkUqfJ6VpzKNQLzFbG6XIlaZUOMvAHNrif1/VFsmNrTjyQnw000qW1JwWlAw==" length="20500004"
+        url="https://github.com/macvim-dev/macvim/releases/download/release-179/MacVim.dmg"
+        sparkle:edSignature="GprhyxTjSxeTzp41sNPEaD5BbbG4aNLCi69Z8JerLOGs2fOUBaMEtDZCmO2htJcqUQK8c6Ueh1LkGfhpfxWvDg==" length="21426552"
         />
       <sparkle:deltas>
         <enclosure type="application/octet-stream"
-          url="https://github.com/macvim-dev/macvim/releases/download/release-178/177_to_178.delta"
+          url="https://github.com/macvim-dev/macvim/releases/download/release-179/177_to_179.delta"
           sparkle:deltaFrom="177"
-          sparkle:edSignature="yj+JMio861rA+l7tM4PRDExi1vC+j3c+vqgyURsgjGrMIWPx38HqGWxchkl4gtNZT9WwQ6VF08BcxFwMjLEJBQ==" length="1419422"
+          sparkle:edSignature="lJWEGgVIGwAWas4r4xpGhQylK+o7qoW+nWTU1/sUM6oNZJ/yELaNd3vy0m+M9Yx8I6cveT69DXEyKRpsarNfDA==" length="5374458"
           />
         <enclosure type="application/octet-stream"
-          url="https://github.com/macvim-dev/macvim/releases/download/release-178/176_to_178.delta"
-          sparkle:deltaFrom="176"
-          sparkle:edSignature="9+tOwUlAmHTHQdiY+F1LlK/uDF3AZE8Jywq2ziGTC6EmVTl9Z4NMmV2S0hjRK1iNFIEZAwDOwKkQGr3gRKTSAw==" length="2344046"
+          url="https://github.com/macvim-dev/macvim/releases/download/release-179/178_to_179.delta"
+          sparkle:deltaFrom="178"
+          sparkle:edSignature="WdS4k0N6LACFBFOB03BUyUZgjBctfHk6FTHGwe79JxQmKRYYercrxlkBFOlfJVevVMTvCQv+g5s6/N2RLG/eCQ==" length="4972710"
+          />
+        <enclosure type="application/octet-stream"
+          url="https://github.com/macvim-dev/macvim/releases/download/release-179/178.1_to_179.delta"
+          sparkle:deltaFrom="178.1"
+          sparkle:edSignature="tFStxP8fJGjKDoMV/g+d44EcyjEER6SMlGVJjxBHFaBwXDHF6cGwCUAyvp0VUemKN2srdZJme5mUg6rOyovwCw==" length="1435850"
           />
       </sparkle:deltas>
 
     </item>
 
     <item>
-      <title>MacVim release-178</title>
+      <title>MacVim release-179</title>
       <description><![CDATA[
 <style>
 :root { supported-color-schemes: light dark; color-scheme: light dark; }
 h1 { padding-bottom: .3em; border-bottom: 1px solid gray; }
 </style>
 
-<p>Updated to Vim 9.0.1897</p>
+<p>Updated to Vim 9.1.0</p>
 
-<h1 id="special-notes">Special Notes</h1>
+<p>Happy New Year! See <a href="https://github.com/macvim-dev/macvim/discussions/1472">#1472</a> for a retrospective of 2023 and future roadmap.</p>
 
-<p>As some of you may have read, Bram Moolenaar, the creator of Vim, has <a href="https://groups.google.com/g/vim_announce/c/tWahca9zkt4">passed away</a> recently. He has worked tirelessly on Vim for more than 30 years and this release is dedicated to him. If you would like, you could pay your respects at <a href="https://github.com/vim/vim/discussions/12737">this discussion thread</a>.</p>
-
-<p>The Vim project has transitioned to new maintainers, and MacVim will continue to be supported as long as Vim is around.</p>
+<p>Also, Vim 9.1 is now released! See <a href="https://www.vim.org/vim-9.1-released.php">announcement</a>.</p>
 
 <h1 id="features">Features</h1>
 
-<h2 id="more-flexible-python-integration">More flexible Python integration</h2>
+<h2 id="system-monospace-font-sf-mono">System monospace font (SF Mono)</h2>
 
-<p>MacVim now allows you to use Python runtime (via <code>pythonthreedll</code>, used for Python plugins) of any version at or above 3.9. Previously you had to use the exact same version that was used to build MacVim (Python 3.11). The Python detection logic is also updated to always just find the latest version of Homebrew Python instead of a fixed one, and it will also now locate the default macOS / Xcode Python provided by the Xcode Command Line Tools if that is the only Python available. This should hopefully make configuring Python for MacVim a lot more seamless.  See <a href="https://macvim.org/docs/redirect.html?tag=python3-stable-abi"><code>:h python3-stable-abi</code></a>. Vim <a href="https://github.com/vim/vim/commit/c13b3d1350b60b94fe87f0761ea31c0e7fb6ebf3">v9.0.1776</a> / <a href="https://github.com/macvim-dev/macvim/issues/1428">#1428</a>.</p>
+<p>MacVim’s <code>guifont</code> option now supports a new <code>-monospace-</code> value, which instructs it to use the system monospace font, which is SF Mono in recent macOS versions. As mentioned below (New Vim features), you can now use tab-completion to see the available values in cmdline. See <a href="https://macvim.org/docs/redirect.html?tag=macvim-guifont"><code>:h macvim-guifont</code></a> for more details on how to use it (including using different font weights). <a href="https://github.com/macvim-dev/macvim/issues/1463">#1463</a></p>
+
+<p>Note: I’m contemplating changing the MacVim default value for <code>guifont</code> to be <code>-monospace-</code> in the future so MacVim will always use the native monospace font instead of being hard-coded to Menlo. This makes it more consistent with Apple Terminal and Xcode. Feel free to leave a comment on <a href="https://github.com/macvim-dev/macvim/issues/1277">#1277</a> if you have opinions on this.</p>
+
+<p><img width="310" alt="Menlo (default) vs SF Mono" src="https://github.com/macvim-dev/macvim/assets/1217449/56e4a7b7-9f9d-4cfa-9e6a-bb4baffc6d30" /></p>
 
 <h2 id="new-vim-features">New Vim features</h2>
 
 <ul>
-  <li>New built-in support for <a href="https://editorconfig.org/">EditorConfig</a> via an optional package. Use <code>packadd editorconfig</code> to activate it. See <a href="https://github.com/vim/vim/issues/12902">vim/vim#12902</a>.</li>
-  <li><code>g&lt;End&gt;</code> now goes to the first non-blank char. <a href="https://github.com/vim/vim/commit/b5f6fe9ca2661d06bc0be839447ce1995450b9de">v9.0.1753</a></li>
-  <li>API changes
+  <li>Command-line tab completion improvements and bug fixes (see <a href="https://macvim.org/docs/redirect.html?tag=cmdline-completion"><code>:h cmdline-completion</code></a> and <a href="https://macvim.org/docs/redirect.html?tag=complete-set-option"><code>:h complete-set-option</code></a>)
     <ul>
-      <li><code>undotree()</code> now takes a bufnr <a href="https://github.com/vim/vim/commit/5fee11114975b7405b7ccd3ee8758e54bf559760">v9.0.1686</a></li>
-      <li><code>printf()</code> now takes positional arguments <a href="https://github.com/vim/vim/commit/0c6181fec4c362eb9682d5af583341eb20cb1af5">v9.0.1704</a></li>
-      <li><code>virtcol()</code> now takes winid <a href="https://github.com/vim/vim/commit/825cf813fa0fddf085fcbd3194781e875320ff63">v9.0.1728</a></li>
-      <li>quickfix items can now have user data <a href="https://github.com/vim/vim/commit/ca6ac99077d2e6d020a34267aa5e0fbc4d23dc38">v9.0.1688</a></li>
+      <li>Most string option values can now be completed. <a href="https://github.com/vim/vim/commit/900894b09a95398dfc75599e9f0aa2ea25723384">v9.0.1958</a></li>
+      <li>MacVim options (guifont, fuoptions) also support tab completion. <a href="https://github.com/macvim-dev/macvim/issues/1436">#1436</a></li>
+      <li>++opt (e.g. <code>:e ++</code>) and <code>:terminal ++</code> completion work as well. <a href="https://github.com/vim/vim/commit/989426be6e9ae23d2413943890206cbe15d9df38">v9.0.2025</a></li>
+      <li><img width="497" alt="listchars" src="https://github.com/macvim-dev/macvim/assets/1217449/27a17e85-30ed-43d9-b67b-d15ecf116042" /></li>
     </ul>
   </li>
+  <li>New options:
+    <ul>
+      <li><code>set jumpoptions=stack</code>. Ported from Neovim. <a href="https://github.com/vim/vim/commit/87018255e3ad0f4dfa03e20318836d24af721caf">v9.0.1921</a></li>
+    </ul>
+  </li>
+  <li>API changes
+    <ul>
+      <li><code>getmousepos()</code> returns a new “coladd” for tab characters. <a href="https://github.com/vim/vim/commit/f5a94d5165bb9e390797da50a1fa7a87df3fbee4">v9.0.2032</a></li>
+    </ul>
+  </li>
+  <li><code>:Man</code> now works properly when <code>gdefault</code> is set. <a href="https://github.com/vim/vim/issues/13097">vim/vim#13097</a></li>
+  <li>A new small Vim script library that may expand in the future. See <a href="https://macvim.org/docs/redirect.html?tag=vim-script-library"><code>:h vim-script-library</code></a>.</li>
+  <li>Vim9 script improvements.</li>
   <li>Miscellaneous security fixes.</li>
 </ul>
 
-<h1 id="security-fixes">Security Fixes</h1>
+<h2 id="misc">Misc</h2>
+
+<p>New settings:</p>
 
 <ul>
-    <li>Fixed insecure usages of interprocess communication in MacVim (<a href="https://github.com/macvim-dev/macvim/security/advisories/GHSA-9jgj-jfwg-99fv">CVE-2023-41036</a>)</li>
+  <li>“Scroll in one direction only” (Input). Prevents accidental horizontal scrolling when scrolling vertically using a trackpad. <a href="https://github.com/macvim-dev/macvim/issues/1442">#1442</a></li>
+</ul>
+
+<p>Clean mode (<a href="https://github.com/macvim-dev/macvim/issues/1453">#1453</a>):</p>
+
+<ul>
+  <li>Vim can be opened in clean mode (does not use .vimrc or plugins) via the new menu item “New Clean Window”. The new menu isn’t localized in most languages. Please comment on the issue if you would like to help in localization.</li>
+  <li>MacVim can be launched without loading user defaults for a clean experience via a command-line flag. See <a href="https://macvim.org/docs/redirect.html?tag=macvim-settings"><code>:h macvim-settings</code></a>.</li>
+</ul>
+
+<h1 id="general">General</h1>
+
+<ul>
+  <li>Sparkle (updater for MacVim) is now updated to 2.5.2. The updater can now show multiple release notes when updating MacVim across multiple versions. <a href="https://github.com/macvim-dev/macvim/issues/1446">#1446</a> <a href="https://github.com/macvim-dev/macvim/issues/1469">#1469</a></li>
+  <li>Binary release is now built with more optimized compiler settings. Vim will now run slightly faster than before. <a href="https://github.com/macvim-dev/macvim/issues/1444">#1444</a></li>
+  <li>macOS 14 Sonoma:
+    <ul>
+      <li>Binary release is now built using the macOS 14 SDK (<a href="https://github.com/macvim-dev/macvim/issues/1434">#1434</a>, <a href="https://github.com/macvim-dev/macvim/issues/1440">#1440</a>, <a href="https://github.com/macvim-dev/macvim/issues/1448">#1448</a>). One small change is that very tall characters (e.g. “นี้”) on the first line will now draw into the title bar instead of being clipped.</li>
+      <li>Fixed printing with <code>:hardcopy</code> under macOS 14. <em>NOTE:</em> Starting from macOS 14, you have to install <code>ps2pdf</code> (available from Ghostscript) yourself before you can print. See <a href="https://github.com/macvim-dev/macvim/issues/1464">#1464</a></li>
+    </ul>
+  </li>
+  <li>Python 2 support: The default location for locating the Python 2 lib in the binary release is now under /Library/Frameworks rather than /usr/local. Note: Python 2 has long been obsolete. If you rely on Python 2 plugins, consider this a warning as it’s only supported as long as it’s feasible and could be removed in the future. <a href="https://github.com/macvim-dev/macvim/issues/1434">#1434</a></li>
 </ul>
 
 <h1 id="fixes">Fixes</h1>
 
 <ul>
-  <li>Fixed MacVim to correctly set up the runtime folder in the app bundle.  As a corollary, <code>xxd</code> is now bundled with MacVim like most other Vim distributions, and MacVim.app now provides man page for the CLI vim commands if the user wants to associate man pages with the <code>mvim</code> comamnd (see <a href="https://macvim.org/docs/redirect.html?tag=macvim-PATH"><code>:h macvim-PATH</code></a>). <a href="https://github.com/macvim-dev/macvim/issues/1430">#1430</a></li>
-  <li>Fixed Vim occasionally crashing and/or hung when autocmd calls <code>serverlist()</code> on exit. <a href="https://github.com/macvim-dev/macvim/issues/1427">#1427</a></li>
-</ul>
-
-<h1 id="scripting">Scripting</h1>
-
-<ul>
-  <li>Scripting languages versions: Python now supports 3.9 or above.</li>
+  <li>Fixed non-native full screen mode when using a MacBook with a notch and having the “Show menu bar in non-native mode” option set. Changing the screen resolution while using non-native full screen also works properly now. <a href="https://github.com/macvim-dev/macvim/issues/1450">#1450</a></li>
+  <li>Fixed Help menu’s documentation search not working with tags with special characters like <code>&lt;Down&gt;</code>. <a href="https://github.com/macvim-dev/macvim/issues/1455">#1455</a></li>
 </ul>
 
 <h1 id="compatibility">Compatibility</h1>
@@ -176,14 +241,14 @@ h1 { padding-bottom: .3em; border-bottom: 1px solid gray; }
 <p><br /><small><a href="https://github.com/macvim-dev/macvim/releases/latest">Latest release notes &gt;</a></small></p>
       ]]></description>
       <sparkle:fullReleaseNotesLink>https://github.com/macvim-dev/macvim/releases</sparkle:fullReleaseNotesLink>
-      <pubDate>Tue, 12 Sep 2023 10:00:00 +0000</pubDate>
+      <pubDate>Thu, 04 Jan 2024 08:00:00 +0000</pubDate>
       <sparkle:minimumSystemVersion>10.9</sparkle:minimumSystemVersion>
       <sparkle:maximumSystemVersion>10.12.99</sparkle:maximumSystemVersion>
-      <sparkle:version>178</sparkle:version>
-      <sparkle:shortVersionString>9.0.1897</sparkle:shortVersionString>
+      <sparkle:version>179</sparkle:version>
+      <sparkle:shortVersionString>9.1.0</sparkle:shortVersionString>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/release-178/MacVim_10.9.dmg"
-        sparkle:edSignature="J6pAck+OmVue5YvG8jmiVnyvcP1wOxcx5rt/Jy7X/MOF5oU9d4yrWp2MLN7vbHov1Xt6j32hFyNoJTeXEV+yCQ==" length="21596471"
+        url="https://github.com/macvim-dev/macvim/releases/download/release-179/MacVim_10.9.dmg"
+        sparkle:edSignature="b2kbReRMtJXX3x79RBMouk1+rpnXTlsvaT25X7fFMLCZmdhkt0w9Hf6DPfFTBhFq0iUWx6i5Qg4wUeRYY8kwCA==" length="21836785"
         />
     </item>
 
