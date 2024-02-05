@@ -525,8 +525,8 @@ edit(
 #else
 		(int)curwin->w_wcol < mincol - curbuf->b_p_ts
 #endif
-		    && curwin->w_wrow == W_WINROW(curwin)
-				 + curwin->w_height - 1 - get_scrolloff_value()
+		    && curwin->w_wrow ==
+				   curwin->w_height - 1 - get_scrolloff_value()
 		    && (curwin->w_cursor.lnum != curwin->w_topline
 #ifdef FEAT_DIFF
 			|| curwin->w_topfill > 0
@@ -2032,7 +2032,7 @@ insert_special(
      * Only use mod_mask for special keys, to avoid things like <S-Space>,
      * unless 'allow_modmask' is TRUE.
      */
-#ifdef MACOS_X
+#if defined(MACOS_X) || defined(FEAT_GUI_GTK)
     // Command-key never produces a normal key
     if (mod_mask & MOD_MASK_CMD)
 	allow_modmask = TRUE;
@@ -5327,7 +5327,7 @@ ins_ctrl_ey(int tc)
 	    // was typed after a CTRL-V, and pretend 'textwidth'
 	    // wasn't set.  Digits, 'o' and 'x' are special after a
 	    // CTRL-V, don't use it for these.
-	    if (c < 256 && !isalnum(c))
+	    if (c < 256 && !SAFE_isalnum(c))
 		AppendToRedobuff((char_u *)CTRL_V_STR);	// CTRL-V
 	    tw_save = curbuf->b_p_tw;
 	    curbuf->b_p_tw = -1;
@@ -5378,6 +5378,9 @@ do_insert_char_pre(int c)
 
     // Return quickly when there is nothing to do.
     if (!has_insertcharpre())
+	return NULL;
+
+    if (c == Ctrl_RSB)
 	return NULL;
 
     if (has_mbyte)

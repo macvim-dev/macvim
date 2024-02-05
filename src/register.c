@@ -828,9 +828,23 @@ insert_reg(
 	    {
 		if (regname == '-')
 		{
+		    int dir = BACKWARD;
+		    if ((State & REPLACE_FLAG) != 0)
+		    {
+			pos_T curpos;
+			if (u_save_cursor() == FAIL)
+			    return FAIL;
+			del_chars((long)mb_charlen(y_current->y_array[0]), TRUE);
+			curpos = curwin->w_cursor;
+			if (oneright() == FAIL)
+			    // hit end of line, need to put forward (after the current position)
+			    dir = FORWARD;
+			curwin->w_cursor = curpos;
+		    }
+
 		    AppendCharToRedobuff(Ctrl_R);
 		    AppendCharToRedobuff(regname);
-		    do_put(regname, NULL, BACKWARD, 1L, PUT_CURSEND);
+		    do_put(regname, NULL, dir, 1L, PUT_CURSEND);
 		}
 		else
 		    stuffescaped(y_current->y_array[i], literally);
@@ -1889,10 +1903,10 @@ do_put(
 		spaces = y_width + 1;
 		init_chartabsize_arg(&cts, curwin, 0, 0,
 						      y_array[i], y_array[i]);
-		for (j = 0; j < yanklen; j++)
+
+		while (*cts.cts_ptr != NUL)
 		{
-		    spaces -= lbr_chartabsize(&cts);
-		    ++cts.cts_ptr;
+		    spaces -= lbr_chartabsize_adv(&cts);
 		    cts.cts_vcol = 0;
 		}
 		clear_chartabsize_arg(&cts);

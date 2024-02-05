@@ -20,6 +20,7 @@ SRC_ALL =	\
 		ci/config.mk*.sed \
 		ci/if_ver*.vim \
 		ci/setup-xvfb.sh \
+		ci/remove_snap.sh \
 		src/Make_all.mak \
 		src/README.md \
 		src/alloc.c \
@@ -818,6 +819,7 @@ RT_SCRIPTS =	\
 		runtime/plugin/README.txt \
 		runtime/syntax/*.vim \
 		runtime/syntax/README.txt \
+		runtime/syntax/modula2/opt/*.vim \
 		runtime/syntax/shared/*.vim \
 		runtime/syntax/shared/README.txt \
 		runtime/syntax/Makefile \
@@ -871,6 +873,7 @@ RT_DOS_BIN =	\
 		runtime/vimlogo.eps \
 		runtime/vimlogo.gif \
 		runtime/vimlogo.pdf \
+		runtime/vimlogo.svg \
 
 # Amiga runtime (also in the extra archive)
 RT_AMI =	\
@@ -977,6 +980,7 @@ IN_README_DIR = \
 		README_src.txt \
 		README_srcdos.txt \
 		README_unix.txt \
+		README_vimlogo.txt \
 		README_vms.txt \
 		README_w32s.txt \
 		Contents \

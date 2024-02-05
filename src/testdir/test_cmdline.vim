@@ -545,6 +545,13 @@ func Test_getcompletion()
   let l = getcompletion('horse', 'filetype')
   call assert_equal([], l)
 
+  if has('keymap')
+    let l = getcompletion('acc', 'keymap')
+    call assert_true(index(l, 'accents') >= 0)
+    let l = getcompletion('nullkeymap', 'keymap')
+    call assert_equal([], l)
+  endif
+
   let l = getcompletion('z', 'syntax')
   call assert_true(index(l, 'zimbu') >= 0)
   let l = getcompletion('emacs', 'syntax')
@@ -3733,6 +3740,19 @@ func Test_custom_completion_with_glob()
 
   delcommand TestGlobComplete
   delfunc TestGlobComplete
+endfunc
+
+func Test_window_size_stays_same_after_changing_cmdheight()
+  set laststatus=2
+  let expected = winheight(0)
+  function! Function_name() abort
+    call feedkeys(":"..repeat('x', &columns), 'x')
+    let &cmdheight=2
+    let &cmdheight=1
+    redraw
+  endfunction
+  call Function_name()
+  call assert_equal(expected, winheight(0))
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

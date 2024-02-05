@@ -1716,7 +1716,7 @@ retnomove:
 	}
 #if defined(FEAT_CLIPBOARD)
 	// Continue a modeless selection in another window.
-	if (cmdwin_type != 0 && row < curwin->w_winrow)
+	if (cmdwin_type != 0 && row < cmdwin_win->w_winrow)
 	    return IN_OTHER_WIN;
 #endif
 #ifdef FEAT_PROP_POPUP
@@ -1844,7 +1844,7 @@ retnomove:
 # ifdef FEAT_RIGHTLEFT
 			    wp->w_p_rl ? col < wp->w_width - wp->w_p_fdc :
 # endif
-			    col >= wp->w_p_fdc + (cmdwin_type == 0 && wp == curwin ? 0 : 1)
+			    col >= wp->w_p_fdc + (wp != cmdwin_win ? 0 : 1)
 			    )
 #endif
 			&& (flags & MOUSE_MAY_STOP_VIS))))
@@ -1852,7 +1852,7 @@ retnomove:
 	    end_visual_mode_keep_button();
 	    redraw_curbuf_later(UPD_INVERTED);	// delete the inversion
 	}
-	if (cmdwin_type != 0 && wp != curwin)
+	if (cmdwin_type != 0 && wp != cmdwin_win)
 	{
 	    // A click outside the command-line window: Use modeless
 	    // selection if possible.  Allow dragging the status lines.
@@ -1864,7 +1864,7 @@ retnomove:
 #else
 	    row = 0;
 	    col += wp->w_wincol;
-	    wp = curwin;
+	    wp = cmdwin_win;
 #endif
 	}
 #if defined(FEAT_PROP_POPUP) && defined(FEAT_TERMINAL)
@@ -1957,7 +1957,7 @@ retnomove:
 
 #if defined(FEAT_CLIPBOARD)
 	// Continue a modeless selection in another window.
-	if (cmdwin_type != 0 && row < curwin->w_winrow)
+	if (cmdwin_type != 0 && row < cmdwin_win->w_winrow)
 	    return IN_OTHER_WIN;
 #endif
 #ifdef FEAT_PROP_POPUP
@@ -2095,7 +2095,7 @@ retnomove:
 # ifdef FEAT_RIGHTLEFT
 	    curwin->w_p_rl ? col < curwin->w_width - curwin->w_p_fdc :
 # endif
-	    col >= curwin->w_p_fdc + (cmdwin_type == 0 ? 0 : 1)
+	    col >= curwin->w_p_fdc + (cmdwin_win != curwin ? 0 : 1)
        )
 	mouse_char = ' ';
 #endif

@@ -58,6 +58,9 @@
  * 20.06.2022  Permit setting the variable names used by -i by David Gow
  * 31.08.2023  -R never/auto/always prints colored output
  * 06.10.2023  enable -r -b to reverse bit dumps
+ * 12.01.2024  disable auto-conversion for z/OS (MVS)
+ * 17.01.2024  use size_t instead of usigned int for code-generation (-i), #13876
+ * 25.01.2024  revert the previous patch (size_t instead of unsigned int)
  *
  * (c) 1990-1998 by Juergen Weigert (jnweiger@gmail.com)
  *
@@ -96,8 +99,8 @@
 # include <unistd.h>
 #endif
 #include <stdlib.h>
-#include <string.h>	/* for strncmp() */
-#include <ctype.h>	/* for isalnum() */
+#include <string.h>
+#include <ctype.h>
 #include <limits.h>
 #if __MWERKS__ && !defined(BEBOX)
 # include <unix.h>	/* for fdopen() on MAC */
@@ -138,7 +141,7 @@ extern void perror __P((char *));
 # endif
 #endif
 
-char version[] = "xxd 2023-10-25 by Juergen Weigert et al.";
+char version[] = "xxd 2024-01-25 by Juergen Weigert et al.";
 #ifdef WIN32
 char osver[] = " (Win32)";
 #else
@@ -208,7 +211,7 @@ char hexxa[] = "0123456789abcdef0123456789ABCDEF", *hexx = hexxa;
 #define HEX_BITS 3		/* not hex a dump, but bits: 01111001 */
 #define HEX_LITTLEENDIAN 4
 
-#define CONDITIONAL_CAPITALIZE(c) (capitalize ? toupper((int)c) : c)
+#define CONDITIONAL_CAPITALIZE(c) (capitalize ? toupper((unsigned char)(c)) : (c))
 
 #define COLOR_PROLOGUE \
 l[c++] = '\033'; \
@@ -587,7 +590,7 @@ begin_coloring_char (char *l, int *c, int e, int ebcdic)
     }
   else  /* ASCII */
     {
-      #ifdef __MVS__
+      #if defined(__MVS__) && __CHARSET_LIB == 0
       if (e >= 64)
         l[(*c)++] = COLOR_GREEN;
       #else
@@ -905,6 +908,10 @@ main(int argc, char *argv[])
 	}
       rewind(fpo);
     }
+#ifdef __MVS__
+  // Disable auto-conversion on input file descriptors
+  __disableautocvt(fileno(fp));
+#endif
 
   if (revert)
     switch (hextype)
@@ -952,9 +959,9 @@ main(int argc, char *argv[])
 
       if (varname != NULL)
 	{
-	  FPRINTF_OR_DIE((fpo, "unsigned char %s", isdigit((int)varname[0]) ? "__" : ""));
+	  FPRINTF_OR_DIE((fpo, "unsigned char %s", isdigit((unsigned char)varname[0]) ? "__" : ""));
 	  for (e = 0; (c = varname[e]) != 0; e++)
-	    putc_or_die(isalnum(c) ? CONDITIONAL_CAPITALIZE(c) : '_', fpo);
+	    putc_or_die(isalnum((unsigned char)c) ? CONDITIONAL_CAPITALIZE(c) : '_', fpo);
 	  fputs_or_die("[] = {\n", fpo);
 	}
 
@@ -972,9 +979,9 @@ main(int argc, char *argv[])
       if (varname != NULL)
 	{
 	  fputs_or_die("};\n", fpo);
-	  FPRINTF_OR_DIE((fpo, "unsigned int %s", isdigit((int)varname[0]) ? "__" : ""));
+	  FPRINTF_OR_DIE((fpo, "unsigned int %s", isdigit((unsigned char)varname[0]) ? "__" : ""));
 	  for (e = 0; (c = varname[e]) != 0; e++)
-	    putc_or_die(isalnum(c) ? CONDITIONAL_CAPITALIZE(c) : '_', fpo);
+	    putc_or_die(isalnum((unsigned char)c) ? CONDITIONAL_CAPITALIZE(c) : '_', fpo);
 	  FPRINTF_OR_DIE((fpo, "_%s = %d;\n", capitalize ? "LEN" : "len", p));
 	}
 
@@ -1066,7 +1073,7 @@ main(int argc, char *argv[])
 
           COLOR_PROLOGUE
           begin_coloring_char(l,&c,e,ebcdic);
-#ifdef __MVS__
+#if defined(__MVS__) && __CHARSET_LIB == 0
           if (e >= 64)
             l[c++] = e;
           else
@@ -1094,7 +1101,7 @@ main(int argc, char *argv[])
 
           c += addrlen + 3 + p;
           l[c++] =
-#ifdef __MVS__
+#if defined(__MVS__) && __CHARSET_LIB == 0
               (e >= 64)
 #else
               (e > 31 && e < 127)

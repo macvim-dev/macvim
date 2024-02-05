@@ -1042,6 +1042,7 @@ $quote	eval.txt	/*$quote*
 't_AU'	term.txt	/*'t_AU'*
 't_BD'	term.txt	/*'t_BD'*
 't_BE'	term.txt	/*'t_BE'*
+'t_CF'	term.txt	/*'t_CF'*
 't_CS'	term.txt	/*'t_CS'*
 't_CV'	term.txt	/*'t_CV'*
 't_Ce'	term.txt	/*'t_Ce'*
@@ -2899,6 +2900,7 @@ $quote	eval.txt	/*$quote*
 :map-arguments	map.txt	/*:map-arguments*
 :map-buffer	map.txt	/*:map-buffer*
 :map-cmd	map.txt	/*:map-cmd*
+:map-cmd-key	map.txt	/*:map-cmd-key*
 :map-commands	map.txt	/*:map-commands*
 :map-expression	map.txt	/*:map-expression*
 :map-local	map.txt	/*:map-local*
@@ -2911,6 +2913,7 @@ $quote	eval.txt	/*$quote*
 :map-special	map.txt	/*:map-special*
 :map-special-chars	map.txt	/*:map-special-chars*
 :map-special-keys	map.txt	/*:map-special-keys*
+:map-super-keys	map.txt	/*:map-super-keys*
 :map-undo	map.txt	/*:map-undo*
 :map-unique	map.txt	/*:map-unique*
 :map-verbose	map.txt	/*:map-verbose*
@@ -4188,6 +4191,7 @@ E1056	vim9.txt	/*E1056*
 E1057	vim9.txt	/*E1057*
 E1058	vim9.txt	/*E1058*
 E1059	vim9.txt	/*E1059*
+E106	builtin.txt	/*E106*
 E1060	vim9.txt	/*E1060*
 E1061	vim9.txt	/*E1061*
 E1062	eval.txt	/*E1062*
@@ -4589,6 +4593,8 @@ E1508	editing.txt	/*E1508*
 E1509	editing.txt	/*E1509*
 E151	helphelp.txt	/*E151*
 E1510	change.txt	/*E1510*
+E1511	options.txt	/*E1511*
+E1512	options.txt	/*E1512*
 E152	helphelp.txt	/*E152*
 E153	helphelp.txt	/*E153*
 E154	helphelp.txt	/*E154*
@@ -5801,6 +5807,7 @@ TabNew	autocmd.txt	/*TabNew*
 Tcl	if_tcl.txt	/*Tcl*
 TermChanged	autocmd.txt	/*TermChanged*
 TermResponse	autocmd.txt	/*TermResponse*
+TermResponseAll	autocmd.txt	/*TermResponseAll*
 TermdebugStartPost	terminal.txt	/*TermdebugStartPost*
 TermdebugStartPre	terminal.txt	/*TermdebugStartPre*
 TermdebugStopPost	terminal.txt	/*TermdebugStopPost*
@@ -5874,6 +5881,7 @@ WinClosed	autocmd.txt	/*WinClosed*
 WinEnter	autocmd.txt	/*WinEnter*
 WinLeave	autocmd.txt	/*WinLeave*
 WinNew	autocmd.txt	/*WinNew*
+WinNewPre	autocmd.txt	/*WinNewPre*
 WinResized	autocmd.txt	/*WinResized*
 WinResized-event	windows.txt	/*WinResized-event*
 WinScrolled	autocmd.txt	/*WinScrolled*
@@ -6374,6 +6382,8 @@ c_ansi_typedefs	syntax.txt	/*c_ansi_typedefs*
 c_comment_strings	syntax.txt	/*c_comment_strings*
 c_curly_error	syntax.txt	/*c_curly_error*
 c_digraph	cmdline.txt	/*c_digraph*
+c_function_pointers	syntax.txt	/*c_function_pointers*
+c_functions	syntax.txt	/*c_functions*
 c_gnu	syntax.txt	/*c_gnu*
 c_no_ansi	syntax.txt	/*c_no_ansi*
 c_no_bracket_error	syntax.txt	/*c_no_bracket_error*
@@ -6524,6 +6534,7 @@ cino-{	indent.txt	/*cino-{*
 cino-}	indent.txt	/*cino-}*
 cinoptions-values	indent.txt	/*cinoptions-values*
 class	vim9class.txt	/*class*
+class-compile	vim9class.txt	/*class-compile*
 class-method	vim9class.txt	/*class-method*
 clear-undo	undo.txt	/*clear-undo*
 clearmatches()	builtin.txt	/*clearmatches()*
@@ -6848,7 +6859,9 @@ dict-identity	eval.txt	/*dict-identity*
 dict-modification	eval.txt	/*dict-modification*
 did_filetype()	builtin.txt	/*did_filetype()*
 diff	diff.txt	/*diff*
+diff()	builtin.txt	/*diff()*
 diff-diffexpr	diff.txt	/*diff-diffexpr*
+diff-func-examples	diff.txt	/*diff-func-examples*
 diff-mode	diff.txt	/*diff-mode*
 diff-options	diff.txt	/*diff-options*
 diff-original-file	diff.txt	/*diff-original-file*
@@ -7247,6 +7260,7 @@ foldtextresult()	builtin.txt	/*foldtextresult()*
 font-sizes	gui_x11.txt	/*font-sizes*
 fontset	mbyte.txt	/*fontset*
 forced-motion	motion.txt	/*forced-motion*
+foreach()	builtin.txt	/*foreach()*
 foreground()	builtin.txt	/*foreground()*
 fork	os_unix.txt	/*fork*
 form.vim	syntax.txt	/*form.vim*
@@ -7369,6 +7383,7 @@ ft-metapost-intro	ft_mp.txt	/*ft-metapost-intro*
 ft-metapost-mappings	ft_mp.txt	/*ft-metapost-mappings*
 ft-metapost-settings	ft_mp.txt	/*ft-metapost-settings*
 ft-mma-syntax	syntax.txt	/*ft-mma-syntax*
+ft-modula2-syntax	syntax.txt	/*ft-modula2-syntax*
 ft-moo-syntax	syntax.txt	/*ft-moo-syntax*
 ft-msql-syntax	syntax.txt	/*ft-msql-syntax*
 ft-n1ql-syntax	syntax.txt	/*ft-n1ql-syntax*
@@ -7636,7 +7651,6 @@ g:netrw_localmkdir	pi_netrw.txt	/*g:netrw_localmkdir*
 g:netrw_localmkdiropt	pi_netrw.txt	/*g:netrw_localmkdiropt*
 g:netrw_localmovecmd	pi_netrw.txt	/*g:netrw_localmovecmd*
 g:netrw_localmovecmdopt	pi_netrw.txt	/*g:netrw_localmovecmdopt*
-g:netrw_localrmdir	pi_netrw.txt	/*g:netrw_localrmdir*
 g:netrw_maxfilenamelen	pi_netrw.txt	/*g:netrw_maxfilenamelen*
 g:netrw_menu	pi_netrw.txt	/*g:netrw_menu*
 g:netrw_mkdir_cmd	pi_netrw.txt	/*g:netrw_mkdir_cmd*
@@ -7961,6 +7975,7 @@ gui-w32-start	gui_w32.txt	/*gui-w32-start*
 gui-w32-various	gui_w32.txt	/*gui-w32-various*
 gui-w32-windowid	gui_w32.txt	/*gui-w32-windowid*
 gui-w32s	os_win32.txt	/*gui-w32s*
+gui-wayland	gui_x11.txt	/*gui-wayland*
 gui-win32-maximized	gui_w32.txt	/*gui-win32-maximized*
 gui-x11	gui_x11.txt	/*gui-x11*
 gui-x11-athena	gui_x11.txt	/*gui-x11-athena*
@@ -8049,6 +8064,7 @@ highlight-clear	syntax.txt	/*highlight-clear*
 highlight-cterm	syntax.txt	/*highlight-cterm*
 highlight-ctermbg	syntax.txt	/*highlight-ctermbg*
 highlight-ctermfg	syntax.txt	/*highlight-ctermfg*
+highlight-ctermfont	syntax.txt	/*highlight-ctermfont*
 highlight-ctermul	syntax.txt	/*highlight-ctermul*
 highlight-default	syntax.txt	/*highlight-default*
 highlight-font	syntax.txt	/*highlight-font*
@@ -8755,6 +8771,7 @@ match-parens	tips.txt	/*match-parens*
 matchadd()	builtin.txt	/*matchadd()*
 matchaddpos()	builtin.txt	/*matchaddpos()*
 matcharg()	builtin.txt	/*matcharg()*
+matchbufline()	builtin.txt	/*matchbufline()*
 matchdelete()	builtin.txt	/*matchdelete()*
 matchend()	builtin.txt	/*matchend()*
 matchfuzzy()	builtin.txt	/*matchfuzzy()*
@@ -8763,6 +8780,7 @@ matchit-install	usr_05.txt	/*matchit-install*
 matchlist()	builtin.txt	/*matchlist()*
 matchparen	pi_paren.txt	/*matchparen*
 matchstr()	builtin.txt	/*matchstr()*
+matchstrlist()	builtin.txt	/*matchstrlist()*
 matchstrpos()	builtin.txt	/*matchstrpos()*
 matlab-indent	indent.txt	/*matlab-indent*
 matlab-indenting	indent.txt	/*matlab-indenting*
@@ -8818,6 +8836,14 @@ modeline	options.txt	/*modeline*
 modeline-local	options.txt	/*modeline-local*
 modeline-version	options.txt	/*modeline-version*
 modifyOtherKeys	map.txt	/*modifyOtherKeys*
+modula2.vim	syntax.txt	/*modula2.vim*
+modula2_iso_allow_lowline	syntax.txt	/*modula2_iso_allow_lowline*
+modula2_iso_disallow_octals	syntax.txt	/*modula2_iso_disallow_octals*
+modula2_iso_disallow_synonyms	syntax.txt	/*modula2_iso_disallow_synonyms*
+modula2_pim_allow_lowline	syntax.txt	/*modula2_pim_allow_lowline*
+modula2_pim_disallow_octals	syntax.txt	/*modula2_pim_disallow_octals*
+modula2_pim_disallow_synonyms	syntax.txt	/*modula2_pim_disallow_synonyms*
+modula2_r10_allow_lowline	syntax.txt	/*modula2_r10_allow_lowline*
 moo.vim	syntax.txt	/*moo.vim*
 more-compatible	version5.txt	/*more-compatible*
 more-prompt	message.txt	/*more-prompt*
@@ -10301,6 +10327,7 @@ t_AL	term.txt	/*t_AL*
 t_AU	term.txt	/*t_AU*
 t_BD	term.txt	/*t_BD*
 t_BE	term.txt	/*t_BE*
+t_CF	term.txt	/*t_CF*
 t_CS	term.txt	/*t_CS*
 t_CTRL-W_.	terminal.txt	/*t_CTRL-W_.*
 t_CTRL-W_:	terminal.txt	/*t_CTRL-W_:*
@@ -11338,6 +11365,7 @@ vt100-cursor-keys	term.txt	/*vt100-cursor-keys*
 vt100-function-keys	term.txt	/*vt100-function-keys*
 w	motion.txt	/*w*
 w32-clientserver	remote.txt	/*w32-clientserver*
+w32-experimental-keycode-trans-strategy	gui_w32.txt	/*w32-experimental-keycode-trans-strategy*
 w32-xpm-support	gui_w32.txt	/*w32-xpm-support*
 w:	eval.txt	/*w:*
 w:current_syntax	syntax.txt	/*w:current_syntax*

@@ -658,7 +658,7 @@ serverGetVimNames(Display *dpy)
     for (p = regProp; (long_u)(p - regProp) < numItems; p++)
     {
 	entry = p;
-	while (*p != 0 && !isspace(*p))
+	while (*p != 0 && !SAFE_isspace(*p))
 	    p++;
 	if (*p != 0)
 	{
@@ -929,7 +929,7 @@ LookupName(
     for (p = regProp; (long_u)(p - regProp) < numItems; )
     {
 	entry = p;
-	while (*p != 0 && !isspace(*p))
+	while (*p != 0 && !SAFE_isspace(*p))
 	    p++;
 	if (*p != 0 && STRICMP(name, p + 1) == 0)
 	{
@@ -946,7 +946,7 @@ LookupName(
 	for (p = regProp; (long_u)(p - regProp) < numItems; )
 	{
 	    entry = p;
-	    while (*p != 0 && !isspace(*p))
+	    while (*p != 0 && !SAFE_isspace(*p))
 		p++;
 	    if (*p != 0 && IsSerialName(p + 1)
 		    && STRNICMP(name, p + 1, STRLEN(name)) == 0)

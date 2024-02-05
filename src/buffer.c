@@ -4030,7 +4030,7 @@ maketitle(void)
 					buf + off, SPACE_FOR_DIR - off, TRUE);
 #ifdef BACKSLASH_IN_FILENAME
 		// avoid "c:/name" to be reduced to "c"
-		if (isalpha(buf[off]) && buf[off + 1] == ':')
+		if (SAFE_isalpha(buf[off]) && buf[off + 1] == ':')
 		    off += 2;
 #endif
 		// remove the file name
@@ -5681,7 +5681,7 @@ chk_modeline(
 			&& (s[0] != 'V'
 				  || STRNCMP(skipwhite(e + 1), "set", 3) == 0)
 			&& (s[3] == ':'
-			    || (VIM_VERSION_100 >= vers && isdigit(s[3]))
+			    || (VIM_VERSION_100 >= vers && SAFE_isdigit(s[3]))
 			    || (VIM_VERSION_100 < vers && s[3] == '<')
 			    || (VIM_VERSION_100 > vers && s[3] == '>')
 			    || (VIM_VERSION_100 == vers && s[3] == '=')))
@@ -5946,6 +5946,8 @@ buf_spname(buf_T *buf)
 #endif
 	if (buf->b_fname != NULL)
 	    return buf->b_fname;
+	if (buf == cmdwin_buf)
+	    return (char_u *)_("[Command Line]");
 #ifdef FEAT_JOB_CHANNEL
 	if (bt_prompt(buf))
 	    return (char_u *)_("[Prompt]");
