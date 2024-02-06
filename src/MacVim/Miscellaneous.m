@@ -18,6 +18,7 @@ NSString *MMTabMinWidthKey                = @"MMTabMinWidth";
 NSString *MMTabMaxWidthKey                = @"MMTabMaxWidth";
 NSString *MMTabOptimumWidthKey            = @"MMTabOptimumWidth";
 NSString *MMShowAddTabButtonKey           = @"MMShowAddTabButton";
+NSString *MMShowTabScrollButtonsKey       = @"MMShowTabScrollButtons";
 NSString *MMTextInsetLeftKey              = @"MMTextInsetLeft";
 NSString *MMTextInsetRightKey             = @"MMTextInsetRight";
 NSString *MMTextInsetTopKey               = @"MMTextInsetTop";
@@ -232,23 +233,6 @@ NSString *MMScrollOneDirectionOnlyKey     = @"MMScrollOneDirectionOnly";
 
 
 
-@implementation NSTabView (MMExtras)
-
-- (void)removeAllTabViewItems
-{
-    NSArray *existingItems = [self tabViewItems];
-    NSEnumerator *e = [existingItems objectEnumerator];
-    NSTabViewItem *item;
-    while ((item = [e nextObject])) {
-        [self removeTabViewItem:item];
-    }
-}
-
-@end // NSTabView (MMExtras)
-
-
-
-
 @implementation NSNumber (MMExtras)
 
 // HACK to allow font size to be changed via menu (bound to Cmd+/Cmd-)
@@ -318,22 +302,6 @@ normalizeFilenames(NSArray *filenames)
 
 
 
-
-    BOOL
-shouldUseYosemiteTabBarStyle(void)
-{ 
-    return floor(NSAppKitVersionNumber) >= NSAppKitVersionNumber10_10;
-}
-    BOOL
-shouldUseMojaveTabBarStyle(void)
-{
-#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_14
-    if (@available(macos 10.14, *)) {
-        return true;
-    }
-#endif
-    return false;
-}
 
 int
 getCurrentAppearance(NSAppearance *appearance){
