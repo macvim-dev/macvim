@@ -1,11 +1,15 @@
 " netrw.vim: Handles file transfer and remote directory listing across
 "            AUTOLOAD SECTION
-" Date:		May 03, 2023
+" Maintainer: This runtime file is looking for a new maintainer.
+" Date:		  May 03, 2023
 " Version:	173a
 " Last Change:
 " 	2023 Nov 21 by Vim Project: ignore wildignore when expanding $COMSPEC	(v173a)
 " 	2023 Nov 22 by Vim Project: fix handling of very long filename on longlist style	(v173a)
-" Maintainer:	Charles E Campbell <NcampObell@SdrPchip.AorgM-NOSPAM>
+"   2024 Feb 19 by Vim Project: (announce adoption)
+"   2024 Feb 29 by Vim Project: handle symlinks in tree mode correctly
+"   2024 Apr 03 by Vim Project: detect filetypes for remote edited files
+" Former Maintainer:	Charles E Campbell
 " GetLatestVimScripts: 1075 1 :AutoInstall: netrw.vim
 " Copyright:    Copyright (C) 2016 Charles E. Campbell {{{1
 "               Permission is hereby granted to use and distribute this code,
@@ -1800,7 +1804,9 @@ fun! s:NetrwOptionsRestore(vt)
 "  call Decho("settings buf#".bufnr("%")."<".bufname("%").">: ".((&l:ma == 0)? "no" : "")."ma ".((&l:mod == 0)? "no" : "")."mod ".((&l:bl == 0)? "no" : "")."bl ".((&l:ro == 0)? "no" : "")."ro fo=".&l:fo." a:vt=".a:vt,'~'.expand("<slnum>"))
   if !exists("{a:vt}netrw_optionsave")
 "   call Decho("case ".a:vt."netrw_optionsave : doesn't exist",'~'.expand("<slnum>"))
-   if filereadable(expand("%"))
+
+   " filereadable() returns zero for remote files (e.g. scp://localhost//etc/fstab)
+   if filereadable(expand("%")) || expand("%") =~# '^\w\+://\f\+/'
 "    call Decho("..doing filetype detect anyway")
     filetype detect
 "    call Decho("..settings buf#".bufnr("%")."<".bufname("%").">: ".((&l:ma == 0)? "no" : "")."ma ".((&l:mod == 0)? "no" : "")."mod ".((&l:bl == 0)? "no" : "")."bl ".((&l:ro == 0)? "no" : "")."ro fo=".&l:fo." a:vt=".a:vt,'~'.expand("<slnum>"))
@@ -2724,7 +2730,7 @@ fun! netrw#NetWrite(...) range
      let url= g:netrw_choice
      call s:NetrwExe(s:netrw_silentxfer."!".g:netrw_http_put_cmd." ".s:ShellEscape(tmpfile,1)." ".s:ShellEscape(url,1) )
     elseif !exists("g:netrw_quiet")
-     call netrw#ErrorMsg(s:ERROR,"can't write to http using <".g:netrw_http_put_cmd.">".",16)
+     call netrw#ErrorMsg(s:ERROR,"can't write to http using <".g:netrw_http_put_cmd.">",16)
     endif
 
    ".........................................
@@ -9474,7 +9480,7 @@ fun! s:NetrwTreeDir(islocal)
 "    call Decho("treedir<".treedir.">",'~'.expand("<slnum>"))
    elseif curline =~ '@$'
 "    call Decho("handle symbolic link from current line",'~'.expand("<slnum>"))
-    let treedir= resolve(substitute(substitute(getline('.'),'@.*$','','e'),'^|*\s*','','e'))
+    let potentialdir= resolve(substitute(substitute(getline('.'),'@.*$','','e'),'^|*\s*','','e'))
 "    call Decho("treedir<".treedir.">",'~'.expand("<slnum>"))
    else
 "    call Decho("do not extract tree subdirectory from current line and set treedir to empty",'~'.expand("<slnum>"))
@@ -9499,7 +9505,6 @@ fun! s:NetrwTreeDir(islocal)
 "  call Decho("COMBAK#23 : mod=".&mod." win#".winnr())
 
 "   call Decho("islocal=".a:islocal." curline<".curline.">",'~'.expand("<slnum>"))
-   let potentialdir= s:NetrwFile(substitute(curline,'^'.s:treedepthstring.'\+ \(.*\)@$','\1',''))
 "   call Decho("potentialdir<".potentialdir."> isdir=".isdirectory(potentialdir),'~'.expand("<slnum>"))
 "  call Decho("COMBAK#24 : mod=".&mod." win#".winnr())
 
@@ -9512,8 +9517,15 @@ fun! s:NetrwTreeDir(islocal)
 " "   call Decho("newdir <".newdir.">",'~'.expand("<slnum>"))
 "   else
 "    call Decho("apply NetrwTreePath to treetop<".w:netrw_treetop.">",'~'.expand("<slnum>"))
-    let treedir = s:NetrwTreePath(w:netrw_treetop)
-"   endif
+    if a:islocal && curline =~ '@$'
+      if isdirectory(s:NetrwFile(potentialdir))
+        let treedir = w:netrw_treetop.'/'.potentialdir.'/'
+        let w:netrw_treetop = treedir
+      endif
+    else
+      let potentialdir= s:NetrwFile(substitute(curline,'^'.s:treedepthstring.'\+ \(.*\)@$','\1',''))
+      let treedir = s:NetrwTreePath(w:netrw_treetop)
+    endif
   endif
 "  call Decho("COMBAK#25 : mod=".&mod." win#".winnr())
 

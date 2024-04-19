@@ -1400,6 +1400,8 @@ theend:
 #ifdef FEAT_SESSION
     vim_free(viewFile);
 #endif
+
+    apply_autocmds(EVENT_SESSIONWRITEPOST, NULL, NULL, FALSE, curbuf);
 }
 
 #if (defined(FEAT_VIMINFO) || defined(FEAT_SESSION)) || defined(PROTO)

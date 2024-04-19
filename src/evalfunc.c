@@ -63,14 +63,15 @@ static void f_get(typval_T *argvars, typval_T *rettv);
 static void f_getchangelist(typval_T *argvars, typval_T *rettv);
 static void f_getcharpos(typval_T *argvars, typval_T *rettv);
 static void f_getcharsearch(typval_T *argvars, typval_T *rettv);
+static void f_getcursorcharpos(typval_T *argvars, typval_T *rettv);
 static void f_getenv(typval_T *argvars, typval_T *rettv);
 static void f_getfontname(typval_T *argvars, typval_T *rettv);
 static void f_getjumplist(typval_T *argvars, typval_T *rettv);
 static void f_getpid(typval_T *argvars, typval_T *rettv);
-static void f_getcursorcharpos(typval_T *argvars, typval_T *rettv);
 static void f_getpos(typval_T *argvars, typval_T *rettv);
 static void f_getreg(typval_T *argvars, typval_T *rettv);
 static void f_getreginfo(typval_T *argvars, typval_T *rettv);
+static void f_getregion(typval_T *argvars, typval_T *rettv);
 static void f_getregtype(typval_T *argvars, typval_T *rettv);
 static void f_gettagstack(typval_T *argvars, typval_T *rettv);
 static void f_gettext(typval_T *argvars, typval_T *rettv);
@@ -984,6 +985,7 @@ arg_len1(type_T *type, type_T *decl_type UNUSED, argcontext_T *context)
 	    || type->tt_type == VAR_BLOB
 	    || type->tt_type == VAR_LIST
 	    || type->tt_type == VAR_DICT
+	    || type->tt_type == VAR_OBJECT
 	    || type_any_or_unknown(type))
 	return OK;
 
@@ -1149,6 +1151,7 @@ static argcheck_T arg3_buffer_string_dict[] = {arg_buffer, arg_string, arg_dict_
 static argcheck_T arg3_dict_number_number[] = {arg_dict_any, arg_number, arg_number};
 static argcheck_T arg3_diff[] = {arg_list_string, arg_list_string, arg_dict_any};
 static argcheck_T arg3_list_string_dict[] = {arg_list_any, arg_string, arg_dict_any};
+static argcheck_T arg3_list_list_dict[] = {arg_list_any, arg_list_any, arg_dict_any};
 static argcheck_T arg3_lnum_number_bool[] = {arg_lnum, arg_number, arg_bool};
 static argcheck_T arg3_number[] = {arg_number, arg_number, arg_number};
 static argcheck_T arg3_number_any_dict[] = {arg_number, arg_any, arg_dict_any};
@@ -1951,7 +1954,7 @@ static funcentry_T global_functions[] =
     {"did_filetype",	0, 0, 0,	    NULL,
 			ret_number_bool,    f_did_filetype},
     {"diff",		2, 3, FEARG_1,	    arg3_diff,
-			ret_list_dict_any,  f_diff},
+			ret_any,  f_diff},
     {"diff_filler",	1, 1, FEARG_1,	    arg1_lnum,
 			ret_number,	    f_diff_filler},
     {"diff_hlID",	2, 2, FEARG_1,	    arg2_lnum_number,
@@ -2130,6 +2133,8 @@ static funcentry_T global_functions[] =
 			ret_getreg,	    f_getreg},
     {"getreginfo",	0, 1, FEARG_1,	    arg1_string,
 			ret_dict_any,	    f_getreginfo},
+    {"getregion",	2, 3, FEARG_1,	    arg3_list_list_dict,
+			ret_list_string,    f_getregion},
     {"getregtype",	0, 1, FEARG_1,	    arg1_string,
 			ret_string,	    f_getregtype},
     {"getscriptinfo",	0, 1, 0,	    arg1_dict_any,
@@ -3635,7 +3640,7 @@ get_col(typval_T *argvars, typval_T *rettv, int charcol)
 	{
 	    // '> can be MAXCOL, get the length of the line then
 	    if (fp->lnum <= curbuf->b_ml.ml_line_count)
-		col = (colnr_T)STRLEN(ml_get(fp->lnum)) + 1;
+		col = ml_get_len(fp->lnum) + 1;
 	    else
 		col = MAXCOL;
 	}
@@ -3918,7 +3923,7 @@ f_deepcopy(typval_T *argvars, typval_T *rettv)
     static void
 f_did_filetype(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
 {
-    rettv->vval.v_number = did_filetype;
+    rettv->vval.v_number = curbuf->b_did_filetype;
 }
 
 /*
@@ -3980,7 +3985,7 @@ f_empty(typval_T *argvars, typval_T *rettv)
 	    n = argvars[0].vval.v_class != NULL;
 	    break;
 	case VAR_OBJECT:
-	    n = argvars[0].vval.v_object != NULL;
+	    n = object_empty(argvars[0].vval.v_object);
 	    break;
 
 	case VAR_BLOB:
@@ -5456,6 +5461,229 @@ f_getpos(typval_T *argvars, typval_T *rettv)
 }
 
 /*
+ * Convert from block_def to string
+ */
+   static char_u *
+block_def2str(struct block_def *bd)
+{
+    char_u *p, *ret;
+    size_t size = bd->startspaces + bd->endspaces + bd->textlen;
+
+    ret = alloc(size + 1);
+    if (ret != NULL)
+    {
+	p = ret;
+	vim_memset(p, ' ', bd->startspaces);
+	p += bd->startspaces;
+	mch_memmove(p, bd->textstart, bd->textlen);
+	p += bd->textlen;
+	vim_memset(p, ' ', bd->endspaces);
+	*(p + bd->endspaces) = NUL;
+    }
+    return ret;
+}
+
+/*
+ * "getregion()" function
+ */
+    static void
+f_getregion(typval_T *argvars, typval_T *rettv)
+{
+    linenr_T		lnum;
+    oparg_T		oa;
+    struct block_def	bd;
+    char_u		*akt = NULL;
+    int			inclusive = TRUE;
+    int			fnum1 = -1, fnum2 = -1;
+    pos_T		p1, p2;
+    char_u		*type;
+    buf_T		*save_curbuf;
+    buf_T		*findbuf;
+    char_u		default_type[] = "v";
+    int			save_virtual;
+    int			l;
+    int			region_type = -1;
+    int			is_select_exclusive;
+
+    if (rettv_list_alloc(rettv) == FAIL)
+	return;
+
+    if (check_for_list_arg(argvars, 0) == FAIL
+	    || check_for_list_arg(argvars, 1) == FAIL
+	    || check_for_opt_dict_arg(argvars, 2) == FAIL)
+	return;
+
+    if (list2fpos(&argvars[0], &p1, &fnum1, NULL, FALSE) != OK
+	    || list2fpos(&argvars[1], &p2, &fnum2, NULL, FALSE) != OK
+	    || fnum1 != fnum2)
+	return;
+
+    if (argvars[2].v_type == VAR_DICT)
+    {
+	is_select_exclusive = dict_get_bool(
+		argvars[2].vval.v_dict, "exclusive", *p_sel == 'e');
+	type = dict_get_string(
+		argvars[2].vval.v_dict, "type", FALSE);
+	if (type == NULL)
+	    type = default_type;
+    }
+    else
+    {
+	is_select_exclusive = *p_sel == 'e';
+	type = default_type;
+    }
+
+    if (type[0] == 'v' && type[1] == NUL)
+	region_type = MCHAR;
+    else if (type[0] == 'V' && type[1] == NUL)
+	region_type = MLINE;
+    else if (type[0] == Ctrl_V && type[1] == NUL)
+	region_type = MBLOCK;
+    else
+    {
+	semsg(_(e_invalid_value_for_argument_str_str), "type", type);
+	return;
+    }
+
+    findbuf = fnum1 != 0 ? buflist_findnr(fnum1) : curbuf;
+    if (findbuf == NULL || findbuf->b_ml.ml_mfp == NULL)
+    {
+	emsg(_(e_buffer_is_not_loaded));
+	return;
+    }
+
+    if (p1.lnum < 1 || p1.lnum > findbuf->b_ml.ml_line_count)
+    {
+	semsg(_(e_invalid_line_number_nr), p1.lnum);
+	return;
+    }
+    if (p1.col < 1 || p1.col > ml_get_buf_len(findbuf, p1.lnum) + 1)
+    {
+	semsg(_(e_invalid_column_number_nr), p1.col);
+	return;
+    }
+    if (p2.lnum < 1 || p2.lnum > findbuf->b_ml.ml_line_count)
+    {
+	semsg(_(e_invalid_line_number_nr), p2.lnum);
+	return;
+    }
+    if (p2.col < 1 || p2.col > ml_get_buf_len(findbuf, p2.lnum) + 1)
+    {
+	semsg(_(e_invalid_column_number_nr), p2.col);
+	return;
+    }
+
+    save_curbuf = curbuf;
+    curbuf = findbuf;
+    curwin->w_buffer = curbuf;
+    save_virtual = virtual_op;
+    virtual_op = virtual_active();
+
+    // NOTE: Adjust is needed.
+    p1.col--;
+    p2.col--;
+
+    if (!LT_POS(p1, p2))
+    {
+	// swap position
+	pos_T p;
+
+	p = p1;
+	p1 = p2;
+	p2 = p;
+    }
+
+    if (region_type == MCHAR)
+    {
+	// handle 'selection' == "exclusive"
+	if (is_select_exclusive && !EQUAL_POS(p1, p2))
+	{
+	    if (p2.coladd > 0)
+		p2.coladd--;
+	    else if (p2.col > 0)
+	    {
+		p2.col--;
+
+		mb_adjustpos(curbuf, &p2);
+	    }
+	    else if (p2.lnum > 1)
+	    {
+		p2.lnum--;
+		p2.col = ml_get_len(p2.lnum);
+		if (p2.col > 0)
+		{
+		    p2.col--;
+
+		    mb_adjustpos(curbuf, &p2);
+		}
+	    }
+	}
+	// if fp2 is on NUL (empty line) inclusive becomes false
+	if (*ml_get_pos(&p2) == NUL && !virtual_op)
+	    inclusive = FALSE;
+    }
+    else if (region_type == MBLOCK)
+    {
+	colnr_T sc1, ec1, sc2, ec2;
+
+	getvvcol(curwin, &p1, &sc1, NULL, &ec1);
+	getvvcol(curwin, &p2, &sc2, NULL, &ec2);
+	oa.motion_type = MBLOCK;
+	oa.inclusive = TRUE;
+	oa.op_type = OP_NOP;
+	oa.start = p1;
+	oa.end = p2;
+	oa.start_vcol = MIN(sc1, sc2);
+	if (is_select_exclusive && ec1 < sc2 && 0 < sc2 && ec2 > ec1)
+	    oa.end_vcol = sc2 - 1;
+	else
+	    oa.end_vcol = MAX(ec1, ec2);
+    }
+
+    // Include the trailing byte of a multi-byte char.
+    l = utfc_ptr2len((char_u *)ml_get_pos(&p2));
+    if (l > 1)
+	p2.col += l - 1;
+
+    for (lnum = p1.lnum; lnum <= p2.lnum; lnum++)
+    {
+	int ret = 0;
+
+	if (region_type == MLINE)
+	    akt = vim_strsave(ml_get(lnum));
+	else if (region_type == MBLOCK)
+	{
+	    block_prep(&oa, &bd, lnum, FALSE);
+	    akt = block_def2str(&bd);
+	}
+	else if (p1.lnum < lnum && lnum < p2.lnum)
+	    akt = vim_strsave(ml_get(lnum));
+	else
+	{
+	    charwise_block_prep(p1, p2, &bd, lnum, inclusive);
+	    akt = block_def2str(&bd);
+	}
+
+	if (akt)
+	{
+	    ret = list_append_string(rettv->vval.v_list, akt, -1);
+	    vim_free(akt);
+	}
+
+	if (akt == NULL || ret == FAIL)
+	{
+	    clear_tv(rettv);
+	    (void)rettv_list_alloc(rettv);
+	    break;
+	}
+    }
+
+    curbuf = save_curbuf;
+    curwin->w_buffer = curbuf;
+    virtual_op = save_virtual;
+}
+
+/*
  * Common between getreg(), getreginfo() and getregtype(): get the register
  * name from the first argument.
  * Returns zero on error.
@@ -5899,6 +6127,13 @@ f_has(typval_T *argvars, typval_T *rettv)
 		},
 	{"dialog_con",
 #ifdef FEAT_CON_DIALOG
+		1
+#else
+		0
+#endif
+		},
+	{"dialog_con_gui",
+#if defined(FEAT_CON_DIALOG) && defined(FEAT_GUI_DIALOG)
 		1
 #else
 		0
@@ -7677,6 +7912,9 @@ f_len(typval_T *argvars, typval_T *rettv)
 	case VAR_DICT:
 	    rettv->vval.v_number = dict_len(argvars[0].vval.v_dict);
 	    break;
+	case VAR_OBJECT:
+	    rettv->vval.v_number = object_len(argvars[0].vval.v_object);
+	    break;
 	case VAR_UNKNOWN:
 	case VAR_ANY:
 	case VAR_VOID:
@@ -7689,7 +7927,6 @@ f_len(typval_T *argvars, typval_T *rettv)
 	case VAR_CHANNEL:
 	case VAR_INSTR:
 	case VAR_CLASS:
-	case VAR_OBJECT:
 	case VAR_TYPEALIAS:
 	    emsg(_(e_invalid_type_for_len));
 	    break;
@@ -10942,7 +11179,7 @@ f_synID(typval_T *argvars UNUSED, typval_T *rettv)
     trans = (int)tv_get_bool_chk(&argvars[2], &transerr);
 
     if (!transerr && lnum >= 1 && lnum <= curbuf->b_ml.ml_line_count
-	    && col >= 0 && col < (long)STRLEN(ml_get(lnum)))
+	    && col >= 0 && col < (long)ml_get_len(lnum))
 	id = syn_get_id(curwin, lnum, col, trans, NULL, FALSE);
 #endif
 
@@ -11119,7 +11356,7 @@ f_synconcealed(typval_T *argvars UNUSED, typval_T *rettv)
     if (rettv_list_alloc(rettv) == OK)
     {
 	if (lnum >= 1 && lnum <= curbuf->b_ml.ml_line_count
-	    && col >= 0 && col <= (long)STRLEN(ml_get(lnum))
+	    && col >= 0 && col <= (long)ml_get_len(lnum)
 	    && curwin->w_p_cole > 0)
 	{
 	    (void)syn_get_id(curwin, lnum, col, FALSE, NULL, FALSE);
@@ -11176,7 +11413,7 @@ f_synstack(typval_T *argvars UNUSED, typval_T *rettv)
     col = (colnr_T)tv_get_number(&argvars[1]) - 1;	// -1 on type error
 
     if (lnum >= 1 && lnum <= curbuf->b_ml.ml_line_count
-	    && col >= 0 && col <= (long)STRLEN(ml_get(lnum))
+	    && col >= 0 && col <= (long)ml_get_len(lnum)
 	    && rettv_list_alloc(rettv) == OK)
     {
 	(void)syn_get_id(curwin, lnum, col, FALSE, NULL, TRUE);
@@ -11294,15 +11531,31 @@ f_type(typval_T *argvars, typval_T *rettv)
 	case VAR_CHANNEL: n = VAR_TYPE_CHANNEL; break;
 	case VAR_BLOB:    n = VAR_TYPE_BLOB; break;
 	case VAR_INSTR:   n = VAR_TYPE_INSTR; break;
-	case VAR_CLASS:   n = VAR_TYPE_CLASS; break;
-	case VAR_OBJECT:  n = VAR_TYPE_OBJECT; break;
 	case VAR_TYPEALIAS: n = VAR_TYPE_TYPEALIAS; break;
+	case VAR_CLASS:
+	    {
+		class_T *cl = argvars[0].vval.v_class;
+		if (IS_ENUM(cl))
+		    n = VAR_TYPE_ENUM;
+		else
+		    n = VAR_TYPE_CLASS;
+		break;
+	    }
+	case VAR_OBJECT:
+	    {
+		class_T *cl = argvars[0].vval.v_object->obj_class;
+		if (IS_ENUM(cl))
+		    n = VAR_TYPE_ENUMVALUE;
+		else
+		    n = VAR_TYPE_OBJECT;
+		break;
+	    }
 	case VAR_UNKNOWN:
 	case VAR_ANY:
 	case VAR_VOID:
-	     internal_error_no_abort("f_type(UNKNOWN)");
-	     n = -1;
-	     break;
+	    internal_error_no_abort("f_type(UNKNOWN)");
+	    n = -1;
+	    break;
     }
     rettv->vval.v_number = n;
 }
@@ -11354,7 +11607,7 @@ f_virtcol(typval_T *argvars, typval_T *rettv)
 	    fp->col = 0;
 	else
 	{
-	    len = (int)STRLEN(ml_get(fp->lnum));
+	    len = (int)ml_get_len(fp->lnum);
 	    if (fp->col > len)
 		fp->col = len;
 	}

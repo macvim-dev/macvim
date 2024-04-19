@@ -651,6 +651,7 @@ LIBOBJS
 LINK_AS_NEEDED
 DEPEND_CFLAGS_FILTER
 XCODEFLAGS
+MSGFMTCMD
 MSGFMT_DESKTOP
 MAKEMO
 MSGFMT
@@ -6642,10 +6643,11 @@ printf "%s\n" "$vi_cv_perl_xsubpp" >&6; }
 
 
 
-                              perlcppflags=`$vi_cv_path_perl -Mlib=$srcdir -MExtUtils::Embed \
+                                    perlcppflags=`$vi_cv_path_perl -Mlib=$srcdir -MExtUtils::Embed \
 		-e 'ccflags;perl_inc;print"\n"' | sed -e 's/-fno[^ ]*//' \
 		-e 's/-fdebug-prefix-map[^ ]*//g' \
 		-e 's/-pipe //' \
+		-e 's/-flto\(=auto\)\? //' \
 		-e 's/-W[^ ]*//g' \
 		-e 's/-D_FORTIFY_SOURCE=.//g'`
             perllibs=`cd $srcdir; $vi_cv_path_perl -MExtUtils::Embed -e 'ldopts' | \
@@ -16292,6 +16294,18 @@ printf "%s\n" "yes" >&6; }
       else
 	{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
 printf "%s\n" "no" >&6; }
+      fi
+
+      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking if $MSGFMT supports --no-convert" >&5
+printf %s "checking if $MSGFMT supports --no-convert... " >&6; }
+      if "$MSGFMT" --help | grep -q --  '--no-convert' >/dev/null; then
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }
+        MSGFMTCMD="OLD_PO_FILE_INPUT=yes $MSGFMT --no-convert -v"
+      else
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+        MSGFMTCMD="OLD_PO_FILE_INPUT=yes $MSGFMT -v"
       fi
 
     fi

@@ -2448,7 +2448,7 @@ did_set_guifontwide(optset_T *args UNUSED)
 }
 #endif
 
-#if defined(FEAT_GUI_GTK) || defined(PROTO)
+#if defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MSWIN) || defined(PROTO)
 /*
  * The 'guiligatures' option is changed.
  */
@@ -3450,7 +3450,12 @@ did_set_showbreak(optset_T *args)
     char *
 did_set_showcmdloc(optset_T *args UNUSED)
 {
-    return did_set_opt_strings(p_sloc, p_sloc_values, FALSE);
+    char	*errmsg = did_set_opt_strings(p_sloc, p_sloc_values, FALSE);
+
+    if (errmsg == NULL)
+	comp_col();
+
+    return errmsg;
 }
 
     int
@@ -4395,7 +4400,7 @@ do_filetype_autocmd(char_u **varp, int opt_flags, int value_changed)
     secure = 0;
 
     ++ft_recursive;
-    did_filetype = TRUE;
+    curbuf->b_did_filetype = TRUE;
     // Only pass TRUE for "force" when the value changed or not
     // used recursively, to avoid endless recurrence.
     apply_autocmds(EVENT_FILETYPE, curbuf->b_p_ft, curbuf->b_fname,
@@ -4578,7 +4583,8 @@ did_set_string_option(
 #endif
 
     if (curwin->w_curswant != MAXCOL
-		   && (get_option_flags(opt_idx) & (P_CURSWANT | P_RALL)) != 0)
+		   && (get_option_flags(opt_idx) & (P_CURSWANT | P_RALL)) != 0
+				&& (get_option_flags(opt_idx) & P_HLONLY) == 0)
 	curwin->w_set_curswant = TRUE;
 
     if ((opt_flags & OPT_NO_REDRAW) == 0)
@@ -4597,7 +4603,7 @@ did_set_string_option(
 		|| varp == &p_guifontset	// 'guifontset'
 # endif
 		|| varp == &p_guifontwide	// 'guifontwide'
-# ifdef FEAT_GUI_GTK
+# if defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MSWIN)
 		|| varp == &p_guiligatures	// 'guiligatures'
 # endif
 	    )

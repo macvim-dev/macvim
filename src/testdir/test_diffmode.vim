@@ -3,6 +3,7 @@
 source shared.vim
 source screendump.vim
 source check.vim
+source view_util.vim
 
 func Test_diff_fold_sync()
   enew!
@@ -871,8 +872,8 @@ func VerifyInternal(buf, dumpfile, extra)
 endfunc
 
 func Test_diff_screen()
-  if has('osx') && !empty($CI) && system('uname -m') =~# 'arm64'
-    throw 'Skipped: FIXME: This test fails on M1 Mac on GitHub Actions'
+  if has('osxdarwin') && system('diff --version') =~ '^Apple diff'
+    throw 'Skipped: unified diff does not work properly on this macOS version'
   endif
 
   let g:test_is_flaky = 1
@@ -1133,7 +1134,7 @@ func Test_diff_breakindent_after_filler()
   CheckScreendump
 
   let lines =<< trim END
-    set laststatus=0 diffopt+=followwrap breakindent
+    set laststatus=0 diffopt+=followwrap breakindent breakindentopt=min:0
     call setline(1, ['a', '  ' .. repeat('c', 50)])
     vnew
     call setline(1, ['a', 'b', '  ' .. repeat('c', 50)])
@@ -1646,36 +1647,39 @@ endfunc
 func Test_diff_scroll_many_filler()
   20new
   vnew
-  call setline(1, ['^^^', '^^^', '$$$', '$$$'])
+  call setline(1, range(1, 40))
   diffthis
   setlocal scrolloff=0
   wincmd p
-  call setline(1, ['^^^', '^^^'] + repeat(['###'], 41) + ['$$$', '$$$'])
+  call setline(1, range(1, 20)->reverse() + ['###']->repeat(41) + range(21, 40)->reverse())
   diffthis
   setlocal scrolloff=0
   wincmd p
   redraw
 
   " Note: need a redraw after each scroll, otherwise the test always passes.
-  normal! G
-  redraw
-  call assert_equal(3, winsaveview().topline)
-  call assert_equal(18, winsaveview().topfill)
-  exe "normal! \<C-B>"
-  redraw
-  call assert_equal(3, winsaveview().topline)
-  call assert_equal(19, winsaveview().topfill)
-  exe "normal! \<C-B>"
-  redraw
-  call assert_equal(2, winsaveview().topline)
-  call assert_equal(0, winsaveview().topfill)
-  exe "normal! \<C-B>"
-  redraw
-  call assert_equal(1, winsaveview().topline)
-  call assert_equal(0, winsaveview().topfill)
+  for _ in range(2)
+    normal! G
+    redraw
+    call assert_equal(40, winsaveview().topline)
+    call assert_equal(19, winsaveview().topfill)
+    exe "normal! \<C-B>"
+    redraw
+    call assert_equal(22, winsaveview().topline)
+    call assert_equal(0, winsaveview().topfill)
+    exe "normal! \<C-B>"
+    redraw
+    call assert_equal(4, winsaveview().topline)
+    call assert_equal(0, winsaveview().topfill)
+    exe "normal! \<C-B>"
+    redraw
+    call assert_equal(1, winsaveview().topline)
+    call assert_equal(0, winsaveview().topfill)
+    set smoothscroll
+  endfor
 
-  bwipe!
-  bwipe!
+  set smoothscroll&
+  %bwipe!
 endfunc
 
 " This was trying to update diffs for a buffer being closed
@@ -1795,10 +1799,12 @@ def Test_diff_func()
                diff(['abcd'], ['abc'], {output: 'unified'}))
   assert_equal([{from_idx: 0, from_count: 1, to_idx: 0, to_count: 1}],
                diff(['abcd'], ['abc'], {output: 'indices'}))
-  assert_equal("@@ -1 +1 @@\n-abc\n+abx\n",
-               diff(['abc'], ['abx'], {output: 'unified'}))
+  var diff_unified: string = diff(['abc'], ['abx'], {output: 'unified'})
+  assert_equal("@@ -1 +1 @@\n-abc\n+abx\n", diff_unified)
+  var diff_indices: list<dict<number>> =
+    diff(['abc'], ['abx'], {output: 'indices'})
   assert_equal([{from_idx: 0, from_count: 1, to_idx: 0, to_count: 1}],
-               diff(['abc'], ['abx'], {output: 'indices'}))
+               diff_indices)
 
   # partial string modification at the start and at the end.
   var fromlist =<< trim END
@@ -1827,8 +1833,8 @@ def Test_diff_func()
   END
   assert_equal("@@ -1 +1 @@\n-one two\n+one abc two\n@@ -3 +3 @@\n-five abc six\n+five six\n",
                diff(fromlist, tolist, {output: 'unified'}))
-  assert_equal([{from_idx: 0, from_count: 1, to_idx: 0, to_count: 1},
-                {from_idx: 2, from_count: 1, to_idx: 2, to_count: 1}],
+  assert_equal([{'from_count': 1, 'to_idx': 0, 'to_count': 1, 'from_idx': 0},
+                {'from_count': 1, 'to_idx': 2, 'to_count': 1, 'from_idx': 2}],
                diff(fromlist, tolist, {output: 'indices'}))
 
   # add/remove blank lines
@@ -1887,11 +1893,153 @@ def Test_diff_func()
   assert_equal('', diff([], [], {output: 'unified'}))
   assert_equal([], diff([], [], {output: 'indices'}))
 
+  # If 'diffexpr' is set, it should not be used for diff()
+  def MyDiffExpr()
+  enddef
+  var save_diffexpr = &diffexpr
+  :set diffexpr=MyDiffExpr()
+  assert_equal("@@ -1 +1 @@\n-abc\n+\n",
+               diff(['abc'], [''], {output: 'unified'}))
+  assert_equal([{'from_idx': 0, 'from_count': 1, 'to_idx': 0, 'to_count': 1}],
+               diff(['abc'], [''], {output: 'indices'}))
+  assert_equal('MyDiffExpr()', &diffexpr)
+  &diffexpr = save_diffexpr
+
+  # try different values for unified diff 'context'
+  assert_equal("@@ -0,0 +1 @@\n+x\n",
+               diff(['a', 'b', 'c'], ['x', 'a', 'b', 'c']))
+  assert_equal("@@ -0,0 +1 @@\n+x\n",
+               diff(['a', 'b', 'c'], ['x', 'a', 'b', 'c'], {context: 0}))
+  assert_equal("@@ -1 +1,2 @@\n+x\n a\n",
+               diff(['a', 'b', 'c'], ['x', 'a', 'b', 'c'], {context: 1}))
+  assert_equal("@@ -1,2 +1,3 @@\n+x\n a\n b\n",
+               diff(['a', 'b', 'c'], ['x', 'a', 'b', 'c'], {context: 2}))
+  assert_equal("@@ -1,3 +1,4 @@\n+x\n a\n b\n c\n",
+               diff(['a', 'b', 'c'], ['x', 'a', 'b', 'c'], {context: 3}))
+  assert_equal("@@ -1,3 +1,4 @@\n+x\n a\n b\n c\n",
+               diff(['a', 'b', 'c'], ['x', 'a', 'b', 'c'], {context: 4}))
+  assert_equal("@@ -0,0 +1 @@\n+x\n",
+               diff(['a', 'b', 'c'], ['x', 'a', 'b', 'c'], {context: -1}))
+
   # Error cases
   assert_fails('call diff({}, ["a"])', 'E1211:')
   assert_fails('call diff(["a"], {})', 'E1211:')
   assert_fails('call diff(["a"], ["a"], [])', 'E1206:')
   assert_fails('call diff(["a"], ["a"], {output: "xyz"})', 'E106: Unsupported diff output format: xyz')
+  assert_fails('call diff(["a"], ["a"], {context: []})', 'E745: Using a List as a Number')
 enddef
+
+" Test for using the diff() function with 'diffexpr'
+func Test_diffexpr_with_diff_func()
+  CheckScreendump
+
+  let lines =<< trim END
+    def DiffFuncExpr()
+      var in: list<string> = readfile(v:fname_in)
+      var new: list<string> = readfile(v:fname_new)
+      var out: string = diff(in, new)
+      writefile(split(out, "\n"), v:fname_out)
+    enddef
+    set diffexpr=DiffFuncExpr()
+
+    edit Xdifffunc1.txt
+    diffthis
+    vert split Xdifffunc2.txt
+    diffthis
+  END
+  call writefile(lines, 'XsetupDiffFunc.vim', 'D')
+
+  call writefile(['zero', 'one', 'two', 'three'], 'Xdifffunc1.txt', 'D')
+  call writefile(['one', 'twox', 'three', 'four'], 'Xdifffunc2.txt', 'D')
+
+  let buf = RunVimInTerminal('-S XsetupDiffFunc.vim', {'rows': 12})
+  call VerifyScreenDump(buf, 'Test_difffunc_diffexpr_1', {})
+  call StopVimInTerminal(buf)
+endfunc
+
+func Test_diff_toggle_wrap_skipcol_leftcol()
+  61vnew
+  call setline(1, 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua.')
+  30vnew
+  call setline(1, 'ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua.')
+  let win1 = win_getid()
+  setlocal smoothscroll
+  exe "normal! $\<C-E>"
+  wincmd l
+  let win2 = win_getid()
+  setlocal smoothscroll
+  exe "normal! $\<C-E>"
+  call assert_equal([
+        \ '<<<sadipscing elitr, sed diam |<<<tetur sadipscing elitr, sed|',
+        \ 'nonumy eirmod tempor invidunt | diam nonumy eirmod tempor inv|',
+        \ 'ut labore et dolore magna aliq|idunt ut labore et dolore magn|',
+        \ 'uyam erat, sed diam voluptua. |a aliquyam erat, sed diam volu|',
+        \ '~                             |ptua.                         |',
+        \ ], ScreenLines([1, 5], 62))
+  call assert_equal({'col': 29, 'row': 4, 'endcol': 29, 'curscol': 29},
+        \ screenpos(win1, line('.', win1), col('.', win1)))
+  call assert_equal({'col': 36, 'row': 5, 'endcol': 36, 'curscol': 36},
+        \ screenpos(win2, line('.', win2), col('.', win2)))
+
+  wincmd h
+  diffthis
+  wincmd l
+  diffthis
+  normal! 0
+  call assert_equal([
+        \ '  ipsum dolor sit amet, conset|  Lorem ipsum dolor sit amet, |',
+        \ '~                             |~                             |',
+        \ ], ScreenLines([1, 2], 62))
+  call assert_equal({'col': 3, 'row': 1, 'endcol': 3, 'curscol': 3},
+        \ screenpos(win1, line('.', win1), col('.', win1)))
+  call assert_equal({'col': 34, 'row': 1, 'endcol': 34, 'curscol': 34},
+        \ screenpos(win2, line('.', win2), col('.', win2)))
+
+  normal! $
+  call assert_equal([
+        \ '  voluptua.                   |   diam voluptua.             |',
+        \ '~                             |~                             |',
+        \ ], ScreenLines([1, 2], 62))
+  call assert_equal({'col': 11, 'row': 1, 'endcol': 11, 'curscol': 11},
+        \ screenpos(win1, line('.', win1), col('.', win1)))
+  call assert_equal({'col': 48, 'row': 1, 'endcol': 48, 'curscol': 48},
+        \ screenpos(win2, line('.', win2), col('.', win2)))
+
+  diffoff!
+  call assert_equal([
+        \ 'ipsum dolor sit amet, consetet|Lorem ipsum dolor sit amet, co|',
+        \ 'ur sadipscing elitr, sed diam |nsetetur sadipscing elitr, sed|',
+        \ 'nonumy eirmod tempor invidunt | diam nonumy eirmod tempor inv|',
+        \ 'ut labore et dolore magna aliq|idunt ut labore et dolore magn|',
+        \ 'uyam erat, sed diam voluptua. |a aliquyam erat, sed diam volu|',
+        \ '~                             |ptua.                         |',
+        \ ], ScreenLines([1, 6], 62))
+  call assert_equal({'col': 29, 'row': 5, 'endcol': 29, 'curscol': 29},
+        \ screenpos(win1, line('.', win1), col('.', win1)))
+  call assert_equal({'col': 36, 'row': 6, 'endcol': 36, 'curscol': 36},
+        \ screenpos(win2, line('.', win2), col('.', win2)))
+
+  bwipe!
+  bwipe!
+endfunc
+
+" Ctrl-D reveals filler lines below the last line in the buffer.
+func Test_diff_eob_halfpage()
+  new
+  call setline(1, ['']->repeat(10) + ['a'])
+  diffthis
+  new
+  call setline(1, ['']->repeat(3) + ['a', 'b'])
+  diffthis
+  resize 5
+  wincmd j
+  resize 5
+  norm G
+  call assert_equal(7, line('w0'))
+  exe "norm! \<C-D>"
+  call assert_equal(8, line('w0'))
+
+  %bwipe!
+endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

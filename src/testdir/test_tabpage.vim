@@ -117,10 +117,16 @@ function Test_tabpage()
   call assert_equal(3, tabpagenr())
   +3tabmove
   call assert_equal(6, tabpagenr())
+  silent -tabmove
+  call assert_equal(5, tabpagenr())
+  silent -2 tabmove
+  call assert_equal(3, tabpagenr())
+  silent	-2	tabmove
+  call assert_equal(1, tabpagenr())
 
-  " The following are a no-op
   norm! 2gt
   call assert_equal(2, tabpagenr())
+  " The following are a no-op
   tabmove 2
   call assert_equal(2, tabpagenr())
   2tabmove
@@ -156,10 +162,13 @@ func Test_tabpage_drop()
   tab split f3
   normal! gt
   call assert_equal(1, tabpagenr())
+  tab drop f4
+  call assert_equal(1, tabpagenr('#'))
 
   tab drop f3
-  call assert_equal(3, tabpagenr())
-  call assert_equal(1, tabpagenr('#'))
+  call assert_equal(4, tabpagenr())
+  call assert_equal(2, tabpagenr('#'))
+  bwipe!
   bwipe!
   bwipe!
   bwipe!
@@ -985,6 +994,23 @@ func Test_tabpage_drop_tabmove()
   augroup! TestTabpageTabmove
 
   " clean up
+  bwipe!
+  bwipe!
+  bwipe!
+endfunc
+
+" Test that settabvar() shouldn't change the last accessed tabpage.
+func Test_lastused_tabpage_settabvar()
+  tabonly!
+  tabnew
+  tabnew
+  tabnew
+  call assert_equal(3, tabpagenr('#'))
+
+  call settabvar(2, 'myvar', 'tabval')
+  call assert_equal('tabval', gettabvar(2, 'myvar'))
+  call assert_equal(3, tabpagenr('#'))
+
   bwipe!
   bwipe!
   bwipe!

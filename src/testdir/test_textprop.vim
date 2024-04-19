@@ -2690,6 +2690,48 @@ func Test_prop_inserts_text_normal_gj_gk()
   call Run_test_prop_inserts_text_normal_gj_gk('set virtualedit=all')
 endfunc
 
+func Test_prop_normal_gj_gk_gM_with_outer_virtual_text()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+      vim9script
+      setlocal number
+      setline(1, ['First line fits on screen line.', '', 'Third line fits on screen line.'])
+
+      var vt = 'test'
+      prop_type_add(vt, {highlight: 'ToDo'})
+      for ln in range(1, line('$'))
+        prop_add(ln, 0, {type: vt, text: 'Above', text_align: 'above'})
+        prop_add(ln, 0, {type: vt, text: 'After text wraps to next line.', text_align: 'after', text_wrap: 'wrap'})
+        prop_add(ln, 0, {type: vt, text: 'Right text wraps to next line.', text_align: 'right', text_wrap: 'wrap'})
+        prop_add(ln, 0, {type: vt, text: 'Below', text_align: 'below'})
+      endfor
+      normal 3l
+  END
+  call writefile(lines, 'XscriptPropsNormal_gj_gk_gM_with_outer_text', 'D')
+  let buf = RunVimInTerminal('-S XscriptPropsNormal_gj_gk_gM_with_outer_text', #{rows: 16, cols: 40})
+  call VerifyScreenDump(buf, 'Test_prop_normal_gj_gk_gM_with_outer_virtual_text_1', {})
+
+  call term_sendkeys(buf, "gj")
+  call VerifyScreenDump(buf, 'Test_prop_normal_gj_gk_gM_with_outer_virtual_text_2', {})
+  call term_sendkeys(buf, "gj")
+  call VerifyScreenDump(buf, 'Test_prop_normal_gj_gk_gM_with_outer_virtual_text_3', {})
+  call term_sendkeys(buf, "gk")
+  call VerifyScreenDump(buf, 'Test_prop_normal_gj_gk_gM_with_outer_virtual_text_2', {})
+  call term_sendkeys(buf, "gk")
+  call VerifyScreenDump(buf, 'Test_prop_normal_gj_gk_gM_with_outer_virtual_text_1', {})
+
+  call term_sendkeys(buf, "2gj")
+  call VerifyScreenDump(buf, 'Test_prop_normal_gj_gk_gM_with_outer_virtual_text_3', {})
+  call term_sendkeys(buf, "2gk")
+  call VerifyScreenDump(buf, 'Test_prop_normal_gj_gk_gM_with_outer_virtual_text_1', {})
+
+  call term_sendkeys(buf, "gM")
+  call VerifyScreenDump(buf, 'Test_prop_normal_gj_gk_gM_with_outer_virtual_text_4', {})
+
+  call StopVimInTerminal(buf)
+endfunc
+
 func Test_prop_inserts_text_visual_block()
   CheckRunVimInTerminal
 
@@ -3026,6 +3068,43 @@ func Test_props_with_text_after_below_trunc()
   call StopVimInTerminal(buf)
 endfunc
 
+func Test_props_with_text_truncated_just_before_after()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+      vim9script
+      set showbreak=+++
+      set list listchars=extends:>
+      set nowrap
+
+      setline(1, [
+        'here is text long enough to fill the row',
+        'second line',
+      ])
+
+      prop_type_add("test", {"highlight": "Error"})
+      prop_add(1, 0, {type: "test", text_align: "right", text: "right text"})
+      def g:AddPropBelow()
+        prop_add(1, 0, {type: "test", text_align: "below", text: "below text"})
+      enddef
+      def g:AddPropAfter()
+        prop_add(1, 0, {type: "test", text: "after text", text_padding_left: 1})
+      enddef
+      normal G$
+  END
+  call writefile(lines, 'XscriptPropsWithTextTruncatedJustBeforeAfter', 'D')
+  let buf = RunVimInTerminal('-S XscriptPropsWithTextTruncatedJustBeforeAfter', #{rows: 8, cols: 40})
+  call VerifyScreenDump(buf, 'Test_props_with_text_truncated_just_before_after_1', {})
+
+  call term_sendkeys(buf, ":call AddPropBelow()\<CR>")
+  call VerifyScreenDump(buf, 'Test_props_with_text_truncated_just_before_after_2', {})
+
+  call term_sendkeys(buf, ":call AddPropAfter()\<CR>:\<Esc>")
+  call VerifyScreenDump(buf, 'Test_props_with_text_truncated_just_before_after_2', {})
+
+  call StopVimInTerminal(buf)
+endfunc
+
 func Test_prop_with_text_below_after_empty()
   CheckRunVimInTerminal
 
@@ -3075,10 +3154,17 @@ func Test_prop_with_text_above_below_empty()
       let vt = 'test'
       call prop_type_add(vt, {'highlight': 'ToDo'})
       for ln in range(1, line('$'))
-        call prop_add(ln, 0, {'type': vt, 'text': '---', 'text_align': 'above'})
-        call prop_add(ln, 0, {'type': vt, 'text': '+++', 'text_align': 'below'})
+        " use 1 character text to test for off-by-one regressions
+        call prop_add(ln, 0, {'type': vt, 'text': '-', 'text_align': 'above'})
+        call prop_add(ln, 0, {'type': vt, 'text': '+', 'text_align': 'below'})
       endfor
       normal G
+
+      func AddMore()
+        call prop_add(5, 0, {'type': g:vt, 'text': '!', 'text_align': 'above'})
+        call prop_add(5, 0, {'type': g:vt, 'text': '!', 'text_align': 'above'})
+        call prop_add(5, 0, {'type': g:vt, 'text': '!', 'text_align': 'above'})
+      endfunc
   END
   call writefile(lines, 'XscriptPropAboveBelowEmpty', 'D')
   let buf = RunVimInTerminal('-S XscriptPropAboveBelowEmpty', #{rows: 16, cols: 60})
@@ -3099,6 +3185,12 @@ func Test_prop_with_text_above_below_empty()
 
   call term_sendkeys(buf, "kk")
   call VerifyScreenDump(buf, 'Test_prop_above_below_empty_5', {})
+
+  " This was drawing line number over cmdline and leaking memory.
+  call term_sendkeys(buf, ":call AddMore()\<CR>")
+  call term_sendkeys(buf, "gg")
+  call term_sendkeys(buf, "j")
+  call VerifyScreenDump(buf, 'Test_prop_above_below_empty_6', {})
 
   call StopVimInTerminal(buf)
 endfunc
@@ -4090,6 +4182,46 @@ func Test_text_below_nowrap()
   call StopVimInTerminal(buf)
 endfunc
 
+func Test_virtual_text_overlap_with_highlight()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+      vim9script
+      setline(1, ['one', 'two', 'three', 'four', 'five'])
+      set number
+
+      prop_type_add('demo_highlight_warning', {highlight: 'WarningMsg'})
+      prop_type_add('demo_virtual_text_error', {highlight: 'Error'})
+
+      prop_add(2, 4, {
+        type: 'demo_highlight_warning',
+        end_col: 4,
+      })
+      prop_add(2, 0, {
+        type: 'demo_virtual_text_error',
+        text: 'syntax error',
+        text_align: 'below',
+      })
+      normal 2j
+
+      prop_add(4, 4, {
+        type: 'demo_highlight_warning',
+        end_lnum: 5,
+        end_col: 1,
+      })
+      prop_add(4, 0, {
+        type: 'demo_virtual_text_error',
+        text: 'other error',
+        text_align: 'right',
+      })
+  END
+  call writefile(lines, 'XVirtualTextOverlapWithHighlight', 'D')
+  let buf = RunVimInTerminal('-S XVirtualTextOverlapWithHighlight', #{rows: 8, cols: 60})
+  call VerifyScreenDump(buf, 'Test_virtual_text_overlap_with_highlight_1', {})
+
+  call StopVimInTerminal(buf)
+endfunc
+
 func Test_virtual_text_in_popup_highlight()
   CheckRunVimInTerminal
 
@@ -4423,6 +4555,83 @@ func Test_textprop_notype_join()
   call assert_equal(["1 2", "3"], getline(1, '$'))
 
   bwipe!
+endfunc
+
+" This was causing text property corruption.
+func Test_textprop_backspace_fo_aw()
+  new
+  call setline(1, 'foobar')
+  call prop_type_add('test', {'highlight': 'ErrorMsg'})
+  call prop_add(1, 1, {'type': 'test', 'length': 3})
+  set backspace=indent,eol,start
+  setlocal formatoptions+=aw
+  call feedkeys("A \<CR>\<BS>\<Esc>", 'tx')
+  call assert_equal('foobar', getline(1))
+  call assert_equal([
+        \ #{id: 0, col: 1, start: 1, end: 1, type_bufnr: 0,
+        \   type: 'test', length: 3}], prop_list(1))
+
+  bwipe!
+  set backspace&
+  call prop_type_delete('test')
+endfunc
+
+func Test_textprop_with_wincolor()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+    call setline(1, 'some text here')
+    call setline(2, 'some much longer text here')
+    call setline(3, 'more text here')
+    call prop_type_add('afterprop', #{highlight: 'Search'})
+    call prop_type_add('belowprop', #{highlight: 'DiffAdd'})
+    call prop_add(3, 0, #{type: 'afterprop', text: 'AFTER',
+          \ text_align: 'after', text_padding_left: 3})
+    call prop_add(1, 0, #{type: 'belowprop', text: 'BELOW',
+          \ text_align: 'below', text_padding_left: 3})
+    set wincolor=DiffChange wrap
+  END
+  call writefile(lines, 'XtextPropWincolor', 'D')
+  let buf = RunVimInTerminal('-S XtextPropWincolor', #{rows: 8, cols: 60})
+
+  call term_sendkeys(buf, ":\<CR>")
+  call VerifyScreenDump(buf, 'Test_prop_wincolor_1', {})
+
+  call term_sendkeys(buf, ":set cursorline\<CR>:\<CR>")
+  call VerifyScreenDump(buf, 'Test_prop_wincolor_2', {})
+
+  call term_sendkeys(buf, ":set nowrap\<CR>:\<CR>")
+  call VerifyScreenDump(buf, 'Test_prop_wincolor_2', {})
+
+  call term_sendkeys(buf, ":set nocursorline\<CR>:\<CR>")
+  call VerifyScreenDump(buf, 'Test_prop_wincolor_1', {})
+
+  call term_sendkeys(buf, ":set cursorline colorcolumn=30\<CR>:\<CR>")
+  call VerifyScreenDump(buf, 'Test_prop_wincolor_3', {})
+
+  call term_sendkeys(buf, ":hi CursorLine ctermbg=Brown\<CR>:\<CR>")
+  call VerifyScreenDump(buf, 'Test_prop_wincolor_4', {})
+
+  call term_sendkeys(buf, ":set cursorcolumn\<CR>:\<CR>")
+  call term_sendkeys(buf, '$')
+  call VerifyScreenDump(buf, 'Test_prop_wincolor_5', {})
+
+  call term_sendkeys(buf, 'j')
+  call VerifyScreenDump(buf, 'Test_prop_wincolor_6', {})
+
+  call term_sendkeys(buf, ":set virtualedit=all\<CR>:\<CR>")
+  call term_sendkeys(buf, 'l')
+  call VerifyScreenDump(buf, 'Test_prop_wincolor_7', {})
+
+  call term_sendkeys(buf, 'k')
+  call VerifyScreenDump(buf, 'Test_prop_wincolor_8', {})
+
+  if has('rightleft')
+    call term_sendkeys(buf, ":set rightleft\<CR>:\<CR>")
+    call VerifyScreenDump(buf, 'Test_prop_wincolor_9', {})
+  endif
+
+  call StopVimInTerminal(buf)
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

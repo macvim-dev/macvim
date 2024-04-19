@@ -637,7 +637,7 @@ get_text_props(buf_T *buf, linenr_T lnum, char_u **props, int will_change)
 
     // Fetch the line to get the ml_line_len field updated.
     text = ml_get_buf(buf, lnum, will_change);
-    textlen = STRLEN(text) + 1;
+    textlen = ml_get_buf_len(buf, lnum) + 1;
     proplen = buf->b_ml.ml_line_len - textlen;
     if (proplen == 0)
 	return 0;
@@ -672,16 +672,10 @@ prop_count_above_below(buf_T *buf, linenr_T lnum)
 	mch_memmove(&prop, props + i * sizeof(prop), sizeof(prop));
 	if (prop.tp_col == MAXCOL && text_prop_type_valid(buf, &prop))
 	{
-	    if ((prop.tp_flags & TP_FLAG_ALIGN_BELOW)
+	    if ((prop.tp_flags & (TP_FLAG_ALIGN_ABOVE | TP_FLAG_ALIGN_BELOW))
 		    || (next_right_goes_below
 				     && (prop.tp_flags & TP_FLAG_ALIGN_RIGHT)))
 	    {
-		next_right_goes_below = TRUE;
-		++result;
-	    }
-	    else if (prop.tp_flags & TP_FLAG_ALIGN_ABOVE)
-	    {
-		next_right_goes_below = FALSE;
 		++result;
 	    }
 	    else if (prop.tp_flags & TP_FLAG_ALIGN_RIGHT)
@@ -758,6 +752,11 @@ text_prop_compare(const void *s1, const void *s2)
     tp2 = &text_prop_compare_props[idx2];
     col1 = tp1->tp_col;
     col2 = tp2->tp_col;
+
+    // property that inserts text has priority over one that doesn't
+    if ((tp1->tp_id < 0) != (tp2->tp_id < 0))
+	return tp1->tp_id < 0 ? 1 : -1;
+
     if (col1 == MAXCOL || col2 == MAXCOL)
     {
 	int order1 = text_prop_order(tp1->tp_flags);
@@ -767,10 +766,6 @@ text_prop_compare(const void *s1, const void *s2)
 	if (order1 != order2)
 	    return order1 < order2 ? 1 : -1;
     }
-
-    // property that inserts text has priority over one that doesn't
-    if ((tp1->tp_id < 0) != (tp2->tp_id < 0))
-	return tp1->tp_id < 0 ? 1 : -1;
 
     // check highest priority, defined by the type
     pt1 = text_prop_type_by_id(text_prop_compare_buf, tp1->tp_type);
@@ -863,7 +858,7 @@ set_text_props(linenr_T lnum, char_u *props, int len)
     int	    textlen;
 
     text = ml_get(lnum);
-    textlen = (int)STRLEN(text) + 1;
+    textlen = ml_get_len(lnum) + 1;
     newtext = alloc(textlen + len);
     if (newtext == NULL)
 	return;
@@ -1090,7 +1085,7 @@ f_prop_clear(typval_T *argvars, typval_T *rettv UNUSED)
 	if (lnum > buf->b_ml.ml_line_count)
 	    break;
 	text = ml_get_buf(buf, lnum, FALSE);
-	len = STRLEN(text) + 1;
+	len = ml_get_buf_len(buf, lnum) + 1;
 	if ((size_t)buf->b_ml.ml_line_len > len)
 	{
 	    did_clear = TRUE;
@@ -1220,7 +1215,7 @@ f_prop_find(typval_T *argvars, typval_T *rettv)
     while (1)
     {
 	char_u	*text = ml_get_buf(buf, lnum, FALSE);
-	size_t	textlen = STRLEN(text) + 1;
+	size_t	textlen = ml_get_buf_len(buf, lnum) + 1;
 	int	count = (int)((buf->b_ml.ml_line_len - textlen)
 							 / sizeof(textprop_T));
 	int	    i;
@@ -1341,7 +1336,7 @@ get_props_in_line(
 	int		add_lnum)
 {
     char_u	*text = ml_get_buf(buf, lnum, FALSE);
-    size_t	textlen = STRLEN(text) + 1;
+    size_t	textlen = ml_get_buf_len(buf, lnum) + 1;
     int		count;
     int		i;
     textprop_T	prop;
@@ -1674,13 +1669,11 @@ f_prop_remove(typval_T *argvars, typval_T *rettv)
 	end = buf->b_ml.ml_line_count;
     for (lnum = start; lnum <= end; ++lnum)
     {
-	char_u *text;
 	size_t len;
 
 	if (lnum > buf->b_ml.ml_line_count)
 	    break;
-	text = ml_get_buf(buf, lnum, FALSE);
-	len = STRLEN(text) + 1;
+	len = ml_get_buf_len(buf, lnum) + 1;
 	if ((size_t)buf->b_ml.ml_line_len > len)
 	{
 	    static textprop_T	textprop;  // static because of alignment

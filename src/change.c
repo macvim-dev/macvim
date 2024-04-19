@@ -559,6 +559,12 @@ changed_common(
 	    if (!redraw_not_allowed && wp->w_redr_type < UPD_VALID)
 		wp->w_redr_type = UPD_VALID;
 
+	    // When inserting/deleting lines and the window has specific lines
+	    // to be redrawn, w_redraw_top and w_redraw_bot may now be invalid,
+	    // so just redraw everything.
+	    if (xtra != 0 && wp->w_redraw_top != 0)
+		redraw_win_later(wp, UPD_NOT_VALID);
+
 	    // Reset "w_skipcol" if the topline length has become smaller to
 	    // such a degree that nothing will be visible anymore, accounting
 	    // for 'smoothscroll' <<< or 'listchars' "precedes" marker.
@@ -568,8 +574,7 @@ changed_common(
 			    && wp->w_topline < lnume
 			    && win_linetabsize(wp, wp->w_topline,
 					ml_get(wp->w_topline), (colnr_T)MAXCOL)
-				    <= wp->w_skipcol + sms_marker_overlap(wp,
-					win_col_off(wp) - win_col_off2(wp)))))
+				    <= wp->w_skipcol + sms_marker_overlap(wp, -1))))
 		wp->w_skipcol = 0;
 
 	    // Check if a change in the buffer has invalidated the cached
@@ -656,22 +661,20 @@ changed_common(
 		set_topline(wp, wp->w_topline);
 #endif
 	    // If lines have been added or removed, relative numbering always
-	    // requires a redraw.
+	    // requires an update even if cursor didn't move.
 	    if (wp->w_p_rnu && xtra != 0)
-	    {
 		wp->w_last_cursor_lnum_rnu = 0;
-		redraw_win_later(wp, UPD_VALID);
-	    }
+
 #ifdef FEAT_SYN_HL
-	    // Cursor line highlighting probably need to be updated with
-	    // "UPD_VALID" if it's below the change.
-	    // If the cursor line is inside the change we need to redraw more.
-	    if (wp->w_p_cul)
+	    if (wp->w_p_cul && wp->w_last_cursorline >= lnum)
 	    {
-		if (xtra == 0)
-		    redraw_win_later(wp, UPD_VALID);
-		else if (lnum <= wp->w_last_cursorline)
-		    redraw_win_later(wp, UPD_SOME_VALID);
+		if (wp->w_last_cursorline < lnume)
+		    // If 'cursorline' was inside the change, it has already
+		    // been invalidated in w_lines[] by the loop above.
+		    wp->w_last_cursorline = 0;
+		else
+		    // If 'cursorline' was below the change, adjust its lnum.
+		    wp->w_last_cursorline += xtra;
 	    }
 #endif
 	}
@@ -1052,7 +1055,7 @@ ins_char_bytes(char_u *buf, int charlen)
 
     col = curwin->w_cursor.col;
     oldp = ml_get(lnum);
-    linelen = (int)STRLEN(oldp) + 1;
+    linelen = (int)ml_get_len(lnum) + 1;
 
     // The lengths default to the values for when not replacing.
     oldlen = 0;
@@ -1189,7 +1192,7 @@ ins_str(char_u *s)
 
     col = curwin->w_cursor.col;
     oldp = ml_get(lnum);
-    oldlen = (int)STRLEN(oldp);
+    oldlen = (int)ml_get_len(lnum);
 
     newp = alloc(oldlen + newlen + 1);
     if (newp == NULL)
@@ -1268,7 +1271,7 @@ del_bytes(
     int		fixpos = fixpos_arg;
 
     oldp = ml_get(lnum);
-    oldlen = (int)STRLEN(oldp);
+    oldlen = (int)ml_get_len(lnum);
 
     // Can't do anything when the cursor is on the NUL after the line.
     if (col >= oldlen)
@@ -1360,6 +1363,7 @@ del_bytes(
 	    mch_memmove(newp + newlen + 1, oldp + oldlen + 1,
 			       (size_t)curbuf->b_ml.ml_line_len - oldlen - 1);
 	curbuf->b_ml.ml_line_len -= count;
+	curbuf->b_ml.ml_line_textlen = 0;
     }
 #endif
 
@@ -1431,12 +1435,12 @@ open_line(
 #endif
 
     // make a copy of the current line so we can mess with it
-    saved_line = vim_strsave(ml_get_curline());
+    saved_line = vim_strnsave(ml_get_curline(), ml_get_curline_len());
     if (saved_line == NULL)	    // out of memory!
 	return FALSE;
 
 #ifdef FEAT_PROP_POPUP
-    at_eol = curwin->w_cursor.col >= (int)STRLEN(saved_line);
+    at_eol = curwin->w_cursor.col >= (int)ml_get_curline_len();
 #endif
 
     if (State & VREPLACE_FLAG)
@@ -1449,7 +1453,7 @@ open_line(
 	// the line, replacing what was there before and pushing the right
 	// stuff onto the replace stack.  -- webb.
 	if (curwin->w_cursor.lnum < orig_line_count)
-	    next_line = vim_strsave(ml_get(curwin->w_cursor.lnum + 1));
+	    next_line = vim_strnsave(ml_get(curwin->w_cursor.lnum + 1), ml_get_len(curwin->w_cursor.lnum + 1));
 	else
 	    next_line = vim_strsave((char_u *)"");
 	if (next_line == NULL)	    // out of memory!
@@ -2302,7 +2306,7 @@ open_line(
     if (State & VREPLACE_FLAG)
     {
 	// Put new line in p_extra
-	p_extra = vim_strsave(ml_get_curline());
+	p_extra = vim_strnsave(ml_get_curline(), ml_get_curline_len());
 	if (p_extra == NULL)
 	    goto theend;
 
@@ -2347,7 +2351,7 @@ truncate_line(int fixpos)
 	newp = vim_strsave((char_u *)"");
     else
 	newp = vim_strnsave(old_line, col);
-    deleted = (int)STRLEN(old_line) - col;
+    deleted = (int)ml_get_len(lnum) - col;
 
     if (newp == NULL)
 	return FAIL;

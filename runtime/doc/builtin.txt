@@ -1,4 +1,4 @@
-*builtin.txt*	For Vim version 9.1.  Last change: 2024 Feb 01
+*builtin.txt*	For Vim version 9.1.  Last change: 2024 Apr 07
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -220,12 +220,12 @@ getbufvar({buf}, {varname} [, {def}])
 				any	variable {varname} in buffer {buf}
 getcellwidths()			List	get character cell width overrides
 getchangelist([{buf}])		List	list of change list items
-getchar([expr])			Number or String
+getchar([{expr}])		Number or String
 					get one character from the user
 getcharmod()			Number	modifiers for the last typed character
 getcharpos({expr})		List	position of cursor, mark, etc.
 getcharsearch()			Dict	last character search
-getcharstr([expr])		String	get one character from the user
+getcharstr([{expr}])		String	get one character from the user
 getcmdcompltype()		String	return the type of the current
 					command-line completion
 getcmdline()			String	return the current command-line
@@ -263,6 +263,8 @@ getqflist({what})		Dict	get specific quickfix list properties
 getreg([{regname} [, 1 [, {list}]]])
 				String or List   contents of a register
 getreginfo([{regname}])		Dict	information about a register
+getregion({pos1}, {pos2} [, {opts}])
+				List	get the text from {pos1} to {pos2}
 getregtype([{regname}])		String	type of a register
 getscriptinfo([{opts}])		List	list of sourced scripts
 gettabinfo([{expr}])		List	list of tab pages
@@ -396,7 +398,7 @@ menu_info({name} [, {mode}])	Dict	get menu item information
 min({expr})			Number	minimum value of items in {expr}
 mkdir({name} [, {flags} [, {prot}]])
 				Number	create directory {name}
-mode([expr])			String	current editing mode
+mode([{expr}])			String	current editing mode
 mzeval({expr})			any	evaluate |MzScheme| expression
 nextnonblank({lnum})		Number	line nr of non-blank line >= {lnum}
 nr2char({expr} [, {utf8}])	String	single char with ASCII/UTF-8 value {expr}
@@ -699,7 +701,7 @@ test_override({expr}, {val})	none	test with Vim internal overrides
 test_refcount({expr})		Number	get the reference count of {expr}
 test_setmouse({row}, {col})	none	set the mouse position for testing
 test_settime({expr})		none	set current time for testing
-test_srand_seed([seed])		none	set seed for testing srand()
+test_srand_seed([{seed}])	none	set seed for testing srand()
 test_unknown()			any	unknown value for testing
 test_void()			any	void value for testing
 timer_info([{id}])		List	information about timers
@@ -729,7 +731,7 @@ virtcol({expr} [, {list} [, {winid}])
 					screen column of cursor or mark
 virtcol2col({winid}, {lnum}, {col})
 				Number  byte index of a character on screen
-visualmode([expr])		String	last visual mode used
+visualmode([{expr}])		String	last visual mode used
 wildmenumode()			Number	whether 'wildmenu' mode is active
 win_execute({id}, {command} [, {silent}])
 				String	execute {command} in window {id}
@@ -1771,7 +1773,7 @@ confirm({msg} [, {choices} [, {default} [, {type}]]])
 		made.  It returns the number of the choice.  For the first
 		choice this is 1.
 		Note: confirm() is only supported when compiled with dialog
-		support, see |+dialog_con| and |+dialog_gui|.
+		support, see |+dialog_con| |+dialog_con_gui| and |+dialog_gui|.
 
 		{msg} is displayed in a |dialog| with {choices} as the
 		alternatives.  When {choices} is missing or empty, "&OK" is
@@ -2076,26 +2078,31 @@ diff({fromlist}, {tolist} [, {options}])		*diff()*
 
 		The {options} Dict argument also specifies diff options
 		(similar to 'diffopt') and supports the following items:
+		    algorithm		Dict specifying the diff algorithm to
+					use.  Supported boolean items are
+					"myers", "minimal", "patience" and
+					"histogram".
+		    context		diff context length.  Default is 0.
 		    iblank		ignore changes where lines are all
 					blank.
 		    icase		ignore changes in case of text.
+		    indent-heuristic	use the indent heuristic for the
+					internal diff library.
 		    iwhite		ignore changes in amount of white
 					space.
 		    iwhiteall		ignore all white space changes.
 		    iwhiteeol		ignore white space changes at end of
 					line.
-		    indent-heuristic	use the indent heuristic for the
-					internal diff library.
-		    algorithm		Dict specifying the diff algorithm to
-					use.  Supported boolean items are
-					"myers", "minimal", "patience" and
-					"histogram".
 		For more information about these options, refer to 'diffopt'.
+
+		To compute the unified diff, all the items in {fromlist} are
+		concatenated into a string using a newline separator and the
+		same for {tolist}.  The unified diff output uses line numbers.
 
 		Returns an empty List or String if {fromlist} and {tolist} are
 		identical.
 
-		Examples:
+		Examples: >
 		    :echo diff(['abc'], ['xxx'])
 		     @@ -1 +1 @@
 		     -abc
@@ -2105,7 +2112,7 @@ diff({fromlist}, {tolist} [, {options}])		*diff()*
 		     [{'from_idx': 0, 'from_count': 1, 'to_idx': 0, 'to_count': 1}]
 		    :echo diff(readfile('oldfile'), readfile('newfile'))
 		    :echo diff(getbufline(5, 1, '$'), getbufline(6, 1, '$'))
-
+<
 		For more examples, refer to |diff-func-examples|
 
 		Can also be used as a |method|: >
@@ -2260,6 +2267,8 @@ empty({expr})						*empty()*
 		- A |Job| is empty when it failed to start.
 		- A |Channel| is empty when it is closed.
 		- A |Blob| is empty when its length is zero.
+		- An |Object| is empty, when the empty() method in the object
+		  (if present) returns true. |object-empty()|
 
 		For a long |List| this is much faster than comparing the
 		length with zero.
@@ -2300,7 +2309,8 @@ eval({string})	Evaluate {string} and return the result.  Especially useful to
 		turn the result of |string()| back into the original value.
 		This works for Numbers, Floats, Strings, Blobs and composites
 		of them.  Also works for |Funcref|s that refer to existing
-		functions.
+		functions.  In |Vim9| script, it can be used to obtain |enum|
+		values from their fully qualified names.
 
 		Can also be used as a |method|: >
 			argv->join()->eval()
@@ -2400,11 +2410,11 @@ exists({expr})	The result is a Number, which is |TRUE| if {expr} is defined,
 			varname		internal variable (see
 			dict.key	|internal-variables|).  Also works
 			list[i]		for |curly-braces-names|, |Dictionary|
-			import.Func	entries, |List| items, imported
-					items, etc.
-					Does not work for local variables in a
-					compiled `:def` function.
-					Also works for a function in |Vim9|
+			import.Func	entries, |List| items, class and
+			class.Func	object methods, imported items, etc.
+			object.Func	Does not work for local variables in a
+			class.varname	compiled `:def` function.
+			object.varname	Also works for a function in |Vim9|
 					script, since it can be used as a
 					function reference.
 					Beware that evaluating an index may
@@ -2534,6 +2544,9 @@ expand({string} [, {nosuf} [, {list}]])				*expand()*
 		If the expansion fails, the result is an empty string.  A name
 		for a non-existing file is not included, unless {string} does
 		not start with '%', '#' or '<', see below.
+
+		For a |:terminal| window '%' expands to a '!' followed by
+		the command or shell that is run |terminal-bufname|
 
 		When {string} starts with '%', '#' or '<', the expansion is
 		done like for the |cmdline-special| variables with their
@@ -3444,16 +3457,16 @@ getchangelist([{buf}])					*getchangelist()*
 		Can also be used as a |method|: >
 			GetBufnr()->getchangelist()
 
-getchar([expr])						*getchar()*
+getchar([{expr}])					*getchar()*
 		Get a single character from the user or input stream.
-		If [expr] is omitted, wait until a character is available.
-		If [expr] is 0, only get a character when one is available.
+		If {expr} is omitted, wait until a character is available.
+		If {expr} is 0, only get a character when one is available.
 			Return zero otherwise.
-		If [expr] is 1, only check if a character is available, it is
+		If {expr} is 1, only check if a character is available, it is
 			not consumed.  Return zero if no character available.
 		If you prefer always getting a string use |getcharstr()|.
 
-		Without [expr] and when [expr] is 0 a whole character or
+		Without {expr} and when {expr} is 0 a whole character or
 		special key is returned.  If it is a single character, the
 		result is a Number.  Use |nr2char()| to convert it to a String.
 		Otherwise a String is returned with the encoded character.
@@ -3463,11 +3476,11 @@ getchar([expr])						*getchar()*
 		also a String when a modifier (shift, control, alt) was used
 		that is not included in the character.
 
-		When [expr] is 0 and Esc is typed, there will be a short delay
+		When {expr} is 0 and Esc is typed, there will be a short delay
 		while Vim waits to see if this is the start of an escape
 		sequence.
 
-		When [expr] is 1 only the first byte is returned.  For a
+		When {expr} is 1 only the first byte is returned.  For a
 		one-byte character it is the character itself as a number.
 		Use nr2char() to convert it to a String.
 
@@ -3578,13 +3591,13 @@ getcharsearch()						*getcharsearch()*
 <		Also see |setcharsearch()|.
 
 
-getcharstr([expr])					*getcharstr()*
+getcharstr([{expr}])					*getcharstr()*
 		Get a single character from the user or input stream as a
 		string.
-		If [expr] is omitted, wait until a character is available.
-		If [expr] is 0 or false, only get a character when one is
+		If {expr} is omitted, wait until a character is available.
+		If {expr} is 0 or false, only get a character when one is
 			available.  Return an empty string otherwise.
-		If [expr] is 1 or true, only check if a character is
+		If {expr} is 1 or true, only check if a character is
 			available, it is not consumed.  Return an empty string
 			if no character is available.
 		Otherwise this works like |getchar()|, except that a number
@@ -4263,6 +4276,59 @@ getreginfo([{regname}])					*getreginfo()*
 		Can also be used as a |method|: >
 			GetRegname()->getreginfo()
 
+getregion({pos1}, {pos2} [, {opts}])			*getregion()*
+		Returns the list of strings from {pos1} to {pos2} from a
+		buffer.
+
+		{pos1} and {pos2} must both be |List|s with four numbers.
+		See |getpos()| for the format of the list.  It's possible
+		to specify positions from a different buffer, but please
+		note the limitations at |getregion-notes|.
+
+		The optional argument {opts} is a Dict and supports the
+		following items:
+
+			type		Specify the region's selection type
+					(default: "v"):
+			    "v"		for |characterwise| mode
+			    "V"		for |linewise| mode
+			    "<CTRL-V>"	for |blockwise-visual| mode
+
+			exclusive	If |TRUE|, use exclusive selection
+					for the end position
+					(default: follow 'selection')
+
+		You can get the last selection type by |visualmode()|.
+		If Visual mode is active, use |mode()| to get the Visual mode
+		(e.g., in a |:vmap|).
+		This function is useful to get text starting and ending in
+		different columns, such as a |characterwise-visual| selection.
+
+							*getregion-notes*
+		Note that:
+		- Order of {pos1} and {pos2} doesn't matter, it will always
+		  return content from the upper left position to the lower
+		  right position.
+		- If 'virtualedit' is enabled and the region is past the end
+		  of the lines, resulting lines are padded with spaces.
+		- If the region is blockwise and it starts or ends in the
+		  middle of a multi-cell character, it is not included but
+		  its selected part is substituted with spaces.
+		- If {pos1} and {pos2} are not in the same buffer, an empty
+		  list is returned.
+		- {pos1} and {pos2} must belong to a |bufloaded()| buffer.
+		- It is evaluated in current window context, which makes a
+		  difference if the buffer is displayed in a window with
+		  different 'virtualedit' or 'list' values.
+
+		Examples: >
+			:xnoremap <CR>
+			\ <Cmd>echow getregion(
+			\ getpos('v'), getpos('.'), #{ type: mode() })<CR>
+<
+		Can also be used as a |method|: >
+			getpos('.')->getregion(getpos("'a"))
+<
 getregtype([{regname}])					*getregtype()*
 		The result is a String, which is type of register {regname}.
 		The value will be one of:
@@ -5422,7 +5488,9 @@ len({expr})	The result is a Number, which is the length of the argument.
 		When {expr} is a |Blob| the number of bytes is returned.
 		When {expr} is a |Dictionary| the number of entries in the
 		|Dictionary| is returned.
-		Otherwise an error is given and returns zero.
+		When {expr} is an |Object|, invokes the len() method in the
+		object (if present) to get the length (|object-len()|).
+		Otherwise returns zero.
 
 		Can also be used as a |method|: >
 			mylist->len()
@@ -6043,6 +6111,7 @@ match({expr}, {pat} [, {start} [, {count}]])			*match()*
 		Note that when {count} is added the way {start} works changes,
 		see above.
 
+						*match-pattern*
 		See |pattern| for the patterns that are accepted.
 		The 'ignorecase' option is used to set the ignore-caseness of
 		the pattern.  'smartcase' is NOT used.  The matching is always
@@ -6189,6 +6258,9 @@ matchbufline({buf}, {pat}, {lnum}, {end}, [, {dict}])
 
 		This function works only for loaded buffers. First call
 		|bufload()| if needed.
+
+		See |match-pattern| for information about the effect of some
+		option settings on the pattern.
 
 		When {buf} is not a valid buffer, the buffer is not loaded or
 		{lnum} or {end} is not valid then an error is given and an
@@ -6363,6 +6435,9 @@ matchstrlist({list}, {pat} [, {dict}])
 		    text	matched string
 		    submatches	a List of submatches.  Present only if
 				"submatches" is set to v:true in {dict}.
+
+		See |match-pattern| for information about the effect of some
+		option settings on the pattern.
 
 		Example: >
 		    :echo matchstrlist(['tik tok'], '\<\k\+\>')
@@ -6575,8 +6650,8 @@ mkdir({name} [, {flags} [, {prot}]])
 			GetName()->mkdir()
 <
 							*mode()*
-mode([expr])	Return a string that indicates the current mode.
-		If [expr] is supplied and it evaluates to a non-zero Number or
+mode([{expr}])	Return a string that indicates the current mode.
+		If {expr} is supplied and it evaluates to a non-zero Number or
 		a non-empty String (|non-zero-arg|), then the full mode is
 		returned, otherwise only the first letter is returned.
 		Also see |state()|.
@@ -7032,6 +7107,9 @@ printf({fmt}, {expr1} ...)				*printf()*
 <		    1.4142 >
 		    echo printf("%1$*2$.*3$f", 1.4142135, 6, 2)
 <		      1.41
+
+		You will get an overflow error |E1510|, when the field-width
+		or precision will result in a string longer than 6400 chars.
 
 							*E1500*
 		You cannot mix positional and non-positional arguments: >
@@ -7908,6 +7986,7 @@ search({pattern} [, {flags} [, {stopline} [, {timeout} [, {skip}]]]])
 		When a match has been found its line number is returned.
 		If there is no match a 0 is returned and the cursor doesn't
 		move.  No error message is given.
+		To get the matched string, use |matchbufline()|.
 
 		{flags} is a String, which can contain these character flags:
 		'b'	search Backward instead of forward
@@ -9014,7 +9093,8 @@ slice({expr}, {start} [, {end}])			*slice()*
 		Similar to using a |slice| "expr[start : end]", but "end" is
 		used exclusive.  And for a string the indexes are used as
 		character indexes instead of byte indexes, like in
-		|vim9script|.  Also, composing characters are not counted.
+		|vim9script|.  Also, composing characters are treated as a
+		part of the preceding base character.
 		When {end} is omitted the slice continues to the last item.
 		When {end} is -1 the last item is omitted.
 		Returns an empty value if {start} or {end} are invalid.
@@ -9411,8 +9491,8 @@ strcharpart({src}, {start} [, {len} [, {skipcc}]])		*strcharpart()*
 		of byte index and length.
 		When {skipcc} is omitted or zero, composing characters are
 		counted separately.
-		When {skipcc} set to 1, Composing characters are ignored,
-		similar to  |slice()|.
+		When {skipcc} set to 1, composing characters are treated as a
+		part of the preceding base character, similar to |slice()|.
 		When a character index is used where a character does not
 		exist it is omitted and counted as one character.  For
 		example: >
@@ -9430,7 +9510,7 @@ strchars({string} [, {skipcc}])					*strchars()*
 		in String {string}.
 		When {skipcc} is omitted or zero, composing characters are
 		counted separately.
-		When {skipcc} set to 1, Composing characters are ignored.
+		When {skipcc} set to 1, composing characters are ignored.
 		|strcharlen()| always does this.
 
 		Returns zero on error.
@@ -9543,10 +9623,16 @@ string({expr})	Return {expr} converted to a String.  If {expr} is a Number,
 			Dictionary	{key: value, key: value}
 			Class		class SomeName
 			Object		object of SomeName {lnum: 1, col: 3}
+			Enum		enum EnumName
+			EnumValue	enum name.value {name: str, ordinal: nr}
 
 		When a |List| or |Dictionary| has a recursive reference it is
 		replaced by "[...]" or "{...}".  Using eval() on the result
 		will then fail.
+
+		For an object, invokes the string() method to get a textual
+		representation of the object.  If the method is not present,
+		then the default representation is used. |object-string()|
 
 		Can also be used as a |method|: >
 			mylist->string()
@@ -10402,6 +10488,8 @@ type({expr})	The result is a Number representing the type of {expr}.
 			Class:	   12  |v:t_class|
 			Object:	   13  |v:t_object|
 			Typealias: 14  |v:t_typealias|
+			Enum:	   15  |v:t_enum|
+			EnumValue: 16  |v:t_enumvalue|
 		For backward compatibility, this method can be used: >
 			:if type(myvar) == type(0)
 			:if type(myvar) == type("")
@@ -10774,17 +10862,16 @@ win_screenpos({nr})					*win_screenpos()*
 		[1, 1], unless there is a tabline, then it is [2, 1].
 		{nr} can be the window number or the |window-ID|.  Use zero
 		for the current window.
-		Returns [0, 0] if the window cannot be found in the current
-		tabpage.
+		Returns [0, 0] if the window cannot be found.
 
 		Can also be used as a |method|: >
 			GetWinid()->win_screenpos()
 <
 win_splitmove({nr}, {target} [, {options}])		*win_splitmove()*
-		Move the window {nr} to a new split of the window {target}.
-		This is similar to moving to {target}, creating a new window
-		using |:split| but having the same contents as window {nr}, and
-		then closing {nr}.
+		Temporarily switch to window {target}, then move window {nr}
+		to a new split adjacent to {target}.
+		Unlike commands such as |:split|, no new windows are created
+		(the |window-ID| of window {nr} is unchanged after the move).
 
 		Both {nr} and {target} can be window numbers or |window-ID|s.
 		Both must be in the current tab page.
@@ -10893,7 +10980,9 @@ winnr([{arg}])	The result is a Number, which is the number of the current
 			#	the number of the last accessed window (where
 				|CTRL-W_p| goes to).  If there is no previous
 				window or it is in another tab page 0 is
-				returned.
+				returned.  May refer to the current window in
+				some cases (e.g. when evaluating 'statusline'
+				expressions).
 			{N}j	the number of the Nth window below the
 				current window (where |CTRL-W_j| goes to).
 			{N}k	the number of the Nth window above the current
@@ -11135,6 +11224,7 @@ cscope			Compiled with |cscope| support.
 cursorbind		Compiled with |'cursorbind'| (always true)
 debug			Compiled with "DEBUG" defined.
 dialog_con		Compiled with console dialog support.
+dialog_con_gui		Compiled with console and GUI dialog support.
 dialog_gui		Compiled with GUI dialog support.
 diff			Compiled with |vimdiff| and 'diff' support.
 digraphs		Compiled with support for digraphs.

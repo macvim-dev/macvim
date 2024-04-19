@@ -1104,6 +1104,27 @@ def Test_assignment_partial()
       Ref(0)
   END
   v9.CheckScriptFailure(lines, 'E1013: Argument 2: type mismatch, expected string but got number')
+
+  lines =<< trim END
+    var Fn1 = () => {
+        return 10
+      }
+    assert_equal('func(): number', typename(Fn1))
+    var Fn2 = () => {
+        return "a"
+      }
+    assert_equal('func(): string', typename(Fn2))
+    var Fn3 = () => {
+        return {a: [1]}
+      }
+    assert_equal('func(): dict<list<number>>', typename(Fn3))
+    var Fn4 = (...l: list<string>) => {
+        return []
+      }
+    assert_equal('func(...list<string>): list<any>', typename(Fn4))
+  END
+  v9.CheckSourceSuccess(['vim9script'] + lines)
+  v9.CheckSourceSuccess(['def Xfunc()'] + lines + ['enddef', 'defcompile'])
 enddef
 
 def Test_assignment_list_any_index()
@@ -1993,6 +2014,31 @@ def Test_heredoc()
         TEXT
         call assert_equal(['var foo =<< trim FOO'], foo_3_bar)
       endfunc
+      Func()
+  END
+  v9.CheckScriptSuccess(lines)
+
+  # commented out heredoc assignment without space after '#'
+  lines =<< trim END
+      vim9script
+      def Func()
+        #x =<< trim [CODE]
+        #[CODE]
+      enddef
+      Func()
+  END
+  v9.CheckScriptSuccess(lines)
+
+  # heredoc start should not be recognized in string
+  lines =<< trim END
+      vim9script
+      def Func()
+        new
+        @" = 'bar'
+        ['foo', @"]->setline("]=<<"->count('='))
+        assert_equal(['foo', 'bar'], getline(1, '$'))
+        bwipe!
+      enddef
       Func()
   END
   v9.CheckScriptSuccess(lines)
@@ -2938,6 +2984,66 @@ def Test_heredoc_expr()
   CODE
   v9.CheckDefAndScriptSuccess(lines)
 
+  # Evaluate a dictionary
+  lines =<< trim CODE
+    var d1 = {'a': 10, 'b': [1, 2]}
+    var code =<< trim eval END
+      var d2 = {d1}
+    END
+    assert_equal(["var d2 = {'a': 10, 'b': [1, 2]}"], code)
+  CODE
+  v9.CheckDefAndScriptSuccess(lines)
+
+  # Evaluate an empty dictionary
+  lines =<< trim CODE
+    var d1 = {}
+    var code =<< trim eval END
+      var d2 = {d1}
+    END
+    assert_equal(["var d2 = {}"], code)
+  CODE
+  v9.CheckDefAndScriptSuccess(lines)
+
+  # Evaluate a null dictionary
+  lines =<< trim CODE
+    var d1 = test_null_dict()
+    var code =<< trim eval END
+      var d2 = {d1}
+    END
+    assert_equal(["var d2 = {}"], code)
+  CODE
+  v9.CheckDefAndScriptSuccess(lines)
+
+  # Evaluate a List
+  lines =<< trim CODE
+    var l1 = ['a', 'b', 'c']
+    var code =<< trim eval END
+      var l2 = {l1}
+    END
+    assert_equal(["var l2 = ['a', 'b', 'c']"], code)
+  CODE
+  v9.CheckDefAndScriptSuccess(lines)
+
+  # Evaluate an empty List
+  lines =<< trim CODE
+    var l1 = []
+    var code =<< trim eval END
+      var l2 = {l1}
+    END
+    assert_equal(["var l2 = []"], code)
+  CODE
+  v9.CheckDefAndScriptSuccess(lines)
+
+  # Evaluate a null List
+  lines =<< trim CODE
+    var l1 = test_null_list()
+    var code =<< trim eval END
+      var l2 = {l1}
+    END
+    assert_equal(["var l2 = []"], code)
+  CODE
+  v9.CheckDefAndScriptSuccess(lines)
+
   lines =<< trim CODE
     var code =<< eval trim END
       var s = "{$SOME_ENV_VAR}"
@@ -3482,6 +3588,103 @@ def Test_assign_type_to_list_dict()
     F()
   END
   v9.CheckScriptFailure(lines, 'E1407: Cannot use a Typealias as a variable or value')
+enddef
+
+" Test for modifying a final variable using a compound operator
+def Test_final_var_modification_with_compound_op()
+  var lines =<< trim END
+    vim9script
+
+    final i: number = 1000
+    assert_fails('i += 2', 'E46: Cannot change read-only variable "i"')
+    assert_fails('i -= 2', 'E46: Cannot change read-only variable "i"')
+    assert_fails('i *= 2', 'E46: Cannot change read-only variable "i"')
+    assert_fails('i /= 2', 'E46: Cannot change read-only variable "i"')
+    assert_fails('i %= 2', 'E46: Cannot change read-only variable "i"')
+    assert_equal(1000, i)
+
+    final f: float = 1000.0
+    assert_fails('f += 2', 'E46: Cannot change read-only variable "f"')
+    assert_fails('f -= 2', 'E46: Cannot change read-only variable "f"')
+    assert_fails('f *= 2', 'E46: Cannot change read-only variable "f"')
+    assert_fails('f /= 2', 'E46: Cannot change read-only variable "f"')
+    assert_equal(1000.0, f)
+
+    final s: string = 'abc'
+    assert_fails('s ..= "y"', 'E46: Cannot change read-only variable "s"')
+    assert_equal('abc', s)
+  END
+  v9.CheckScriptSuccess(lines)
+enddef
+
+" Test for modifying a final variable with a List value
+def Test_final_var_with_list_value()
+  var lines =<< trim END
+    vim9script
+
+    final listA: list<string> = []
+    var listB = listA
+
+    listB->add('a')
+    assert_true(listA is listB)
+    assert_equal(['a'], listA)
+    assert_equal(['a'], listB)
+
+    listB += ['b']
+    assert_true(listA is listB)
+    assert_equal(['a', 'b'], listA)
+    assert_equal(['a', 'b'], listB)
+
+    listA->add('c')
+    assert_true(listA is listB)
+    assert_equal(['a', 'b', 'c'], listA)
+    assert_equal(['a', 'b', 'c'], listB)
+
+    listA += ['d']
+    assert_true(listA is listB)
+    assert_equal(['a', 'b', 'c', 'd'], listA)
+    assert_equal(['a', 'b', 'c', 'd'], listB)
+  END
+  v9.CheckScriptSuccess(lines)
+enddef
+
+" Test for modifying a final variable with a List value using "+=" from a legacy
+" function.
+func Test_final_var_with_list_value_legacy()
+  vim9cmd final g:TestVar = ['a']
+  vim9cmd g:TestVar += ['b']
+  call assert_equal(['a', 'b'], g:TestVar)
+endfunc
+
+" Test for modifying a final variable with a Blob value
+def Test_final_var_with_blob_value()
+  var lines =<< trim END
+    vim9script
+
+    final blobA: blob = 0z10
+    var blobB = blobA
+
+    blobB->add(32)
+    assert_true(blobA is blobB)
+    assert_equal(0z1020, blobA)
+    assert_equal(0z1020, blobB)
+
+    blobB += 0z30
+    assert_true(blobA is blobB)
+    assert_equal(0z102030, blobA)
+    assert_equal(0z102030, blobB)
+
+    blobA->add(64)
+    assert_true(blobA is blobB)
+    assert_equal(0z10203040, blobA)
+    assert_equal(0z10203040, blobB)
+
+    blobA += 0z50
+    assert_true(blobA is blobB)
+    assert_equal(0z1020304050, blobA)
+    assert_equal(0z1020304050, blobB)
+  END
+  v9.CheckScriptSuccess(lines)
 enddef
 
 " vim: ts=8 sw=2 sts=2 expandtab tw=80 fdm=marker

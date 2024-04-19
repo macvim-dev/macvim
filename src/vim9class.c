@@ -168,7 +168,8 @@ struct oc_newmember_S
 /*
  * Add a member to an object or a class.
  * Returns OK when successful, "init_expr" will be consumed then.
- * Returns FAIL otherwise, caller might need to free "init_expr".
+ * Returns OK on success and FAIL on memory allocation failure (caller might
+ * need to free "init_expr").
  */
     static int
 add_member(
@@ -208,7 +209,7 @@ add_member(
  * "parent_count" is the number of members in the parent class
  * "members" will be set to the newly allocated array of members and
  * "member_count" set to the number of members.
- * Returns OK or FAIL.
+ * Returns OK on success and FAIL on memory allocation failure.
  */
     static int
 add_members_to_class(
@@ -301,12 +302,19 @@ object_index_from_itf_index(class_T *itf, int is_method, int idx, class_T *cl)
  */
     static int
 validate_extends_class(
+    class_T *cl,
     char_u  *extends_name,
     class_T **extends_clp,
     int	    is_class)
 {
     typval_T	tv;
     int		success = FALSE;
+
+    if (STRCMP(cl->class_name, extends_name) == 0)
+    {
+	semsg(_(e_cannot_extend_str), extends_name);
+	return success;
+    }
 
     tv.v_type = VAR_UNKNOWN;
     if (eval_variable_import(extends_name, &tv) == FAIL)
@@ -316,13 +324,15 @@ validate_extends_class(
     }
 
     if (tv.v_type != VAR_CLASS || tv.vval.v_class == NULL
-	    || (is_class
-		&& (tv.vval.v_class->class_flags & CLASS_INTERFACE) != 0)
-	    || (!is_class
-		&& (tv.vval.v_class->class_flags & CLASS_INTERFACE) == 0))
-	// a interface cannot extend a class and a class cannot extend an
-	// interface.
+	    || (is_class && IS_INTERFACE(tv.vval.v_class))
+	    || (!is_class && !IS_INTERFACE(tv.vval.v_class))
+	    || (is_class && IS_ENUM(tv.vval.v_class)))
+    {
+	// a class cannot extend an interface
+	// an interface cannot extend a class
+	// a class cannot extend an enum.
 	semsg(_(e_cannot_extend_str), extends_name);
+    }
     else
     {
 	class_T *extends_cl = tv.vval.v_class;
@@ -786,7 +796,7 @@ validate_implements_classes(
 
 	if (tv.v_type != VAR_CLASS
 		|| tv.vval.v_class == NULL
-		|| (tv.vval.v_class->class_flags & CLASS_INTERFACE) == 0)
+		|| !IS_INTERFACE(tv.vval.v_class))
 	{
 	    semsg(_(e_not_valid_interface_str), impl);
 	    success = FALSE;
@@ -974,6 +984,100 @@ is_valid_constructor(ufunc_T *uf, int is_abstract, int has_static)
 }
 
 /*
+ * Returns TRUE if 'uf' is a supported builtin method and has the correct
+ * method signature.
+ */
+    static int
+object_check_builtin_method_sig(ufunc_T *uf)
+{
+    char_u  *name = uf->uf_name;
+    int	    valid = FALSE;
+    type_T  method_sig;
+    type_T  method_rt;
+    where_T where = WHERE_INIT;
+
+    // validate the method signature
+    CLEAR_FIELD(method_sig);
+    CLEAR_FIELD(method_rt);
+    method_sig.tt_type = VAR_FUNC;
+
+    if (STRCMP(name, "len") == 0)
+    {
+	// def __len(): number
+	method_rt.tt_type = VAR_NUMBER;
+	method_sig.tt_member = &method_rt;
+	valid = TRUE;
+    }
+    else if (STRCMP(name, "empty") == 0)
+    {
+	// def __empty(): bool
+	method_rt.tt_type = VAR_BOOL;
+	method_sig.tt_member = &method_rt;
+	valid = TRUE;
+    }
+    else if (STRCMP(name, "string") == 0)
+    {
+	// def __string(): string
+	method_rt.tt_type = VAR_STRING;
+	method_sig.tt_member = &method_rt;
+	valid = TRUE;
+    }
+    else
+	semsg(_(e_builtin_object_method_str_not_supported), uf->uf_name);
+
+    where.wt_func_name = (char *)uf->uf_name;
+    where.wt_kind = WT_METHOD;
+    if (valid && !check_type(&method_sig, uf->uf_func_type, TRUE, where))
+	valid = FALSE;
+
+    return valid;
+}
+
+/*
+ * Returns TRUE if "funcname" is a supported builtin object method name
+ */
+    int
+is_valid_builtin_obj_methodname(char_u *funcname)
+{
+    switch (funcname[0])
+    {
+	case 'e':
+	    return STRNCMP(funcname, "empty", 5) == 0;
+
+	case 'l':
+	    return STRNCMP(funcname, "len", 3) == 0;
+
+	case 'n':
+	    return STRNCMP(funcname, "new", 3) == 0;
+
+	case 's':
+	    return STRNCMP(funcname, "string", 6) == 0;
+    }
+
+    return FALSE;
+}
+
+
+/*
+ * Returns the builtin method "name" in object "obj".  Returns NULL if the
+ * method is not found.
+ */
+    ufunc_T *
+class_get_builtin_method(
+    class_T		*cl,
+    class_builtin_T	builtin_method,
+    int			*method_idx)
+{
+    *method_idx = -1;
+
+    if (cl == NULL)
+	return NULL;
+
+    *method_idx = cl->class_builtin_methods[builtin_method];
+    return *method_idx != -1 ? cl->class_obj_methods[*method_idx] : NULL;
+}
+
+/*
  * Update the interface class lookup table for the member index on the
  * interface to the member index in the class implementing the interface.
  * And a lookup table for the object method index on the interface
@@ -1133,14 +1237,14 @@ add_lookup_tables(class_T *cl, class_T *extends_cl, garray_T *objmethods_gap)
  * Add class members to a new class.  Allocate a typval for each class member
  * and initialize it.
  */
-    static void
+    static int
 add_class_members(class_T *cl, exarg_T *eap, garray_T *type_list_gap)
 {
     // Allocate a typval for each class member and initialize it.
     cl->class_members_tv = ALLOC_CLEAR_MULT(typval_T,
 					    cl->class_class_member_count);
     if (cl->class_members_tv == NULL)
-	return;
+	return FAIL;
 
     for (int i = 0; i < cl->class_class_member_count; ++i)
     {
@@ -1149,19 +1253,19 @@ add_class_members(class_T *cl, exarg_T *eap, garray_T *type_list_gap)
 	if (m->ocm_init != NULL)
 	{
 	    typval_T *etv = eval_expr(m->ocm_init, eap);
-	    if (etv != NULL)
-	    {
-		if (m->ocm_type->tt_type == VAR_ANY
-			&& !(m->ocm_flags & OCMFLAG_HAS_TYPE)
-			&& etv->v_type != VAR_SPECIAL)
-		    // If the member variable type is not yet set, then use
-		    // the initialization expression type.
-		    m->ocm_type = typval2type(etv, get_copyID(),
-					type_list_gap,
-					TVTT_DO_MEMBER|TVTT_MORE_SPECIFIC);
-		*tv = *etv;
-		vim_free(etv);
-	    }
+	    if (etv == NULL)
+		return FAIL;
+
+	    if (m->ocm_type->tt_type == VAR_ANY
+		    && !(m->ocm_flags & OCMFLAG_HAS_TYPE)
+		    && etv->v_type != VAR_SPECIAL)
+		// If the member variable type is not yet set, then use
+		// the initialization expression type.
+		m->ocm_type = typval2type(etv, get_copyID(),
+			type_list_gap,
+			TVTT_DO_MEMBER|TVTT_MORE_SPECIFIC);
+	    *tv = *etv;
+	    vim_free(etv);
 	}
 	else
 	{
@@ -1172,6 +1276,8 @@ add_class_members(class_T *cl, exarg_T *eap, garray_T *type_list_gap)
 	if (m->ocm_flags & OCMFLAG_CONST)
 	    item_lock(tv, DICT_MAXNEST, TRUE, TRUE);
     }
+
+    return OK;
 }
 
 /*
@@ -1183,13 +1289,21 @@ add_default_constructor(
     garray_T	*classfunctions_gap,
     garray_T	*type_list_gap)
 {
-    garray_T fga;
+    garray_T	fga;
+    int		is_enum = IS_ENUM(cl);
 
     ga_init2(&fga, 1, 1000);
     ga_concat(&fga, (char_u *)"new(");
     for (int i = 0; i < cl->class_obj_member_count; ++i)
     {
-	if (i > 0)
+	if (i < 2 && is_enum)
+	    // The first two object variables in an enum are the enum value
+	    // name and ordinal.  Don't initialize these object variables in
+	    // the default constructor as they are already initialized right
+	    // after creating the object.
+	    continue;
+
+	if (i > (is_enum ? 2 : 0))
 	    ga_concat(&fga, (char_u *)", ");
 	ga_concat(&fga, (char_u *)"this.");
 	ocmember_T *m = cl->class_obj_members + i;
@@ -1235,6 +1349,7 @@ add_default_constructor(
  * Add the class methods and object methods to the new class "cl".
  * When extending a class "extends_cl", add the instance methods from the
  * parent class also.
+ * Returns OK on success and FAIL on memory allocation failure.
  */
     static int
 add_classfuncs_objmethods(
@@ -1272,7 +1387,7 @@ add_classfuncs_objmethods(
 
 	if (gap->ga_len != 0)
 	    mch_memmove(*fup, gap->ga_data, sizeof(ufunc_T *) * gap->ga_len);
-	vim_free(gap->ga_data);
+	VIM_CLEAR(gap->ga_data);
 	if (loop == 1)
 	    cl->class_class_function_count_child = gap->ga_len;
 	else
@@ -1321,9 +1436,38 @@ add_classfuncs_objmethods(
 	    if (loop == 2)
 		fp->uf_flags |= FC_OBJECT;
 	}
+
+	ga_clear(gap);
     }
 
     return OK;
+}
+
+/*
+ * Update the index of object methods called by builtin functions.
+ */
+    static void
+update_builtin_method_index(class_T *cl)
+{
+    int	i;
+
+    for (i = 0; i < CLASS_BUILTIN_MAX; i++)
+	cl->class_builtin_methods[i] = -1;
+
+    for (i = 0; i < cl->class_obj_method_count; i++)
+    {
+	ufunc_T *uf = cl->class_obj_methods[i];
+
+	if (cl->class_builtin_methods[CLASS_BUILTIN_STRING] == -1
+		&& STRCMP(uf->uf_name, "string") == 0)
+	    cl->class_builtin_methods[CLASS_BUILTIN_STRING] = i;
+	else if (cl->class_builtin_methods[CLASS_BUILTIN_EMPTY] == -1 &&
+		STRCMP(uf->uf_name, "empty") == 0)
+	    cl->class_builtin_methods[CLASS_BUILTIN_EMPTY] = i;
+	else if (cl->class_builtin_methods[CLASS_BUILTIN_LEN] == -1 &&
+		STRCMP(uf->uf_name, "len") == 0)
+	    cl->class_builtin_methods[CLASS_BUILTIN_LEN] = i;
+    }
 }
 
 /*
@@ -1343,6 +1487,246 @@ find_class_name_end(char_u *arg)
     return end;
 }
 
+/*
+ * Returns TRUE if the enum value "varname" is already defined.
+ */
+    static int
+is_duplicate_enum(
+    garray_T	*enum_gap,
+    char_u	*varname,
+    char_u	*varname_end)
+{
+    char_u	*name = vim_strnsave(varname, varname_end - varname);
+    int		dup = FALSE;
+
+    for (int i = 0; i < enum_gap->ga_len; ++i)
+    {
+	ocmember_T *m = ((ocmember_T *)enum_gap->ga_data) + i;
+	if (STRCMP(name, m->ocm_name) == 0)
+	{
+	    semsg(_(e_duplicate_enum_str), name);
+	    dup = TRUE;
+	    break;
+	}
+    }
+
+    vim_free(name);
+    return dup;
+}
+
+/*
+ * Parse the enum values in "line" separated by comma and add them to "gap".
+ * If the last enum value is found, then "enum_end" is set to TRUE.
+ */
+    static int
+enum_parse_values(
+    exarg_T	*eap,
+    class_T	*en,
+    char_u	*line,
+    garray_T	*gap,
+    int		*num_enum_values,
+    int		*enum_end)
+{
+    evalarg_T	evalarg;
+    char_u	*p = line;
+    char	initexpr_buf[1024];
+    char_u	last_char = NUL;
+    int		rc = OK;
+
+    fill_evalarg_from_eap(&evalarg, eap, FALSE);
+
+    int		did_emsg_before = did_emsg;
+    while (*p != NUL)
+    {
+	// ignore comment
+	if (*p == '#')
+	    break;
+
+	if (!eval_isnamec1(*p))
+	{
+	    semsg(_(e_invalid_enum_value_declaration_str), p);
+	    break;
+	}
+
+	char_u *eni_name_start = p;
+	char_u *eni_name_end = to_name_end(p, FALSE);
+
+	if (is_duplicate_enum(gap, eni_name_start, eni_name_end))
+	    break;
+
+	p = skipwhite(eni_name_end);
+
+	char_u	*init_expr = NULL;
+	if (*p == '(')
+	{
+	    if (VIM_ISWHITE(p[-1]))
+	    {
+		semsg(_(e_no_white_space_allowed_before_str_str), "(", line);
+		break;
+	    }
+
+	    char_u *expr_start, *expr_end;
+
+	    p = eni_name_start;
+	    (void)skip_expr_concatenate(&p, &expr_start, &expr_end, &evalarg);
+
+	    while (*expr_start && *expr_start != '(')
+		expr_start++;
+
+	    if (expr_end > expr_start)
+		init_expr = vim_strnsave(expr_start, expr_end - expr_start);
+	}
+
+	if (init_expr == NULL)
+	    vim_snprintf(initexpr_buf, sizeof(initexpr_buf), "%s.new()",
+						    en->class_name);
+	else
+	{
+	    vim_snprintf(initexpr_buf, sizeof(initexpr_buf), "%s.new%s",
+					    en->class_name, init_expr);
+	    vim_free(init_expr);
+	}
+	if (add_member(gap, eni_name_start, eni_name_end, FALSE,
+				TRUE, TRUE, TRUE, &en->class_object_type,
+				vim_strsave((char_u *)initexpr_buf)) == FAIL)
+	    break;
+
+	++*num_enum_values;
+
+	if (*p != '#')
+	    last_char = *p;
+
+	if (*p != NUL && *p != ',')
+	    break;
+
+	if (*p == ',')
+	{
+	    if (!IS_WHITE_OR_NUL(p[1]))
+	    {
+		semsg(_(e_white_space_required_after_str_str), ",", line);
+		break;
+	    }
+	    if (VIM_ISWHITE(p[-1]))
+	    {
+		semsg(_(e_no_white_space_allowed_before_str_str), ",", line);
+		break;
+	    }
+	    p = skipwhite(p + 1);
+	}
+    }
+
+    if (*p != NUL && *p != '#')
+    {
+	if (did_emsg == did_emsg_before)
+	    semsg(_(e_missing_comma_before_argument_str), p);
+	rc = FAIL;
+    }
+
+    if (last_char != ',')
+	// last enum value should not be terminated by ","
+	*enum_end = TRUE;
+
+    // Free the memory pointed by expr_start.
+    clear_evalarg(&evalarg, NULL);
+
+    return rc;
+}
+
+/*
+ * Add the "values" class variable (List of enum value objects) to the enum
+ * class "en"
+ */
+    static int
+enum_add_values_member(
+    class_T	*en,
+    garray_T	*gap,
+    int		num_enum_values,
+    garray_T	*type_list_gap)
+{
+    garray_T	fga;
+    int		rc = FAIL;
+
+    ga_init2(&fga, 1, 1000);
+    ga_concat(&fga, (char_u *)"[");
+    for (int i = 0; i < num_enum_values; ++i)
+    {
+	ocmember_T *m = ((ocmember_T *)gap->ga_data) + i;
+
+	if (i > 0)
+	    ga_concat(&fga, (char_u *)", ");
+	ga_concat(&fga, en->class_name);
+	ga_concat(&fga, (char_u *)".");
+	ga_concat(&fga, (char_u *)m->ocm_name);
+    }
+    ga_concat(&fga, (char_u *)"]");
+    ga_append(&fga, NUL);
+
+    char_u *varname = (char_u *)"values";
+
+    type_T *type = get_type_ptr(type_list_gap);
+    if (type == NULL)
+	goto done;
+
+    type->tt_type = VAR_LIST;
+    type->tt_member = get_type_ptr(type_list_gap);
+    if (type->tt_member != NULL)
+    {
+	type->tt_member->tt_type = VAR_OBJECT;
+	type->tt_member->tt_class = en;
+    }
+
+    rc = add_member(gap, varname, varname + 6, FALSE, FALSE, TRUE, TRUE, type,
+					vim_strsave((char_u *)fga.ga_data));
+
+done:
+    vim_free(fga.ga_data);
+
+    return rc;
+}
+
+/*
+ * Clear the constructor method names in a enum class, so that an enum class
+ * cannot be instantiated.
+ */
+    static void
+enum_clear_constructors(class_T *en)
+{
+    for (int i = 0; i < en->class_class_function_count; ++i)
+    {
+	ufunc_T *fp = en->class_class_functions[i];
+
+	if (fp->uf_flags & FC_NEW)
+	    *fp->uf_name = NUL;
+    }
+}
+
+/*
+ * Initialize the name and ordinal object variable in the enum value "enval" in
+ * the enum "en".  These values are set during the enum value object creation.
+ */
+    void
+enum_set_internal_obj_vars(class_T *en, object_T *enval)
+{
+    int	i;
+
+    for (i = 0; i < en->class_class_member_count; ++i)
+    {
+	typval_T *en_tv = en->class_members_tv + i;
+	if (en_tv != NULL && en_tv->v_type == VAR_UNKNOWN)
+	    break;
+    }
+
+    // First object variable is the name
+    ocmember_T *value_ocm = en->class_class_members + i;
+    typval_T *name_tv = (typval_T *)(enval + 1);
+    name_tv->v_type = VAR_STRING;
+    name_tv->vval.v_string = vim_strsave(value_ocm->ocm_name);
+
+    // Second object variable is the ordinal
+    typval_T *ord_tv = (typval_T *)(name_tv + 1);
+    ord_tv->v_type = VAR_NUMBER;
+    ord_tv->vval.v_number = i;
+}
 
 /*
  * Handle ":class" and ":abstract class" up to ":endclass".
@@ -1351,10 +1735,12 @@ find_class_name_end(char_u *arg)
     void
 ex_class(exarg_T *eap)
 {
-    int		is_class = eap->cmdidx == CMD_class;  // FALSE for :interface
+    int		is_class = eap->cmdidx == CMD_class;
+    int		is_abstract = eap->cmdidx == CMD_abstract;
+    int		is_enum = eap->cmdidx == CMD_enum;
+    int		is_interface;
     long	start_lnum = SOURCING_LNUM;
     char_u	*arg = eap->arg;
-    int		is_abstract = eap->cmdidx == CMD_abstract;
 
     if (is_abstract)
     {
@@ -1367,12 +1753,16 @@ ex_class(exarg_T *eap)
 	is_class = TRUE;
     }
 
+    is_interface = !is_class && !is_enum;
+
     if (!current_script_is_vim9()
 		|| (cmdmod.cmod_flags & CMOD_LEGACY)
 		|| !getline_equal(eap->ea_getline, eap->cookie, getsourceline))
     {
 	if (is_class)
 	    emsg(_(e_class_can_only_be_defined_in_vim9_script));
+	else if (is_enum)
+	    emsg(_(e_enum_can_only_be_defined_in_vim9_script));
 	else
 	    emsg(_(e_interface_can_only_be_defined_in_vim9_script));
 	return;
@@ -1382,6 +1772,8 @@ ex_class(exarg_T *eap)
     {
 	if (is_class)
 	    semsg(_(e_class_name_must_start_with_uppercase_letter_str), arg);
+	else if (is_enum)
+	    semsg(_(e_enum_name_must_start_with_uppercase_letter_str), arg);
 	else
 	    semsg(_(e_interface_name_must_start_with_uppercase_letter_str),
 									  arg);
@@ -1394,11 +1786,6 @@ ex_class(exarg_T *eap)
 	return;
     }
     char_u *name_start = arg;
-
-    // "export class" gets used when creating the class, don't use "is_export"
-    // for the items inside the class.
-    int class_export = is_export;
-    is_export = FALSE;
 
     // TODO:
     //    generics: <Tkey, Tentry>
@@ -1417,6 +1804,11 @@ ex_class(exarg_T *eap)
 	//    specifies SomeInterface
 	if (STRNCMP(arg, "extends", 7) == 0 && IS_WHITE_OR_NUL(arg[7]))
 	{
+	    if (is_enum)
+	    {
+		emsg(_(e_enum_cannot_extend_class));
+		goto early_ret;
+	    }
 	    if (extends != NULL)
 	    {
 		emsg(_(e_duplicate_extends));
@@ -1439,7 +1831,7 @@ ex_class(exarg_T *eap)
 	else if (STRNCMP(arg, "implements", 10) == 0
 						   && IS_WHITE_OR_NUL(arg[10]))
 	{
-	    if (!is_class)
+	    if (is_interface)
 	    {
 		emsg(_(e_interface_cannot_use_implements));
 		goto early_ret;
@@ -1521,9 +1913,69 @@ early_ret:
     garray_T objmethods;
     ga_init2(&objmethods, sizeof(ufunc_T *), 10);
 
+    class_T *cl = NULL;
+    class_T *extends_cl = NULL;  // class from "extends" argument
+    class_T **intf_classes = NULL;
+    int	    num_enum_values = 0;
+
+    cl = ALLOC_CLEAR_ONE(class_T);
+    if (cl == NULL)
+	goto cleanup;
+
+    if (is_enum)
+	cl->class_flags = CLASS_ENUM;
+    else if (is_interface)
+	cl->class_flags = CLASS_INTERFACE;
+    else if (is_abstract)
+	cl->class_flags = CLASS_ABSTRACT;
+
+    cl->class_refcount = 1;
+    cl->class_name = vim_strnsave(name_start, name_end - name_start);
+    if (cl->class_name == NULL)
+	goto cleanup;
+
+    cl->class_type.tt_type = VAR_CLASS;
+    cl->class_type.tt_class = cl;
+    cl->class_object_type.tt_type = VAR_OBJECT;
+    cl->class_object_type.tt_class = cl;
+
+    // Add the class to the script-local variables.
+    // TODO: handle other context, e.g. in a function
+    // TODO: does uf_hash need to be cleared?
+    typval_T tv;
+    tv.v_type = VAR_CLASS;
+    tv.vval.v_class = cl;
+    SOURCING_LNUM = start_lnum;
+    int rc = set_var_const(cl->class_name, current_sctx.sc_sid,
+						NULL, &tv, FALSE, 0, 0);
+    if (rc == FAIL)
+	goto cleanup;
+
+    if (is_enum)
+    {
+	// All the enum classes have the name and ordinal object variables.
+	char_u *varname = (char_u *)"name";
+	if (add_member(&objmembers, varname, varname + 4, FALSE, FALSE, TRUE,
+		    TRUE, &t_string, NULL) == FAIL)
+	    goto cleanup;
+
+	varname = (char_u *)"ordinal";
+	if (add_member(&objmembers, varname, varname + 7, FALSE, FALSE, TRUE,
+		    TRUE, &t_number, NULL) == FAIL)
+	    goto cleanup;
+    }
+
+    // "export class" gets used when creating the class, don't use "is_export"
+    // for the items inside the class.
+    is_export = FALSE;
+
+    // When parsing an enum definition, this denotes whether all the enumerated
+    // values are parsed or not.
+    int		enum_end = FALSE;
+
     /*
      * Go over the body of the class/interface until "endclass" or
-     * "endinterface" is found.
+     * "endinterface" or "endenum" is found.
      */
     char_u *theline = NULL;
     int success = FALSE;
@@ -1546,10 +1998,32 @@ early_ret:
 	}
 
 	char_u *p = line;
-	char *end_name = is_class ? "endclass" : "endinterface";
-	if (checkforcmd(&p, end_name, is_class ? 4 : 5))
+
+	char	*end_name;
+	int	shortlen;
+	int	fullen;
+	if (is_class)
 	{
-	    if (STRNCMP(line, end_name, is_class ? 8 : 12) != 0)
+	    end_name = "endclass";
+	    shortlen = 4;
+	    fullen = 8;
+	}
+	else if (is_enum)
+	{
+	    end_name = "endenum";
+	    shortlen = 4;
+	    fullen = 7;
+	}
+	else
+	{
+	    end_name = "endinterface";
+	    shortlen = 5;
+	    fullen = 12;
+	}
+
+	if (checkforcmd(&p, end_name, shortlen))
+	{
+	    if (STRNCMP(line, end_name, fullen) != 0)
 		semsg(_(e_command_cannot_be_shortened_str), line);
 	    else if (*p == '|' || !ends_excmd2(line, p))
 		semsg(_(e_trailing_characters_str), p);
@@ -1557,11 +2031,37 @@ early_ret:
 		success = TRUE;
 	    break;
 	}
-	char *wrong_name = is_class ? "endinterface" : "endclass";
-	if (checkforcmd(&p, wrong_name, is_class ? 5 : 4))
+
+	int	wrong_endname = FALSE;
+	if (is_class)
+	    wrong_endname = checkforcmd(&p, "endinterface", 5)
+					|| checkforcmd(&p, "endenum", 4);
+	else if (is_enum)
+	    wrong_endname = checkforcmd(&p, "endclass", 4)
+					|| checkforcmd(&p, "endinterface", 5);
+	else
+	    wrong_endname = checkforcmd(&p, "endclass", 4)
+					|| checkforcmd(&p, "endenum", 4);
+	if (wrong_endname)
 	{
 	    semsg(_(e_invalid_command_str_expected_str), line, end_name);
 	    break;
+	}
+
+	if (is_enum && !enum_end)
+	{
+	    // In an enum, all the enumerated values are at the beginning
+	    // separated by comma.  The class and object variables/methods
+	    // follow the values.
+	    if (enum_parse_values(eap, cl, line, &classmembers,
+					&num_enum_values, &enum_end) == FAIL)
+		break;
+
+	    if (enum_end)
+		// Add the enum "values" class variable.
+		enum_add_values_member(cl, &classmembers, num_enum_values,
+							&type_list);
+	    continue;
 	}
 
 	int has_public = FALSE;
@@ -1572,13 +2072,19 @@ early_ret:
 		semsg(_(e_command_cannot_be_shortened_str), line);
 		break;
 	    }
-	    if (!is_class)
+	    if (is_interface)
 	    {
 		emsg(_(e_public_variable_not_supported_in_interface));
 		break;
 	    }
 	    has_public = TRUE;
 	    p = skipwhite(line + 6);
+
+	    if (STRNCMP(p, "def", 3) == 0)
+	    {
+		emsg(_(e_public_keyword_not_supported_for_method));
+		break;
+	    }
 
 	    if (STRNCMP(p, "var", 3) != 0 && STRNCMP(p, "static", 6) != 0
 		&& STRNCMP(p, "final", 5) != 0 && STRNCMP(p, "const", 5) != 0)
@@ -1598,7 +2104,14 @@ early_ret:
 		break;
 	    }
 
-	    if (!is_class)
+	    if (is_enum)
+	    {
+		// "abstract" not supported in an enum
+		emsg(_(e_abstract_cannot_be_used_in_enum));
+		break;
+	    }
+
+	    if (is_interface)
 	    {
 		// "abstract" not supported in an interface
 		emsg(_(e_abstract_cannot_be_used_in_interface));
@@ -1631,7 +2144,7 @@ early_ret:
 		break;
 	    }
 
-	    if (!is_class)
+	    if (is_interface)
 	    {
 		emsg(_(e_static_member_not_supported_in_interface));
 		break;
@@ -1654,7 +2167,7 @@ early_ret:
 	    has_var = TRUE;
 	else if (checkforcmd(&p, "final", 5))
 	{
-	    if (!is_class)
+	    if (is_interface)
 	    {
 		emsg(_(e_final_variable_not_supported_in_interface));
 		break;
@@ -1663,7 +2176,7 @@ early_ret:
 	}
 	else if (checkforcmd(&p, "const", 5))
 	{
-	    if (!is_class)
+	    if (is_interface)
 	    {
 		emsg(_(e_const_variable_not_supported_in_interface));
 		break;
@@ -1709,7 +2222,7 @@ early_ret:
 		break;
 	    }
 
-	    if (!is_class && *varname == '_')
+	    if (is_interface && *varname == '_')
 	    {
 		// private variables are not supported in an interface
 		semsg(_(e_protected_variable_not_supported_in_interface),
@@ -1719,15 +2232,12 @@ early_ret:
 
 	    if (parse_member(eap, line, varname, has_public,
 			  &varname_end, &has_type, &type_list, &type,
-			  is_class ? &init_expr: NULL) == FAIL)
+			  !is_interface ? &init_expr: NULL) == FAIL)
 		break;
-	    if (is_reserved_varname(varname, varname_end))
-	    {
-		vim_free(init_expr);
-		break;
-	    }
-	    if (is_duplicate_variable(&classmembers, &objmembers, varname,
-								varname_end))
+
+	    if (is_reserved_varname(varname, varname_end)
+		    || is_duplicate_variable(&classmembers, &objmembers,
+							varname, varname_end))
 	    {
 		vim_free(init_expr);
 		break;
@@ -1758,6 +2268,7 @@ early_ret:
 	{
 	    exarg_T	ea;
 	    garray_T	lines_to_free;
+	    int		is_new = STRNCMP(p, "new", 3) == 0;
 
 	    if (has_public)
 	    {
@@ -1774,12 +2285,17 @@ early_ret:
 		break;
 	    }
 
-	    if (*p == '_' && *(p + 1) == '_')
+	    if (is_interface && *p == '_')
 	    {
-		// double underscore prefix for a method name is currently
-		// reserved.  This could be used in the future to support
-		// object methods called by Vim builtin functions.
-		semsg(_(e_cannot_use_reserved_name_str), p);
+		// private methods are not supported in an interface
+		semsg(_(e_protected_method_not_supported_in_interface), p);
+		break;
+	    }
+
+	    if (has_static && !is_new && SAFE_islower(*p) &&
+					is_valid_builtin_obj_methodname(p))
+	    {
+		semsg(_(e_builtin_class_method_not_supported), p);
 		break;
 	    }
 
@@ -1792,10 +2308,10 @@ early_ret:
 
 	    ga_init2(&lines_to_free, sizeof(char_u *), 50);
 	    int class_flags;
-	    if (is_class)
-		class_flags = abstract_method ? CF_ABSTRACT_METHOD : CF_CLASS;
-	    else
+	    if (is_interface)
 		class_flags = CF_INTERFACE;
+	    else
+		class_flags = abstract_method ? CF_ABSTRACT_METHOD : CF_CLASS;
 	    ufunc_T *uf = define_function(&ea, NULL, &lines_to_free,
 			class_flags, objmembers.ga_data, objmembers.ga_len);
 	    ga_clear_strings(&lines_to_free);
@@ -1803,9 +2319,9 @@ early_ret:
 	    if (uf != NULL)
 	    {
 		char_u	*name = uf->uf_name;
-		int	is_new = STRNCMP(name, "new", 3) == 0;
 
-		if (!is_class && *name == '_')
+		if (is_new && !is_valid_constructor(uf, is_abstract,
+								has_static))
 		{
 		    // private variables are not supported in an interface
 		    semsg(_(e_protected_method_not_supported_in_interface),
@@ -1813,8 +2329,10 @@ early_ret:
 		    func_clear_free(uf, FALSE);
 		    break;
 		}
-		if (is_new && !is_valid_constructor(uf, is_abstract,
-								has_static))
+
+		// check for builtin method
+		if (!is_new && SAFE_islower(*name) &&
+					!object_check_builtin_method_sig(uf))
 		{
 		    func_clear_free(uf, FALSE);
 		    break;
@@ -1848,22 +2366,30 @@ early_ret:
 	{
 	    if (is_class)
 		semsg(_(e_not_valid_command_in_class_str), line);
+	    else if (is_enum)
+		semsg(_(e_not_valid_command_in_enum_str), line);
 	    else
 		semsg(_(e_not_valid_command_in_interface_str), line);
 	    break;
 	}
     }
+
+    if (theline == NULL && !success && is_enum)
+	emsg(_(e_missing_endenum));
+
     vim_free(theline);
 
-    class_T *extends_cl = NULL;  // class from "extends" argument
+    if (success && is_enum && num_enum_values == 0)
+	// Empty enum statement. Add an empty "values" class variable
+	enum_add_values_member(cl, &classmembers, 0, &type_list);
 
     /*
-     * Check a few things before defining the class.
+     * Check a few things
      */
 
     // Check the "extends" class is valid.
     if (success && extends != NULL)
-	success = validate_extends_class(extends, &extends_cl, is_class);
+	success = validate_extends_class(cl, extends, &extends_cl, is_class);
     VIM_CLEAR(extends);
 
     // Check the new object methods to make sure their access (public or
@@ -1890,8 +2416,6 @@ early_ret:
 	success = validate_abstract_class_methods(&classfunctions,
 						&objmethods, extends_cl);
 
-    class_T **intf_classes = NULL;
-
     // Check all "implements" entries are valid.
     if (success && ga_impl.ga_len > 0)
     {
@@ -1906,23 +2430,10 @@ early_ret:
 	success = check_func_arg_names(&classfunctions, &objmethods,
 							&classmembers);
 
-    class_T *cl = NULL;
     if (success)
     {
-	// "endclass" encountered without failures: Create the class.
-
-	cl = ALLOC_CLEAR_ONE(class_T);
-	if (cl == NULL)
-	    goto cleanup;
-	if (!is_class)
-	    cl->class_flags = CLASS_INTERFACE;
-	else if (is_abstract)
-	    cl->class_flags = CLASS_ABSTRACT;
-
-	cl->class_refcount = 1;
-	cl->class_name = vim_strnsave(name_start, name_end - name_start);
-	if (cl->class_name == NULL)
-	    goto cleanup;
+	// "endclass" or "endinterface" or "endenum" encountered without any
+	// failures
 
 	if (extends_cl != NULL)
 	{
@@ -1969,10 +2480,6 @@ early_ret:
 		goto cleanup;
 	}
 
-	// Allocate a typval for each class member and initialize it.
-	if (is_class && cl->class_class_member_count > 0)
-	    add_class_members(cl, eap, &type_list);
-
 	int	have_new = FALSE;
 	ufunc_T	*class_func = NULL;
 	for (int i = 0; i < classfunctions.ga_len; ++i)
@@ -1988,7 +2495,7 @@ early_ret:
 	if (have_new)
 	    // The return type of new() is an object of class "cl"
 	    class_func->uf_ret_type->tt_class = cl;
-	else if (is_class && !is_abstract && !have_new)
+	else if ((is_class || is_enum) && !is_abstract && !have_new)
 	    // No new() method was defined, add the default constructor.
 	    add_default_constructor(cl, &classfunctions, &type_list);
 
@@ -1997,52 +2504,31 @@ early_ret:
 							&objmethods) == FAIL)
 	    goto cleanup;
 
-	cl->class_type.tt_type = VAR_CLASS;
-	cl->class_type.tt_class = cl;
-	cl->class_object_type.tt_type = VAR_OBJECT;
-	cl->class_object_type.tt_class = cl;
-	cl->class_type_list = type_list;
+	update_builtin_method_index(cl);
 
 	class_created(cl);
+
+	// Allocate a typval for each class member and initialize it.
+	if ((is_class || is_enum) && cl->class_class_member_count > 0)
+	    if (add_class_members(cl, eap, &type_list) == FAIL)
+		goto cleanup;
+
+	cl->class_type_list = type_list;
+
+	if (is_enum)
+	{
+	    // clear the constructor method names, so that an enum class cannot
+	    // be instantiated
+	    enum_clear_constructors(cl);
+	}
 
 	// TODO:
 	// - Fill hashtab with object members and methods ?
 
-	// Add the class to the script-local variables.
-	// TODO: handle other context, e.g. in a function
-	// TODO: does uf_hash need to be cleared?
-	typval_T tv;
-	tv.v_type = VAR_CLASS;
-	tv.vval.v_class = cl;
-	is_export = class_export;
-	SOURCING_LNUM = start_lnum;
-	set_var_const(cl->class_name, current_sctx.sc_sid,
-						       NULL, &tv, FALSE, 0, 0);
 	return;
     }
 
 cleanup:
-    if (cl != NULL)
-    {
-	vim_free(cl->class_name);
-	vim_free(cl->class_class_functions);
-	if (cl->class_interfaces != NULL)
-	{
-	    for (int i = 0; i < cl->class_interface_count; ++i)
-		vim_free(cl->class_interfaces[i]);
-	    vim_free(cl->class_interfaces);
-	}
-	if (cl->class_interfaces_cl != NULL)
-	{
-	    for (int i = 0; i < cl->class_interface_count; ++i)
-		class_unref(cl->class_interfaces_cl[i]);
-	    vim_free(cl->class_interfaces_cl);
-	}
-	vim_free(cl->class_obj_members);
-	vim_free(cl->class_obj_methods);
-	vim_free(cl);
-    }
-
     vim_free(extends);
     class_unref(extends_cl);
 
@@ -2146,15 +2632,6 @@ oc_member_type_by_idx(
 	return NULL;
 
     return m[member_idx].ocm_type;
-}
-
-/*
- * Handle ":enum" up to ":endenum".
- */
-    void
-ex_enum(exarg_T *eap UNUSED)
-{
-    // TODO
 }
 
 /*
@@ -2361,6 +2838,14 @@ call_oc_method(
 	if (ocm == NULL || ocm->ocm_type->tt_type != VAR_FUNC)
 	{
 	    method_not_found_msg(cl, rettv->v_type, name, len);
+	    return FAIL;
+	}
+
+	if (*name == '_')
+	{
+	    // Protected object or class funcref variable
+	    semsg(_(e_cannot_access_protected_variable_str), ocm->ocm_name,
+		    cl->class_name);
 	    return FAIL;
 	}
 
@@ -3218,8 +3703,14 @@ member_not_found_msg(class_T *cl, vartype_T v_type, char_u *name, size_t len)
 	    semsg(_(e_object_variable_str_accessible_only_using_object_str),
 		    varname, cl->class_name);
 	else
-	    semsg(_(e_class_variable_str_not_found_in_class_str),
-		    varname, cl->class_name);
+	{
+	    if (IS_ENUM(cl))
+		semsg(_(e_enum_value_str_not_found_in_enum_str),
+			varname, cl->class_name);
+	    else
+		semsg(_(e_class_variable_str_not_found_in_class_str),
+			varname, cl->class_name);
+	}
     }
     vim_free(varname);
 }
@@ -3238,7 +3729,9 @@ defcompile_class(class_T *cl)
 	{
 	    ufunc_T *ufunc = loop == 1 ? cl->class_class_functions[i]
 						: cl->class_obj_methods[i];
-	    defcompile_function(ufunc, cl);
+	    // Don't compile abstract methods
+	    if (!IS_ABSTRACT_METHOD(ufunc))
+		defcompile_function(ufunc, cl);
 	}
     }
 }
@@ -3270,6 +3763,136 @@ is_class_name(char_u *name, typval_T *rettv)
 						EVAL_VAR_NO_FUNC) != FAIL)
 	return rettv->v_type == VAR_CLASS;
     return FALSE;
+}
+
+/*
+ * Calls the object builtin method "name" with arguments "argv".  The value
+ * returned by the builtin method is in "rettv".  Returns OK or FAIL.
+ */
+    static int
+object_call_builtin_method(
+    object_T		*obj,
+    class_builtin_T	builtin_method,
+    int			argc,
+    typval_T		*argv,
+    typval_T		*rettv)
+{
+    ufunc_T *uf;
+    int	    midx;
+
+    if (obj == NULL)
+	return FAIL;
+
+    uf = class_get_builtin_method(obj->obj_class, builtin_method, &midx);
+    if (uf == NULL)
+	return FAIL;
+
+    funccall_T  *fc = create_funccal(uf, rettv);
+    int		r;
+
+    if (fc == NULL)
+	return FAIL;
+
+    ++obj->obj_refcount;
+
+    r = call_def_function(uf, argc, argv, 0, NULL, obj, fc, rettv);
+
+    remove_funccal();
+
+    return r;
+}
+
+/*
+ * Calls the object "empty()" method and returns the method return value.  In
+ * case of an error, returns TRUE.
+ */
+    int
+object_empty(object_T *obj)
+{
+    typval_T	rettv;
+
+    if (object_call_builtin_method(obj, CLASS_BUILTIN_EMPTY, 0, NULL, &rettv)
+								== FAIL)
+	return TRUE;
+
+    return tv_get_bool(&rettv);
+}
+
+/*
+ * Use the object "len()" method to get an object length.  Returns 0 if the
+ * method is not found or there is an error.
+ */
+    int
+object_len(object_T *obj)
+{
+    typval_T	rettv;
+
+    if (object_call_builtin_method(obj, CLASS_BUILTIN_LEN, 0, NULL, &rettv)
+								== FAIL)
+	return 0;
+
+    return tv_to_number(&rettv);
+}
+
+/*
+ * Return a textual representation of object "obj"
+ */
+    char_u *
+object_string(
+    object_T	*obj,
+    char_u	*numbuf,
+    int		copyID,
+    int		echo_style,
+    int		restore_copyID,
+    int		composite_val)
+{
+    typval_T	rettv;
+
+    if (object_call_builtin_method(obj, CLASS_BUILTIN_STRING, 0, NULL, &rettv)
+								== OK
+					&& rettv.vval.v_string != NULL)
+	return rettv.vval.v_string;
+    else
+    {
+	garray_T ga;
+	ga_init2(&ga, 1, 50);
+
+	class_T *cl = obj == NULL ? NULL : obj->obj_class;
+	if (cl != NULL && IS_ENUM(cl))
+	{
+	    ga_concat(&ga, (char_u *)"enum ");
+	    ga_concat(&ga, cl->class_name);
+	    char_u *enum_name = ((typval_T *)(obj + 1))->vval.v_string;
+	    ga_concat(&ga, (char_u *)".");
+	    ga_concat(&ga, enum_name);
+	}
+	else
+	{
+	    ga_concat(&ga, (char_u *)"object of ");
+	    ga_concat(&ga, cl == NULL ? (char_u *)"[unknown]"
+		    : cl->class_name);
+	}
+	if (cl != NULL)
+	{
+	    ga_concat(&ga, (char_u *)" {");
+	    for (int i = 0; i < cl->class_obj_member_count; ++i)
+	    {
+		if (i > 0)
+		    ga_concat(&ga, (char_u *)", ");
+		ocmember_T *m = &cl->class_obj_members[i];
+		ga_concat(&ga, m->ocm_name);
+		ga_concat(&ga, (char_u *)": ");
+		char_u *tf = NULL;
+		ga_concat(&ga, echo_string_core(
+			    (typval_T *)(obj + 1) + i,
+			    &tf, numbuf, copyID, echo_style,
+			    restore_copyID, composite_val));
+		vim_free(tf);
+	    }
+	    ga_concat(&ga, (char_u *)"}");
+	}
+	return ga.ga_data;
+    }
 }
 
 /*

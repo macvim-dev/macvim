@@ -129,6 +129,17 @@ jobs:
         run: |
           brew install libtool
 
+      - name: Install packages for testing
+        run: |
+          # Apple diff is broken. Use GNU diff instead. See http://github.com/vim/vim/issues/14056.
+          brew install diffutils
+
+      - name: Grant microphone access for macos-14
+        if: matrix.os == 'macos-14'
+        run: |
+          # Temporary fix to fix microphone permission issues for macos-14 when playing sound.
+          sqlite3 $HOME/Library/Application\ Support/com.apple.TCC/TCC.db "INSERT OR IGNORE INTO access VALUES ('kTCCServiceMicrophone','/usr/local/opt/runner/provisioner/provisioner',1,2,4,1,NULL,NULL,0,'UNUSED',NULL,0,1687786159,NULL,NULL,'UNUSED',1687786159);"
+
       - name: Install scripting runtimes
         if: matrix.publish
         run: |

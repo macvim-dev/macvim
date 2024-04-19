@@ -289,14 +289,6 @@ do_tag(
     static char_u	**matches = NULL;
     static int		flags;
 
-#ifdef FEAT_EVAL
-    if (tfu_in_use)
-    {
-	emsg(_(e_cannot_modify_tag_stack_within_tagfunc));
-	return FALSE;
-    }
-#endif
-
 #ifdef EXITFREE
     if (type == DT_FREE)
     {
@@ -309,6 +301,17 @@ do_tag(
 	return FALSE;
     }
 #endif
+
+#ifdef FEAT_EVAL
+    if (tfu_in_use)
+    {
+	emsg(_(e_cannot_modify_tag_stack_within_tagfunc));
+	return FALSE;
+    }
+#endif
+
+    if (postponed_split == 0 && !check_can_set_curbuf_forceit(forceit))
+        return FALSE;
 
     if (type == DT_HELP)
     {
@@ -395,7 +398,7 @@ do_tag(
 		    tagstack_clear_entry(&tagstack[0]);
 		    for (i = 1; i < tagstacklen; ++i)
 			tagstack[i - 1] = tagstack[i];
-		    --tagstackidx;
+		    tagstack[--tagstackidx].user_data = NULL;
 		}
 
 		/*
@@ -3704,6 +3707,9 @@ jumpto_tag(
 #endif
     size_t	len;
     char_u	*lbuf;
+
+    if (postponed_split == 0 && !check_can_set_curbuf_forceit(forceit))
+        return FAIL;
 
     // Make a copy of the line, it can become invalid when an autocommand calls
     // back here recursively.

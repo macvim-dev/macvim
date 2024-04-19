@@ -535,11 +535,8 @@ func Test_term_getcursor()
 endfunc
 
 " Test for term_gettitle()
+" Known to be flaky on Mac-OS X and the GH runners
 func Test_term_gettitle()
-  if has('osx') && !empty($CI) && system('uname -m') =~# 'arm64'
-    throw 'Skipped: FIXME: Title got on M1 Mac is broken on GitHub Actions'
-  endif
-
   " term_gettitle() returns an empty string for a non-terminal buffer
   " and for a non-existing buffer.
   call assert_equal('', bufnr('%')->term_gettitle())
@@ -547,6 +544,13 @@ func Test_term_gettitle()
 
   if !has('title') || empty(&t_ts)
     throw "Skipped: can't get/set title"
+  endif
+  if has('osx') && !empty($CI) && system('uname -m') =~# 'arm64'
+    " This test often fails with the following error message on Github runners
+    " MacOS-14
+    " '^\\[No Name\\] - VIM\\d*$' does not match 'e] - VIM'
+    " Why? Is the terminal that runs Vim too small?
+    throw 'Skipped: FIXME: Running this test on M1 Mac fails on GitHub Actions'
   endif
 
   let term = term_start([GetVimProg(), '--clean', '-c', 'set noswapfile', '-c', 'set title'])

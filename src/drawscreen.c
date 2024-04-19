@@ -1028,7 +1028,8 @@ redraw_win_toolbar(win_T *wp)
     }
     wp->w_winbar_items[item_idx].wb_menu = NULL; // end marker
 
-    screen_line(wp, wp->w_winrow, wp->w_wincol, wp->w_width, wp->w_width, 0);
+    screen_line(wp, wp->w_winrow, wp->w_wincol, wp->w_width, wp->w_width, -1,
+									    0);
 }
 #endif
 
@@ -1300,7 +1301,7 @@ fold_line(
 			&& (lnume < bot->lnum
 			    || (lnume == bot->lnum
 				&& (bot->col - (*p_sel == 'e'))
-		>= (colnr_T)STRLEN(ml_get_buf(wp->w_buffer, lnume, FALSE)))))))
+				    >= ml_get_buf_len(wp->w_buffer, lnume))))))
 	{
 	    if (VIsual_mode == Ctrl_V)
 	    {
@@ -1363,7 +1364,7 @@ fold_line(
 #endif
 
     screen_line(wp, row + W_WINROW(wp), wp->w_wincol,
-						  wp->w_width, wp->w_width, 0);
+					      wp->w_width, wp->w_width, -1, 0);
 
     // Update w_cline_height and w_cline_folded if the cursor line was
     // updated (saves a call to plines() later).
@@ -1408,7 +1409,7 @@ fold_line(
  *		   - if wp->w_buffer->b_mod_set set, update lines between
  *		     b_mod_top and b_mod_bot.
  *		   - if wp->w_redraw_top non-zero, redraw lines between
- *		     wp->w_redraw_top and wp->w_redr_bot.
+ *		     wp->w_redraw_top and wp->w_redraw_bot.
  *		   - continue redrawing when syntax status is invalid.
  *		4. if scrolled up, update lines at the bottom.
  * This results in three areas that may need updating:
@@ -1537,7 +1538,7 @@ win_update(win_T *wp)
 
     // Make sure skipcol is valid, it depends on various options and the window
     // width.
-    if (wp->w_skipcol > 0)
+    if (wp->w_skipcol > 0 && wp->w_width > win_col_off(wp))
     {
 	int w = 0;
 	int width1 = wp->w_width - win_col_off(wp);
@@ -1567,14 +1568,6 @@ win_update(win_T *wp)
     else
 #endif
 
-    if (buf->b_mod_set && buf->b_mod_xlines != 0 && wp->w_redraw_top != 0)
-    {
-	// When there are both inserted/deleted lines and specific lines to be
-	// redrawn, w_redraw_top and w_redraw_bot may be invalid, just redraw
-	// everything (only happens when redrawing is off for while).
-	type = UPD_NOT_VALID;
-    }
-    else
     {
 	// Set mod_top to the first line that needs displaying because of
 	// changes.  Set mod_bot to the first line after the changes.
@@ -1699,11 +1692,6 @@ win_update(win_T *wp)
 		top_end = 1;
 #endif
 	}
-
-	// When line numbers are displayed need to redraw all lines below
-	// inserted/deleted lines.
-	if (mod_top != 0 && buf->b_mod_xlines != 0 && wp->w_p_nu)
-	    mod_bot = MAXLNUM;
     }
     wp->w_redraw_top = 0;	// reset for next time
     wp->w_redraw_bot = 0;
@@ -2503,7 +2491,7 @@ win_update(win_T *wp)
 #endif
 
 		// Display one line.
-		row = win_line(wp, lnum, srow, wp->w_height, FALSE, &spv);
+		row = win_line(wp, lnum, srow, wp->w_height, 0, &spv);
 
 #ifdef FEAT_FOLDING
 		wp->w_lines[idx].wl_folded = FALSE;
@@ -2540,17 +2528,23 @@ win_update(win_T *wp)
 	}
 	else
 	{
-	    if (wp->w_p_rnu && wp->w_last_cursor_lnum_rnu != wp->w_cursor.lnum)
+	    // If:
+	    // - 'number' is set and below inserted/deleted lines, or
+	    // - 'relativenumber' is set and cursor moved vertically,
+	    // the text doesn't need to be redrawn, but the number column does.
+	    if ((wp->w_p_nu && mod_top != 0
+			&& lnum >= mod_bot && buf->b_mod_xlines != 0)
+		    || (wp->w_p_rnu
+			&& wp->w_last_cursor_lnum_rnu != wp->w_cursor.lnum))
 	    {
 #ifdef FEAT_FOLDING
-		// 'relativenumber' set and the cursor moved vertically: The
-		// text doesn't need to be drawn, but the number column does.
 		fold_count = foldedCount(wp, lnum, &win_foldinfo);
 		if (fold_count != 0)
 		    fold_line(wp, fold_count, &win_foldinfo, lnum, row);
 		else
 #endif
-		    (void)win_line(wp, lnum, srow, wp->w_height, TRUE, &spv);
+		    (void)win_line(wp, lnum, srow, wp->w_height,
+					       wp->w_lines[idx].wl_size, &spv);
 	    }
 
 	    // This line does not need to be drawn, advance to the next one.
@@ -3056,7 +3050,7 @@ redraw_asap(int type)
 		    mch_memmove(ScreenLines2 + off,
 				screenline2 + r * cols,
 				(size_t)cols * sizeof(schar_T));
-		screen_line(curwin, cmdline_row + r, 0, cols, cols, 0);
+		screen_line(curwin, cmdline_row + r, 0, cols, cols, -1, 0);
 	    }
 	    ret = 4;
 	}

@@ -159,6 +159,8 @@ static struct vimvar
     {VV_NAME("maxcol",		 VAR_NUMBER), NULL, VV_RO},
     {VV_NAME("python3_version",	 VAR_NUMBER), NULL, VV_RO},
     {VV_NAME("t_typealias",	 VAR_NUMBER), NULL, VV_RO},
+    {VV_NAME("t_enum",		 VAR_NUMBER), NULL, VV_RO},
+    {VV_NAME("t_enumvalue",	 VAR_NUMBER), NULL, VV_RO},
     // MacVim-specific value go here
     {VV_NAME("os_appearance",    VAR_NUMBER), NULL, VV_RO},
 };
@@ -264,6 +266,8 @@ evalvars_init(void)
     set_vim_var_nr(VV_TYPE_CLASS,   VAR_TYPE_CLASS);
     set_vim_var_nr(VV_TYPE_OBJECT,  VAR_TYPE_OBJECT);
     set_vim_var_nr(VV_TYPE_TYPEALIAS,  VAR_TYPE_TYPEALIAS);
+    set_vim_var_nr(VV_TYPE_ENUM,  VAR_TYPE_ENUM);
+    set_vim_var_nr(VV_TYPE_ENUMVALUE,  VAR_TYPE_ENUMVALUE);
 
     set_vim_var_nr(VV_ECHOSPACE,    sc_col - 1);
 
@@ -660,7 +664,7 @@ eval_one_expr_in_str(char_u *p, garray_T *gap, int evaluate)
     if (evaluate)
     {
 	*block_end = NUL;
-	expr_val = eval_to_string(block_start, TRUE, FALSE);
+	expr_val = eval_to_string(block_start, FALSE, FALSE);
 	*block_end = '}';
 	if (expr_val == NULL)
 	    return NULL;
@@ -777,8 +781,17 @@ heredoc_get(exarg_T *eap, char_u *cmd, int script_get, int vim9compile)
     int		eval_failed = FALSE;
     cctx_T	*cctx = vim9compile ? eap->cookie : NULL;
     int		count = 0;
+    int		heredoc_in_string = FALSE;
+    char_u	*line_arg = NULL;
+    char_u	*nl_ptr = vim_strchr(cmd, '\n');
 
-    if (eap->ea_getline == NULL)
+    if (nl_ptr != NULL)
+    {
+	heredoc_in_string = TRUE;
+	line_arg = nl_ptr + 1;
+	*nl_ptr = NUL;
+    }
+    else if (eap->ea_getline == NULL)
     {
 	emsg(_(e_cannot_use_heredoc_here));
 	return NULL;
@@ -857,12 +870,38 @@ heredoc_get(exarg_T *eap, char_u *cmd, int script_get, int vim9compile)
 	int	mi = 0;
 	int	ti = 0;
 
-	vim_free(theline);
-	theline = eap->ea_getline(NUL, eap->cookie, 0, FALSE);
-	if (theline == NULL)
+	if (heredoc_in_string)
 	{
-	    semsg(_(e_missing_end_marker_str), marker);
-	    break;
+	    char_u	*next_line;
+
+	    // heredoc in a string separated by newlines.  Get the next line
+	    // from the string.
+
+	    if (*line_arg == NUL)
+	    {
+		semsg(_(e_missing_end_marker_str), marker);
+		break;
+	    }
+
+	    theline = line_arg;
+	    next_line = vim_strchr(theline, '\n');
+	    if (next_line == NULL)
+		line_arg += STRLEN(line_arg);
+	    else
+	    {
+		*next_line = NUL;
+		line_arg = next_line + 1;
+	    }
+	}
+	else
+	{
+	    vim_free(theline);
+	    theline = eap->ea_getline(NUL, eap->cookie, 0, FALSE);
+	    if (theline == NULL)
+	    {
+		semsg(_(e_missing_end_marker_str), marker);
+		break;
+	    }
 	}
 
 	// with "trim": skip the indent matching the :let line to find the
@@ -909,6 +948,8 @@ heredoc_get(exarg_T *eap, char_u *cmd, int script_get, int vim9compile)
 	}
 	else
 	{
+	    int	    free_str = FALSE;
+
 	    if (evalstr && !eap->skip)
 	    {
 		str = eval_all_expr_in_str(str);
@@ -918,15 +959,20 @@ heredoc_get(exarg_T *eap, char_u *cmd, int script_get, int vim9compile)
 		    eval_failed = TRUE;
 		    continue;
 		}
-		vim_free(theline);
-		theline = str;
+		free_str = TRUE;
 	    }
 
 	    if (list_append_string(l, str, -1) == FAIL)
 		break;
+	    if (free_str)
+		vim_free(str);
 	}
     }
-    vim_free(theline);
+    if (heredoc_in_string)
+	// Next command follows the heredoc in the string.
+	eap->nextcmd = line_arg;
+    else
+	vim_free(theline);
     vim_free(text_indent);
 
     if (vim9compile && cctx->ctx_skip != SKIP_YES && !eval_failed)
@@ -3832,7 +3878,7 @@ set_var(
  * If the variable already exists and "is_const" is FALSE the value is updated.
  * Otherwise the variable is created.
  */
-    void
+    int
 set_var_const(
     char_u	*name,
     scid_T	sid,
@@ -3856,6 +3902,7 @@ set_var_const(
     int		var_in_autoload = FALSE;
     int		flags = flags_arg;
     int		free_tv_arg = !copy;  // free tv_arg if not used
+    int		rc = FAIL;
 
     if (sid != 0)
     {
@@ -3979,7 +4026,14 @@ set_var_const(
 	    if (check_typval_is_value(&di->di_tv) == FAIL)
 		goto failed;
 
-	    if (var_in_vim9script && (flags & ASSIGN_FOR_LOOP) == 0)
+	    // List and Blob types can be modified in-place using the "+="
+	    // compound operator.  For other types, this is not allowed.
+	    int type_inplace_modifiable =
+		(di->di_tv.v_type == VAR_LIST || di->di_tv.v_type == VAR_BLOB);
+
+	    if (var_in_vim9script && (flags & ASSIGN_FOR_LOOP) == 0
+		    && ((flags & ASSIGN_COMPOUND_OP) == 0
+			|| !type_inplace_modifiable))
 	    {
 		where_T where = WHERE_INIT;
 		svar_T  *sv = find_typval_in_script(&di->di_tv, sid, TRUE);
@@ -4000,7 +4054,11 @@ set_var_const(
 		}
 	    }
 
-	    if ((flags & ASSIGN_FOR_LOOP) == 0
+	    // Modifying a final variable with a List value using the "+="
+	    // operator is allowed.  For other types, it is not allowed.
+	    if (((flags & ASSIGN_FOR_LOOP) == 0
+			&& ((flags & ASSIGN_COMPOUND_OP) == 0
+			    || !type_inplace_modifiable))
 				 ? var_check_permission(di, name) == FAIL
 				 : var_check_ro(di->di_flags, name, FALSE))
 		goto failed;
@@ -4118,10 +4176,14 @@ set_var_const(
 	// values.
 	item_lock(dest_tv, DICT_MAXNEST, TRUE, TRUE);
 
+    rc = OK;
+
 failed:
     vim_free(name_tofree);
     if (free_tv_arg)
 	clear_tv(tv_arg);
+
+    return rc;
 }
 
 /*
@@ -4834,6 +4896,7 @@ f_settabvar(typval_T *argvars, typval_T *rettv UNUSED)
 {
     tabpage_T	*save_curtab;
     tabpage_T	*tp;
+    tabpage_T	*save_lu_tp;
     char_u	*varname, *tabvarname;
     typval_T	*varp;
 
@@ -4853,6 +4916,7 @@ f_settabvar(typval_T *argvars, typval_T *rettv UNUSED)
 	return;
 
     save_curtab = curtab;
+    save_lu_tp = lastused_tabpage;
     goto_tabpage_tp(tp, FALSE, FALSE);
 
     tabvarname = alloc(STRLEN(varname) + 3);
@@ -4864,9 +4928,13 @@ f_settabvar(typval_T *argvars, typval_T *rettv UNUSED)
 	vim_free(tabvarname);
     }
 
-    // Restore current tabpage
+    // Restore current tabpage and last accessed tabpage.
     if (valid_tabpage(save_curtab))
+    {
 	goto_tabpage_tp(save_curtab, FALSE, FALSE);
+	if (valid_tabpage(save_lu_tp))
+	    lastused_tabpage = save_lu_tp;
+    }
 }
 
 /*

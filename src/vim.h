@@ -36,7 +36,7 @@
 #  error configure did not run properly.  Check auto/config.log.
 # endif
 
-# if (defined(__linux__) && !defined(__ANDROID__)) || defined(__CYGWIN__)
+# if (defined(__linux__) && !defined(__ANDROID__)) || defined(__CYGWIN__) || defined(__GNU__)
 // Needed for strptime().  Needs to be done early, since header files can
 // include other header files and end up including time.h, where these symbols
 // matter for Vim.
@@ -628,6 +628,7 @@ extern int (*dyn_libintl_wputenv)(const wchar_t *envstring);
 // flags for screen_line()
 #define SLF_RIGHTLEFT	1
 #define SLF_POPUP	2
+#define SLF_INC_VCOL	4
 
 #define MB_FILLER_CHAR '<'  // character used when a double-width character
 			    // doesn't fit.
@@ -1257,6 +1258,7 @@ extern int (*dyn_libintl_wputenv)(const wchar_t *envstring);
 #define WSP_BELOW	0x40	// put new window below/right
 #define WSP_ABOVE	0x80	// put new window above/left
 #define WSP_NEWLOC	0x100	// don't copy location list
+#define WSP_FORCE_ROOM	0x200	// ignore "not enough room" errors
 
 /*
  * arguments for gui_set_shellsize()
@@ -1405,6 +1407,7 @@ enum auto_event
     EVENT_SAFESTATE,		// going to wait for a character
     EVENT_SAFESTATEAGAIN,	// still waiting for a character
     EVENT_SESSIONLOADPOST,	// after loading a session file
+    EVENT_SESSIONWRITEPOST,	// after writing a session file
     EVENT_SHELLCMDPOST,		// after ":!cmd"
     EVENT_SHELLFILTERPOST,	// after ":1,2!cmd", ":w !cmd", ":r !cmd".
     EVENT_SIGUSR1,		// after the SIGUSR1 signal
@@ -1515,6 +1518,7 @@ typedef enum
     , HLF_QFL	    // quickfix window line currently selected
     , HLF_ST	    // status lines of terminal windows
     , HLF_STNC	    // status lines of not-current terminal windows
+    , HLF_MSG	    // message area
     , HLF_COUNT	    // MUST be the last one
 } hlf_T;
 
@@ -1526,7 +1530,7 @@ typedef enum
 		  'B', 'P', 'R', 'L', \
 		  '+', '=', '[', ']', '{', '}', 'x', 'X', \
 		  '*', '#', '_', '!', '.', 'o', 'q', \
-		  'z', 'Z'}
+		  'z', 'Z', 'g'}
 
 /*
  * Boolean constants
@@ -2164,9 +2168,11 @@ typedef int sock_T;
 #define VV_MAXCOL	105
 #define VV_PYTHON3_VERSION 106
 #define VV_TYPE_TYPEALIAS 107
+#define VV_TYPE_ENUM	  108
+#define VV_TYPE_ENUMVALUE 109
 // MacVim-specific values go here
-#define VV_OS_APPEARANCE 108
-#define VV_LEN		109	// number of v: vars
+#define VV_OS_APPEARANCE 110
+#define VV_LEN		111	// number of v: vars
 
 // used for v_number in VAR_BOOL and VAR_SPECIAL
 #define VVAL_FALSE	0L	// VAR_BOOL
@@ -2190,6 +2196,8 @@ typedef int sock_T;
 #define VAR_TYPE_CLASS	    12
 #define VAR_TYPE_OBJECT	    13
 #define VAR_TYPE_TYPEALIAS  14
+#define VAR_TYPE_ENUM	    15
+#define VAR_TYPE_ENUMVALUE  16
 
 #define DICT_MAXNEST 100	// maximum nesting of lists and dicts
 
@@ -2384,6 +2392,7 @@ typedef int (*opt_expand_cb_T)(optexpand_T *args, int *numMatches, char_u ***mat
 #define ASSIGN_FOR_LOOP 0x40 // assigning to loop variable
 #define ASSIGN_INIT	0x80 // not assigning a value, just a declaration
 #define ASSIGN_UPDATE_BLOCK_ID 0x100  // update sav_block_id
+#define ASSIGN_COMPOUND_OP 0x200  // compound operator e.g. "+="
 
 #include "ex_cmds.h"	    // Ex command defines
 #include "spell.h"	    // spell checking stuff
@@ -2814,7 +2823,6 @@ typedef int (*opt_expand_cb_T)(optexpand_T *args, int *numMatches, char_u ***mat
 // flags for find_name_end()
 #define FNE_INCL_BR	1	// include [] in name
 #define FNE_CHECK_START	2	// check name starts with valid character
-#define FNE_ALLOW_CURLY	4	// always allow curly braces name
 
 // BSD is supposed to cover FreeBSD and similar systems.
 #if (defined(SUN_SYSTEM) || defined(BSD) || defined(__FreeBSD_kernel__)) \

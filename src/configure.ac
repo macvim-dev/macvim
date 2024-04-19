@@ -1265,11 +1265,13 @@ if test "$enable_perlinterp" = "yes" -o "$enable_perlinterp" = "dynamic"; then
       dnl Remove "-fno-something", it breaks using cproto.
       dnl Remove "-fdebug-prefix-map", it isn't supported by clang.
       dnl Remove "FORTIFY_SOURCE", it will be defined twice.
-      dnl remove -pipe and -Wxxx, it confuses cproto
+      dnl Remove -pipe and -Wxxx, it confuses cproto
+      dnl Remove -flto[=auto], it causes link failures for clang
       perlcppflags=`$vi_cv_path_perl -Mlib=$srcdir -MExtUtils::Embed \
 		-e 'ccflags;perl_inc;print"\n"' | sed -e 's/-fno[[^ ]]*//' \
 		-e 's/-fdebug-prefix-map[[^ ]]*//g' \
 		-e 's/-pipe //' \
+		-e 's/-flto\(=auto\)\? //' \
 		-e 's/-W[[^ ]]*//g' \
 		-e 's/-D_FORTIFY_SOURCE=.//g'`
       dnl Remove "-lc", it breaks on FreeBSD when using "-pthread".
@@ -4781,6 +4783,15 @@ if test "$enable_nls" = "yes"; then
 	AC_MSG_RESULT([no])
       fi
       AC_SUBST(MSGFMT_DESKTOP)
+      AC_MSG_CHECKING([if $MSGFMT supports --no-convert])
+      if "$MSGFMT" --help | grep -q --  '--no-convert' >/dev/null; then
+        AC_MSG_RESULT([yes])
+        MSGFMTCMD="OLD_PO_FILE_INPUT=yes $MSGFMT --no-convert -v"
+      else
+        AC_MSG_RESULT([no])
+        MSGFMTCMD="OLD_PO_FILE_INPUT=yes $MSGFMT -v"
+      fi
+      AC_SUBST(MSGFMTCMD)
     fi
   else
     AC_MSG_RESULT([no "po/Makefile" - disabled]);

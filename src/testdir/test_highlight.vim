@@ -557,22 +557,23 @@ func Test_cursorline_after_yank()
   call StopVimInTerminal(buf)
 endfunc
 
-" test for issue #4862
+" Test for issue #4862: pasting above 'cursorline' redraws properly.
 func Test_put_before_cursorline()
   new
   only!
-  call setline(1, 'A')
+  call setline(1, ['A', 'B', 'C'])
+  call cursor(2, 1)
   redraw
-  let std_attr = screenattr(1, 1)
+  let std_attr = screenattr(2, 1)
   set cursorline
   redraw
-  let cul_attr = screenattr(1, 1)
+  let cul_attr = screenattr(2, 1)
   normal yyP
   redraw
-  " Line 1 has cursor so it should be highlighted with CursorLine.
-  call assert_equal(cul_attr, screenattr(1, 1))
-  " And CursorLine highlighting from the second line should be gone.
-  call assert_equal(std_attr, screenattr(2, 1))
+  " Line 2 has cursor so it should be highlighted with CursorLine.
+  call assert_equal(cul_attr, screenattr(2, 1))
+  " And CursorLine highlighting from line 3 should be gone.
+  call assert_equal(std_attr, screenattr(3, 1))
   set nocursorline
   bwipe!
 endfunc
@@ -852,6 +853,15 @@ func Test_highlight_User()
   hi User1 ctermfg=12
   redraw!
   call assert_equal('12', synIDattr(synIDtrans(hlID('User1')), 'fg'))
+  hi clear
+endfunc
+
+" Test for MsgArea highlighting
+func Test_highlight_MsgArea()
+  CheckNotGui
+  hi MsgArea ctermfg=20
+  redraw!
+  call assert_equal('20', synIDattr(synIDtrans(hlID('MsgArea')), 'fg'))
   hi clear
 endfunc
 

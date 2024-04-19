@@ -654,7 +654,7 @@ popup_show_curline(win_T *wp)
 	    wp->w_topline = wp->w_buffer->b_ml.ml_line_count;
 	while (wp->w_topline < wp->w_cursor.lnum
 		&& wp->w_topline < wp->w_buffer->b_ml.ml_line_count
-		&& plines_m_win(wp, wp->w_topline, wp->w_cursor.lnum, TRUE)
+		&& plines_m_win(wp, wp->w_topline, wp->w_cursor.lnum, FALSE)
 								> wp->w_height)
 	    ++wp->w_topline;
     }
@@ -3899,8 +3899,8 @@ may_update_popup_mask(int type)
 
 			// The screen position "line" / "col" needs to be
 			// redrawn.  Figure out what window that is and update
-			// w_redraw_top and w_redr_bot.  Only needs to be done
-			// once for each window line.
+			// w_redraw_top and w_redraw_bot.  Only needs to be
+			// done once for each window line.
 			wp = mouse_find_win(&line_cp, &col_cp, IGNORE_POPUP);
 			if (wp != NULL)
 			{

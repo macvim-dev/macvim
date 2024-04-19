@@ -1804,6 +1804,8 @@ get_term_entries(int *height, int *width)
 	T_DA = (char_u *)"y";
     if ((T_UT == NULL || T_UT == empty_option) && tgetflag("ut") > 0)
 	T_UT = (char_u *)"y";
+    if ((T_XON == NULL || T_XON == empty_option) && tgetflag("xo") > 0)
+	T_XON = (char_u *)"y";
 
     /*
      * get key codes
@@ -5774,8 +5776,8 @@ handle_osc(char_u *tp, char_u *argp, int len, char_u *key_name, int *slen)
 		    int rval, gval, bval;
 
 		    rval = hexhex2nr(tp_r);
-		    gval = hexhex2nr(tp_b);
-		    bval = hexhex2nr(tp_g);
+		    gval = hexhex2nr(tp_g);
+		    bval = hexhex2nr(tp_b);
 #endif
 		    if (is_bg)
 		    {

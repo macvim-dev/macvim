@@ -56,6 +56,7 @@ internal_format(
     colnr_T	leader_len;
     int		no_leader = FALSE;
     int		do_comments = (flags & INSCHAR_DO_COM);
+    int		safe_tw = trim_to_int(8 * (vimlong_T)textwidth);
 #ifdef FEAT_LINEBREAK
     int		has_lbr = curwin->w_p_lbr;
 
@@ -95,7 +96,7 @@ internal_format(
 	// Cursor is currently at the end of line. No need to format
 	// if line length is less than textwidth (8 * textwidth for
 	// utf safety)
-	if (curwin->w_cursor.col < 8 * textwidth)
+	if (curwin->w_cursor.col < safe_tw)
 	{
 	    virtcol = get_nolist_virtcol()
 		+ char2cells(c != NUL ? c : gchar_cursor());
@@ -156,8 +157,7 @@ internal_format(
 	// line to textwidth border every time for each line break.
 	//
 	// Ceil to 8 * textwidth to optimize.
-	curwin->w_cursor.col = startcol < 8 * textwidth ? startcol :
-	    8 * textwidth;
+	curwin->w_cursor.col = startcol < safe_tw ? startcol : safe_tw;
 
 	foundcol = 0;
 	skip_pos = 0;
@@ -455,7 +455,7 @@ internal_format(
 	    // Check if cursor is not past the NUL off the line, cindent
 	    // may have added or removed indent.
 	    curwin->w_cursor.col += startcol;
-	    len = (colnr_T)STRLEN(ml_get_curline());
+	    len = ml_get_curline_len();
 	    if (curwin->w_cursor.col > len)
 		curwin->w_cursor.col = len;
 	}
@@ -531,9 +531,7 @@ ends_in_white(linenr_T lnum)
 
     if (*s == NUL)
 	return FALSE;
-    // Don't use STRLEN() inside VIM_ISWHITE(), SAS/C complains: "macro
-    // invocation may call function multiple times".
-    l = STRLEN(s) - 1;
+    l = ml_get_len(lnum) - 1;
     return VIM_ISWHITE(s[l]);
 }
 
@@ -573,7 +571,7 @@ same_leader(
 		return FALSE;
 	    if (*p == COM_START)
 	    {
-		int line_len = (int)STRLEN(ml_get(lnum));
+		int line_len = ml_get_len(lnum);
 		if (line_len <= leader1_len)
 		    return FALSE;
 		if (leader2_flags == NULL || leader2_len == 0)
@@ -684,7 +682,7 @@ auto_format(
     // in 'formatoptions' and there is a single character before the cursor.
     // Otherwise the line would be broken and when typing another non-white
     // next they are not joined back together.
-    wasatend = (pos.col == (colnr_T)STRLEN(old));
+    wasatend = (pos.col == ml_get_curline_len());
     if (*old != NUL && !trailblank && wasatend)
     {
 	dec_cursor();
@@ -740,7 +738,7 @@ auto_format(
     if (!wasatend && has_format_option(FO_WHITE_PAR))
     {
 	new = ml_get_curline();
-	len = (colnr_T)STRLEN(new);
+	len = ml_get_curline_len();
 	if (curwin->w_cursor.col == len)
 	{
 	    pnew = vim_strnsave(new, len + 2);
@@ -1217,7 +1215,7 @@ format_lines(
 		}
 		first_par_line = FALSE;
 		// If the line is getting long, format it next time
-		if (STRLEN(ml_get_curline()) > (size_t)max_len)
+		if (ml_get_curline_len() > max_len)
 		    force_format = TRUE;
 		else
 		    force_format = FALSE;
