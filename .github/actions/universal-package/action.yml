@@ -55,7 +55,7 @@ runs:
 
     - name: Cache keg
       id: cache-keg
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ${{ steps.setup-formula.outputs.brew_prefix }}/Cellar/${{ inputs.formula }}
         key: ${{ inputs.formula }}-homebrew-cache-custom-unified-prefix${{ steps.setup-formula.outputs.brew_prefix }}-xcode${{ steps.setup-formula.outputs.xcode_version }}-${{ hashFiles(format('{0}.rb', inputs.formula)) }}
