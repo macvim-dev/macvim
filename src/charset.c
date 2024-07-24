@@ -765,10 +765,22 @@ linetabsize_str(char_u *s)
 linetabsize_col(int startcol, char_u *s)
 {
     chartabsize_T cts;
+    vimlong_T vcol;
 
     init_chartabsize_arg(&cts, curwin, 0, startcol, s, s);
+    vcol = cts.cts_vcol;
+
     while (*cts.cts_ptr != NUL)
-	cts.cts_vcol += lbr_chartabsize_adv(&cts);
+    {
+	vcol += lbr_chartabsize_adv(&cts);
+	if (vcol > MAXCOL)
+	{
+	    cts.cts_vcol = MAXCOL;
+	    break;
+	}
+	else
+	    cts.cts_vcol = (int)vcol;
+    }
     clear_chartabsize_arg(&cts);
     return (int)cts.cts_vcol;
 }
@@ -815,20 +827,20 @@ linetabsize_no_outer(win_T *wp, linenr_T lnum)
 
     if (cts.cts_text_prop_count)
     {
-      int write_idx = 0;
-      for (int read_idx = 0; read_idx < cts.cts_text_prop_count; read_idx++)
-      {
-          textprop_T *tp = &cts.cts_text_props[read_idx];
-          if (tp->tp_col != MAXCOL)
-          {
-              if (read_idx != write_idx)
-                  cts.cts_text_props[write_idx] = *tp;
-              write_idx++;
-          }
-      }
-      cts.cts_text_prop_count = write_idx;
-      if (cts.cts_text_prop_count == 0)
-          VIM_CLEAR(cts.cts_text_props);
+	int write_idx = 0;
+	for (int read_idx = 0; read_idx < cts.cts_text_prop_count; read_idx++)
+	{
+	    textprop_T *tp = &cts.cts_text_props[read_idx];
+	    if (tp->tp_col != MAXCOL)
+	    {
+		if (read_idx != write_idx)
+		    cts.cts_text_props[write_idx] = *tp;
+		write_idx++;
+	    }
+	}
+	cts.cts_text_prop_count = write_idx;
+	if (cts.cts_text_prop_count == 0)
+	    VIM_CLEAR(cts.cts_text_props);
     }
 
     win_linetabsize_cts(&cts, (colnr_T)MAXCOL);
@@ -840,22 +852,33 @@ linetabsize_no_outer(win_T *wp, linenr_T lnum)
     void
 win_linetabsize_cts(chartabsize_T *cts, colnr_T len)
 {
+    vimlong_T vcol = cts->cts_vcol;
 #ifdef FEAT_PROP_POPUP
     cts->cts_with_trailing = len == MAXCOL;
 #endif
     for ( ; *cts->cts_ptr != NUL && (len == MAXCOL || cts->cts_ptr < cts->cts_line + len);
 						      MB_PTR_ADV(cts->cts_ptr))
-	cts->cts_vcol += win_lbr_chartabsize(cts, NULL);
+    {
+	vcol += win_lbr_chartabsize(cts, NULL);
+	if (vcol > MAXCOL)
+	{
+	    cts->cts_vcol = MAXCOL;
+	    break;
+	}
+	else
+	    cts->cts_vcol = (int)vcol;
+    }
 #ifdef FEAT_PROP_POPUP
     // check for a virtual text at the end of a line or on an empty line
     if (len == MAXCOL && cts->cts_has_prop_with_text && *cts->cts_ptr == NUL)
     {
 	(void)win_lbr_chartabsize(cts, NULL);
-	cts->cts_vcol += cts->cts_cur_text_width;
+	vcol += cts->cts_cur_text_width;
 	// when properties are above or below the empty line must also be
 	// counted
 	if (cts->cts_ptr == cts->cts_line && cts->cts_prop_lines > 0)
-	    ++cts->cts_vcol;
+	    ++vcol;
+	cts->cts_vcol = vcol > MAXCOL ? MAXCOL : (int)vcol;
     }
 #endif
 }
@@ -1374,17 +1397,17 @@ win_lbr_chartabsize(
 		else if (max_head_vcol > vcol + head_prev + prev_rem)
 		    head += (max_head_vcol - (vcol + head_prev + prev_rem)
 					     + width2 - 1) / width2 * head_mid;
-#  ifdef FEAT_PROP_POPUP
 		else if (max_head_vcol < 0)
 		{
-		    int off = 0;
+		    int off = mb_added;
+#  ifdef FEAT_PROP_POPUP
 		    if (*s != NUL
 			     && ((State & MODE_NORMAL) || cts->cts_start_incl))
 			off += cts->cts_cur_text_width;
+#  endif
 		    if (off >= prev_rem)
 			head += (1 + (off - prev_rem) / width) * head_mid;
 		}
-#  endif
 	    }
 	}
 

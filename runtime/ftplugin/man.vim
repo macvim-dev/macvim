@@ -3,7 +3,8 @@
 " Maintainer:	Jason Franklin <vim@justemail.net>
 " Maintainer:	SungHyun Nam <goweol@gmail.com>
 " Autoload Split: Bram Moolenaar
-" Last Change: 	2023 Mar 21
+" Last Change:	2024 Jun 06 (disabled the q mapping, #8210)
+" 		2024 Jul 06 (use nnoremap, #15130)
 
 " To make the ":Man" command available before editing a manual page, source
 " this script from your startup vimrc file.
@@ -39,14 +40,16 @@ if &filetype == "man"
 
     nnoremap <buffer> <silent> <c-]> :call dist#man#PreGetPage(v:count)<CR>
     nnoremap <buffer> <silent> <c-t> :call dist#man#PopPage()<CR>
-    nnoremap <buffer> <silent> q :q<CR>
+    " Disabled, since this hides the ability to record a macro or use the
+    " command line window
+    " nnoremap <buffer> <silent> q :q<CR>
 
     " Add undo commands for the maps
     let b:undo_ftplugin = b:undo_ftplugin
 	  \ . '|silent! nunmap <buffer> <Plug>ManBS'
 	  \ . '|silent! nunmap <buffer> <c-]>'
 	  \ . '|silent! nunmap <buffer> <c-t>'
-	  \ . '|silent! nunmap <buffer> q'
+	  "\ . '|silent! nunmap <buffer> q'
   endif
 
   if exists('g:ft_man_folding_enable') && (g:ft_man_folding_enable == 1)
@@ -59,8 +62,8 @@ endif
 
 if exists(":Man") != 2
   com -nargs=+ -complete=shellcmd Man call dist#man#GetPage(<q-mods>, <f-args>)
-  nmap <Leader>K :call dist#man#PreGetPage(0)<CR>
-  nmap <Plug>ManPreGetPage :call dist#man#PreGetPage(0)<CR>
+  nnoremap <Leader>K :call dist#man#PreGetPage(0)<CR>
+  nnoremap <Plug>ManPreGetPage :call dist#man#PreGetPage(0)<CR>
 endif
 
 let &cpo = s:cpo_save

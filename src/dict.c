@@ -1092,6 +1092,33 @@ failret:
 }
 
 /*
+ * Evaluate a literal dictionary: #{key: val, key: val}
+ * "*arg" points to the "#".
+ * On return, "*arg" points to the character after the Dict.
+ * Return OK or FAIL.  Returns NOTDONE for {expr}.
+ */
+    int
+eval_lit_dict(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
+{
+    int		vim9script = in_vim9script();
+    int		ret = OK;
+
+    if (vim9script)
+    {
+	ret = vim9_bad_comment(*arg) ? FAIL : NOTDONE;
+    }
+    else if ((*arg)[1] == '{')
+    {
+	++*arg;
+	ret = eval_dict(arg, rettv, evalarg, TRUE);
+    }
+    else
+	ret = NOTDONE;
+
+    return ret;
+}
+
+/*
  * Go over all entries in "d2" and add them to "d1".
  * When "action" is "error" then a duplicate key is an error.
  * When "action" is "force" then a duplicate key is overwritten.
@@ -1195,8 +1222,7 @@ dict_lookup(hashitem_T *hi)
 dict_equal(
     dict_T	*d1,
     dict_T	*d2,
-    int		ic,	    // ignore case for strings
-    int		recursive)  // TRUE when used recursively
+    int		ic)	    // ignore case for strings
 {
     hashitem_T	*hi;
     dictitem_T	*item2;
@@ -1220,7 +1246,7 @@ dict_equal(
 	    item2 = dict_find(d2, hi->hi_key, -1);
 	    if (item2 == NULL)
 		return FALSE;
-	    if (!tv_equal(&HI2DI(hi)->di_tv, &item2->di_tv, ic, recursive))
+	    if (!tv_equal(&HI2DI(hi)->di_tv, &item2->di_tv, ic))
 		return FALSE;
 	    --todo;
 	}
@@ -1248,7 +1274,7 @@ dict_count(dict_T *d, typval_T *needle, int ic)
 	if (!HASHITEM_EMPTY(hi))
 	{
 	    --todo;
-	    if (tv_equal(&HI2DI(hi)->di_tv, needle, ic, FALSE))
+	    if (tv_equal(&HI2DI(hi)->di_tv, needle, ic))
 		++n;
 	}
     }

@@ -120,6 +120,7 @@ static keyvalue_T event_tab[] = {
     KEYVALUE_ENTRY(EVENT_CURSORHOLD, "CursorHold"),
     KEYVALUE_ENTRY(EVENT_CURSORHOLDI, "CursorHoldI"),
     KEYVALUE_ENTRY(EVENT_CURSORMOVED, "CursorMoved"),
+    KEYVALUE_ENTRY(EVENT_CURSORMOVEDC, "CursorMovedC"),
     KEYVALUE_ENTRY(EVENT_CURSORMOVEDI, "CursorMovedI"),
     KEYVALUE_ENTRY(EVENT_DIFFUPDATED, "DiffUpdated"),
     KEYVALUE_ENTRY(EVENT_DIRCHANGED, "DirChanged"),
@@ -154,6 +155,7 @@ static keyvalue_T event_tab[] = {
     KEYVALUE_ENTRY(EVENT_INSERTENTER, "InsertEnter"),
     KEYVALUE_ENTRY(EVENT_INSERTLEAVE, "InsertLeave"),
     KEYVALUE_ENTRY(EVENT_INSERTLEAVEPRE, "InsertLeavePre"),
+    KEYVALUE_ENTRY(EVENT_KEYINPUTPRE, "KeyInputPre"),
     KEYVALUE_ENTRY(EVENT_MENUPOPUP, "MenuPopup"),
     KEYVALUE_ENTRY(EVENT_MODECHANGED, "ModeChanged"),
     KEYVALUE_ENTRY(EVENT_OPTIONSET, "OptionSet"),
@@ -2022,6 +2024,15 @@ has_insertcharpre(void)
 }
 
 /*
+ * Return TRUE when there is an KeyInputPre autocommand defined.
+ */
+    int
+has_keyinputpre(void)
+{
+    return (first_autopat[(int)EVENT_KEYINPUTPRE] != NULL);
+}
+
+/*
  * Return TRUE when there is an CmdUndefined autocommand defined.
  */
     int
@@ -2251,10 +2262,12 @@ apply_autocmds_group(
 		|| event == EVENT_CMDLINECHANGED
 		|| event == EVENT_CMDLINEENTER
 		|| event == EVENT_CMDLINELEAVE
+		|| event == EVENT_CURSORMOVEDC
 		|| event == EVENT_CMDWINENTER
 		|| event == EVENT_CMDWINLEAVE
 		|| event == EVENT_CMDUNDEFINED
 		|| event == EVENT_FUNCUNDEFINED
+		|| event == EVENT_KEYINPUTPRE
 		|| event == EVENT_REMOTEREPLY
 		|| event == EVENT_SPELLFILEMISSING
 		|| event == EVENT_QUICKFIXCMDPRE
@@ -3391,6 +3404,9 @@ f_autocmd_get(typval_T *argvars, typval_T *rettv)
 	FOR_ALL_AUTOCMD_PATTERNS(event, ap)
 	{
 	    char_u	*group_name;
+
+	    if (ap->pat == NULL)		// pattern has been removed
+		continue;
 
 	    if (group != AUGROUP_ALL && group != ap->group)
 		continue;

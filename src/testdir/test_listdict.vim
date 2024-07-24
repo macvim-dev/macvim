@@ -60,6 +60,9 @@ func Test_list_slice()
       assert_equal([1, 2], l[-3 : -1])
   END
   call v9.CheckDefAndScriptSuccess(lines)
+
+  call assert_fails('let l[[]] = 1', 'E730: Using a List as a String')
+  call assert_fails('let l[1 : []] = [1]', 'E730: Using a List as a String')
 endfunc
 
 " List identity
@@ -178,6 +181,19 @@ func Test_list_assign()
   END
   call v9.CheckScriptFailure(['vim9script'] + lines, 'E688:')
   call v9.CheckDefExecFailure(lines, 'E1093: Expected 2 items but got 1')
+
+  let lines =<< trim END
+    VAR l = [2]
+    LET l += test_null_list()
+    call assert_equal([2], l)
+    LET l = test_null_list()
+    LET l += [1]
+    call assert_equal([1], l)
+  END
+  call v9.CheckLegacyAndVim9Success(lines)
+
+  let d = {'abc': [1, 2, 3]}
+  call assert_fails('let d.abc[0:0z10] = [10, 20]', 'E976: Using a Blob as a String')
 endfunc
 
 " test for range assign
@@ -447,6 +463,9 @@ func Test_dict_assign()
     n.key = 3
   END
   call v9.CheckDefFailure(lines, 'E1141:')
+
+  let d = {'abc': {}}
+  call assert_fails("let d.abc[0z10] = 10", 'E976: Using a Blob as a String')
 endfunc
 
 " Function in script-local List or Dict
@@ -1128,6 +1147,19 @@ func Test_listdict_compare()
   call assert_fails('echo {} =~ {}', 'E736:')
 endfunc
 
+func Test_recursive_listdict_compare()
+  let l1 = [0, 1]
+  let l1[0] = l1
+  let l2 = [0, 1]
+  let l2[0] = l2
+  call assert_true(l1 == l2)
+  let d1 = {0: 0, 1: 1}
+  let d1[0] = d1
+  let d2 = {0: 0, 1: 1}
+  let d2[0] = d2
+  call assert_true(d1 == d2)
+endfunc
+
   " compare complex recursively linked list and dict
 func Test_listdict_compare_complex()
   let lines =<< trim END
@@ -1505,6 +1537,8 @@ func Test_indexof()
   call assert_equal(-1, indexof(test_null_list(), {i, v -> v == 'a'}))
   call assert_equal(-1, indexof(l, test_null_string()))
   call assert_equal(-1, indexof(l, test_null_function()))
+  call assert_equal(-1, indexof(l, ""))
+  call assert_fails('let i = indexof(l, " ")', 'E15:')
 
   " failure cases
   call assert_fails('let i = indexof(l, "v:val == ''cyan''")', 'E735:')
@@ -1536,4 +1570,83 @@ func Test_extendnew_leak()
   for i in range(100) | silent! call extendnew({}, {}, {}) | endfor
 endfunc
 
+" Test for comparing deeply nested List/Dict values
+func Test_deep_nested_listdict_compare()
+  let lines =<< trim END
+    def GetNestedList(sz: number): list<any>
+      var l: list<any> = []
+      var x: list<any> = l
+      for i in range(sz)
+        var y: list<any> = [1]
+        add(x, y)
+        x = y
+      endfor
+      return l
+    enddef
+
+    VAR l1 = GetNestedList(1000)
+    VAR l2 = GetNestedList(999)
+    call assert_false(l1 == l2)
+
+    #" after 1000 nested items, the lists are considered to be equal
+    VAR l3 = GetNestedList(1001)
+    VAR l4 = GetNestedList(1002)
+    call assert_true(l3 == l4)
+  END
+  call v9.CheckLegacyAndVim9Success(lines)
+
+  let lines =<< trim END
+    def GetNestedDict(sz: number): dict<any>
+      var d: dict<any> = {}
+      var x: dict<any> = d
+      for i in range(sz)
+        var y: dict<any> = {}
+        x['a'] = y
+        x = y
+      endfor
+      return d
+    enddef
+
+    VAR d1 = GetNestedDict(1000)
+    VAR d2 = GetNestedDict(999)
+    call assert_false(d1 == d2)
+
+    #" after 1000 nested items, the Dicts are considered to be equal
+    VAR d3 = GetNestedDict(1001)
+    VAR d4 = GetNestedDict(1002)
+    call assert_true(d3 == d4)
+  END
+  call v9.CheckLegacyAndVim9Success(lines)
+endfunc
+
+" Test for using id()
+def Test_id_with_dict()
+  # demonstate a way that "id(item)" differs from "string(item)"
+  var d1 = {one: 1}
+  var d2 = {one: 1}
+  var d3 = {one: 1}
+  var idDict: dict<any>
+  idDict[id(d1)] = d1
+  idDict[id(d2)] = d2
+  idDict[id(d3)] = d3
+  assert_equal(3, idDict->len())
+
+  var stringDict: dict<any>
+  stringDict[string(d1)] = d1
+  stringDict[string(d2)] = d2
+  stringDict[string(d3)] = d3
+  assert_equal(1, stringDict->len())
+
+  assert_equal('', id(3))
+
+  assert_equal('', id(null))
+  assert_equal('', id(null_blob))
+  assert_equal('', id(null_dict))
+  assert_equal('', id(null_function))
+  assert_equal('', id(null_list))
+  assert_equal('', id(null_partial))
+  assert_equal('', id(null_string))
+  assert_equal('', id(null_channel))
+  assert_equal('', id(null_job))
+enddef
 " vim: shiftwidth=2 sts=2 expandtab

@@ -1275,13 +1275,17 @@ if test "$enable_perlinterp" = "yes" -o "$enable_perlinterp" = "dynamic"; then
 		-e 's/-W[[^ ]]*//g' \
 		-e 's/-D_FORTIFY_SOURCE=.//g'`
       dnl Remove "-lc", it breaks on FreeBSD when using "-pthread".
+      dnl Remove -specs=<file-path>, the hardened flags cause relocation errors
       perllibs=`cd $srcdir; $vi_cv_path_perl -MExtUtils::Embed -e 'ldopts' | \
 		sed -e '/Warning/d' -e '/Note (probably harmless)/d' \
+			-e 's/-specs=[[^ ]*]//g' \
 			-e 's/-bE:perl.exp//' -e 's/-lc //'`
       dnl Don't add perl lib to $LIBS: if it's not in LD_LIBRARY_PATH
       dnl a test in configure may fail because of that.
+      dnl Remove -specs=<file-path>, the hardened flags cause relocation errors
       perlldflags=`cd $srcdir; $vi_cv_path_perl -MExtUtils::Embed \
-		-e 'ccdlflags' | sed -e 's/-bE:perl.exp//'`
+		-e 'ccdlflags' | sed -e 's/-bE:perl.exp//' \
+		-e 's/-specs=[[^ ]*]//g' `
 
       if test "x$MACOS_X" = "xyes"; then
         dnl Perl on Mac OS X 10.5 and later adds "-arch" flags but these
@@ -3536,13 +3540,6 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include <stdio.h>], [int x __attribute__((u
 	AC_MSG_RESULT(yes); AC_DEFINE(HAVE_ATTRIBUTE_UNUSED),
 	AC_MSG_RESULT(no))
 
-dnl Checks for header files.
-AC_CHECK_HEADER(elf.h, HAS_ELF=1)
-dnl AC_CHECK_HEADER(dwarf.h, SVR4=1)
-if test "$HAS_ELF" = 1; then
-  AC_CHECK_LIB(elf, main)
-fi
-
 AC_HEADER_DIRENT
 
 dnl If sys/wait.h is not found it might still exist but not be POSIX
@@ -4746,6 +4743,12 @@ if test "$enable_nls" = "yes"; then
       AC_SUBST(MAKEMO)
       dnl this was added in GNU gettext 0.10.36
       AC_CHECK_FUNCS(bind_textdomain_codeset)
+      AC_MSG_CHECKING([for dgettext])
+      AC_LINK_IFELSE([AC_LANG_PROGRAM(
+		[#include <libintl.h>],
+		[dgettext("Test", "Test");])],
+		AC_MSG_RESULT([yes]); AC_DEFINE(HAVE_DGETTEXT),
+		AC_MSG_RESULT([no]))
       dnl _nl_msg_cat_cntr is required for GNU gettext
       AC_MSG_CHECKING([for _nl_msg_cat_cntr])
       AC_LINK_IFELSE([AC_LANG_PROGRAM(

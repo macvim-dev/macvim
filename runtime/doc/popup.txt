@@ -1,4 +1,4 @@
-*popup.txt*  For Vim version 9.1.  Last change: 2022 Oct 07
+*popup.txt*  For Vim version 9.1.  Last change: 2024 Jun 16
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -186,6 +186,7 @@ Manipulating a popup window:
 	|popup_move()|		change the position and size of a popup
 	|popup_setoptions()|	override options of a popup
 	|popup_settext()|	replace the popup buffer contents
+	|popup_setbuf()|	set the buffer for the popup window
 
 Closing popup windows:
 	|popup_close()|		close one popup
@@ -219,6 +220,8 @@ popup_atcursor({what}, {options})			*popup_atcursor()*
 
 		Can also be used as a |method|: >
 			GetText()->popup_atcursor({})
+<
+		Return type: |Number|
 
 
 popup_beval({what}, {options})			*popup_beval()*
@@ -237,6 +240,8 @@ popup_beval({what}, {options})			*popup_beval()*
 		Can also be used as a |method|: >
 			GetText()->popup_beval({})
 <
+		Return type: |Number|
+
 							*popup_clear()*
 popup_clear([{force}])
 		Emergency solution to a misbehaving plugin: close all popup
@@ -247,6 +252,8 @@ popup_clear([{force}])
 		When {force} is present and |TRUE| the popup is also closed
 		when it is the current window.  If a terminal is running in a
 		popup it is killed.
+
+		Return type: |Number|
 
 
 popup_close({id} [, {result}])				*popup_close()*
@@ -260,6 +267,8 @@ popup_close({id} [, {result}])				*popup_close()*
 
 		Can also be used as a |method|: >
 			GetPopup()->popup_close()
+<
+		Return type: |Number|
 
 
 popup_create({what}, {options})				*popup_create()*
@@ -290,6 +299,8 @@ popup_create({what}, {options})				*popup_create()*
 
 		Can also be used as a |method|: >
 			GetText()->popup_create({})
+<
+		Return type: |Number|
 
 
 popup_dialog({what}, {options})				*popup_dialog()*
@@ -314,6 +325,8 @@ popup_dialog({what}, {options})				*popup_dialog()*
 
 		Can also be used as a |method|: >
 			GetText()->popup_dialog({})
+<
+		Return type: |Number|
 
 
 popup_filter_menu({id}, {key})				*popup_filter_menu()*
@@ -336,6 +349,8 @@ popup_filter_menu({id}, {key})				*popup_filter_menu()*
 		To add shortcut keys, see the example here:
 		|popup_menu-shortcut-example|
 
+		Return type: |Number|
+
 
 popup_filter_yesno({id}, {key})				*popup_filter_yesno()*
 		Filter that can be used for a popup. It handles only the keys
@@ -346,11 +361,15 @@ popup_filter_yesno({id}, {key})				*popup_filter_yesno()*
 		keys are ignored.
 		See the example here: |popup_dialog-example|
 
+		Return type: |Number|
+
 
 popup_findecho()					*popup_findecho()*
 		Get the |window-ID| for the popup that shows messages for the
 		`:echowindow` command.  Return zero if there is none.
 		Mainly useful to hide the popup.
+
+		Return type: |Number|
 
 
 popup_findinfo()					*popup_findinfo()*
@@ -361,10 +380,15 @@ popup_findinfo()					*popup_findinfo()*
 		the item in the popup menu.
 		Returns zero if there is none.
 
+		Return type: |Number|
+
 
 popup_findpreview()					*popup_findpreview()*
 		Get the |window-ID| for the popup preview window.
 		Return zero if there is none.
+
+		Return type: |Number|
+
 
 popup_getoptions({id})					*popup_getoptions()*
 		Return the {options} for popup {id} in a Dict.
@@ -399,6 +423,8 @@ popup_getoptions({id})					*popup_getoptions()*
 
 		Can also be used as a |method|: >
 			GetPopup()->popup_getoptions()
+<
+		Return type: dict<any>
 
 
 popup_getpos({id})					*popup_getpos()*
@@ -428,6 +454,8 @@ popup_getpos({id})					*popup_getpos()*
 
 		Can also be used as a |method|: >
 			GetPopup()->popup_getpos()
+<
+		Return type: dict<number> or dict<any>
 
 
 popup_hide({id})						*popup_hide()*
@@ -440,10 +468,14 @@ popup_hide({id})						*popup_hide()*
 
 		Can also be used as a |method|: >
 			GetPopup()->popup_hide()
+<
+		Return type: |Number|
 
 
 popup_list()						 *popup_list()*
 		Return a List with the |window-ID| of all existing popups.
+
+		Return type: list<number> or list<any>
 
 
 popup_locate({row}, {col})				 *popup_locate()*
@@ -451,6 +483,8 @@ popup_locate({row}, {col})				 *popup_locate()*
 		and {col}.  If there are multiple popups the one with the
 		highest zindex is returned.  If there are no popups at this
 		position then zero is returned.
+
+		Return type: |Number|
 
 
 popup_menu({what}, {options})				 *popup_menu()*
@@ -484,6 +518,8 @@ popup_menu({what}, {options})				 *popup_menu()*
 
 <		Can also be used as a |method|: >
 			GetChoices()->popup_menu({})
+<
+		Return type: |Number|
 
 
 popup_move({id}, {options})					*popup_move()*
@@ -503,6 +539,8 @@ popup_move({id}, {options})					*popup_move()*
 
 		Can also be used as a |method|: >
 			GetPopup()->popup_move(options)
+<
+		Return type: |Number|
 
 
 popup_notification({what}, {options})			 *popup_notification()*
@@ -533,6 +571,20 @@ popup_notification({what}, {options})			 *popup_notification()*
 
 		Can also be used as a |method|: >
 			GetText()->popup_notification({})
+<
+		Return type: |Number|
+
+
+popup_setbuf({id}, {buf})				*popup_setbuf()*
+		Set buffer {buf} to be displayed in popup win {id}.  For the
+		use of {buf}, see |bufname()| function.
+		May change window size or position to adjust for the size
+		of the buffer text.
+
+		Can also be used as a |method|: >
+			GetPopup()->popup_setbuf(bufnr('foobar'))
+<
+		Return type: |vim9-boolean|
 
 
 popup_setoptions({id}, {options})			*popup_setoptions()*
@@ -569,17 +621,20 @@ popup_setoptions({id}, {options})			*popup_setoptions()*
 
 		Can also be used as a |method|: >
 			GetPopup()->popup_setoptions(options)
+<
+		Return type: |Number|
 
 
 popup_settext({id}, {text})				*popup_settext()*
-		Set the text of the buffer in popup win {id}. {text} is the
-		same as supplied to |popup_create()|, except that a buffer
-		number is not allowed.
+		Set the text of the buffer in popup win {id}. {text} is
+		a string or a list of strings to be displayed in the popup.
 		Does not change the window size or position, other than caused
 		by the different text.
 
 		Can also be used as a |method|: >
 			GetPopup()->popup_settext('hello')
+<
+		Return type: |Number|
 
 
 popup_show({id})						*popup_show()*
@@ -587,6 +642,8 @@ popup_show({id})						*popup_show()*
 		For {id} see `popup_hide()`.
 		If {id} is the info popup it will be positioned next to the
 		current popup menu item.
+
+		Return type: |Number|
 
 
 ==============================================================================

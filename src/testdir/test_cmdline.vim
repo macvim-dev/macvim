@@ -658,7 +658,8 @@ func Test_getcompletion()
   unlet g:cmdline_compl_params
 
   " For others test if the name is recognized.
-  let names = ['buffer', 'environment', 'file_in_path', 'mapping', 'tag', 'tag_listfiles', 'user']
+  let names = ['buffer', 'environment', 'file_in_path', 'dir_in_path', 'mapping', 'tag',
+      \ 'tag_listfiles', 'user']
   if has('cmdline_hist')
     call add(names, 'history')
   endif
@@ -2741,6 +2742,55 @@ func Test_wildmenu_pum_odd_wildchar()
   call StopVimInTerminal(buf)
 endfunc
 
+" Test that 'rightleft' should not affect cmdline completion popup menu.
+func Test_wildmenu_pum_rightleft()
+  CheckFeature rightleft
+  CheckScreendump
+
+  let lines =<< trim END
+    set wildoptions=pum
+    set rightleft
+  END
+  call writefile(lines, 'Xwildmenu_pum_rl', 'D')
+  let buf = RunVimInTerminal('-S Xwildmenu_pum_rl', #{rows: 10, cols: 50})
+
+  call term_sendkeys(buf, ":sign \<Tab>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_pum_rl', {})
+
+  call StopVimInTerminal(buf)
+endfunc
+
+" Test highlighting matched text in cmdline completion popup menu.
+func Test_wildmenu_pum_hl_match()
+  CheckScreendump
+
+  let lines =<< trim END
+    set wildoptions=pum,fuzzy
+    hi PmenuMatchSel  ctermfg=6 ctermbg=7
+    hi PmenuMatch     ctermfg=4 ctermbg=225
+  END
+  call writefile(lines, 'Xwildmenu_pum_hl', 'D')
+  let buf = RunVimInTerminal('-S Xwildmenu_pum_hl', #{rows: 10, cols: 50})
+
+  call term_sendkeys(buf, ":sign plc\<Tab>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_pum_hl_match_1', {})
+  call term_sendkeys(buf, "\<Tab>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_pum_hl_match_2', {})
+  call term_sendkeys(buf, "\<Tab>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_pum_hl_match_3', {})
+  call term_sendkeys(buf, "\<Esc>:set wildoptions-=fuzzy\<CR>")
+  call TermWait(buf)
+  call term_sendkeys(buf, ":sign un\<Tab>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_pum_hl_match_4', {})
+  call term_sendkeys(buf, "\<Tab>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_pum_hl_match_5', {})
+  call term_sendkeys(buf, "\<Tab>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_pum_hl_match_6', {})
+  call term_sendkeys(buf, "\<Esc>")
+
+  call StopVimInTerminal(buf)
+endfunc
+
 " Test for completion after a :substitute command followed by a pipe (|)
 " character
 func Test_cmdline_complete_substitute()
@@ -3563,7 +3613,7 @@ func Test_cmdline_complete_bang_cmd_argument()
 endfunc
 
 func Call_cmd_funcs()
-  return string([getcmdpos(), getcmdscreenpos(), getcmdcompltype()])
+  return [getcmdpos(), getcmdscreenpos(), getcmdcompltype()]
 endfunc
 
 func Test_screenpos_and_completion()
@@ -3571,13 +3621,24 @@ func Test_screenpos_and_completion()
   call assert_equal(0, getcmdscreenpos())
   call assert_equal('', getcmdcompltype())
 
-  cnoremap <expr> <F2> string([getcmdpos(), getcmdscreenpos(), getcmdcompltype()])
+  cnoremap <expr> <F2> string(Call_cmd_funcs())
   call feedkeys(":let a\<F2>\<C-B>\"\<CR>", "xt")
   call assert_equal("\"let a[6, 7, 'var']", @:)
   call feedkeys(":quit \<F2>\<C-B>\"\<CR>", "xt")
   call assert_equal("\"quit [6, 7, '']", @:)
   call feedkeys(":nosuchcommand \<F2>\<C-B>\"\<CR>", "xt")
   call assert_equal("\"nosuchcommand [15, 16, '']", @:)
+
+  " Check that getcmdcompltype() doesn't interfere with cmdline completion.
+  let g:results = []
+  cnoremap <F2> <Cmd>let g:results += [[getcmdline()] + Call_cmd_funcs()]<CR>
+  call feedkeys(":sign un\<Tab>\<F2>\<Tab>\<F2>\<Tab>\<F2>\<C-C>", "xt")
+  call assert_equal([
+        \ ['sign undefine', 14, 15, 'sign'],
+        \ ['sign unplace', 13, 14, 'sign'],
+        \ ['sign un', 8, 9, 'sign']], g:results)
+
+  unlet g:results
   cunmap <F2>
 endfunc
 

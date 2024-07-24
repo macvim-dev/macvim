@@ -18,7 +18,7 @@ or one of the [Maillists](https://www.vim.org/community.php).
 ## What is Vim?
 
 Vim is a greatly improved version of the good old UNIX editor
-[Vi](https://en.wikipedia.org/wiki/Vi).  Many new
+[Vi](https://en.wikipedia.org/wiki/Vi_(text_editor)).  Many new
 features have been added: multi-level undo, syntax highlighting, command line
 history, on-line help, spell checking, filename completion, block operations,
 script language, etc.  There is also a Graphical User Interface (GUI)
@@ -55,7 +55,7 @@ an overview of currently available distributions.
 
 Some popular places to get the latest Vim:
 * Check out the git repository from [GitHub](https://github.com/vim/vim).
-* Get the source code as an [archive](https://github.com/vim/vim/releases).
+* Get the source code as an [archive](https://github.com/vim/vim/tags).
 * Get a Windows executable from the
 [vim-win32-installer](https://github.com/vim/vim-win32-installer/releases) repository.
 

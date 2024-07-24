@@ -365,8 +365,7 @@ list_len(list_T *l)
 list_equal(
     list_T	*l1,
     list_T	*l2,
-    int		ic,	// ignore case for strings
-    int		recursive)  // TRUE when used recursively
+    int		ic)	// ignore case for strings
 {
     listitem_T	*item1, *item2;
 
@@ -386,7 +385,7 @@ list_equal(
     for (item1 = l1->lv_first, item2 = l2->lv_first;
 	    item1 != NULL && item2 != NULL;
 			       item1 = item1->li_next, item2 = item2->li_next)
-	if (!tv_equal(&item1->li_tv, &item2->li_tv, ic, recursive))
+	if (!tv_equal(&item1->li_tv, &item2->li_tv, ic))
 	    return FALSE;
     return item1 == NULL && item2 == NULL;
 }
@@ -2727,7 +2726,7 @@ list_count(list_T *l, typval_T *needle, long idx, int ic)
     }
 
     for ( ; li != NULL; li = li->li_next)
-	if (tv_equal(&li->li_tv, needle, ic, FALSE))
+	if (tv_equal(&li->li_tv, needle, ic))
 	    ++n;
 
     return n;
@@ -3192,6 +3191,30 @@ f_reduce(typval_T *argvars, typval_T *rettv)
 	string_reduce(argvars, &argvars[1], rettv);
     else
 	blob_reduce(argvars, &argvars[1], rettv);
+}
+
+/*
+ * slice() function
+ */
+    void
+f_slice(typval_T *argvars, typval_T *rettv)
+{
+    if (in_vim9script()
+	    && ((argvars[0].v_type != VAR_STRING
+		    && argvars[0].v_type != VAR_LIST
+		    && argvars[0].v_type != VAR_BLOB
+		    && check_for_list_arg(argvars, 0) == FAIL)
+		|| check_for_number_arg(argvars, 1) == FAIL
+		|| check_for_opt_number_arg(argvars, 2) == FAIL))
+	return;
+
+    if (check_can_index(&argvars[0], TRUE, FALSE) != OK)
+	return;
+
+    copy_tv(argvars, rettv);
+    eval_index_inner(rettv, TRUE, argvars + 1,
+	    argvars[2].v_type == VAR_UNKNOWN ? NULL : argvars + 2,
+	    TRUE, NULL, 0, FALSE);
 }
 
 #endif // defined(FEAT_EVAL)

@@ -958,8 +958,63 @@ func Test_tag_stack()
   call settagstack(1, {'items' : []})
   call assert_fails('pop', 'E73:')
 
+  " References to wiped buffer are deleted.
+  for i in range(10, 20)
+    edit Xtest
+    exe "tag var" .. i
+  endfor
+  edit Xtest
+
+  let t = gettagstack()
+  call assert_equal(11, t.length)
+  call assert_equal(12, t.curidx)
+
+  bwipe!
+
+  let t = gettagstack()
+  call assert_equal(0, t.length)
+  call assert_equal(1, t.curidx)
+
+  " References to wiped buffer are deleted with multiple tabpages.
+  let w1 = win_getid()
+  call settagstack(1, {'items' : []})
+  for i in range(10, 20) | edit Xtest | exe "tag var" .. i | endfor
+  enew
+
+  new
+  let w2 = win_getid()
+  call settagstack(1, {'items' : []})
+  for i in range(10, 20) | edit Xtest | exe "tag var" .. i | endfor
+  enew
+
+  tabnew
+  let w3 = win_getid()
+  call settagstack(1, {'items' : []})
+  for i in range(10, 20) | edit Xtest | exe "tag var" .. i | endfor
+  enew
+
+  new
+  let w4 = win_getid()
+  call settagstack(1, {'items' : []})
+  for i in range(10, 20) | edit Xtest | exe "tag var" .. i | endfor
+  enew
+
+  for w in [w1, w2, w3, w4]
+    let t = gettagstack(w)
+    call assert_equal(11, t.length)
+    call assert_equal(12, t.curidx)
+  endfor
+
+  bwipe! Xtest
+
+  for w in [w1, w2, w3, w4]
+    let t = gettagstack(w)
+    call assert_equal(0, t.length)
+    call assert_equal(1, t.curidx)
+  endfor
+
+  %bwipe!
   set tags&
-  %bwipe
 endfunc
 
 " Test for browsing multiple matching tags
@@ -1558,6 +1613,24 @@ func Test_tagbsearch()
   call assert_fails('tag bbb', 'E426:')
 
   set tags& tagbsearch&
+endfunc
+
+" Test tag guessing with very short names
+func Test_tag_guess_short()
+  call writefile(["!_TAG_FILE_ENCODING\tutf-8\t//",
+        \ "y\tXf\t/^y()/"],
+        \ 'Xt', 'D')
+  set tags=Xt cpoptions+=t
+  call writefile(['', 'int * y () {}', ''], 'Xf', 'D')
+
+  let v:statusmsg = ''
+  let @/ = ''
+  ta y
+  call assert_match('E435:', v:statusmsg)
+  call assert_equal(2, line('.'))
+  call assert_match('<y', @/)
+
+  set tags& cpoptions-=t
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

@@ -1,4 +1,4 @@
-*quickfix.txt*  For Vim version 9.1.  Last change: 2023 Apr 15
+*quickfix.txt*  For Vim version 9.1.  Last change: 2024 Jul 17
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -287,7 +287,8 @@ processing a quickfix or location list command, it will be aborted.
 			current window is used instead of the quickfix list.
 
 						*:cb* *:cbuffer* *E681*
-:cb[uffer][!] [bufnr]	Read the error list from the current buffer.
+:[range]cb[uffer][!] [bufnr]
+			Read the error list from the current buffer.
 			When [bufnr] is given it must be the number of a
 			loaded buffer.  That buffer will then be used instead
 			of the current buffer.
@@ -296,26 +297,31 @@ processing a quickfix or location list command, it will be aborted.
 			See |:cc| for [!].
 
 						*:lb* *:lbuffer*
-:lb[uffer][!] [bufnr]	Same as ":cbuffer", except the location list for the
+:[range]lb[uffer][!] [bufnr]
+			Same as ":cbuffer", except the location list for the
 			current window is used instead of the quickfix list.
 
 						*:cgetb* *:cgetbuffer*
-:cgetb[uffer] [bufnr]	Read the error list from the current buffer.  Just
+:[range]cgetb[uffer] [bufnr]
+			Read the error list from the current buffer.  Just
 			like ":cbuffer" but don't jump to the first error.
 
 						*:lgetb* *:lgetbuffer*
-:lgetb[uffer] [bufnr]	Same as ":cgetbuffer", except the location list for
+:[range]lgetb[uffer] [bufnr]
+			Same as ":cgetbuffer", except the location list for
 			the current window is used instead of the quickfix
 			list.
 
 						*:cad* *:cadd* *:caddbuffer*
-:cad[dbuffer] [bufnr]	Read the error list from the current buffer and add
+:[range]cad[dbuffer] [bufnr]
+			Read the error list from the current buffer and add
 			the errors to the current quickfix list.  If a
 			quickfix list is not present, then a new list is
 			created. Otherwise, same as ":cbuffer".
 
 							*:laddb* *:laddbuffer*
-:laddb[uffer] [bufnr]	Same as ":caddbuffer", except the location list for
+:[range]laddb[uffer] [bufnr]
+			Same as ":caddbuffer", except the location list for
 			the current window is used instead of the quickfix
 			list.
 
@@ -1086,8 +1092,8 @@ commands can be combined to create a NewGrep command: >
 
 :vim[grep][!] {pattern} {file} ...
 			Like above, but instead of enclosing the pattern in a
-			non-ID character use a white-separated pattern.  The
-			pattern must start with an ID character.
+			non-ID character use a white space separated pattern.
+			The pattern must start with an ID character.
 			Example: >
 				:vimgrep Error *.c
 <
@@ -1297,6 +1303,14 @@ g:compiler_gcc_ignore_unmatched_lines
 				positives.
 
 
+JAVAC							*compiler-javac*
+
+Commonly used compiler options can be added to 'makeprg' by setting the
+g:javac_makeprg_params variable.  For example: >
+
+	let g:javac_makeprg_params = "-Xlint:all -encoding utf-8"
+<
+
 MANX AZTEC C				*quickfix-manx* *compiler-manx*
 
 To use Vim with Manx's Aztec C compiler on the Amiga you should do the
@@ -1329,7 +1343,7 @@ passed to make, say :make html or :make pdf.
 Additional arguments can be passed to pandoc:
 
 - either by appending them to make, say `:make html --self-contained` .
-- or setting them in `b:pandoc_compiler_args` or `g:pandoc_compiler_args`
+- or setting them in `b:pandoc_compiler_args` or `g:pandoc_compiler_args`.
 
 PERL					*quickfix-perl* *compiler-perl*
 
@@ -1399,6 +1413,17 @@ from |errorformat-LaTeX| is too complex to keep it working for different
 shells and OSes and also does not allow to use other available TeX options,
 if any.  If your TeX doesn't support "-interaction=nonstopmode", please
 report it with different means to express \nonstopmode from the command line.
+
+TYPST COMPILER						*compiler-typst*
+
+Vim includes a compiler plugin for Typst files. This compiler is enabled
+automatically in Typst buffers by the Typst filetype plugin |ft-typst-plugin|.
+Run |:make| to compile the current Typst file.
+
+							*g:typst_cmd*
+By default Vim will use "typst" as the command to run the Typst compiler. This
+can be changed by setting the |g:typst_cmd| variable: >
+	let g:typst_cmd = "/path/to/other/command"
 
 =============================================================================
 7. The error format					*error-file-format*

@@ -460,7 +460,7 @@ gui_init_check(void)
     // and in that case we don't want to overwrite ligatures map that has already
     // been correctly populated (as that would lead to a cleared ligatures maps).
     if (*p_guiligatures == NUL)
-        CLEAR_FIELD(gui.ligatures_map);
+	CLEAR_FIELD(gui.ligatures_map);
 #endif
 
 #if defined(ALWAYS_USE_GUI) || defined(VIMDLL)
@@ -5376,7 +5376,7 @@ gui_do_findrepl(
 	i = msg_scroll;
 	if (down)
 	{
-	    (void)do_search(NULL, '/', '/', ga.ga_data, 1L, searchflags, NULL);
+	    (void)do_search(NULL, '/', '/', ga.ga_data, STRLEN(ga.ga_data), 1L, searchflags, NULL);
 	}
 	else
 	{
@@ -5384,7 +5384,7 @@ gui_do_findrepl(
 	    // direction
 	    p = vim_strsave_escaped(ga.ga_data, (char_u *)"?");
 	    if (p != NULL)
-		(void)do_search(NULL, '?', '?', p, 1L, searchflags, NULL);
+		(void)do_search(NULL, '?', '?', p, STRLEN(p), 1L, searchflags, NULL);
 	    vim_free(p);
 	}
 

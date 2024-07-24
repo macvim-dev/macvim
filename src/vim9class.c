@@ -136,6 +136,13 @@ parse_member(
 	fill_evalarg_from_eap(&evalarg, eap, FALSE);
 	(void)skip_expr_concatenate(&init_arg, &expr_start, &expr_end, &evalarg);
 
+	init_arg = skipwhite(init_arg);
+	if (*init_arg != NUL && !vim9_comment_start(init_arg))
+	{
+	    semsg(_(e_trailing_characters_str), init_arg);
+	    return FAIL;
+	}
+
 	// No type specified for the member.  Set it to "any" and the correct
 	// type will be set when the object is instantiated.
 	if (type == NULL)
@@ -1273,6 +1280,7 @@ add_class_members(class_T *cl, exarg_T *eap, garray_T *type_list_gap)
 	    tv->v_type = m->ocm_type->tt_type;
 	    tv->vval.v_string = NULL;
 	}
+	set_tv_type(tv, m->ocm_type);
 	if (m->ocm_flags & OCMFLAG_CONST)
 	    item_lock(tv, DICT_MAXNEST, TRUE, TRUE);
     }
@@ -3093,7 +3101,7 @@ class_member_lookup(class_T *cl, char_u *name, size_t namelen, int *idx)
 	{
 	    ret_m = m;
 	    ret_idx = i;
-            break;
+	    break;
 	}
     }
     if (idx != NULL)
@@ -3176,11 +3184,11 @@ object_member_lookup(class_T *cl, char_u *name, size_t namelen, int *idx)
 	    }
 	}
 	else if (STRCMP(name, m->ocm_name) == 0)
-        {
+	{
 	    ret_m = m;
 	    ret_idx = i;
-            break;
-        }
+	    break;
+	}
     }
     if (idx != NULL)
 	*idx = ret_idx;
@@ -3676,7 +3684,7 @@ method_not_found_msg(class_T *cl, vartype_T v_type, char_u *name, size_t len)
     }
     else
 	semsg(_(e_method_not_found_on_class_str_str), method_name,
-	        cl->class_name);
+		cl->class_name);
     vim_free(method_name);
 }
 
@@ -3835,10 +3843,41 @@ object_len(object_T *obj)
 }
 
 /*
- * Return a textual representation of object "obj"
+ * Return TRUE when two objects have exactly the same values.
+ */
+    int
+object_equal(
+	object_T *o1,
+	object_T *o2,
+	int	ic)	// ignore case for strings
+{
+    class_T *cl1, *cl2;
+
+    if (o1 == o2)
+	return TRUE;
+    if (o1 == NULL || o2 == NULL)
+	return FALSE;
+
+    cl1 = o1->obj_class;
+    cl2 = o2->obj_class;
+
+    if (cl1 != cl2 || cl1 == NULL || cl2 == NULL)
+	return FALSE;
+
+    for (int i = 0; i < cl1->class_obj_member_count; ++i)
+	if (!tv_equal((typval_T *)(o1 + 1) + i, (typval_T *)(o2 + 1) + i, ic))
+	    return FALSE;
+
+    return TRUE;
+}
+
+/*
+ * Return a textual representation of object "obj".
+ * "obj" must not be NULL.
+ * May return NULL.
  */
     char_u *
-object_string(
+object2string(
     object_T	*obj,
     char_u	*numbuf,
     int		copyID,
@@ -3852,47 +3891,58 @@ object_string(
 								== OK
 					&& rettv.vval.v_string != NULL)
 	return rettv.vval.v_string;
+
+    int		ok = OK;
+    class_T	*cl = obj->obj_class;
+    garray_T	ga;
+    ga_init2(&ga, 1, 50);
+
+    if (cl != NULL && IS_ENUM(cl))
+    {
+	ga_concat(&ga, (char_u *)"enum ");
+	ga_concat(&ga, cl->class_name);
+	char_u *enum_name = ((typval_T *)(obj + 1))->vval.v_string;
+	ga_concat(&ga, (char_u *)".");
+	ga_concat(&ga, enum_name);
+    }
     else
     {
-	garray_T ga;
-	ga_init2(&ga, 1, 50);
-
-	class_T *cl = obj == NULL ? NULL : obj->obj_class;
-	if (cl != NULL && IS_ENUM(cl))
-	{
-	    ga_concat(&ga, (char_u *)"enum ");
-	    ga_concat(&ga, cl->class_name);
-	    char_u *enum_name = ((typval_T *)(obj + 1))->vval.v_string;
-	    ga_concat(&ga, (char_u *)".");
-	    ga_concat(&ga, enum_name);
-	}
-	else
-	{
-	    ga_concat(&ga, (char_u *)"object of ");
-	    ga_concat(&ga, cl == NULL ? (char_u *)"[unknown]"
-		    : cl->class_name);
-	}
-	if (cl != NULL)
-	{
-	    ga_concat(&ga, (char_u *)" {");
-	    for (int i = 0; i < cl->class_obj_member_count; ++i)
-	    {
-		if (i > 0)
-		    ga_concat(&ga, (char_u *)", ");
-		ocmember_T *m = &cl->class_obj_members[i];
-		ga_concat(&ga, m->ocm_name);
-		ga_concat(&ga, (char_u *)": ");
-		char_u *tf = NULL;
-		ga_concat(&ga, echo_string_core(
-			    (typval_T *)(obj + 1) + i,
-			    &tf, numbuf, copyID, echo_style,
-			    restore_copyID, composite_val));
-		vim_free(tf);
-	    }
-	    ga_concat(&ga, (char_u *)"}");
-	}
-	return ga.ga_data;
+	ga_concat(&ga, (char_u *)"object of ");
+	ga_concat(&ga, cl == NULL ? (char_u *)"[unknown]"
+		: cl->class_name);
     }
+    if (cl != NULL)
+    {
+	ga_concat(&ga, (char_u *)" {");
+	for (int i = 0; i < cl->class_obj_member_count; ++i)
+	{
+	    if (i > 0)
+		ga_concat(&ga, (char_u *)", ");
+	    ocmember_T *m = &cl->class_obj_members[i];
+	    ga_concat(&ga, m->ocm_name);
+	    ga_concat(&ga, (char_u *)": ");
+	    char_u *tf = NULL;
+	    char_u *s = echo_string_core((typval_T *)(obj + 1) + i,
+					 &tf, numbuf, copyID, echo_style,
+					 restore_copyID, composite_val);
+	    if (s != NULL)
+		ga_concat(&ga, s);
+	    vim_free(tf);
+	    if (s == NULL || did_echo_string_emsg)
+	    {
+		ok = FAIL;
+		break;
+	    }
+	    line_breakcheck();
+	}
+	ga_concat(&ga, (char_u *)"}");
+    }
+    if (ok == FAIL)
+    {
+	vim_free(ga.ga_data);
+	return NULL;
+    }
+    return (char_u *)ga.ga_data;
 }
 
 /*

@@ -5452,6 +5452,10 @@ define_function(
 	// :func does not use Vim9 script syntax, even in a Vim9 script file
 	fp->uf_script_ctx.sc_version = SCRIPT_VERSION_MAX;
 
+    // If test_override('defcompile' 1) is used, then compile the function now
+    if (eap->cmdidx == CMD_def && override_defcompile)
+	defcompile_function(fp, NULL);
+
     goto ret_free;
 
 erret:
@@ -5497,6 +5501,47 @@ ex_function(exarg_T *eap)
     ga_init2(&lines_to_free, sizeof(char_u *), 50);
     (void)define_function(eap, NULL, &lines_to_free, 0, NULL, 0);
     ga_clear_strings(&lines_to_free);
+}
+
+    int
+get_func_arity(char_u *name, int *required, int *optional, int *varargs)
+{
+    ufunc_T	*ufunc = NULL;
+    int		argcount = 0;
+    int		min_argcount = 0;
+    int		idx;
+
+    idx = find_internal_func(name);
+    if (idx >= 0)
+    {
+	internal_func_get_argcount(idx, &argcount, &min_argcount);
+	*varargs = FALSE;
+    }
+    else
+    {
+	char_u	fname_buf[FLEN_FIXED + 1];
+	char_u	*tofree = NULL;
+	funcerror_T error = FCERR_NONE;
+	char_u	*fname;
+
+	// May need to translate <SNR>123_ to K_SNR.
+	fname = fname_trans_sid(name, fname_buf, &tofree, &error);
+	if (error == FCERR_NONE)
+	    ufunc = find_func(fname, FALSE);
+	vim_free(tofree);
+
+	if (ufunc == NULL)
+	    return FAIL;
+
+	argcount = ufunc->uf_args.ga_len;
+	min_argcount = ufunc->uf_args.ga_len - ufunc->uf_def_args.ga_len;
+	*varargs = has_varargs(ufunc);
+    }
+
+    *required = min_argcount;
+    *optional = argcount - min_argcount;
+
+    return OK;
 }
 
 /*

@@ -18,20 +18,12 @@
 #include <sys/types.h>
 #include <signal.h>
 #include <limits.h>
+
+// cproto fails on missing include files
 #ifndef PROTO
 # include <process.h>
-#endif
-
-#undef chdir
-#ifdef __GNUC__
-# ifndef __MINGW32__
-#  include <dirent.h>
-# endif
-#else
 # include <direct.h>
-#endif
 
-#ifndef PROTO
 # if !defined(FEAT_GUI_MSWIN)
 #  include <shellapi.h>
 # endif
@@ -41,36 +33,7 @@
 #  include <winspool.h>
 #  include <commdlg.h>
 # endif
-
 #endif // PROTO
-
-#ifdef __MINGW32__
-# ifndef FROM_LEFT_1ST_BUTTON_PRESSED
-#  define FROM_LEFT_1ST_BUTTON_PRESSED    0x0001
-# endif
-# ifndef RIGHTMOST_BUTTON_PRESSED
-#  define RIGHTMOST_BUTTON_PRESSED	  0x0002
-# endif
-# ifndef FROM_LEFT_2ND_BUTTON_PRESSED
-#  define FROM_LEFT_2ND_BUTTON_PRESSED    0x0004
-# endif
-# ifndef FROM_LEFT_3RD_BUTTON_PRESSED
-#  define FROM_LEFT_3RD_BUTTON_PRESSED    0x0008
-# endif
-# ifndef FROM_LEFT_4TH_BUTTON_PRESSED
-#  define FROM_LEFT_4TH_BUTTON_PRESSED    0x0010
-# endif
-
-/*
- * EventFlags
- */
-# ifndef MOUSE_MOVED
-#  define MOUSE_MOVED   0x0001
-# endif
-# ifndef DOUBLE_CLICK
-#  define DOUBLE_CLICK  0x0002
-# endif
-#endif
 
 /*
  * When generating prototypes for Win32 on Unix, these lines make the syntax
@@ -142,37 +105,6 @@ static HWND s_hwnd = 0;	    // console window handle, set by GetConsoleHwnd()
 
 #ifdef FEAT_JOB_CHANNEL
 int WSInitialized = FALSE; // WinSock is initialized
-#endif
-
-// Don't generate prototypes here, because some systems do have these
-// functions.
-#if defined(__GNUC__) && !defined(PROTO)
-# ifndef __MINGW32__
-int _stricoll(char *a, char *b)
-{
-    // the ANSI-ish correct way is to use strxfrm():
-    char a_buff[512], b_buff[512];  // file names, so this is enough on Win32
-    strxfrm(a_buff, a, 512);
-    strxfrm(b_buff, b, 512);
-    return strcoll(a_buff, b_buff);
-}
-
-char * _fullpath(char *buf, char *fname, int len)
-{
-    LPTSTR toss;
-
-    return (char *)GetFullPathName(fname, len, buf, &toss);
-}
-# endif
-
-# if !defined(__MINGW32__) || (__GNUC__ < 4)
-int _chdrive(int drive)
-{
-    char temp [3] = "-:";
-    temp[0] = drive + 'A' - 1;
-    return !SetCurrentDirectory(temp);
-}
-# endif
 #endif
 
 
@@ -430,16 +362,6 @@ slash_adjust(char_u *p)
     }
 }
 
-// Use 64-bit stat functions.
-#undef stat
-#undef _stat
-#undef _wstat
-#undef _fstat
-#define stat _stat64
-#define _stat _stat64
-#define _wstat _wstat64
-#define _fstat _fstat64
-
     static int
 read_reparse_point(const WCHAR *name, char_u *buf, DWORD *buf_len)
 {
@@ -459,58 +381,6 @@ read_reparse_point(const WCHAR *name, char_u *buf, DWORD *buf_len)
     CloseHandle(h);
 
     return ok ? OK : FAIL;
-}
-
-    static int
-wstat_symlink_aware(const WCHAR *name, stat_T *stp)
-{
-#if (defined(_MSC_VER) && (_MSC_VER < 1900)) || defined(__MINGW32__)
-    // Work around for VC12 or earlier (and MinGW). _wstat() can't handle
-    // symlinks properly.
-    // VC9 or earlier: _wstat() doesn't support a symlink at all. It retrieves
-    // status of a symlink itself.
-    // VC10: _wstat() supports a symlink to a normal file, but it doesn't
-    // support a symlink to a directory (always returns an error).
-    // VC11 and VC12: _wstat() doesn't return an error for a symlink to a
-    // directory, but it doesn't set S_IFDIR flag.
-    // MinGW: Same as VC9.
-    int			n;
-    BOOL		is_symlink = FALSE;
-    HANDLE		hFind, h;
-    DWORD		attr = 0;
-    WIN32_FIND_DATAW	findDataW;
-
-    hFind = FindFirstFileW(name, &findDataW);
-    if (hFind != INVALID_HANDLE_VALUE)
-    {
-	attr = findDataW.dwFileAttributes;
-	if ((attr & FILE_ATTRIBUTE_REPARSE_POINT)
-		&& (findDataW.dwReserved0 == IO_REPARSE_TAG_SYMLINK))
-	    is_symlink = TRUE;
-	FindClose(hFind);
-    }
-    if (is_symlink)
-    {
-	h = CreateFileW(name, FILE_READ_ATTRIBUTES,
-		FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
-		OPEN_EXISTING,
-		(attr & FILE_ATTRIBUTE_DIRECTORY)
-					    ? FILE_FLAG_BACKUP_SEMANTICS : 0,
-		NULL);
-	if (h != INVALID_HANDLE_VALUE)
-	{
-	    int	    fd;
-
-	    fd = _open_osfhandle((intptr_t)h, _O_RDONLY);
-	    n = _fstat(fd, (struct _stat *)stp);
-	    if ((n == 0) && (attr & FILE_ATTRIBUTE_DIRECTORY))
-		stp->st_mode = (stp->st_mode & ~S_IFREG) | S_IFDIR;
-	    _close(fd);
-	    return n;
-	}
-    }
-#endif
-    return _wstat(name, (struct _stat *)stp);
 }
 
     char_u *
@@ -568,11 +438,76 @@ resolve_appexeclink(char_u *fname)
     return utf16_to_enc(p, NULL);
 }
 
+// Use 64-bit stat functions.
+#undef stat
+#undef _stat
+#undef _wstat
+#undef _fstat
+#define stat _stat64
+#define _stat _stat64
+#define _wstat _wstat64
+#define _fstat _fstat64
+
+/*
+ * Implements lstat() and stat() that can handle symlinks properly.
+ */
+    static int
+mswin_stat_impl(const WCHAR *name, stat_T *stp, const int resolve)
+{
+    int			n;
+    int			fd;
+    BOOL		is_symlink = FALSE;
+    HANDLE		hFind, h;
+    DWORD		attr = 0;
+    DWORD		flag = 0;
+    WIN32_FIND_DATAW    findDataW;
+
+#ifdef _UCRT
+    if (resolve)
+	// Universal CRT can handle symlinks properly.
+	return _wstat(name, stp);
+#endif
+
+    hFind = FindFirstFileW(name, &findDataW);
+    if (hFind != INVALID_HANDLE_VALUE)
+    {
+	attr = findDataW.dwFileAttributes;
+	if ((attr & FILE_ATTRIBUTE_REPARSE_POINT)
+		&& (findDataW.dwReserved0 == IO_REPARSE_TAG_SYMLINK))
+	    is_symlink = TRUE;
+	FindClose(hFind);
+    }
+
+    // Use the plain old stat() whenever it's possible.
+    if (!is_symlink)
+	return _wstat(name, stp);
+
+    if (!resolve && is_symlink)
+	flag = FILE_FLAG_OPEN_REPARSE_POINT;
+    if (attr & FILE_ATTRIBUTE_DIRECTORY)
+	flag |= FILE_FLAG_BACKUP_SEMANTICS;
+
+    h = CreateFileW(name, FILE_READ_ATTRIBUTES,
+	    FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, flag,
+	    NULL);
+    if (h == INVALID_HANDLE_VALUE)
+	return -1;
+
+    fd = _open_osfhandle((intptr_t)h, _O_RDONLY);
+    n = _fstat(fd, (struct _stat *)stp);
+    if ((n == 0) && (attr & FILE_ATTRIBUTE_DIRECTORY))
+	stp->st_mode = (stp->st_mode & ~S_IFMT) | S_IFDIR;
+    _close(fd);
+
+    return n;
+}
+
 /*
  * stat() can't handle a trailing '/' or '\', remove it first.
+ * When 'resolve' is true behave as lstat() wrt symlinks.
  */
-    int
-vim_stat(const char *name, stat_T *stp)
+    static int
+stat_impl(const char *name, stat_T *stp, const int resolve)
 {
     // WinNT and later can use _MAX_PATH wide characters for a pathname, which
     // means that the maximum pathname is _MAX_PATH * 3 bytes when 'enc' is
@@ -607,9 +542,21 @@ vim_stat(const char *name, stat_T *stp)
     if (wp == NULL)
 	return -1;
 
-    n = wstat_symlink_aware(wp, stp);
+    n = mswin_stat_impl(wp, stp, resolve);
     vim_free(wp);
     return n;
+}
+
+    int
+vim_lstat(const char *name, stat_T *stp)
+{
+    return stat_impl(name, stp, FALSE);
+}
+
+    int
+vim_stat(const char *name, stat_T *stp)
+{
+    return stat_impl(name, stp, TRUE);
 }
 
 #if (defined(FEAT_GUI_MSWIN) && !defined(VIMDLL)) || defined(PROTO)
@@ -881,6 +828,40 @@ mch_icon_load(HANDLE *iconp)
 {
     return do_in_runtimepath((char_u *)"bitmaps/vim.ico",
 						  0, mch_icon_load_cb, iconp);
+}
+
+/*
+ * Fill the buffer 'buf' with 'len' random bytes.
+ * Returns FAIL if the OS PRNG is not available or something went wrong.
+ */
+    int
+mch_get_random(char_u *buf, int len)
+{
+    static int		initialized = NOTDONE;
+    static HINSTANCE	hInstLib;
+    static BOOL (WINAPI *pProcessPrng)(PUCHAR, ULONG);
+
+    if (initialized == NOTDONE)
+    {
+	hInstLib = vimLoadLib("bcryptprimitives.dll");
+	if (hInstLib != NULL)
+	    pProcessPrng = (void *)GetProcAddress(hInstLib, "ProcessPrng");
+	if (hInstLib == NULL || pProcessPrng == NULL)
+	{
+	    FreeLibrary(hInstLib);
+	    initialized = FAIL;
+	}
+	else
+	    initialized = OK;
+    }
+
+    if (initialized == FAIL)
+	return FAIL;
+
+    // According to the documentation this call cannot fail.
+    pProcessPrng(buf, len);
+
+    return OK;
 }
 
     int
@@ -2940,7 +2921,7 @@ expand_font_enumproc(
     // Filter only on ANSI. Otherwise will see a lot of random fonts that we
     // usually don't want.
     if (lf->lfCharSet != ANSI_CHARSET)
-        return 1;
+	return 1;
 
     int (*add_match)(char_u *) = (int (*)(char_u *))lparam;
 
@@ -2974,7 +2955,7 @@ gui_mch_expand_font(optexpand_T *args, void *param UNUSED, int (*add_match)(char
 
 	// Always fill in with the current font size as first option for
 	// convenience. We simply round to the closest integer for simplicity.
-        int font_height = (int)round(
+	int font_height = (int)round(
 		pixels_to_points(-current_font_height, TRUE, (long_i)NULL));
 	vim_snprintf(buf, ARRAY_LENGTH(buf), "h%d", font_height);
 	add_match((char_u *)buf);

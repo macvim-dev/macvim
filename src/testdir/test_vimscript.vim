@@ -7509,6 +7509,14 @@ func Test_for_over_string()
     let res ..= c .. '-'
   endfor
   call assert_equal('', res)
+
+  " Test for using "_" as the loop variable
+  let i = 0
+  let s = 'abc'
+  for _ in s
+    call assert_equal(s[i], _)
+    let i += 1
+  endfor
 endfunc
 
 " Test for deeply nested :source command  {{{1
@@ -7526,6 +7534,31 @@ func Test_deeply_nested_source()
   " this must not crash
   let cmd = GetVimCommand() .. " -e -s -S Xnested.vim -c qa!"
   call system(cmd)
+endfunc
+
+func Test_exception_silent()
+  XpathINIT
+  let lines =<< trim END
+  func Throw()
+    Xpath 'a'
+    throw "Uncaught"
+    " This line is not executed.
+    Xpath 'b'
+  endfunc
+  " The exception is suppressed due to the presence of silent!.
+  silent! call Throw()
+  try
+    call DoesNotExist()
+  catch /E117:/
+    Xpath 'c'
+  endtry
+  Xpath 'd'
+  END
+  let verify =<< trim END
+    call assert_equal('acd', g:Xpath)
+  END
+
+  call RunInNewVim(lines, verify)
 endfunc
 
 "-------------------------------------------------------------------------------

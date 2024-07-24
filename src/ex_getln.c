@@ -493,7 +493,7 @@ may_do_incsearch_highlighting(
 	sia.sa_tm = 500;
 #endif
 	found = do_search(NULL, firstc == ':' ? '/' : firstc, search_delim,
-				 ccline.cmdbuff + skiplen, count, search_flags,
+				 ccline.cmdbuff + skiplen, patlen, count, search_flags,
 #ifdef FEAT_RELTIME
 		&sia
 #else
@@ -654,7 +654,7 @@ may_adjust_incsearch_highlighting(
     pat[patlen] = NUL;
     i = searchit(curwin, curbuf, &t, NULL,
 		 c == Ctrl_G ? FORWARD : BACKWARD,
-		 pat, count, search_flags, RE_SEARCH, NULL);
+		 pat, patlen, count, search_flags, RE_SEARCH, NULL);
     --emsg_off;
     pat[patlen] = save;
     if (i)
@@ -1586,6 +1586,7 @@ getcmdline_int(
     int		res;
     int		save_msg_scroll = msg_scroll;
     int		save_State = State;	// remember State when called
+    int		prev_cmdpos = -1;
     int		some_key_typed = FALSE;	// one of the keys was typed
     // mouse drag and release events are ignored, unless they are
     // preceded with a mouse down event
@@ -2482,6 +2483,13 @@ getcmdline_int(
  * (Sorry for the goto's, I know it is ugly).
  */
 cmdline_not_changed:
+	// Trigger CursorMovedC autocommands.
+	if (ccline.cmdpos != prev_cmdpos)
+	{
+	    trigger_cmd_autocmd(cmdline_type, EVENT_CURSORMOVEDC);
+	    prev_cmdpos = ccline.cmdpos;
+	}
+
 #ifdef FEAT_SEARCH_EXTRA
 	if (!is_state.incsearch_postponed)
 	    continue;
@@ -2493,9 +2501,16 @@ cmdline_changed:
 	if (is_state.winid != curwin->w_id)
 	    init_incsearch_state(&is_state);
 #endif
+	// Trigger CmdlineChanged autocommands.
 	if (trigger_cmdlinechanged)
-	    // Trigger CmdlineChanged autocommands.
 	    trigger_cmd_autocmd(cmdline_type, EVENT_CMDLINECHANGED);
+
+	// Trigger CursorMovedC autocommands.
+	if (ccline.cmdpos != prev_cmdpos)
+	{
+	    trigger_cmd_autocmd(cmdline_type, EVENT_CURSORMOVEDC);
+	    prev_cmdpos = ccline.cmdpos;
+	}
 
 #ifdef FEAT_SEARCH_EXTRA
 	if (xpc.xp_context == EXPAND_NOTHING && (KeyTyped || vpeekc() == NUL))
@@ -2548,12 +2563,14 @@ returncmd:
 	if (ccline.cmdlen && firstc != NUL
 		&& (some_key_typed || histype == HIST_SEARCH))
 	{
-	    add_to_history(histype, ccline.cmdbuff, TRUE,
+	    size_t cmdbufflen = STRLEN(ccline.cmdbuff);
+
+	    add_to_history(histype, ccline.cmdbuff, cmdbufflen, TRUE,
 				       histype == HIST_SEARCH ? firstc : NUL);
 	    if (firstc == ':')
 	    {
 		vim_free(new_last_cmdline);
-		new_last_cmdline = vim_strsave(ccline.cmdbuff);
+		new_last_cmdline = vim_strnsave(ccline.cmdbuff, cmdbufflen);
 	    }
 	}
 
@@ -3137,31 +3154,15 @@ redraw:
 	windgoto(msg_row, msg_col);
 	pend = (char_u *)(line_ga.ga_data) + line_ga.ga_len;
 
-	// We are done when a NL is entered, but not when it comes after an
-	// odd number of backslashes, that results in a NUL.
-	if (line_ga.ga_len > 0 && pend[-1] == '\n')
+	// We are done when a NL is entered, but not when it comes after a
+	// backslash in prompt mode.
+	if (line_ga.ga_len > 0 && pend[-1] == '\n'
+		&& (line_ga.ga_len <= 1 || pend[-2] != '\\' || !promptc))
 	{
-	    int bcount = 0;
-
-	    while (line_ga.ga_len - 2 >= bcount && pend[-2 - bcount] == '\\')
-		++bcount;
-
-	    if (bcount > 0)
-	    {
-		// Halve the number of backslashes: "\NL" -> "NUL", "\\NL" ->
-		// "\NL", etc.
-		line_ga.ga_len -= (bcount + 1) / 2;
-		pend -= (bcount + 1) / 2;
-		pend[-1] = '\n';
-	    }
-
-	    if ((bcount & 1) == 0)
-	    {
-		--line_ga.ga_len;
-		--pend;
-		*pend = NUL;
-		break;
-	    }
+	    --line_ga.ga_len;
+	    --pend;
+	    *pend = NUL;
+	    break;
 	}
     }
 
@@ -4186,6 +4187,7 @@ get_cmdline_completion(void)
 {
     cmdline_info_T *p;
     char_u	*buffer;
+    int		xp_context;
 
     if (cmdline_star > 0)
 	return NULL;
@@ -4194,15 +4196,21 @@ get_cmdline_completion(void)
     if (p == NULL || p->xpc == NULL)
 	return NULL;
 
-    set_expand_context(p->xpc);
-    if (p->xpc->xp_context == EXPAND_UNSUCCESSFUL)
+    xp_context = p->xpc->xp_context;
+    if (xp_context == EXPAND_NOTHING)
+    {
+	set_expand_context(p->xpc);
+	xp_context = p->xpc->xp_context;
+	p->xpc->xp_context = EXPAND_NOTHING;
+    }
+    if (xp_context == EXPAND_UNSUCCESSFUL)
 	return NULL;
 
-    char_u *cmd_compl = cmdcomplete_type_to_str(p->xpc->xp_context);
+    char_u *cmd_compl = cmdcomplete_type_to_str(xp_context);
     if (cmd_compl == NULL)
 	return NULL;
 
-    if (p->xpc->xp_context == EXPAND_USER_LIST || p->xpc->xp_context == EXPAND_USER_DEFINED)
+    if (xp_context == EXPAND_USER_LIST || xp_context == EXPAND_USER_DEFINED)
     {
 	buffer = alloc(STRLEN(cmd_compl) + STRLEN(p->xpc->xp_arg) + 2);
 	if (buffer == NULL)
@@ -4318,6 +4326,7 @@ set_cmdline_pos(
 	new_cmdpos = 0;
     else
 	new_cmdpos = pos;
+
     return 0;
 }
 

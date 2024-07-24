@@ -2475,6 +2475,7 @@ win_init_empty(win_T *wp)
     wp->w_topfill = 0;
 #endif
     wp->w_botline = 2;
+    wp->w_valid = 0;
 #if defined(FEAT_SYN_HL) || defined(FEAT_SPELL)
     wp->w_s = &wp->w_buffer->b_s;
 #endif
@@ -3781,15 +3782,24 @@ win_altframe(
     static tabpage_T *
 alt_tabpage(void)
 {
-    tabpage_T	*tp;
+    tabpage_T	*tp = NULL;
+    int		forward;
 
-    // Use the next tab page if possible.
-    if (curtab->tp_next != NULL)
-	return curtab->tp_next;
+    // Use the last accessed tab page, if possible.
+    if ((tcl_flags & TCL_USELAST) && valid_tabpage(lastused_tabpage))
+	return lastused_tabpage;
 
-    // Find the last but one tab page.
-    for (tp = first_tabpage; tp->tp_next != curtab; tp = tp->tp_next)
-	;
+    // Use the next tab page, if possible.
+    forward = curtab->tp_next != NULL &&
+	    ((tcl_flags & TCL_LEFT) == 0 || curtab == first_tabpage);
+
+    if (forward)
+	tp = curtab->tp_next;
+    else
+	// Use the previous tab page.
+	for (tp = first_tabpage; tp->tp_next != curtab; tp = tp->tp_next)
+	    ;
+
     return tp;
 }
 

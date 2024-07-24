@@ -3697,6 +3697,73 @@ func Test_getmousepos()
         \ column: 8,
         \ coladd: 21,
         \ }, getmousepos())
+
+  30vnew
+  setlocal smoothscroll number
+  call setline(1, join(range(100)))
+  exe "normal! \<C-E>"
+  call test_setmouse(1, 5)
+  call assert_equal(#{
+        \ screenrow: 1,
+        \ screencol: 5,
+        \ winid: win_getid(),
+        \ winrow: 1,
+        \ wincol: 5,
+        \ line: 1,
+        \ column: 27,
+        \ coladd: 0,
+        \ }, getmousepos())
+  call test_setmouse(2, 5)
+  call assert_equal(#{
+        \ screenrow: 2,
+        \ screencol: 5,
+        \ winid: win_getid(),
+        \ winrow: 2,
+        \ wincol: 5,
+        \ line: 1,
+        \ column: 53,
+        \ coladd: 0,
+        \ }, getmousepos())
+
+  exe "normal! \<C-E>"
+  call test_setmouse(1, 5)
+  call assert_equal(#{
+        \ screenrow: 1,
+        \ screencol: 5,
+        \ winid: win_getid(),
+        \ winrow: 1,
+        \ wincol: 5,
+        \ line: 1,
+        \ column: 53,
+        \ coladd: 0,
+        \ }, getmousepos())
+  call test_setmouse(2, 5)
+  call assert_equal(#{
+        \ screenrow: 2,
+        \ screencol: 5,
+        \ winid: win_getid(),
+        \ winrow: 2,
+        \ wincol: 5,
+        \ line: 1,
+        \ column: 79,
+        \ coladd: 0,
+        \ }, getmousepos())
+
+  vert resize 4
+  call test_setmouse(2, 2)
+  " This used to crash Vim
+  call assert_equal(#{
+        \ screenrow: 2,
+        \ screencol: 2,
+        \ winid: win_getid(),
+        \ winrow: 2,
+        \ wincol: 2,
+        \ line: 1,
+        \ column: 53,
+        \ coladd: 0,
+        \ }, getmousepos())
+
+  bwipe!
   bwipe!
 endfunc
 
@@ -3728,6 +3795,56 @@ func Test_glob()
   call assert_fails("call glob('*', 0, {})", 'E728:')
 endfunc
 
+func Test_glob2()
+  call mkdir('[XglobDir]', 'R')
+  call mkdir('abc[glob]def', 'R')
+
+  call writefile(['glob'], '[XglobDir]/Xglob')
+  call writefile(['glob'], 'abc[glob]def/Xglob')
+  if has("unix")
+    call assert_equal([], (glob('[XglobDir]/*', 0, 1)))
+    call assert_equal([], (glob('abc[glob]def/*', 0, 1)))
+    call assert_equal(['[XglobDir]/Xglob'], (glob('\[XglobDir]/*', 0, 1)))
+    call assert_equal(['abc[glob]def/Xglob'], (glob('abc\[glob]def/*', 0, 1)))
+  elseif has("win32")
+    let _sl=&shellslash
+    call assert_equal([], (glob('[XglobDir]\*', 0, 1)))
+    call assert_equal([], (glob('abc[glob]def\*', 0, 1)))
+    call assert_equal([], (glob('\[XglobDir]\*', 0, 1)))
+    call assert_equal([], (glob('abc\[glob]def\*', 0, 1)))
+    set noshellslash
+    call assert_equal(['[XglobDir]\Xglob'], (glob('[[]XglobDir]/*', 0, 1)))
+    call assert_equal(['abc[glob]def\Xglob'], (glob('abc[[]glob]def/*', 0, 1)))
+    set shellslash
+    call assert_equal(['[XglobDir]/Xglob'], (glob('[[]XglobDir]/*', 0, 1)))
+    call assert_equal(['abc[glob]def/Xglob'], (glob('abc[[]glob]def/*', 0, 1)))
+    let &shellslash=_sl
+  endif
+endfunc
+
+func Test_glob_symlinks()
+  call writefile([], 'Xglob1')
+
+  if has("win32")
+    silent !mklink XglobBad DoesNotExist
+    if v:shell_error
+      throw 'Skipped: cannot create symlinks'
+    endif
+    silent !mklink XglobOk Xglob1
+  else
+    silent !ln -s DoesNotExist XglobBad
+    silent !ln -s Xglob1 XglobOk
+  endif
+
+  " The broken symlink is excluded when alllinks is false.
+  call assert_equal(['Xglob1', 'XglobBad', 'XglobOk'], sort(glob('Xglob*', 0, 1, 1)))
+  call assert_equal(['Xglob1', 'XglobOk'], sort(glob('Xglob*', 0, 1, 0)))
+
+  call delete('Xglob1')
+  call delete('XglobBad')
+  call delete('XglobOk')
+endfunc
+
 " Test for browse()
 func Test_browse()
   CheckFeature browse
@@ -3746,11 +3863,6 @@ endfunc
 
 func Test_default_arg_value()
   call assert_equal('msg', HasDefault())
-endfunc
-
-" Test for gettext()
-func Test_gettext()
-  call assert_fails('call gettext(1)', 'E1174:')
 endfunc
 
 func Test_builtin_check()
@@ -4039,6 +4151,8 @@ func Test_slice()
     call assert_equal('', 'ὰ̳β̳́γ̳̂δ̳̃ε̳̄ζ̳̅'->slice(1, -6))
   END
   call v9.CheckLegacyAndVim9Success(lines)
+
+  call assert_equal(0, slice(v:true, 1))
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

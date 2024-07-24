@@ -548,6 +548,9 @@ func Test_set_completion_string_values()
   call assert_equal('sync', getcompletion('set swapsync=', 'cmdline')[1])
   call assert_equal('usetab', getcompletion('set switchbuf=', 'cmdline')[1])
   call assert_equal('ignore', getcompletion('set tagcase=', 'cmdline')[1])
+  if exists('+tabclose')
+    call assert_equal('left uselast', join(sort(getcompletion('set tabclose=', 'cmdline'))), ' ')
+  endif
   if exists('+termwintype')
     call assert_equal('conpty', getcompletion('set termwintype=', 'cmdline')[1])
   endif
@@ -1419,7 +1422,8 @@ func Test_write()
   set nowrite
   call assert_fails('write Xwrfile', 'E142:')
   set write
-  close!
+  " close swapfile
+  bw!
 endfunc
 
 " Test for 'buftype' option
@@ -1736,7 +1740,7 @@ func Test_VIM_POSIX()
     qall
   [CODE]
   if RunVim([], after, '')
-    call assert_equal(['aAbBcCdDeEfFgHiIjJkKlLmMnoOpPqrRsStuvwWxXyZ$!%*-+<>#{|&/\.;',
+    call assert_equal(['aAbBcCdDeEfFgHiIjJkKlLmMnoOpPqrRsStuvwWxXyZz$!%*-+<>#{|&/\.;',
           \            'AS'], readfile('X_VIM_POSIX'))
   endif
 
@@ -1746,7 +1750,7 @@ func Test_VIM_POSIX()
     qall
   [CODE]
   if RunVim([], after, '')
-    call assert_equal(['aAbBcCdDeEfFgHiIjJkKlLmMnoOpPqrRsStuvwWxXyZ$!%*-+<>;',
+    call assert_equal(['aAbBcCdDeEfFgHiIjJkKlLmMnoOpPqrRsStuvwWxXyZz$!%*-+<>;',
           \            'S'], readfile('X_VIM_POSIX'))
   endif
 

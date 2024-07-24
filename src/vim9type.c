@@ -209,6 +209,59 @@ set_tv_type_recurse(type_T *type)
 }
 
 /*
+ * Set the type of Dict "d" to "type"
+ */
+    static void
+set_tv_type_dict(dict_T *d, type_T *type)
+{
+    if (d->dv_type == type)
+	return;
+
+    free_type(d->dv_type);
+    d->dv_type = alloc_type(type);
+
+    // Need to recursively set the type of dict items?
+    if (!set_tv_type_recurse(type))
+	return;
+
+    int		todo = (int)d->dv_hashtab.ht_used;
+    hashitem_T	*hi;
+    dictitem_T	*di;
+
+    FOR_ALL_HASHTAB_ITEMS(&d->dv_hashtab, hi, todo)
+    {
+	if (!HASHITEM_EMPTY(hi))
+	{
+	    --todo;
+	    di = HI2DI(hi);
+	    set_tv_type(&di->di_tv, type->tt_member);
+	}
+    }
+}
+
+/*
+ * Set the type of List "l" to "type"
+ */
+    static void
+set_tv_type_list(list_T *l, type_T *type)
+{
+    if (l->lv_type == type)
+	return;
+
+    free_type(l->lv_type);
+    l->lv_type = alloc_type(type);
+
+    // Need to recursively set the type of list items?
+    if (l->lv_first == &range_list_item || !set_tv_type_recurse(type))
+	return;
+
+    listitem_T	*li;
+
+    FOR_ALL_LIST_ITEMS(l, li)
+	set_tv_type(&li->li_tv, type->tt_member);
+}
+
+/*
  * Set the type of "tv" to "type" if it is a list or dict.
  */
     void
@@ -218,49 +271,11 @@ set_tv_type(typval_T *tv, type_T *type)
 	// If the variable type is "any", then keep the value type.
 	// e.g.  var x: any = [1, 2] or var y: any = {v: 1}
 	return;
+
     if (tv->v_type == VAR_DICT && tv->vval.v_dict != NULL)
-    {
-	dict_T *d = tv->vval.v_dict;
-
-	if (d->dv_type != type)
-	{
-	    free_type(d->dv_type);
-	    d->dv_type = alloc_type(type);
-	    if (set_tv_type_recurse(type))
-	    {
-		int		todo = (int)d->dv_hashtab.ht_used;
-		hashitem_T	*hi;
-		dictitem_T	*di;
-
-		FOR_ALL_HASHTAB_ITEMS(&d->dv_hashtab, hi, todo)
-		{
-		    if (!HASHITEM_EMPTY(hi))
-		    {
-			--todo;
-			di = HI2DI(hi);
-			set_tv_type(&di->di_tv, type->tt_member);
-		    }
-		}
-	    }
-	}
-    }
+	set_tv_type_dict(tv->vval.v_dict, type);
     else if (tv->v_type == VAR_LIST && tv->vval.v_list != NULL)
-    {
-	list_T *l = tv->vval.v_list;
-
-	if (l->lv_type != type)
-	{
-	    free_type(l->lv_type);
-	    l->lv_type = alloc_type(type);
-	    if (l->lv_first != &range_list_item && set_tv_type_recurse(type))
-	    {
-		listitem_T	*li;
-
-		FOR_ALL_LIST_ITEMS(l, li)
-		    set_tv_type(&li->li_tv, type->tt_member);
-	    }
-	}
-    }
+	set_tv_type_list(tv->vval.v_list, type);
 }
 
     type_T *
@@ -414,11 +429,131 @@ func_type_add_arg_types(
 type_any_or_unknown(type_T *type)
 {
     return type == NULL || type->tt_type == VAR_ANY
-					       || type->tt_type == VAR_UNKNOWN;
+					|| type->tt_type == VAR_UNKNOWN;
 }
 
 /*
- * Get a type_T for a partial typval in "tv".
+ * Get a type_T for a "special" typval in "tv".
+ */
+    static type_T *
+special_typval2type(typval_T *tv)
+{
+    switch (tv->vval.v_number)
+    {
+	case VVAL_NULL:
+	    return &t_null;
+
+	case VVAL_NONE:
+	    return &t_none;
+
+	case VVAL_TRUE:
+	case VVAL_FALSE:
+	    return &t_bool;
+
+	default:
+	    return &t_unknown;
+    }
+}
+
+/*
+ * Get a type_T for a List typval in "tv".
+ * When "flags" has TVTT_DO_MEMBER also get the member type, otherwise use
+ * "any".
+ * When "flags" has TVTT_MORE_SPECIFIC get the more specific member type if it
+ * is "any".
+ */
+    static type_T *
+list_typval2type(typval_T *tv, int copyID, garray_T *type_gap, int flags)
+{
+    list_T	*l = tv->vval.v_list;
+    listitem_T	*li;
+    type_T	*member_type = NULL;
+
+    // An empty list has type list<unknown>, unless the type was specified
+    // and is not list<any>.  This matters when assigning to a variable
+    // with a specific list type.
+    if (l == NULL || (l->lv_first == NULL
+		&& (l->lv_type == NULL || l->lv_type->tt_member == &t_any)))
+	return &t_list_empty;
+
+    if ((flags & TVTT_DO_MEMBER) == 0)
+	return &t_list_any;
+
+    // If the type is list<any> go through the members, it may end up a
+    // more specific type.
+    if (l->lv_type != NULL && (l->lv_first == NULL
+		|| (flags & TVTT_MORE_SPECIFIC) == 0
+		|| l->lv_type->tt_member != &t_any))
+	// make a copy, lv_type may be freed if the list is freed
+	return copy_type_deep(l->lv_type, type_gap);
+
+    if (l->lv_first == &range_list_item)
+	return &t_list_number;
+
+    if (l->lv_copyID == copyID)
+	// avoid recursion
+	return &t_list_any;
+
+    l->lv_copyID = copyID;
+
+    // Use the common type of all members.
+    member_type = typval2type(&l->lv_first->li_tv, copyID, type_gap,
+							TVTT_DO_MEMBER);
+    for (li = l->lv_first->li_next; li != NULL; li = li->li_next)
+	common_type(typval2type(&li->li_tv, copyID, type_gap, TVTT_DO_MEMBER),
+					member_type, &member_type, type_gap);
+
+    return get_list_type(member_type, type_gap);
+}
+
+/*
+ * Get a type_T for a Dict typval in "tv".
+ * When "flags" has TVTT_DO_MEMBER also get the member type, otherwise use
+ * "any".
+ * When "flags" has TVTT_MORE_SPECIFIC get the more specific member type if it
+ * is "any".
+ */
+    static type_T *
+dict_typval2type(typval_T *tv, int copyID, garray_T *type_gap, int flags)
+{
+    dict_iterator_T	iter;
+    typval_T		*value;
+    dict_T		*d = tv->vval.v_dict;
+    type_T		*member_type = NULL;
+
+    if (d == NULL || (d->dv_hashtab.ht_used == 0 && d->dv_type == NULL))
+	return &t_dict_empty;
+
+    if ((flags & TVTT_DO_MEMBER) == 0)
+	return &t_dict_any;
+
+    // If the type is dict<any> go through the members, it may end up a
+    // more specific type.
+    if (d->dv_type != NULL && (d->dv_hashtab.ht_used == 0
+		|| (flags & TVTT_MORE_SPECIFIC) == 0
+		|| d->dv_type->tt_member != &t_any))
+	return d->dv_type;
+
+    if (d->dv_copyID == copyID)
+	// avoid recursion
+	return &t_dict_any;
+
+    d->dv_copyID = copyID;
+
+    // Use the common type of all values.
+    dict_iterate_start(tv, &iter);
+    dict_iterate_next(&iter, &value);
+    member_type = typval2type(value, copyID, type_gap, TVTT_DO_MEMBER);
+
+    while (dict_iterate_next(&iter, &value) != NULL)
+	common_type(typval2type(value, copyID, type_gap, TVTT_DO_MEMBER),
+					member_type, &member_type, type_gap);
+
+    return get_dict_type(member_type, type_gap);
+}
+
+/*
+ * Get a type_T for a "partial" typval in "tv".
  */
     static type_T *
 partial_typval2type(typval_T *tv, ufunc_T *ufunc, garray_T *type_gap)
@@ -448,6 +583,102 @@ partial_typval2type(typval_T *tv, ufunc_T *ufunc, garray_T *type_gap)
 }
 
 /*
+ * Get a type_T for a "class" or an "object" typval in "tv".
+ */
+    static type_T *
+oc_typval2type(typval_T *tv)
+{
+    if (tv->v_type == VAR_CLASS)
+    {
+	if (tv->vval.v_class == NULL)
+	    return &t_class;
+
+	return &tv->vval.v_class->class_type;
+    }
+
+    if (tv->vval.v_object != NULL)
+	return &tv->vval.v_object->obj_class->class_object_type;
+
+    return &t_object;
+}
+
+/*
+ * Get a type_T for a "function" or a "partial"
+ */
+    static type_T *
+fp_typval2type(typval_T *tv, garray_T *type_gap)
+{
+    char_u	*name = NULL;
+    ufunc_T	*ufunc = NULL;
+    type_T	*type;
+    type_T	*member_type = NULL;
+    int		argcount = 0;
+    int		min_argcount = 0;
+
+    if (tv->v_type == VAR_PARTIAL && tv->vval.v_partial != NULL)
+    {
+	if (tv->vval.v_partial->pt_func != NULL)
+	    ufunc = tv->vval.v_partial->pt_func;
+	else
+	    name = tv->vval.v_partial->pt_name;
+    }
+    else
+	name = tv->vval.v_string;
+
+    if (name == NULL && ufunc == NULL)
+	return &t_func_unknown;
+
+    if (name != NULL)
+    {
+	int idx = find_internal_func(name);
+
+	if (idx >= 0)
+	{
+	    type_T *decl_type;  // unused
+
+	    internal_func_get_argcount(idx, &argcount, &min_argcount);
+	    member_type = internal_func_ret_type(idx, 0, NULL, &decl_type,
+		    type_gap);
+	}
+	else
+	    ufunc = find_func(name, FALSE);
+    }
+    if (ufunc != NULL)
+    {
+	// May need to get the argument types from default values by
+	// compiling the function.
+	if (ufunc->uf_def_status == UF_TO_BE_COMPILED
+		&& compile_def_function(ufunc, TRUE, CT_NONE, NULL)
+		== FAIL)
+	    return NULL;
+	if (ufunc->uf_func_type == NULL)
+	    set_function_type(ufunc);
+	if (ufunc->uf_func_type != NULL)
+	{
+	    if (tv->v_type == VAR_PARTIAL && tv->vval.v_partial != NULL)
+		return partial_typval2type(tv, ufunc, type_gap);
+	    return ufunc->uf_func_type;
+	}
+    }
+
+    type = get_type_ptr(type_gap);
+    if (type == NULL)
+	return NULL;
+    type->tt_type = tv->v_type;
+    type->tt_argcount = argcount;
+    type->tt_min_argcount = min_argcount;
+    if (tv->v_type == VAR_PARTIAL && tv->vval.v_partial != NULL
+					&& tv->vval.v_partial->pt_argc > 0)
+    {
+	type->tt_argcount -= tv->vval.v_partial->pt_argc;
+	type->tt_min_argcount -= tv->vval.v_partial->pt_argc;
+    }
+    type->tt_member = member_type;
+
+    return type;
+}
+
+/*
  * Get a type_T for a typval_T.
  * "type_gap" is used to temporarily create types in.
  * When "flags" has TVTT_DO_MEMBER also get the member type, otherwise use
@@ -458,175 +689,66 @@ partial_typval2type(typval_T *tv, ufunc_T *ufunc, garray_T *type_gap)
     static type_T *
 typval2type_int(typval_T *tv, int copyID, garray_T *type_gap, int flags)
 {
-    type_T  *type;
-    type_T  *member_type = NULL;
-    class_T *class_type = NULL;
-    int	    argcount = 0;
-    int	    min_argcount = 0;
-
-    if (tv->v_type == VAR_NUMBER)
-	return &t_number;
-    if (tv->v_type == VAR_BOOL)
-	return &t_bool;
-    if (tv->v_type == VAR_SPECIAL)
+    switch (tv->v_type)
     {
-	if (tv->vval.v_number == VVAL_NULL)
-	    return &t_null;
-	if (tv->vval.v_number == VVAL_NONE)
-	    return &t_none;
-	if (tv->vval.v_number == VVAL_TRUE
-		|| tv->vval.v_number == VVAL_FALSE)
+	case VAR_UNKNOWN:
+	    return &t_unknown;
+
+	case VAR_ANY:
+	    return &t_any;
+
+	case VAR_VOID:
+	    return &t_void;
+
+	case VAR_BOOL:
 	    return &t_bool;
-	return &t_unknown;
-    }
-    if (tv->v_type == VAR_STRING)
-	return &t_string;
-    if (tv->v_type == VAR_BLOB)
-    {
-	if (tv->vval.v_blob == NULL)
-	    return &t_blob_null;
-	return &t_blob;
-    }
 
-    if (tv->v_type == VAR_LIST)
-    {
-	list_T	    *l = tv->vval.v_list;
-	listitem_T  *li;
+	case VAR_SPECIAL:
+	    return special_typval2type(tv);
 
-	// An empty list has type list<unknown>, unless the type was specified
-	// and is not list<any>.  This matters when assigning to a variable
-	// with a specific list type.
-	if (l == NULL || (l->lv_first == NULL
-		   && (l->lv_type == NULL || l->lv_type->tt_member == &t_any)))
-	    return &t_list_empty;
-	if ((flags & TVTT_DO_MEMBER) == 0)
-	    return &t_list_any;
-	// If the type is list<any> go through the members, it may end up a
-	// more specific type.
-	if (l->lv_type != NULL && (l->lv_first == NULL
-					   || (flags & TVTT_MORE_SPECIFIC) == 0
-					   || l->lv_type->tt_member != &t_any))
-	    // make a copy, lv_type may be freed if the list is freed
-	    return copy_type_deep(l->lv_type, type_gap);
-	if (l->lv_first == &range_list_item)
-	    return &t_list_number;
-	if (l->lv_copyID == copyID)
-	    // avoid recursion
-	    return &t_list_any;
-	l->lv_copyID = copyID;
+	case VAR_NUMBER:
+	    return &t_number;
 
-	// Use the common type of all members.
-	member_type = typval2type(&l->lv_first->li_tv, copyID, type_gap,
-							       TVTT_DO_MEMBER);
-	for (li = l->lv_first->li_next; li != NULL; li = li->li_next)
-	    common_type(typval2type(&li->li_tv, copyID, type_gap,
-							       TVTT_DO_MEMBER),
-					  member_type, &member_type, type_gap);
-	return get_list_type(member_type, type_gap);
+	case VAR_FLOAT:
+	    return &t_float;
+
+	case VAR_STRING:
+	    return &t_string;
+
+	case VAR_BLOB:
+	    if (tv->vval.v_blob == NULL)
+		return &t_blob_null;
+	    return &t_blob;
+
+	case VAR_LIST:
+	    return list_typval2type(tv, copyID, type_gap, flags);
+
+	case VAR_DICT:
+	    return dict_typval2type(tv, copyID, type_gap, flags);
+
+	case VAR_JOB:
+	    return &t_job;
+
+	case VAR_CHANNEL:
+	    return &t_channel;
+
+	case VAR_CLASS:
+	case VAR_OBJECT:
+	    return oc_typval2type(tv);
+
+	case VAR_TYPEALIAS:
+	    return &t_typealias;
+
+	case VAR_FUNC:
+	case VAR_PARTIAL:
+	    return fp_typval2type(tv, type_gap);
+
+	case VAR_INSTR:
+	default:
+	    break;
     }
 
-    if (tv->v_type == VAR_DICT)
-    {
-	dict_iterator_T iter;
-	typval_T	*value;
-	dict_T		*d = tv->vval.v_dict;
-
-	if (d == NULL || (d->dv_hashtab.ht_used == 0 && d->dv_type == NULL))
-	    return &t_dict_empty;
-	if ((flags & TVTT_DO_MEMBER) == 0)
-	    return &t_dict_any;
-	// If the type is dict<any> go through the members, it may end up a
-	// more specific type.
-	if (d->dv_type != NULL && (d->dv_hashtab.ht_used == 0
-					   || (flags & TVTT_MORE_SPECIFIC) == 0
-					   || d->dv_type->tt_member != &t_any))
-	    return d->dv_type;
-	if (d->dv_copyID == copyID)
-	    // avoid recursion
-	    return &t_dict_any;
-	d->dv_copyID = copyID;
-
-	// Use the common type of all values.
-	dict_iterate_start(tv, &iter);
-	dict_iterate_next(&iter, &value);
-	member_type = typval2type(value, copyID, type_gap, TVTT_DO_MEMBER);
-	while (dict_iterate_next(&iter, &value) != NULL)
-	    common_type(typval2type(value, copyID, type_gap, TVTT_DO_MEMBER),
-					  member_type, &member_type, type_gap);
-	return get_dict_type(member_type, type_gap);
-    }
-
-    if (tv->v_type == VAR_FUNC || tv->v_type == VAR_PARTIAL)
-    {
-	char_u	*name = NULL;
-	ufunc_T *ufunc = NULL;
-
-	if (tv->v_type == VAR_PARTIAL && tv->vval.v_partial != NULL)
-	{
-	    if (tv->vval.v_partial->pt_func != NULL)
-		ufunc = tv->vval.v_partial->pt_func;
-	    else
-		name = tv->vval.v_partial->pt_name;
-	}
-	else
-	    name = tv->vval.v_string;
-	if (name == NULL && ufunc == NULL)
-	    return &t_func_unknown;
-	if (name != NULL)
-	{
-	    int idx = find_internal_func(name);
-
-	    if (idx >= 0)
-	    {
-		type_T *decl_type;  // unused
-
-		internal_func_get_argcount(idx, &argcount, &min_argcount);
-		member_type = internal_func_ret_type(idx, 0, NULL, &decl_type,
-								     type_gap);
-	    }
-	    else
-		ufunc = find_func(name, FALSE);
-	}
-	if (ufunc != NULL)
-	{
-	    // May need to get the argument types from default values by
-	    // compiling the function.
-	    if (ufunc->uf_def_status == UF_TO_BE_COMPILED
-			    && compile_def_function(ufunc, TRUE, CT_NONE, NULL)
-								       == FAIL)
-		return NULL;
-	    if (ufunc->uf_func_type == NULL)
-		set_function_type(ufunc);
-	    if (ufunc->uf_func_type != NULL)
-	    {
-		if (tv->v_type == VAR_PARTIAL && tv->vval.v_partial != NULL)
-		    return partial_typval2type(tv, ufunc, type_gap);
-		return ufunc->uf_func_type;
-	    }
-	}
-    }
-
-    if (tv->v_type == VAR_CLASS)
-	class_type = tv->vval.v_class;
-    else if (tv->v_type == VAR_OBJECT && tv->vval.v_object != NULL)
-	class_type = tv->vval.v_object->obj_class;
-
-    type = get_type_ptr(type_gap);
-    if (type == NULL)
-	return NULL;
-    type->tt_type = tv->v_type;
-    type->tt_argcount = argcount;
-    type->tt_min_argcount = min_argcount;
-    if (tv->v_type == VAR_PARTIAL && tv->vval.v_partial != NULL
-					    && tv->vval.v_partial->pt_argc > 0)
-    {
-	type->tt_argcount -= tv->vval.v_partial->pt_argc;
-	type->tt_min_argcount -= tv->vval.v_partial->pt_argc;
-    }
-    type->tt_member = member_type;
-    type->tt_class = class_type;
-
-    return type;
+    return NULL;
 }
 
 /*
@@ -812,6 +934,7 @@ type_mismatch_where(type_T *expected, type_T *actual, where_T where)
 		semsg(_(e_argument_nr_type_mismatch_expected_str_but_got_str_in_str),
 			where.wt_index, typename1, typename2, where.wt_func_name);
 	    break;
+	case WT_CAST:
 	case WT_UNKNOWN:
 	    if (where.wt_func_name == NULL)
 		semsg(_(e_type_mismatch_expected_str_but_got_str),
@@ -968,7 +1091,15 @@ check_type_maybe(
 		    ret = FAIL;
 	    }
 	    else if (!class_instance_of(actual->tt_class, expected->tt_class))
-		ret = FAIL;
+	    {
+		// Check if this is an up-cast, if so we'll have to check the type at
+		// runtime.
+		if (where.wt_kind == WT_CAST &&
+			class_instance_of(expected->tt_class, actual->tt_class))
+		    ret = MAYBE;
+		else
+		    ret = FAIL;
+	    }
 	}
 
 	if (ret == FAIL && give_msg)
@@ -1162,6 +1293,201 @@ parse_type_member(
 }
 
 /*
+ * Parse a "func" type at "*arg" and advance over it.
+ * When "give_error" is TRUE give error messages, otherwise be quiet.
+ * Return NULL for failure.
+ */
+    static type_T *
+parse_type_func(char_u **arg, size_t len, garray_T *type_gap, int give_error)
+{
+    char_u  *p;
+    type_T  *type;
+    type_T  *ret_type = &t_unknown;
+    int	argcount = -1;
+    int	flags = 0;
+    int	first_optional = -1;
+    type_T	*arg_type[MAX_FUNC_ARGS + 1];
+
+    // func({type}, ...{type}): {type}
+    *arg += len;
+    if (**arg == '(')
+    {
+	// "func" may or may not return a value, "func()" does
+	// not return a value.
+	ret_type = &t_void;
+
+	p = ++*arg;
+	argcount = 0;
+	while (*p != NUL && *p != ')')
+	{
+	    if (*p == '?')
+	    {
+		if (first_optional == -1)
+		    first_optional = argcount;
+		++p;
+	    }
+	    else if (STRNCMP(p, "...", 3) == 0)
+	    {
+		flags |= TTFLAG_VARARGS;
+		p += 3;
+	    }
+	    else if (first_optional != -1)
+	    {
+		if (give_error)
+		    emsg(_(e_mandatory_argument_after_optional_argument));
+		return NULL;
+	    }
+
+	    type = parse_type(&p, type_gap, give_error);
+	    if (type == NULL)
+		return NULL;
+	    if ((flags & TTFLAG_VARARGS) != 0 && type->tt_type != VAR_LIST)
+	    {
+		char *tofree;
+		semsg(_(e_variable_arguments_type_must_be_list_str),
+			type_name(type, &tofree));
+		vim_free(tofree);
+		return NULL;
+	    }
+	    arg_type[argcount++] = type;
+
+	    // Nothing comes after "...{type}".
+	    if (flags & TTFLAG_VARARGS)
+		break;
+
+	    if (*p != ',' && *skipwhite(p) == ',')
+	    {
+		if (give_error)
+		    semsg(_(e_no_white_space_allowed_before_str_str),
+			    ",", p);
+		return NULL;
+	    }
+	    if (*p == ',')
+	    {
+		++p;
+		if (!VIM_ISWHITE(*p))
+		{
+		    if (give_error)
+			semsg(_(e_white_space_required_after_str_str),
+				",", p - 1);
+		    return NULL;
+		}
+	    }
+	    p = skipwhite(p);
+	    if (argcount == MAX_FUNC_ARGS)
+	    {
+		if (give_error)
+		    emsg(_(e_too_many_argument_types));
+		return NULL;
+	    }
+	}
+
+	p = skipwhite(p);
+	if (*p != ')')
+	{
+	    if (give_error)
+		emsg(_(e_missing_closing_paren));
+	    return NULL;
+	}
+	*arg = p + 1;
+    }
+    if (**arg == ':')
+    {
+	// parse return type
+	++*arg;
+	if (!VIM_ISWHITE(**arg) && give_error)
+	    semsg(_(e_white_space_required_after_str_str), ":", *arg - 1);
+	*arg = skipwhite(*arg);
+	ret_type = parse_type(arg, type_gap, give_error);
+	if (ret_type == NULL)
+	    return NULL;
+    }
+    if (flags == 0 && first_optional == -1 && argcount <= 0)
+	type = get_func_type(ret_type, argcount, type_gap);
+    else
+    {
+	type = alloc_func_type(ret_type, argcount, type_gap);
+	type->tt_flags = flags;
+	if (argcount > 0)
+	{
+	    type->tt_argcount = argcount;
+	    type->tt_min_argcount = first_optional == -1
+						? argcount : first_optional;
+	    if (func_type_add_arg_types(type, argcount, type_gap) == FAIL)
+		return NULL;
+	    mch_memmove(type->tt_args, arg_type, sizeof(type_T *) * argcount);
+	}
+    }
+
+    return type;
+}
+
+/*
+ * Parse a user defined type at "*arg" and advance over it.
+ * It can be a class or an interface or a typealias name, possibly imported.
+ * Return NULL if a type is not found.
+ */
+    static type_T *
+parse_type_user_defined(
+    char_u	**arg,
+    size_t	len,
+    garray_T	*type_gap,
+    int		give_error)
+{
+    int		did_emsg_before = did_emsg;
+    typval_T	tv;
+
+    tv.v_type = VAR_UNKNOWN;
+    if (eval_variable_import(*arg, &tv) == OK)
+    {
+	if (tv.v_type == VAR_CLASS && tv.vval.v_class != NULL)
+	{
+	    type_T *type = get_type_ptr(type_gap);
+	    if (type != NULL)
+	    {
+		// Although the name is that of a class or interface, the type
+		// uses will be an object.
+		type->tt_type = VAR_OBJECT;
+		type->tt_class = tv.vval.v_class;
+		clear_tv(&tv);
+
+		*arg += len;
+		// Skip over ".ClassName".
+		while (ASCII_ISALNUM(**arg) || **arg == '_' || **arg == '.')
+		    ++*arg;
+
+		return type;
+	    }
+	}
+	else if (tv.v_type == VAR_TYPEALIAS)
+	{
+	    // user defined type
+	    type_T *type = copy_type(tv.vval.v_typealias->ta_type, type_gap);
+	    *arg += len;
+	    clear_tv(&tv);
+	    // Skip over ".TypeName".
+	    while (ASCII_ISALNUM(**arg) || **arg == '_' || **arg == '.')
+		++*arg;
+	    return type;
+	}
+
+	clear_tv(&tv);
+    }
+
+    if (give_error && (did_emsg == did_emsg_before))
+    {
+	char_u	*p = skip_type(*arg, FALSE);
+	char	cc = *p;
+
+	*p = NUL;
+	semsg(_(e_type_not_recognized_str), *arg);
+	*p = cc;
+    }
+
+    return NULL;
+}
+
+/*
  * Parse a type at "arg" and advance over it.
  * When "give_error" is TRUE give error messages, otherwise be quiet.
  * Return NULL for failure.
@@ -1220,130 +1546,7 @@ parse_type(char_u **arg, garray_T *type_gap, int give_error)
 		return &t_float;
 	    }
 	    if (len == 4 && STRNCMP(*arg, "func", len) == 0)
-	    {
-		type_T  *type;
-		type_T  *ret_type = &t_unknown;
-		int	argcount = -1;
-		int	flags = 0;
-		int	first_optional = -1;
-		type_T	*arg_type[MAX_FUNC_ARGS + 1];
-
-		// func({type}, ...{type}): {type}
-		*arg += len;
-		if (**arg == '(')
-		{
-		    // "func" may or may not return a value, "func()" does
-		    // not return a value.
-		    ret_type = &t_void;
-
-		    p = ++*arg;
-		    argcount = 0;
-		    while (*p != NUL && *p != ')')
-		    {
-			if (*p == '?')
-			{
-			    if (first_optional == -1)
-				first_optional = argcount;
-			    ++p;
-			}
-			else if (STRNCMP(p, "...", 3) == 0)
-			{
-			    flags |= TTFLAG_VARARGS;
-			    p += 3;
-			}
-			else if (first_optional != -1)
-			{
-			    if (give_error)
-				emsg(_(e_mandatory_argument_after_optional_argument));
-			    return NULL;
-			}
-
-			type = parse_type(&p, type_gap, give_error);
-			if (type == NULL)
-			    return NULL;
-			if ((flags & TTFLAG_VARARGS) != 0
-				&& type->tt_type != VAR_LIST)
-			{
-			    char *tofree;
-			    semsg(_(e_variable_arguments_type_must_be_list_str),
-				  type_name(type, &tofree));
-			    vim_free(tofree);
-			    return NULL;
-			}
-			arg_type[argcount++] = type;
-
-			// Nothing comes after "...{type}".
-			if (flags & TTFLAG_VARARGS)
-			    break;
-
-			if (*p != ',' && *skipwhite(p) == ',')
-			{
-			    if (give_error)
-				semsg(_(e_no_white_space_allowed_before_str_str),
-								       ",", p);
-			    return NULL;
-			}
-			if (*p == ',')
-			{
-			    ++p;
-			    if (!VIM_ISWHITE(*p))
-			    {
-				if (give_error)
-				    semsg(_(e_white_space_required_after_str_str),
-								   ",", p - 1);
-				return NULL;
-			    }
-			}
-			p = skipwhite(p);
-			if (argcount == MAX_FUNC_ARGS)
-			{
-			    if (give_error)
-				emsg(_(e_too_many_argument_types));
-			    return NULL;
-			}
-		    }
-
-		    p = skipwhite(p);
-		    if (*p != ')')
-		    {
-			if (give_error)
-			    emsg(_(e_missing_closing_paren));
-			return NULL;
-		    }
-		    *arg = p + 1;
-		}
-		if (**arg == ':')
-		{
-		    // parse return type
-		    ++*arg;
-		    if (!VIM_ISWHITE(**arg) && give_error)
-			semsg(_(e_white_space_required_after_str_str),
-								":", *arg - 1);
-		    *arg = skipwhite(*arg);
-		    ret_type = parse_type(arg, type_gap, give_error);
-		    if (ret_type == NULL)
-			return NULL;
-		}
-		if (flags == 0 && first_optional == -1 && argcount <= 0)
-		    type = get_func_type(ret_type, argcount, type_gap);
-		else
-		{
-		    type = alloc_func_type(ret_type, argcount, type_gap);
-		    type->tt_flags = flags;
-		    if (argcount > 0)
-		    {
-			type->tt_argcount = argcount;
-			type->tt_min_argcount = first_optional == -1
-						   ? argcount : first_optional;
-			if (func_type_add_arg_types(type, argcount,
-							     type_gap) == FAIL)
-			    return NULL;
-			mch_memmove(type->tt_args, arg_type,
-						  sizeof(type_T *) * argcount);
-		    }
-		}
-		return type;
-	    }
+		return parse_type_func(arg, len, type_gap, give_error);
 	    break;
 	case 'j':
 	    if (len == 3 && STRNCMP(*arg, "job", len) == 0)
@@ -1383,50 +1586,8 @@ parse_type(char_u **arg, garray_T *type_gap, int give_error)
 	    break;
     }
 
-    // It can be a class or interface name, possibly imported.
-    int		did_emsg_before = did_emsg;
-    typval_T	tv;
-
-    tv.v_type = VAR_UNKNOWN;
-    if (eval_variable_import(*arg, &tv) == OK)
-    {
-	if (tv.v_type == VAR_CLASS && tv.vval.v_class != NULL)
-	{
-	    type_T *type = get_type_ptr(type_gap);
-	    if (type != NULL)
-	    {
-		// Although the name is that of a class or interface, the type
-		// uses will be an object.
-		type->tt_type = VAR_OBJECT;
-		type->tt_class = tv.vval.v_class;
-		clear_tv(&tv);
-
-		*arg += len;
-		// Skip over ".ClassName".
-		while (ASCII_ISALNUM(**arg) || **arg == '_' || **arg == '.')
-		    ++*arg;
-
-		return type;
-	    }
-	}
-	else if (tv.v_type == VAR_TYPEALIAS)
-	{
-	    // user defined type
-	    type_T *type = copy_type(tv.vval.v_typealias->ta_type, type_gap);
-	    *arg += len;
-	    clear_tv(&tv);
-	    // Skip over ".TypeName".
-	    while (ASCII_ISALNUM(**arg) || **arg == '_' || **arg == '.')
-		++*arg;
-	    return type;
-	}
-
-	clear_tv(&tv);
-    }
-
-    if (give_error && (did_emsg == did_emsg_before))
-	semsg(_(e_type_not_recognized_str), *arg);
-    return NULL;
+    // User defined type
+    return parse_type_user_defined(arg, len, type_gap, give_error);
 }
 
 /*
@@ -1483,6 +1644,60 @@ equal_type(type_T *type1, type_T *type2, int flags)
 }
 
 /*
+ * Find the common type of "type1" (VAR_FUNC) and "type2" (VAR_FUNC) and put it
+ * in "dest".  "type2" and "dest" may be the same.
+ */
+    static void
+common_type_var_func(
+    type_T	*type1,
+    type_T	*type2,
+    type_T	**dest,
+    garray_T	*type_gap)
+{
+    type_T *common;
+
+    // When one of the types is t_func_unknown return the other one.
+    // Useful if a list or dict item is null_func.
+    if (type1 == &t_func_unknown)
+    {
+	*dest = type2;
+	return;
+    }
+    if (type2 == &t_func_unknown)
+    {
+	*dest = type1;
+	return;
+    }
+
+    common_type(type1->tt_member, type2->tt_member, &common, type_gap);
+    if (type1->tt_argcount == type2->tt_argcount
+	    && type1->tt_argcount >= 0)
+    {
+	int argcount = type1->tt_argcount;
+	int i;
+
+	*dest = alloc_func_type(common, argcount, type_gap);
+	if (type1->tt_args != NULL && type2->tt_args != NULL)
+	{
+	    if (func_type_add_arg_types(*dest, argcount,
+			type_gap) == OK)
+		for (i = 0; i < argcount; ++i)
+		    common_type(type1->tt_args[i], type2->tt_args[i],
+			    &(*dest)->tt_args[i], type_gap);
+	}
+    }
+    else
+	// Use -1 for "tt_argcount" to indicate an unknown number of
+	// arguments.
+	*dest = alloc_func_type(common, -1, type_gap);
+
+    // Use the minimum of min_argcount.
+    (*dest)->tt_min_argcount =
+	type1->tt_min_argcount < type2->tt_min_argcount
+	? type1->tt_min_argcount : type2->tt_min_argcount;
+}
+
+/*
  * Find the common type of "type1" and "type2" and put it in "dest".
  * "type2" and "dest" may be the same.
  */
@@ -1521,49 +1736,10 @@ common_type(type_T *type1, type_T *type2, type_T **dest, garray_T *type_gap)
 		*dest = get_dict_type(common, type_gap);
 	    return;
 	}
+
 	if (type1->tt_type == VAR_FUNC)
 	{
-	    type_T *common;
-
-	    // When one of the types is t_func_unknown return the other one.
-	    // Useful if a list or dict item is null_func.
-	    if (type1 == &t_func_unknown)
-	    {
-		*dest = type2;
-		return;
-	    }
-	    if (type2 == &t_func_unknown)
-	    {
-		*dest = type1;
-		return;
-	    }
-
-	    common_type(type1->tt_member, type2->tt_member, &common, type_gap);
-	    if (type1->tt_argcount == type2->tt_argcount
-						    && type1->tt_argcount >= 0)
-	    {
-		int argcount = type1->tt_argcount;
-		int i;
-
-		*dest = alloc_func_type(common, argcount, type_gap);
-		if (type1->tt_args != NULL && type2->tt_args != NULL)
-		{
-		    if (func_type_add_arg_types(*dest, argcount,
-							     type_gap) == OK)
-			for (i = 0; i < argcount; ++i)
-			    common_type(type1->tt_args[i], type2->tt_args[i],
-					       &(*dest)->tt_args[i], type_gap);
-		}
-	    }
-	    else
-		// Use -1 for "tt_argcount" to indicate an unknown number of
-		// arguments.
-		*dest = alloc_func_type(common, -1, type_gap);
-
-	    // Use the minimum of min_argcount.
-	    (*dest)->tt_min_argcount =
-			type1->tt_min_argcount < type2->tt_min_argcount
-			     ? type1->tt_min_argcount : type2->tt_min_argcount;
+	    common_type_var_func(type1, type2, dest, type_gap);
 	    return;
 	}
     }
@@ -1718,6 +1894,128 @@ vartype_name(vartype_T type)
 }
 
 /*
+ * Return the type name of a List (list<type>) or Dict (dict<type>).
+ * The result may be in allocated memory, in which case "tofree" is set.
+ */
+    static char *
+type_name_list_or_dict(char *name, type_T *type, char **tofree)
+{
+    char *member_free;
+    char *member_name;
+
+    if (type->tt_member->tt_type == VAR_UNKNOWN)
+	member_name = type_name(&t_any, &member_free);
+    else
+	member_name = type_name(type->tt_member, &member_free);
+
+    size_t len = STRLEN(name) + STRLEN(member_name) + 3;
+    *tofree = alloc(len);
+    if (*tofree == NULL)
+	return name;
+
+    vim_snprintf(*tofree, len, "%s<%s>", name, member_name);
+    vim_free(member_free);
+    return *tofree;
+}
+
+/*
+ * Return the type name of a Class (class<name>) or Object (object<name>).
+ * The result may be in allocated memory, in which case "tofree" is set.
+ */
+    static char *
+type_name_class_or_obj(char *name, type_T *type, char **tofree)
+{
+    char_u *class_name;
+
+    if (type->tt_class != NULL)
+    {
+	class_name = type->tt_class->class_name;
+	if (IS_ENUM(type->tt_class))
+	    name = "enum";
+    }
+    else
+	class_name = (char_u *)"Unknown";
+
+    size_t len = STRLEN(name) + STRLEN(class_name) + 3;
+    *tofree = alloc(len);
+    if (*tofree == NULL)
+	return name;
+
+    vim_snprintf(*tofree, len, "%s<%s>", name, class_name);
+    return *tofree;
+}
+
+/*
+ * Return the type name of a function.
+ * The result may be in allocated memory, in which case "tofree" is set.
+ */
+    static char *
+type_name_func(type_T *type, char **tofree)
+{
+    garray_T    ga;
+    int		i;
+    int		varargs = (type->tt_flags & TTFLAG_VARARGS) ? 1 : 0;
+    char	*arg_free = NULL;
+
+    ga_init2(&ga, 1, 100);
+    if (ga_grow(&ga, 20) == FAIL)
+	goto failed;
+    STRCPY(ga.ga_data, "func(");
+    ga.ga_len += 5;
+
+    for (i = 0; i < type->tt_argcount; ++i)
+    {
+	char *arg_type;
+	int  len;
+
+	if (type->tt_args == NULL)
+	    arg_type = "[unknown]";
+	else
+	    arg_type = type_name(type->tt_args[i], &arg_free);
+	if (i > 0)
+	{
+	    STRCPY((char *)ga.ga_data + ga.ga_len, ", ");
+	    ga.ga_len += 2;
+	}
+	len = (int)STRLEN(arg_type);
+	if (ga_grow(&ga, len + 8) == FAIL)
+	    goto failed;
+	if (varargs && i == type->tt_argcount - 1)
+	    ga_concat(&ga, (char_u *)"...");
+	else if (i >= type->tt_min_argcount)
+	    *((char *)ga.ga_data + ga.ga_len++) = '?';
+	ga_concat(&ga, (char_u *)arg_type);
+	VIM_CLEAR(arg_free);
+    }
+    if (type->tt_argcount < 0)
+	// any number of arguments
+	ga_concat(&ga, (char_u *)"...");
+
+    if (type->tt_member == &t_void)
+	STRCPY((char *)ga.ga_data + ga.ga_len, ")");
+    else
+    {
+	char *ret_free;
+	char *ret_name = type_name(type->tt_member, &ret_free);
+	int  len;
+
+	len = (int)STRLEN(ret_name) + 4;
+	if (ga_grow(&ga, len) == FAIL)
+	    goto failed;
+	STRCPY((char *)ga.ga_data + ga.ga_len, "): ");
+	STRCPY((char *)ga.ga_data + ga.ga_len + 3, ret_name);
+	vim_free(ret_free);
+    }
+    *tofree = ga.ga_data;
+    return ga.ga_data;
+
+failed:
+    vim_free(arg_free);
+    ga_clear(&ga);
+    return "[unknown]";
+}
+
+/*
  * Return the name of a type.
  * The result may be in allocated memory, in which case "tofree" is set.
  */
@@ -1725,113 +2023,27 @@ vartype_name(vartype_T type)
 type_name(type_T *type, char **tofree)
 {
     char *name;
-    char *arg_free = NULL;
 
     *tofree = NULL;
     if (type == NULL)
 	return "[unknown]";
     name = vartype_name(type->tt_type);
 
-    if (type->tt_type == VAR_LIST || type->tt_type == VAR_DICT)
+    switch (type->tt_type)
     {
-	char *member_free;
-	char *member_name;
-	if (type->tt_member->tt_type == VAR_UNKNOWN)
-	    member_name = type_name(&t_any, &member_free);
-	else
-	    member_name = type_name(type->tt_member, &member_free);
-	size_t len = STRLEN(name) + STRLEN(member_name) + 3;
-	*tofree = alloc(len);
-	if (*tofree != NULL)
-	{
-	    vim_snprintf(*tofree, len, "%s<%s>", name, member_name);
-	    vim_free(member_free);
-	    return *tofree;
-	}
-    }
+	case VAR_LIST:
+	case VAR_DICT:
+	    return type_name_list_or_dict(name, type, tofree);
 
-    if (type->tt_type == VAR_OBJECT || type->tt_type == VAR_CLASS)
-    {
-	char_u *class_name;
-	if (type->tt_class != NULL)
-	{
-	    class_name = type->tt_class->class_name;
-	    if (IS_ENUM(type->tt_class))
-		name = "enum";
-	}
-	else
-	    class_name = (char_u *)"Unknown";
-	size_t len = STRLEN(name) + STRLEN(class_name) + 3;
-	*tofree = alloc(len);
-	if (*tofree != NULL)
-	{
-	    vim_snprintf(*tofree, len, "%s<%s>", name, class_name);
-	    return *tofree;
-	}
-    }
+	case VAR_CLASS:
+	case VAR_OBJECT:
+	    return type_name_class_or_obj(name, type, tofree);
 
-    if (type->tt_type == VAR_FUNC)
-    {
-	garray_T    ga;
-	int	    i;
-	int	    varargs = (type->tt_flags & TTFLAG_VARARGS) ? 1 : 0;
+	case VAR_FUNC:
+	    return type_name_func(type, tofree);
 
-	ga_init2(&ga, 1, 100);
-	if (ga_grow(&ga, 20) == FAIL)
-	    goto failed;
-	STRCPY(ga.ga_data, "func(");
-	ga.ga_len += 5;
-
-	for (i = 0; i < type->tt_argcount; ++i)
-	{
-	    char *arg_type;
-	    int  len;
-
-	    if (type->tt_args == NULL)
-		arg_type = "[unknown]";
-	    else
-		arg_type = type_name(type->tt_args[i], &arg_free);
-	    if (i > 0)
-	    {
-		STRCPY((char *)ga.ga_data + ga.ga_len, ", ");
-		ga.ga_len += 2;
-	    }
-	    len = (int)STRLEN(arg_type);
-	    if (ga_grow(&ga, len + 8) == FAIL)
-		goto failed;
-	    if (varargs && i == type->tt_argcount - 1)
-		ga_concat(&ga, (char_u *)"...");
-	    else if (i >= type->tt_min_argcount)
-		*((char *)ga.ga_data + ga.ga_len++) = '?';
-	    ga_concat(&ga, (char_u *)arg_type);
-	    VIM_CLEAR(arg_free);
-	}
-	if (type->tt_argcount < 0)
-	    // any number of arguments
-	    ga_concat(&ga, (char_u *)"...");
-
-	if (type->tt_member == &t_void)
-	    STRCPY((char *)ga.ga_data + ga.ga_len, ")");
-	else
-	{
-	    char *ret_free;
-	    char *ret_name = type_name(type->tt_member, &ret_free);
-	    int  len;
-
-	    len = (int)STRLEN(ret_name) + 4;
-	    if (ga_grow(&ga, len) == FAIL)
-		goto failed;
-	    STRCPY((char *)ga.ga_data + ga.ga_len, "): ");
-	    STRCPY((char *)ga.ga_data + ga.ga_len + 3, ret_name);
-	    vim_free(ret_free);
-	}
-	*tofree = ga.ga_data;
-	return ga.ga_data;
-
-failed:
-	vim_free(arg_free);
-	ga_clear(&ga);
-	return "[unknown]";
+	default:
+	    break;
     }
 
     return name;
@@ -1895,10 +2107,12 @@ check_typval_is_value(typval_T *tv)
 	case VAR_CLASS:
 	    {
 		class_T *cl = tv->vval.v_class;
-		if (IS_ENUM(cl))
-		    semsg(_(e_using_enum_as_value_str), cl->class_name);
+		char_u *class_name = (cl == NULL) ? (char_u *)""
+							: cl->class_name;
+		if (cl != NULL && IS_ENUM(cl))
+		    semsg(_(e_using_enum_as_value_str), class_name);
 		else
-		    semsg(_(e_using_class_as_value_str), cl->class_name);
+		    semsg(_(e_using_class_as_value_str), class_name);
 	    }
 	    return FAIL;
 

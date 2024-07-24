@@ -630,14 +630,14 @@ func Test_pum_with_preview_win()
   CheckScreendump
 
   let lines =<< trim END
-      funct Omni_test(findstart, base)
-	if a:findstart
-	  return col(".") - 1
-	endif
-	return [#{word: "one", info: "1info"}, #{word: "two", info: "2info"}, #{word: "three", info: "3info"}]
-      endfunc
-      set omnifunc=Omni_test
-      set completeopt+=longest
+    func Omni_test(findstart, base)
+      if a:findstart
+        return col(".") - 1
+      endif
+      return [#{word: "one", info: "1info"}, #{word: "two", info: "2info"}, #{word: "three", info: "3info"}]
+    endfunc
+    set omnifunc=Omni_test
+    set completeopt+=longest
   END
 
   call writefile(lines, 'Xpreviewscript', 'D')
@@ -809,6 +809,74 @@ func Test_complete_with_longest()
   bwipe!
 endfunc
 
+" Test for buffer-local value of 'completeopt'
+func Test_completeopt_buffer_local()
+  set completeopt=menu
+  new
+  call setline(1, ['foofoo', 'foobar', 'foobaz', ''])
+  call assert_equal('', &l:completeopt)
+  call assert_equal('menu', &completeopt)
+  call assert_equal('menu', &g:completeopt)
+
+  setlocal bufhidden=hide
+  enew
+  call setline(1, ['foofoo', 'foobar', 'foobaz', ''])
+  call assert_equal('', &l:completeopt)
+  call assert_equal('menu', &completeopt)
+  call assert_equal('menu', &g:completeopt)
+
+  setlocal completeopt+=fuzzy,noinsert
+  call assert_equal('menu,fuzzy,noinsert', &l:completeopt)
+  call assert_equal('menu,fuzzy,noinsert', &completeopt)
+  call assert_equal('menu', &g:completeopt)
+  call feedkeys("Gccf\<C-X>\<C-N>bz\<C-Y>", 'tnix')
+  call assert_equal('foobaz', getline('.'))
+
+  setlocal completeopt=
+  call assert_equal('', &l:completeopt)
+  call assert_equal('menu', &completeopt)
+  call assert_equal('menu', &g:completeopt)
+  call feedkeys("Gccf\<C-X>\<C-N>\<C-Y>", 'tnix')
+  call assert_equal('foofoo', getline('.'))
+
+  setlocal completeopt+=longest
+  call assert_equal('menu,longest', &l:completeopt)
+  call assert_equal('menu,longest', &completeopt)
+  call assert_equal('menu', &g:completeopt)
+  call feedkeys("Gccf\<C-X>\<C-N>\<C-X>\<C-Z>", 'tnix')
+  call assert_equal('foo', getline('.'))
+
+  setlocal bufhidden=hide
+  buffer #
+  call assert_equal('', &l:completeopt)
+  call assert_equal('menu', &completeopt)
+  call assert_equal('menu', &g:completeopt)
+  call feedkeys("Gccf\<C-X>\<C-N>\<C-Y>", 'tnix')
+  call assert_equal('foofoo', getline('.'))
+
+  setlocal completeopt+=fuzzy,noinsert
+  call assert_equal('menu,fuzzy,noinsert', &l:completeopt)
+  call assert_equal('menu,fuzzy,noinsert', &completeopt)
+  call assert_equal('menu', &g:completeopt)
+  call feedkeys("Gccf\<C-X>\<C-N>bz\<C-Y>", 'tnix')
+  call assert_equal('foobaz', getline('.'))
+
+  buffer #
+  call assert_equal('menu,longest', &l:completeopt)
+  call assert_equal('menu,longest', &completeopt)
+  call assert_equal('menu', &g:completeopt)
+  call feedkeys("Gccf\<C-X>\<C-N>\<C-X>\<C-Z>", 'tnix')
+  call assert_equal('foo', getline('.'))
+
+  setlocal bufhidden=wipe
+  buffer! #
+  bwipe!
+  call assert_equal('', &l:completeopt)
+  call assert_equal('menu', &completeopt)
+  call assert_equal('menu', &g:completeopt)
+
+  set completeopt&
+endfunc
 
 " Test for completing words following a completed word in a line
 func Test_complete_wrapscan()
@@ -2449,6 +2517,175 @@ func Test_completefunc_first_call_complete_add()
   delfunc Complete
   set completeopt& completefunc&
   bwipe!
+endfunc
+
+func Test_complete_fuzzy_match()
+  func OnPumChange()
+    let g:item = get(v:event, 'completed_item', {})
+    let g:word = get(g:item, 'word', v:null)
+  endfunction
+
+  augroup AAAAA_Group
+    au!
+    autocmd CompleteChanged * :call OnPumChange()
+  augroup END
+
+  func Omni_test(findstart, base)
+    if a:findstart
+      return col(".")
+    endif
+    return [#{word: "foo"}, #{word: "foobar"}, #{word: "fooBaz"}, #{word: "foobala"}]
+  endfunc
+
+  new
+  set omnifunc=Omni_test
+  set completeopt+=noinsert,fuzzy
+  call feedkeys("Gi\<C-x>\<C-o>", 'tx')
+  call assert_equal('foo', g:word)
+  call feedkeys("S\<C-x>\<C-o>fb", 'tx')
+  call assert_equal('fooBaz', g:word)
+  call feedkeys("S\<C-x>\<C-o>fa", 'tx')
+  call assert_equal('foobar', g:word)
+  " select next
+  call feedkeys("S\<C-x>\<C-o>fb\<C-n>", 'tx')
+  call assert_equal('foobar', g:word)
+  " can cyclically select next
+  call feedkeys("S\<C-x>\<C-o>fb\<C-n>\<C-n>\<C-n>", 'tx')
+  call assert_equal(v:null, g:word)
+  " select prev
+  call feedkeys("S\<C-x>\<C-o>fb\<C-p>", 'tx')
+  call assert_equal(v:null, g:word)
+  " can cyclically select prev
+  call feedkeys("S\<C-x>\<C-o>fb\<C-p>\<C-p>\<C-p>\<C-p>", 'tx')
+  call assert_equal('fooBaz', g:word)
+
+  func Comp()
+    call complete(col('.'), ["fooBaz", "foobar", "foobala"])
+    return ''
+  endfunc
+  call feedkeys("i\<C-R>=Comp()\<CR>", 'tx')
+  call assert_equal('fooBaz', g:word)
+
+  " respect noselect
+  set completeopt+=noselect
+  call feedkeys("S\<C-x>\<C-o>fb", 'tx')
+  call assert_equal(v:null, g:word)
+  call feedkeys("S\<C-x>\<C-o>fb\<C-n>", 'tx')
+  call assert_equal('fooBaz', g:word)
+
+  " avoid breaking default completion behavior
+  set completeopt=fuzzy,menu
+  call setline(1, ['hello help hero h'])
+  " Use "!" flag of feedkeys() so that ex_normal_busy is not set and
+  " ins_compl_check_keys() is not skipped.
+  " Add a "0" after the <Esc> to avoid waiting for an escape sequence.
+  call feedkeys("A\<C-X>\<C-N>\<Esc>0", 'tx!')
+  call assert_equal('hello help hero hello', getline('.'))
+  set completeopt+=noinsert
+  call setline(1, ['hello help hero h'])
+  call feedkeys("A\<C-X>\<C-N>\<Esc>0", 'tx!')
+  call assert_equal('hello help hero h', getline('.'))
+
+  set completeopt-=noinsert
+  call setline(1, ['xyz  yxz  x'])
+  call feedkeys("A\<C-X>\<C-N>\<Esc>0", 'tx!')
+  call assert_equal('xyz  yxz  xyz', getline('.'))
+  " can fuzzy get yxz when use Ctrl-N twice
+  call setline(1, ['xyz  yxz  x'])
+  call feedkeys("A\<C-X>\<C-N>\<C-N>\<Esc>0", 'tx!')
+  call assert_equal('xyz  yxz  yxz', getline('.'))
+
+  call setline(1, ['你好 你'])
+  call feedkeys("A\<C-X>\<C-N>\<Esc>0", 'tx!')
+  call assert_equal('你好 你好', getline('.'))
+  call setline(1, ['你的 我的 的'])
+  call feedkeys("A\<C-X>\<C-N>\<Esc>0", 'tx!')
+  call assert_equal('你的 我的 你的', getline('.'))
+  " can fuzzy get multiple-byte word when use Ctrl-N twice
+  call setline(1, ['你的 我的 的'])
+  call feedkeys("A\<C-X>\<C-N>\<C-N>\<Esc>0", 'tx!')
+  call assert_equal('你的 我的 我的', getline('.'))
+
+  " respect wrapscan
+  set nowrapscan
+  call setline(1, ["xyz", "yxz", ""])
+  call cursor(3, 1)
+  call feedkeys("Sy\<C-X>\<C-N>\<Esc>0", 'tx!')
+  call assert_equal('y', getline('.'))
+  set wrapscan
+  call feedkeys("Sy\<C-X>\<C-N>\<Esc>0", 'tx!')
+  call assert_equal('xyz', getline('.'))
+
+  " fuzzy on file
+  call writefile([''], 'fobar', 'D')
+  call writefile([''], 'foobar', 'D')
+  call setline(1, ['fob'])
+  call cursor(1, 1)
+  call feedkeys("A\<C-X>\<C-f>\<Esc>0", 'tx!')
+  call assert_equal('fobar', getline('.'))
+  call feedkeys("Sfob\<C-X>\<C-f>\<C-N>\<Esc>0", 'tx!')
+  call assert_equal('foobar', getline('.'))
+  call feedkeys("S../\<C-X>\<C-f>\<Esc>0", 'tx!')
+  call assert_match('../*', getline('.'))
+  call feedkeys("S../td\<C-X>\<C-f>\<Esc>0", 'tx!')
+  call assert_match('../testdir', getline('.'))
+
+  " can get completion from other buffer
+  set completeopt=fuzzy,menu,menuone
+  vnew
+  call setline(1, ["completeness,", "compatibility", "Composite", "Omnipotent"])
+  wincmd p
+  call feedkeys("Somp\<C-N>\<Esc>0", 'tx!')
+  call assert_equal('completeness', getline('.'))
+  call feedkeys("Somp\<C-N>\<C-N>\<Esc>0", 'tx!')
+  call assert_equal('compatibility', getline('.'))
+  call feedkeys("Somp\<C-P>\<Esc>0", 'tx!')
+  call assert_equal('Omnipotent', getline('.'))
+  call feedkeys("Somp\<C-P>\<C-P>\<Esc>0", 'tx!')
+  call assert_equal('Composite', getline('.'))
+  call feedkeys("S omp\<C-N>\<Esc>0", 'tx!')
+  call assert_equal(' completeness', getline('.'))
+
+  " fuzzy on whole line completion
+  call setline(1, ["world is on fire", "no one can save me but you", 'user can execute', ''])
+  call cursor(4, 1)
+  call feedkeys("Swio\<C-X>\<C-L>\<Esc>0", 'tx!')
+  call assert_equal('world is on fire', getline('.'))
+  call feedkeys("Su\<C-X>\<C-L>\<C-P>\<Esc>0", 'tx!')
+  call assert_equal('no one can save me but you', getline('.'))
+
+  " clean up
+  set omnifunc=
+  bw!
+  bw!
+  set complete& completeopt&
+  autocmd! AAAAA_Group
+  augroup! AAAAA_Group
+  delfunc OnPumChange
+  delfunc Omni_test
+  delfunc Comp
+  unlet g:item
+  unlet g:word
+endfunc
+
+" Check that tie breaking is stable for completeopt+=fuzzy (which should
+" behave the same on different platforms).
+func Test_complete_fuzzy_match_tie()
+  new
+  set completeopt+=fuzzy,noselect
+  call setline(1, ['aaabbccc', 'aaabbCCC', 'aaabbcccc', 'aaabbCCCC', ''])
+
+  call feedkeys("Gcc\<C-X>\<C-N>ab\<C-N>\<C-Y>", 'tx')
+  call assert_equal('aaabbccc', getline('.'))
+  call feedkeys("Gcc\<C-X>\<C-N>ab\<C-N>\<C-N>\<C-Y>", 'tx')
+  call assert_equal('aaabbCCC', getline('.'))
+  call feedkeys("Gcc\<C-X>\<C-N>ab\<C-N>\<C-N>\<C-N>\<C-Y>", 'tx')
+  call assert_equal('aaabbcccc', getline('.'))
+  call feedkeys("Gcc\<C-X>\<C-N>ab\<C-N>\<C-N>\<C-N>\<C-N>\<C-Y>", 'tx')
+  call assert_equal('aaabbCCCC', getline('.'))
+
+  bwipe!
+  set completeopt&
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab nofoldenable

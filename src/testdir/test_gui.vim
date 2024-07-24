@@ -955,7 +955,7 @@ func Test_set_term()
 endfunc
 
 func Test_windowid_variable()
-  if (g:x11_based_gui && empty($WAYLAND_DISPLAY)) || has('win32')
+  if g:x11_based_gui || has('win32')
     call assert_true(v:windowid > 0)
   else
     call assert_equal(0, v:windowid)
@@ -1771,7 +1771,8 @@ func Test_gui_lowlevel_keyevent()
   new
 
   " Test for <Ctrl-A> to <Ctrl-Z> keys
-  for kc in range(65, 90)
+  " FIXME: <Ctrl-C> is excluded for now.  It makes the test flaky.
+  for kc in range(65, 66) + range(68, 90)
     call SendKeys([0x11, kc])
     try
       let ch = getcharstr()

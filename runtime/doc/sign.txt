@@ -1,4 +1,4 @@
-*sign.txt*      For Vim version 9.1.  Last change: 2023 Feb 21
+*sign.txt*      For Vim version 9.1.  Last change: 2024 Jul 07
 
 
 		  VIM REFERENCE MANUAL    by Gordon Prieur
@@ -80,8 +80,9 @@ used by popup windows where 'cursorline' is set.
 							*sign-priority*
 Each placed sign is assigned a priority value. When multiple signs are placed
 on the same line, the attributes of the sign with the highest priority is used
-independently of the sign group. The default priority for a sign is 10. The
-priority is assigned at the time of placing a sign.
+independently of the sign group. The default priority for a sign is 10, this
+value can be changed for different signs by specifying a different value at
+definition time.  The priority is assigned at the time of placing a sign.
 
 When two signs with the same priority are present, and one has an icon or text
 in the signcolumn while the other has line highlighting, then both are
@@ -135,6 +136,8 @@ See |sign_define()| for the equivalent Vim script function.
 			Motif		pixmap (.xpm)
 			Win32		.bmp, .ico, .cur
 					pixmap (.xpm) |+xpm_w32|
+	priority={prio}
+		Default priority for the sign, see |sign-priority|.
 
 	linehl={group}
 		Highlighting group used for the whole line the sign is placed
@@ -209,11 +212,11 @@ See |sign_place()| for the equivalent Vim script function.
 
 		By default, the sign is placed in the global sign group.
 
-		By default, the sign is assigned a default priority of 10. To
-		assign a different priority value, use "priority={prio}" to
-		specify a value.  The priority is used to determine the sign
-		that is displayed when multiple signs are placed on the same
-		line.
+		By default, the sign is assigned a default priority of 10,
+		unless specified otherwise by the sign definition.  To assign a
+		different priority value, use "priority={prio}" to specify a
+		value.  The priority is used to determine the sign that is
+		displayed when multiple signs are placed on the same line.
 
 		Examples: >
 			:sign place 5 line=3 name=sign1 file=a.py
@@ -401,6 +404,7 @@ sign_define({list})
 		   icon		full path to the bitmap file for the sign.
 		   linehl	highlight group used for the whole line the
 				sign is placed in.
+		   priority	default priority value of the sign
 		   numhl	highlight group used for the line number where
 				the sign is placed.
 		   text		text that is displayed when there is no icon
@@ -435,6 +439,9 @@ sign_define({list})
 <
 		Can also be used as a |method|: >
 			GetSignList()->sign_define()
+<
+		Return type: |Number|
+
 
 sign_getdefined([{name}])				*sign_getdefined()*
 		Get a list of defined signs and their attributes.
@@ -450,6 +457,7 @@ sign_getdefined([{name}])				*sign_getdefined()*
 		   linehl	highlight group used for the whole line the
 				sign is placed in; not present if not set
 		   name		name of the sign
+		   priority	default priority value of the sign
 		   numhl	highlight group used for the line number where
 				the sign is placed; not present if not set
 		   text		text that is displayed when there is no icon
@@ -473,6 +481,9 @@ sign_getdefined([{name}])				*sign_getdefined()*
 <
 		Can also be used as a |method|: >
 			GetSignList()->sign_getdefined()
+<
+		Return type: list<dict<string>> or list<any>
+
 
 sign_getplaced([{buf} [, {dict}]])			*sign_getplaced()*
 		Return a list of signs placed in a buffer or all the buffers.
@@ -537,8 +548,10 @@ sign_getplaced([{buf} [, {dict}]])			*sign_getplaced()*
 		Can also be used as a |method|: >
 			GetBufname()->sign_getplaced()
 <
-							*sign_jump()*
-sign_jump({id}, {group}, {buf})
+		Return type: list<dict<any>>
+
+
+sign_jump({id}, {group}, {buf})				*sign_jump()*
 		Open the buffer {buf} or jump to the window that contains
 		{buf} and position the cursor at sign {id} in group {group}.
 		This is similar to the |:sign-jump| command.
@@ -556,6 +569,9 @@ sign_jump({id}, {group}, {buf})
 		Can also be used as a |method|: >
 			GetSignid()->sign_jump()
 <
+		Return type: |Number|
+
+
 							*sign_place()*
 sign_place({id}, {group}, {name}, {buf} [, {dict}])
 		Place the sign defined as {name} at line {lnum} in file or
@@ -608,8 +624,10 @@ sign_place({id}, {group}, {name}, {buf} [, {dict}])
 		Can also be used as a |method|: >
 			GetSignid()->sign_place(group, name, expr)
 <
-							*sign_placelist()*
-sign_placelist({list})
+		Return type: |Number|
+
+
+sign_placelist({list})				*sign_placelist()*
 		Place one or more signs.  This is similar to the
 		|sign_place()| function.  The {list} argument specifies the
 		List of signs to place. Each list item is a dict with the
@@ -633,7 +651,8 @@ sign_placelist({list})
 		    priority	Priority of the sign. When multiple signs are
 				placed on a line, the sign with the highest
 				priority is used. If not specified, the
-				default value of 10 is used. See
+				default value of 10 is used, unless specified
+				otherwise by the sign definition. See
 				|sign-priority| for more information.
 
 		If {id} refers to an existing sign, then the existing sign is
@@ -669,6 +688,9 @@ sign_placelist({list})
 <
 		Can also be used as a |method|: >
 			GetSignlist()->sign_placelist()
+<
+		Return type: |Number|
+
 
 sign_undefine([{name}])					*sign_undefine()*
 sign_undefine({list})
@@ -695,6 +717,9 @@ sign_undefine({list})
 <
 		Can also be used as a |method|: >
 			GetSignlist()->sign_undefine()
+<
+		Return type: |Number|
+
 
 sign_unplace({group} [, {dict}])			*sign_unplace()*
 		Remove a previously placed sign in one or more buffers.  This
@@ -741,6 +766,9 @@ sign_unplace({group} [, {dict}])			*sign_unplace()*
 <		Can also be used as a |method|: >
 			GetSigngroup()->sign_unplace()
 <
+		Return type: |Number|
+
+
 sign_unplacelist({list})				*sign_unplacelist()*
 		Remove previously placed signs from one or more buffers.  This
 		is similar to the |sign_unplace()| function.
@@ -772,5 +800,6 @@ sign_unplacelist({list})				*sign_unplacelist()*
 		Can also be used as a |method|: >
 			GetSignlist()->sign_unplacelist()
 <
+		Return type: list<number> or list<any>
 
  vim:tw=78:ts=8:noet:ft=help:norl:

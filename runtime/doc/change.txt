@@ -1,4 +1,4 @@
-*change.txt*    For Vim version 9.1.  Last change: 2024 Apr 14
+*change.txt*    For Vim version 9.1.  Last change: 2024 Jul 14
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -95,13 +95,14 @@ For inserting text see |insert.txt|.
 These commands delete text.  You can repeat them with the `.` command
 (except `:d`) and undo them.  Use Visual mode to delete blocks of text.  See
 |registers| for an explanation of registers.
-
+							*d-special*
 An exception for the d{motion} command: If the motion is not linewise, the
 start and end of the motion are not in the same line, and there are only
 blanks before the start and there are no non-blanks after the end of the
 motion, the delete becomes linewise.  This means that the delete also removes
 the line of blanks that you might expect to remain. Use the |o_v| operator to
-force the motion to be characterwise.
+force the motion to be characterwise or remove the "z" flag from 'cpoptions'
+(see |cpo-z|) to disable this peculiarity.
 
 Trying to delete an empty region of text (e.g., "d0" in the first column)
 is an error when 'cpoptions' includes the 'E' flag.
@@ -251,7 +252,7 @@ blank; this is probably a bug, because "dw" deletes all the blanks; use the
 
 If you prefer "cw" to include the space after a word, use this mapping: >
 	:map cw dwi
-Or use "caw" (see |aw|).
+Alternatively use "caw" (see also |aw| and |cpo-z|).
 
 							*:c* *:ch* *:change*
 :{range}c[hange][!]	Replace lines of text with some different text.
@@ -623,7 +624,8 @@ Vim uses temporary files for filtering, generating diffs and also for
 tempname().  For Unix, the file will be in a private directory (only
 accessible by the current user) to avoid security problems (e.g., a symlink
 attack or other people reading your file).  When Vim exits the directory and
-all files in it are deleted.  When Vim has the setuid bit set this may cause
+all files in it are deleted (only on Unix, on other systems you will have to
+clean up yourself).  When Vim has the setuid bit set this may cause
 problems, the temp file is owned by the setuid user but the filter command
 probably runs as the original user.
 Directory for temporary files is created in the first of these directories
@@ -1271,13 +1273,13 @@ Vim fills these registers with text from yank and delete commands.
    Numbered register 0 contains the text from the most recent yank command,
 unless the command specified another register with ["x].
    Numbered register 1 contains the text deleted by the most recent delete or
-change command, unless the command specified another register or the text is
-less than one line (the small delete register is used then).  An exception is
-made for the delete operator with these movement commands: |%|, |(|, |)|, |`|,
-|/|, |?|, |n|, |N|, |{| and |}|.  Register "1 is always used then (this is Vi
-compatible).  The "- register is used as well if the delete is within a line.
-Note that these characters may be mapped.  E.g. |%| is mapped by the matchit
-plugin.
+change command (even when the command specified another register), unless the
+text is less than one line (the small delete register is used then).  An
+exception is made for the delete operator with these movement commands: |%|,
+|(|, |)|, |`|, |/|, |?|, |n|, |N|, |{| and |}|.
+Register "1 is always used then (this is Vi compatible).  The "- register is
+used as well if the delete is within a line. Note that these characters may be
+mapped.  E.g. |%| is mapped by the matchit plugin.
    With each successive deletion or change, Vim shifts the previous contents
 of register 1 into register 2, 2 into 3, and so forth, losing the previous
 contents of register 9.
@@ -1346,7 +1348,7 @@ The expression must evaluate to a String.  A Number is always automatically
 converted to a String.  For the "p" and ":put" command, if the result is a
 Float it's converted into a String.  If the result is a List each element is
 turned into a String and used as a line.  A Dictionary is converted into a
-String.  A FuncRef results in an error message (use string() to convert).
+String.  A Funcref results in an error message (use string() to convert).
 
 If the "= register is used for the "p" command, the String is split up at <NL>
 characters.  If the String ends in a <NL>, it is regarded as a linewise
@@ -1412,6 +1414,8 @@ The next three commands always work on whole lines.
 :[range]m[ove] {address}			*:m* *:mo* *:move* *E134*
 			Move the lines given by [range] to below the line
 			given by {address}.
+			Any text properties in [range] are cleared
+			|text-prop-cleared|.
 
 ==============================================================================
 6. Formatting text					*formatting*

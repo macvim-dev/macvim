@@ -1,7 +1,7 @@
 " Vim support file to detect file types
 "
 " Maintainer:	The Vim Project <https://github.com/vim/vim>
-" Last Change:	2023 Dec 06
+" Last Change:	2024 May 31
 " Former Maintainer:	Bram Moolenaar <Bram@vim.org>
 
 " Listen very carefully, I will say this only once
@@ -98,11 +98,21 @@ au BufNewFile,BufRead *.run			setf ampl
 " Ant
 au BufNewFile,BufRead build.xml			setf ant
 
+" ANTLR / PCCTS
+"au BufNewFile,BufRead *.g			setf antlr
+au BufNewFile,BufRead *.g			setf pccts
+
+" ANTLR 4
+au BufNewFile,BufRead *.g4			setf antlr4
+
 " Arduino
 au BufNewFile,BufRead *.ino,*.pde		setf arduino
 
 " Ash of busybox
 au BufNewFile,BufRead .ash_history		setf sh
+
+" Asymptote
+au BufNewFile,BufRead *.asy		setf asy
 
 " Apache config file
 au BufNewFile,BufRead .htaccess,*/etc/httpd/*.conf		setf apache
@@ -256,6 +266,7 @@ au BufNewFile,BufRead named*.conf,rndc*.conf,rndc*.key	setf named
 
 " BIND zone
 au BufNewFile,BufRead named.root		setf bindzone
+au BufNewFile,BufRead *.zone			setf bindzone
 au BufNewFile,BufRead *.db			call dist#ft#BindzoneCheck('')
 
 " Blade
@@ -320,6 +331,9 @@ au BufNewFile,BufRead *.toc
 
 " Cdrdao config
 au BufNewFile,BufRead */etc/cdrdao.conf,*/etc/defaults/cdrdao,*/etc/default/cdrdao,.cdrdao	setf cdrdaoconf
+
+" Cedar
+au BufNewFile,BufRead *.cedar			setf cedar
 
 " Cfengine
 au BufNewFile,BufRead cfengine.conf		setf cfengine
@@ -457,7 +471,7 @@ au BufNewFile,BufRead */.cmus/{autosave,rc,command-history,*.theme} setf cmusrc
 au BufNewFile,BufRead */cmus/{rc,*.theme}			setf cmusrc
 
 " Cobol
-au BufNewFile,BufRead *.cbl,*.cob,*.lib	setf cobol
+au BufNewFile,BufRead *.cbl,*.cob	setf cobol
 "   cobol or zope form controller python script? (heuristic)
 au BufNewFile,BufRead *.cpy
 	\ if getline(1) =~ '^##' |
@@ -496,6 +510,9 @@ au BufNewFile,BufRead *.cu,*.cuh		setf cuda
 " Cue
 au BufNewFile,BufRead *.cue			setf cue
 
+" Debian devscripts
+au BufNewFile,BufRead devscripts.conf,.devscripts	setf sh
+
 " Dockerfile; Podman uses the same syntax with name Containerfile
 " Also see Dockerfile.* below.
 au BufNewFile,BufRead Containerfile,Dockerfile,dockerfile,*.[dD]ockerfile	setf dockerfile
@@ -531,6 +548,10 @@ au BufNewFile,BufRead s6-*                              setf execline
 
 " Fontconfig config files
 au BufNewFile,BufRead fonts.conf			setf xml
+
+" Faust
+au BufNewFile,BufRead *.lib				setf faust
+au BufNewFile,BufRead *.dsp				call dist#ft#FTdsp()
 
 " Libreoffice config files
 au BufNewFile,BufRead *.xcu,*.xlb,*.xlc,*.xba		setf xml
@@ -673,7 +694,7 @@ au BufNewFile,BufRead *.com			call dist#ft#BindzoneCheck('dcl')
 au BufNewFile,BufRead *.dot,*.gv		setf dot
 
 " Dune
-au BufNewFile,BufRead jbuild,dune,dune-project,dune-workspace setf dune
+au BufNewFile,BufRead jbuild,dune,dune-project,dune-workspace,dune-file setf dune
 
 " Dylan - lid files
 au BufNewFile,BufRead *.lid			setf dylanlid
@@ -692,7 +713,7 @@ if has("fname_case")
 endif
 
 " Dracula
-au BufNewFile,BufRead *.drac,*.drc,*lvs,*lpe	setf dracula
+au BufNewFile,BufRead *.drac,*.drc,*.lvs,*.lpe	setf dracula
 
 " Datascript
 au BufNewFile,BufRead *.ds			setf datascript
@@ -795,10 +816,6 @@ au BufNewFile,BufRead *.fish			setf fish
 " Flatpak config
 au BufNewFile,BufRead */flatpak/repo/config	setf dosini
 
-" FlexWiki - disabled, because it has side effects when a .wiki file
-" is not actually FlexWiki
-"au BufNewFile,BufRead *.wiki			setf flexwiki
-
 " Focus Executable
 au BufNewFile,BufRead *.fex,*.focexec		setf focexec
 
@@ -883,7 +900,7 @@ au BufNewFile,BufRead .gitattributes,*.git/info/attributes	setf gitattributes
 au BufNewFile,BufRead */.config/git/attributes			setf gitattributes
 au BufNewFile,BufRead */etc/gitattributes			setf gitattributes
 au BufNewFile,BufRead .gitignore,*.git/info/exclude		setf gitignore
-au BufNewFile,BufRead */.config/git/ignore			setf gitignore
+au BufNewFile,BufRead */.config/git/ignore,*.prettierignore	setf gitignore
 au BufNewFile,BufRead git-rebase-todo				setf gitrebase
 au BufRead,BufNewFile .gitsendemail.msg.??????			setf gitsendemail
 au BufNewFile,BufRead *.git/*
@@ -898,7 +915,9 @@ au BufNewFile,BufRead gkrellmrc,gkrellmrc_?	setf gkrellmrc
 au BufNewFile,BufRead *.gleam			setf gleam
 
 " GLSL
-au BufNewFile,BufRead *.glsl			setf glsl
+" Extensions supported by Khronos reference compiler (with one exception, ".glsl")
+" https://github.com/KhronosGroup/glslang
+au BufNewFile,BufRead *.vert,*.tesc,*.tese,*.glsl,*.geom,*.frag,*.comp,*.rgen,*.rmiss,*.rchit,*.rahit,*.rint,*.rcall	setf glsl
 
 " GN (generate ninja) files
 au BufNewFile,BufRead *.gn,*.gni		setf gn
@@ -972,6 +991,7 @@ au BufNewFile,BufRead *.hbs			setf handlebars
 
 " Hare
 au BufNewFile,BufRead *.ha			setf hare
+au BufNewFile,BufRead README			call dist#ft#FTharedoc()
 
 " Haskell
 au BufNewFile,BufRead *.hs,*.hsc,*.hs-boot,*.hsig setf haskell
@@ -1044,6 +1064,9 @@ au BufRead,BufNewFile *.hurl			setf hurl
 " Hyper Builder
 au BufNewFile,BufRead *.hb			setf hb
 
+" Hyprlang
+au BufNewFile,BufRead hypr\(land\|paper\|idle\|lock\).conf	setf hyprlang
+
 " Httest
 au BufNewFile,BufRead *.htt,*.htb		setf httest
 
@@ -1072,7 +1095,7 @@ au BufNewFile,BufRead */.icewm/menu		setf icemenu
 au BufNewFile,BufRead .indent.pro		setf indent
 au BufNewFile,BufRead indent.pro		call dist#ft#ProtoCheck('indent')
 
-" IDL (Interactive Data Language)
+" IDL (Interactive Data Language), Prolog, Cproto or zsh module C
 au BufNewFile,BufRead *.pro			call dist#ft#ProtoCheck('idlang')
 
 " Indent RC
@@ -1102,6 +1125,9 @@ au BufNewFile,BufRead *.ini,*.INI		setf dosini
 
 " SysV Inittab
 au BufNewFile,BufRead inittab			setf inittab
+
+" Inko
+au BufNewFile,BufRead *.inko			setf inko
 
 " Inno Setup
 au BufNewFile,BufRead *.iss			setf iss
@@ -1145,6 +1171,9 @@ au BufNewFile,BufRead *.clp			setf jess
 " Jgraph
 au BufNewFile,BufRead *.jgr			setf jgraph
 
+" Jujutsu
+au BufNewFile,BufRead *.jjdescription		setf jj
+
 " Jovial
 au BufNewFile,BufRead *.jov,*.j73,*.jovial	setf jovial
 
@@ -1167,7 +1196,7 @@ au BufNewFile,BufRead *.ipynb,*.jupyterlab-settings	setf json
 au BufNewFile,BufRead *.sublime-project,*.sublime-settings,*.sublime-workspace	setf json
 
 " Other files that look like json
-au BufNewFile,BufRead .prettierrc,.firebaserc,.stylelintrc	setf json
+au BufNewFile,BufRead .prettierrc,.firebaserc,.stylelintrc,.lintstagedrc,flake.lock	setf json
 
 " JSONC (JSON with comments)
 au BufNewFile,BufRead *.jsonc,.babelrc,.eslintrc,.jsfmtrc	setf jsonc
@@ -1231,6 +1260,9 @@ au BufNewFile,BufRead */etc/limits,*/etc/*limits.conf,*/etc/*limits.d/*.conf	set
 
 " LambdaProlog or SML (see dist#ft#FTmod for *.mod)
 au BufNewFile,BufRead *.sig			call dist#ft#FTsig()
+
+" LDAP configuration
+au BufNewFile,BufRead ldaprc,.ldaprc,ldap.conf	setf ldapconf
 
 " LDAP LDIF
 au BufNewFile,BufRead *.ldif			setf ldif
@@ -1355,7 +1387,8 @@ au BufNewFile,BufRead */etc/mail/aliases,*/etc/aliases	setf mailaliases
 au BufNewFile,BufRead .mailcap,mailcap		setf mailcap
 
 " Makefile
-au BufNewFile,BufRead *[mM]akefile,*.mk,*.mak,*.dsp setf make
+au BufNewFile,BufRead *[mM]akefile,*.mk,*.mak	setf make
+au BufNewFile,BufRead Kbuild			setf make
 
 " MakeIndex
 au BufNewFile,BufRead *.ist,*.mst		setf ist
@@ -1383,20 +1416,26 @@ au BufNewFile,BufRead *.markdown,*.mdown,*.mkd,*.mkdn,*.mdwn,*.md
 	\   setf markdown |
 	\ endif
 
-" Mason
-au BufNewFile,BufRead *.mason,*.mhtml,*.comp	setf mason
+" Mason (it used to include *.comp, are those Mason files?)
+au BufNewFile,BufRead *.mason,*.mhtml	setf mason
 
 " Mathematica, Matlab, Murphi, Objective C or Octave
 au BufNewFile,BufRead *.m			call dist#ft#FTm()
 
-" Mathematica notebook
-au BufNewFile,BufRead *.nb			setf mma
+" Mathematica notebook and package files
+au BufNewFile,BufRead *.nb,*.wl			setf mma
 
 " Maya Extension Language
 au BufNewFile,BufRead *.mel			setf mel
 
 " mbsync
 au BufNewFile,BufRead .mbsyncrc			setf conf
+
+" mcmeta
+au BufNewFile,BufRead *.mcmeta			setf json
+
+" MediaWiki
+au BufNewFile,BufRead *.mw,*.wiki		setf mediawiki
 
 " Mercurial (hg) commit file
 au BufNewFile,BufRead hg-editor-*.txt		setf hgcommit
@@ -1593,8 +1632,11 @@ au BufNewFile,BufRead *.odin			setf odin
 " Omnimark
 au BufNewFile,BufRead *.xom,*.xin		setf omnimark
 
+" ondir
+au BufNewFile,BufRead .ondirrc			setf ondir
+
 " OPAM
-au BufNewFile,BufRead opam,*.opam,*.opam.template setf opam
+au BufNewFile,BufRead opam,*.opam,*.opam.template,opam.locked,*.opam.locked setf opam
 
 " OpenFOAM
 au BufNewFile,BufRead [a-zA-Z0-9]*Dict\(.*\)\=,[a-zA-Z]*Properties\(.*\)\=,*Transport\(.*\),fvSchemes,fvSolution,fvConstrains,fvModels,*/constant/g,*/0\(\.orig\)\=/* call dist#ft#FTfoam()
@@ -1679,7 +1721,7 @@ au BufNewFile,BufRead *.pcmk				setf pcmk
 " PEM (Privacy-Enhanced Mail)
 au BufNewFile,BufRead *.pem,*.cer,*.crt,*.csr		setf pem
 
-" Perl
+" Perl or Prolog
 if has("fname_case")
   au BufNewFile,BufRead *.pl,*.PL			call dist#ft#FTpl()
 else
@@ -1789,10 +1831,6 @@ au BufNewFile,BufRead *termcap
 " Prisma
 au BufRead,BufNewFile *.prisma			setf prisma
 
-" PCCTS / ANTLR
-"au BufNewFile,BufRead *.g			setf antlr
-au BufNewFile,BufRead *.g			setf pccts
-
 " PPWizard
 au BufNewFile,BufRead *.it,*.ih			setf ppwiz
 
@@ -1852,6 +1890,9 @@ au BufNewFile,BufRead *.pk			setf poke
 
 " Protocols
 au BufNewFile,BufRead */etc/protocols		setf protocols
+
+" Purescript
+au BufNewFile,BufRead *.purs			setf purescript
 
 " PyPA manifest files
 au BufNewFile,BufRead MANIFEST.in		setf pymanifest
@@ -2047,6 +2088,9 @@ au BufNewFile,BufRead *.scala			setf scala
 " SBT - Scala Build Tool
 au BufNewFile,BufRead *.sbt			setf sbt
 
+" Slint
+au BufNewFile,BufRead *.slint			setf slint
+
 " SuperCollider
 au BufNewFile,BufRead *.sc			call dist#ft#FTsc()
 
@@ -2130,9 +2174,9 @@ au BufNewFile,BufRead catalog			setf catalog
 " Gentoo ebuilds, Arch Linux PKGBUILDs and Alpine Linux APKBUILDs are actually
 " bash scripts.
 " NOTE: Patterns ending in a star are further down, these have lower priority.
-au BufNewFile,BufRead .bashrc,bashrc,bash.bashrc,.bash[_-]profile,.bash[_-]logout,.bash[_-]aliases,.bash[_-]history,bash-fc[-.],*.ebuild,*.bash,*.eclass,PKGBUILD,APKBUILD,*.bats call dist#ft#SetFileTypeSH("bash")
+au BufNewFile,BufRead .bashrc,bashrc,bash.bashrc,.bash[_-]profile,.bash[_-]logout,.bash[_-]aliases,.bash[_-]history,bash-fc[-.],*.ebuild,*.bash,*.eclass,PKGBUILD,APKBUILD,*.bats,*.cygport call dist#ft#SetFileTypeSH("bash")
 au BufNewFile,BufRead .kshrc,*.ksh call dist#ft#SetFileTypeSH("ksh")
-au BufNewFile,BufRead */etc/profile,.profile,*.sh,*.env call dist#ft#SetFileTypeSH(getline(1))
+au BufNewFile,BufRead */etc/profile,.profile,*.sh,*.env{rc,} call dist#ft#SetFileTypeSH(getline(1))
 
 " Shell script (Arch Linux) or PHP file (Drupal)
 au BufNewFile,BufRead *.install
@@ -2222,6 +2266,9 @@ au BufNewFile,BufRead *.smt,*.smith		setf smith
 
 " Smithy
 au BufNewFile,BufRead *.smithy			setf smithy
+
+" Snakemake
+au BufNewFile,BufRead Snakefile,*.smk		setf snakemake
 
 " Snobol4 and spitbol
 au BufNewFile,BufRead *.sno,*.spt		setf snobol4
@@ -2379,6 +2426,9 @@ au BufNewFile,BufRead *.tcl,*.tm,*.tk,*.itcl,*.itk,*.jacl,.tclshrc,.wishrc,.tcls
 " Xilinx's xsct and xsdb use tcl
 au BufNewFile,BufRead .xsctcmdhistory,.xsdbcmdhistory	setf tcl
 
+" templ
+au BufNewFile,BufRead *.templ			setf templ
+
 " Teal
 au BufRead,BufNewFile *.tl			setf teal
 
@@ -2410,7 +2460,10 @@ au BufNewFile,BufRead texdoc.cnf		setf conf
 " LaTeX packages will generate some medium LaTeX files during compiling
 " They should be ignored by .gitignore https://github.com/github/gitignore/blob/main/TeX.gitignore
 " Sometime we need to view its content for debugging
-au BufNewFile,BufRead *.{pgf,nlo,nls,out,thm,eps_tex,pygtex,pygstyle,clo,aux,brf,ind,lof,loe,nav,vrb,ins,tikz,bbx,cbx,beamer}	setf tex
+au BufNewFile,BufRead *.{pgf,nlo,nls,thm,eps_tex,pygtex,pygstyle,clo,aux,brf,ind,lof,loe,nav,vrb,ins,tikz,bbx,cbx,beamer}	setf tex
+
+" LaTeX files generated by Inkscape
+au BufNewFile,BufRead *.pdf_tex			setf tex
 
 " ConTeXt
 au BufNewFile,BufRead *.mkii,*.mkiv,*.mkvi,*.mkxl,*.mklx   setf context
@@ -2427,10 +2480,10 @@ au BufNewFile,BufRead *.thrift			setf thrift
 " Tidy config
 au BufNewFile,BufRead .tidyrc,tidyrc,tidy.conf	setf tidy
 
-" TF mud client
+" TF (TinyFugue) mud client
 au BufNewFile,BufRead .tfrc,tfrc		setf tf
 
-" TF mud client or terraform
+" TF (TinyFugue) mud client or terraform
 au BufNewFile,BufRead *.tf			call dist#ft#FTtf()
 
 " TLA+
@@ -2836,6 +2889,10 @@ au StdinReadPost * if !did_filetype() | runtime! scripts.vim | endif
 " But before patterns matching everything in a directory.
 au BufNewFile,BufRead *.text,README,LICENSE,COPYING,AUTHORS	setf text
 
+" What should *.out files be? Text?
+" Disabled until it is clear, to what this should be set
+"au BufNewFile,BufRead *.out	setf text
+
 
 " Extra checks for when no filetype has been detected now.  Mostly used for
 " patterns that end in "*".  E.g., "zsh*" matches "zsh.vim", but that's a Vim
@@ -3007,6 +3064,9 @@ au BufNewFile,BufRead .reminders*		call s:StarSetf('remind')
 " SGML catalog file
 au BufNewFile,BufRead sgml.catalog*		call s:StarSetf('catalog')
 
+" Stylus
+au BufNewFile,BufReadPost *.styl,*.stylus	setf stylus
+
 " avoid doc files being recognized a shell files
 au BufNewFile,BufRead */doc/{,.}bash[_-]completion{,.d,.sh}{,/*} setf text
 
@@ -3029,6 +3089,12 @@ au BufNewFile,BufRead {.,}tmux*.conf*		setf tmux
 
 " Universal Scene Description
 au BufNewFile,BufRead *.usda,*.usd		setf usd
+
+" UCI
+" UCI files are normally in /etc/config, but that might be mounted over sshfs or similar, so we match more loosely.
+" There was some concern[1] that this pattern would match too much, so now we check the file content as well.
+" [1]: https://github.com/vim/vim/pull/14385#discussion_r1558878741
+au BufNewFile,BufRead */etc/config/*		if dist#ft#Detect_UCI_statements() | call s:StarSetf('uci') | endif
 
 " VHDL
 au BufNewFile,BufRead *.vhdl_[0-9]*		call s:StarSetf('vhdl')
@@ -3067,6 +3133,15 @@ au BufNewFile,BufRead */etc/yum.repos.d/*	call s:StarSetf('dosini')
 au BufNewFile,BufRead .zsh*,.zlog*,.zcompdump*  call s:StarSetf('zsh')
 au BufNewFile,BufRead zsh*,zlog*		call s:StarSetf('zsh')
 
+" Zsh module
+" mdd: https://github.com/zsh-users/zsh/blob/57248b88830ce56adc243a40c7773fb3825cab34/Etc/zsh-development-guide#L285-L288
+" mdh, pro: https://github.com/zsh-users/zsh/blob/57248b88830ce56adc243a40c7773fb3825cab34/Etc/zsh-development-guide#L268-L271
+" *.mdd will generate *.mdh, *.pro and *.epro.
+" module's *.c will #include *.mdh containing module dependency information and
+" *.pro containing all static declarations of *.c
+" *.epro contains all external declarations of *.c
+au BufNewFile,BufRead *.mdh,*.epro		setf c
+au BufNewFile,BufRead *.mdd			setf sh
 
 " Help files match *.txt but should have a last line that is a modeline.
 au BufNewFile,BufRead *.txt
@@ -3104,6 +3179,9 @@ au BufNewFile,BufRead yarn.lock			setf yaml
 
 " Zathurarc
 au BufNewFile,BufRead zathurarc			setf zathurarc
+
+" Rofi stylesheet
+au BufNewFile,BufRead *.rasi			setf rasi
 
 " If the GUI is already running, may still need to install the Syntax menu.
 " Don't do it when the 'M' flag is included in 'guioptions'.
