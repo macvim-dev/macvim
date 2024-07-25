@@ -54,8 +54,9 @@ jobs:
       matrix:
         include:
           # Oldest version of Xcode supported on GitHub Action to test source code backwards compatibility
-          - os: macos-11
-            xcode: '11.7'
+          # This version of Xcode can run on macOS 11 where as 13.3 has to run on macOS 12.
+          - os: macos-12
+            xcode: '13.2.1'
             extra: [vimtags, check-xcodeproj-compat]
 
           # Older version of Xcode, and used to publish legacy builds (for macOS 10.9 - 10.12)
@@ -127,12 +128,12 @@ jobs:
 
       - name: Install packages
         run: |
-          brew install libtool
+          brew install --quiet libtool
 
       - name: Install packages for testing
         run: |
           # Apple diff is broken. Use GNU diff instead. See http://github.com/vim/vim/issues/14056.
-          brew install diffutils
+          brew install --quiet diffutils
 
       - name: Grant microphone access for macos-14
         if: matrix.os == 'macos-14'
@@ -147,8 +148,8 @@ jobs:
           # be installed on runners. Since we use stable ABI, the exact version
           # on CI does not matter.
 
-          brew install ruby
-          brew install lua
+          brew install --quiet ruby
+          brew install --quiet lua
 
           if [[ -d $(brew --prefix)/Cellar/perl ]]; then
             # We just use system perl to reduce dependencies
