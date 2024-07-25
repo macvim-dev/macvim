@@ -67,7 +67,7 @@ runs:
         formula=${{ inputs.formula }}
 
         # This will be a no-op if formula was cached
-        brew install --formula -s ./${formula}.rb
+        brew install --quiet --formula -s ./${formula}.rb
 
         # If formula was cached, this step is necessary to relink it to brew prefix (e.g. /usr/local)
         brew unlink ${formula} && brew link ${formula}
