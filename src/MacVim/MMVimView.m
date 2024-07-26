@@ -982,7 +982,7 @@ enum {
         // We only want to set the window title if this resize came from
         // a live-resize, not (for example) setting 'columns' or 'lines'.
         if ([self inLiveResize]) {
-            [[self window] setTitle:[NSString stringWithFormat:@"%dx%d",
+            [[self window] setTitle:[NSString stringWithFormat:@"%d × %d",
                     constrained[1], constrained[0]]];
         }
     }
