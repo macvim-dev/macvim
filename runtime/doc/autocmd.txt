@@ -1,4 +1,4 @@
-*autocmd.txt*   For Vim version 9.1.  Last change: 2024 Jul 17
+*autocmd.txt*   For Vim version 9.1.  Last change: 2024 Aug 18
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -994,7 +994,10 @@ KeyInputPre			Just before a key is processed after mappings
 				character is used.
 				The following values of |v:event| are set:
 				   typed	The key is typed or not.
-				   typedchar	The (actual) typed key.
+				   typedchar	The (actual) typed key since
+						the last |KeyInputPre| call.
+				Note: "typedchar" may be empty if successive
+				|KeyInputPre| autocmds are processed.
 				It is not allowed to change the text
 				|textlock| or the current mode.
 				{only with the +eval feature}
@@ -1435,8 +1438,10 @@ WinLeave			Before leaving a window.  If the window to be
 							*WinNewPre*
 WinNewPre			Before creating a new window. Triggered
 				before commands that modify window layout by
-				creating a split or new tab page. Not done for
-				the first window, when Vim has just started.
+				creating a split.
+				Not done when creating tab pages and for the
+				first window, as the window structure is not
+				initialized yet and so is generally not safe.
 				It is not allowed to modify window layout
 				while executing commands for the WinNewPre
 				event.

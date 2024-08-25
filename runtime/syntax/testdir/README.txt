@@ -124,6 +124,86 @@ verify that the tests fail.  Then you know your changes are covered by the
 test.
 
 
+Viewing generated screendumps (local)
+-------------------------------------
+
+You may also wish to look at the whole batch of failed screendumps after
+running "make test".  Source the "viewdumps.vim" script for this task:
+
+	[VIMRUNTIME=../..] \
+	../../src/vim --clean -S testdir/viewdumps.vim \
+				[testdir/dumps/java_*.dump ...]
+
+By default, all screendumps found in the "failed" directory will be added to
+the argument list and then the first one will be loaded.  Loaded screendumps
+that bear filenames of screendumps found in the "dumps" directory will be
+rendering the contents of any such pair of files and the difference between
+them (:help term_dumpdiff()); otherwise, they will be rendering own contents
+(:help term_dumpload()).  Remember to execute :edit when occasionally you see
+raw file contents instead of rendered.
+
+At any time, you can add, list, and abandon other screendumps:
+
+	:$argedit testdir/dumps/java_*.dump
+	:args
+	:qall
+
+The listing of argument commands can be found under :help buffer-list.
+
+
+Viewing generated screendumps (from a CI-uploaded artifact)
+-----------------------------------------------------------
+
+After you have downloaded an artifact archive containing failed screendumps
+and extracted its files in a temporary directory, you need to set up a "dumps"
+directory by creating a symlink:
+
+	cd /path/to/fork
+	ln -s $(pwd)/runtime/syntax/testdir/dumps \
+				/tmp/runtime/syntax/testdir/dumps
+
+You can now examine the extracted screendumps:
+
+	./src/vim --clean -S runtime/syntax/testdir/viewdumps.vim \
+				/tmp/runtime/syntax/testdir/failed/*.dump
+
+
+Viewing generated screendumps (submitted for a pull request)
+------------------------------------------------------------
+
+First, you need to check out the topic branch with the proposed changes and
+write down a difference list between the HEAD commit (index) and its parent
+commit with respect to the changed "dumps" filenames:
+
+	cd /path/to/fork
+	git switch prs/1234
+	git diff-index --relative=runtime/syntax/testdir/dumps/ \
+				--name-only prs/1234~1 > /tmp/filelist
+
+Then, you need to check out the master branch, change the current working
+directory to reconcile relative filepaths written in the filenames list, copy
+in the "failed" directory the old "dumps" files, whose names are on the same
+list, and follow it by checking out the topic branch:
+
+	git switch master
+	cd runtime/syntax/testdir/dumps
+	cp -t ../failed $(cat /tmp/filelist)
+	git switch prs/1234
+
+Make note of any missing new screendumps.  Please remember about the
+introduced INVERTED relation between "dumps" and "failed", i.e. the files to
+be committed are in "dumps" already and their old versions are in "failed".
+Therefore, you need to copy the missing new screendumps from "dumps" to
+"failed":
+
+	cp -t ../failed foo_10.dump foo_11.dump foo_12.dump
+
+After you have changed the current working directory to its parent directory,
+you can now examine the screendumps from the "failed" directory (note that new
+screendumps will be shown with no difference between their versions):
+
+	cd ..
+	../../../src/vim --clean -S viewdumps.vim
 
 
 TODO: run test for one specific filetype

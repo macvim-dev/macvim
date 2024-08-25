@@ -3913,7 +3913,7 @@ vim_rename(char_u *from, char_u *to)
 
 /*
  * Create the new file with same permissions as the original.
- * Return -1 for failure, 0 for success.
+ * Return FAIL for failure, OK for success.
  */
     int
 vim_copyfile(char_u *from, char_u *to)
@@ -3937,7 +3937,7 @@ vim_copyfile(char_u *from, char_u *to)
     ret = mch_lstat((char *)from, &st);
     if (ret >= 0 && S_ISLNK(st.st_mode))
     {
-	ret = FAIL;
+	ret = -1;
 
 	len = readlink((char *)from, linkbuf, MAXPATHL);
 	if (len > 0)

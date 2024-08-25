@@ -1,4 +1,4 @@
-*insert.txt*    For Vim version 9.1.  Last change: 2024 Jul 13
+*insert.txt*    For Vim version 9.1.  Last change: 2024 Aug 23
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -1183,6 +1183,17 @@ items:
 	user_data	custom data which is associated with the item and
 			available in |v:completed_item|; it can be any type;
 			defaults to an empty string
+	hl_group	an additional highlight group whose attributes are
+			combined with |hl-PmenuSel| and |hl-Pmenu| or
+			|hl-PmenuMatchSel| and |hl-PmenuMatch| highlight
+			attributes in the popup menu to apply cterm and gui
+			properties (with higher priority) like strikethrough
+			to the completion items
+	kind_hlgroup	an additional highlight group specifically for setting
+			the highlight attributes of the completion kind. When
+			this field is present, it will override the |hl-PmenuKind|
+			highlight group, allowing for the customization of
+			ctermfd and guifg properties for the completion kind
 
 All of these except "icase", "equal", "dup" and "empty" must be a string.  If
 an item does not meet these requirements then an error message is given and
@@ -2001,7 +2012,7 @@ command in ex mode: >
 	two
 	.
 	:visual
-<appends the following text, after the cursor line: >
+appends the following text, after the cursor line: >
 	one
 	two
 <

@@ -676,13 +676,12 @@ static struct vimoption options[] =
 			    (char_u *)NULL, PV_NONE, NULL, NULL,
 #endif
 			    {(char_u *)0L, (char_u *)0L} SCTX_INIT},
-    {"comments",    "com",  P_STRING|P_ALLOCED|P_VI_DEF|P_ONECOMMA
-							  |P_NODUP|P_CURSWANT,
+    {"comments",    "com",  P_STRING|P_ALLOCED|P_VI_DEF|P_ONECOMMA|P_NODUP,
 			    (char_u *)&p_com, PV_COM, did_set_comments, NULL,
 			    {(char_u *)"s1:/*,mb:*,ex:*/,://,b:#,:%,:XCOMM,n:>,fb:-",
 				(char_u *)0L}
 			    SCTX_INIT},
-    {"commentstring", "cms", P_STRING|P_ALLOCED|P_VI_DEF|P_CURSWANT,
+    {"commentstring", "cms", P_STRING|P_ALLOCED|P_VI_DEF,
 #ifdef FEAT_FOLDING
 			    (char_u *)&p_cms, PV_CMS, did_set_commentstring, NULL,
 			    {(char_u *)"/* %s */", (char_u *)0L}
@@ -856,7 +855,7 @@ static struct vimoption options[] =
     {"debug",	    NULL,   P_STRING|P_VI_DEF,
 			    (char_u *)&p_debug, PV_NONE, did_set_debug, expand_set_debug,
 			    {(char_u *)"", (char_u *)0L} SCTX_INIT},
-    {"define",	    "def",  P_STRING|P_ALLOCED|P_VI_DEF|P_CURSWANT,
+    {"define",	    "def",  P_STRING|P_ALLOCED|P_VI_DEF,
 #ifdef FEAT_FIND_ID
 			    (char_u *)&p_def, PV_DEF, NULL, NULL,
 			    {(char_u *)"^\\s*#\\s*define", (char_u *)0L}

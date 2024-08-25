@@ -2838,9 +2838,9 @@ do_ecmd(
 		int	    did_decrement;
 		buf_T	    *was_curbuf = curbuf;
 
-		// Set the w_closing flag to avoid that autocommands close the
+		// Set the w_locked flag to avoid that autocommands close the
 		// window.  And set b_locked for the same reason.
-		the_curwin->w_closing = TRUE;
+		the_curwin->w_locked = TRUE;
 		++buf->b_locked;
 
 		if (curbuf == old_curbuf.br_buf)
@@ -2854,7 +2854,7 @@ do_ecmd(
 
 		// Autocommands may have closed the window.
 		if (win_valid(the_curwin))
-		    the_curwin->w_closing = FALSE;
+		    the_curwin->w_locked = FALSE;
 		--buf->b_locked;
 
 #ifdef FEAT_EVAL
@@ -3370,7 +3370,7 @@ ex_append(exarg_T *eap)
 	{
 	    // No getline() function, use the lines that follow. This ends
 	    // when there is no more.
-	    if (eap->nextcmd == NULL || *eap->nextcmd == NUL)
+	    if (eap->nextcmd == NULL)
 		break;
 	    p = vim_strchr(eap->nextcmd, NL);
 	    if (p == NULL)
@@ -3378,6 +3378,8 @@ ex_append(exarg_T *eap)
 	    theline = vim_strnsave(eap->nextcmd, p - eap->nextcmd);
 	    if (*p != NUL)
 		++p;
+	    else
+		p = NULL;
 	    eap->nextcmd = p;
 	}
 	else
@@ -3775,6 +3777,7 @@ ex_substitute(exarg_T *eap)
     int		endcolumn = FALSE;	// cursor in last column when done
     pos_T	old_cursor = curwin->w_cursor;
     int		start_nsubs;
+    int		keeppatterns = cmdmod.cmod_flags & CMOD_KEEPPATTERNS;
 #ifdef FEAT_EVAL
     int		save_ma = 0;
     int		save_sandbox = 0;
@@ -3838,11 +3841,11 @@ ex_substitute(exarg_T *eap)
 	    which_pat = RE_LAST;	    // use last used regexp
 	    delimiter = *cmd++;		    // remember delimiter character
 	    pat = cmd;			    // remember start of search pat
-	    patlen = STRLEN(pat);
 	    cmd = skip_regexp_ex(cmd, delimiter, magic_isset(),
 							&eap->arg, NULL, NULL);
 	    if (cmd[0] == delimiter)	    // end delimiter found
 		*cmd++ = NUL;		    // replace it with a NUL
+	    patlen = STRLEN(pat);
 	}
 
 	/*
@@ -3874,7 +3877,7 @@ ex_substitute(exarg_T *eap)
 		    // out of memory
 		    return;
 	    }
-	    else
+	    else if (!keeppatterns)
 	    {
 		vim_free(old_sub);
 		old_sub = vim_strsave(sub);
@@ -3938,7 +3941,7 @@ ex_substitute(exarg_T *eap)
 	    ex_may_print(eap);
 	}
 
-	if ((cmdmod.cmod_flags & CMOD_KEEPPATTERNS) == 0)
+	if (!keeppatterns)
 	    save_re_pat(RE_SUBST, pat, patlen, magic_isset());
 	// put pattern in history
 	add_to_history(HIST_SEARCH, pat, patlen, TRUE, NUL);

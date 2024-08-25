@@ -1558,6 +1558,7 @@ do_search(
 			{
 			    vim_free(msgbuf);
 			    msgbuf = r;
+			    msgbuflen = STRLEN(msgbuf);
 			    // move reversed text to beginning of buffer
 			    while (*r != NUL && *r == ' ')
 				r++;
@@ -5281,7 +5282,7 @@ search_for_fuzzy_match(
 		    {
 			found_new_match = TRUE;
 			*pos = current_pos;
-			*len = STRLEN(*ptr);
+			*len = (int)STRLEN(*ptr);
 			break;
 		    }
 		}

@@ -2654,6 +2654,13 @@ func Test_complete_fuzzy_match()
   call feedkeys("Su\<C-X>\<C-L>\<C-P>\<Esc>0", 'tx!')
   call assert_equal('no one can save me but you', getline('.'))
 
+  " issue #15526
+  set completeopt=fuzzy,menuone,menu,noselect
+  call setline(1, ['Text', 'ToText', ''])
+  call cursor(2, 1)
+  call feedkeys("STe\<C-X>\<C-N>x\<CR>\<Esc>0", 'tx!')
+  call assert_equal('Tex', getline('.'))
+
   " clean up
   set omnifunc=
   bw!
@@ -2666,6 +2673,38 @@ func Test_complete_fuzzy_match()
   delfunc Comp
   unlet g:item
   unlet g:word
+endfunc
+
+func Test_complete_fuzzy_with_completeslash()
+  CheckMSWindows
+
+  call writefile([''], 'fobar', 'D')
+  let orig_shellslash = &shellslash
+  set cpt&
+  new
+  set completeopt+=fuzzy
+  set noshellslash
+
+  " Test with completeslash unset
+  set completeslash=
+  call setline(1, ['.\fob'])
+  call feedkeys("A\<C-X>\<C-F>\<Esc>0", 'tx!')
+  call assert_equal('.\fobar', getline('.'))
+
+  " Test with completeslash=backslash
+  set completeslash=backslash
+  call feedkeys("S.\\fob\<C-X>\<C-F>\<Esc>0", 'tx!')
+  call assert_equal('.\fobar', getline('.'))
+
+  " Test with completeslash=slash
+  set completeslash=slash
+  call feedkeys("S.\\fob\<C-X>\<C-F>\<Esc>0", 'tx!')
+  call assert_equal('./fobar', getline('.'))
+
+  " Reset and clean up
+  let &shellslash = orig_shellslash
+  set completeslash=
+  %bw!
 endfunc
 
 " Check that tie breaking is stable for completeopt+=fuzzy (which should
@@ -2686,6 +2725,16 @@ func Test_complete_fuzzy_match_tie()
 
   bwipe!
   set completeopt&
+endfunc
+
+func Test_complete_backwards_default()
+  new
+  call append(1, ['foobar', 'foobaz'])
+  new
+  call feedkeys("i\<c-p>", 'tx')
+  call assert_equal('foobaz', getline('.'))
+  bw!
+  bw!
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab nofoldenable

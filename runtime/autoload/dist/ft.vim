@@ -421,7 +421,6 @@ export def FThtml()
       setf htmlangular
       return
     endif
-
     # Check for XHTML
     if getline(n) =~ '\<DTD\s\+XHTML\s'
       setf xhtml
@@ -431,6 +430,11 @@ export def FThtml()
     if getline(n) =~ '{%\s*\(autoescape\|block\|comment\|csrf_token\|cycle\|debug\|extends\|filter\|firstof\|for\|if\|ifchanged\|include\|load\|lorem\|now\|query_string\|regroup\|resetcycle\|spaceless\|templatetag\|url\|verbatim\|widthratio\|with\)\>\|{#\s\+'
       setf htmldjango
       return
+    endif
+    # Check for SuperHTML
+    if getline(n) =~ '<extend\|<super>'
+        setf superhtml
+        return
     endif
     n += 1
   endwhile
@@ -530,6 +534,25 @@ export def FTm()
     # Default is Matlab
     setf matlab
   endif
+enddef
+
+export def FTmake()
+  # Check if it is a Microsoft Makefile
+  unlet! b:make_microsoft
+  var n = 1
+  while n < 1000 && n <= line('$')
+    var line = getline(n)
+    if line =~? '^\s*!\s*\(ifn\=\(def\)\=\|include\|message\|error\)\>'
+      b:make_microsoft = 1
+      break
+    elseif line =~ '^ *ifn\=\(eq\|def\)\>' || line =~ '^ *[-s]\=include\s'
+      break
+    elseif line =~ '^ *\w\+\s*[!?:+]='
+      break
+    endif
+    n += 1
+  endwhile
+  setf make
 enddef
 
 export def FTmms()
