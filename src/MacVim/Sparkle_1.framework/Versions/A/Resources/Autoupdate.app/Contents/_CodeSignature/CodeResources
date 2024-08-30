@@ -14,7 +14,7 @@
 		</data>
 		<key>Resources/SUStatus.nib/keyedobjects-101300.nib</key>
 		<data>
-		CIAIcdXrd5aOBmKYYDM7NGmuxGA=
+		SiFXlXTmWast/yQTJlQK/gow9KA=
 		</data>
 		<key>Resources/SUStatus.nib/keyedobjects.nib</key>
 		<data>
@@ -306,10 +306,10 @@
 		<dict>
 			<key>cdhash</key>
 			<data>
-			lxj3mKIQ39AVZEK38pWMaPSGxUs=
+			jcgrdSsUMQkioU+tnNnArvH9zhI=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"e3eb91f77d0b03312e38c12fa726c22d3d36648e" or cdhash H"9718f798a210dfd0156442b7f2958c68f486c54b" or cdhash H"3041d686c9337dbc22180e5a50a1619b4300b495" or cdhash H"73d14270b04c7bd6598431fd41162ed85684fb94"</string>
+			<string>cdhash H"31003bffc16925050e7b3eec5a71e47aea92b6bb" or cdhash H"8dc82b752b14310922a14fad9cd9c0aef1fdce12" or cdhash H"7cde26d750c3500632450bbf9fc399e9505d6d77" or cdhash H"ed209ddb228af02e920489579656ecb9bcd8f2a6"</string>
 		</dict>
 		<key>Resources/AppIcon.icns</key>
 		<dict>
@@ -337,11 +337,11 @@
 		<dict>
 			<key>hash</key>
 			<data>
-			CIAIcdXrd5aOBmKYYDM7NGmuxGA=
+			SiFXlXTmWast/yQTJlQK/gow9KA=
 			</data>
 			<key>hash2</key>
 			<data>
-			zQHRg9w5HHkCzf82YkWsfd9mPEYj66NGhFY/cgUMYfQ=
+			QBTzPQLOP3aTBwOvzRY3uQufCdu8zbfov3VSHe17clo=
 			</data>
 		</dict>
 		<key>Resources/SUStatus.nib/keyedobjects.nib</key>
