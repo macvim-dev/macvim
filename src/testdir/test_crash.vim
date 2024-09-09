@@ -216,6 +216,24 @@ func Test_crash1_3()
   call term_sendkeys(buf, args)
   call TermWait(buf, 50)
 
+  let file = 'crash/heap_overflow3'
+  let cmn_args = "%s -u NONE -i NONE -n -X -m -n -e -s -S %s -c ':qa!'"
+  let args = printf(cmn_args, vim, file)
+  call term_sendkeys(buf, args)
+  call TermWait(buf, 150)
+
+  let file = 'crash/heap_overflow_glob2regpat'
+  let cmn_args = "%s -u NONE -i NONE -n -X -m -n -e -s -S %s -c ':qa!'"
+  let args = printf(cmn_args, vim, file)
+  call term_sendkeys(buf, args)
+  call TermWait(buf, 50)
+
+  let file = 'crash/nullptr_regexp_nfa'
+  let cmn_args = "%s -u NONE -i NONE -n -X -m -n -e -s -S %s -c ':qa!'"
+  let args = printf(cmn_args, vim, file)
+  call term_sendkeys(buf, args)
+  call TermWait(buf, 50)
+
   " clean up
   exe buf .. "bw!"
   bw!
@@ -230,9 +248,9 @@ func Test_crash2()
   exe buf .. "bw!"
 endfunc
 
-func Test_zz_cleanup()
-  " That file is created at Test_crash1_2() by dialog_changed_uaf
-  " but cleanup in that Test, doesn't remove it. Let's try again at
+func TearDown()
+  " That file is created at Test_crash1_3() by dialog_changed_uaf
+  " but cleaning up in that test doesn't remove it. Let's try again at
   " the end of this test script
   call delete('Untitled')
 endfunc
