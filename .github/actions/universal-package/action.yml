@@ -66,6 +66,12 @@ runs:
         echo '::group::Install formula'
         formula=${{ inputs.formula }}
 
+        # We don't want brew to go upgrade all our dependents for now. They are
+        # time consuming and sometimes cause problems with the CI environment
+        # where they fail to link in random binaries (e.g. Python's 2to3),
+        # which cause brew install to return non-zero and fail the build.
+        export HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=1
+
         # This will be a no-op if formula was cached
         brew install --quiet --formula -s ./${formula}.rb
 
