@@ -386,7 +386,7 @@ layout:
 
 - (void)removeAllPlaceholdersFromTabBar:(PSMTabBarControl *)control
 {
-    NSUInteger i, cellCount = [[control cells] count];
+    int i, cellCount = (int)[[control cells] count];
     for(i = (cellCount - 1); i >= 0; i--){
         PSMTabBarCell *cell = [[control cells] objectAtIndex:i];
         if([cell isPlaceholder])
