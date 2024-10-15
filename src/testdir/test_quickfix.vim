@@ -4208,6 +4208,18 @@ func Test_ll_window_ctx()
   enew | only
 endfunc
 
+" Similar to the problem above, but for user data.
+func Test_ll_window_user_data()
+  call setloclist(0, [#{bufnr: bufnr(), user_data: {}}])
+  lopen
+  wincmd t
+  close
+  call test_garbagecollect_now()
+  call feedkeys("\<CR>", 'tx')
+  call test_garbagecollect_now()
+  %bwipe!
+endfunc
+
 " The following test used to crash vim
 func Test_lfile_crash()
   sp Xtest
@@ -4265,6 +4277,7 @@ endfunc
 
 " The following test used to crash Vim
 func Test_lvimgrep_crash()
+  " this leaves a swapfile .test_quickfix.vim.swp around, why?
   sv Xtest
   augroup QF_Test
     au!
@@ -4358,6 +4371,8 @@ func Test_vimgrep_autocmd()
   autocmd BufRead Xtest2.txt call setloclist(g:save_winid, [], 'f')
   call assert_fails('lvimgrep stars Xtest*.txt', 'E926:')
   au! BufRead Xtest2.txt
+  " cleanup the swap files
+  bw! Xtest2.txt Xtest1.txt
 
   call setqflist([], 'f')
 endfunc
@@ -6447,6 +6462,106 @@ func Test_quickfix_buffer_contents()
   call setqflist([], 'f')
 endfunc
 
+func XquickfixUpdateTests(cchar)
+  call s:setup_commands(a:cchar)
+
+  " Setup: populate a couple buffers
+  new
+  call setline(1, range(1, 5))
+  let b1 = bufnr()
+  new
+  call setline(1, range(1, 3))
+  let b2 = bufnr()
+  " Setup: set a quickfix list.
+  let items = [{'bufnr': b1, 'lnum': 1}, {'bufnr': b1, 'lnum': 2}, {'bufnr': b2, 'lnum': 1}, {'bufnr': b2, 'lnum': 2}]
+  call g:Xsetlist(items)
+
+  " Open the quickfix list, select the third entry.
+  Xopen
+  exe "normal jj\<CR>"
+  call assert_equal(3, g:Xgetlist({'idx' : 0}).idx)
+
+  " Update the quickfix list. Make sure the third entry is still selected.
+  call g:Xsetlist([], 'u', { 'items': items })
+  call assert_equal(3, g:Xgetlist({'idx' : 0}).idx)
+
+  " Update the quickfix list again, but this time with missing line number
+  " information. Confirm that we keep the current buffer selected.
+  call g:Xsetlist([{'bufnr': b1}, {'bufnr': b2}], 'u')
+  call assert_equal(2, g:Xgetlist({'idx' : 0}).idx)
+
+  Xclose
+
+  " Cleanup the buffers we allocated during this test.
+  %bwipe!
+endfunc
+
+" Test for updating a quickfix list using the "u" flag in setqflist()
+func Test_quickfix_update()
+  call XquickfixUpdateTests('c')
+  call XquickfixUpdateTests('l')
+endfunc
+
+func Test_quickfix_update_with_missing_coordinate_info()
+  new
+  call setline(1, range(1, 5))
+  let b1 = bufnr()
+
+  new
+  call setline(1, range(1, 3))
+  let b2 = bufnr()
+
+  new
+  call setline(1, range(1, 2))
+  let b3 = bufnr()
+
+  " Setup: set a quickfix list with no coordinate information at all.
+  call setqflist([{}, {}])
+
+  " Open the quickfix list, select the second entry.
+  copen
+  exe "normal j\<CR>"
+  call assert_equal(2, getqflist({'idx' : 0}).idx)
+
+  " Update the quickfix list. As the previously selected entry has no
+  " coordinate information, we expect the first entry to now be selected.
+  call setqflist([{'bufnr': b1}, {'bufnr': b2}, {'bufnr': b3}], 'u')
+  call assert_equal(1, getqflist({'idx' : 0}).idx)
+
+  " Select the second entry in the quickfix list.
+  copen
+  exe "normal j\<CR>"
+  call assert_equal(2, getqflist({'idx' : 0}).idx)
+
+  " Update the quickfix list again. The currently selected entry does not have
+  " a line number, but we should keep the file selected.
+  call setqflist([{'bufnr': b1}, {'bufnr': b2, 'lnum': 3}, {'bufnr': b3}], 'u')
+  call assert_equal(2, getqflist({'idx' : 0}).idx)
+
+  " Update the quickfix list again. The currently selected entry (bufnr=b2, lnum=3)
+  " is no longer present. We should pick the nearest entry.
+  call setqflist([{'bufnr': b1}, {'bufnr': b2, 'lnum': 1}, {'bufnr': b2, 'lnum': 4}], 'u')
+  call assert_equal(3, getqflist({'idx' : 0}).idx)
+
+  " Set the quickfix list again, with a specific column number. The currently selected entry doesn't have a
+  " column number, but they share a line number.
+  call setqflist([{'bufnr': b1}, {'bufnr': b2, 'lnum': 4, 'col': 5}, {'bufnr': b2, 'lnum': 4, 'col': 6}], 'u')
+  call assert_equal(2, getqflist({'idx' : 0}).idx)
+
+  " Set the quickfix list again. The currently selected column number (6) is
+  " no longer present. We should select the nearest column number.
+  call setqflist([{'bufnr': b1}, {'bufnr': b2, 'lnum': 4, 'col': 2}, {'bufnr': b2, 'lnum': 4, 'col': 4}], 'u')
+  call assert_equal(3, getqflist({'idx' : 0}).idx)
+
+  " Now set the quickfix list, but without columns. We should still pick the
+  " same line.
+  call setqflist([{'bufnr': b2, 'lnum': 3}, {'bufnr': b2, 'lnum': 4}, {'bufnr': b2, 'lnum': 4}], 'u')
+  call assert_equal(2, getqflist({'idx' : 0}).idx)
+
+  " Cleanup the buffers we allocated during this test.
+  %bwipe!
+endfunc
+
 " Test for "%b" in "errorformat"
 func Test_efm_format_b()
   call setqflist([], 'f')
@@ -6564,6 +6679,43 @@ endfunc
 func Test_cbuffer_range()
   call XbufferTests_range('c')
   call XbufferTests_range('l')
+endfunc
+
+" Test for displaying fname passed from setqflist() when the names include
+" hard links to prevent seemingly duplicate entries.
+func Xtest_hardlink_fname(cchar)
+  call s:setup_commands(a:cchar)
+  %bwipe
+  " Create a sample source file
+  let lines =<< trim END
+    void sample() {}
+    int main() { sample(); return 0; }
+  END
+  call writefile(lines, 'test_qf_hardlink1.c', 'D')
+  defer delete('test_qf_hardlink1.c')
+  defer delete('test_qf_hardlink2.c')
+  call system('ln test_qf_hardlink1.c test_qf_hardlink2.c')
+  if v:shell_error
+    throw 'Skipped: ln throws error on this platform'
+  endif
+  call g:Xsetlist([], 'f')
+  " Make a qflist that contains the file and it's hard link
+  " like how LSP plugins set response into qflist
+  call g:Xsetlist([{'filename' : 'test_qf_hardlink1.c', 'lnum' : 1},
+        \ {'filename' : 'test_qf_hardlink2.c', 'lnum' : 1}], ' ')
+  Xopen
+  " Ensure that two entries are displayed with different name
+  " so that they aren't seen as duplication.
+  call assert_equal(['test_qf_hardlink1.c|1| ',
+        \ 'test_qf_hardlink2.c|1| '], getline(1, '$'))
+  Xclose
+endfunc
+
+func Test_hardlink_fname()
+  CheckUnix
+  CheckExecutable ln
+  call Xtest_hardlink_fname('c')
+  call Xtest_hardlink_fname('l')
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

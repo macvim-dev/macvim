@@ -1641,6 +1641,58 @@ expand_set_completeopt(optexpand_T *args, int *numMatches, char_u ***matches)
 	    matches);
 }
 
+/*
+ * The 'completeitemalign' option is changed.
+ */
+    char *
+did_set_completeitemalign(optset_T *args UNUSED)
+{
+    char_u	*p = p_cia;
+    unsigned	new_cia_flags = 0;
+    int		seen[3] = { FALSE, FALSE, FALSE };
+    int		count = 0;
+    char_u	buf[10];
+
+    while (*p)
+    {
+	copy_option_part(&p, buf, sizeof(buf), ",");
+	if (count >= 3)
+	    return e_invalid_argument;
+
+	if (STRCMP(buf, "abbr") == 0)
+	{
+	    if (seen[CPT_ABBR])
+		return e_invalid_argument;
+	    new_cia_flags = new_cia_flags * 10 + CPT_ABBR;
+	    seen[CPT_ABBR] = TRUE;
+	    count++;
+	}
+	else if (STRCMP(buf, "kind") == 0)
+	{
+	    if (seen[CPT_KIND])
+		return e_invalid_argument;
+	    new_cia_flags = new_cia_flags * 10 + CPT_KIND;
+	    seen[CPT_KIND] = TRUE;
+	    count++;
+	}
+	else if (STRCMP(buf, "menu") == 0)
+	{
+	    if (seen[CPT_MENU])
+		return e_invalid_argument;
+	    new_cia_flags = new_cia_flags * 10 + CPT_MENU;
+	    seen[CPT_MENU] = TRUE;
+	    count++;
+	}
+	else
+	    return e_invalid_argument;
+    }
+    if (new_cia_flags == 0 || count != 3)
+	return e_invalid_argument;
+
+    cia_flags = new_cia_flags;
+    return NULL;
+}
+
 #if (defined(FEAT_PROP_POPUP) && defined(FEAT_QUICKFIX)) || defined(PROTO)
 /*
  * The 'completepopup' option is changed.
@@ -3542,7 +3594,7 @@ did_set_spellfile(optset_T *args)
 
     // If there is a window for this buffer in which 'spell' is set load the
     // wordlists.
-    return did_set_spell_option(TRUE);
+    return did_set_spell_option();
 }
 
 /*
@@ -3558,7 +3610,7 @@ did_set_spelllang(optset_T *args)
 
     // If there is a window for this buffer in which 'spell' is set load the
     // wordlists.
-    return did_set_spell_option(FALSE);
+    return did_set_spell_option();
 }
 
 /*

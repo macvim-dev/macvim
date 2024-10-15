@@ -1,4 +1,4 @@
-*options.txt*	For Vim version 9.1.  Last change: 2024 Sep 10
+*options.txt*	For Vim version 9.1.  Last change: 2024 Oct 14
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -396,13 +396,14 @@ between string and number-based options.
 			options which are different from the default.
 
 For buffer-local and window-local options:
-	Command		 global value	    local value ~
-      :set option=value	     set		set
- :setlocal option=value	      -			set
-:setglobal option=value	     set		 -
-      :set option?	      -		       display
- :setlocal option?	      -		       display
-:setglobal option?	    display		 -
+	Command		 global value	  local value	       condition ~
+      :set option=value	     set	      set
+ :setlocal option=value	      -		      set
+:setglobal option=value	     set	       -
+      :set option?	      -		     display	 local value is set
+      :set option?	    display	       -	 local value is not set
+ :setlocal option?	      -		     display
+:setglobal option?	    display	       -
 
 
 Global options with a local value			*global-local*
@@ -1147,12 +1148,13 @@ A jump table for the options with a short description can be found at |Q_op|.
 	useful for example in source trees where all the files are symbolic or
 	hard links and any changes should stay in the local source tree, not
 	be propagated back to the original source.
-							*crontab*
+								*crontab*
 	One situation where "no" and "auto" will cause problems: A program
 	that opens a file, invokes Vim to edit that file, and then tests if
 	the open file was changed (through the file descriptor) will check the
 	backup file instead of the newly created file.  "crontab -e" is an
-	example.
+	example, as are several |file-watcher| daemons like inotify.  In that
+	case you probably want to switch this option.
 
 	When a copy is made, the original file is truncated and then filled
 	with the new text.  This means that protection bits, owner and
@@ -1655,9 +1657,10 @@ A jump table for the options with a short description can be found at |Q_op|.
 	The default is CTRL-F when 'compatible' is off.
 	Only non-printable keys are allowed.
 	The key can be specified as a single character, but it is difficult to
-	type.  The preferred way is to use the <> notation.  Examples: >
-		:exe "set cedit=\<C-Y>"
-		:exe "set cedit=\<Esc>"
+	type.  The preferred way is to use |key-notation| (e.g. <Up>, <C-F>) or
+	a letter preceded with a caret (e.g. `^F` is CTRL-F).  Examples: >
+		:set cedit=^Y
+		:set cedit=<Esc>
 <	|Nvi| also has this option, but it only uses the first character.
 	See |cmdwin|.
 	NOTE: This option is set to the Vim default value when 'compatible'
@@ -2114,6 +2117,16 @@ A jump table for the options with a short description can be found at |Q_op|.
 	more information.
 	This option cannot be set from a |modeline| or in the |sandbox|, for
 	security reasons.
+
+						*'completeitemalign'* *'cia'*
+'completeitemalign' 'cia' string (default: "abbr,kind,menu")
+			  global
+	A comma-separated list of |complete-items| that controls the alignment
+	and display order of items in the popup menu during Insert mode
+	completion. The supported values are abbr, kind, and menu. These
+	options allow to customize how the completion items are shown in the
+	popup menu.  Note: must always contain those three values in any
+	order.
 
 						*'completeopt'* *'cot'*
 'completeopt' 'cot'	string	(default: "menu,preview")
@@ -3506,14 +3519,14 @@ A jump table for the options with a short description can be found at |Q_op|.
 		/* vim: set filetype=idl : */ ~
 	|FileType| |filetypes|
 	When a dot appears in the value then this separates two filetype
-	names.  Example:
+	names, it should therefore not be used for a filetype.  Example:
 		/* vim: set filetype=c.doxygen : */ ~
 	This will use the "c" filetype first, then the "doxygen" filetype.
 	This works both for filetype plugins and for syntax files.  More than
 	one dot may appear.
 	This option is not copied to another buffer, independent of the 's' or
 	'S' flag in 'cpoptions'.
-	Only normal file name characters can be used, "/\*?[|<>" are illegal.
+	Only alphanumeric characters, '-' and '_' can be used.
 
 						*'fillchars'* *'fcs'*
 'fillchars' 'fcs'	string	(default "vert:|,fold:-,eob:~")
@@ -5074,7 +5087,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 	Setting this option to a valid keymap name has the side effect of
 	setting 'iminsert' to one, so that the keymap becomes effective.
 	'imsearch' is also set to one, unless it was -1
-	Only normal file name characters can be used, "/\*?[|<>" are illegal.
+	Only alphanumeric characters, '.', '-' and '_' can be used.
 
 					*'keymodel'* *'km'*
 'keymodel' 'km'		string	(default "")
@@ -7908,7 +7921,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 	non-blank of the line.  When off the cursor is kept in the same column
 	(if possible).  This applies to the commands:
 	- CTRL-D, CTRL-U, CTRL-B, CTRL-F, "G", "H", "M", "L", "gg"
-	- "d", "<<" and ">>" with a linewise operator
+	- "d", "<<", "==" and ">>" with a linewise operator
+	  (|operator-resulting-pos|)
 	- "%" with a count
 	- buffer changing commands (CTRL-^, :bnext, :bNext, etc.)
 	- Ex commands that only has a line number, e.g., ":25" or ":+".
@@ -8087,7 +8101,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 
 	Examples:
 	Emulate standard status line with 'ruler' set >
-	  :set statusline=%<%f\ %h%m%r%=%-14.(%l,%c%V%)\ %P
+	  :set statusline=%<%f\ %h%w%m%r%=%-14.(%l,%c%V%)\ %P
 <	Similar, but add ASCII value of char under the cursor (like "ga") >
 	  :set statusline=%<%f%h%m%r%=%b\ 0x%B\ \ %l,%c%V\ %P
 <	Display byte count and byte value, modified flag in red. >
@@ -8231,7 +8245,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 	Syntax autocommand event is triggered with the value as argument.
 	This option is not copied to another buffer, independent of the 's' or
 	'S' flag in 'cpoptions'.
-	Only normal file name characters can be used, "/\*?[|<>" are illegal.
+	Only alphanumeric characters, '.', '-' and '_' can be used.
 
 						*'tabclose'* *'tcl'*
 'tabclose' 'tcl'	string	(default "")
@@ -8552,8 +8566,11 @@ A jump table for the options with a short description can be found at |Q_op|.
 			local to window
 	The key that starts a CTRL-W command in a terminal window.  Other keys
 	are sent to the job running in the window.
-	The <> notation can be used, e.g.: >
-		:set termwinkey=<C-L>
+	The key can be specified as a single character, a |key-notation| (e.g.
+	<Up>, <C-F>) or a letter preceded with a caret (e.g. `^F` is CTRL-F): >
+		:set twk=X
+		:set twk=^I
+		:set twk=<C-L>
 <	The string must be one key stroke but can be multiple bytes.
 	When not set CTRL-W is used, so that CTRL-W : gets you to the command
 	line.  If 'termwinkey' is set to CTRL-L then CTRL-L : gets you to the
@@ -9462,7 +9479,12 @@ A jump table for the options with a short description can be found at |Q_op|.
 	Some keys will not work, such as CTRL-C, <CR> and Enter.
 	<Esc> can be used, but hitting it twice in a row will still exit
 	command-line as a failsafe measure.
-	Although 'wc' is a number option, you can set it to a special key: >
+	Although 'wc' is a number option, it can be specified as a number, a
+	single character, a |key-notation| (e.g. <Up>, <C-F>) or a letter
+	preceded with a caret (e.g. `^F` is CTRL-F): >
+		:set wc=27
+		:set wc=X
+		:set wc=^I
 		:set wc=<Tab>
 <	NOTE: This option is set to the Vi default value when 'compatible' is
 	set and to the Vim default value when 'compatible' is reset.

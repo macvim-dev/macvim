@@ -1,4 +1,4 @@
-*starting.txt*  For Vim version 9.1.  Last change: 2024 Sep 05
+*starting.txt*  For Vim version 9.1.  Last change: 2024 Oct 05
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -848,7 +848,8 @@ accordingly.  Vim proceeds in this order:
 	like.  For the Macintosh the $VIMRUNTIME/macmap.vim is read (not on
 	MacVim, as this only applies to the older Carbon version).
 
-	  *VIMINIT* *.vimrc* *_vimrc* *EXINIT* *.exrc* *_exrc* *$MYVIMRC* *$MYVIMDIR*
+			*VIMINIT* *.vimrc* *_vimrc* *EXINIT* *.exrc* *_exrc*
+			*$MYVIMRC* *$MYVIMDIR*
      c. Five places are searched for initializations.  The first that exists
 	is used, the others are ignored.  The $MYVIMRC environment variable is
 	set to the file that was first found, unless $MYVIMRC was already set
@@ -973,9 +974,9 @@ accordingly.  Vim proceeds in this order:
 	The |v:vim_did_enter| variable is set to 1.
 	The |VimEnter| autocommands are executed.
 
-The $MYVIMRC or $MYGVIMRC file will be set to the first found vimrc and/or
-gvimrc file while $MYVIMDIR is set to the users personal runtime directory
-'rtp' (typically the first entry in 'runtimepath').
+The $MYVIMRC or $MYGVIMRC environment variable will be set to the first found
+vimrc and/or gvimrc file while $MYVIMDIR is set to the users personal runtime
+directory 'rtp' (typically the first entry in 'runtimepath').
 
 
 Some hints on using initializations ~
@@ -1078,9 +1079,10 @@ This should work well for new Vim users.  If you create your own .vimrc, it is
 recommended to add these lines somewhere near the top: >
 	unlet! skip_defaults_vim
 	source $VIMRUNTIME/defaults.vim
-Then Vim works like before you had a .vimrc. Copying $VIMRUNTIME/vimrc_example
-is way to do this.  Alternatively, you can copy defaults.vim to your .vimrc
-and modify it (but then you won't get updates when it changes).
+Then Vim works like before you had a .vimrc.
+Copying $VIMRUNTIME/vimrc_example.vim to your .vimrc is another way to do
+this. Alternatively, you can copy defaults.vim to your .vimrc and modify it
+(but then you won't get updates when it changes).
 
 If you don't like some of the defaults, you can still source defaults.vim and
 revert individual settings.  See the defaults.vim file for hints on how to

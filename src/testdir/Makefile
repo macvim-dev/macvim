@@ -12,7 +12,7 @@ SCRIPTSOURCE = ../../runtime
 # Comment out this line to see the verbose output of tests.
 #
 # Catches SwapExists to avoid hanging at the ATTENTION prompt.
-REDIR_TEST_TO_NULL = --cmd 'au SwapExists * let v:swapchoice = "e"' | LC_ALL=C LANG=C LANGUAGE=C awk '/Executing Test_/{match($$0, "([0-9][0-9]:[0-9][0-9] *)?Executing Test_[^\\)]*\\)"); print substr($$0, RSTART, RLENGTH) "\r"; fflush()}'
+REDIR_TEST_TO_NULL = --cmd 'au SwapExists * let v:swapchoice = "e"' | LC_ALL=C awk '/Executing Test_/{match($$0, "([0-9][0-9]:[0-9][0-9] *)?Executing Test_[^\\)]*\\)"); print substr($$0, RSTART, RLENGTH) "\r"; fflush()}'
 
 # Uncomment this line to use valgrind for memory leaks and extra warnings.
 #   The output goes into a file "valgrind.testN"
@@ -161,7 +161,7 @@ test_gui_init.res: test_gui_init.vim
 	@rm vimcmd
 
 opt_test.vim: ../optiondefs.h gen_opt_test.vim
-	$(VIMPROG) -u NONE -S gen_opt_test.vim --noplugin --not-a-term ../optiondefs.h
+	$(VIMPROG) -e -s -u NONE $(NO_INITS) --nofork --gui-dialog-file guidialog -S gen_opt_test.vim ../optiondefs.h
 
 test_xxd.res:
 	XXD=$(XXDPROG); export XXD; $(RUN_VIMTEST) $(NO_INITS) -S runtest.vim test_xxd.vim

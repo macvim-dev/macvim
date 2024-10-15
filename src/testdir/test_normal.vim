@@ -4266,6 +4266,7 @@ endfunc
 " Test for Ctrl-D with long line
 func Test_halfpage_longline()
   10new
+  40vsplit
   call setline(1, ['long'->repeat(1000), 'short'])
   exe "norm! \<C-D>"
   call assert_equal(2, line('.'))
@@ -4273,7 +4274,7 @@ func Test_halfpage_longline()
 endfunc
 
 " Test for Ctrl-E with long line and very narrow window,
-" used to cause an inifite loop
+" used to cause an infinite loop
 func Test_scroll_longline_no_loop()
   4vnew
   setl smoothscroll number showbreak=> scrolloff=2

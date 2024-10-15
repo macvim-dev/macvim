@@ -1,4 +1,4 @@
-*builtin.txt*	For Vim version 9.1.  Last change: 2024 Sep 10
+*builtin.txt*	For Vim version 9.1.  Last change: 2024 Oct 14
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -230,10 +230,13 @@ getcharmod()			Number	modifiers for the last typed character
 getcharpos({expr})		List	position of cursor, mark, etc.
 getcharsearch()			Dict	last character search
 getcharstr([{expr}])		String	get one character from the user
+getcmdcomplpat()		String	return the completion pattern of the
+					current command-line completion
 getcmdcompltype()		String	return the type of the current
 					command-line completion
-getcmdline()			String	return the current command-line
+getcmdline()			String	return the current command-line input
 getcmdpos()			Number	return cursor position in command-line
+getcmdprompt()			String	return the current command-line prompt
 getcmdscreenpos()		Number	return cursor screen position in
 					command-line
 getcmdtype()			String	return current command-line type
@@ -3974,27 +3977,37 @@ getcharstr([{expr}])					*getcharstr()*
 
 		Return type: |String|
 
+getcmdcomplpat()					*getcmdcomplpat()*
+		Return completion pattern of the current command-line.
+		Only works when the command line is being edited, thus
+		requires use of |c_CTRL-\_e| or |c_CTRL-R_=|.
+		Also see |getcmdtype()|, |setcmdpos()|, |getcmdline()|,
+		|getcmdprompt()|, |getcmdcompltype()| and |setcmdline()|.
+		Returns an empty string when completion is not defined.
+
+		Return type: |String|
+
 
 getcmdcompltype()					*getcmdcompltype()*
 		Return the type of the current command-line completion.
 		Only works when the command line is being edited, thus
 		requires use of |c_CTRL-\_e| or |c_CTRL-R_=|.
 		See |:command-completion| for the return string.
-		Also see |getcmdtype()|, |setcmdpos()|, |getcmdline()| and
-		|setcmdline()|.
+		Also see |getcmdtype()|, |setcmdpos()|, |getcmdline()|,
+		|getcmdprompt()|, |getcmdcomplpat()| and |setcmdline()|.
 		Returns an empty string when completion is not defined.
 
 		Return type: |String|
 
 
 getcmdline()						*getcmdline()*
-		Return the current command-line.  Only works when the command
-		line is being edited, thus requires use of |c_CTRL-\_e| or
-		|c_CTRL-R_=|.
+		Return the current command-line input.  Only works when the
+		command line is being edited, thus requires use of
+		|c_CTRL-\_e| or |c_CTRL-R_=|.
 		Example: >
 			:cmap <F7> <C-\>eescape(getcmdline(), ' \')<CR>
-<		Also see |getcmdtype()|, |getcmdpos()|, |setcmdpos()| and
-		|setcmdline()|.
+<		Also see |getcmdtype()|, |getcmdpos()|, |setcmdpos()|,
+		|getcmdprompt()| and |setcmdline()|.
 		Returns an empty string when entering a password or using
 		|inputsecret()|.
 
@@ -4007,10 +4020,21 @@ getcmdpos()						*getcmdpos()*
 		Only works when editing the command line, thus requires use of
 		|c_CTRL-\_e| or |c_CTRL-R_=| or an expression mapping.
 		Returns 0 otherwise.
-		Also see |getcmdtype()|, |setcmdpos()|, |getcmdline()| and
-		|setcmdline()|.
+		Also see |getcmdtype()|, |setcmdpos()|, |getcmdline()|,
+		|getcmdprompt()| and |setcmdline()|.
 
 		Return type: |Number|
+
+
+getcmdprompt()						*getcmdprompt()*
+		Return the current command-line prompt when using functions
+		like |input()| or |confirm()|.
+		Only works when the command line is being edited, thus
+		requires use of |c_CTRL-\_e| or |c_CTRL-R_=|.
+		Also see |getcmdtype()|, |getcmdline()|, |getcmdpos()|,
+		|setcmdpos()| and |setcmdline()|.
+
+		Return type: |String|
 
 
 getcmdscreenpos()					*getcmdscreenpos()*
@@ -4069,7 +4093,7 @@ getcompletion({pat}, {type} [, {filtered}])		*getcompletion()*
 		cscope		|:cscope| suboptions
 		custom,{func}	custom completion, defined via {func}
 		customlist,{func} custom completion, defined via {func}
-		diff_buffer     |:diffget| and |:diffput| completion
+		diff_buffer	|:diffget| and |:diffput| completion
 		dir		directory names
 		dir_in_path	directory names in |'cdpath'|
 		environment	environment variable names
@@ -4093,6 +4117,7 @@ getcompletion({pat}, {type} [, {filtered}])		*getcompletion()*
 		runtime		|:runtime| completion
 		scriptnames	sourced script names |:scriptnames|
 		shellcmd	Shell command
+		shellcmdline	Shell command line with filename arguments
 		sign		|:sign| suboptions
 		syntax		syntax file names |'syntax'|
 		syntime		|:syntime| suboptions
@@ -8506,10 +8531,10 @@ remote_expr({server}, {string} [, {idvar} [, {timeout}]])
 		string, also see |{server}|.
 
 		The string is sent as an expression and the result is returned
-		after evaluation.  The result must be a String or a |List|.  A
-		|List| is turned into a String by joining the items with a
-		line break in between (not at the end), like with join(expr,
-		"\n").
+		after evaluation.  The result must be a String or a |List|
+		other types will be converted to String.  A |List| is turned
+		into a String by joining the items with a line break in
+		between (not at the end), like with join(expr, "\n").
 
 		If {idvar} is present and not empty, it is taken as the name
 		of a variable and a {serverid} for later use with
@@ -9743,6 +9768,8 @@ setqflist({list} [, {action} [, {what}]])		*setqflist()*
 			clear the list: >
 				:call setqflist([], 'r')
 <
+		'u'	Like 'r', but tries to preserve the current selection
+			in the quickfix list.
 		'f'	All the quickfix lists in the quickfix stack are
 			freed.
 

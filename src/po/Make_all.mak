@@ -4,6 +4,7 @@
 
 LANGUAGES = \
 		af \
+		am \
 		ca \
 		cs \
 		da \
@@ -58,6 +59,7 @@ LANGUAGES_UTF8_ONLY = \
 
 POFILES = \
 		af.po \
+		am.po \
 		ca.po \
 		cs.po \
 		da.po \
@@ -105,6 +107,7 @@ POFILES = \
 
 MOFILES = \
 		af.mo \
+		am.mo \
 		ca.mo \
 		cs.mo \
 		da.mo \

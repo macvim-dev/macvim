@@ -1,4 +1,4 @@
-*map.txt*       For Vim version 9.1.  Last change: 2024 Aug 31
+*map.txt*       For Vim version 9.1.  Last change: 2024 Oct 08
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -84,6 +84,8 @@ modes.
 			where the map command applies.  Disallow mapping of
 			{rhs}, to avoid nested and recursive mappings.  Often
 			used to redefine a command.
+			Note: Keys in {rhs} also won't trigger abbreviation,
+			with the exception of |i_CTRL-]| and |c_CTRL-]|.
 			Note: When <Plug> appears in the {rhs} this part is
 			always applied even if remapping is disallowed.
 
@@ -1655,6 +1657,8 @@ completion can be enabled:
 	-complete=runtime	file and directory names in |'runtimepath'|
 	-complete=scriptnames	sourced script names
 	-complete=shellcmd	Shell command
+	-complete=shellcmdline	First is a shell command and subsequent ones
+				are filenames. The same behavior as |:!cmd|
 	-complete=sign		|:sign| suboptions
 	-complete=syntax	syntax file names |'syntax'|
 	-complete=syntime	|:syntime| suboptions
@@ -1832,7 +1836,7 @@ The valid escape sequences are
 		nothing. Supported modifiers are |:aboveleft|, |:belowright|,
 		|:botright|, |:browse|, |:confirm|, |:hide|, |:horizontal|,
 		|:keepalt|, |:keepjumps|, |:keepmarks|, |:keeppatterns|,
-		|:leftabove|, |:lockmarks|, |:noautocmd|, |:noswapfile|
+		|:leftabove|, |:lockmarks|, |:noautocmd|, |:noswapfile|,
 		|:rightbelow|, |:sandbox|, |:silent|, |:tab|, |:topleft|,
 		|:unsilent|, |:verbose|, and |:vertical|.
 		Note that |:filter| is not supported.

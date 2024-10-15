@@ -1,4 +1,4 @@
-*editing.txt*   For Vim version 9.1.  Last change: 2024 Jul 10
+*editing.txt*   For Vim version 9.1.  Last change: 2024 Oct 14
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -1058,6 +1058,15 @@ explanation of when the copy is made and when the file is renamed.
 If the creation of a backup file fails, the write is not done.  If you want
 to write anyway add a '!' to the command.
 
+							*file-watcher*
+When you notice issues with programs, that act upon when a buffer is written
+(like inotify, entr or fswatch) or when external applications execute Vim to
+edit the file (like git) and those programs do not seem to notice that the
+original file has been changed, you may want to consider switching the
+'backupcopy' option value to "yes".  This makes sure, Vim writes to the same
+file, that those watcher programs expect, without creating a new file (which
+prevents them from detecting that the file has changed).  See also |crontab|
+
 							*write-permissions*
 When writing a new file the permissions are read-write.  For unix the mask is
 0o666 with additionally umask applied.  When writing a file that was read Vim
@@ -1325,7 +1334,7 @@ used (Motif only offers one pattern, but you can edit it).
 For example, to have only Vim files in the dialog, you could use the following
 command: >
 
-     let g:browsefilter = "Vim Scripts\t*.vim\nVim Startup Files\t*vimrc\n"
+     let g:browsefilter = "Vim scripts\t*.vim\nVim Startup Files\t*vimrc\n"
 
 You can override the filter setting on a per-buffer basis by setting the
 b:browsefilter variable.  You would most likely set b:browsefilter in a

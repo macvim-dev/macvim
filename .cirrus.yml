@@ -21,3 +21,10 @@ freebsd_task:
     - pw useradd cirrus -m
     - chown -R cirrus:cirrus .
     - sudo -u cirrus make test
+  on_failure:
+    screendump_artifacts:
+      name: "Cirrus-CI-freebsd-failed-tests"
+      path: |
+        runtime/syntax/testdir/failed/*
+        src/testdir/failed/*
+      type: application/octet-stream

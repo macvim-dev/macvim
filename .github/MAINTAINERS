@@ -163,6 +163,7 @@ runtime/ftplugin/gitconfig.vim		@tpope
 runtime/ftplugin/gitignore.vim		@ObserverOfTime
 runtime/ftplugin/gitrebase.vim		@tpope
 runtime/ftplugin/gitsendemail.vim	@tpope
+runtime/ftplugin/gleam.vim		@trilowy
 runtime/ftplugin/go.vim			@dbarnett
 runtime/ftplugin/goaccess.vim		@meonkeys
 runtime/ftplugin/gomod.vim		@yu-yk
@@ -178,6 +179,7 @@ runtime/ftplugin/hgcommit.vim		@k-takata
 runtime/ftplugin/hlsplaylist.vim		@avidseeker
 runtime/ftplugin/hog.vim		@wtfbbqhax
 runtime/ftplugin/html.vim		@dkearns
+runtime/ftplugin/http.vim		@ribru17
 runtime/ftplugin/hyprlang.vim		@ribru17
 runtime/ftplugin/i3config.vim		@hiqua
 runtime/ftplugin/icon.vim		@dkearns
@@ -480,6 +482,7 @@ runtime/syntax/j.vim			@glts
 runtime/syntax/jargon.vim		@h3xx
 runtime/syntax/java.vim			@zzzyxwvut
 runtime/syntax/javascript.vim		@fleiner
+runtime/syntax/jinja.vim		@gpanders
 runtime/syntax/jj.vim			@gpanders
 runtime/syntax/json.vim		        @vito-c
 runtime/syntax/jsonc.vim		@izhakjakov
@@ -491,6 +494,7 @@ runtime/syntax/kotlin.vim		@udalov
 runtime/syntax/kdl.vim			@imsnif @jiangyinzuo
 runtime/syntax/krl.vim			@KnoP-01
 runtime/syntax/less.vim			@genoma
+runtime/syntax/lf.vim			@andis-sprinkis
 runtime/syntax/liquid.vim		@tpope
 runtime/syntax/lua.vim			@marcuscf
 runtime/syntax/lyrics.vim		@ObserverOfTime
@@ -550,6 +554,7 @@ runtime/syntax/rng.vim			@jhradilek
 runtime/syntax/routeros.vim		@zainin
 runtime/syntax/rst.vim			@marshallward
 runtime/syntax/ruby.vim			@dkearns
+runtime/syntax/salt.vim			@gpanders
 runtime/syntax/sass.vim			@tpope
 runtime/syntax/scala.vim		@derekwyatt
 runtime/syntax/scheme.vim		@evhan
@@ -608,6 +613,7 @@ runtime/tutor/tutor.ru.cp1251		@RestorerZ
 runtime/tutor/tutor.ru.utf-8		@RestorerZ
 src/iscygpty.*				@k-takata
 src/libvterm/				@leonerd
+src/po/am.po				@gagikh
 src/po/ca.po				@nfdisco
 src/po/de.po				@chrisbra
 src/po/eo.po				@dpelle

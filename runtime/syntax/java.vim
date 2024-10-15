@@ -3,16 +3,32 @@
 " Maintainer:		Aliaksei Budavei <0x000c70 AT gmail DOT com>
 " Former Maintainer:	Claudio Fleiner <claudio@fleiner.com>
 " Repository:		https://github.com/zzzyxwvut/java-vim.git
-" Last Change:		2024 Sep 10
+" Last Change:		2024 Oct 10
 
-" Please check :help java.vim for comments on some of the options available.
+" Please check ":help java.vim" for comments on some of the options
+" available.
 
-" quit when a syntax file was already loaded
-if !exists("g:main_syntax")
-  if exists("b:current_syntax")
-    finish
+" Do not aggregate syntax items from circular inclusion.
+if exists("b:current_syntax")
+  finish
+endif
+
+if exists("g:main_syntax")
+  " Reject attendant circularity for every :syn-included syntax file,
+  " but ACCEPT FAILURE when "g:main_syntax" is set to "java".
+  if g:main_syntax == 'html'
+    if !exists("g:java_ignore_html")
+      let g:java_ignore_html = 1
+      let s:clear_java_ignore_html = 1
+    endif
+  elseif g:main_syntax == 'markdown'
+    if !exists("g:java_ignore_markdown")
+      let g:java_ignore_markdown = 1
+      let s:clear_java_ignore_markdown = 1
+    endif
   endif
-  " we define it here so that included files can test for it
+else
+  " Allow syntax files that include this file test for its inclusion.
   let g:main_syntax = 'java'
 endif
 
@@ -92,6 +108,13 @@ syn keyword javaTypedef		this super
 syn keyword javaOperator	new instanceof
 syn match   javaOperator	"\<var\>\%(\s*(\)\@!"
 
+if s:ff.IsRequestedPreviewFeature(476)
+  " Module imports can be used in any source file.
+  syn match   javaExternal	"\<import\s\+module\>" contains=javaModuleImport
+  syn keyword javaModuleImport	contained module
+  hi def link javaModuleImport	Statement
+endif
+
 " Since the yield statement, which could take a parenthesised operand,
 " and _qualified_ yield methods get along within the switch block
 " (JLS-17, §3.8), it seems futile to make a region definition for this
@@ -149,6 +172,10 @@ else
   let [s:ff.PeekTo, s:ff.PeekFrom, s:ff.GroupArgs] = repeat([s:ff.RightConstant], 3)
 endif
 
+let s:with_html = !exists("g:java_ignore_html")
+let s:with_markdown = !exists("g:java_ignore_markdown")
+lockvar s:with_html s:with_markdown
+
 " Java module declarations (JLS-17, §7.7).
 "
 " Note that a "module-info" file will be recognised with an arbitrary
@@ -165,7 +192,7 @@ if fnamemodify(bufname("%"), ":t") =~ '^module-info\>\%(\.class\>\)\@!'
   hi def link javaModuleStmt		Statement
   hi def link javaModuleExternal	Include
 
-  if !exists("g:java_ignore_javadoc") && g:main_syntax != 'jsp'
+  if !exists("g:java_ignore_javadoc") && (s:with_html || s:with_markdown) && g:main_syntax != 'jsp'
     syn match javaDocProvidesTag	contained "@provides\_s\+\S\+" contains=javaDocParam
     syn match javaDocUsesTag		contained "@uses\_s\+\S\+" contains=javaDocParam
     hi def link javaDocProvidesTag	Special
@@ -283,19 +310,27 @@ if exists("g:java_space_errors")
 endif
 
 exec 'syn match javaUserLabel "^\s*\<\K\k*\>\%(\<default\>\)\@' . s:ff.Peek('7', '') . '<!\s*::\@!"he=e-1'
-syn region  javaLabelRegion	transparent matchgroup=javaLabel start="\<case\>" matchgroup=NONE end=":\|->" contains=javaLabelCastType,javaLabelNumber,javaCharacter,javaString,javaConstant,@javaClasses,javaGenerics,javaLabelDefault,javaLabelVarType,javaLabelWhenClause
+
+if s:ff.IsRequestedPreviewFeature(455)
+  syn region  javaLabelRegion	transparent matchgroup=javaLabel start="\<case\>" matchgroup=NONE end=":\|->" contains=javaBoolean,javaNumber,javaCharacter,javaString,javaConstant,@javaClasses,javaGenerics,javaType,javaLabelDefault,javaLabelVarType,javaLabelWhenClause
+else
+  syn region  javaLabelRegion	transparent matchgroup=javaLabel start="\<case\>" matchgroup=NONE end=":\|->" contains=javaLabelCastType,javaLabelNumber,javaCharacter,javaString,javaConstant,@javaClasses,javaGenerics,javaLabelDefault,javaLabelVarType,javaLabelWhenClause
+  syn keyword javaLabelCastType	contained char byte short int
+  syn match   javaLabelNumber	contained "\<0\>[lL]\@!"
+  syn match   javaLabelNumber	contained "\<\%(0\%([xX]\x\%(_*\x\)*\|_*\o\%(_*\o\)*\|[bB][01]\%(_*[01]\)*\)\|[1-9]\%(_*\d\)*\)\>[lL]\@!"
+  hi def link javaLabelCastType	javaType
+  hi def link javaLabelNumber	javaNumber
+endif
+
 syn region  javaLabelRegion	transparent matchgroup=javaLabel start="\<default\>\%(\s*\%(:\|->\)\)\@=" matchgroup=NONE end=":\|->" oneline
 " Consider grouped _default_ _case_ labels, i.e.
 " case null, default ->
 " case null: default:
 syn keyword javaLabelDefault	contained default
 syn keyword javaLabelVarType	contained var
-syn keyword javaLabelCastType	contained char byte short int
 " Allow for the contingency of the enclosing region not being able to
 " _keep_ its _end_, e.g. case ':':.
 syn region  javaLabelWhenClause	contained transparent matchgroup=javaLabel start="\<when\>" matchgroup=NONE end=":"me=e-1 end="->"me=e-2 contains=TOP,javaExternal,javaLambdaDef
-syn match   javaLabelNumber	contained "\<0\>[lL]\@!"
-syn match   javaLabelNumber	contained "\<\%(0\%([xX]\x\%(_*\x\)*\|_*\o\%(_*\o\)*\|[bB][01]\%(_*[01]\)*\)\|[1-9]\%(_*\d\)*\)\>[lL]\@!"
 
 " Comments
 syn keyword javaTodo		contained TODO FIXME XXX
@@ -320,18 +355,56 @@ syn match   javaCommentMarkupTagAttr contained "\<region\>" nextgroup=javaCommen
 exec 'syn region javaCommentMarkupTagAttr contained transparent matchgroup=javaHtmlArg start=/\<\%(re\%(gex\|gion\|placement\)\|substring\|t\%(arget\|ype\)\)\%(\s*=\)\@=/ matchgroup=javaHtmlString end=/\%(=\s*\)\@' . s:ff.Peek('80', '') . '<=\%("[^"]\+"\|' . "\x27[^\x27]\\+\x27" . '\|\%([.-]\|\k\)\+\)/ nextgroup=javaCommentMarkupTagAttr,javaSpaceError skipwhite oneline'
 syn match   javaCommentError contained "/\*"me=e-1 display
 
-if !exists("g:java_ignore_javadoc") && g:main_syntax != 'jsp'
-  " The overridable "html*" default links must be defined _before_ the
-  " inclusion of the same default links from "html.vim".
-  hi def link htmlComment	Special
-  hi def link htmlCommentPart	Special
-  hi def link htmlArg		Type
-  hi def link htmlString	String
+if !exists("g:java_ignore_javadoc") && (s:with_html || s:with_markdown) && g:main_syntax != 'jsp'
+  " The overridable "html*" and "markdown*" default links must be
+  " defined _before_ the inclusion of the same default links from
+  " "html.vim" and "markdown.vim".
+  if s:with_html || s:with_markdown
+    hi def link htmlComment		Special
+    hi def link htmlCommentPart		Special
+    hi def link htmlArg			Type
+    hi def link htmlString		String
+  endif
+
+  if s:with_markdown
+    hi def link markdownCode		Special
+    hi def link markdownCodeBlock	Special
+    hi def link markdownCodeDelimiter	Special
+    hi def link markdownLinkDelimiter	Comment
+  endif
+
   syntax case ignore
 
+  " Note that javaDocSeeTag is valid in HTML and Markdown.
+  let s:ff.WithMarkdown = s:ff.RightConstant
+
   " Include HTML syntax coloring for Javadoc comments.
-  syntax include @javaHtml syntax/html.vim
-  unlet b:current_syntax
+  if s:with_html
+    try
+      syntax include @javaHtml syntax/html.vim
+    finally
+      unlet! b:current_syntax
+    endtry
+  endif
+
+  " Include Markdown syntax coloring (v7.2.437) for Javadoc comments.
+  if s:with_markdown
+    try
+      syntax include @javaMarkdown syntax/markdown.vim
+      let s:ff.WithMarkdown = s:ff.LeftConstant
+    catch /\<E48[45]:/
+      call s:ReportOnce(v:exception)
+      unlockvar s:with_markdown
+      let s:with_markdown = 0
+      lockvar s:with_markdown
+      hi clear markdownCode
+      hi clear markdownCodeBlock
+      hi clear markdownCodeDelimiter
+      hi clear markdownLinkDelimiter
+    finally
+      unlet! b:current_syntax
+    endtry
+  endif
 
   " HTML enables spell checking for all text that is not in a syntax
   " item (:syntax spell toplevel); instead, limit spell checking to
@@ -342,10 +415,71 @@ if !exists("g:java_ignore_javadoc") && g:main_syntax != 'jsp'
     call s:ReportOnce(v:exception)
   endtry
 
-  syn region javaDocComment	start="/\*\*" end="\*/" keepend contains=javaCommentTitle,@javaHtml,@javaDocTags,javaTodo,javaCommentError,javaSpaceError,@Spell fold
-  exec 'syn region javaCommentTitle contained matchgroup=javaDocComment start="/\*\*" matchgroup=javaCommentTitle end="\.$" end="\.[ \t\r]\@=" end="\%(^\s*\**\s*\)\@' . s:ff.Peek('80', '') . '<=@"me=s-2,he=s-1 end="\*/"me=s-1,he=s-1 contains=@javaHtml,javaCommentStar,javaTodo,javaCommentError,javaSpaceError,@Spell,@javaDocTags'
-  syn region javaCommentTitle	contained matchgroup=javaDocComment start="/\*\*\s*\r\=\n\=\s*\**\s*\%({@return\>\)\@=" matchgroup=javaCommentTitle end="}\%(\s*\.*\)*" contains=@javaHtml,javaCommentStar,javaTodo,javaCommentError,javaSpaceError,@Spell,@javaDocTags,javaTitleSkipBlock
-  syn region javaCommentTitle	contained matchgroup=javaDocComment start="/\*\*\s*\r\=\n\=\s*\**\s*\%({@summary\>\)\@=" matchgroup=javaCommentTitle end="}" contains=@javaHtml,javaCommentStar,javaTodo,javaCommentError,javaSpaceError,@Spell,@javaDocTags,javaTitleSkipBlock
+  if s:with_markdown
+    syn region javaMarkdownComment	start="///" skip="^\s*///.*$" end="^" keepend contains=javaMarkdownCommentTitle,javaMarkdownShortcutLink,@javaMarkdown,@javaDocTags,javaTodo,@Spell nextgroup=javaMarkdownCommentTitle fold
+    syn match javaMarkdownCommentMask	contained "^\s*///"
+    exec 'syn region javaMarkdownCommentTitle contained matchgroup=javaMarkdownComment start="\%(///.*\r\=\n\s*\)\@' . s:ff.Peek('80', '') . '<!///" matchgroup=javaMarkdownCommentTitle end="\.$" end="\.[ \t\r]\@=" end="\n\%(\s*///\s*$\)\@=" end="\%(^\s*///\s*\)\@' . s:ff.Peek('80', '') . '<=@"me=s-2,he=s-1 contains=javaMarkdownShortcutLink,@javaMarkdown,javaMarkdownCommentMask,javaTodo,@Spell,@javaDocTags'
+    exec 'syn region javaMarkdownCommentTitle contained matchgroup=javaMarkdownComment start="\%(///.*\r\=\n\s*\)\@' . s:ff.Peek('80', '') . '<!///\s*\%({@return\>\)\@=" matchgroup=javaMarkdownCommentTitle end="}\%(\s*\.*\)*" contains=javaMarkdownShortcutLink,@javaMarkdown,javaMarkdownCommentMask,javaTodo,@Spell,@javaDocTags,javaTitleSkipBlock'
+    exec 'syn region javaMarkdownCommentTitle contained matchgroup=javaMarkdownComment start="\%(///.*\r\=\n\s*\)\@' . s:ff.Peek('80', '') . '<!///\s*\%({@summary\>\)\@=" matchgroup=javaMarkdownCommentTitle end="}" contains=javaMarkdownShortcutLink,@javaMarkdown,javaMarkdownCommentMask,javaTodo,@Spell,@javaDocTags,javaTitleSkipBlock'
+
+    syn clear markdownId markdownLineStart markdownH1 markdownH2 markdownHeadingRule markdownRule markdownCode markdownCodeBlock markdownIdDeclaration
+    " REDEFINE THE MARKDOWN ITEMS ANCHORED WITH "^", OBSERVING THE
+    " DEFINITION ORDER.
+    syn match markdownLineStart		contained "^\s*///\s*[<@]\@!" contains=@markdownBlock,javaMarkdownCommentTitle,javaMarkdownCommentMask nextgroup=@markdownBlock,htmlSpecialChar
+    " See https://spec.commonmark.org/0.31.2/#setext-headings.
+    syn match markdownH1		contained "^\s*/// \{,3}.\+\r\=\n\s*/// \{,3}=\+\s*$" contains=@markdownInline,markdownHeadingRule,markdownAutomaticLink,javaMarkdownCommentMask
+    syn match markdownH2		contained "^\s*/// \{,3}.\+\r\=\n\s*/// \{,3}-\+\s*$" contains=@markdownInline,markdownHeadingRule,markdownAutomaticLink,javaMarkdownCommentMask
+    " See https://spec.commonmark.org/0.31.2/#atx-headings.
+    syn region markdownH1		contained matchgroup=markdownH1Delimiter start=" \{,3}#\s" end="#*\s*$" keepend contains=@markdownInline,markdownAutomaticLink oneline
+    syn region markdownH2		contained matchgroup=markdownH2Delimiter start=" \{,3}##\s" end="#*\s*$" keepend contains=@markdownInline,markdownAutomaticLink oneline
+    syn match markdownHeadingRule	contained "^\s*/// \{,3}[=-]\+\s*$" contains=javaMarkdownCommentMask
+    " See https://spec.commonmark.org/0.31.2/#thematic-breaks.
+    syn match markdownRule		contained "^\s*/// \{,3}\*\s*\*\%(\s*\*\)\+\s*$" contains=javaMarkdownCommentMask
+    syn match markdownRule		contained "^\s*/// \{,3}_\s*_\%(\s*_\)\+\s*$" contains=javaMarkdownCommentMask
+    syn match markdownRule		contained "^\s*/// \{,3}-\s*-\%(\s*-\)\+\s*$" contains=javaMarkdownCommentMask
+    " See https://spec.commonmark.org/0.31.2/#indented-code-blocks.
+    syn region markdownCodeBlock	contained start="^\s*///\%( \{4,}\|\t\)" end="^\ze\s*///\%(\s*$\| \{,3}\S\)" keepend contains=javaMarkdownCommentMask
+    " See https://spec.commonmark.org/0.31.2/#code-spans.
+    syn region markdownCode		contained matchgroup=markdownCodeDelimiter start="\z(`\+\) \=" end=" \=\z1" keepend contains=markdownLineStart,javaMarkdownCommentMask
+    " See https://spec.commonmark.org/0.31.2/#fenced-code-blocks.
+    syn region markdownCodeBlock	contained start="^\s*/// \{,3}\z(```\+\)\%(.\{-}[^`]`\)\@!" end="^\s*/// \{,3}\z1`*" keepend contains=javaMarkdownCommentMask
+    syn region markdownCodeBlock	contained start="^\s*/// \{,3}\z(\~\~\~\+\)" end="^\s*/// \{,3}\z1\~*" keepend contains=javaMarkdownCommentMask
+    " See https://spec.commonmark.org/0.31.2/#link-reference-definitions.
+    syn region markdownIdDeclaration	contained matchgroup=markdownLinkDelimiter start="^\s*/// \{,3\}!\=\[" end="\]:" keepend contains=javaMarkdownCommentMask nextgroup=markdownUrl oneline skipwhite
+    " See https://spec.commonmark.org/0.31.2/#link-label.
+    syn region markdownId		contained matchgroup=markdownIdDelimiter start="\[\%([\t ]\]\)\@!" end="\]" contains=javaMarkdownSkipBrackets,javaMarkdownCommentMask
+    " Note that escaped brackets can be unbalanced.
+    syn match javaMarkdownSkipBrackets	contained transparent "\\\[\|\\\]"
+    " See https://spec.commonmark.org/0.31.2/#shortcut-reference-link.
+    syn region javaMarkdownShortcutLink	contained matchgroup=markdownLinkTextDelimiter start="!\=\[^\@!\%(\_[^][]*\%(\[\_[^][]*\]\_[^][]*\)*]\%([[(]\)\@!\)\@=" end="\]\%([[(]\)\@!" contains=@markdownInline,markdownLineStart,javaMarkdownSkipBrackets,javaMarkdownCommentMask nextgroup=markdownLink,markdownId skipwhite
+
+    for s:name in ['markdownFootnoteDefinition', 'markdownFootnote']
+      if hlexists(s:name)
+	exec 'syn clear ' . s:name
+      endif
+    endfor
+
+    unlet s:name
+
+    " COMBAK: Footnotes are recognised by "markdown.vim", but are not
+    " in CommonMark.  See https://pandoc.org/MANUAL.html#footnotes.
+""""syn match markdownFootnoteDefinition contained "^\s*///\s*\[^[^\]]\+\]:" contains=javaMarkdownCommentMask
+
+    hi def link javaMarkdownComment	Comment
+    hi def link javaMarkdownCommentMask	javaMarkdownComment
+    hi def link javaMarkdownCommentTitle SpecialComment
+    hi def link javaMarkdownShortcutLink htmlLink
+  endif
+
+  if s:with_html
+    syn region javaDocComment	start="/\*\*" end="\*/" keepend contains=javaCommentTitle,@javaHtml,@javaDocTags,javaTodo,javaCommentError,javaSpaceError,@Spell fold
+    exec 'syn region javaCommentTitle contained matchgroup=javaDocComment start="/\*\*" matchgroup=javaCommentTitle end="\.$" end="\.[ \t\r]\@=" end="\%(^\s*\**\s*\)\@' . s:ff.Peek('80', '') . '<=@"me=s-2,he=s-1 end="\*/"me=s-1,he=s-1 contains=@javaHtml,javaCommentStar,javaTodo,javaCommentError,javaSpaceError,@Spell,@javaDocTags'
+    syn region javaCommentTitle	contained matchgroup=javaDocComment start="/\*\*\s*\r\=\n\=\s*\**\s*\%({@return\>\)\@=" matchgroup=javaCommentTitle end="}\%(\s*\.*\)*" contains=@javaHtml,javaCommentStar,javaTodo,javaCommentError,javaSpaceError,@Spell,@javaDocTags,javaTitleSkipBlock
+    syn region javaCommentTitle	contained matchgroup=javaDocComment start="/\*\*\s*\r\=\n\=\s*\**\s*\%({@summary\>\)\@=" matchgroup=javaCommentTitle end="}" contains=@javaHtml,javaCommentStar,javaTodo,javaCommentError,javaSpaceError,@Spell,@javaDocTags,javaTitleSkipBlock
+    hi def link javaDocComment		Comment
+    hi def link javaCommentTitle	SpecialComment
+  endif
+
   " The members of javaDocTags are sub-grouped according to the Java
   " version of their introduction, and sub-group members in turn are
   " arranged in alphabetical order, so that future newer members can
@@ -388,12 +522,28 @@ if !exists("g:java_ignore_javadoc") && g:main_syntax != 'jsp'
   syn match  javaDocSerialFieldTag contained "@serialField\>"
   syn match  javaDocVersionTag	contained "@version\>"
 
-  syn match  javaDocSeeTag	contained "@see\>" nextgroup=javaDocSeeTag1,javaDocSeeTag2,javaDocSeeTag3,javaDocSeeTagStar skipwhite skipempty
-  syn match  javaDocSeeTagStar	contained "^\s*\*\+\%(\s*{\=@\|/\|$\)\@!" nextgroup=javaDocSeeTag1,javaDocSeeTag2,javaDocSeeTag3 skipwhite skipempty
+  syn match javaDocSeeTag contained "@see\>\s*" nextgroup=javaDocSeeTag1,javaDocSeeTag2,javaDocSeeTag3,javaDocSeeTag4,javaDocSeeTagStar,javaDocSeeTagSlash skipwhite skipempty
+
+  if s:with_html
+    syn match  javaDocSeeTagStar contained "^\s*\*\+\%(\s*{\=@\|/\|$\)\@!" nextgroup=javaDocSeeTag1,javaDocSeeTag2,javaDocSeeTag3,javaDocSeeTag4 skipwhite skipempty
+    hi def link javaDocSeeTagStar javaDocComment
+  endif
+
+  if s:with_markdown
+    syn match  javaDocSeeTagSlash contained "^\s*///\%(\s*{\=@\|$\)\@!" nextgroup=javaDocSeeTag1,javaDocSeeTag2,javaDocSeeTag3,javaDocSeeTag4 skipwhite skipempty
+    hi def link javaDocSeeTagSlash javaMarkdownComment
+  endif
+
   syn match  javaDocSeeTag1	contained @"\_[^"]\+"@
   syn match  javaDocSeeTag2	contained @<a\s\+\_.\{-}</a>@ contains=@javaHtml extend
-  syn match  javaDocSeeTag3	contained @["< \t]\@!\%(\k\|[/.]\)*\%(##\=\k\+\%((\_[^)]*)\)\=\)\=@ nextgroup=javaDocSeeTag3Label skipwhite skipempty
+  exec 'syn match javaDocSeeTag3 contained @[' . s:ff.WithMarkdown('[', '') . '"< \t]\@!\%(\k\|[/.]\)*\%(##\=\k\+\%((\_[^)]*)\)\=\)\=@ nextgroup=javaDocSeeTag3Label skipwhite skipempty'
   syn match  javaDocSeeTag3Label contained @\k\%(\k\+\s*\)*$@
+
+  " COMBAK: No support for type javaDocSeeTag2 in Markdown.
+""if s:with_markdown
+""  syn match  javaDocSeeTag4	contained @\[.\+\]\s\=\%(\[.\+\]\|(.\+)\)@ contains=@javaMarkdown extend
+""  hi def link javaDocSeeTag4	Special
+""endif
 
   syn region javaCodeSkipBlock	contained transparent start="{\%(@code\>\)\@!" end="}" contains=javaCodeSkipBlock,javaDocCodeTag
   syn region javaDocCodeTag	contained start="{@code\>" end="}" contains=javaDocCodeTag,javaCodeSkipBlock
@@ -403,9 +553,6 @@ if !exists("g:java_ignore_javadoc") && g:main_syntax != 'jsp'
   syn region javaDocSnippetTag	contained start="{@snippet\>" end="}" contains=javaDocSnippetTag,javaSnippetSkipBlock,javaDocSnippetTagAttr,javaCommentMarkupTag
 
   syntax case match
-  hi def link javaDocComment		Comment
-  hi def link javaDocSeeTagStar		javaDocComment
-  hi def link javaCommentTitle		SpecialComment
   hi def link javaDocParam		Function
 
   hi def link javaDocAuthorTag		Special
@@ -577,10 +724,15 @@ if exists("g:java_highlight_debug")
   hi def link DebugType			Type
 endif
 
+" Complement javaBlock and javaInParen for highlighting.
+syn region javaBlockOther transparent matchgroup=javaBlockOtherStart start="{" end="}"
+
 " Try not to fold top-level-type bodies under assumption that there is
 " but one such body.
-exec 'syn region javaBlock transparent start="\%(^\|^\S[^:]\+\)\@' . s:ff.Peek('120', '') . '<!{" end="}" fold'
+exec 'syn region javaBlock transparent matchgroup=javaBlockStart start="\%(^\|^\S[^:]\+\)\@' . s:ff.Peek('120', '') . '<!{" end="}" fold'
 
+" See "D.2.1 Anonymous Classes" at
+" https://web.archive.org/web/20010821025330/java.sun.com/docs/books/jls/first_edition/html/1.1Update.html#12959.
 if exists("g:java_mark_braces_in_parens_as_errors")
   syn match javaInParen contained "[{}]"
   hi def link javaInParen javaError
@@ -663,7 +815,7 @@ hi def link javaStorageClass		StorageClass
 hi def link javaMethodDecl		javaStorageClass
 hi def link javaClassDecl		javaStorageClass
 hi def link javaScopeDecl		javaStorageClass
-hi def link javaConceptKind		NonText
+hi def link javaConceptKind		javaStorageClass
 
 hi def link javaBoolean			Boolean
 hi def link javaSpecial			Special
@@ -692,8 +844,6 @@ hi def link javaUserLabelRef		javaUserLabel
 hi def link javaLabel			Label
 hi def link javaLabelDefault		javaLabel
 hi def link javaLabelVarType		javaOperator
-hi def link javaLabelNumber		javaNumber
-hi def link javaLabelCastType		javaType
 
 hi def link javaComment			Comment
 hi def link javaCommentStar		javaComment
@@ -714,9 +864,17 @@ if g:main_syntax == 'java'
   unlet g:main_syntax
 endif
 
+if exists("s:clear_java_ignore_html")
+  unlet! s:clear_java_ignore_html g:java_ignore_html
+endif
+
+if exists("s:clear_java_ignore_markdown")
+  unlet! s:clear_java_ignore_markdown g:java_ignore_markdown
+endif
+
 let b:spell_options = "contained"
 let &cpo = s:cpo_save
-unlet s:ff s:cpo_save
+unlet s:cpo_save s:ff s:with_html s:with_markdown
 
 " See ":help vim9-mix".
 if !has("vim9script")
@@ -744,4 +902,4 @@ if exists("g:java_foldtext_show_first_or_second_line")
   setlocal foldtext=s:JavaSyntaxFoldTextExpr()
   delfunction! g:JavaSyntaxFoldTextExpr
 endif
-" vim: sw=2 ts=8 noet sta
+" vim: fdm=syntax sw=2 ts=8 noet sta

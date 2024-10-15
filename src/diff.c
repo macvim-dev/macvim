@@ -760,6 +760,13 @@ diff_write_buffer(buf_T *buf, diffin_T *din)
     long	len = 0;
     char_u	*ptr;
 
+    if (buf->b_ml.ml_flags & ML_EMPTY)
+    {
+	din->din_mmfile.ptr = NULL;
+	din->din_mmfile.size = 0;
+	return OK;
+    }
+
     // xdiff requires one big block of memory with all the text.
     for (lnum = 1; lnum <= buf->b_ml.ml_line_count; ++lnum)
 	len += ml_get_buf_len(buf, lnum) + 1;
@@ -1796,7 +1803,10 @@ diff_read(
 	    {
 		for (i = idx_orig; i < idx_new; ++i)
 		    if (curtab->tp_diffbuf[i] != NULL)
+		    {
 			dp->df_lnum[i] -= off;
+			dp->df_count[i] += off;
+		    }
 		dp->df_lnum[idx_new] = hunk->lnum_new;
 		dp->df_count[idx_new] = hunk->count_new;
 	    }
@@ -1808,9 +1818,7 @@ diff_read(
 	    }
 	    else
 		// second overlap of new block with existing block
-		dp->df_count[idx_new] += hunk->count_new - hunk->count_orig
-		    + dpl->df_lnum[idx_orig] + dpl->df_count[idx_orig]
-		    - (dp->df_lnum[idx_orig] + dp->df_count[idx_orig]);
+		dp->df_count[idx_new] += hunk->count_new;
 
 	    // Adjust the size of the block to include all the lines to the
 	    // end of the existing block or the new diff, whatever ends last.
@@ -1818,10 +1826,8 @@ diff_read(
 			 - (dpl->df_lnum[idx_orig] + dpl->df_count[idx_orig]);
 	    if (off < 0)
 	    {
-		// new change ends in existing block, adjust the end if not
-		// done already
-		if (notset)
-		    dp->df_count[idx_new] += -off;
+		// new change ends in existing block, adjust the end
+		dp->df_count[idx_new] += -off;
 		off = 0;
 	    }
 	    for (i = idx_orig; i < idx_new; ++i)

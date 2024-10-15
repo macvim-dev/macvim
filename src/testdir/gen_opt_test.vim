@@ -1,11 +1,15 @@
-" Script to generate testdir/opt_test.vim from option.c
+" Script to generate testdir/opt_test.vim from optiondefs.h
 
 set cpo=&vim
 
 " Only do this when build with the +eval feature.
 if 1
 
+try
+
 set nomore
+
+const K_KENTER = -16715
 
 " The terminal size is restored at the end.
 " Clear out t_WS, we don't want to resize the actual terminal.
@@ -55,7 +59,10 @@ let test_values = {
       \ 'updatecount': [[0, 1, 8, 9999], [-1]],
       \ 'updatetime': [[0, 1, 8, 9999], [-1]],
       \ 'verbose': [[-1, 0, 1, 8, 9999], []],
-      \ 'wildcharm': [[-1, 0, 100], []],
+      \ 'wildchar': [[-1, 0, 100, 'x', '^Y', '^@', '<Esc>', '<t_xx>', '<', '^'],
+      \		['', 'xxx', '<xxx>', '<Esc', '<t_xx', '<C-C>', '<NL>', '<CR>', K_KENTER]],
+      \ 'wildcharm': [[-1, 0, 100, 'x', '^Y', '^@', '<Esc>', '<', '^'],
+      \		['', 'xxx', '<xxx>', '<Esc', '<t_xx', '<C-C>', '<NL>', '<CR>', K_KENTER]],
       \ 'winheight': [[1, 10, 999], [-1, 0]],
       \ 'winminheight': [[0, 1], [-1]],
       \ 'winminwidth': [[0, 1, 10], [-1]],
@@ -72,7 +79,8 @@ let test_values = {
       \ 'bufhidden': [['', 'hide', 'wipe'], ['xxx', 'hide,wipe']],
       \ 'buftype': [['', 'help', 'nofile'], ['xxx', 'help,nofile']],
       \ 'casemap': [['', 'internal'], ['xxx']],
-      \ 'cedit': [['', '\<Esc>'], ['xxx', 'f']],
+      \ 'cedit': [['', '^Y', '^@', '<Esc>', '<t_xx>'],
+      \		['xxx', 'f', '<xxx>', '<Esc', '<t_xx']],
       \ 'clipboard': [['', 'unnamed', 'autoselect,unnamed', 'html', 'exclude:vimdisplay'], ['xxx', '\ze*', 'exclude:\\%(']],
       \ 'colorcolumn': [['', '8', '+2'], ['xxx']],
       \ 'comments': [['', 'b:#'], ['xxx']],
@@ -80,6 +88,7 @@ let test_values = {
       \ 'complete': [['', 'w,b'], ['xxx']],
       \ 'concealcursor': [['', 'n', 'nvic'], ['xxx']],
       \ 'completeopt': [['', 'menu', 'menu,longest'], ['xxx', 'menu,,,longest,']],
+      \ 'completeitemalign': [['abbr,kind,menu'], ['xxx','abbr,menu','abbr,menu,kind,abbr', 'abbr', 'abbr1234,kind', '']],
       \ 'completepopup': [['', 'height:13', 'highlight:That', 'width:10,height:234,highlight:Mine'], ['height:yes', 'width:no', 'xxx', 'xxx:99', 'border:maybe', 'border:1']],
       \ 'completeslash': [['', 'slash', 'backslash'], ['xxx']],
       \ 'cryptmethod': [['', 'zip'], ['xxx']],
@@ -137,7 +146,11 @@ let test_values = {
       \ 'sessionoptions': [['', 'blank', 'help,options,slash'], ['xxx']],
       \ 'showcmdloc': [['last', 'statusline', 'tabline'], ['xxx']],
       \ 'signcolumn': [['', 'auto', 'no'], ['xxx', 'no,yes']],
-      \ 'spellfile': [['', 'file.en.add', '/tmp/dir\ with\ space/en.utf-8.add'], ['xxx', '/tmp/file']],
+      \ 'spellfile': [['', 'file.en.add', 'xxx.en.add,yyy.gb.add,zzz.ja.add',
+      \		'/tmp/dir\ with\ space/en.utf-8.add',
+      \		'/tmp/dir\\,with\\,comma/en.utf-8.add'],
+      \		['xxx', '/tmp/file', ',file.en.add', 'xxx,yyy.en.add',
+      \		'xxx.en.add,yyy,zzz.ja.add']],
       \ 'spelllang': [['', 'xxx', 'sr@latin'], ['not&lang', "that\\\rthere"]],
       \ 'spelloptions': [['', 'camel'], ['xxx']],
       \ 'spellsuggest': [['', 'best', 'double,33'], ['xxx']],
@@ -149,6 +162,8 @@ let test_values = {
       \ 'term': [[], []],
       \ 'termguicolors': [[], []],
       \ 'termencoding': [(has('gui_gtk') || has('gui_macvim')) ? [] : ['', 'utf-8'], ['xxx']],
+      \ 'termwinkey': [['', 'f', '^Y', '^@', '<Esc>', '<t_xx>', "\u3042", '<', '^'],
+      \		['<xxx>', '<Esc', '<t_xx']],
       \ 'termwinsize': [['', '24x80', '0x80', '32x0', '0x0'], ['xxx', '80', '8ax9', '24x80b']],
       \ 'termwintype': [['', 'winpty', 'conpty'], ['xxx']],
       \ 'toolbar': [['', 'icons', 'text'], ['xxx']],
@@ -243,6 +258,13 @@ call add(script, 'let &columns = save_columns')
 call add(script, 'let &lines = save_lines')
 
 call writefile(script, 'opt_test.vim')
+
+" Exit with error-code if error occurs.
+catch
+  set verbose=1
+  echoc 'Error:' v:exception 'in' v:throwpoint
+  cq! 1
+endtry
 
 endif
 

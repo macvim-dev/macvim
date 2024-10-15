@@ -12,7 +12,7 @@
  * Used for both the console version and the Win32 GUI.  A lot of code is for
  * the console version only, so there is a lot of "#ifndef FEAT_GUI_MSWIN".
  *
- * Win32 (Windows NT and Windows 95) system-dependent routines.
+ * Win32 system-dependent routines.
  * Portions lifted from the Win32 SDK samples, the MSDOS-dependent code,
  * NetHack 3.1.3, GNU Emacs 19.30, and Vile 5.5.
  *
@@ -918,9 +918,8 @@ null_libintl_wputenv(const wchar_t *envstring UNUSED)
  * Enables or disables the specified privilege.
  */
     static BOOL
-win32_enable_privilege(LPTSTR lpszPrivilege, BOOL bEnable)
+win32_enable_privilege(LPTSTR lpszPrivilege)
 {
-    BOOL		bResult;
     LUID		luid;
     HANDLE		hToken;
     TOKEN_PRIVILEGES	tokenPrivileges;
@@ -937,15 +936,22 @@ win32_enable_privilege(LPTSTR lpszPrivilege, BOOL bEnable)
 
     tokenPrivileges.PrivilegeCount	     = 1;
     tokenPrivileges.Privileges[0].Luid       = luid;
-    tokenPrivileges.Privileges[0].Attributes = bEnable ?
-						    SE_PRIVILEGE_ENABLED : 0;
+    tokenPrivileges.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
 
-    bResult = AdjustTokenPrivileges(hToken, FALSE, &tokenPrivileges,
-	    sizeof(TOKEN_PRIVILEGES), NULL, NULL);
+    if (!AdjustTokenPrivileges(hToken, FALSE, &tokenPrivileges, 0, NULL, NULL))
+    {
+	CloseHandle(hToken);
+	return FALSE;
+    }
+
+    if (GetLastError() != ERROR_SUCCESS)
+    {
+	CloseHandle(hToken);
+	return FALSE;
+    }
 
     CloseHandle(hToken);
-
-    return bResult && GetLastError() == ERROR_SUCCESS;
+    return TRUE;
 }
 #endif
 
@@ -961,15 +967,11 @@ win32_enable_privilege(LPTSTR lpszPrivilege, BOOL bEnable)
     void
 PlatformId(void)
 {
-    static int done = FALSE;
-
-    if (done)
-	return;
-
     OSVERSIONINFO ovi;
 
     ovi.dwOSVersionInfoSize = sizeof(ovi);
-    GetVersionEx(&ovi);
+    if (!GetVersionEx(&ovi))
+        return;
 
 #ifdef FEAT_EVAL
     vim_snprintf(windowsVersion, sizeof(windowsVersion), "%d.%d",
@@ -985,9 +987,9 @@ PlatformId(void)
 
 #ifdef HAVE_ACL
     // Enable privilege for getting or setting SACLs.
-    win32_enable_privilege(SE_SECURITY_NAME, TRUE);
+    if (!win32_enable_privilege(SE_SECURITY_NAME))
+        return;
 #endif
-    done = TRUE;
 }
 #ifdef _MSC_VER
 # pragma warning(pop)
@@ -3556,13 +3558,16 @@ mch_init_c(void)
     static void
 mch_exit_c(int r)
 {
+    // Copy flag since stoptermcap() will clear the flag.
+    int fTermcapMode = g_fTermcapMode;
+
     exiting = TRUE;
 
     vtp_exit();
 
     stoptermcap();
-    // Switch back to main screen buffer.
-    if (use_alternate_screen_buffer)
+    // Switch back to main screen buffer if TermcapMode was not active.
+    if (!fTermcapMode &&  use_alternate_screen_buffer)
 	vtp_printf("\033[?1049l");
 
     if (g_fWindInitCalled)
@@ -6338,6 +6343,10 @@ termcap_mode_end(void)
     RestoreConsoleBuffer(cb, p_rs);
     restore_console_color_rgb();
 
+    // Switch back to main screen buffer.
+    if (exiting && use_alternate_screen_buffer)
+        vtp_printf("\033[?1049l");
+
     if (!USE_WT && (p_rs || exiting))
     {
 	/*
@@ -7572,19 +7581,9 @@ mch_total_mem(int special UNUSED)
 
 /*
  * mch_wrename() works around a bug in rename (aka MoveFile) in
- * Windows 95: rename("foo.bar", "foo.bar~") will generate a
- * file whose short file name is "FOO.BAR" (its long file name will
- * be correct: "foo.bar~").  Because a file can be accessed by
- * either its SFN or its LFN, "foo.bar" has effectively been
- * renamed to "foo.bar", which is not at all what was wanted.  This
- * seems to happen only when renaming files with three-character
- * extensions by appending a suffix that does not include ".".
- * Windows NT gets it right, however, with an SFN of "FOO~1.BAR".
- *
- * There is another problem, which isn't really a bug but isn't right either:
+ * Windows, the bug can be demonstrated with the following scenario:
  * When renaming "abcdef~1.txt" to "abcdef~1.txt~", the short name can be
- * "abcdef~1.txt" again.  This has been reported on Windows NT 4.0 with
- * service pack 6.  Doesn't seem to happen on Windows 98.
+ * "abcdef~1.txt" again.
  *
  * Like rename(), returns 0 upon success, non-zero upon failure.
  * Should probably set errno appropriately when errors occur.

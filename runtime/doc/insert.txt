@@ -1,4 +1,4 @@
-*insert.txt*    For Vim version 9.1.  Last change: 2024 Aug 25
+*insert.txt*    For Vim version 9.1.  Last change: 2024 Oct 08
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -51,7 +51,7 @@ char		action	~
 		abbreviation.
 		Note: If your <Esc> key is hard to hit on your keyboard, train
 		yourself to use CTRL-[.
-		If Esc doesn't work and you are using a Mac, try CTRL-Esc.
+		If Esc doesn't work and you are using a Mac, try CTRL-<Esc>.
 		Or disable Listening under Accessibility preferences.
 						*i_CTRL-C*
 CTRL-C		Quit insert mode, go back to Normal mode.  Do not check for
@@ -1183,12 +1183,12 @@ items:
 	user_data	custom data which is associated with the item and
 			available in |v:completed_item|; it can be any type;
 			defaults to an empty string
-	hl_group	an additional highlight group whose attributes are
+	abbr_hlgroup	an additional highlight group whose attributes are
 			combined with |hl-PmenuSel| and |hl-Pmenu| or
 			|hl-PmenuMatchSel| and |hl-PmenuMatch| highlight
 			attributes in the popup menu to apply cterm and gui
 			properties (with higher priority) like strikethrough
-			to the completion items
+			to the completion items abbreviation
 	kind_hlgroup	an additional highlight group specifically for setting
 			the highlight attributes of the completion kind. When
 			this field is present, it will override the

@@ -1509,7 +1509,7 @@ func Test_pum_highlights_match()
   call StopVimInTerminal(buf)
 endfunc
 
-func Test_pum_user_hl_group()
+func Test_pum_user_abbr_hlgroup()
   CheckScreendump
   let lines =<< trim END
     func CompleteFunc( findstart, base )
@@ -1518,9 +1518,9 @@ func Test_pum_user_hl_group()
       endif
       return {
             \ 'words': [
-            \ { 'word': 'aword1', 'menu': 'extra text 1', 'kind': 'W', 'hl_group': 'StrikeFake' },
+            \ { 'word': 'aword1', 'menu': 'extra text 1', 'kind': 'W', 'abbr_hlgroup': 'StrikeFake' },
             \ { 'word': 'aword2', 'menu': 'extra text 2', 'kind': 'W', },
-            \ { 'word': '你好', 'menu': 'extra text 3', 'kind': 'W', 'hl_group': 'StrikeFake' },
+            \ { 'word': '你好', 'menu': 'extra text 3', 'kind': 'W', 'abbr_hlgroup': 'StrikeFake' },
             \]}
     endfunc
     set completeopt=menu
@@ -1562,7 +1562,7 @@ func Test_pum_user_kind_hlgroup()
       endif
       return {
             \ 'words': [
-            \ { 'word': 'aword1', 'menu': 'extra text 1', 'kind': 'variable', 'kind_hlgroup': 'KindVar', 'hl_group': 'StrikeFake' },
+            \ { 'word': 'aword1', 'menu': 'extra text 1', 'kind': 'variable', 'kind_hlgroup': 'KindVar', 'abbr_hlgroup': 'StrikeFake' },
             \ { 'word': 'aword2', 'menu': 'extra text 2', 'kind': 'function', 'kind_hlgroup': 'KindFunc' },
             \ { 'word': '你好', 'menu': 'extra text 3', 'kind': 'class', 'kind_hlgroup': 'KindClass'  },
             \]}
@@ -1583,6 +1583,80 @@ func Test_pum_user_kind_hlgroup()
   call VerifyScreenDump(buf, 'Test_pum_highlights_16', {})
   call term_sendkeys(buf, "\<C-E>\<Esc>")
 
+  call StopVimInTerminal(buf)
+endfunc
+
+func Test_pum_completeitemalign()
+  CheckScreendump
+  let lines =<< trim END
+    func Omni_test(findstart, base)
+      if a:findstart
+        return col(".")
+      endif
+      return {
+            \ 'words': [
+            \ { 'word': 'foo', 'kind': 'S', 'menu': 'menu' },
+            \ { 'word': 'bar', 'kind': 'T', 'menu': 'menu' },
+            \ { 'word': '你好', 'kind': 'C', 'menu': '中文' },
+            \]}
+    endfunc
+
+    func Omni_long(findstart, base)
+      if a:findstart
+        return col(".")
+      endif
+      return {
+            \ 'words': [
+            \ { 'word': 'loooong_foo', 'kind': 'S', 'menu': 'menu' },
+            \ { 'word': 'loooong_bar', 'kind': 'T', 'menu': 'menu' },
+            \]}
+    endfunc
+    set omnifunc=Omni_test
+    command! -nargs=0 T1 set cia=abbr,kind,menu
+    command! -nargs=0 T2 set cia=abbr,menu,kind
+    command! -nargs=0 T3 set cia=kind,abbr,menu
+    command! -nargs=0 T4 set cia=kind,menu,abbr
+    command! -nargs=0 T5 set cia=menu,abbr,kind
+    command! -nargs=0 T6 set cia=menu,kind,abbr
+    command! -nargs=0 T7 set cia&
+  END
+  call writefile(lines, 'Xscript', 'D')
+  let  buf = RunVimInTerminal('-S Xscript', {})
+  call TermWait(buf)
+
+  " T1 is default
+  call term_sendkeys(buf, ":T1\<CR>S\<C-X>\<C-O>")
+  call VerifyScreenDump(buf, 'Test_pum_completeitemalign_01', {})
+  call term_sendkeys(buf, "\<C-E>\<Esc>")
+
+  " T2
+  call term_sendkeys(buf, ":T2\<CR>S\<C-X>\<C-O>")
+  call VerifyScreenDump(buf, 'Test_pum_completeitemalign_02', {})
+  call term_sendkeys(buf, "\<C-E>\<Esc>")
+
+  " T3
+  call term_sendkeys(buf, ":T3\<CR>S\<C-X>\<C-O>")
+  call VerifyScreenDump(buf, 'Test_pum_completeitemalign_03', {})
+  call term_sendkeys(buf, "\<C-E>\<Esc>")
+
+  " T4
+  call term_sendkeys(buf, ":T4\<CR>S\<C-X>\<C-O>")
+  call VerifyScreenDump(buf, 'Test_pum_completeitemalign_04', {})
+  call term_sendkeys(buf, "\<C-E>\<Esc>")
+
+  " T5
+  call term_sendkeys(buf, ":T5\<CR>S\<C-X>\<C-O>")
+  call VerifyScreenDump(buf, 'Test_pum_completeitemalign_05', {})
+  call term_sendkeys(buf, "\<C-E>\<Esc>")
+
+  " T6
+  call term_sendkeys(buf, ":T6\<CR>S\<C-X>\<C-O>")
+  call VerifyScreenDump(buf, 'Test_pum_completeitemalign_06', {})
+  call term_sendkeys(buf, "\<C-E>\<Esc>")
+
+  call term_sendkeys(buf, ":set columns=12 cmdheight=2 omnifunc=Omni_long\<CR>S\<C-X>\<C-O>")
+  call VerifyScreenDump(buf, 'Test_pum_completeitemalign_07', {})
+  call term_sendkeys(buf, "\<C-E>\<Esc>:T7\<CR>")
   call StopVimInTerminal(buf)
 endfunc
 
