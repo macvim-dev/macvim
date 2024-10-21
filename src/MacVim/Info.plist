@@ -4,7 +4,6 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>English</string>
-
 	<!-- When adding support for a new file type:
 	     1. Add entry to CFBundleDocumentTypes
 	     2. Add entry to UTExportedTypeDeclarations below (for Quick Look)
@@ -17,67 +16,94 @@
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>vim</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-vim</string>
 			<key>CFBundleTypeName</key>
-			<string>Vim Script File</string>
+			<string>org.vim.vim-script</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSIsAppleDefaultForType</key>
 			<true/>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>org.vim.vim-script</string>
+			</array>
 		</dict>
 		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>txt</string>
-				<string>text</string>
-				<string>utf8</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-txt</string>
-			<key>CFBundleTypeMIMETypes</key>
-			<array>
-				<string>text/plain</string>
-			</array>
 			<key>CFBundleTypeName</key>
-			<string>Plain Text File</string>
+			<string>public.plain-text</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSIsAppleDefaultForType</key>
 			<true/>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>public.plain-text</string>
+			</array>
 		</dict>
 		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>tex</string>
-				<string>sty</string>
-				<string>cls</string>
-				<string>ltx</string>
-				<string>ins</string>
-				<string>dtx</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-tex</string>
 			<key>CFBundleTypeName</key>
-			<string>TeX File</string>
+			<string>org.tug.tex</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSIsAppleDefaultForType</key>
 			<true/>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>org.tug.tex</string>
+			</array>
+		</dict>
+        <dict>
+			<key>CFBundleTypeIconFile</key>
+			<string>MacVim-tex</string>
+			<key>CFBundleTypeName</key>
+			<string>org.tug.ltx</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSIsAppleDefaultForType</key>
+			<true/>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>org.tug.ltx</string>
+			</array>
+		</dict>
+        <dict>
+			<key>CFBundleTypeIconFile</key>
+			<string>MacVim-tex</string>
+			<key>CFBundleTypeName</key>
+			<string>org.tug.sty</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSIsAppleDefaultForType</key>
+			<true/>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>org.tug.sty</string>
+			</array>
+		</dict>
+        <dict>
+			<key>CFBundleTypeIconFile</key>
+			<string>MacVim-tex</string>
+			<key>CFBundleTypeName</key>
+			<string>org.tug.cls</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSIsAppleDefaultForType</key>
+			<true/>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>org.tug.cls</string>
+			</array>
 		</dict>
 		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>h</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-h</string>
 			<key>CFBundleTypeName</key>
-			<string>C Header Source File</string>
+			<string>public.c-header</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSIsAppleDefaultForType</key>
@@ -88,14 +114,10 @@
 			</array>
 		</dict>
 		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>pch</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-h</string>
 			<key>CFBundleTypeName</key>
-			<string>C Precompiled Header Source File</string>
+			<string>public.precompiled-c-header</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSIsAppleDefaultForType</key>
@@ -106,32 +128,24 @@
 			</array>
 		</dict>
 		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>hh</string>
-				<string>hp</string>
-				<string>hpp</string>
-				<string>hxx</string>
-				<string>h++</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-h</string>
 			<key>CFBundleTypeName</key>
-			<string>C++ Header Source File</string>
+			<string>public.c-plus-plus-header</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSIsAppleDefaultForType</key>
 			<true/>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>public.c-plus-plus-header</string>
+			</array>
 		</dict>
 		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>pch++</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-h</string>
 			<key>CFBundleTypeName</key>
-			<string>C++ Precompiled Header Source File</string>
+			<string>public.precompiled-c-plus-plus-header</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSIsAppleDefaultForType</key>
@@ -142,14 +156,10 @@
 			</array>
 		</dict>
 		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>c</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-c</string>
 			<key>CFBundleTypeName</key>
-			<string>C Source File</string>
+			<string>public.c-source</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSIsAppleDefaultForType</key>
@@ -160,14 +170,10 @@
 			</array>
 		</dict>
 		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>m</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-m</string>
 			<key>CFBundleTypeName</key>
-			<string>Objective-C Source File</string>
+			<string>public.objective-c-source</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSIsAppleDefaultForType</key>
@@ -178,14 +184,10 @@
 			</array>
 		</dict>
 		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>mm</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-mm</string>
 			<key>CFBundleTypeName</key>
-			<string>Objective-C++ Source File</string>
+			<string>public.objective-c-plus-plus-source</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSIsAppleDefaultForType</key>
@@ -196,18 +198,10 @@
 			</array>
 		</dict>
 		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>cc</string>
-				<string>cp</string>
-				<string>cpp</string>
-				<string>cxx</string>
-				<string>c++</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-cpp</string>
 			<key>CFBundleTypeName</key>
-			<string>C++ Source File</string>
+			<string>public.c-plus-plus-source</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSIsAppleDefaultForType</key>
@@ -218,13 +212,8 @@
 			</array>
 		</dict>
 		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>s</string>
-				<string>asm</string>
-			</array>
 			<key>CFBundleTypeName</key>
-			<string>Assembly Source File</string>
+			<string>public.assembler-source</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSIsAppleDefaultForType</key>
@@ -235,12 +224,8 @@
 			</array>
 		</dict>
 		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>r</string>
-			</array>
 			<key>CFBundleTypeName</key>
-			<string>Rez Source File</string>
+			<string>public.rez-source</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSIsAppleDefaultForType</key>
@@ -251,15 +236,10 @@
 			</array>
 		</dict>
 		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>java</string>
-				<string>jav</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-java</string>
 			<key>CFBundleTypeName</key>
-			<string>Java Source File</string>
+			<string>com.sun.java-source</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSIsAppleDefaultForType</key>
@@ -270,16 +250,8 @@
 			</array>
 		</dict>
 		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>l</string>
-				<string>lm</string>
-				<string>lmm</string>
-				<string>lpp</string>
-				<string>lxx</string>
-			</array>
 			<key>CFBundleTypeName</key>
-			<string>Lex Source File</string>
+			<string>public.lex-source</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSIsAppleDefaultForType</key>
@@ -290,16 +262,8 @@
 			</array>
 		</dict>
 		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>y</string>
-				<string>ym</string>
-				<string>ymm</string>
-				<string>ypp</string>
-				<string>yxx</string>
-			</array>
 			<key>CFBundleTypeName</key>
-			<string>Yacc Source File</string>
+			<string>public.yacc-source</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSIsAppleDefaultForType</key>
@@ -310,24 +274,20 @@
 			</array>
 		</dict>
 		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>defs</string>
-			</array>
 			<key>CFBundleTypeName</key>
-			<string>Mig Definition File</string>
+			<string>public.mig-source</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSIsAppleDefaultForType</key>
 			<true/>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>public.mig-source</string>
+			</array>
 		</dict>
 		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>exp</string>
-			</array>
 			<key>CFBundleTypeName</key>
-			<string>Symbol Export File</string>
+			<string>public.symbol-export</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSIsAppleDefaultForType</key>
@@ -338,19 +298,10 @@
 			</array>
 		</dict>
 		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>f</string>
-				<string>for</string>
-				<string>fpp</string>
-				<string>f77</string>
-				<string>f90</string>
-				<string>f95</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-f</string>
 			<key>CFBundleTypeName</key>
-			<string>Fortran Source File</string>
+			<string>public.fortran-source</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSIsAppleDefaultForType</key>
@@ -361,12 +312,50 @@
 			</array>
 		</dict>
 		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>pas</string>
-			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>MacVim-f</string>
 			<key>CFBundleTypeName</key>
-			<string>Pascal Source File</string>
+			<string>public.fortran-77-source</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSIsAppleDefaultForType</key>
+			<false/>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.fortran-77-source</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeIconFile</key>
+			<string>MacVim-f</string>
+			<key>CFBundleTypeName</key>
+			<string>public.fortran-90-source</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSIsAppleDefaultForType</key>
+			<false/>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.fortran-90-source</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeIconFile</key>
+			<string>MacVim-f</string>
+			<key>CFBundleTypeName</key>
+			<string>public.fortran-95-source</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSIsAppleDefaultForType</key>
+			<false/>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.fortran-95-source</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>public.pascal-source</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSIsAppleDefaultForType</key>
@@ -377,14 +366,8 @@
 			</array>
 		</dict>
 		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>ada</string>
-				<string>adb</string>
-				<string>ads</string>
-			</array>
 			<key>CFBundleTypeName</key>
-			<string>Ada Source File</string>
+			<string>public.ada-source</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSIsAppleDefaultForType</key>
@@ -395,28 +378,10 @@
 			</array>
 		</dict>
 		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>html</string>
-				<string>phtml</string>
-				<string>shtml</string>
-				<string>xhtml</string>
-				<string>htm</string>
-				<string>pht</string>
-				<string>sht</string>
-				<string>xht</string>
-				<string>phtm</string>
-				<string>shtm</string>
-				<string>xhtm</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-html</string>
-			<key>CFBundleTypeMIMETypes</key>
-			<array>
-				<string>text/html</string>
-			</array>
 			<key>CFBundleTypeName</key>
-			<string>HTML Source File</string>
+			<string>public.html</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSIsAppleDefaultForType</key>
@@ -427,23 +392,10 @@
 			</array>
 		</dict>
 		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>xml</string>
-				<string>rss</string>
-				<string>tld</string>
-				<string>pt</string>
-				<string>cpt</string>
-				<string>dtml</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-xml</string>
-			<key>CFBundleTypeMIMETypes</key>
-			<array>
-				<string>text/xml</string>
-			</array>
 			<key>CFBundleTypeName</key>
-			<string>XML Source File</string>
+			<string>public.xml</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSIsAppleDefaultForType</key>
@@ -454,21 +406,10 @@
 			</array>
 		</dict>
 		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>js</string>
-				<string>htc</string>
-				<string>jscript</string>
-				<string>javascript</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-js</string>
-			<key>CFBundleTypeMIMETypes</key>
-			<array>
-				<string>text/javascript</string>
-			</array>
 			<key>CFBundleTypeName</key>
-			<string>JavaScript Source File</string>
+			<string>com.netscape.javascript-source</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSIsAppleDefaultForType</key>
@@ -480,20 +421,9 @@
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Perl Source File</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>pl</string>
-				<string>pm</string>
-				<string>pod</string>
-				<string>perl</string>
-			</array>
+			<string>public.perl-script</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-perl</string>
-			<key>CFBundleTypeMIMETypes</key>
-			<array>
-				<string>text/x-perl-script</string>
-			</array>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSItemContentTypes</key>
@@ -503,20 +433,9 @@
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Python Source File</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>py</string>
-				<string>rpy</string>
-				<string>cpy</string>
-				<string>python</string>
-			</array>
+			<string>public.python-script</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-py</string>
-			<key>CFBundleTypeMIMETypes</key>
-			<array>
-				<string>text/x-python-script</string>
-			</array>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSItemContentTypes</key>
@@ -526,23 +445,9 @@
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>PHP Source File</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>php</string>
-				<string>php3</string>
-				<string>php4</string>
-				<string>php5</string>
-				<string>ph3</string>
-				<string>ph4</string>
-				<string>phtml</string>
-			</array>
+			<string>public.php-script</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-php</string>
-			<key>CFBundleTypeMIMETypes</key>
-			<array>
-				<string>text/php</string>
-			</array>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSItemContentTypes</key>
@@ -552,21 +457,9 @@
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Ruby Source File</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>rb</string>
-				<string>rbw</string>
-				<string>rbx</string>
-				<string>rjs</string>
-				<string>rxml</string>
-			</array>
+			<string>public.ruby-script</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-rb</string>
-			<key>CFBundleTypeMIMETypes</key>
-			<array>
-				<string>text/ruby-script</string>
-			</array>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSItemContentTypes</key>
@@ -576,19 +469,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Shell script</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>sh</string>
-				<string>csh</string>
-				<string>command</string>
-				<string>ss</string>
-				<string>bashrc</string>
-				<string>bash_profile</string>
-				<string>bash_login</string>
-				<string>profile</string>
-				<string>bash_logout</string>
-			</array>
+			<string>public.shell-script</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-bash</string>
 			<key>CFBundleTypeRole</key>
@@ -599,12 +480,68 @@
 			</array>
 		</dict>
 		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>class</string>
-			</array>
 			<key>CFBundleTypeName</key>
-			<string>Java Class File</string>
+			<string>public.bash-script</string>
+			<key>CFBundleTypeIconFile</key>
+			<string>MacVim-bash</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.bash-script</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>public.zsh-script</string>
+			<key>CFBundleTypeIconFile</key>
+			<string>MacVim-bash</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.zsh-script</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>public.csh-script</string>
+			<key>CFBundleTypeIconFile</key>
+			<string>MacVim-bash</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.csh-script</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>public.ksh-script</string>
+			<key>CFBundleTypeIconFile</key>
+			<string>MacVim-bash</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.ksh-script</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>public.tcsh-script</string>
+			<key>CFBundleTypeIconFile</key>
+			<string>MacVim-bash</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.tcsh-script</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>com.sun.java-class</string>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>LSIsAppleDefaultForType</key>
@@ -615,27 +552,22 @@
 			</array>
 		</dict>
 		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>patch</string>
-				<string>diff</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>MacVim-patch</string>
+			<string>public.patch-file</string>
 			<key>CFBundleTypeName</key>
-			<string>Patch File</string>
+			<string>Patch file</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSIsAppleDefaultForType</key>
 			<true/>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>public.patch-file</string>
+			</array>
 		</dict>
 		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>strings</string>
-			</array>
 			<key>CFBundleTypeName</key>
-			<string>Strings File</string>
+			<string>public.strings-text</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSItemContentTypes</key>
@@ -644,26 +576,8 @@
 			</array>
 		</dict>
 		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>*</string>
-			</array>
 			<key>CFBundleTypeName</key>
-			<string>Text File</string>
-			<key>CFBundleTypeOSTypes</key>
-			<array>
-				<string>****</string>
-			</array>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-		</dict>
-		<dict>
-			<key>CFBundleTypeName</key>
-			<string>AppleScript Source File</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>applescript</string>
-			</array>
+			<string>com.apple.applescript.text</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-applescript</string>
 			<key>CFBundleTypeRole</key>
@@ -675,553 +589,495 @@
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>ActionScript Source File</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>as</string>
-			</array>
+			<string>com.adobe-actionscript</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-as</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>com.adobe.actionscript</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>ASP document</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>asp</string>
-				<string>asa</string>
-			</array>
+			<string>com.microsoft.asp</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-asp</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>com.microsoft.asp</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>ASP.NET document</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>aspx</string>
-				<string>ascx</string>
-				<string>asmx</string>
-				<string>ashx</string>
-			</array>
+			<string>com.microsoft.aspx</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-asp</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>com.microsoft.aspx</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>BibTeX bibliography</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>bib</string>
-			</array>
+			<string>BibTeX database</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-bib</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>org.tug.tex.bibtex</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>C# Source File</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>cs</string>
-			</array>
+			<string>com.microsoft.c-sharp</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-cs</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>com.microsoft.c-sharp</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Context Free Design Grammar</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>cfdg</string>
-			</array>
+			<string>org.contextfreeart.contextfree</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-csfg</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>org.contextfreeart.contextfree</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Comma separated values</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>csv</string>
-			</array>
+			<string>public.comma-seperated-values-text</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-csv</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>public.comma-seperated-values-text</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Tab separated values</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>tsv</string>
-			</array>
+			<string>public.tab-seperated-values-text</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-tsv</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>public.tab-seperated-values-text</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>CGI script</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>cgi</string>
-				<string>fcgi</string>
-			</array>
+			<string>org.vim.cgi-script</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-cgi</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>org.vim.cgi-script</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Configuration file</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>cfg</string>
-				<string>conf</string>
-				<string>config</string>
-				<string>htaccess</string>
-			</array>
+			<string>org.vim.config-file</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-cfg</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>org.vim.config-file</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Cascading style sheet</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>css</string>
-			</array>
+			<string>org.w3.css</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-css</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>org.w3.css</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Document Type Definition</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>dtd</string>
-			</array>
+			<string>org.w3.xml-dtd</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-dtd</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>org.w3.xml-dtd</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Dylan Source File</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>dylan</string>
-			</array>
+			<string>public.dylan-source</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-dylan</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>public.dylan-source</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Erlang Source File</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>erl</string>
-				<string>hrl</string>
-			</array>
+			<string>org.erlang.erlang</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-erl</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>org.erlang.erlang</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>F-Script Source File</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>fscript</string>
-			</array>
+			<string>org.fscript.fscript</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-fscript</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>org.fscript.fscript</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Haskell Source File</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>hs</string>
-				<string>lhs</string>
-			</array>
+			<string>org.haskell.haskell</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-hs</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>org.haskell.haskell</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
 			<string>Include file</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>inc</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-inc</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>org.vim.include-file</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>iCalendar schedule</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>ics</string>
-			</array>
+			<string>com.apple.ical.ics</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-ics</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>com.apple.ical.ics</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>MS Windows initialization file</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>ini</string>
-			</array>
+			<string>com.microsoft.ini</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-ini</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>com.microsoft.ini</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Io Source File</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>io</string>
-			</array>
+			<string>org.iolanguage.io</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-io</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>org.iolanguage.io</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>BeanShell script</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>bsh</string>
-			</array>
+			<string>org.beanshell.beanshell</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-bsh</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>org.beanshell.beanshell</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Java properties file</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>properties</string>
-			</array>
+			<string>com.sun.java-properties</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-properties</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>com.sun.java-properties</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Java Server Page</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>jsp</string>
-			</array>
+			<string>com.sun.java-server-pages</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-jsp</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>com.sun.java-server-pages</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>LISP Source File</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>lisp</string>
-				<string>cl</string>
-				<string>l</string>
-				<string>lsp</string>
-				<string>mud</string>
-				<string>el</string>
-			</array>
+			<string>org.vim.lisp-source</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-lisp</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>org.vim.lisp-source</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Log file</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>log</string>
-			</array>
+			<string>com.apple.log</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-log</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>com.apple.log</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Mediawiki document</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>wiki</string>
-				<string>wikipedia</string>
-				<string>mediawiki</string>
-			</array>
+			<string>org.mediawiki.wiki-source</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-wiki</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>org.mediawiki.wiki-source</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>PostScript Source File</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>ps</string>
-				<string>eps</string>
-			</array>
+			<string>com.adobe.postscript</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-ps</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
-		</dict>
-        <!--<dict>
-			<key>CFBundleTypeName</key>
-			<string>Property list</string>
-			<key>CFBundleTypeExtensions</key>
+			<key>LSItemContentTypes</key>
 			<array>
-				<string>dict</string>
-				<string>plist</string>
-				<string>scriptSuite</string>
-				<string>scriptTerminology</string>
+                <string>com.adobe.postscript</string>
 			</array>
-			<key>CFBundleTypeIconFile</key>
-			<string>MacVim-plist</string>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-          </dict>-->
+		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Scheme Source File</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>scm</string>
-				<string>sch</string>
-			</array>
+			<string>org.vim.scheme-source</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-sch</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>org.vim.scheme-source</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>SQL Source File</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>sql</string>
-			</array>
+			<string>org.iso.sql</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-sql</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>org.iso.sql</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Tcl Source File</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>tcl</string>
-			</array>
+			<string>tk.tcl.tcl</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-tcl</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>tk.tcl.tcl</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>XSL stylesheet</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>xsl</string>
-				<string>xslt</string>
-			</array>
+			<string>org.w3.xsl</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-xsl</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 		</dict>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>org.w3.xsl</string>
+			</array>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Electronic business card</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>vcf</string>
-				<string>vcard</string>
-			</array>
+			<string>public.vcard</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-vcf</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>public.vcard</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Visual Basic Source File</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>vb</string>
-			</array>
+			<string>com.microsoft.visual-basic</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-vb</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>com.microsoft.visual-basic</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>YAML document</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>yaml</string>
-				<string>yml</string>
-			</array>
+			<string>org.yaml.yaml</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-yaml</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>org.yaml.yaml</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>GTD document</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>gtd</string>
-				<string>gtdlog</string>
-			</array>
+			<string>org.vim.gtd</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-gtd</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>org.vim.gtd</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Markdown document</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>markdown</string>
-				<string>markd</string>
-				<string>mdown</string>
-				<string>md</string>
-			</array>
+			<string>net.darlingfireball.markdown</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-markdown</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>net.darlingfireball.markdown</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>reStructuredText document</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>rst</string>
-			</array>
+			<string>org.python.restructuredtext</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-rst</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>org.python.restructuredtext</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Vimball Archive</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>vba</string>
-			</array>
+			<string>org.vim.vimball-archive</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-vba</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>org.vim.vimball-archive</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>VHDL Source File</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>vhd</string>
-				<string>vhdl</string>
-			</array>
+			<string>org.ieee.vhdl</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-generic</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>org.ieee.vhdl</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Lua Source File</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>lua</string>
-			</array>
-			<key>CFBundleTypeIconFile</key>
-			<string>MacVim-generic</string>
-			<key>CFBundleTypeMIMETypes</key>
-			<array>
-				<string>text/x-lua-script</string>
-			</array>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-		</dict>
-		<dict>
-			<key>CFBundleTypeName</key>
-			<string>Verilog HDL Source File</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>v</string>
-			</array>
+			<string>org.lua.lua</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-generic</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>org.lua.lua</string>
+			</array>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Verilog HDL Header Source File</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>vh</string>
-			</array>
+			<string>org.ieee.vhdl-header</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-generic</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+                <string>org.ieee.vhdl-header</string>
+			</array>
 		</dict>
 
 	</array>
@@ -1333,10 +1189,10 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.script</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Vim Script File</string>
+			<string>Vim script</string>
 			<key>UTTypeIdentifier</key>
 			<string>org.vim.vim-script</string>
 			<key>UTTypeTagSpecification</key>
@@ -1350,51 +1206,137 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
+				<string>public.archive</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Vimball archive</string>
+			<key>UTTypeIdentifier</key>
+			<string>org.vim.vimball-archive</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>vba</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
+	<key>UTImportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
 				<string>public.plain-text</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Plain Text File</string>
+			<string>TeX source</string>
+			<key>UTTypeIdentifier</key>
+			<string>org.tug.tex</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>tex</string>
+				</array>
+			</dict>
+		</dict>
+        <dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.text</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>LaTeX source</string>
+			<key>UTTypeIdentifier</key>
+			<string>org.tug.ltx</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>ltx</string>
+				</array>
+			</dict>
+		</dict>
+        <dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.text</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>ConTeXt source</string>
+			<key>UTTypeIdentifier</key>
+			<string>org.tug.ctx</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>ctx</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>LaTeX package source</string>
+			<key>UTTypeIdentifier</key>
+			<string>org.tug.sty</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>sty</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>LaTeX document class source</string>
+			<key>UTTypeIdentifier</key>
+			<string>org.tug.cls</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>cls</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.text</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Plain text document</string>
 			<key>UTTypeIdentifier</key>
 			<string>public.plain-text</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
 				<array>
-					<string>txt</string>
 					<string>text</string>
-					<string>utf8</string>
+					<string>txt</string>
 				</array>
+				<key>public.mime-type</key>
+				<string>text/plain</string>
 			</dict>
 		</dict>
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.source-code</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>TeX File</string>
-			<key>UTTypeIdentifier</key>
-			<string>org.vim.tex-file</string>
-			<key>UTTypeTagSpecification</key>
-			<dict>
-				<key>public.filename-extension</key>
-				<array>
-					<string>tex</string>
-					<string>sty</string>
-					<string>cls</string>
-					<string>ltx</string>
-					<string>ins</string>
-					<string>dtx</string>
-				</array>
-			</dict>
-		</dict>
-		<dict>
-			<key>UTTypeConformsTo</key>
-			<array>
-				<string>public.plain-text</string>
-			</array>
-			<key>UTTypeDescription</key>
-			<string>C Header Source File</string>
+			<string>C header</string>
 			<key>UTTypeIdentifier</key>
 			<string>public.c-header</string>
 			<key>UTTypeTagSpecification</key>
@@ -1408,12 +1350,12 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.source-code</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>C Precompiled Header Source File</string>
+			<string>Precompiled C header</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.pch-file</string>
+			<string>public.precompiled-c-header</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1425,10 +1367,10 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.source-code</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>C++ Header Source File</string>
+			<string>C++ header</string>
 			<key>UTTypeIdentifier</key>
 			<string>public.c-plus-plus-header</string>
 			<key>UTTypeTagSpecification</key>
@@ -1436,7 +1378,6 @@
 				<key>public.filename-extension</key>
 				<array>
 					<string>hh</string>
-					<string>hp</string>
 					<string>hpp</string>
 					<string>hxx</string>
 					<string>h++</string>
@@ -1446,12 +1387,12 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.source-code</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>C++ Precompiled Header Source File</string>
+			<string>Precompiled C++ header</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.pch++-file</string>
+			<string>public.precompiled-c-plus-plus-header</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1463,10 +1404,10 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.source-code</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>C Source File</string>
+			<string>C source</string>
 			<key>UTTypeIdentifier</key>
 			<string>public.c-source</string>
 			<key>UTTypeTagSpecification</key>
@@ -1480,44 +1421,10 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.source-code</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Objective-C Source File</string>
-			<key>UTTypeIdentifier</key>
-			<string>public.objective-c-source</string>
-			<key>UTTypeTagSpecification</key>
-			<dict>
-				<key>public.filename-extension</key>
-				<array>
-					<string>m</string>
-				</array>
-			</dict>
-		</dict>
-		<dict>
-			<key>UTTypeConformsTo</key>
-			<array>
-				<string>public.plain-text</string>
-			</array>
-			<key>UTTypeDescription</key>
-			<string>Objective-C++ Source File</string>
-			<key>UTTypeIdentifier</key>
-			<string>public.objective-c-plus-plus-source</string>
-			<key>UTTypeTagSpecification</key>
-			<dict>
-				<key>public.filename-extension</key>
-				<array>
-					<string>mm</string>
-				</array>
-			</dict>
-		</dict>
-		<dict>
-			<key>UTTypeConformsTo</key>
-			<array>
-				<string>public.plain-text</string>
-			</array>
-			<key>UTTypeDescription</key>
-			<string>C++ Source File</string>
+			<string>C++ source</string>
 			<key>UTTypeIdentifier</key>
 			<string>public.c-plus-plus-source</string>
 			<key>UTTypeTagSpecification</key>
@@ -1535,10 +1442,44 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.source-code</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Assembly Source File</string>
+			<string>Objective-C source</string>
+			<key>UTTypeIdentifier</key>
+			<string>public.objective-c-source</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>m</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Objective-C++ source</string>
+			<key>UTTypeIdentifier</key>
+			<string>public.objective-c-plus-plus-source</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>mm</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Assembly source</string>
 			<key>UTTypeIdentifier</key>
 			<string>public.assembly-source</string>
 			<key>UTTypeTagSpecification</key>
@@ -1553,10 +1494,10 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.source-code</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Rez Source File</string>
+			<string>Rez source</string>
 			<key>UTTypeIdentifier</key>
 			<string>com.apple.rez-source</string>
 			<key>UTTypeTagSpecification</key>
@@ -1570,10 +1511,10 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.source-code</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Java Source File</string>
+			<string>Java source</string>
 			<key>UTTypeIdentifier</key>
 			<string>com.sun.java-source</string>
 			<key>UTTypeTagSpecification</key>
@@ -1588,12 +1529,12 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.source-code</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Lex Source File</string>
+			<string>Lex source</string>
 			<key>UTTypeIdentifier</key>
-			<string>com.apple.xcode.lex-source</string>
+			<string>public.lex-source</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1603,6 +1544,7 @@
 					<string>lmm</string>
 					<string>lpp</string>
 					<string>lxx</string>
+					<string>ll</string>
 				</array>
 			</dict>
 		</dict>
@@ -1612,9 +1554,9 @@
 				<string>public.plain-text</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Yacc Source File</string>
+			<string>Yacc source</string>
 			<key>UTTypeIdentifier</key>
-			<string>com.apple.xcode.yacc-source</string>
+			<string>public.yacc-source</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1624,16 +1566,17 @@
 					<string>ymm</string>
 					<string>ypp</string>
 					<string>yxx</string>
+					<string>yy</string>
 				</array>
 			</dict>
 		</dict>
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.source-code</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Mig Definition File</string>
+			<string>Mach Interface Generator source</string>
 			<key>UTTypeIdentifier</key>
 			<string>public.mig-source</string>
 			<key>UTTypeTagSpecification</key>
@@ -1641,6 +1584,7 @@
 				<key>public.filename-extension</key>
 				<array>
 					<string>defs</string>
+					<string>mig</string>
 				</array>
 			</dict>
 		</dict>
@@ -1650,7 +1594,7 @@
 				<string>public.plain-text</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Symbol Export File</string>
+			<string>Symbol Export</string>
 			<key>UTTypeIdentifier</key>
 			<string>com.apple.symbol-export</string>
 			<key>UTTypeTagSpecification</key>
@@ -1664,21 +1608,68 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.source-code</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Fortran Source File</string>
+			<string>Fortran source</string>
 			<key>UTTypeIdentifier</key>
-			<string>com.apple.xcode.fortran-source</string>
+			<string>public.fortran-source</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
 				<array>
 					<string>f</string>
 					<string>for</string>
-					<string>fpp</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Fortran 77 source</string>
+			<key>UTTypeIdentifier</key>
+			<string>public.fortran-77-source</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
 					<string>f77</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Fortran 90 source</string>
+			<key>UTTypeIdentifier</key>
+			<string>public.fortran-90-source</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
 					<string>f90</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Fortran 95 source</string>
+			<key>UTTypeIdentifier</key>
+			<string>public.fortran-95-source</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
 					<string>f95</string>
 				</array>
 			</dict>
@@ -1686,12 +1677,12 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.source-code</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Pascal Source file</string>
+			<string>Pascal source</string>
 			<key>UTTypeIdentifier</key>
-			<string>com.apple.xcode.pascal-source</string>
+			<string>public.pascal-source</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1703,12 +1694,12 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.source-code</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Ada Source File</string>
+			<string>Ada source</string>
 			<key>UTTypeIdentifier</key>
-			<string>com.apple.xcode.ada-source</string>
+			<string>public.ada-source</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1725,7 +1716,7 @@
 				<string>public.plain-text</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>HTML Source File</string>
+			<string>HTML document</string>
 			<key>UTTypeIdentifier</key>
 			<string>public.html</string>
 			<key>UTTypeTagSpecification</key>
@@ -1752,7 +1743,7 @@
 				<string>public.plain-text</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>XML Source File</string>
+			<string>XML text</string>
 			<key>UTTypeIdentifier</key>
 			<string>public.xml</string>
 			<key>UTTypeTagSpecification</key>
@@ -1760,21 +1751,17 @@
 				<key>public.filename-extension</key>
 				<array>
 					<string>xml</string>
-					<string>rss</string>
-					<string>tld</string>
-					<string>pt</string>
-					<string>cpt</string>
-					<string>dtml</string>
 				</array>
 			</dict>
 		</dict>
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.script</string>
+				<string>public.executable</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>JavaScript Source File</string>
+			<string>JavaScript</string>
 			<key>UTTypeIdentifier</key>
 			<string>com.netscape.javascript-source</string>
 			<key>UTTypeTagSpecification</key>
@@ -1791,10 +1778,10 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.shell-script</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Perl Source File</string>
+			<string>Perl script</string>
 			<key>UTTypeIdentifier</key>
 			<string>public.perl-script</string>
 			<key>UTTypeTagSpecification</key>
@@ -1806,15 +1793,17 @@
 					<string>pod</string>
 					<string>perl</string>
 				</array>
+				<key>public.mime-type</key>
+				<string>text/x-perl-script</string>
 			</dict>
 		</dict>
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.shell-script</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Python Source File</string>
+			<string>Python script</string>
 			<key>UTTypeIdentifier</key>
 			<string>public.python-script</string>
 			<key>UTTypeTagSpecification</key>
@@ -1822,19 +1811,18 @@
 				<key>public.filename-extension</key>
 				<array>
 					<string>py</string>
-					<string>rpy</string>
-					<string>cpy</string>
-					<string>python</string>
 				</array>
+				<key>public.mime-type</key>
+				<string>text/x-python-script</string>
 			</dict>
 		</dict>
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.shell-script</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>PHP Source File</string>
+			<string>PHP script</string>
 			<key>UTTypeIdentifier</key>
 			<string>public.php-script</string>
 			<key>UTTypeTagSpecification</key>
@@ -1849,15 +1837,17 @@
 					<string>ph4</string>
 					<string>phtml</string>
 				</array>
+				<key>public.mime-type</key>
+				<string>text/php, text/x-php-script, application/php</string>
 			</dict>
 		</dict>
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.shell-script</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Ruby Source File</string>
+			<string>Ruby script</string>
 			<key>UTTypeIdentifier</key>
 			<string>public.ruby-script</string>
 			<key>UTTypeTagSpecification</key>
@@ -1870,12 +1860,14 @@
 					<string>rjs</string>
 					<string>rxml</string>
 				</array>
+				<key>public.mime-type</key>
+				<string>text/x-ruby-script</string>
 			</dict>
 		</dict>
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.script</string>
 			</array>
 			<key>UTTypeDescription</key>
 			<string>Shell script</string>
@@ -1886,13 +1878,26 @@
 				<key>public.filename-extension</key>
 				<array>
 					<string>sh</string>
-					<string>csh</string>
-					<string>command</string>
-					<string>ss</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.shell-script</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Bourne-Again Shell script</string>
+			<key>UTTypeIdentifier</key>
+			<string>public.bash-script</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>bash</string>
 					<string>bashrc</string>
 					<string>bash_profile</string>
 					<string>bash_login</string>
-					<string>profile</string>
 					<string>bash_logout</string>
 				</array>
 			</dict>
@@ -1900,10 +1905,84 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.shell-script</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Java Class File</string>
+			<string>Z Shell script</string>
+			<key>UTTypeIdentifier</key>
+			<string>public.zsh-script</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>zsh</string>
+					<string>zshrc</string>
+					<string>zshenv</string>
+					<string>zprofile</string>
+					<string>zlogin</string>
+					<string>zlogout</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.shell-script</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>C Shell script</string>
+			<key>UTTypeIdentifier</key>
+			<string>public.csh-script</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>csh</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.shell-script</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Korn Shell script</string>
+			<key>UTTypeIdentifier</key>
+			<string>public.ksh-script</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>ksh</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.shell-script</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Tenex C Shell script</string>
+			<key>UTTypeIdentifier</key>
+			<string>public.tcsh-script</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>tcsh</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+				<string>public.executable</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Java Class</string>
 			<key>UTTypeIdentifier</key>
 			<string>com.sun.java-class</string>
 			<key>UTTypeTagSpecification</key>
@@ -1920,9 +1999,9 @@
 				<string>public.plain-text</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Patch File</string>
+			<string>Patch file</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.patch-file</string>
+			<string>public.patch-file</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1935,10 +2014,10 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.text</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Strings File</string>
+			<string>Localizable Strings</string>
 			<key>UTTypeIdentifier</key>
 			<string>com.apple.xcode.strings-text</string>
 			<key>UTTypeTagSpecification</key>
@@ -1952,10 +2031,10 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.script</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>AppleScript Source File</string>
+			<string>AppleScript text</string>
 			<key>UTTypeIdentifier</key>
 			<string>com.apple.applescript.text</string>
 			<key>UTTypeTagSpecification</key>
@@ -1969,29 +2048,31 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.script</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>ActionScript Source File</string>
+			<string>ActionScript</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.as-file</string>
+			<string>com.adobe.actionscript</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
 				<array>
 					<string>as</string>
 				</array>
+				<key>public.mime-type</key>
+				<string>application/ecmascript</string>
 			</dict>
 		</dict>
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.source-code</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>ASP document</string>
+			<string>Active Server Pages document</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.asp-file</string>
+			<string>com.microsoft.asp</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2004,12 +2085,12 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.source-code</string>
 			</array>
 			<key>UTTypeDescription</key>
 			<string>ASP.NET document</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.aspx-file</string>
+			<string>com.microsoft.aspx</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2024,12 +2105,12 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.text</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>BibTeX bibliography</string>
+			<string>BibTeX database</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.bib-file</string>
+			<string>org.tug.tex.bibtex</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2041,12 +2122,12 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.source-code</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>C# Source File</string>
+			<string>C# source</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.cs-file</string>
+			<string>com.microsoft.c-sharp</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2058,12 +2139,12 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.source-code</string>
 			</array>
 			<key>UTTypeDescription</key>
 			<string>Context Free Design Grammar</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.cfdg-file</string>
+			<string>org.contextfreeart.contextfree</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2076,11 +2157,12 @@
 			<key>UTTypeConformsTo</key>
 			<array>
 				<string>public.plain-text</string>
+				<string>public.delimited-values-text</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Comma separated values</string>
+			<string>Comma-seperated values</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.csv-file</string>
+			<string>public.comma-seperated-values-text</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2093,11 +2175,12 @@
 			<key>UTTypeConformsTo</key>
 			<array>
 				<string>public.plain-text</string>
+				<string>public.delimited-values-text</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Tab separated values</string>
+			<string>tab-seperated values</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.tsv-file</string>
+			<string>public.tab-seperated-values-text</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2109,12 +2192,12 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.script</string>
 			</array>
 			<key>UTTypeDescription</key>
 			<string>CGI script</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.cgi-file</string>
+			<string>org.vim.cgi-script</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2127,12 +2210,12 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.text</string>
 			</array>
 			<key>UTTypeDescription</key>
 			<string>Configuration file</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.cfg-file</string>
+			<string>org.vim.config-file</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2147,12 +2230,12 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.text</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Cascading style sheet</string>
+			<string>Cascading Style Sheet</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.css-file</string>
+			<string>org.w3.css</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2164,29 +2247,31 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.text</string>
 			</array>
 			<key>UTTypeDescription</key>
 			<string>Document Type Definition</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.dtd-file</string>
+			<string>org.w3.xml-dtd</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
 				<array>
 					<string>dtd</string>
 				</array>
+				<key>public.mime-type</key>
+				<string>application/xml-dtd</string>
 			</dict>
 		</dict>
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.source-code</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Dylan Source File</string>
+			<string>Dylan Source</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.dylan-file</string>
+			<string>public.dylan-source</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2198,12 +2283,12 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.source-code</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Erlang Source File</string>
+			<string>Erlang source</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.erl-file</string>
+			<string>org.erlang.erlang</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2216,12 +2301,12 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.script</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>F-Script Source File</string>
+			<string>F-Script</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.fscript-file</string>
+			<string>org.fscript.fscript</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2233,12 +2318,12 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.source-code</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Haskell Source File</string>
+			<string>Haskell source</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.hs-file</string>
+			<string>org.haskell.haskell</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2251,12 +2336,12 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.source-code</string>
 			</array>
 			<key>UTTypeDescription</key>
 			<string>Include file</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.inc-file</string>
+			<string>org.vim.include-file</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2273,24 +2358,26 @@
 			<key>UTTypeDescription</key>
 			<string>iCalendar schedule</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.ics-file</string>
+			<string>com.apple.ical.ics</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
 				<array>
 					<string>ics</string>
 				</array>
+				<key>public.mime-type</key>
+				<string>text/calendar</string>
 			</dict>
 		</dict>
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.text</string>
 			</array>
 			<key>UTTypeDescription</key>
 			<string>MS Windows initialization file</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.ini-file</string>
+			<string>com.microsoft.ini</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2302,12 +2389,12 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.source-code</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Io Source File</string>
+			<string>Io source</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.io-file</string>
+			<string>org.iolanguage.io</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2319,12 +2406,12 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.script</string>
 			</array>
 			<key>UTTypeDescription</key>
 			<string>BeanShell script</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.bsh-file</string>
+			<string>org.beanshell.beanshell</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2336,12 +2423,12 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.source-code</string>
 			</array>
 			<key>UTTypeDescription</key>
 			<string>Java properties file</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.properties-file</string>
+			<string>com.sun.java-properties</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2353,12 +2440,12 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.source-code</string>
 			</array>
 			<key>UTTypeDescription</key>
 			<string>Java Server Page</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.jsp-file</string>
+			<string>com.sun.java-server-pages</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2370,12 +2457,12 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.source-code</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>LISP Source File</string>
+			<string>LISP source</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.lisp-file</string>
+			<string>org.vim.lisp-source</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2393,11 +2480,12 @@
 			<key>UTTypeConformsTo</key>
 			<array>
 				<string>public.plain-text</string>
+				<string>public.log</string>
 			</array>
 			<key>UTTypeDescription</key>
 			<string>Log file</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.log-file</string>
+			<string>com.apple.log</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2409,12 +2497,12 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.text</string>
 			</array>
 			<key>UTTypeDescription</key>
 			<string>Mediawiki document</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.wiki-file</string>
+			<string>org.mediawiki.wiki-source</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2428,10 +2516,10 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.data</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>PostScript Source File</string>
+			<string>PostScript</string>
 			<key>UTTypeIdentifier</key>
 			<string>com.adobe.postscript</string>
 			<key>UTTypeTagSpecification</key>
@@ -2441,17 +2529,19 @@
 					<string>ps</string>
 					<string>eps</string>
 				</array>
+				<key>public.mime-type</key>
+				<string>application/postscript</string>
 			</dict>
 		</dict>
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.source-code</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Scheme Source File</string>
+			<string>Scheme source</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.scm-file</string>
+			<string>org.vim.scheme-source</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2464,46 +2554,50 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.source-code</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>SQL Source File</string>
+			<string>SQL source</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.sql-file</string>
+			<string>org.iso.sql</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
 				<array>
 					<string>sql</string>
 				</array>
+				<key>public.mime-type</key>
+				<string>application/sql</string>
 			</dict>
 		</dict>
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.source-code</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Tcl Source File</string>
+			<string>Tcl source</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.tcl-file</string>
+			<string>tk.tcl.tcl</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
 				<array>
 					<string>tcl</string>
 				</array>
+				<key>public.mime-type</key>
+				<string>application/x-tcl</string>
 			</dict>
 		</dict>
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.xml</string>
 			</array>
 			<key>UTTypeDescription</key>
 			<string>XSL stylesheet</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.xsl-file</string>
+			<string>org.w3.xsl</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2516,7 +2610,8 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.text</string>
+				<string>public.contact</string>
 			</array>
 			<key>UTTypeDescription</key>
 			<string>Electronic business card</string>
@@ -2529,17 +2624,19 @@
 					<string>vcf</string>
 					<string>vcard</string>
 				</array>
+				<key>public.mime-type</key>
+				<string>text/directory, text/vcard, text/x-vcard</string>
 			</dict>
 		</dict>
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.source-code</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Visual Basic Source File</string>
+			<string>Visual Basic source</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.vb-file</string>
+			<string>com.microsoft.visual-basic</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2551,12 +2648,12 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.text</string>
 			</array>
 			<key>UTTypeDescription</key>
 			<string>YAML document</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.yaml-file</string>
+			<string>org.yaml.yaml</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2574,7 +2671,7 @@
 			<key>UTTypeDescription</key>
 			<string>GTD document</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.gtd-file</string>
+			<string>org.vim.gtd</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2612,7 +2709,7 @@
 			<key>UTTypeDescription</key>
 			<string>reStructuredText document</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.rst-file</string>
+			<string>org.python.restructuredtext</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2624,47 +2721,12 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.source-code</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Vimball Archive</string>
+			<string>Lua source</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.vba-file</string>
-			<key>UTTypeTagSpecification</key>
-			<dict>
-				<key>public.filename-extension</key>
-				<array>
-					<string>vba</string>
-				</array>
-			</dict>
-		</dict>
-		<dict>
-			<key>UTTypeConformsTo</key>
-			<array>
-				<string>public.plain-text</string>
-			</array>
-			<key>UTTypeDescription</key>
-			<string>VHDL Source File</string>
-			<key>UTTypeIdentifier</key>
-			<string>org.vim.vhdl-file</string>
-			<key>UTTypeTagSpecification</key>
-			<dict>
-				<key>public.filename-extension</key>
-				<array>
-					<string>vhdl</string>
-					<string>vhd</string>
-				</array>
-			</dict>
-		</dict>
-		<dict>
-			<key>UTTypeConformsTo</key>
-			<array>
-				<string>public.plain-text</string>
-			</array>
-			<key>UTTypeDescription</key>
-			<string>Lua Source File</string>
-			<key>UTTypeIdentifier</key>
-			<string>org.lua.lua-source</string>
+			<string>org.lua.lua</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2676,29 +2738,31 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.source-code</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Verilog HDL Source File</string>
+			<string>Verilog HDL source</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.v-file</string>
+			<string>org.ieee.vhdl</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
 				<array>
 					<string>v</string>
+					<string>vhdl</string>
+					<string>vhd</string>
 				</array>
 			</dict>
 		</dict>
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.source-code</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Verilog HDL Header Source File</string>
+			<string>Verilog HDL header</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.vh-file</string>
+			<string>org.ieee.vhdl-header</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
