@@ -320,10 +320,10 @@ endfunc
 func Get_cat_123_cmd()
   if has('win32')
     if !has('conpty')
-      return 'cmd /c "cls && color 2 && echo 123"'
+      return 'cmd /D /c "cls && color 2 && echo 123"'
     else
       " When clearing twice, extra sequence is not output.
-      return 'cmd /c "cls && cls && color 2 && echo 123"'
+      return 'cmd /D /c "cls && cls && color 2 && echo 123"'
     endif
   else
     call writefile(["\<Esc>[32m123"], 'Xtext')
@@ -410,7 +410,7 @@ func Test_terminal_scrape_multibyte()
   if has('win32')
     " Run cmd with UTF-8 codepage to make the type command print the expected
     " multibyte characters.
-    let buf = term_start("cmd /K chcp 65001")
+    let buf = term_start("cmd /D /K chcp 65001")
     call term_sendkeys(buf, "type Xtext\<CR>")
     eval buf->term_sendkeys("exit\<CR>")
     let line = 4
@@ -457,7 +457,7 @@ endfunc
 func Test_terminal_scroll()
   call writefile(range(1, 200), 'Xtext', 'D')
   if has('win32')
-    let cmd = 'cmd /c "type Xtext"'
+    let cmd = 'cmd /D /c "type Xtext"'
   else
     let cmd = "cat Xtext"
   endif
@@ -500,6 +500,21 @@ func Test_terminal_scrollback()
   call WaitForAssert({-> assert_match( '149', term_getline(buf, rows - 1) . term_getline(buf, rows - 2))})
   let lines = line('$')
   call assert_inrange(91, 100, lines)
+
+  " When 'termwinscroll' becomes small, the scrollback should become small.
+  set termwinscroll=20
+  call term_sendkeys(buf, "echo set20\<CR>")
+  call WaitForAssert({-> assert_true([term_getline(buf, rows - 1), term_getline(buf, rows - 2)]->index('set20') >= 0)})
+  let lines = line('$')
+  call assert_inrange(19, 20, lines)
+
+  " When 'termwinscroll' under 10 which means 10% of it will be 0,
+  " the scrollback should become small.
+  set termwinscroll=1
+  call term_sendkeys(buf, "echo set1\<CR>")
+  call WaitForAssert({-> assert_true([term_getline(buf, rows - 1), term_getline(buf, rows - 2)]->index('set1') >= 0)})
+  let lines = line('$')
+  call assert_inrange(1, 2, lines)
 
   call StopShellInTerminal(buf)
   exe buf . 'bwipe'
@@ -765,7 +780,7 @@ endfunc
 
 func Test_terminal_cwd()
   if has('win32')
-    let cmd = 'cmd /c cd'
+    let cmd = 'cmd /D /c cd'
   else
     CheckExecutable pwd
     let cmd = 'pwd'
@@ -1111,7 +1126,7 @@ func Test_terminal_composing_unicode()
   set encoding=utf-8
 
   if has('win32')
-    let cmd = "cmd /K chcp 65001"
+    let cmd = "cmd /D /K chcp 65001"
     let lnum = [3, 6, 9]
   else
     let cmd = &shell

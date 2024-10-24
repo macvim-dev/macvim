@@ -214,7 +214,7 @@ open_buffer(
 	enter_buffer(curbuf);
 #ifdef FEAT_SYN_HL
 	if (old_tw != curbuf->b_p_tw)
-	    check_colorcolumn(curwin);
+	    check_colorcolumn(NULL, curwin);
 #endif
 	return FAIL;
     }
@@ -1217,7 +1217,7 @@ handle_swap_exists(bufref_T *old_curbuf)
 
 #ifdef FEAT_SYN_HL
 	    if (old_tw != curbuf->b_p_tw)
-		check_colorcolumn(curwin);
+		check_colorcolumn(NULL, curwin);
 #endif
 	}
 	// If "old_curbuf" is NULL we are in big trouble here...
@@ -1915,7 +1915,7 @@ set_curbuf(buf_T *buf, int action)
 	    enter_buffer(buf);
 #ifdef FEAT_SYN_HL
 	if (old_tw != curbuf->b_p_tw)
-	    check_colorcolumn(curwin);
+	    check_colorcolumn(NULL, curwin);
 #endif
     }
 }
@@ -2416,6 +2416,7 @@ free_buf_options(
     clear_string_option(&buf->b_p_fp);
 #if defined(FEAT_EVAL)
     clear_string_option(&buf->b_p_fex);
+    clear_string_option(&buf->b_p_fexpr);
 #endif
 #ifdef FEAT_CRYPT
 # ifdef FEAT_SODIUM

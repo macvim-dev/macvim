@@ -4,6 +4,8 @@ source shared.vim
 source check.vim
 source view_util.vim
 
+scriptencoding utf-8
+
 func Test_whichwrap()
   set whichwrap=b,s
   call assert_equal('b,s', &whichwrap)
@@ -757,6 +759,9 @@ func Test_set_option_errors()
   call assert_fails('set tabstop=10000', 'E474:')
   call assert_fails('let &tabstop = 10000', 'E474:')
   call assert_fails('set tabstop=5500000000', 'E474:')
+  if has('terminal')
+    call assert_fails('set termwinscroll=-1', 'E487:')
+  endif
   call assert_fails('set textwidth=-1', 'E487:')
   call assert_fails('set timeoutlen=-1', 'E487:')
   call assert_fails('set updatecount=-1', 'E487:')
@@ -1042,15 +1047,6 @@ func Test_set_all_one_column()
   call assert_equal(out_one[0], '--- Options ---')
   let options = out_one[1:]->mapnew({_, line -> line[2:]})
   call assert_equal(sort(copy(options)), options)
-endfunc
-
-func Test_set_values()
-  " opt_test.vim is generated from ../optiondefs.h using gen_opt_test.vim
-  if filereadable('opt_test.vim')
-    source opt_test.vim
-  else
-    throw 'Skipped: opt_test.vim does not exist'
-  endif
 endfunc
 
 func Test_renderoptions()
@@ -1586,7 +1582,7 @@ endfunc
 
 " Test for changing options in a sandbox
 func Test_opt_sandbox()
-  for opt in ['backupdir', 'cdpath', 'exrc']
+  for opt in ['backupdir', 'cdpath', 'exrc', 'findexpr']
     call assert_fails('sandbox set ' .. opt .. '?', 'E48:')
     call assert_fails('sandbox let &' .. opt .. ' = 1', 'E48:')
   endfor

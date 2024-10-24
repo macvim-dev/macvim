@@ -271,6 +271,7 @@ $quote	eval.txt	/*$quote*
 'fenc'	options.txt	/*'fenc'*
 'fencs'	options.txt	/*'fencs'*
 'fex'	options.txt	/*'fex'*
+'fexpr'	options.txt	/*'fexpr'*
 'ff'	options.txt	/*'ff'*
 'ffs'	options.txt	/*'ffs'*
 'fic'	options.txt	/*'fic'*
@@ -281,6 +282,7 @@ $quote	eval.txt	/*$quote*
 'fileignorecase'	options.txt	/*'fileignorecase'*
 'filetype'	options.txt	/*'filetype'*
 'fillchars'	options.txt	/*'fillchars'*
+'findexpr'	options.txt	/*'findexpr'*
 'fixendofline'	options.txt	/*'fixendofline'*
 'fixeol'	options.txt	/*'fixeol'*
 'fk'	options.txt	/*'fk'*
@@ -4626,6 +4628,7 @@ E1510	change.txt	/*E1510*
 E1511	options.txt	/*E1511*
 E1512	options.txt	/*E1512*
 E1513	message.txt	/*E1513*
+E1514	options.txt	/*E1514*
 E152	helphelp.txt	/*E152*
 E153	helphelp.txt	/*E153*
 E154	helphelp.txt	/*E154*
@@ -7849,6 +7852,8 @@ g:typescript_host_keyword	syntax.txt	/*g:typescript_host_keyword*
 g:typst_cmd	quickfix.txt	/*g:typst_cmd*
 g:typst_conceal	filetype.txt	/*g:typst_conceal*
 g:typst_embedded_languages	syntax.txt	/*g:typst_embedded_languages*
+g:typst_folding	filetype.txt	/*g:typst_folding*
+g:typst_foldnested	filetype.txt	/*g:typst_foldnested*
 g:var	eval.txt	/*g:var*
 g:vim_indent	indent.txt	/*g:vim_indent*
 g:vim_indent_cont	indent.txt	/*g:vim_indent_cont*
@@ -9286,7 +9291,6 @@ netrw-write	pi_netrw.txt	/*netrw-write*
 netrw-x	pi_netrw.txt	/*netrw-x*
 netrw-xfer	pi_netrw.txt	/*netrw-xfer*
 netrw.vim	pi_netrw.txt	/*netrw.vim*
-netrw_filehandler	pi_netrw.txt	/*netrw_filehandler*
 netterm-mouse	options.txt	/*netterm-mouse*
 network	pi_netrw.txt	/*network*
 new()	vim9class.txt	/*new()*

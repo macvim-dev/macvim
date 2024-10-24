@@ -1,4 +1,4 @@
-*options.txt*	For Vim version 9.1.  Last change: 2024 Oct 14
+*options.txt*	For Vim version 9.1.  Last change: 2024 Oct 22
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -3418,7 +3418,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 
 					*'fileformat'* *'ff'*
 'fileformat' 'ff'	string (MS-Windows default: "dos",
-				Unix, macOS default: "unix")
+				Unix default: "unix")
 			local to buffer
 	This gives the <EOL> of the current buffer, which is used for
 	reading/writing the buffer from/to a file:
@@ -3441,7 +3441,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 					*'fileformats'* *'ffs'*
 'fileformats' 'ffs'	string (default:
 				Vim+Vi	MS-Windows: "dos,unix",
-				Vim	Unix, macOS: "unix,dos",
+				Vim	Unix: "unix,dos",
 				Vi	Cygwin: "unix,dos",
 				Vi	others: "")
 			global
@@ -3567,6 +3567,51 @@ A jump table for the options with a short description can be found at |Q_op|.
 	  eob		EndOfBuffer		|hl-EndOfBuffer|
 	  lastline	NonText			|hl-NonText|
 
+						*'findexpr'* *'fexpr'* *E1514*
+'findexpr' 'fexpr'	string	(default "")
+			global or local to buffer |global-local|
+			{not available when compiled without the |+eval|
+			feature}
+	Expression that is evaluated to obtain the filename(s) for the |:find|
+	command.  When this option is empty, the internal |file-searching|
+	mechanism is used.
+
+	While evaluating the expression, the |v:fname| variable is set to the
+	argument of the |:find| command.
+
+	The expression is evaluated only once per |:find| command invocation.
+	The expression can process all the directories specified in 'path'.
+
+	If a match is found, the expression should return a |List| containing
+	one or more file names.  If a match is not found, the expression
+	should return an empty List.
+
+	If any errors are encountered during the expression evaluation, an
+	empty List is used as the return value.
+
+	Using a function call without arguments is faster |expr-option-function|
+
+	It is not allowed to change text or jump to another window while
+	evaluating 'findexpr' |textlock|.
+
+	This option cannot be set from a |modeline| or in the |sandbox|, for
+	security reasons.
+
+	Examples:
+>
+	    " Use glob()
+	    func FindExprGlob()
+		return glob(v:fname, v:false, v:true)
+	    endfunc
+	    set findexpr=FindExprGlob()
+
+	    " Use the 'git ls-files' output
+	    func FindGitFiles()
+		let fnames = systemlist('git ls-files')
+		return fnames->filter('v:val =~? v:fname')
+	    endfunc
+	    set findexpr=FindGitFiles()
+<
 		*'fixendofline'* *'fixeol'* *'nofixendofline'* *'nofixeol'*
 'fixendofline' 'fixeol'	boolean	(default on)
 			local to buffer
@@ -5011,7 +5056,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 	set and to the Vim default value when 'compatible' is reset.
 
 						*'isprint'* *'isp'*
-'isprint' 'isp'	string	(default for Win32 and macOS:
+'isprint' 'isp'	string	(default for Win32 and VMS:
 				"@,~-255"; otherwise: "@,161-255")
 			global
 	The characters given by this option are displayed directly on the
@@ -6857,7 +6902,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 <
 				*'runtimepath'* *'rtp'* *vimfiles*
 'runtimepath' 'rtp'	string	(default:
-					Unix, macOS:  "$HOME/.vim or
+					Unix:  "$HOME/.vim or
 						$XDG_CONFIG_HOME/vim,
 						$VIM/vimfiles,
 						$VIMRUNTIME,
@@ -6873,9 +6918,6 @@ A jump table for the options with a short description can be found at |Q_op|.
 						$VIMRUNTIME,
 						$VIM/vimfiles/after,
 						$HOME/vimfiles/after"
-					Classic Mac OS: "$VIM:vimfiles,
-						$VIMRUNTIME,
-						$VIM:vimfiles:after"
 					Haiku: "$BE_USER_SETTINGS/vim,
 						$VIM/vimfiles,
 						$VIMRUNTIME,
@@ -8837,7 +8879,9 @@ A jump table for the options with a short description can be found at |Q_op|.
 	be restored if possible, see |X11|.
 
 	When this option contains printf-style '%' items, they will be
-	expanded according to the rules used for 'statusline'.
+	expanded according to the rules used for 'statusline'.  If it contains
+	an invalid '%' format, the value is used as-is and no error or warning
+	will be given when the value is set.
 	This option cannot be set in a modeline when 'modelineexpr' is off.
 
 	Example: >
@@ -9199,7 +9243,6 @@ A jump table for the options with a short description can be found at |Q_op|.
 					 for Win32: "$HOME/vimfiles/view",
 					 for Unix: "$HOME/.vim/view" or
 					           "$XDG_CONFIG_HOME/vim/view"
-					 for macOS: "$VIM/vimfiles/view",
 					 for VMS: "sys$login:vimfiles/view")
 			global
 			{not available when compiled without the |+mksession|

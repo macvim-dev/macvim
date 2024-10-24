@@ -47,6 +47,7 @@ void ex_stop(exarg_T *eap);
 void handle_drop(int filec, char_u **filev, int split, void (*callback)(void *), void *cookie);
 void handle_any_postponed_drop(void);
 void ex_edit(exarg_T *eap);
+int expand_findexpr(char_u *pat, char_u ***files, int *numMatches);
 void ex_splitview(exarg_T *eap);
 void tabpage_new(void);
 void do_exedit(exarg_T *eap, win_T *old_curwin);

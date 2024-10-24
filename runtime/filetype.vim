@@ -283,7 +283,7 @@ au BufNewFile,BufRead *.blade.php		setf blade
 au BufNewFile,BufRead *.bl			setf blank
 
 " Bitbake
-au BufNewFile,BufRead *.bb,*.bbappend,*.bbclass,*/build/conf/*.conf,*/meta{-*,}/conf/*.conf	setf bitbake
+au BufNewFile,BufRead *.bb,*.bbappend,*.bbclass,*/build/conf/*.conf,*/meta{-*,}/conf/*.conf,*/project-spec/configs/*.conf	setf bitbake
 
 " Blkid cache file
 au BufNewFile,BufRead */etc/blkid.tab,*/etc/blkid.tab.old   setf xml
@@ -569,6 +569,9 @@ au BufNewFile,BufRead *.dsp				call dist#ft#FTdsp()
 " Libreoffice config files
 au BufNewFile,BufRead *.xcu,*.xlb,*.xlc,*.xba		setf xml
 au BufNewFile,BufRead psprint.conf,sofficerc		setf dosini
+
+" Libtool files
+au BufNewFile,BufRead *.lo,*.la,*.lai		setf sh
 
 " Lynx config files
 au BufNewFile,BufRead lynx.cfg			setf lynx
@@ -2815,7 +2818,7 @@ au BufNewFile,BufRead xorg.conf,xorg.conf-4	let b:xf86conf_xfree86_version = 4 |
 au BufNewFile,BufRead */etc/xinetd.conf		setf xinetd
 
 " Xilinx Vivado/Vitis project files and block design files
-au BufNewFile,BufRead *.xpr,*.xpfm,*.spfm,*.bxml		setf xml
+au BufNewFile,BufRead *.xpr,*.xpfm,*.spfm,*.bxml,*.mmi		setf xml
 au BufNewFile,BufRead *.bd,*.bda,*.xci				setf json
 
 " XS Perl extension interface language
