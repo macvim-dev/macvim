@@ -364,6 +364,10 @@ jobs:
         timeout-minutes: 20
         run: make ${MAKE_BUILD_ARGS} test
 
+      - name: Upload failed test files
+        if: ${{ !cancelled() && failure() }}
+        uses: ./.github/actions/screendump
+
       - name: Test Vim (GUI)
         timeout-minutes: 20
         run: |
