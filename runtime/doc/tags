@@ -2152,6 +2152,7 @@ $quote	eval.txt	/*$quote*
 :LP	pi_logipat.txt	/*:LP*
 :LPE	pi_logipat.txt	/*:LPE*
 :LPF	pi_logipat.txt	/*:LPF*
+:Launch	pi_netrw.txt	/*:Launch*
 :Lexplore	pi_netrw.txt	/*:Lexplore*
 :Lfilter	quickfix.txt	/*:Lfilter*
 :LogiPat	pi_logipat.txt	/*:LogiPat*
@@ -2169,6 +2170,7 @@ $quote	eval.txt	/*$quote*
 :Ntree	pi_netrw.txt	/*:Ntree*
 :Nw	pi_netrw.txt	/*:Nw*
 :Nwrite	pi_netrw.txt	/*:Nwrite*
+:Open	pi_netrw.txt	/*:Open*
 :Over	terminal.txt	/*:Over*
 :P	various.txt	/*:P*
 :Pexplore	pi_netrw.txt	/*:Pexplore*
@@ -6607,6 +6609,7 @@ cmd-movement	gui_mac.txt	/*cmd-movement*
 cmd-shortcuts	gui_mac.txt	/*cmd-shortcuts*
 cmdarg-variable	eval.txt	/*cmdarg-variable*
 cmdbang-variable	eval.txt	/*cmdbang-variable*
+cmdcomplete-variable	eval.txt	/*cmdcomplete-variable*
 cmdline-arguments	vi_diff.txt	/*cmdline-arguments*
 cmdline-changed	version5.txt	/*cmdline-changed*
 cmdline-completion	cmdline.txt	/*cmdline-completion*
@@ -10400,12 +10403,18 @@ strstr()	builtin.txt	/*strstr()*
 strtrans()	builtin.txt	/*strtrans()*
 strutf16len()	builtin.txt	/*strutf16len()*
 strwidth()	builtin.txt	/*strwidth()*
+style-braces	develop.txt	/*style-braces*
 style-changes	develop.txt	/*style-changes*
+style-comments	develop.txt	/*style-comments*
+style-common-functions	develop.txt	/*style-common-functions*
 style-compiler	develop.txt	/*style-compiler*
+style-declarations	develop.txt	/*style-declarations*
 style-examples	develop.txt	/*style-examples*
 style-functions	develop.txt	/*style-functions*
+style-indentation	develop.txt	/*style-indentation*
 style-names	develop.txt	/*style-names*
 style-spaces	develop.txt	/*style-spaces*
+style-types	develop.txt	/*style-types*
 style-various	develop.txt	/*style-various*
 sub-menu-priority	gui.txt	/*sub-menu-priority*
 sub-replace-\=	change.txt	/*sub-replace-\\=*
@@ -10831,6 +10840,7 @@ termdebug-stepping	terminal.txt	/*termdebug-stepping*
 termdebug-timeout	terminal.txt	/*termdebug-timeout*
 termdebug-variables	terminal.txt	/*termdebug-variables*
 termdebug_disasm_window	terminal.txt	/*termdebug_disasm_window*
+termdebug_evaluate_in_popup	terminal.txt	/*termdebug_evaluate_in_popup*
 termdebug_map_K	terminal.txt	/*termdebug_map_K*
 termdebug_map_minus	terminal.txt	/*termdebug_map_minus*
 termdebug_map_plus	terminal.txt	/*termdebug_map_plus*
@@ -11097,6 +11107,7 @@ v:charconvert_from	eval.txt	/*v:charconvert_from*
 v:charconvert_to	eval.txt	/*v:charconvert_to*
 v:cmdarg	eval.txt	/*v:cmdarg*
 v:cmdbang	eval.txt	/*v:cmdbang*
+v:cmdcomplete	eval.txt	/*v:cmdcomplete*
 v:collate	eval.txt	/*v:collate*
 v:colornames	eval.txt	/*v:colornames*
 v:completed_item	eval.txt	/*v:completed_item*

@@ -1,4 +1,4 @@
-*builtin.txt*	For Vim version 9.1.  Last change: 2024 Oct 16
+*builtin.txt*	For Vim version 9.1.  Last change: 2024 Nov 01
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -1627,7 +1627,7 @@ charclass({string})					*charclass()*
 		The character class is one of:
 			0	blank
 			1	punctuation
-			2	word character
+			2	word character (depends on 'iskeyword')
 			3	emoji
 			other	specific Unicode class
 		The class is used in patterns and word motions.
@@ -4838,7 +4838,7 @@ getregion({pos1}, {pos2} [, {opts}])			*getregion()*
 <
 		Return type: list<string>
 
-<
+
 getregionpos({pos1}, {pos2} [, {opts}])            *getregionpos()*
 		Same as |getregion()|, but returns a list of positions
 		describing the buffer text segments bound by {pos1} and
@@ -4894,6 +4894,7 @@ getregtype([{regname}])					*getregtype()*
 			GetRegname()->getregtype()
 <
 		Return type: |String|
+
 
 getscriptinfo([{opts}])					*getscriptinfo()*
 		Returns a |List| with information about all the sourced Vim

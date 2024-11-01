@@ -361,7 +361,7 @@ jobs:
           make ${MAKE_BUILD_ARGS} -j${NPROC} -C src unittesttargets
 
       - name: Test Vim
-        timeout-minutes: 20
+        timeout-minutes: 25
         run: make ${MAKE_BUILD_ARGS} test
 
       - name: Upload failed test files
@@ -369,7 +369,7 @@ jobs:
         uses: ./.github/actions/screendump
 
       - name: Test Vim (GUI)
-        timeout-minutes: 20
+        timeout-minutes: 25
         run: |
           make ${MAKE_BUILD_ARGS} -C src/testdir clean
           make ${MAKE_BUILD_ARGS} -C src testgui

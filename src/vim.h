@@ -846,7 +846,8 @@ extern int (*dyn_libintl_wputenv)(const wchar_t *envstring);
 #define EXPAND_KEYMAP		58
 #define EXPAND_DIRS_IN_CDPATH	59
 #define EXPAND_SHELLCMDLINE	60
-#define EXPAND_MACACTION	61
+#define EXPAND_FINDEXPR		61
+#define EXPAND_MACACTION	62
 
 
 // Values for exmode_active (0 is no exmode)
@@ -1015,9 +1016,10 @@ extern int (*dyn_libintl_wputenv)(const wchar_t *envstring);
 #define KEY_COMPLETE	0x103	// end of completion
 
 // Used for the first argument of do_map()
-#define MAPTYPE_MAP	0
-#define MAPTYPE_UNMAP	1
-#define MAPTYPE_NOREMAP	2
+#define MAPTYPE_MAP		0
+#define MAPTYPE_UNMAP		1
+#define MAPTYPE_NOREMAP		2
+#define MAPTYPE_UNMAP_LHS	3
 
 // Values for "noremap" argument of ins_typebuf().  Also used for
 // map->m_noremap and menu->noremap[].
@@ -2190,9 +2192,10 @@ typedef int sock_T;
 #define VV_TYPE_TYPEALIAS 107
 #define VV_TYPE_ENUM	  108
 #define VV_TYPE_ENUMVALUE 109
+#define VV_CMDCOMPLETE	110
 // MacVim-specific values go here
-#define VV_OS_APPEARANCE 110
-#define VV_LEN		111	// number of v: vars
+#define VV_OS_APPEARANCE 111
+#define VV_LEN		112	// number of v: vars
 
 // used for v_number in VAR_BOOL and VAR_SPECIAL
 #define VVAL_FALSE	0L	// VAR_BOOL
