@@ -24,15 +24,15 @@
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
         <userDefaultsController representsSharedInstance="YES" id="58" userLabel="Shared Defaults"/>
         <customView id="115" userLabel="General">
-            <rect key="frame" x="0.0" y="0.0" width="483" height="362"/>
+            <rect key="frame" x="0.0" y="0.0" width="483" height="382"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
             <subviews>
                 <customView id="5x5-P0-afk" userLabel="Open untitled window">
-                    <rect key="frame" x="20" y="284" width="433" height="58"/>
+                    <rect key="frame" x="20" y="284" width="433" height="78"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <subviews>
-                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="117">
-                            <rect key="frame" x="-2" y="41" width="187" height="17"/>
+                        <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="117">
+                            <rect key="frame" x="-2" y="61" width="187" height="17"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Open untitled window:" id="973">
                                 <font key="font" metaFont="system"/>
@@ -41,7 +41,7 @@
                             </textFieldCell>
                         </textField>
                         <matrix verticalHuggingPriority="750" allowsEmptySelection="NO" autosizesCells="NO" id="119">
-                            <rect key="frame" x="190" y="0.0" width="243" height="58"/>
+                            <rect key="frame" x="190" y="0.0" width="243" height="78"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                             <size key="cellSize" width="243" height="18"/>
@@ -52,11 +52,15 @@
                             </buttonCell>
                             <cells>
                                 <column>
-                                    <buttonCell type="radio" title="on launch and re-activation" imagePosition="left" alignment="left" state="on" tag="3" inset="2" id="139">
+                                    <buttonCell type="radio" title="on launch and re-activation" imagePosition="left" alignment="left" tag="3" inset="2" id="139">
                                         <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                         <font key="font" metaFont="system"/>
                                     </buttonCell>
                                     <buttonCell type="radio" title="only when MacVim launches" imagePosition="left" alignment="left" tag="1" inset="2" id="138">
+                                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                        <font key="font" metaFont="system"/>
+                                    </buttonCell>
+                                    <buttonCell type="radio" title="only on re-activation" imagePosition="left" alignment="left" tag="2" inset="2" id="140">
                                         <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                         <font key="font" metaFont="system"/>
                                     </buttonCell>
@@ -76,7 +80,7 @@
                     <rect key="frame" x="20" y="144" width="433" height="132"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <subviews>
-                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="116">
+                        <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="116">
                             <rect key="frame" x="-2" y="115" width="187" height="17"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Open files from applications:" id="972">
@@ -117,7 +121,7 @@
                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                             <popUpButtonCell key="cell" type="push" title="and set the arglist" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" inset="2" selectedItem="436" id="978">
                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                <font key="font" metaFont="menu"/>
+                                <font key="font" metaFont="message"/>
                                 <menu key="menu" title="OtherViews" id="429">
                                     <items>
                                         <menuItem title="with a tab for each file" tag="3" id="430"/>
@@ -139,7 +143,7 @@
                                 <binding destination="58" name="selectedTag" keyPath="values.MMOpenLayout" id="441"/>
                             </connections>
                         </popUpButton>
-                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="121">
+                        <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="121">
                             <rect key="frame" x="190" y="0.0" width="243" height="58"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="left" id="974">
@@ -155,7 +159,7 @@
                     <rect key="frame" x="20" y="114" width="381" height="22"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <subviews>
-                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="126">
+                        <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="126">
                             <rect key="frame" x="-2" y="3" width="187" height="17"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="After last window closes:" id="977">
@@ -169,7 +173,7 @@
                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                             <popUpButtonCell key="cell" type="push" title="Keep MacVim Running" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" inset="2" selectedItem="960" id="979">
                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                <font key="font" metaFont="menu"/>
+                                <font key="font" metaFont="message"/>
                                 <menu key="menu" title="OtherViews" id="959">
                                     <items>
                                         <menuItem title="Keep MacVim Running" state="on" id="960"/>
@@ -201,7 +205,7 @@
                                 <binding destination="58" name="value" keyPath="values.MMSmoothResize" id="Wkt-gU-ZnK"/>
                             </connections>
                         </button>
-                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="Lmi-H0-cPd" userLabel="Window resizing">
+                        <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="Lmi-H0-cPd" userLabel="Window resizing">
                             <rect key="frame" x="-2" y="0.0" width="187" height="17"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Resizing window:" id="ExQ-6y-pyN" userLabel="Window resizing:">
@@ -227,7 +231,7 @@
                                 <binding destination="58" name="value" keyPath="values.MMShowWhatsNewOnStartup" id="LjF-Lv-00h"/>
                             </connections>
                         </button>
-                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="qpS-3j-8OG">
+                        <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="qpS-3j-8OG">
                             <rect key="frame" x="-2" y="0.0" width="187" height="17"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="When MacVim launches:" id="S5x-il-vbq">
@@ -273,7 +277,7 @@
                     </subviews>
                 </customView>
             </subviews>
-            <point key="canvasLocation" x="137.5" y="-27"/>
+            <point key="canvasLocation" x="137.5" y="-17"/>
         </customView>
         <customView id="hr4-G4-3ZG" userLabel="Appearance">
             <rect key="frame" x="0.0" y="0.0" width="483" height="360"/>
@@ -283,7 +287,7 @@
                     <rect key="frame" x="19" y="182" width="433" height="156"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <subviews>
-                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="T40-Os-PUf" userLabel="Dark mode selection">
+                        <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="T40-Os-PUf" userLabel="Dark mode selection">
                             <rect key="frame" x="-2" y="139" width="187" height="17"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Dark mode selection:" id="rgk-9z-Mrz">
@@ -328,7 +332,7 @@
                                 <outlet property="delegate" destination="58" id="Sob-YR-Fmp"/>
                             </connections>
                         </matrix>
-                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="1Lk-MW-O2L">
+                        <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="1Lk-MW-O2L">
                             <rect key="frame" x="188" y="0.0" width="243" height="70"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="left" id="tgh-S7-3or">
@@ -344,7 +348,7 @@
                     <rect key="frame" x="19" y="118" width="433" height="56"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <subviews>
-                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="9Rk-gT-kVC" userLabel="Titlebar appearance">
+                        <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="9Rk-gT-kVC" userLabel="Titlebar appearance">
                             <rect key="frame" x="-2" y="38" width="187" height="17"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Window appearance:" id="HEH-Lo-v4I" userLabel="Titlebar appearance:">
@@ -406,7 +410,7 @@
                                 <binding destination="58" name="value" keyPath="values.MMNativeFullScreen" id="Y8t-au-n4b"/>
                             </connections>
                         </button>
-                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="VAj-Yx-2uZ">
+                        <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="VAj-Yx-2uZ">
                             <rect key="frame" x="-2" y="20" width="187" height="17"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Full Screen:" id="bMQ-uG-iDR">
@@ -452,7 +456,7 @@
                                 <binding destination="58" name="value" keyPath="values.MMFontPreserveLineSpacing" id="6cJ-Uj-qVy"/>
                             </connections>
                         </button>
-                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="8WW-zu-LlE" userLabel="Font">
+                        <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="8WW-zu-LlE" userLabel="Font">
                             <rect key="frame" x="-2" y="0.0" width="187" height="17"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Font:" id="eV4-3c-P2e">
@@ -480,7 +484,7 @@
                                 <binding destination="58" name="value" keyPath="values.MMCmdLineAlignBottom" id="pIr-52-5vV"/>
                             </connections>
                         </button>
-                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="Lzq-i0-zWi" userLabel="Cmdline">
+                        <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="Lzq-i0-zWi" userLabel="Cmdline">
                             <rect key="frame" x="-2" y="0.0" width="187" height="17"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Command-line:" id="2Lp-vX-AcA">
@@ -502,7 +506,7 @@
                     <rect key="frame" x="20" y="72" width="433" height="18"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <subviews>
-                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="f18-Wr-EgZ">
+                        <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="f18-Wr-EgZ">
                             <rect key="frame" x="-2" y="0.0" width="187" height="17"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Trackpad:" id="jkp-Ls-ZhN">
@@ -596,7 +600,7 @@
                         <binding destination="58" name="value" keyPath="values.MMUpdaterPrereleaseChannel" id="Kb1-yL-bmN"/>
                     </connections>
                 </button>
-                <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="826">
+                <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="826">
                     <rect key="frame" x="18" y="218" width="449" height="56"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" id="993">
@@ -618,7 +622,7 @@
                         <binding destination="58" name="value" keyPath="values.MMPreloadCacheSize" id="828"/>
                     </connections>
                 </button>
-                <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="815">
+                <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="815">
                     <rect key="frame" x="18" y="300" width="449" height="28"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" title="(Deprecated) Deselect this option to use the legacy renderer, which is unsupported and will be removed in a future version." id="991">
@@ -639,7 +643,7 @@
                         <binding destination="58" name="value" keyPath="values.MMRenderer" id="1000"/>
                     </connections>
                 </button>
-                <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="1001">
+                <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="1001">
                     <rect key="frame" x="18" y="122" width="444" height="70"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" id="1004">
@@ -660,7 +664,7 @@
                         <binding destination="58" name="value" keyPath="values.MMUseInlineIm" id="1016"/>
                     </connections>
                 </button>
-                <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="ere-oJ-WLd">
+                <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="ere-oJ-WLd">
                     <rect key="frame" x="19" y="20" width="449" height="70"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" id="Gdp-Ib-RGS">
