@@ -458,6 +458,83 @@ do { \
     [self waitForVimClose];
 }
 
+/// Test that dark mode settings work and the corresponding Vim bindings are functional.
+///
+/// Note that `v:os_appearance` and OSAppearanceChanged respond to the view's appearance
+/// rather than the OS setting. When using manual light/dark or "use background" settings,
+/// they do not reflect the current OS dark mode setting.
+- (void) testDarkMode {
+    NSUserDefaults *ud = NSUserDefaults.standardUserDefaults;
+
+    MMAppController *app = MMAppController.sharedInstance;
+
+    [app openNewWindow:NewWindowClean activate:YES];
+    [self waitForVimOpenAndMessages];
+
+    MMVimView *vimView = [[[app keyVimController] windowController] vimView];
+
+    // We just use the system appearance to determine the initial state. Otherwise
+    // we have to change the system appearance to light mode first which we don't
+    // have permission to do.
+    const BOOL systemUsingDarkMode = [[ud stringForKey:@"AppleInterfaceStyle"] isEqualToString:@"Dark"];
+    const NSAppearance *systemAppearance = systemUsingDarkMode ?
+        [NSAppearance appearanceNamed: NSAppearanceNameDarkAqua] : [NSAppearance appearanceNamed: NSAppearanceNameAqua];
+
+    // Default setting uses system appearance
+    XCTAssertEqualObjects(vimView.effectiveAppearance, systemAppearance);
+    XCTAssertEqualObjects([[app keyVimController] evaluateVimExpression:@"v:os_appearance"], systemUsingDarkMode ? @"1" : @"0");
+
+    // Cache original settings / set up setting overrides
+    NSDictionary<NSString *, id> *defaults = [ud volatileDomainForName:NSArgumentDomain];
+    NSMutableDictionary<NSString *, id> *newDefaults = [defaults mutableCopy];
+
+    // Manual Light / Dark mode setting
+    newDefaults[MMAppearanceModeSelectionKey] = [NSNumber numberWithInt:MMAppearanceModeSelectionLight];
+    [ud setVolatileDomain:newDefaults forName:NSArgumentDomain];
+    [app refreshAllAppearances];
+    XCTAssertEqualObjects(vimView.effectiveAppearance, [NSAppearance appearanceNamed: NSAppearanceNameAqua]);
+    XCTAssertEqualObjects([[app keyVimController] evaluateVimExpression:@"v:os_appearance"], @"0");
+
+    // Set up a listener for OSAppearanceChanged event to make sure it's called
+    // when the view appearance changes.
+    [self sendStringToVim:@":let g:os_appearance_changed_called=0\n" withMods:0];
+    [self sendStringToVim:@":autocmd OSAppearanceChanged * let g:os_appearance_changed_called+=1\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+
+    newDefaults[MMAppearanceModeSelectionKey] = [NSNumber numberWithInt:MMAppearanceModeSelectionDark];
+    [ud setVolatileDomain:newDefaults forName:NSArgumentDomain];
+    [app refreshAllAppearances];
+    XCTAssertEqualObjects(vimView.effectiveAppearance, [NSAppearance appearanceNamed: NSAppearanceNameDarkAqua]);
+    XCTAssertEqualObjects([[app keyVimController] evaluateVimExpression:@"v:os_appearance"], @"1");
+    XCTAssertEqualObjects([[app keyVimController] evaluateVimExpression:@"g:os_appearance_changed_called"], @"1");
+
+    // "Use background" setting
+    [self sendStringToVim:@":set background=dark\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+
+    newDefaults[MMAppearanceModeSelectionKey] = [NSNumber numberWithInt:MMAppearanceModeSelectionBackgroundOption];
+    [NSUserDefaults.standardUserDefaults setVolatileDomain:newDefaults forName:NSArgumentDomain];
+    [app refreshAllAppearances];
+    XCTAssertEqualObjects(vimView.effectiveAppearance, [NSAppearance appearanceNamed: NSAppearanceNameDarkAqua]);
+    XCTAssertEqualObjects([[app keyVimController] evaluateVimExpression:@"v:os_appearance"], @"1");
+    XCTAssertEqualObjects([[app keyVimController] evaluateVimExpression:@"g:os_appearance_changed_called"], @"1"); // we stayed in dark mode, so OSAppearnceChanged didn't trigger
+
+    [self sendStringToVim:@":set background=light\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    XCTAssertEqualObjects(vimView.effectiveAppearance, [NSAppearance appearanceNamed: NSAppearanceNameAqua]);
+    XCTAssertEqualObjects([[app keyVimController] evaluateVimExpression:@"v:os_appearance"], @"0");
+    XCTAssertEqualObjects([[app keyVimController] evaluateVimExpression:@"g:os_appearance_changed_called"], @"2");
+
+    // Restore original settings and make sure it's reset
+    [NSUserDefaults.standardUserDefaults setVolatileDomain:defaults forName:NSArgumentDomain];
+    [app refreshAllAppearances];
+    XCTAssertEqualObjects(vimView.effectiveAppearance, systemAppearance);
+
+    // Clean up
+    [[app keyVimController] sendMessage:VimShouldCloseMsgID data:nil];
+    [self waitForVimClose];
+}
+
 /// Test that document icon is shown in title bar when enabled.
 - (void) testTitlebarDocumentIcon {
     MMAppController *app = MMAppController.sharedInstance;
