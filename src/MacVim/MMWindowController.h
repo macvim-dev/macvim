@@ -42,6 +42,7 @@
     NSRect              preFullScreenFrame;
     MMWindow            *decoratedWindow;
     NSString            *lastSetTitle;
+    NSString            *documentFilename; ///< File name of document being edited, used for the icon at the title bar.
     int                 userRows;
     int                 userCols;
     NSPoint             userTopLeft;
@@ -57,6 +58,7 @@
 - (id)initWithVimController:(MMVimController *)controller;
 - (MMVimController *)vimController;
 - (MMVimView *)vimView;
+- (NSWindow *)window;
 - (NSString *)windowAutosaveKey;
 - (void)setWindowAutosaveKey:(NSString *)key;
 - (void)cleanup;
@@ -72,6 +74,7 @@
 - (void)zoomWithRows:(int)rows columns:(int)cols state:(int)state;
 - (void)setTitle:(NSString *)title;
 - (void)setDocumentFilename:(NSString *)filename;
+- (void)updateDocumentFilename;
 - (void)setToolbar:(NSToolbar *)toolbar;
 - (void)createScrollbarWithIdentifier:(int32_t)ident type:(int)type;
 - (BOOL)destroyScrollbarWithIdentifier:(int32_t)ident;

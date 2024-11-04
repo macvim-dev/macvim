@@ -268,6 +268,7 @@
     // in case processAfterWindowPresentedQueue wasn't called
     [afterWindowPresentedQueue release];  afterWindowPresentedQueue = nil;
     [lastSetTitle release]; lastSetTitle = nil;
+    [documentFilename release]; documentFilename = nil;
 
     [super dealloc];
 }
@@ -288,6 +289,11 @@
 - (MMVimView *)vimView
 {
     return vimView;
+}
+
+- (NSWindow *)window
+{
+    return decoratedWindow;
 }
 
 - (NSString *)windowAutosaveKey
@@ -503,6 +509,8 @@
     }
 }
 
+/// Set the currently edited document's file path, passed in from Vim. Buffers with
+/// no file paths will be passed in as empty strings.
 - (void)setDocumentFilename:(NSString *)filename
 {
     if (!filename)
@@ -513,15 +521,22 @@
     if (![[NSFileManager defaultManager] fileExistsAtPath:filename])
         filename = @"";
 
+    [filename retain];
+    [documentFilename release];
+    documentFilename = filename;
+
+    [self updateDocumentFilename];
+}
+
+- (void)updateDocumentFilename
+{
+    if (documentFilename == nil)
+        return;
+    const bool showDocumentIcon = [[NSUserDefaults standardUserDefaults] boolForKey:MMTitlebarShowsDocumentIconKey];
+    NSString *filename = showDocumentIcon ? documentFilename : @"";
     [decoratedWindow setRepresentedFilename:filename];
     [fullScreenWindow setRepresentedFilename:filename];
 
-    if ([[NSUserDefaults standardUserDefaults] boolForKey:MMTitlebarAppearsTransparentKey]) {
-        // Remove the draggable file icon in the title bar for a clean look
-        // when we are in transparent titlebar mode.
-        [[decoratedWindow standardWindowButton:NSWindowDocumentIconButton] setImage: nil];
-        [[fullScreenWindow standardWindowButton:NSWindowDocumentIconButton] setImage: nil];
-    }
 }
 
 - (void)setToolbar:(NSToolbar *)theToolbar
@@ -613,6 +628,7 @@
 
     // Title may have been lost if we hid the title-bar. Reset it.
     [self setTitle:lastSetTitle];
+    [self updateDocumentFilename];
 
     // Dark mode only works on 10.14+ because that's when dark mode was
     // introduced.

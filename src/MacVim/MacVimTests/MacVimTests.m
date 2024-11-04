@@ -458,4 +458,52 @@ do { \
     [self waitForVimClose];
 }
 
+/// Test that document icon is shown in title bar when enabled.
+- (void) testTitlebarDocumentIcon {
+    MMAppController *app = MMAppController.sharedInstance;
+
+    [app openNewWindow:NewWindowClean activate:YES];
+    [self waitForVimOpenAndMessages];
+
+    NSWindow *win = [[[app keyVimController] windowController] window];
+
+    // Untitled documents have no icons
+    XCTAssertEqualObjects(@"", win.representedFilename);
+
+    // Test that the document icon is shown when a file (gui_mac.txt) is opened by querying "representedFilename"
+    [self sendStringToVim:@":help macvim\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    NSString *gui_mac_path = [[NSBundle mainBundle] pathForResource:@"gui_mac.txt" ofType:nil inDirectory:@"vim/runtime/doc"];
+    XCTAssertEqualObjects(gui_mac_path, win.representedFilename);
+
+    // Change setting to hide the document icon
+    NSUserDefaults *ud = NSUserDefaults.standardUserDefaults;
+    NSDictionary<NSString *, id> *defaults = [ud volatileDomainForName:NSArgumentDomain];
+    NSMutableDictionary<NSString *, id> *newDefaults = [defaults mutableCopy];
+    newDefaults[MMTitlebarShowsDocumentIconKey] = @NO;
+    [ud setVolatileDomain:newDefaults forName:NSArgumentDomain];
+
+    // Test that there is no document icon shown
+    [app refreshAllAppearances];
+    XCTAssertEqualObjects(@"", win.representedFilename);
+
+    // Change setting back to show the document icon. Test that the path was remembered and icon is shown.
+    newDefaults[MMTitlebarShowsDocumentIconKey] = @YES;
+    [ud setVolatileDomain:newDefaults forName:NSArgumentDomain];
+    [app refreshAllAppearances];
+    XCTAssertEqualObjects(gui_mac_path, win.representedFilename);
+
+    // Close the file to go back to untitled document and make sure no icon is shown
+    [self sendStringToVim:@":q\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    XCTAssertEqualObjects(@"", win.representedFilename);
+
+    // Restore settings to test defaults
+    [ud setVolatileDomain:defaults forName:NSArgumentDomain];
+
+    // Clean up
+    [[app keyVimController] sendMessage:VimShouldCloseMsgID data:nil];
+    [self waitForVimClose];
+}
+
 @end

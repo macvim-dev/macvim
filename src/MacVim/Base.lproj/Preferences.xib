@@ -280,11 +280,11 @@
             <point key="canvasLocation" x="137.5" y="-17"/>
         </customView>
         <customView id="hr4-G4-3ZG" userLabel="Appearance">
-            <rect key="frame" x="0.0" y="0.0" width="483" height="360"/>
+            <rect key="frame" x="0.0" y="0.0" width="483" height="379"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
             <subviews>
                 <customView id="fw0-VK-Nbz" userLabel="Dark mode selection">
-                    <rect key="frame" x="19" y="182" width="433" height="156"/>
+                    <rect key="frame" x="19" y="201" width="433" height="156"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <subviews>
                         <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="T40-Os-PUf" userLabel="Dark mode selection">
@@ -345,11 +345,11 @@
                     </subviews>
                 </customView>
                 <customView id="7af-iK-4r7" userLabel="Titlebar appearance">
-                    <rect key="frame" x="19" y="118" width="433" height="56"/>
+                    <rect key="frame" x="19" y="118" width="433" height="75"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <subviews>
                         <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="9Rk-gT-kVC" userLabel="Titlebar appearance">
-                            <rect key="frame" x="-2" y="38" width="187" height="17"/>
+                            <rect key="frame" x="-2" y="57" width="187" height="17"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Window appearance:" id="HEH-Lo-v4I" userLabel="Titlebar appearance:">
                                 <font key="font" metaFont="system"/>
@@ -358,7 +358,7 @@
                             </textFieldCell>
                         </textField>
                         <button id="7ie-0J-0Zr">
-                            <rect key="frame" x="189" y="37" width="244" height="18"/>
+                            <rect key="frame" x="189" y="56" width="244" height="18"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <buttonCell key="cell" type="check" title="Transparent title bar" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="hzd-hj-Pth">
                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
@@ -370,7 +370,7 @@
                             </connections>
                         </button>
                         <button id="Hqh-Ql-2od">
-                            <rect key="frame" x="189" y="19" width="244" height="18"/>
+                            <rect key="frame" x="189" y="38" width="244" height="18"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <buttonCell key="cell" type="check" title="Hidden title bar" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="W40-cB-m1U">
                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
@@ -381,8 +381,20 @@
                                 <binding destination="58" name="value" keyPath="values.MMNoTitleBarWindow" id="CKL-mo-ZhZ"/>
                             </connections>
                         </button>
+                        <button id="PoE-cf-3kL" userLabel="Show document icon at title bar">
+                            <rect key="frame" x="189" y="19" width="244" height="18"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
+                            <buttonCell key="cell" type="check" title="Show document icon at title bar" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="AvU-Lc-YNn" userLabel="Show document icon at title bar">
+                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                <font key="font" metaFont="system"/>
+                            </buttonCell>
+                            <connections>
+                                <action selector="appearanceChanged:" target="-2" id="e2x-W8-tpy"/>
+                                <binding destination="58" name="value" keyPath="values.MMTitlebarShowsDocumentIcon" id="svp-gP-mdE"/>
+                            </connections>
+                        </button>
                         <button id="s2M-pj-U8e">
-                            <rect key="frame" x="189" y="1" width="244" height="18"/>
+                            <rect key="frame" x="189" y="-1" width="244" height="18"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <buttonCell key="cell" type="check" title="No drop shadows" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="VM8-tg-mVV">
                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
@@ -496,7 +508,7 @@
                     </subviews>
                 </customView>
             </subviews>
-            <point key="canvasLocation" x="137.5" y="435"/>
+            <point key="canvasLocation" x="137.5" y="444.5"/>
         </customView>
         <customView id="Bnq-Nx-GJH" userLabel="Input">
             <rect key="frame" x="0.0" y="0.0" width="483" height="110"/>
