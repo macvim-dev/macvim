@@ -1,4 +1,4 @@
-*pi_netrw.txt*  For Vim version 9.1.  Last change: 2024 Oct 31
+*pi_netrw.txt*  For Vim version 9.1.  Last change: 2024 Nov 12
 
 	    ------------------------------------------------
 	    NETRW REFERENCE MANUAL    by Charles E. Campbell
@@ -54,9 +54,10 @@ Copyright: Copyright (C) 2017 Charles E Campbell    *netrw-copyright*
       Browsing With A Horizontally Split Window...........|netrw-o|
       Browsing With A New Tab.............................|netrw-t|
       Browsing With A Vertically Split Window.............|netrw-v|
-      Change File Permission..............................|netrw-gp|
-      Change Listing Style.(thin wide long tree)..........|netrw-i|
+      Change Listing Style (thin wide long tree)..........|netrw-i|
       Changing To A Bookmarked Directory..................|netrw-gb|
+      Quick hide/unhide of dot-files......................|netrw-gh|
+      Changing local-only File Permission.................|netrw-gp|
       Changing To A Predecessor Directory.................|netrw-u|
       Changing To A Successor Directory...................|netrw-U|
       Customizing Browsing With A Special Handler.........|netrw-x|
@@ -1504,9 +1505,9 @@ For example, special handlers for links Markdown and HTML are
         return matchstr(getline('.')[col('.')-1:],
           \ '\[.\{-}\](\zs' .. g:netrw_regex_url .. '\ze\(\s\+.\{-}\)\?)')
       endif
+      return ''
     finally
       call winrestview(save_view)
-      return ''
     endtry
   endfunction
 
@@ -1519,9 +1520,9 @@ For example, special handlers for links Markdown and HTML are
         return matchstr(getline('.')[col('.') - 1 : ],
           \ 'href=["'.."'"..']\?\zs\S\{-}\ze["'.."'"..']\?/\?>')
       endif
+      return ''
     finally
       call winrestview(save_view)
-      return ''
     endtry
   endfunction
 <
@@ -1536,12 +1537,12 @@ Associated setting variables:
 	|g:netrw_nogx|	prevent gx map while editing
 	|g:netrw_suppress_gx_mesg| controls gx's suppression of browser messages
 
-OPENING FILES AND LAUNCHING APPS                 *netrw-gx* *:Open* *:Launch* {{{2
+OPENING FILES AND LAUNCHING APPS	*netrw-gx* *:Open* *:Launch* {{{2
 
 Netrw determines which special handler by the following method:
 
   * if |g:netrw_browsex_viewer| exists, then it will be used to attempt to
-    view files.  Examples of useful settings (place into your <.vimrc>):
+    view files.
     If the viewer you wish to use does not support handling of a remote URL
     directory, set |g:netrw_browsex_support_remote| to 0.
   * otherwise:

@@ -55,6 +55,8 @@ static int msg_hist_len = 0;
 static FILE *verbose_fd = NULL;
 static int  verbose_did_open = FALSE;
 
+static int  did_warn_clipboard = FALSE;
+
 /*
  * When writing messages to the screen, there are many different situations.
  * A number of variables is used to remember the current state:
@@ -1010,7 +1012,7 @@ add_msg_hist(
 	return;
 
     // Don't let the message history get too big
-    while (msg_hist_len > MAX_MSG_HIST_LEN)
+    while (msg_hist_len > p_mhi)
 	(void)delete_first_msg();
 
     // allocate an entry and add the message at the end of the history
@@ -4063,6 +4065,23 @@ msg_advance(int col)
 #endif
 	while (msg_col < col)
 	    msg_putchar(' ');
+}
+
+/*
+ * Warn about missing Clipboard Support
+ */
+    void
+msg_warn_missing_clipboard(void)
+{
+    if (!global_busy && !did_warn_clipboard)
+    {
+#ifdef FEAT_CLIPBOARD
+       msg(_("W23: Clipboard register not available, using register 0"));
+#else
+       msg(_("W24: Clipboard register not available. See :h W24"));
+#endif
+       did_warn_clipboard = TRUE;
+    }
 }
 
 #if defined(FEAT_CON_DIALOG) || defined(PROTO)

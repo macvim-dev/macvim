@@ -597,7 +597,7 @@ EXTERN int	p_fic;		// 'fileignorecase'
 EXTERN char_u	*p_ft;		// 'filetype'
 EXTERN char_u	*p_fcs;		// 'fillchar'
 #ifdef FEAT_EVAL
-EXTERN char_u	*p_fexpr;	// 'findexpr'
+EXTERN char_u	*p_ffu;		// 'findfunc'
 #endif
 EXTERN int	p_fixeol;	// 'fixendofline'
 #ifdef FEAT_FOLDING
@@ -814,6 +814,7 @@ EXTERN int	p_mousemev;	// 'mousemoveevent'
 #endif
 EXTERN long	p_mouset;	// 'mousetime'
 EXTERN int	p_more;		// 'more'
+EXTERN long	p_mhi;		// 'msghistory'
 #ifdef FEAT_MZSCHEME
 EXTERN long	p_mzq;		// 'mzquantum
 # if defined(DYNAMIC_MZSCHEME)
@@ -1197,11 +1198,11 @@ enum
     , BV_EP
     , BV_ET
     , BV_FENC
-    , BV_FEXPR
     , BV_FP
 #ifdef FEAT_EVAL
     , BV_BEXPR
     , BV_FEX
+    , BV_FFU
 #endif
     , BV_FF
     , BV_FLP

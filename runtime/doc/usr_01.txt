@@ -1,4 +1,4 @@
-*usr_01.txt*	For Vim version 9.1.  Last change: 2024 May 11
+*usr_01.txt*	For Vim version 9.1.  Last change: 2024 Nov 03
 
 		     VIM USER MANUAL - by Bram Moolenaar
 
@@ -107,6 +107,8 @@ For more info see |vimrc| and |compatible-default|.
 ==============================================================================
 *01.3*	Using the Vim tutor				*tutor* *vimtutor*
 
+For the interactive tutor, see |vim-tutor-mode|
+
 Instead of reading the text (boring!) you can use the vimtutor to learn your
 first Vim commands.  This is a 30-minute tutorial that teaches the most basic
 Vim functionality hands-on.
@@ -121,8 +123,11 @@ vimtutor.bat in the $VIMRUNTIME directory.
 On MacVim, you can run `vimtutor` from the shell, or select "Vim Tutor" in the
 Help menu.
 
-This will make a copy of the tutor file, so that you can edit it without
-the risk of damaging the original.
+This will make a copy of chapter 1 tutor file, so that you can edit it without
+the risk of damaging the original.  To continue with chapter 2, you can use
+the following command: >
+	vimtutor -c 2
+<
    There are a few translated versions of the tutor.  To find out if yours is
 available, use the two-letter language code.  For French: >
 

@@ -5,18 +5,20 @@
 SRC_ALL =	\
 		.cirrus.yml \
 		.gitattributes \
+		.git-blame-ignore-revs \
 		.github/MAINTAINERS \
 		.github/ISSUE_TEMPLATE/bug_report.yml \
 		.github/ISSUE_TEMPLATE/feature_request.md \
 		.github/workflows/ci.yml \
 		.github/workflows/codeql-analysis.yml \
-		.github/actions/screendump/action.yml \
 		.github/workflows/coverity.yml \
+		.github/actions/test_artifacts/action.yml \
 		.github/dependabot.yml \
 		.gitignore \
 		.hgignore \
 		.appveyor.yml \
 		.codecov.yml \
+		.editorconfig \
 		ci/appveyor.bat \
 		ci/config.mk*.sed \
 		ci/if_ver*.vim \
@@ -761,7 +763,13 @@ RT_ALL =	\
 		runtime/tools/[a-z]*[a-z0-9] \
 		runtime/tutor/README.txt \
 		runtime/tutor/tutor \
+		runtime/tutor/en/vim-01-beginner.tutor \
+		runtime/tutor/en/vim-01-beginner.tutor.json \
+		runtime/tutor/tutor.tutor \
+		runtime/tutor/tutor.tutor.json \
 		runtime/tutor/tutor.vim \
+		runtime/tutor/tutor2 \
+		runtime/tutor/tutor2.utf-8 \
 		runtime/vimrc_example.vim \
 		runtime/pack/dist/opt/cfilter/plugin/cfilter.vim \
 		runtime/pack/dist/opt/comment/plugin/comment.vim \
@@ -783,6 +791,8 @@ RT_ALL =	\
 		runtime/pack/dist/opt/editorconfig/doc/editorconfig.txt \
 		runtime/pack/dist/opt/editorconfig/ftdetect/editorconfig.vim \
 		runtime/pack/dist/opt/editorconfig/plugin/editorconfig.vim \
+		runtime/pack/dist/opt/helptoc/autoload/helptoc.vim \
+		runtime/pack/dist/opt/helptoc/plugin/helptoc.vim \
 		runtime/pack/dist/opt/justify/plugin/justify.vim \
 		runtime/pack/dist/opt/matchit/plugin/matchit.vim \
 		runtime/pack/dist/opt/matchit/doc/matchit.txt \

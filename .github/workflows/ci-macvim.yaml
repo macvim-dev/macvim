@@ -366,7 +366,7 @@ jobs:
 
       - name: Upload failed test files
         if: ${{ !cancelled() && failure() }}
-        uses: ./.github/actions/screendump
+        uses: ./.github/actions/test_artifacts
 
       - name: Test Vim (GUI)
         timeout-minutes: 25

@@ -128,6 +128,7 @@ runtime/ftplugin/chatito.vim		@ObserverOfTime
 runtime/ftplugin/chicken.vim		@evhan
 runtime/ftplugin/clojure.vim		@axvr
 runtime/ftplugin/cmakecache.vim		@ribru17
+runtime/ftplugin/cook.vim		@ribru17
 runtime/ftplugin/cs.vim			@nickspoons
 runtime/ftplugin/csh.vim		@dkearns
 runtime/ftplugin/css.vim		@dkearns
@@ -201,6 +202,7 @@ runtime/ftplugin/kdl.vim		@imsnif @jiangyinzuo
 runtime/ftplugin/kivy.vim		@ribru17
 runtime/ftplugin/kotlin.vim		@udalov
 runtime/ftplugin/ldapconf.vim		@ribru17
+runtime/ftplugin/leo.vim		@ribru17
 runtime/ftplugin/less.vim		@genoma
 runtime/ftplugin/lex.vim		@ribru17
 runtime/ftplugin/liquid.vim		@tpope
@@ -215,6 +217,7 @@ runtime/ftplugin/meson.vim		@Liambeguin
 runtime/ftplugin/modula2.vim		@dkearns
 runtime/ftplugin/modula3.vim		@dkearns
 runtime/ftplugin/mojo.vim		@ribru17
+runtime/ftplugin/mss.vim		@Freed-Wu
 runtime/ftplugin/nginx.vim		@chr4
 runtime/ftplugin/nim.vim		@ribru17
 runtime/ftplugin/nroff.vim		@a-vrma
@@ -263,6 +266,7 @@ runtime/ftplugin/squirrel.vim		@ribru17
 runtime/ftplugin/ssa.vim		@ObserverOfTime
 runtime/ftplugin/sshdconfig.vim		@jiangyinzuo
 runtime/ftplugin/svelte.vim		@igorlfs
+runtime/ftplugin/sway.vim		@ribru17
 runtime/ftplugin/swayconfig.vim		@jamespeapen
 runtime/ftplugin/systemverilog.vim	@Kocha
 runtime/ftplugin/swig.vim		@jmarrec
@@ -513,6 +517,7 @@ runtime/syntax/modula2/opt/iso.vim	@trijezdci
 runtime/syntax/modula2/opt/pim.vim	@trijezdci
 runtime/syntax/modula2/opt/r10.vim	@trijezdci
 runtime/syntax/modula3.vim		@dkearns
+runtime/syntax/mss.vim		@Freed-Wu
 runtime/syntax/n1ql.vim			@pr3d4t0r
 runtime/syntax/nginx.vim		@chr4
 runtime/syntax/ninja.vim		@nico

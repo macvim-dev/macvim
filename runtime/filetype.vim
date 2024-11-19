@@ -1133,6 +1133,10 @@ au BufNewFile,BufRead indent.pro		call dist#ft#ProtoCheck('indent')
 " IDL (Interactive Data Language), Prolog, Cproto or zsh module C
 au BufNewFile,BufRead *.pro			call dist#ft#ProtoCheck('idlang')
 
+" Idris2
+au BufNewFile,BufRead *.idr			setf idris2
+au BufNewFile,BufRead *.lidr			setf lidris2
+
 " Indent RC
 au BufNewFile,BufRead indentrc			setf indent
 
@@ -1151,6 +1155,9 @@ au BufRead,BufNewFile usw2kagt.log\c,usw2kagt.*.log\c,*.usw2kagt.log\c	setf usw2
 
 " Ipfilter
 au BufNewFile,BufRead ipf.conf,ipf6.conf,ipf.rules	setf ipfilter
+
+" Ipkg for Idris 2 language
+au BufNewFile,BufRead *.ipkg			setf ipkg
 
 " Informix 4GL (source - canonical, include file, I4GL+M4 preproc.)
 au BufNewFile,BufRead *.4gl,*.4gh,*.m4gl	setf fgl
@@ -1325,6 +1332,9 @@ au BufRead,BufNewFile *.ldg,*.ledger,*.journal			setf ledger
 " lf configuration (lfrc)
 au BufNewFile,BufRead lfrc			setf lf
 
+" Leo
+au BufNewFile,BufRead *.leo			setf leo
+
 " Less
 au BufNewFile,BufRead *.less			setf less
 
@@ -1341,7 +1351,7 @@ au BufNewFile,BufRead */etc/sensors.conf,*/etc/sensors3.conf	setf sensors
 au BufNewFile,BufRead lftp.conf,.lftprc,*lftp/rc	setf lftp
 
 " Lifelines (or Lex for C++!)
-au BufNewFile,BufRead *.ll			setf lifelines
+au BufNewFile,BufRead *.ll			call dist#ft#FTll()
 
 " Lilo: Linux loader
 au BufNewFile,BufRead lilo.conf			setf lilo
@@ -1713,7 +1723,7 @@ au BufNewFile,BufRead *.scad				setf openscad
 " Oracle config file
 au BufNewFile,BufRead *.ora				setf ora
 
-" Org
+" Org (Emacs' org-mode)
 au BufNewFile,BufRead *.org,*.org_archive		setf org
 
 " Packet filter conf
@@ -2430,6 +2440,9 @@ au BufNewFile,BufRead *.sml			setf sml
 " Sratus VOS command macro
 au BufNewFile,BufRead *.cm			setf voscm
 
+" Sway (programming language)
+au BufNewFile,BufRead *.sw			setf sway
+
 " Swift
 au BufNewFile,BufRead *.swift,*.swiftinterface	setf swift
 au BufNewFile,BufRead *.swift.gyb		setf swiftgyb
@@ -2585,6 +2598,9 @@ au BufNewFile,BufReadPost *.tsscl		setf tsscl
 
 " TSV Files
 au BufNewFile,BufRead *.tsv			setf tsv
+
+" Tutor mode
+au BufNewFile,BufReadPost *.tutor		setf tutor
 
 " TWIG files
 au BufNewFile,BufReadPost *.twig		setf twig
@@ -2824,6 +2840,7 @@ au BufNewFile,BufRead */etc/xinetd.conf		setf xinetd
 " Xilinx Vivado/Vitis project files and block design files
 au BufNewFile,BufRead *.xpr,*.xpfm,*.spfm,*.bxml,*.mmi		setf xml
 au BufNewFile,BufRead *.bd,*.bda,*.xci				setf json
+au BufNewFile,BufRead *.mss					setf mss
 
 " XS Perl extension interface language
 au BufNewFile,BufRead *.xs			setf xs
@@ -2903,6 +2920,7 @@ au BufNewFile,BufRead *.y			call dist#ft#FTy()
 
 " Yaml
 au BufNewFile,BufRead *.yaml,*.yml,*.eyaml		setf yaml
+au BufNewFile,BufRead */.kube/config	setf yaml
 
 " Raml
 au BufNewFile,BufRead *.raml			setf raml

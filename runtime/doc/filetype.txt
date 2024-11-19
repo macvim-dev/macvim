@@ -1,4 +1,4 @@
-*filetype.txt*	For Vim version 9.1.  Last change: 2024 Oct 21
+*filetype.txt*	For Vim version 9.1.  Last change: 2024 Nov 14
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -667,6 +667,19 @@ HARE							*ft-hare*
 Since the text for this plugin is rather long it has been put in a separate
 file: |ft_hare.txt|.
 
+IDRIS2							*ft-idris2-plugin*
+
+By default the following options are set: >
+
+	setlocal shiftwidth=2 tabstop=2 expandtab
+	setlocal comments=s1:{-,mb:-,ex:-},:\|\|\|,:--
+	setlocal commentstring=--\ %s
+	setlocal wildignore+=*.ibc
+
+To use tabs instead of spaces for indentation, set the following variable
+in your vimrc: >
+
+	let g:idris2#allow_tabchar = 1
 
 JAVA							*ft-java-plugin*
 
@@ -830,6 +843,12 @@ To enable folding use this: >
 	let g:markdown_recommended_style = 0
 
 
+ORG							*ft-org-plugin*
+
+To enable folding use this: >
+	let g:org_folding = 1
+<
+
 PDF							*ft-pdf-plugin*
 
 Two maps, <C-]> and <C-T>, are provided to simulate a tag stack for navigating
@@ -946,8 +965,8 @@ To enable: >
 	let g:typst_folding = 1
 <
 							*g:typst_foldnested*
-When |TRUE| the Typst filetype plugin will fold nested heading under their parents
-(default: |TRUE|)
+When |TRUE| the Typst filetype plugin will fold nested heading under their
+parents. (default: |TRUE|)
 
 To disable: >
 	let g:typst_foldnested = 0

@@ -739,6 +739,7 @@ func Test_set_option_errors()
   call assert_fails('set backupcopy=', 'E474:')
   call assert_fails('set regexpengine=3', 'E474:')
   call assert_fails('set history=10001', 'E474:')
+  call assert_fails('set msghistory=10001', 'E474:')
   call assert_fails('set numberwidth=21', 'E474:')
   call assert_fails('set colorcolumn=-a', 'E474:')
   call assert_fails('set colorcolumn=a', 'E474:')
@@ -752,6 +753,7 @@ func Test_set_option_errors()
   endif
   call assert_fails('set helpheight=-1', 'E487:')
   call assert_fails('set history=-1', 'E487:')
+  call assert_fails('set msghistory=-1', 'E487:')
   call assert_fails('set report=-1', 'E487:')
   call assert_fails('set shiftwidth=-1', 'E487:')
   call assert_fails('set sidescroll=-1', 'E487:')
@@ -1582,7 +1584,7 @@ endfunc
 
 " Test for changing options in a sandbox
 func Test_opt_sandbox()
-  for opt in ['backupdir', 'cdpath', 'exrc', 'findexpr']
+  for opt in ['backupdir', 'cdpath', 'exrc', 'findfunc']
     call assert_fails('sandbox set ' .. opt .. '?', 'E48:')
     call assert_fails('sandbox let &' .. opt .. ' = 1', 'E48:')
   endfor

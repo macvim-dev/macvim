@@ -4354,6 +4354,43 @@ mch_get_shellsize(void)
     return OK;
 }
 
+/*
+ * Try to get the current terminal cell size.
+ * On failure, returns -1x-1
+ */
+    void
+mch_calc_cell_size(struct cellsize *cs_out)
+{
+   // get current tty size.
+   struct winsize ws;
+   int fd = 1;
+   int retval = -1;
+   retval = ioctl(fd, TIOCGWINSZ, &ws);
+
+#ifdef FEAT_EVAL
+   ch_log(NULL, "ioctl(TIOCGWINSZ) %s", retval == 0 ? "success" : "failed");
+#endif
+
+   if (retval == -1 || ws.ws_col == 0 || ws.ws_row == 0)
+   {
+       cs_out->cs_xpixel = -1;
+       cs_out->cs_ypixel = -1;
+       return;
+   }
+
+   // calculate parent tty's pixel per cell.
+   int x_cell_size = ws.ws_xpixel / ws.ws_col;
+   int y_cell_size = ws.ws_ypixel / ws.ws_row;
+
+   // calculate current tty's pixel
+   cs_out->cs_xpixel = x_cell_size;
+   cs_out->cs_ypixel = y_cell_size;
+
+#ifdef FEAT_EVAL
+   ch_log(NULL, "Got cell pixel size with TIOCGWINSZ: %d x %d", x_cell_size, y_cell_size);
+#endif
+}
+
 #if defined(FEAT_TERMINAL) || defined(PROTO)
 /*
  * Report the windows size "rows" and "cols" to tty "fd".
@@ -4373,8 +4410,23 @@ mch_report_winsize(int fd, int rows, int cols)
 
     ws.ws_col = cols;
     ws.ws_row = rows;
-    ws.ws_xpixel = cols * 5;
-    ws.ws_ypixel = rows * 10;
+
+    // calcurate and set tty pixel size
+    struct cellsize cs;
+    mch_calc_cell_size(&cs);
+
+    if (cs.cs_xpixel == -1)
+    {
+        // failed get pixel size.
+        ws.ws_xpixel = 0;
+        ws.ws_ypixel = 0;
+    }
+    else
+    {
+        ws.ws_xpixel = cols * cs.cs_xpixel;
+        ws.ws_ypixel = rows * cs.cs_ypixel;
+    }
+
     retval = ioctl(tty_fd, TIOCSWINSZ, &ws);
     ch_log(NULL, "ioctl(TIOCSWINSZ) %s", retval == 0 ? "success" : "failed");
 # elif defined(TIOCSSIZE)

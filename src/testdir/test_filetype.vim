@@ -359,12 +359,14 @@ def s:GetFilenameChecks(): dict<list<string>>
     ibasic: ['file.iba', 'file.ibi'],
     icemenu: ['/.icewm/menu', 'any/.icewm/menu'],
     icon: ['file.icn'],
+    idris2: ['file.idr'],
     indent: ['.indent.pro', 'indentrc'],
     inform: ['file.inf', 'file.INF'],
     initng: ['/etc/initng/any/file.i', 'file.ii', 'any/etc/initng/any/file.i'],
     inittab: ['inittab'],
     inko: ['file.inko'],
     ipfilter: ['ipf.conf', 'ipf6.conf', 'ipf.rules'],
+    ipkg: ['file.ipkg'],
     iss: ['file.iss'],
     ist: ['file.ist', 'file.mst'],
     j: ['file.ijs'],
@@ -408,12 +410,14 @@ def s:GetFilenameChecks(): dict<list<string>>
     ldif: ['file.ldif'],
     lean: ['file.lean'],
     ledger: ['file.ldg', 'file.ledger', 'file.journal'],
+    leo: ['file.leo'],
     less: ['file.less'],
     lex: ['file.lex', 'file.l', 'file.lxx', 'file.l++'],
     lf: ['lfrc'],
     lftp: ['lftp.conf', '.lftprc', 'anylftp/rc', 'lftp/rc', 'some-lftp/rc'],
     lhaskell: ['file.lhs'],
     libao: ['/etc/libao.conf', '/.libao', 'any/.libao', 'any/etc/libao.conf'],
+    lidris2: ['file.lidr'],
     lifelines: ['file.ll'],
     lilo: ['lilo.conf', 'lilo.conf-file'],
     lilypond: ['file.ly', 'file.ily'],
@@ -503,6 +507,7 @@ def s:GetFilenameChecks(): dict<list<string>>
     mplayerconf: ['mplayer.conf', '/.mplayer/config', 'any/.mplayer/config'],
     mrxvtrc: ['mrxvtrc', '.mrxvtrc'],
     msidl: ['file.odl', 'file.mof'],
+    mss: ['file.mss'],
     msql: ['file.msql'],
     mojo: ['file.mojo', 'file.🔥'],
     msmtp: ['.msmtprc'],
@@ -729,6 +734,7 @@ def s:GetFilenameChecks(): dict<list<string>>
     svelte: ['file.svelte'],
     svg: ['file.svg'],
     svn: ['svn-commitfile.tmp', 'svn-commit-file.tmp', 'svn-commit.tmp'],
+    sway: ['file.sw'],
     swayconfig: ['/home/user/.sway/config', '/home/user/.config/sway/config', '/etc/sway/config', '/etc/xdg/sway/config'],
     swift: ['file.swift', 'file.swiftinterface'],
     swiftgyb: ['file.swift.gyb'],
@@ -880,7 +886,8 @@ def s:GetFilenameChecks(): dict<list<string>>
     xsd: ['file.xsd'],
     xslt: ['file.xsl', 'file.xslt'],
     yacc: ['file.yy', 'file.yxx', 'file.y++'],
-    yaml: ['file.yaml', 'file.yml', 'file.eyaml', 'any/.bundle/config', '.clangd', '.clang-format', '.clang-tidy', 'file.mplstyle', 'matplotlibrc', 'yarn.lock'],
+    yaml: ['file.yaml', 'file.yml', 'file.eyaml', 'any/.bundle/config', '.clangd', '.clang-format', '.clang-tidy', 'file.mplstyle', 'matplotlibrc', 'yarn.lock',
+           '/home/user/.kube/config'],
     yang: ['file.yang'],
     yuck: ['file.yuck'],
     z8a: ['file.z8a'],
@@ -2440,6 +2447,24 @@ func Test_inc_file()
   filetype off
 endfunc
 
+func Test_ll_file()
+  filetype on
+
+  " LLVM IR
+  call writefile(['target triple = "nvptx64-nvidia-cuda"'], 'Xfile.ll', 'D')
+  split Xfile.ll
+  call assert_equal('llvm', &filetype)
+  bwipe!
+
+  " lifelines
+  call writefile(['proc main() {}'], 'Xfile.ll', 'D')
+  split Xfile.ll
+  call assert_equal('lifelines', &filetype)
+  bwipe!
+
+  filetype off
+endfunc
+
 func Test_lsl_file()
   filetype on
 
@@ -2714,6 +2739,16 @@ func Test_make_file()
   split XMakefile.mak
   call assert_equal(0, get(b:, 'make_microsoft', 0))
   bwipe!
+
+  filetype off
+endfunc
+
+func Test_org_file()
+  filetype on
+
+  call writefile(['* org Headline', '*some bold text*', '/some italic text/'], 'Xfile.org', 'D')
+  split Xfile.org
+  call assert_equal('org', &filetype)
 
   filetype off
 endfunc

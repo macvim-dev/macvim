@@ -76,6 +76,7 @@ DOCS = \
 	pi_paren.txt \
 	pi_spec.txt \
 	pi_tar.txt \
+	pi_tutor.txt \
 	pi_vimball.txt \
 	pi_zip.txt \
 	popup.txt \
@@ -230,6 +231,7 @@ HTMLS = \
 	pi_paren.html \
 	pi_spec.html \
 	pi_tar.html \
+	pi_tutor.html \
 	pi_vimball.html \
 	pi_zip.html \
 	popup.html \
