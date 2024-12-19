@@ -22,7 +22,7 @@ env:
 
   MAKE_BUILD_ARGS: LINK_AS_NEEDED=yes # In macOS we never over-specify link dependencies and we already check against external deps in smoketest. With LTO, linking takes a while, so we want to avoid using link.sh.
 
-  VERSIONER_PERL_VERSION: '5.30'  # macOS default Perl installation uses this to determine which one to use
+  VERSIONER_PERL_VERSION: '5.34'  # macOS default Perl installation uses this to determine which one to use
 
   vi_cv_path_python: /Library/Frameworks/Python.framework/Versions/2.7/bin/python
   vi_cv_path_python3: "%s/bin/python3"
@@ -53,27 +53,31 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Oldest version of Xcode supported on GitHub Action to test source code backwards compatibility
-          # This version of Xcode can run on macOS 11 where as 13.3 has to run on macOS 12.
-          - os: macos-12
-            xcode: '13.2.1'
-            extra: [vimtags, check-xcodeproj-compat]
-
-          # Older version of Xcode, and used to publish legacy builds (for macOS 10.9 - 10.12)
-          - os: macos-12
-            xcode: '14.0' # last version of Xcode that uses the macOS 12 SDK, which still supports deploying to macOS 10.9
-            publish: true
-            legacy: true
-            publish_postfix: '_10.9'
+#          # Oldest version of Xcode supported on GitHub Action to test source code backwards compatibility
+#          # This version of Xcode can run on macOS 11 where as 13.3 has to run on macOS 12.
+#          - os: macos-12
+#            xcode: '13.2.1'
+#            extra: [vimtags, check-xcodeproj-compat]
+#
+#          # Older version of Xcode, and used to publish legacy builds (for macOS 10.9 - 10.12)
+#          - os: macos-12
+#            xcode: '14.0' # last version of Xcode that uses the macOS 12 SDK, which still supports deploying to macOS 10.9
+#            publish: true
+#            legacy: true
+#            publish_postfix: '_10.9'
 
           - os: macos-13
             xcode: '15.2'
+            extra: [vimtags, check-xcodeproj-compat]
+
+          # Below runners use Apple Silicon.
+          - os: macos-14
+            xcode: '15.4'
             optimized: true
 
           # Most up to date OS and Xcode. Used to publish release for the main build.
-          # This runner uses Apple Silicon.
-          - os: macos-14
-            xcode: '15.2'
+          - os: macos-15
+            xcode: '16.2'
             publish: true
             optimized: true
 
