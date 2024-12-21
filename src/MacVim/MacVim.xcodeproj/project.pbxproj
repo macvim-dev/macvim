@@ -22,7 +22,6 @@
 		1D384A0E100D671700D3C22F /* KeyBinding.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1D384A0D100D671700D3C22F /* KeyBinding.plist */; };
 		1D44972211FCA9B400B0630F /* MMCoreTextView+ToolTip.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D44972111FCA9B400B0630F /* MMCoreTextView+ToolTip.m */; };
 		1D493D580C5247BF00AB718C /* Vim in Copy Executables */ = {isa = PBXBuildFile; fileRef = 1D493D570C5247BF00AB718C /* Vim */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		1D493DBA0C52534300AB718C /* PSMTabBarControl.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 1D493DB90C52533B00AB718C /* PSMTabBarControl.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		1D60088B0E96A0B2003763F0 /* MMFindReplaceController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D60088A0E96A0B2003763F0 /* MMFindReplaceController.m */; };
 		1D80591F0E1185EA001699D1 /* Miscellaneous.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D80591D0E1185EA001699D1 /* Miscellaneous.m */; };
 		1D80FBD40CBBD3B700102A1C /* MMFullScreenWindow.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D80FBD00CBBD3B700102A1C /* MMFullScreenWindow.m */; };
@@ -60,7 +59,6 @@
 		1DE8CC620C5E2AAD003F56E3 /* Actions.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1DE8CC610C5E2AAD003F56E3 /* Actions.plist */; };
 		1DE9B9500D341AB8008FEDD4 /* MMWindow.m in Sources */ = {isa = PBXBuildFile; fileRef = 1DE9B94E0D341AB8008FEDD4 /* MMWindow.m */; };
 		1DED78600C6DE43D0079945F /* vimrc in Copy default vimrc files */ = {isa = PBXBuildFile; fileRef = 1DED785F0C6DE43D0079945F /* vimrc */; };
-		1DFE25A50C527BC4003000F7 /* PSMTabBarControl.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1D493DB90C52533B00AB718C /* PSMTabBarControl.framework */; };
 		52818B031C1C08CE00F59085 /* QLStephen.qlgenerator in Copy QuickLookPlugin */ = {isa = PBXBuildFile; fileRef = 52818AFF1C1C075300F59085 /* QLStephen.qlgenerator */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		528DA66A1426D4F9003380F1 /* macvim-askpass in Copy Scripts */ = {isa = PBXBuildFile; fileRef = 528DA6691426D4EB003380F1 /* macvim-askpass */; };
 		52A364731C4A5789005757EC /* Sparkle.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 52A364721C4A5789005757EC /* Sparkle.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
@@ -77,23 +75,13 @@
 		90A33BEA28D563DF003A2E2F /* MMSparkle2Delegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 90A33BE928D563DF003A2E2F /* MMSparkle2Delegate.m */; };
 		90AF83AB2A8C37F70046DA2E /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 90AF83A92A8C37F70046DA2E /* Security.framework */; };
 		90B9877D2A579F9500FC95D6 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 90B9877B2A579F9500FC95D6 /* WebKit.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
+		925B55D5254B604A006B047E /* MMHoverButton.m in Sources */ = {isa = PBXBuildFile; fileRef = 925B55D1254B604A006B047E /* MMHoverButton.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
+		925B55D7254B61AC006B047E /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 925B55D6254B61AB006B047E /* QuartzCore.framework */; };
+		92C6F6E825587E1C007AE21E /* MMTab.m in Sources */ = {isa = PBXBuildFile; fileRef = 92C6F6E325587E1C007AE21E /* MMTab.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
+		92C6F6E925587E1C007AE21E /* MMTabline.m in Sources */ = {isa = PBXBuildFile; fileRef = 92C6F6E525587E1C007AE21E /* MMTabline.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		1D493DB80C52533B00AB718C /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 1D493DB30C52533B00AB718C /* PSMTabBarControl.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 53DF68FD067E5B5A0090B5B0;
-			remoteInfo = PSMTabBarControlFramework;
-		};
-		1D493DCC0C5254A400AB718C /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 1D493DB30C52533B00AB718C /* PSMTabBarControl.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = 53DF68FC067E5B5A0090B5B0;
-			remoteInfo = PSMTabBarControlFramework;
-		};
 		52818AFE1C1C075300F59085 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 52818AFA1C1C075300F59085 /* QuickLookStephen.xcodeproj */;
@@ -136,7 +124,6 @@
 			dstSubfolderSpec = 10;
 			files = (
 				52A364761C4A57C1005757EC /* Sparkle.framework in Copy Frameworks */,
-				1D493DBA0C52534300AB718C /* PSMTabBarControl.framework in Copy Frameworks */,
 			);
 			name = "Copy Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -203,7 +190,6 @@
 		1D384A0D100D671700D3C22F /* KeyBinding.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = KeyBinding.plist; sourceTree = "<group>"; };
 		1D44972111FCA9B400B0630F /* MMCoreTextView+ToolTip.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "MMCoreTextView+ToolTip.m"; sourceTree = "<group>"; };
 		1D493D570C5247BF00AB718C /* Vim */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = Vim; path = ../Vim; sourceTree = SOURCE_ROOT; };
-		1D493DB30C52533B00AB718C /* PSMTabBarControl.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = PSMTabBarControl.xcodeproj; path = PSMTabBarControl/PSMTabBarControl.xcodeproj; sourceTree = "<group>"; };
 		1D6008890E96A0B2003763F0 /* MMFindReplaceController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MMFindReplaceController.h; sourceTree = "<group>"; };
 		1D60088A0E96A0B2003763F0 /* MMFindReplaceController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MMFindReplaceController.m; sourceTree = "<group>"; };
 		1D80591D0E1185EA001699D1 /* Miscellaneous.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Miscellaneous.m; sourceTree = "<group>"; };
@@ -468,6 +454,13 @@
 		95241CF925749CC7001E3711 /* errors.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = errors.h; path = ../errors.h; sourceTree = "<group>"; };
 		95241CFA25749CC7001E3711 /* textobject.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = textobject.c; path = ../textobject.c; sourceTree = "<group>"; };
 		95241CFB25749D4A001E3711 /* os_macosx.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = os_macosx.m; path = ../os_macosx.m; sourceTree = "<group>"; };
+		925B55CD254B604A006B047E /* MMHoverButton.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MMHoverButton.h; sourceTree = "<group>"; };
+		925B55D1254B604A006B047E /* MMHoverButton.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MMHoverButton.m; sourceTree = "<group>"; };
+		925B55D6254B61AB006B047E /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
+		92C6F6E325587E1C007AE21E /* MMTab.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MMTab.m; sourceTree = "<group>"; };
+		92C6F6E525587E1C007AE21E /* MMTabline.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MMTabline.m; sourceTree = "<group>"; };
+		92C6F6E625587E1C007AE21E /* MMTabline.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MMTabline.h; sourceTree = "<group>"; };
+		92C6F6E725587E1C007AE21E /* MMTab.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MMTab.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -477,7 +470,7 @@
 			files = (
 				90AF83AB2A8C37F70046DA2E /* Security.framework in Frameworks */,
 				90B9877D2A579F9500FC95D6 /* WebKit.framework in Frameworks */,
-				1DFE25A50C527BC4003000F7 /* PSMTabBarControl.framework in Frameworks */,
+				925B55D7254B61AC006B047E /* QuartzCore.framework in Frameworks */,
 				8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */,
 				1D8B5A53104AF9FF002E59D5 /* Carbon.framework in Frameworks */,
 				52A364731C4A5789005757EC /* Sparkle.framework in Frameworks */,
@@ -499,6 +492,7 @@
 			children = (
 				9098943A2A56ECF6007B84A3 /* MMWhatsNewController.h */,
 				9098943B2A56ECF6007B84A3 /* MMWhatsNewController.m */,
+				925B55CB254B604A006B047E /* MMTabline */,
 				1D44972111FCA9B400B0630F /* MMCoreTextView+ToolTip.m */,
 				1D6008890E96A0B2003763F0 /* MMFindReplaceController.h */,
 				1D60088A0E96A0B2003763F0 /* MMFindReplaceController.m */,
@@ -581,14 +575,6 @@
 				1D493D570C5247BF00AB718C /* Vim */,
 			);
 			name = Executables;
-			sourceTree = "<group>";
-		};
-		1D493DB40C52533B00AB718C /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				1D493DB90C52533B00AB718C /* PSMTabBarControl.framework */,
-			);
-			name = Products;
 			sourceTree = "<group>";
 		};
 		1DE602460C587F760055263D /* Vim Resources */ = {
@@ -676,9 +662,9 @@
 			children = (
 				90AF83A92A8C37F70046DA2E /* Security.framework */,
 				90B9877B2A579F9500FC95D6 /* WebKit.framework */,
+				925B55D6254B61AB006B047E /* QuartzCore.framework */,
 				52A364721C4A5789005757EC /* Sparkle.framework */,
 				1D8B5A52104AF9FF002E59D5 /* Carbon.framework */,
-				1D493DB30C52533B00AB718C /* PSMTabBarControl.xcodeproj */,
 				1058C7A0FEA54F0111CA2CBB /* Linked Frameworks */,
 				1058C7A2FEA54F0111CA2CBB /* Other Frameworks */,
 			);
@@ -898,6 +884,19 @@
 			name = MacVim;
 			sourceTree = "<group>";
 		};
+		925B55CB254B604A006B047E /* MMTabline */ = {
+			isa = PBXGroup;
+			children = (
+				925B55CD254B604A006B047E /* MMHoverButton.h */,
+				925B55D1254B604A006B047E /* MMHoverButton.m */,
+				92C6F6E725587E1C007AE21E /* MMTab.h */,
+				92C6F6E325587E1C007AE21E /* MMTab.m */,
+				92C6F6E625587E1C007AE21E /* MMTabline.h */,
+				92C6F6E525587E1C007AE21E /* MMTabline.m */,
+			);
+			path = MMTabline;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -923,7 +922,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				1D493DCD0C5254A400AB718C /* PBXTargetDependency */,
 				52818B011C1C084100F59085 /* PBXTargetDependency */,
 			);
 			name = MacVim;
@@ -998,10 +996,6 @@
 			projectDirPath = "";
 			projectReferences = (
 				{
-					ProductGroup = 1D493DB40C52533B00AB718C /* Products */;
-					ProjectRef = 1D493DB30C52533B00AB718C /* PSMTabBarControl.xcodeproj */;
-				},
-				{
 					ProductGroup = 52818AFB1C1C075300F59085 /* Products */;
 					ProjectRef = 52818AFA1C1C075300F59085 /* QuickLookStephen.xcodeproj */;
 				},
@@ -1015,13 +1009,6 @@
 /* End PBXProject section */
 
 /* Begin PBXReferenceProxy section */
-		1D493DB90C52533B00AB718C /* PSMTabBarControl.framework */ = {
-			isa = PBXReferenceProxy;
-			fileType = wrapper.framework;
-			path = PSMTabBarControl.framework;
-			remoteRef = 1D493DB80C52533B00AB718C /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
 		52818AFF1C1C075300F59085 /* QLStephen.qlgenerator */ = {
 			isa = PBXReferenceProxy;
 			fileType = wrapper.cfbundle;
@@ -1215,6 +1202,7 @@
 			files = (
 				8D11072D0486CEB800E47090 /* main.m in Sources */,
 				1D1474980C56703C0038FA2B /* MacVim.m in Sources */,
+				925B55D5254B604A006B047E /* MMHoverButton.m in Sources */,
 				1D1474A00C5673AE0038FA2B /* MMAppController.m in Sources */,
 				1D1474AA0C5677450038FA2B /* MMTextStorage.m in Sources */,
 				1D1474B00C5678370038FA2B /* MMTextView.m in Sources */,
@@ -1233,7 +1221,9 @@
 				1D145C7F0E5227CE00691AA0 /* MMTextViewHelper.m in Sources */,
 				1D60088B0E96A0B2003763F0 /* MMFindReplaceController.m in Sources */,
 				1DE63FFB0E71820F00959BDB /* MMCoreTextView.m in Sources */,
+				92C6F6E825587E1C007AE21E /* MMTab.m in Sources */,
 				1D44972211FCA9B400B0630F /* MMCoreTextView+ToolTip.m in Sources */,
+				92C6F6E925587E1C007AE21E /* MMTabline.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1248,11 +1238,6 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		1D493DCD0C5254A400AB718C /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = PSMTabBarControlFramework;
-			targetProxy = 1D493DCC0C5254A400AB718C /* PBXContainerItemProxy */;
-		};
 		52818B011C1C084100F59085 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = QuickLookStephen;
