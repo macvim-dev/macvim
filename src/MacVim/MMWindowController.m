@@ -291,11 +291,6 @@
     return vimView;
 }
 
-- (NSWindow *)window
-{
-    return decoratedWindow;
-}
-
 - (NSString *)windowAutosaveKey
 {
     return windowAutosaveKey;

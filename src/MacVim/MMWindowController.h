@@ -58,7 +58,6 @@
 - (id)initWithVimController:(MMVimController *)controller;
 - (MMVimController *)vimController;
 - (MMVimView *)vimView;
-- (NSWindow *)window;
 - (NSString *)windowAutosaveKey;
 - (void)setWindowAutosaveKey:(NSString *)key;
 - (void)cleanup;
