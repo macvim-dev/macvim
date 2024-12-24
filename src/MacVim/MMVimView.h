@@ -28,7 +28,8 @@
 }
 
 @property BOOL pendingPlaceScrollbars;
-@property BOOL pendingLiveResize;
+@property BOOL pendingLiveResize; ///< An ongoing live resizing message to Vim is active
+@property BOOL pendingLiveResizeQueued; ///< A new size has been queued while an ongoing live resize is already active
 
 - (MMVimView *)initWithFrame:(NSRect)frame vimController:(MMVimController *)c;
 

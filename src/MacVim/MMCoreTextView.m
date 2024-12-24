@@ -309,6 +309,24 @@ static void grid_free(Grid *grid) {
     grid_resize(&grid, rows, cols);
     maxRows = rows;
     maxColumns = cols;
+    pendingMaxRows = rows;
+    pendingMaxColumns = cols;
+}
+
+- (int)pendingMaxRows
+{
+    return pendingMaxRows;
+}
+
+- (int)pendingMaxColumns
+{
+    return pendingMaxColumns;
+}
+
+- (void)setPendingMaxRows:(int)rows columns:(int)cols
+{
+    pendingMaxRows = rows;
+    pendingMaxColumns = cols;
 }
 
 - (void)setDefaultColorsBackground:(NSColor *)bgColor

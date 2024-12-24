@@ -40,6 +40,16 @@
 }
 @end
 
+static BOOL forceInLiveResize = NO;
+@implementation MMVimView (testWindowResize)
+- (BOOL)inLiveResize {
+    // Mock NSView's inLiveResize functionality
+    if (forceInLiveResize)
+        return YES;
+    return [super inLiveResize];
+}
+@end
+
 @interface MacVimTests : XCTestCase
 
 @end
@@ -577,6 +587,146 @@ do { \
 
     // Restore settings to test defaults
     [ud setVolatileDomain:defaults forName:NSArgumentDomain];
+
+    // Clean up
+    [[app keyVimController] sendMessage:VimShouldCloseMsgID data:nil];
+    [self waitForVimClose];
+}
+
+/// Test resizing the MacVim window properly resizes Vim
+- (void) testWindowResize {
+    MMAppController *app = MMAppController.sharedInstance;
+
+    [app openNewWindow:NewWindowClean activate:YES];
+    [self waitForVimOpenAndMessages];
+
+    NSWindow *win = [[[app keyVimController] windowController] window];
+    MMVimView *vimView = [[[app keyVimController] windowController] vimView];
+    MMTextView *textView = [[[[app keyVimController] windowController] vimView] textView];
+
+    // Set a default 30,80 base size for the entire test
+    [self sendStringToVim:@":set lines=30 columns=80\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    XCTAssertEqual(30, textView.maxRows);
+    XCTAssertEqual(80, textView.maxColumns);
+
+    const NSRect winFrame = win.frame;
+
+    {
+        // Test basic resizing functionality. Make sure text view is updated properly
+        NSRect newFrame = winFrame;
+        newFrame.size.width -= textView.cellSize.width;
+        newFrame.size.height -= textView.cellSize.height;
+
+        [win setFrame:newFrame display:YES];
+        XCTAssertEqual(30, textView.maxRows);
+        XCTAssertEqual(80, textView.maxColumns);
+        [self waitForVimProcess];
+        XCTAssertEqual(29, textView.maxRows);
+        XCTAssertEqual(79, textView.maxColumns);
+
+        [win setFrame:winFrame display:YES];
+        [self waitForVimProcess];
+        XCTAssertEqual(30, textView.maxRows);
+        XCTAssertEqual(80, textView.maxColumns);
+    }
+
+    {
+        // Test rapid resizing where we resize faster than Vim can handle. We
+        // should be updating a pending size indicating what we expect Vim's
+        // size should be and use that as the cache. Previously we had a bug
+        // we we used the outdated size as cache instead leading to rapid
+        // resizing sometimes leading to stale sizes.
+
+        // This kind of situation coudl occur if say Vim is stalled for a bit
+        // and we resized the window multiple times. We don't rate limit unlike
+        // live resizing since usually it's not needed.
+        NSRect newFrame = winFrame;
+        newFrame.size.width -= textView.cellSize.width;
+        newFrame.size.height -= textView.cellSize.height;
+
+        [win setFrame:newFrame display:YES];
+        XCTAssertEqual(30, textView.maxRows);
+        XCTAssertEqual(80, textView.maxColumns);
+        XCTAssertEqual(29, textView.pendingMaxRows);
+        XCTAssertEqual(79, textView.pendingMaxColumns);
+
+        [win setFrame:winFrame display:YES];
+        XCTAssertEqual(30, textView.maxRows);
+        XCTAssertEqual(80, textView.maxColumns);
+        XCTAssertEqual(30, textView.pendingMaxRows);
+        XCTAssertEqual(80, textView.pendingMaxColumns);
+
+        [self waitForVimProcess];
+        XCTAssertEqual(30, textView.maxRows);
+        XCTAssertEqual(80, textView.maxColumns);
+    }
+
+    {
+        // Test rapid resizing again, but this time we don't resize back to the
+        // original size, but instead incremented multiple times. Just to make
+        // sure we actually get set to the final size.
+        NSRect newFrame = winFrame;
+        for (int i = 0; i < 5; i++) {
+            newFrame.size.width += textView.cellSize.width;
+            newFrame.size.height += textView.cellSize.height;
+            [win setFrame:newFrame display:YES];
+        }
+        XCTAssertEqual(30, textView.maxRows);
+        XCTAssertEqual(80, textView.maxColumns);
+        XCTAssertEqual(35, textView.pendingMaxRows);
+        XCTAssertEqual(85, textView.pendingMaxColumns);
+
+        [self waitForVimProcess];
+        XCTAssertEqual(35, textView.maxRows);
+        XCTAssertEqual(85, textView.maxColumns);
+
+        [win setFrame:winFrame display:YES]; // reset back to original size
+        [self waitForVimProcess];
+        XCTAssertEqual(30, textView.maxRows);
+        XCTAssertEqual(80, textView.maxColumns);
+    }
+
+    {
+        // Test live resizing (e.g. when user drags the window edge to resize).
+        // We rate limit the number of messages we send to Vim so if there are
+        // multiple resize events they will be sequenced to avoid overloading Vim.
+        forceInLiveResize = YES; // simulate live resizing which can only be initiated by a user
+        [vimView viewWillStartLiveResize];
+
+        NSRect newFrame = winFrame;
+        for (int i = 0; i < 5; i++) {
+            newFrame.size.width += textView.cellSize.width;
+            newFrame.size.height += textView.cellSize.height;
+            [win setFrame:newFrame display:YES];
+        }
+
+        // The first time Vim processes this it should have only received the first message
+        // due to rate limiting.
+        XCTAssertEqual(30, textView.maxRows);
+        XCTAssertEqual(80, textView.maxColumns);
+        XCTAssertEqual(31, textView.pendingMaxRows);
+        XCTAssertEqual(81, textView.pendingMaxColumns);
+
+        // After Vim has processed the messages it should now have the final size
+        [self waitForVimProcess]; // first wait for Vim to respond it processed the first message, where we send off the second one
+        [self waitForVimProcess]; // Vim should now have processed the last message
+        XCTAssertEqual(35, textView.maxRows);
+        XCTAssertEqual(85, textView.maxColumns);
+        XCTAssertEqual(35, textView.pendingMaxRows);
+        XCTAssertEqual(85, textView.pendingMaxColumns);
+
+        forceInLiveResize = NO;
+        [vimView viewDidEndLiveResize];
+        [self waitForVimProcess];
+        XCTAssertEqual(35, textView.maxRows);
+        XCTAssertEqual(85, textView.maxColumns);
+
+        [win setFrame:winFrame display:YES]; // reset back to original size
+        [self waitForEventHandlingAndVimProcess];
+        XCTAssertEqual(30, textView.maxRows);
+        XCTAssertEqual(80, textView.maxColumns);
+    }
 
     // Clean up
     [[app keyVimController] sendMessage:VimShouldCloseMsgID data:nil];

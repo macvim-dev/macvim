@@ -953,19 +953,23 @@ enum {
     [textView constrainRows:&constrained[0] columns:&constrained[1]
                      toSize:textViewSize];
 
-    int rows, cols;
-    [textView getMaxRows:&rows columns:&cols];
-
-    if (constrained[0] != rows || constrained[1] != cols) {
+    if (constrained[0] != textView.pendingMaxRows || constrained[1] != textView.pendingMaxColumns) {
         NSData *data = [NSData dataWithBytes:constrained length:2*sizeof(int)];
         int msgid = [self inLiveResize] ? LiveResizeMsgID
                                         : (keepGUISize ? SetTextDimensionsNoResizeWindowMsgID : SetTextDimensionsMsgID);
 
         ASLogDebug(@"Notify Vim that text dimensions changed from %dx%d to "
-                   "%dx%d (%s)", cols, rows, constrained[1], constrained[0],
+                   "%dx%d (%s)", textView.pendingMaxColumns, textView.pendingMaxRows, constrained[1], constrained[0],
                    MMVimMsgIDStrings[msgid]);
 
-        if (msgid != LiveResizeMsgID || !self.pendingLiveResize) {
+        if (msgid == LiveResizeMsgID && self.pendingLiveResize) {
+            // We are currently live resizing and there's already an ongoing
+            // resize message that we haven't finished handling yet. Wait until
+            // we are done with that since we don't want to overload Vim with
+            // messages.
+            self.pendingLiveResizeQueued = YES;
+        }
+        else {
             // Live resize messages can be sent really rapidly, especailly if
             // it's from double clicking the window border (to indicate filling
             // all the way to that side to the window manager). We want to rate
@@ -975,6 +979,13 @@ enum {
             // is already going on. liveResizeDidEnd: will perform a final clean
             // up resizing.
             self.pendingLiveResize = (msgid == LiveResizeMsgID);
+
+            // Cache the new pending size so we can use it to prevent resizing Vim again
+            // if we haven't changed the row/col count later. We don't want to
+            // immediately resize the textView (hence it's "pending") as we only
+            // do that when Vim has acknoledged the message and draws. This leads
+            // to a stable drawing.
+            [textView setPendingMaxRows:constrained[0] columns:constrained[1]];
 
             [vimController sendMessageNow:msgid data:data timeout:1];
         }
