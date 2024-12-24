@@ -23,3 +23,7 @@ trim_trailing_whitespace = false
 [runtime/doc/**.txt]
 # It can mess up some documentation by trying to strip trailing whitespaces
 trim_trailing_whitespace = false
+
+[src/MacVim/**]
+indent_style = space
+indent_size = 4
