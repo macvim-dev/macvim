@@ -401,7 +401,25 @@
 
 - (void)setMaxRows:(int)rows columns:(int)cols
 {
+    pendingMaxRows = rows;
+    pendingMaxColumns = cols;
     return [(MMTextStorage*)[self textStorage] setMaxRows:rows columns:cols];
+}
+
+- (int)pendingMaxRows
+{
+    return pendingMaxRows;
+}
+
+- (int)pendingMaxColumns
+{
+    return pendingMaxColumns;
+}
+
+- (void)setPendingMaxRows:(int)rows columns:(int)cols
+{
+    pendingMaxRows = rows;
+    pendingMaxColumns = cols;
 }
 
 - (NSRect)rectForRowsInRange:(NSRange)range

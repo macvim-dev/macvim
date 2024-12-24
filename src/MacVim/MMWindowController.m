@@ -418,7 +418,22 @@
     // user drags to resize the window.
 
     [vimView setDesiredRows:rows columns:cols];
+
     vimView.pendingLiveResize = NO;
+    if (vimView.pendingLiveResizeQueued) {
+        // There was already a new size queued while Vim was still processing
+        // the last one. We need to immediately request another resize now that
+        // Vim was done with the last message.
+        //
+        // This could happen if we are in the middle of rapid resize (e.g.
+        // double-clicking on the border/corner of window), as we would fire
+        // off a lot of LiveResizeMsgID messages where some will be
+        // intentionally omitted to avoid swamping IPC as we rate limit it to
+        // only one outstanding resize message at a time
+        // inframeSizeMayHaveChanged:.
+        vimView.pendingLiveResizeQueued = NO;
+        [self resizeView];
+    }
 
     if (setupDone && !live && !keepGUISize) {
         shouldResizeVimView = YES;
@@ -931,12 +946,15 @@
         [decoratedWindow setTitle:lastSetTitle];
     }
 
-    // If we are in the middle of rapid resize (e.g. double-clicking on the border/corner
-    // of window), we would fire off a lot of LiveResizeMsgID messages where some will be
-    // intentionally omitted to avoid swamping IPC. If that happens this will perform a
-    // final clean up that makes sure the Vim view is sized correctly within the window.
-    // See frameSizeMayHaveChanged: for where the omission/rate limiting happens.
-    [self resizeView];
+    if (vimView.pendingLiveResizeQueued) {
+        // Similar to setTextDimensionsWithRows:, if there's still outstanding
+        // resize message queued, we just immediately flush it here to make
+        // sure Vim will get the most up-to-date size here when we are done
+        // with live resizing to make sure we don't havae any stale sizes due
+        // to rate limiting of IPC messages during live resizing..
+        vimView.pendingLiveResizeQueued = NO;
+        [self resizeView];
+    }
 }
 
 - (void)setBlurRadius:(int)radius

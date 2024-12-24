@@ -48,6 +48,7 @@ NS_ASSUME_NONNULL_BEGIN
 {
     // From MMTextStorage
     int                         maxRows, maxColumns;
+    int                         pendingMaxRows, pendingMaxColumns;
     NSColor                     *defaultBackgroundColor;
     NSColor                     *defaultForegroundColor;
     NSSize                      cellSize;
@@ -112,6 +113,9 @@ NS_ASSUME_NONNULL_BEGIN
 - (int)maxColumns;
 - (void)getMaxRows:(int*)rows columns:(int*)cols;
 - (void)setMaxRows:(int)rows columns:(int)cols;
+- (int)pendingMaxRows;
+- (int)pendingMaxColumns;
+- (void)setPendingMaxRows:(int)rows columns:(int)cols;
 - (void)setDefaultColorsBackground:(NSColor *)bgColor
                         foreground:(NSColor *)fgColor;
 - (NSColor *)defaultBackgroundColor;

@@ -25,6 +25,9 @@
     NSRect              *invertRects;
     int                 numInvertRects;
 
+    int                 pendingMaxRows;
+    int                 pendingMaxColumns;
+
     MMTextViewHelper    *helper;
 }
 
@@ -57,6 +60,9 @@
 - (int)maxColumns;
 - (void)getMaxRows:(int*)rows columns:(int*)cols;
 - (void)setMaxRows:(int)rows columns:(int)cols;
+- (int)pendingMaxRows;
+- (int)pendingMaxColumns;
+- (void)setPendingMaxRows:(int)rows columns:(int)cols;
 - (NSRect)rectForRowsInRange:(NSRange)range;
 - (NSRect)rectForColumnsInRange:(NSRange)range;
 - (void)setDefaultColorsBackground:(NSColor *)bgColor
