@@ -5655,9 +5655,9 @@ MMRendererClipToRow	gui_mac.txt	/*MMRendererClipToRow*
 MMScrollOneDirectionOnly	gui_mac.txt	/*MMScrollOneDirectionOnly*
 MMShareFindPboard	gui_mac.txt	/*MMShareFindPboard*
 MMShowAddTabButton	gui_mac.txt	/*MMShowAddTabButton*
+MMShowTabScrollButtons	gui_mac.txt	/*MMShowTabScrollButtons*
 MMShowWhatsNewOnStartup	gui_mac.txt	/*MMShowWhatsNewOnStartup*
 MMSmoothResize	gui_mac.txt	/*MMSmoothResize*
-MMTabMaxWidth	gui_mac.txt	/*MMTabMaxWidth*
 MMTabMinWidth	gui_mac.txt	/*MMTabMinWidth*
 MMTabOptimumWidth	gui_mac.txt	/*MMTabOptimumWidth*
 MMTextInsetBottom	gui_mac.txt	/*MMTextInsetBottom*
