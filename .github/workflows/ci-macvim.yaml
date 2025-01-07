@@ -207,6 +207,7 @@ jobs:
           else
             CONFOPT+=(
               --disable-sparkle       # Disable Sparkle for testing that this flag builds and works
+              --enable-nls=no --enable-libsodium=no # Disable gettext and libsodium unless we built them ourselves for publish
             )
           fi
           if ${{ matrix.legacy == true }}; then
@@ -353,6 +354,10 @@ jobs:
         timeout-minutes: 10
         run: |
           make ${MAKE_BUILD_ARGS} -C src macvim-tests
+
+      - name: Upload failed MacVim test results
+        if: ${{ !cancelled() && failure() }}
+        uses: ./.github/actions/test_macvim_artifacts
 
       - name: Build Vim test binaries
         run: |
