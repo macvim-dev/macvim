@@ -895,6 +895,9 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
         if (fh < 1.0f) fh = 1.0f;
 
         fitRows = floor(size.height/fh);
+        // Sanity checking in case unusual window sizes lead to degenerate results
+        if (fitRows < 1)
+            fitRows = 1;
         fitSize.height = fh*fitRows;
     }
 
@@ -903,6 +906,9 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
         if (fw < 1.0f) fw = 1.0f;
 
         fitCols = floor(size.width/fw);
+        // Sanity checking in case unusual window sizes lead to degenerate results
+        if (fitCols < 1)
+            fitCols = 1;
         fitSize.width = fw*fitCols;
     }
 

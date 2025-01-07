@@ -831,7 +831,7 @@ static void grid_free(Grid *grid) {
 
     // Function to draw all rows
     void (^drawAllRows)(void (^)(CGContextRef,CGRect,int)) = ^(void (^drawFunc)(CGContextRef,CGRect,int)){
-        for (size_t r = 0; r < grid.rows; r++) {
+        for (int r = 0; r < grid.rows; r++) {
             const CGRect rowRect = [self rectForRow:(int)r
                                              column:0
                                             numRows:1
@@ -1276,6 +1276,9 @@ static void grid_free(Grid *grid) {
         if (fh < 1.0f) fh = 1.0f;
 
         desiredRows = floor((size.height - ih)/fh);
+        // Sanity checking in case unusual window sizes lead to degenerate results
+        if (desiredRows < 1)
+            desiredRows = 1;
         desiredSize.height = fh*desiredRows + ih;
     }
 
@@ -1285,6 +1288,9 @@ static void grid_free(Grid *grid) {
         if (fw < 1.0f) fw = 1.0f;
 
         desiredCols = floor((size.width - iw)/fw);
+        // Sanity checking in case unusual window sizes lead to degenerate results
+        if (desiredCols < 1)
+            desiredCols = 1;
         desiredSize.width = fw*desiredCols + iw;
     }
 
