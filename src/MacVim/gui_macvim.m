@@ -633,6 +633,14 @@ gui_mch_new_colors(void)
 
     ASLogDebug(@"back=%ld norm=%ld", gui.def_back_pixel, gui.def_norm_pixel);
 
+    // If using a highlight group for fullscreen background color we need to
+    // update the app when a new color scheme has been picked. This function
+    // technically wouldn't be called if a user manually set the relevant
+    // highlight group to another color but works in most use cases when they
+    // just change the color scheme.
+    if (fuoptions_flags & FUOPT_BGCOLOR_HLGROUP)
+        gui_mch_fuopt_update();
+
     [[MMBackend sharedInstance]
         setDefaultColorsBackground:gui.def_back_pixel
                         foreground:gui.def_norm_pixel];

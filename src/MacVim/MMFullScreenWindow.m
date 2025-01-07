@@ -136,6 +136,15 @@ enum {
 {
     ASLogDebug(@"Enter full-screen now");
 
+    // Detach the window delegate right now to prevent any stray window
+    // messages (e.g. it may get resized when setting presentationOptions
+    // below) being sent to the window controller while we are in the middle of
+    // setting up the full screen window.
+    NSWindowController *winController = [target windowController];
+    id delegate = [target delegate];
+    [winController setWindow:nil];
+    [target setDelegate:nil];
+
     // Hide Dock and menu bar when going to full screen. Only do so if the current screen
     // has a menu bar and dock.
     if ([self screenHasDockAndMenu]) {
@@ -162,13 +171,6 @@ enum {
     // this call so set the frame again just in case.
     [self setFrame:[[target screen] frame] display:NO];
 
-    // fool delegate
-    id delegate = [target delegate];
-    [target setDelegate:nil];
-    
-    // make target's window controller believe that it's now controlling us
-    [[target windowController] setWindow:self];
-
     oldTabBarStyle = [[view tabBarControl] styleName];
 
     NSString *style =
@@ -181,7 +183,7 @@ enum {
     [view removeFromSuperviewWithoutNeedingDisplay];
     [[self contentView] addSubview:view];
     [self setInitialFirstResponder:[view textView]];
-    
+
     // NOTE: Calling setTitle:nil causes an exception to be raised (and it is
     // possible that 'target' has no title when we get here).
     if ([target title]) {
@@ -196,8 +198,10 @@ enum {
 
     [self setOpaque:[target isOpaque]];
 
+    // reassign target's window controller to believe that it's now controlling us
     // don't set this sooner, so we don't get an additional
-    // focus gained message  
+    // focus gained message
+    [winController setWindow:self];
     [self setDelegate:delegate];
 
     // Store view dimension used before entering full-screen, then resize the
