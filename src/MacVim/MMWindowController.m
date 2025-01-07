@@ -699,25 +699,32 @@
         // window, so we need to set a transparency color here to make the
         // transparency show through.
         if ([back alphaComponent] == 1) {
-            // Here, any solid color would do, but setting it with "back" has an
-            // interesting effect where the title bar gets subtly tinted by it
-            // as well, so do that. (Note that this won't play well in <=10.12
-            // since we are using the deprecated
-            // NSWindowStyleMaskTexturedBackground which makes the titlebars
-            // transparent in those. Consider not using textured background.)
+            // The window's background color affects the title bar tint and
+            // if we are using a transparent title bar this color will show
+            // up as well.
+            // (Note that this won't play well in <=10.12 since we are using
+            // the deprecated NSWindowStyleMaskTexturedBackground which makes
+            // the titlebars transparent in those. Consider not using textured
+            // background.)
             [decoratedWindow setBackgroundColor:back];
+
+            // Note: We leave the full screen window's background color alone
+            // because it is affected by 'fuoptions' instead. We just change the
+            // alpha back to 1 in case it was changed previously because transparency
+            // was set.
             if (fullScreenWindow) {
-                [fullScreenWindow setBackgroundColor:back];
+                [fullScreenWindow setBackgroundColor:
+                 [fullScreenWindow.backgroundColor colorWithAlphaComponent:1]];
             }
         } else {
             // HACK! We really want a transparent background color to avoid
             // double blending the transparency, but setting alpha=0 leads to
             // the window border disappearing and also drag-to-resize becomes a
             // lot slower. So hack around it by making it virtually transparent.
-            NSColor *clearColor = [back colorWithAlphaComponent:0.001];
-            [decoratedWindow setBackgroundColor:clearColor];
+            [decoratedWindow setBackgroundColor:[back colorWithAlphaComponent:0.001]];
             if (fullScreenWindow) {
-                [fullScreenWindow setBackgroundColor:clearColor];
+                [fullScreenWindow setBackgroundColor:
+                 [fullScreenWindow.backgroundColor colorWithAlphaComponent:0.001]];
             }
         }
     }
@@ -1046,9 +1053,17 @@
     }
 }
 
+/// Called when the window is in non-native full-screen mode and the user has
+/// updated the background color.
 - (void)setFullScreenBackgroundColor:(NSColor *)back
 {
     if (fullScreenWindow)
+        // See setDefaultColorsBackground: for why set a transparent
+        // background color, and why 0.001 instead of 0.
+        if ([back alphaComponent] != 1) {
+            back = [back colorWithAlphaComponent:0.001];
+        }
+
         [fullScreenWindow setBackgroundColor:back];
 }
 

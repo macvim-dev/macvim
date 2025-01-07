@@ -1129,7 +1129,7 @@ static BOOL isUnsafeMessage(int msgid);
         case SetFullScreenColorMsgID:
         {
             const int *bg = (const int*)[data bytes];
-            NSColor *color = [NSColor colorWithRgbInt:*bg];
+            NSColor *color = [NSColor colorWithArgbInt:*bg];
 
             [windowController setFullScreenBackgroundColor:color];
         }

@@ -1188,7 +1188,7 @@ static struct specialkey
 - (void)setFullScreenBackgroundColor:(int)color
 {
     NSMutableData *data = [NSMutableData data];
-    color = MM_COLOR(color);
+    color = MM_COLOR_WITH_TRANSP(color,p_transp);
     [data appendBytes:&color length:sizeof(int)];
 
     [self queueMessage:SetFullScreenColorMsgID data:data];

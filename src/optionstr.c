@@ -4839,16 +4839,16 @@ check_fuoptions(void)
 		return FAIL;
 	    if (p[i] == '#')
 	    {
-		// explicit color (#aarrggbb)
+		// explicit color (#aarrggbb or #rrggbb)
 		i++;
 		for (j = i; j < i + 8 && vim_isxdigit(p[j]); ++j)
 		    ;
-		if (j < i + 8)
-		    return FAIL;    // less than 8 digits
+		if (j != (i + 8) && j != (i + 6))
+		    return FAIL; // has to be either 6 or 8 digits
 		if (p[j] != NUL && p[j] != ',')
 		    return FAIL;
 		new_fuoptions_bgcolor = 0;
-		for (k = 0; k < 8; ++k)
+		for (k = 0; k < (j - i); ++k)
 		    new_fuoptions_bgcolor = new_fuoptions_bgcolor * 16
 							   + hex2nr(p[i + k]);
 		i = j;

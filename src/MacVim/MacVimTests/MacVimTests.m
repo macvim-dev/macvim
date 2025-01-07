@@ -737,6 +737,8 @@ do { \
     [self waitForVimClose];
 }
 
+#pragma mark Full screen tests
+
 - (void)waitForNativeFullscreenEnter {
     XCTestExpectation *expectation = [self expectationWithDescription:@"NativeFullscreenEnter"];
 
@@ -860,6 +862,116 @@ do { \
 
 - (void) testFullScreenNative {
     [self fullScreenTestWithNative:YES];
+}
+
+- (void) testFullScreenNonNativeOptions {
+    MMAppController *app = MMAppController.sharedInstance;
+
+    // Cache test defaults
+    NSUserDefaults *ud = NSUserDefaults.standardUserDefaults;
+    NSDictionary<NSString *, id> *defaults = [ud volatileDomainForName:NSArgumentDomain];
+    NSMutableDictionary<NSString *, id> *newDefaults = [defaults mutableCopy];
+
+    // Change native full screen setting
+    newDefaults[MMNativeFullScreenKey] = @NO;
+    [ud setVolatileDomain:newDefaults forName:NSArgumentDomain];
+
+    [app openNewWindow:NewWindowClean activate:YES];
+    [self waitForVimOpenAndMessages];
+
+    MMWindowController *winController = app.keyVimController.windowController;
+    MMTextView *textView = [[winController vimView] textView];
+
+    // Test maxvert/maxhorz
+    [self sendStringToVim:@":set lines=10\n" withMods:0];
+    [self sendStringToVim:@":set columns=30\n" withMods:0];
+    [self sendStringToVim:@":set fuoptions=\n" withMods:0];
+    [self waitForVimProcess];
+
+    [self sendStringToVim:@":set fu\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    [self waitForEventHandlingAndVimProcess];
+    XCTAssertEqual(textView.maxRows, 10);
+    XCTAssertEqual(textView.maxColumns, 30);
+    [self sendStringToVim:@":set nofu\n" withMods:0];
+    [self sendStringToVim:@":set fuoptions=maxvert\n" withMods:0];
+    [self sendStringToVim:@":set fu\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    [self waitForEventHandlingAndVimProcess];
+    XCTAssertGreaterThan(textView.maxRows, 10);
+    XCTAssertEqual(textView.maxColumns, 30);
+    [self sendStringToVim:@":set nofu\n" withMods:0];
+    [self sendStringToVim:@":set fuoptions=maxhorz\n" withMods:0];
+    [self sendStringToVim:@":set fu\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    [self waitForEventHandlingAndVimProcess];
+    XCTAssertEqual(textView.maxRows, 10);
+    XCTAssertGreaterThan(textView.maxColumns, 30);
+    [self sendStringToVim:@":set nofu\n" withMods:0];
+    [self sendStringToVim:@":set fuoptions=maxhorz,maxvert\n" withMods:0];
+    [self sendStringToVim:@":set fu\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    [self waitForEventHandlingAndVimProcess];
+    XCTAssertGreaterThan(textView.maxRows, 10);
+    XCTAssertGreaterThan(textView.maxColumns, 30);
+
+    // Test background color
+    XCTAssertEqualObjects(winController.window.backgroundColor, [NSColor colorWithArgbInt:0xff000000]); // default is black
+
+    // Make sure changing colorscheme doesn't override the background color unlike in non-full screen mode
+    [self sendStringToVim:@":color desert\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    XCTAssertEqualObjects(winController.window.backgroundColor, [NSColor colorWithArgbInt:0xff000000]);
+
+    // Changing fuoptions should update the background color immediately
+    [self sendStringToVim:@":set fuoptions=background:Normal\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    XCTAssertEqualObjects(winController.window.backgroundColor, [NSColor colorWithArgbInt:0xff333333]);
+
+    // And switching colorscheme should also update the color as well
+    [self sendStringToVim:@":color blue\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    XCTAssertEqualObjects(winController.window.backgroundColor, [NSColor colorWithArgbInt:0xff000087]);
+
+    // Test parsing manual colors in both 8-digit mode (alpha is ignored) and 6-digit mode
+    [self sendStringToVim:@":set fuoptions=background:#11234567\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    XCTAssertEqualObjects(winController.window.backgroundColor, [NSColor colorWithArgbInt:0xff234567]);
+    [self sendStringToVim:@":set fuoptions=background:#abcdef\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    XCTAssertEqualObjects(winController.window.backgroundColor, [NSColor colorWithArgbInt:0xffabcdef]);
+
+    // Test setting transparency while in full screen. We always set the alpha of the background color to 0.001 when transparency is set.
+    [self sendStringToVim:@":set fuoptions=background:#ffff00\n:set transparency=50\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    XCTAssertEqualObjects(winController.window.backgroundColor, [NSColor colorWithRed:1 green:1 blue:0 alpha:0.001]);
+
+    [self sendStringToVim:@":set fuoptions=background:#00ff00\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    XCTAssertEqualObjects(winController.window.backgroundColor, [NSColor colorWithRed:0 green:1 blue:0 alpha:0.001]);
+
+    [self sendStringToVim:@":set transparency=0\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    XCTAssertEqualObjects(winController.window.backgroundColor, [NSColor colorWithRed:0 green:1 blue:0 alpha:1]);
+
+    // Test setting transparency outside of full screen and make sure it still works
+    [self sendStringToVim:@":set nofu\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    [self waitForEventHandlingAndVimProcess];
+    [self sendStringToVim:@":set transparency=50 fuoptions=background:#0000ff\n" withMods:0];
+    [self sendStringToVim:@":set fu\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    [self waitForEventHandlingAndVimProcess];
+    XCTAssertEqualObjects(winController.window.backgroundColor, [NSColor colorWithRed:0 green:0 blue:1 alpha:0.001]);
+
+    // Clean up
+    [[app keyVimController] sendMessage:VimShouldCloseMsgID data:nil];
+    [self waitForVimClose];
+
+    XCTAssertEqual(0, [app vimControllers].count);
+
+    // Restore settings to test defaults
+    [ud setVolatileDomain:defaults forName:NSArgumentDomain];
 }
 
 @end
