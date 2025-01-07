@@ -1,9 +1,11 @@
 Vim - the text editor - for macOS
 
 
-- MacVim homepage https://macvim-dev.github.io/macvim
+- MacVim homepage: <https://macvim-dev.github.io/macvim>
 
-- Download the latest version from [Releases](https://github.com/macvim-dev/macvim/releases/latest).
+- Download the latest version from [Releases](https://github.com/macvim-dev/macvim/releases/latest)
+
+- How to [build MacVim from source](https://github.com/macvim-dev/macvim/wiki/Building)
 
 - Vim README: [README_vim.md](README_vim.md)
 
