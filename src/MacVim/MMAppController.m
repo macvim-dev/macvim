@@ -1298,6 +1298,28 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     return YES;
 }
 
+- (void)openNewWindow:(enum NewWindowMode)mode activate:(BOOL)activate extraArgs:(NSArray *)extraArgs
+{
+    if (activate)
+        [self activateWhenNextWindowOpens];
+
+    // A cached controller requires no loading times and results in the new
+    // window popping up instantaneously.  If the cache is empty it may take
+    // 1-2 seconds to start a new Vim process.
+    MMVimController *vc = (mode == NewWindowNormal && extraArgs == nil) ? [self takeVimControllerFromCache] : nil;
+    if (vc) {
+        [[vc backendProxy] acknowledgeConnection];
+    } else {
+        NSArray *args = (mode == NewWindowNormal) ? nil
+            : (mode == NewWindowClean ? @[@"--clean"]
+                                      : @[@"--clean", @"-u", @"NONE"]);
+        if (extraArgs != nil) {
+            args = [args arrayByAddingObjectsFromArray:extraArgs];
+        }
+        [self launchVimProcessWithArguments:args workingDirectory:nil];
+    }
+}
+
 /// Open a new Vim window, potentially taking from cached (if preload is used).
 ///
 /// @param mode Determine whether to use clean mode or not. Preload will only
@@ -1306,21 +1328,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 /// @param activate Activate the window after it's opened.
 - (void)openNewWindow:(enum NewWindowMode)mode activate:(BOOL)activate
 {
-    if (activate)
-        [self activateWhenNextWindowOpens];
-
-    // A cached controller requires no loading times and results in the new
-    // window popping up instantaneously.  If the cache is empty it may take
-    // 1-2 seconds to start a new Vim process.
-    MMVimController *vc = (mode == NewWindowNormal) ? [self takeVimControllerFromCache] : nil;
-    if (vc) {
-        [[vc backendProxy] acknowledgeConnection];
-    } else {
-        NSArray *args = (mode == NewWindowNormal) ? nil
-            : (mode == NewWindowClean ? @[@"--clean"]
-                                      : @[@"--clean", @"-u", @"NONE"]);
-        [self launchVimProcessWithArguments:args workingDirectory:nil];
-    }
+    return [self openNewWindow:mode activate:activate extraArgs:nil];
 }
 
 - (IBAction)newWindow:(id)sender

@@ -88,6 +88,7 @@
 - (void)refreshAllResizeConstraints;
 - (void)refreshAllTextViews;
 
+- (void)openNewWindow:(enum NewWindowMode)mode activate:(BOOL)activate extraArgs:(NSArray *)args;
 - (void)openNewWindow:(enum NewWindowMode)mode activate:(BOOL)activate;
 
 //
