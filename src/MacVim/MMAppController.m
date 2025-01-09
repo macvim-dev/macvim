@@ -64,8 +64,6 @@
 static NSTimeInterval MMRequestTimeout = 5;
 static NSTimeInterval MMReplyTimeout = 5;
 
-static NSString *MMWebsiteString = @"https://macvim-dev.github.io/macvim/";
-
 // Latency (in s) between FS event occuring and being reported to MacVim.
 // Should be small so that MacVim is notified of changes to the ~/.vim
 // directory more or less immediately.
@@ -1470,7 +1468,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 {
     ASLogDebug(@"Open MacVim website");
     [[NSWorkspace sharedWorkspace] openURL:
-            [NSURL URLWithString:MMWebsiteString]];
+            [NSURL URLWithString:@"https://macvim.org/"]];
 }
 
 - (IBAction)showWhatsNew:(id)sender
