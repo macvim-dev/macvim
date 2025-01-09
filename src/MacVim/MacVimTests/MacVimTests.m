@@ -60,6 +60,84 @@ static BOOL forceInLiveResize = NO;
 
 @implementation MacVimTests
 
+static NSDictionary<NSString *, id> *cachedAppDefaults;
+
+/// Global test suite set up
++ (void)setUp {
+    // We launch test cases with -IgnoreUserDefaults, which populates the
+    // volatile domain with default settings to prevent interactions with
+    // local defaults on the system. Cache this.
+    cachedAppDefaults = [NSUserDefaults.standardUserDefaults volatileDomainForName:NSArgumentDomain];
+}
+
+/// Per-test tear down
+- (void)tearDown {
+    [self resetDefaults];
+}
+
+/// Set a default to be used for this test. It will be reset at end of test.
+- (void)setDefault:(NSString *)key toValue:(id)val {
+    NSUserDefaults *ud = NSUserDefaults.standardUserDefaults;
+    NSDictionary<NSString *, id> *curDefaults = [ud volatileDomainForName:NSArgumentDomain];
+    NSMutableDictionary<NSString *, id> *newDefaults = [curDefaults mutableCopy];
+    newDefaults[key] = val;
+    [ud setVolatileDomain:newDefaults
+                  forName:NSArgumentDomain];
+}
+
+/// Reset test settings to the default values
+- (void)resetDefaults {
+    [NSUserDefaults.standardUserDefaults setVolatileDomain:cachedAppDefaults
+                                                   forName:NSArgumentDomain];
+}
+
+/// Create a new clean window for the test that will be torn down afterwards.
+/// Most tests will use this for convenience unless they have other needs.
+- (void)createTestVimWindow {
+    [self createTestVimWindowWithExtraArgs:nil];
+}
+
+/// Create a new clean window with extra arguments.
+- (void)createTestVimWindowWithExtraArgs:(NSArray *)args {
+    [MMAppController.sharedInstance openNewWindow:NewWindowClean activate:YES extraArgs:args];
+    [self waitForVimOpenAndMessages];
+
+    __weak MacVimTests *tests = self;
+    [self addTeardownBlock:^{
+        MMAppController *app = MMAppController.sharedInstance;
+
+        // If we are still in native full screen, make sure to exit it first.
+        // Otherwise if we directly close the window there's a period of time
+        // macOS will be stuck in the transition animation and if we try to run
+        // another native full screen test immediately it will fail.
+        if ([app.keyVimController.windowController fullScreenEnabled] &&
+                app.keyVimController.windowController.window.styleMask & NSWindowStyleMaskFullScreen) {
+            [tests sendStringToVim:@":set nofu\n" withMods:0];
+            [tests waitForFullscreenTransitionIsEnter:NO isNative:YES];
+        }
+
+        [[app keyVimController] sendMessage:VimShouldCloseMsgID data:nil];
+        [tests waitForVimClose];
+
+        XCTAssertEqual(0, [app vimControllers].count);
+    }];
+}
+
+/// Creates a file URL in a temporary directory. The file itself is not created.
+/// The directory will be cleaned up automatically.
+- (NSURL *)tempFile:(NSString *)name {
+    NSURL *tempDir = [NSFileManager.defaultManager URLForDirectory:NSItemReplacementDirectory
+                                                          inDomain:NSUserDomainMask
+                                                 appropriateForURL:NSFileManager.defaultManager.homeDirectoryForCurrentUser
+                                                            create:YES
+                                                             error:nil];
+    [self addTeardownBlock:^{
+        [NSFileManager.defaultManager removeItemAtURL:tempDir error:nil];
+    }];
+
+    return [tempDir URLByAppendingPathComponent:name];
+}
+
 /// Wait for Vim window to open
 - (void)waitForVimOpen {
     XCTestExpectation *expectation = [self expectationWithDescription:@"VimOpen"];
@@ -219,6 +297,8 @@ static BOOL forceInLiveResize = NO;
     }
 }
 
+#pragma mark Tests
+
 - (void)testCompareSemanticVersions {
     // bogus values evaluate to 0
     XCTAssertEqual(0,  compareSemanticVersions(@"bogus", @""));
@@ -274,12 +354,11 @@ static BOOL forceInLiveResize = NO;
 /// bundled vimtutor. Previously this was silently broken by Vim v8.2.3502
 /// and fixed in https://github.com/macvim-dev/macvim/pull/1265.
 - (void)testVimTutor {
-    MMAppController *app = MMAppController.sharedInstance;
-
     // Adding a new window is necessary for the vimtutor menu to show up as it's
     // not part of the global menu
-    [app openNewWindow:NewWindowClean activate:YES];
-    [self waitForVimOpenAndMessages];
+    [self createTestVimWindow];
+
+    MMAppController *app = MMAppController.sharedInstance;
 
     // Find the vimtutor menu and run it.
     NSMenu *mainMenu = [NSApp mainMenu];
@@ -296,7 +375,7 @@ static BOOL forceInLiveResize = NO;
 
     // Make sure the menu item actually opened a new window and point to a tutor buffer
     // Note that `vimtutor` opens Vim twice. Once to copy the file. Another time to
-    // actually open the copied file.
+    // actually open the copied file. The first window closes itself immediately.
     [self waitForVimOpen];
     [self waitForVimOpenAndMessages];
 
@@ -306,10 +385,6 @@ static BOOL forceInLiveResize = NO;
     // Clean up
     [[app keyVimController] sendMessage:VimShouldCloseMsgID data:nil];
     [self waitForVimClose];
-    [[app keyVimController] sendMessage:VimShouldCloseMsgID data:nil];
-    [self waitForVimClose];
-
-    XCTAssertEqual(0, [app vimControllers].count);
 }
 
 /// Test that opening Vim documentation from Help menu works as expected even
@@ -375,11 +450,9 @@ do { \
 /// special logic to account for "Press Enter" and "--more--" prompts when showing
 /// messages.
 - (void) testCmdlineRowCalculation {
+    [self createTestVimWindow];
+
     MMAppController *app = MMAppController.sharedInstance;
-
-    [app openNewWindow:NewWindowClean activate:YES];
-    [self waitForVimOpenAndMessages];
-
     MMTextView *textView = [[[[app keyVimController] windowController] vimView] textView];
     const int numLines = [textView maxRows];
     const int numCols = [textView maxColumns];
@@ -435,19 +508,13 @@ do { \
     ASSERT_NUM_CMDLINES(1);
 
 #undef ASSERT_NUM_CMDLINES
-
-    // Clean up
-    [[app keyVimController] sendMessage:VimShouldCloseMsgID data:nil];
-    [self waitForVimClose];
 }
 
 /// Test that using "-monospace-" for system default monospace font works.
 - (void) testGuifontSystemMonospace {
+    [self createTestVimWindow];
+
     MMAppController *app = MMAppController.sharedInstance;
-
-    [app openNewWindow:NewWindowClean activate:YES];
-    [self waitForVimOpenAndMessages];
-
     MMTextView *textView = [[[[app keyVimController] windowController] vimView] textView];
     XCTAssertEqualObjects(@"Menlo-Regular", [[textView font] fontName]);
 
@@ -466,10 +533,6 @@ do { \
     [[[app keyVimController] windowController] fontSizeDown:nil];
     [self waitForEventHandlingAndVimProcess];
     XCTAssertEqualObjects([textView font], [NSFont monospacedSystemFontOfSize:12 weight:NSFontWeightHeavy]);
-
-    // Clean up
-    [[app keyVimController] sendMessage:VimShouldCloseMsgID data:nil];
-    [self waitForVimClose];
 }
 
 /// Test that dark mode settings work and the corresponding Vim bindings are functional.
@@ -478,13 +541,11 @@ do { \
 /// rather than the OS setting. When using manual light/dark or "use background" settings,
 /// they do not reflect the current OS dark mode setting.
 - (void) testDarkMode {
+    [self createTestVimWindow];
+
     NSUserDefaults *ud = NSUserDefaults.standardUserDefaults;
 
     MMAppController *app = MMAppController.sharedInstance;
-
-    [app openNewWindow:NewWindowClean activate:YES];
-    [self waitForVimOpenAndMessages];
-
     MMVimView *vimView = [[[app keyVimController] windowController] vimView];
 
     // We just use the system appearance to determine the initial state. Otherwise
@@ -498,13 +559,8 @@ do { \
     XCTAssertEqualObjects(vimView.effectiveAppearance, systemAppearance);
     XCTAssertEqualObjects([[app keyVimController] evaluateVimExpression:@"v:os_appearance"], systemUsingDarkMode ? @"1" : @"0");
 
-    // Cache original settings / set up setting overrides
-    NSDictionary<NSString *, id> *defaults = [ud volatileDomainForName:NSArgumentDomain];
-    NSMutableDictionary<NSString *, id> *newDefaults = [defaults mutableCopy];
-
     // Manual Light / Dark mode setting
-    newDefaults[MMAppearanceModeSelectionKey] = [NSNumber numberWithInt:MMAppearanceModeSelectionLight];
-    [ud setVolatileDomain:newDefaults forName:NSArgumentDomain];
+    [self setDefault:MMAppearanceModeSelectionKey toValue:[NSNumber numberWithInt:MMAppearanceModeSelectionLight]];
     [app refreshAllAppearances];
     XCTAssertEqualObjects(vimView.effectiveAppearance, [NSAppearance appearanceNamed: NSAppearanceNameAqua]);
     XCTAssertEqualObjects([[app keyVimController] evaluateVimExpression:@"v:os_appearance"], @"0");
@@ -515,8 +571,7 @@ do { \
     [self sendStringToVim:@":autocmd OSAppearanceChanged * let g:os_appearance_changed_called+=1\n" withMods:0];
     [self waitForEventHandlingAndVimProcess];
 
-    newDefaults[MMAppearanceModeSelectionKey] = [NSNumber numberWithInt:MMAppearanceModeSelectionDark];
-    [ud setVolatileDomain:newDefaults forName:NSArgumentDomain];
+    [self setDefault:MMAppearanceModeSelectionKey toValue:[NSNumber numberWithInt:MMAppearanceModeSelectionDark]];
     [app refreshAllAppearances];
     XCTAssertEqualObjects(vimView.effectiveAppearance, [NSAppearance appearanceNamed: NSAppearanceNameDarkAqua]);
     XCTAssertEqualObjects([[app keyVimController] evaluateVimExpression:@"v:os_appearance"], @"1");
@@ -526,8 +581,7 @@ do { \
     [self sendStringToVim:@":set background=dark\n" withMods:0];
     [self waitForEventHandlingAndVimProcess];
 
-    newDefaults[MMAppearanceModeSelectionKey] = [NSNumber numberWithInt:MMAppearanceModeSelectionBackgroundOption];
-    [NSUserDefaults.standardUserDefaults setVolatileDomain:newDefaults forName:NSArgumentDomain];
+    [self setDefault:MMAppearanceModeSelectionKey toValue:[NSNumber numberWithInt:MMAppearanceModeSelectionBackgroundOption]];
     [app refreshAllAppearances];
     XCTAssertEqualObjects(vimView.effectiveAppearance, [NSAppearance appearanceNamed: NSAppearanceNameDarkAqua]);
     XCTAssertEqualObjects([[app keyVimController] evaluateVimExpression:@"v:os_appearance"], @"1");
@@ -540,22 +594,16 @@ do { \
     XCTAssertEqualObjects([[app keyVimController] evaluateVimExpression:@"g:os_appearance_changed_called"], @"2");
 
     // Restore original settings and make sure it's reset
-    [NSUserDefaults.standardUserDefaults setVolatileDomain:defaults forName:NSArgumentDomain];
+    [self resetDefaults];
     [app refreshAllAppearances];
     XCTAssertEqualObjects(vimView.effectiveAppearance, systemAppearance);
-
-    // Clean up
-    [[app keyVimController] sendMessage:VimShouldCloseMsgID data:nil];
-    [self waitForVimClose];
 }
 
 /// Test that document icon is shown in title bar when enabled.
 - (void) testTitlebarDocumentIcon {
+    [self createTestVimWindow];
+
     MMAppController *app = MMAppController.sharedInstance;
-
-    [app openNewWindow:NewWindowClean activate:YES];
-    [self waitForVimOpenAndMessages];
-
     NSWindow *win = [[[app keyVimController] windowController] window];
 
     // Untitled documents have no icons
@@ -568,19 +616,14 @@ do { \
     XCTAssertEqualObjects(gui_mac_path, win.representedFilename);
 
     // Change setting to hide the document icon
-    NSUserDefaults *ud = NSUserDefaults.standardUserDefaults;
-    NSDictionary<NSString *, id> *defaults = [ud volatileDomainForName:NSArgumentDomain];
-    NSMutableDictionary<NSString *, id> *newDefaults = [defaults mutableCopy];
-    newDefaults[MMTitlebarShowsDocumentIconKey] = @NO;
-    [ud setVolatileDomain:newDefaults forName:NSArgumentDomain];
+    [self setDefault:MMTitlebarShowsDocumentIconKey toValue:@NO];
 
     // Test that there is no document icon shown
     [app refreshAllAppearances];
     XCTAssertEqualObjects(@"", win.representedFilename);
 
     // Change setting back to show the document icon. Test that the path was remembered and icon is shown.
-    newDefaults[MMTitlebarShowsDocumentIconKey] = @YES;
-    [ud setVolatileDomain:newDefaults forName:NSArgumentDomain];
+    [self setDefault:MMTitlebarShowsDocumentIconKey toValue:@YES];
     [app refreshAllAppearances];
     XCTAssertEqualObjects(gui_mac_path, win.representedFilename);
 
@@ -588,22 +631,13 @@ do { \
     [self sendStringToVim:@":q\n" withMods:0];
     [self waitForEventHandlingAndVimProcess];
     XCTAssertEqualObjects(@"", win.representedFilename);
-
-    // Restore settings to test defaults
-    [ud setVolatileDomain:defaults forName:NSArgumentDomain];
-
-    // Clean up
-    [[app keyVimController] sendMessage:VimShouldCloseMsgID data:nil];
-    [self waitForVimClose];
 }
 
 /// Test resizing the MacVim window properly resizes Vim
 - (void) testWindowResize {
+    [self createTestVimWindow];
+
     MMAppController *app = MMAppController.sharedInstance;
-
-    [app openNewWindow:NewWindowClean activate:YES];
-    [self waitForVimOpenAndMessages];
-
     NSWindow *win = [[[app keyVimController] windowController] window];
     MMVimView *vimView = [[[app keyVimController] windowController] vimView];
     MMTextView *textView = [[[[app keyVimController] windowController] vimView] textView];
@@ -642,7 +676,7 @@ do { \
         // we we used the outdated size as cache instead leading to rapid
         // resizing sometimes leading to stale sizes.
 
-        // This kind of situation coudl occur if say Vim is stalled for a bit
+        // This kind of situation could occur if say Vim is stalled for a bit
         // and we resized the window multiple times. We don't rate limit unlike
         // live resizing since usually it's not needed.
         NSRect newFrame = winFrame;
@@ -731,10 +765,6 @@ do { \
         XCTAssertEqual(30, textView.maxRows);
         XCTAssertEqual(80, textView.maxColumns);
     }
-
-    // Clean up
-    [[app keyVimController] sendMessage:VimShouldCloseMsgID data:nil];
-    [self waitForVimClose];
 }
 
 #pragma mark Full screen tests
@@ -775,34 +805,34 @@ do { \
     method_setImplementation(method, origIMP);
 }
 
-/// Utility to test full screen functionality in both non-native/native full
-/// screen.
-- (void) fullScreenTestWithNative:(BOOL)native {
-    MMAppController *app = MMAppController.sharedInstance;
-
-    // Cache test defaults
-    NSUserDefaults *ud = NSUserDefaults.standardUserDefaults;
-    NSDictionary<NSString *, id> *defaults = [ud volatileDomainForName:NSArgumentDomain];
-    NSMutableDictionary<NSString *, id> *newDefaults = [defaults mutableCopy];
-
-    // Change native full screen setting
-    newDefaults[MMNativeFullScreenKey] = [NSNumber numberWithBool:native];
-    [ud setVolatileDomain:newDefaults forName:NSArgumentDomain];
-
-    [app openNewWindow:NewWindowClean activate:YES];
-    [self waitForVimOpenAndMessages];
-
-    MMWindowController *winController = app.keyVimController.windowController;
-
-    // Enter full screen and check that the states are properly changed.
-    [self sendStringToVim:@":set fu\n" withMods:0];
+- (void)waitForFullscreenTransitionIsEnter:(BOOL)enter isNative:(BOOL)native {
     if (native) {
-        [self waitForNativeFullscreenEnter];
+        if (enter) {
+            [self waitForNativeFullscreenEnter];
+        } else {
+            [self waitForNativeFullscreenExit];
+        }
     } else {
         [self waitForEventHandlingAndVimProcess];
         [self waitForEventHandlingAndVimProcess]; // wait one more cycle to make sure we finished the transition
     }
 
+}
+
+/// Utility to test full screen functionality in both non-native/native full
+/// screen.
+- (void) fullScreenTestWithNative:(BOOL)native {
+    // Change native full screen setting
+    [self setDefault:MMNativeFullScreenKey toValue:[NSNumber numberWithBool:native]];
+
+    [self createTestVimWindow];
+
+    MMAppController *app = MMAppController.sharedInstance;
+    MMWindowController *winController = app.keyVimController.windowController;
+
+    // Enter full screen and check that the states are properly changed.
+    [self sendStringToVim:@":set fu\n" withMods:0];
+    [self waitForFullscreenTransitionIsEnter:YES isNative:native];
     XCTAssertTrue([winController fullScreenEnabled]);
     if (native) {
         XCTAssertTrue([winController.window isKindOfClass:[MMWindow class]]);
@@ -812,25 +842,13 @@ do { \
 
     // Exit full screen
     [self sendStringToVim:@":set nofu\n" withMods:0];
-    if (native) {
-        [self waitForNativeFullscreenExit];
-    } else {
-        [self waitForEventHandlingAndVimProcess];
-        [self waitForEventHandlingAndVimProcess]; // wait one more cycle to make sure we finished the transition
-    }
-
+    [self waitForFullscreenTransitionIsEnter:NO isNative:native];
     XCTAssertFalse([winController fullScreenEnabled]);
     XCTAssertTrue([winController.window isKindOfClass:[MMWindow class]]);
 
     // Enter full screen again
     [self sendStringToVim:@":set fu\n" withMods:0];
-    if (native) {
-        [self waitForNativeFullscreenEnter];
-    } else {
-        [self waitForEventHandlingAndVimProcess];
-        [self waitForEventHandlingAndVimProcess]; // wait one more cycle to make sure we finished the transition
-    }
-
+    [self waitForFullscreenTransitionIsEnter:YES isNative:native];
     XCTAssertTrue([winController fullScreenEnabled]);
 
     // Test that resizing the vim view does not work when in full screen as we fix the window size instead
@@ -845,15 +863,6 @@ do { \
     [self waitForEventHandlingAndVimProcess]; // need to wait twice to allow full screen to force it back
     XCTAssertEqual(fuRows, textView.maxRows);
     XCTAssertEqual(fuCols, textView.maxColumns);
-
-    // Clean up
-    [[app keyVimController] sendMessage:VimShouldCloseMsgID data:nil];
-    [self waitForVimClose];
-
-    XCTAssertEqual(0, [app vimControllers].count);
-
-    // Restore settings to test defaults
-    [ud setVolatileDomain:defaults forName:NSArgumentDomain];
 }
 
 - (void) testFullScreenNonNative {
@@ -864,21 +873,84 @@ do { \
     [self fullScreenTestWithNative:YES];
 }
 
-- (void) testFullScreenNonNativeOptions {
+/// Utility to test delayed full screen scenario where 'fullscreen' was
+/// specified in gvimrc which requires the app to delay the full screen
+/// process until the Vim window has been presented.
+- (void)fullScreenDelayedTestWithNative:(BOOL)native fuoptEmpty:(BOOL)fuoptEmpty {
+    // Change native full screen setting
+    [self setDefault:MMNativeFullScreenKey toValue:[NSNumber numberWithBool:native]];
+
+    // The default non-smooth resize window option results can result in an
+    // inaccurate window restore in native full screen. Temporary fix is to
+    // just use smooth resize for now.
+    [self setDefault:MMSmoothResizeKey toValue:@YES];
+
+    if (fuoptEmpty)
+        XCTAssertFalse(native);
+
     MMAppController *app = MMAppController.sharedInstance;
 
-    // Cache test defaults
-    NSUserDefaults *ud = NSUserDefaults.standardUserDefaults;
-    NSDictionary<NSString *, id> *defaults = [ud volatileDomainForName:NSArgumentDomain];
-    NSMutableDictionary<NSString *, id> *newDefaults = [defaults mutableCopy];
+    // Override the gvimrc to go full screen right on startup
+    NSURL *gvimrcPath = [self tempFile:@"gvimrc"];
+    const NSString *gvimContents = fuoptEmpty ? @"set lines=35 columns=45 fuopt= fullscreen" : @"set lines=35 columns=45 fullscreen";
+    if (![gvimContents writeToURL:gvimrcPath atomically:NO encoding:NSUTF8StringEncoding error:nil]) {
+        XCTFail(@"Failed to write gvimrc file");
+    }
 
+    [self createTestVimWindowWithExtraArgs:@[@"-U", gvimrcPath.path]];
+
+    MMWindowController *winController = app.keyVimController.windowController;
+    MMTextView *textView = [[winController vimView] textView];
+    XCTAssertTrue([winController fullScreenEnabled]);
+
+    [self waitForFullscreenTransitionIsEnter:YES isNative:native];
+
+    const int fuRows = textView.maxRows;
+    const int fuCols = textView.maxColumns;
+    if (fuoptEmpty) {
+        XCTAssertEqual(fuRows, 35);
+        XCTAssertEqual(fuCols, 45);
+    } else {
+        XCTAssertGreaterThan(fuRows, 35);
+        XCTAssertGreaterThan(fuCols, 45);
+    }
+
+    // Exit full screen
+    [self sendStringToVim:@":set nofu\n" withMods:0];
+    [self waitForFullscreenTransitionIsEnter:NO isNative:native];
+
+    XCTAssertFalse([winController fullScreenEnabled]);
+    XCTAssertEqual(textView.maxRows, 35);
+    XCTAssertEqual(textView.maxColumns, 45);
+
+    // Enter full screen again. The purpose of this is to check that the behavior and results are the same as entering on startup
+    [self sendStringToVim:@":set fu\n" withMods:0];
+    [self waitForFullscreenTransitionIsEnter:YES isNative:native];
+
+    XCTAssertTrue([winController fullScreenEnabled]);
+    XCTAssertEqual(textView.maxRows, fuRows);
+    XCTAssertEqual(textView.maxColumns, fuCols);
+}
+
+- (void)testFullScreenDelayedNonNative {
+    [self fullScreenDelayedTestWithNative:NO fuoptEmpty:NO];
+}
+
+- (void)testFullScreenDelayedNonNativeEmptyFuopt {
+    [self fullScreenDelayedTestWithNative:NO fuoptEmpty:YES];
+}
+
+- (void)testFullScreenDelayedNative {
+    [self fullScreenDelayedTestWithNative:YES fuoptEmpty:NO];
+}
+
+- (void) testFullScreenNonNativeOptions {
     // Change native full screen setting
-    newDefaults[MMNativeFullScreenKey] = @NO;
-    [ud setVolatileDomain:newDefaults forName:NSArgumentDomain];
+    [self setDefault:MMNativeFullScreenKey toValue:@NO];
 
-    [app openNewWindow:NewWindowClean activate:YES];
-    [self waitForVimOpenAndMessages];
+    [self createTestVimWindow];
 
+    MMAppController *app = MMAppController.sharedInstance;
     MMWindowController *winController = app.keyVimController.windowController;
     MMTextView *textView = [[winController vimView] textView];
 
@@ -889,29 +961,28 @@ do { \
     [self waitForVimProcess];
 
     [self sendStringToVim:@":set fu\n" withMods:0];
-    [self waitForEventHandlingAndVimProcess];
-    [self waitForEventHandlingAndVimProcess];
+    [self waitForFullscreenTransitionIsEnter:YES isNative:NO];
     XCTAssertEqual(textView.maxRows, 10);
     XCTAssertEqual(textView.maxColumns, 30);
     [self sendStringToVim:@":set nofu\n" withMods:0];
+    [self waitForFullscreenTransitionIsEnter:NO isNative:NO];
     [self sendStringToVim:@":set fuoptions=maxvert\n" withMods:0];
     [self sendStringToVim:@":set fu\n" withMods:0];
-    [self waitForEventHandlingAndVimProcess];
-    [self waitForEventHandlingAndVimProcess];
+    [self waitForFullscreenTransitionIsEnter:YES isNative:NO];
     XCTAssertGreaterThan(textView.maxRows, 10);
     XCTAssertEqual(textView.maxColumns, 30);
     [self sendStringToVim:@":set nofu\n" withMods:0];
+    [self waitForFullscreenTransitionIsEnter:NO isNative:NO];
     [self sendStringToVim:@":set fuoptions=maxhorz\n" withMods:0];
     [self sendStringToVim:@":set fu\n" withMods:0];
-    [self waitForEventHandlingAndVimProcess];
-    [self waitForEventHandlingAndVimProcess];
+    [self waitForFullscreenTransitionIsEnter:YES isNative:NO];
     XCTAssertEqual(textView.maxRows, 10);
     XCTAssertGreaterThan(textView.maxColumns, 30);
     [self sendStringToVim:@":set nofu\n" withMods:0];
+    [self waitForFullscreenTransitionIsEnter:NO isNative:NO];
     [self sendStringToVim:@":set fuoptions=maxhorz,maxvert\n" withMods:0];
     [self sendStringToVim:@":set fu\n" withMods:0];
-    [self waitForEventHandlingAndVimProcess];
-    [self waitForEventHandlingAndVimProcess];
+    [self waitForFullscreenTransitionIsEnter:YES isNative:NO];
     XCTAssertGreaterThan(textView.maxRows, 10);
     XCTAssertGreaterThan(textView.maxColumns, 30);
 
@@ -956,22 +1027,11 @@ do { \
 
     // Test setting transparency outside of full screen and make sure it still works
     [self sendStringToVim:@":set nofu\n" withMods:0];
-    [self waitForEventHandlingAndVimProcess];
-    [self waitForEventHandlingAndVimProcess];
+    [self waitForFullscreenTransitionIsEnter:NO isNative:NO];
     [self sendStringToVim:@":set transparency=50 fuoptions=background:#0000ff\n" withMods:0];
     [self sendStringToVim:@":set fu\n" withMods:0];
-    [self waitForEventHandlingAndVimProcess];
-    [self waitForEventHandlingAndVimProcess];
+    [self waitForFullscreenTransitionIsEnter:YES isNative:NO];
     XCTAssertEqualObjects(winController.window.backgroundColor, [NSColor colorWithRed:0 green:0 blue:1 alpha:0.001]);
-
-    // Clean up
-    [[app keyVimController] sendMessage:VimShouldCloseMsgID data:nil];
-    [self waitForVimClose];
-
-    XCTAssertEqual(0, [app vimControllers].count);
-
-    // Restore settings to test defaults
-    [ud setVolatileDomain:defaults forName:NSArgumentDomain];
 }
 
 @end
