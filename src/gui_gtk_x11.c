@@ -160,7 +160,7 @@ static const GtkTargetEntry dnd_targets[] =
  * "Monospace" is a standard font alias that should be present
  * on all proper Pango/fontconfig installations.
  */
-# define DEFAULT_FONT	"Monospace 10"
+# define DEFAULT_FONT	"Monospace 12"
 
 #if defined(FEAT_GUI_GNOME) && defined(FEAT_SESSION)
 # define USE_GNOME_SESSION
@@ -6621,7 +6621,9 @@ gui_mch_draw_part_cursor(int w, int h, guicolor_T color)
     void
 gui_mch_update(void)
 {
-    while (g_main_context_pending(NULL) && !vim_is_input_buf_full())
+    int cnt = 0;	// prevent endless loop
+    while (g_main_context_pending(NULL) && !vim_is_input_buf_full()
+								&& ++cnt < 100)
 	g_main_context_iteration(NULL, TRUE);
 }
 

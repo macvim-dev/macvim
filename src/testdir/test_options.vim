@@ -486,7 +486,7 @@ func Test_set_completion_string_values()
   " but don't exhaustively validate their results.
   call assert_equal('single', getcompletion('set ambw=', 'cmdline')[0])
   call assert_match('light\|dark', getcompletion('set bg=', 'cmdline')[1])
-  call assert_equal('indent', getcompletion('set backspace=', 'cmdline')[0])
+  call assert_equal('indent,eol,start', getcompletion('set backspace=', 'cmdline')[0])
   call assert_equal('yes', getcompletion('set backupcopy=', 'cmdline')[1])
   call assert_equal('backspace', getcompletion('set belloff=', 'cmdline')[1])
   call assert_equal('min:', getcompletion('set briopt=', 'cmdline')[1])
@@ -596,6 +596,8 @@ func Test_set_completion_string_values()
   call assert_equal([&keyprotocol], getcompletion('set keyprotocol=', 'cmdline'))
   call feedkeys(":set keyprotocol+=someterm:m\<Tab>\<C-B>\"\<CR>", 'xt')
   call assert_equal('"set keyprotocol+=someterm:mok2', @:)
+  call feedkeys(":set keyprotocol+=someterm:k\<Tab>\<C-B>\"\<CR>", 'xt')
+  call assert_equal('"set keyprotocol+=someterm:kitty', @:)
   set keyprotocol&
 
   " previewpopup / completepopup
@@ -632,6 +634,10 @@ func Test_set_completion_string_values()
   " Test completion in middle of the line
   call feedkeys(":set hl=8b i\<Left>\<Left>\<Tab>\<C-B>\"\<CR>", 'xt')
   call assert_equal("\"set hl=8bi i", @:)
+
+  " messagesopt
+  call assert_equal(['history:', 'hit-enter', 'wait:'],
+        \ getcompletion('set messagesopt+=', 'cmdline')->sort())
 
   "
   " MacVim options
@@ -739,7 +745,6 @@ func Test_set_option_errors()
   call assert_fails('set backupcopy=', 'E474:')
   call assert_fails('set regexpengine=3', 'E474:')
   call assert_fails('set history=10001', 'E474:')
-  call assert_fails('set msghistory=10001', 'E474:')
   call assert_fails('set numberwidth=21', 'E474:')
   call assert_fails('set colorcolumn=-a', 'E474:')
   call assert_fails('set colorcolumn=a', 'E474:')
@@ -753,7 +758,6 @@ func Test_set_option_errors()
   endif
   call assert_fails('set helpheight=-1', 'E487:')
   call assert_fails('set history=-1', 'E487:')
-  call assert_fails('set msghistory=-1', 'E487:')
   call assert_fails('set report=-1', 'E487:')
   call assert_fails('set shiftwidth=-1', 'E487:')
   call assert_fails('set sidescroll=-1', 'E487:')
@@ -2274,13 +2278,46 @@ func Test_opt_default()
 endfunc
 
 " Test for the 'cmdheight' option
-func Test_cmdheight()
+func Test_opt_cmdheight()
   %bw!
   let ht = &lines
   set cmdheight=9999
   call assert_equal(1, winheight(0))
   call assert_equal(ht - 1, &cmdheight)
   set cmdheight&
+
+  " The status line should be taken into account.
+  set laststatus=2
+  set cmdheight=9999
+  call assert_equal(ht - 2, &cmdheight)
+  set cmdheight& laststatus&
+
+  " The tabline should be taken into account only non-GUI.
+  set showtabline=2
+  set cmdheight=9999
+  if has('gui_running')
+    call assert_equal(ht - 1, &cmdheight)
+  else
+    call assert_equal(ht - 2, &cmdheight)
+  endif
+  set cmdheight& showtabline&
+
+  " The 'winminheight' should be taken into account.
+  set winheight=3 winminheight=3
+  split
+  set cmdheight=9999
+  call assert_equal(ht - 8, &cmdheight)
+  %bw!
+  set cmdheight& winminheight& winheight&
+
+  " Only the windows in the current tabpage are taken into account.
+  set winheight=3 winminheight=3 showtabline=0
+  split
+  tabnew
+  set cmdheight=9999
+  call assert_equal(ht - 3, &cmdheight)
+  %bw!
+  set cmdheight& winminheight& winheight& showtabline&
 endfunc
 
 " To specify a control character as an option value, '^' can be used
@@ -2488,6 +2525,7 @@ func Test_string_option_revert_on_failure()
         \ ['lispoptions', 'expr:1', 'a123'],
         \ ['listchars', 'tab:->', 'tab:'],
         \ ['matchpairs', '<:>', '<:'],
+        \ ['messagesopt', 'hit-enter,history:100', 'a123'],
         \ ['mkspellmem', '100000,1000,100', '100000'],
         \ ['mouse', 'nvi', 'z'],
         \ ['mousemodel', 'extend', 'a123'],
@@ -2834,6 +2872,11 @@ func Test_set_missing_options()
   set w300=23
   set w1200=23
   set w9600=23
+endfunc
+
+func Test_default_keyprotocol()
+  " default value of keyprotocol
+  call assert_equal('kitty:kitty,foot:kitty,ghostty:kitty,wezterm:kitty,xterm:mok2', &keyprotocol)
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

@@ -1,4 +1,4 @@
-*popup.txt*  For Vim version 9.1.  Last change: 2024 Jun 16
+*popup.txt*  For Vim version 9.1.  Last change: 2025 Jan 08
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -257,8 +257,8 @@ popup_clear([{force}])
 
 
 popup_close({id} [, {result}])				*popup_close()*
-		Close popup {id}.  The window and the associated buffer will
-		be deleted.
+		Close popup {id}.  The window will be deleted.  The associated
+		buffer will be deleted, if the popup created a new buffer.
 
 		If the popup has a callback it will be called just before the
 		popup window is deleted.  If the optional {result} is present
@@ -705,7 +705,6 @@ The second argument of |popup_create()| is a dictionary with options:
 			present. Use zero to reset.
 	fixed		When FALSE (the default), and:
 			 - "pos" is "botleft" or "topleft", and
-			 - "wrap" is off, and
 			 - the popup would be truncated at the right edge of
 			   the screen, then
 			the popup is moved to the left so as to fit the

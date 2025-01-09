@@ -1,4 +1,4 @@
-*terminal.txt*	For Vim version 9.1.  Last change: 2024 Nov 10
+*terminal.txt*	For Vim version 9.1.  Last change: 2024 Dec 30
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -197,6 +197,16 @@ Command syntax ~
 			if [command] is NONE no job is started, the pty of the
 			terminal can be used by a command like gdb.
 
+			If [command] outputs NUL bytes, those will be
+			converted to new lines |NL-used-for-Nul|.
+
+							*terminal-nospecial*
+			Vim itself only recognizes |cmdline-special|
+			characters inside [command].  Everything else will be
+			passed untouched.  When needed to expand wildcards,
+			environment variables or other shell specials consider
+			|term++shell| option.
+
 			If [command] is missing the default behavior is to
 			close the terminal when the shell exits.  This can be
 			changed with the ++noclose argument.
@@ -241,10 +251,16 @@ Command syntax ~
 					no window will be used.
 			++norestore	Do not include this terminal window
 					in a session file.
+
+						*term++shell*
 			++shell		Instead of executing {command}
 					directly, use a shell, like with
 					`:!command`		*E279*
 					{only works on Unix and MS-Windows}
+					The resulting command will look like
+					'shell' 'shellcmdflag' [command]
+					Other options related to `:!command`
+					have no effect.
 			++kill={how}	When trying to close the terminal
 					window kill the job with {how}.  See
 					|term_setkill()| for the values.
@@ -1737,4 +1753,23 @@ This can also be used in a "one-shot" manner: >
 	  let g:termdebug_config['evaluate_in_popup'] = v:false
 	endfunc
 <
+
+Contributing ~
+						*termdebug_contributing*
+Contributions for termdebug improvements are welcome.
+However, it is fairly common that during the development process you need some
+mechanisms like `echo` statements (or similar) to help you in your job.
+For this reason, you can set: >
+    let g:termdebug_config['debug'] = true
+<
+This sets the `DEBUG` variable to `true`, which can be referenced in the
+source code.  An example of its usage follows: >
+    if exists('g:termdebug_loaded')
+      if DEBUG
+	Echoerr('Termdebug already loaded.')
+      endif
+      finish
+    endif
+<
+
  vim:tw=78:ts=8:noet:ft=help:norl:

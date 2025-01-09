@@ -271,8 +271,10 @@ eval_expr_partial(
 	    return FAIL;
 
 	// Shortcut to call a compiled function with minimal overhead.
+	if (partial->pt_obj != NULL)
+	    partial->pt_obj->obj_refcount++;
 	r = call_def_function(partial->pt_func, argc, argv, DEF_USE_PT_ARGV,
-						partial, NULL, fc, rettv);
+					partial, partial->pt_obj, fc, rettv);
 	if (fc_arg == NULL)
 	    remove_funccal();
 	if (r == FAIL)
@@ -817,6 +819,8 @@ deref_function_name(
     typval_T	ref;
     char_u	*name = *arg;
     int		save_flags = 0;
+    int		evaluate = evalarg != NULL
+				      && (evalarg->eval_flags & EVAL_EVALUATE);
 
     ref.v_type = VAR_UNKNOWN;
     if (evalarg != NULL)
@@ -865,7 +869,7 @@ deref_function_name(
 	    *tofree = name;
 	}
     }
-    else
+    else if (evaluate)
     {
 	if (verbose)
 	    semsg(_(e_not_callable_type_str), name);
@@ -1487,8 +1491,17 @@ get_lval_list(
 	return FAIL;
 
     if (lp->ll_valtype != NULL && !lp->ll_range)
+    {
 	// use the type of the member
-	lp->ll_valtype = lp->ll_valtype->tt_member;
+	if (lp->ll_valtype->tt_member != NULL)
+	    lp->ll_valtype = lp->ll_valtype->tt_member;
+	else
+	    // If the LHS member type is not known (VAR_ANY), then get it from
+	    // the list item (after indexing)
+	    lp->ll_valtype = typval2type(&lp->ll_li->li_tv, get_copyID(),
+					 &lp->ll_type_list, TVTT_DO_MEMBER);
+
+    }
 
     /*
      * May need to find the item or absolute index for the second
@@ -1992,6 +2005,7 @@ get_lval(
 
     // Clear everything in "lp".
     CLEAR_POINTER(lp);
+    ga_init2(&lp->ll_type_list, sizeof(type_T *), 10);
 
     if (skip || (flags & GLV_COMPILING))
     {
@@ -2176,6 +2190,7 @@ clear_lval(lval_T *lp)
 {
     vim_free(lp->ll_exp_name);
     vim_free(lp->ll_newkey);
+    clear_type_list(&lp->ll_type_list);
 }
 
 /*

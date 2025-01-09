@@ -1,4 +1,4 @@
-*helphelp.txt*	For Vim version 9.1.  Last change: 2024 Nov 03
+*helphelp.txt*	For Vim version 9.1.  Last change: 2024 Dec 26
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -247,7 +247,7 @@ command: >
 			(requires write permission there): >
 				:helptags $VIMRUNTIME/doc
 <
-						*help-TOC* *help-toc-install*
+					*:HelpToc* *help-TOC* *help-toc-install*
 
 If you want to access an interactive table of contents, from any position in
 the file, you can use the helptoc plugin.  Load the plugin with: >
@@ -433,11 +433,31 @@ To quote a block of ex-commands verbatim, place a greater than (>) character
 at the end of the line before the block and a less than (<) character as the
 first non-blank on a line following the block.  Any line starting in column 1
 also implicitly stops the block of ex-commands before it.  E.g. >
-    function Example_Func()
-	echo "Example"
-    endfunction
+	function Example_Func()
+	  echo "Example"
+	endfunction
 <
+To enable syntax highlighting for a block of code, place a language name
+annotation (e.g. "vim") after a greater than (>) character.  E.g. >vim
+	function Example_Func()
+	  echo "Example"
+	endfunction
+<
+						*g:help_example_languages*
+By default, help files only support Vim script highlighting.  If you need
+syntax highlighting for other languages, add to your |vimrc|: >
+	:let g:help_example_languages = { "vim": "vim", "sh": "bash" }
+The key represents the annotation marker name, and the value is the 'syntax'
+name.
 
+Note: If you do not include "vim" in "g:help_example_languages", its syntax
+highlighting will not be enabled.  If you set "g:help_example_languages" to an
+empty value, syntax highlighting for embedded languages will be disabled.
+
+Further note: Including arbitrary syntax languages into help files may not
+always work perfectly, if the included 'syntax' script does not account for
+such an import.
+						*help-notation*
 The following are highlighted differently in a Vim help file:
   - a special key name expressed either in <> notation as in <PageDown>, or
     as a Ctrl character as in CTRL-X
@@ -454,15 +474,15 @@ You can find the details in $VIMRUNTIME/syntax/help.vim
 GENDER NEUTRAL LANGUAGE
 
 						*gender-neutral* *inclusion*
-Vim is for everybody, no matter race, gender or anything. For new or updated
-help text, gender neutral language is recommended. Some of the help text is
-many years old and there is no need to change it. We do not make any
+Vim is for everybody, no matter race, gender or anything.  For new or updated
+help text, gender neutral language is recommended.  Some of the help text is
+many years old and there is no need to change it.  We do not make any
 assumptions about the gender of the user, no matter how the text is phrased.
 The goal is that the reader understands how Vim works, the exact wording is
 secondary.
 
 Many online technical style guides include sections about gender neutral
-language. Here are a few: >
+language.  Here are a few: >
 
 	https://developers.google.com/style/pronouns
 	https://techwhirl.com/gender-neutral-technical-writing/

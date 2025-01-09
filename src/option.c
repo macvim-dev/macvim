@@ -193,7 +193,7 @@ set_init_default_backupskip(void)
 		itemlen = vim_snprintf((char *)item, itemsize, "%s%s*", p, (has_trailing_path_sep) ? "" : PATHSEPSTR);
 
 		if (find_dup_item(ga.ga_data, item, itemlen, options[opt_idx].flags) == NULL
-			&& ga_grow(&ga, itemseplen + itemlen + 1) == OK)
+			&& ga_grow(&ga, (int)(itemseplen + itemlen + 1)) == OK)
 		{
 		    ga.ga_len += vim_snprintf((char *)ga.ga_data + ga.ga_len,
 				    itemseplen + itemlen + 1,
@@ -3439,13 +3439,13 @@ did_set_cmdheight(optset_T *args)
     char *errmsg = NULL;
 
     // if p_ch changed value, change the command line height
-    if (p_ch < 1)
+    if (p_ch < MIN_CMDHEIGHT)
     {
 	errmsg = e_argument_must_be_positive;
-	p_ch = 1;
+	p_ch = MIN_CMDHEIGHT;
     }
-    if (p_ch > Rows - min_rows() + 1)
-	p_ch = Rows - min_rows() + 1;
+    if (p_ch > Rows - min_rows() + MIN_CMDHEIGHT)
+	p_ch = Rows - min_rows() + MIN_CMDHEIGHT;
 
     // Only compute the new window layout when startup has been
     // completed. Otherwise the frame sizes may be wrong.
@@ -4988,15 +4988,15 @@ check_num_option_bounds(
     size_t	errbuflen,
     char	*errmsg)
 {
-    if (Rows < min_rows() && full_screen)
+    if (Rows < min_rows_for_all_tabpages() && full_screen)
     {
 	if (errbuf != NULL)
 	{
 	    vim_snprintf(errbuf, errbuflen,
-		    _(e_need_at_least_nr_lines), min_rows());
+		    _(e_need_at_least_nr_lines), min_rows_for_all_tabpages());
 	    errmsg = errbuf;
 	}
-	Rows = min_rows();
+	Rows = min_rows_for_all_tabpages();
     }
     if (Columns < MIN_COLUMNS && full_screen)
     {
@@ -5067,16 +5067,6 @@ check_num_option_bounds(
     {
 	errmsg = e_invalid_argument;
 	p_hi = 10000;
-    }
-    if (p_mhi < 0)
-    {
-	errmsg = e_argument_must_be_positive;
-	p_mhi = 0;
-    }
-    else if (p_mhi > 10000)
-    {
-	errmsg = e_invalid_argument;
-	p_mhi = 10000;
     }
     if (p_re < 0 || p_re > 2)
     {
@@ -8585,7 +8575,7 @@ vimrc_found(char_u *fname, char_u *envname)
 		if (vim_getenv((char_u *)"MYVIMDIR", &dofree) == NULL)
 		{
 		    size_t  usedlen = 0;
-		    int     len = 0;
+		    size_t  len = 0;
 		    char_u  *fbuf = NULL;
 
 		    if (STRNCMP(gettail(fname), ".vimrc", 6) == 0)

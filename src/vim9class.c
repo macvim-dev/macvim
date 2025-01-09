@@ -1623,6 +1623,8 @@ enum_parse_values(
 	}
     }
 
+    p = skipwhite(p);
+
     if (*p != NUL && *p != '#')
     {
 	if (did_emsg == did_emsg_before)
@@ -1738,6 +1740,7 @@ enum_set_internal_obj_vars(class_T *en, object_T *enval)
 
 /*
  * Handle ":class" and ":abstract class" up to ":endclass".
+ * Handle ":enum" up to ":endenum".
  * Handle ":interface" up to ":endinterface".
  */
     void
@@ -3313,7 +3316,7 @@ class_defining_member(class_T *cl, char_u *name, size_t len, ocmember_T **p_m)
 	    if (( m = class_member_lookup(super, name, len, NULL)) != NULL)
 	    {
 		cl_tmp = super;
-		vartype = VAR_OBJECT;
+		vartype = VAR_CLASS;
 	    }
 	}
 	if (cl_tmp == NULL)

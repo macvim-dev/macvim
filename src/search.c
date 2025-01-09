@@ -4401,6 +4401,7 @@ fuzzy_match_compute_score(
     int		i;
     char_u	*p = str;
     int_u	sidx = 0;
+    int		is_exact_match = TRUE;
 
     // Initialize score
     score = 100;
@@ -4468,7 +4469,14 @@ fuzzy_match_compute_score(
 	    // First letter
 	    score += FIRST_LETTER_BONUS;
 	}
+	// Check exact match condition
+        if (currIdx != (int_u)i)
+	    is_exact_match = FALSE;
     }
+    // Boost score for exact matches
+    if (is_exact_match && numMatches == strSz)
+        score += 100;
+
     return score;
 }
 

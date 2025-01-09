@@ -36,6 +36,7 @@ static void	ex_autocmd(exarg_T *eap);
 static void	ex_doautocmd(exarg_T *eap);
 static void	ex_bunload(exarg_T *eap);
 static void	ex_buffer(exarg_T *eap);
+static void	do_exbuffer(exarg_T *eap);
 static void	ex_bmodified(exarg_T *eap);
 static void	ex_bnext(exarg_T *eap);
 static void	ex_bprevious(exarg_T *eap);
@@ -101,10 +102,14 @@ static void	ex_tabs(exarg_T *eap);
 static void	ex_pclose(exarg_T *eap);
 static void	ex_ptag(exarg_T *eap);
 static void	ex_pedit(exarg_T *eap);
+static void	ex_pbuffer(exarg_T *eap);
+static void	prepare_preview_window(void);
+static void	back_to_current_window(win_T *curwin_save);
 #else
 # define ex_pclose		ex_ni
 # define ex_ptag		ex_ni
 # define ex_pedit		ex_ni
+# define ex_pbuffer		ex_ni
 #endif
 static void	ex_hide(exarg_T *eap);
 static void	ex_exit(exarg_T *eap);
@@ -5740,6 +5745,15 @@ ex_buffer(exarg_T *eap)
 {
     if (ERROR_IF_ANY_POPUP_WINDOW)
 	return;
+    do_exbuffer(eap);
+}
+
+/*
+ * ":buffer" command and alike.
+ */
+    static void
+do_exbuffer(exarg_T *eap)
+{
     if (*eap->arg)
 	eap->errmsg = ex_errmsg(e_trailing_characters_str, eap->arg);
     else
@@ -9453,17 +9467,43 @@ ex_ptag(exarg_T *eap)
 ex_pedit(exarg_T *eap)
 {
     win_T	*curwin_save = curwin;
+    prepare_preview_window();
 
+    // Edit the file.
+    do_exedit(eap, NULL);
+
+    back_to_current_window(curwin_save);
+}
+
+/*
+ * ":pbuffer"
+ */
+    static void
+ex_pbuffer(exarg_T *eap)
+{
+    win_T	*curwin_save = curwin;
+    prepare_preview_window();
+
+    // Go to the buffer.
+    do_exbuffer(eap);
+
+    back_to_current_window(curwin_save);
+}
+
+    static void
+prepare_preview_window(void)
+{
     if (ERROR_IF_ANY_POPUP_WINDOW)
 	return;
 
     // Open the preview window or popup and make it the current window.
     g_do_tagpreview = p_pvh;
     prepare_tagpreview(TRUE, TRUE, FALSE);
+}
 
-    // Edit the file.
-    do_exedit(eap, NULL);
-
+    static void
+back_to_current_window(win_T *curwin_save)
+{
     if (curwin != curwin_save && win_valid(curwin_save))
     {
 	// Return cursor to where we were
@@ -9676,7 +9716,7 @@ eval_vars(
     char_u	*s;
     char_u	*result;
     char_u	*resultbuf = NULL;
-    int		resultlen;
+    size_t	resultlen;
     buf_T	*buf;
     int		valid = VALID_HEAD + VALID_PATH;    // assume valid result
     int		spec_idx;
@@ -9951,12 +9991,12 @@ eval_vars(
 		break;
 	}
 
-	resultlen = (int)STRLEN(result);	// length of new string
+	resultlen = STRLEN(result);	// length of new string
 	if (src[*usedlen] == '<')	// remove the file name extension
 	{
 	    ++*usedlen;
 	    if ((s = vim_strrchr(result, '.')) != NULL && s >= gettail(result))
-		resultlen = (int)(s - result);
+		resultlen = s - result;
 	}
 	else if (!skip_mod)
 	{

@@ -455,9 +455,9 @@ static struct vimoption options[] =
 			    (char_u *)"light",
 #endif
 					    (char_u *)0L} SCTX_INIT},
-    {"backspace",   "bs",   P_STRING|P_VI_DEF|P_VIM|P_ONECOMMA|P_NODUP,
+    {"backspace",   "bs",   P_STRING|P_VIM|P_ONECOMMA|P_NODUP,
 			    (char_u *)&p_bs, PV_NONE, did_set_backspace, expand_set_backspace,
-			    {(char_u *)"", (char_u *)0L} SCTX_INIT},
+			    {(char_u *)"", (char_u *)"indent,eol,start"} SCTX_INIT},
     {"backup",	    "bk",   P_BOOL|P_VI_DEF|P_VIM,
 			    (char_u *)&p_bk, PV_NONE, NULL, NULL,
 			    {(char_u *)FALSE, (char_u *)0L} SCTX_INIT},
@@ -1380,7 +1380,7 @@ static struct vimoption options[] =
 			    SCTX_INIT},
     {"history",	    "hi",   P_NUM|P_VIM,
 			    (char_u *)&p_hi, PV_NONE, NULL, NULL,
-			    {(char_u *)0L, (char_u *)50L} SCTX_INIT},
+			    {(char_u *)0L, (char_u *)200L} SCTX_INIT},
     {"hkmap",	    "hk",   P_BOOL|P_VI_DEF|P_VIM,
 #ifdef FEAT_RIGHTLEFT
 			    (char_u *)&p_hkmap, PV_NONE, NULL, NULL,
@@ -1597,7 +1597,7 @@ static struct vimoption options[] =
 			    {(char_u *)"", (char_u *)0L} SCTX_INIT},
     {"keyprotocol", "kpc",  P_STRING|P_VI_DEF|P_ONECOMMA|P_NODUP|P_COLON,
 			    (char_u *)&p_kpc, PV_NONE, did_set_keyprotocol, expand_set_keyprotocol,
-			    {(char_u *)"kitty:kitty,foot:kitty,wezterm:kitty,xterm:mok2", (char_u *)0L}
+			    {(char_u *)"kitty:kitty,foot:kitty,ghostty:kitty,wezterm:kitty,xterm:mok2", (char_u *)0L}
 			    SCTX_INIT},
     {"keywordprg",  "kp",   P_STRING|P_EXPAND|P_VI_DEF|P_SECURE,
 			    (char_u *)&p_kp, PV_KP, NULL, NULL,
@@ -1805,6 +1805,9 @@ static struct vimoption options[] =
     {"mesg",	    NULL,   P_BOOL|P_VI_DEF,
 			    (char_u *)NULL, PV_NONE, NULL, NULL,
 			    {(char_u *)FALSE, (char_u *)0L} SCTX_INIT},
+    {"messagesopt","mopt",  P_STRING|P_ALLOCED|P_VI_DEF|P_ONECOMMA|P_COLON|P_NODUP,
+			    (char_u *)&p_mopt, PV_NONE, did_set_messagesopt, expand_set_messagesopt,
+			    {(char_u *)"hit-enter,history:500", (char_u *)NULL} SCTX_INIT},
     {"mkspellmem",  "msm",  P_STRING|P_VI_DEF|P_EXPAND|P_SECURE,
 #ifdef FEAT_SPELL
 			    (char_u *)&p_msm, PV_NONE, did_set_mkspellmem, NULL,
@@ -1887,9 +1890,6 @@ static struct vimoption options[] =
 			    SCTX_INIT},
     {"mousetime",   "mouset",	P_NUM|P_VI_DEF,
 			    (char_u *)&p_mouset, PV_NONE, NULL, NULL,
-			    {(char_u *)500L, (char_u *)0L} SCTX_INIT},
-    {"msghistory","mhi",    P_NUM|P_VI_DEF,
-			    (char_u *)&p_mhi, PV_NONE, NULL, NULL,
 			    {(char_u *)500L, (char_u *)0L} SCTX_INIT},
     {"mzquantum",  "mzq",   P_NUM,
 #ifdef FEAT_MZSCHEME

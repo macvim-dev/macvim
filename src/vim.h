@@ -1628,6 +1628,7 @@ typedef UINT32_TYPEDEF UINT32_T;
  */
 #define MIN_COLUMNS	12	// minimal columns for screen
 #define MIN_LINES	2	// minimal lines for screen
+#define MIN_CMDHEIGHT	1	// minimal height for command line
 #define STATUS_HEIGHT	1	// height of a status line under a window
 #ifdef FEAT_MENU		// height of a status line under a window
 # define WINBAR_HEIGHT(wp)	(wp)->w_winbar_height
@@ -2192,9 +2193,10 @@ typedef int sock_T;
 #define VV_TYPE_TYPEALIAS 107
 #define VV_TYPE_ENUM	  108
 #define VV_TYPE_ENUMVALUE 109
+#define VV_STACKTRACE	110
 // MacVim-specific values go here
-#define VV_OS_APPEARANCE 110
-#define VV_LEN		111	// number of v: vars
+#define VV_OS_APPEARANCE 111
+#define VV_LEN		112	// number of v: vars
 
 // used for v_number in VAR_BOOL and VAR_SPECIAL
 #define VVAL_FALSE	0L	// VAR_BOOL

@@ -2216,6 +2216,25 @@ handle_debug(isn_T *iptr, ectx_T *ectx)
 }
 
 /*
+ * Do a runtime check of the RHS value against the LHS List member type.
+ * This is used by the STOREINDEX instruction to perform a type check
+ * at runtime if compile time type check cannot be performed (VAR_ANY).
+ * Returns FAIL if there is a type mismatch.
+ */
+    static int
+storeindex_check_list_member_type(
+    list_T	*lhs_list,
+    typval_T	*rhs_tv,
+    ectx_T	*ectx)
+{
+    if (lhs_list->lv_type == NULL || lhs_list->lv_type->tt_member == NULL)
+	return OK;
+
+    return check_typval_type(lhs_list->lv_type->tt_member, rhs_tv,
+			     ectx->ec_where);
+}
+
+/*
  * Store a value in a list, dict, blob or object variable.
  * Returns OK, FAIL or NOTDONE (uncatchable error).
  */
@@ -2228,6 +2247,7 @@ execute_storeindex(isn_T *iptr, ectx_T *ectx)
     long	lidx = 0;
     typval_T	*tv_dest = STACK_TV_BOT(-1);
     int		status = OK;
+    int		check_rhs_type = FALSE;
 
     if (tv_idx->v_type == VAR_NUMBER)
 	lidx = (long)tv_idx->vval.v_number;
@@ -2247,6 +2267,7 @@ execute_storeindex(isn_T *iptr, ectx_T *ectx)
     }
     else if (dest_type == VAR_ANY)
     {
+	check_rhs_type = TRUE;
 	dest_type = tv_dest->v_type;
 	if (dest_type == VAR_DICT)
 	    status = do_2string(tv_idx, TRUE, FALSE);
@@ -2327,6 +2348,12 @@ execute_storeindex(isn_T *iptr, ectx_T *ectx)
 		semsg(_(e_list_index_out_of_range_nr), lidx);
 		return FAIL;
 	    }
+
+	    // Do a runtime type check for VAR_ANY
+	    if (check_rhs_type &&
+		    storeindex_check_list_member_type(list, tv, ectx) == FAIL)
+		return FAIL;
+
 	    if (lidx < list->lv_len)
 	    {
 		listitem_T *li = list_find(list, lidx);
@@ -3157,7 +3184,7 @@ any_var_get_obj_member(class_T *current_class, isn_T *iptr, typval_T *tv)
     copy_tv(tv, &mtv);
 
     // 'name' can either be a object variable or a object method
-    int		namelen = STRLEN(iptr->isn_arg.string);
+    int		namelen = (int)STRLEN(iptr->isn_arg.string);
     int		save_did_emsg = did_emsg;
 
     if (get_member_tv(obj->obj_class, TRUE, iptr->isn_arg.string, namelen,
@@ -3254,7 +3281,15 @@ exec_instructions(ectx_T *ectx)
 		trycmd_T *trycmd = ((trycmd_T *)trystack->ga_data)
 							+ trystack->ga_len - 1;
 		if (trycmd->tcd_frame_idx == ectx->ec_frame_idx)
-		    trycmd->tcd_caught = FALSE;
+		{
+		    if (trycmd->tcd_caught)
+		    {
+			// Inside a "catch" we need to first discard the caught
+			// exception.
+			finish_exception(caught_stack);
+			trycmd->tcd_caught = FALSE;
+		    }
+		}
 	    }
 	}
 
@@ -4398,9 +4433,10 @@ exec_instructions(ectx_T *ectx)
 		    // Stack has the local variable, argument the whole :lock
 		    // or :unlock command, like ISN_EXEC.
 		    --ectx->ec_stack.ga_len;
-		    lval_root_T root = { .lr_tv = STACK_TV_BOT(0),
-			    .lr_cl_exec = iptr->isn_arg.lockunlock.lu_cl_exec,
-			    .lr_is_arg  = iptr->isn_arg.lockunlock.lu_is_arg };
+		    lval_root_T root;
+		    root.lr_tv      = STACK_TV_BOT(0);
+		    root.lr_cl_exec = iptr->isn_arg.lockunlock.lu_cl_exec;
+		    root.lr_is_arg  = iptr->isn_arg.lockunlock.lu_is_arg;
 		    lval_root = &root;
 		    int res = exec_command(iptr,
 					iptr->isn_arg.lockunlock.lu_string);
@@ -4816,6 +4852,21 @@ exec_instructions(ectx_T *ectx)
 		int arg_set = tv->v_type != VAR_UNKNOWN
 				&& !(tv->v_type == VAR_SPECIAL
 					    && tv->vval.v_number == VVAL_NONE);
+
+		if (iptr->isn_type == ISN_JUMP_IF_ARG_NOT_SET && !arg_set)
+		{
+		    dfunc_T *df = ((dfunc_T *)def_functions.ga_data)
+							+ ectx->ec_dfunc_idx;
+		    ufunc_T *ufunc = df->df_ufunc;
+		    // jump_arg_off is negative for arguments
+		    size_t argidx = ufunc->uf_def_args.ga_len
+					+ iptr->isn_arg.jumparg.jump_arg_off
+					+ STACK_FRAME_SIZE;
+		    type_T *t = ufunc->uf_arg_types[argidx];
+		    CLEAR_POINTER(tv);
+		    tv->v_type = t->tt_type;
+		}
+
 		if (iptr->isn_type == ISN_JUMP_IF_ARG_SET ? arg_set : !arg_set)
 		    ectx->ec_iidx = iptr->isn_arg.jumparg.jump_where;
 		break;
@@ -4929,6 +4980,12 @@ exec_instructions(ectx_T *ectx)
 		    // Reset the index to avoid a return statement jumps here
 		    // again.
 		    trycmd->tcd_finally_idx = 0;
+		    if (trycmd->tcd_caught)
+		    {
+			// discard the exception
+			finish_exception(caught_stack);
+			trycmd->tcd_caught = FALSE;
+		    }
 		    break;
 		}
 
@@ -4943,12 +5000,10 @@ exec_instructions(ectx_T *ectx)
 		    trycmd = ((trycmd_T *)trystack->ga_data) + trystack->ga_len;
 		    if (trycmd->tcd_did_throw)
 			did_throw = TRUE;
-		    if (trycmd->tcd_caught && current_exception != NULL)
+		    if (trycmd->tcd_caught)
 		    {
 			// discard the exception
-			if (caught_stack == current_exception)
-			    caught_stack = caught_stack->caught;
-			discard_current_exception();
+			finish_exception(caught_stack);
 		    }
 
 		    if (trycmd->tcd_return)
@@ -4997,12 +5052,10 @@ exec_instructions(ectx_T *ectx)
 		    {
 			trycmd_T    *trycmd = ((trycmd_T *)trystack->ga_data)
 							+ trystack->ga_len - 1;
-			if (trycmd->tcd_caught && current_exception != NULL)
+			if (trycmd->tcd_caught)
 			{
 			    // discard the exception
-			    if (caught_stack == current_exception)
-				caught_stack = caught_stack->caught;
-			    discard_current_exception();
+			    finish_exception(caught_stack);
 			    trycmd->tcd_caught = FALSE;
 			}
 		    }
@@ -5690,6 +5743,17 @@ exec_instructions(ectx_T *ectx)
 
 		    // The members are located right after the object struct.
 		    typval_T *mtv = ((typval_T *)(obj + 1)) + idx;
+		    if (mtv->v_type == VAR_UNKNOWN)
+		    {
+			// Referencing an object variable (without a type)
+			// which is not yet initialized.  So the type is not
+			// yet known.
+			ocmember_T *m = &obj->obj_class->class_obj_members[idx];
+			SOURCING_LNUM = iptr->isn_lnum;
+			semsg(_(e_uninitialized_object_var_reference),
+				m->ocm_name);
+			goto on_error;
+		    }
 		    copy_tv(mtv, tv);
 
 		    // Unreference the object after getting the member, it may
@@ -6304,7 +6368,7 @@ call_def_function(
 		else if (check_typval_arg_type(expected, tv,
 						   NULL, argv_idx + 1) == FAIL)
 		    goto failed_early;
-	}
+	    }
 	    if (!done)
 		copy_tv(tv, STACK_TV_BOT(0));
 	}

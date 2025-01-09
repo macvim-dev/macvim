@@ -13,10 +13,6 @@
 
 #include "vim.h"
 
-#ifndef MAX
-# define MAX(x,y) ((x) > (y) ? (x) : (y))
-#endif
-
 // Return value when handling keys in command-line mode.
 #define CMDLINE_NOT_CHANGED	1
 #define CMDLINE_CHANGED		2
@@ -632,7 +628,7 @@ may_adjust_incsearch_highlighting(
 	    return FAIL;
 	}
 	skiplen = 0;
-	patlen = last_search_pattern_len();
+	patlen = (int)last_search_pattern_len();
     }
     else
 	pat = ccline.cmdbuff + skiplen;
@@ -1476,7 +1472,7 @@ cmdline_browse_history(
 		}
 		if (i == 0)
 		{
-		    alloc_cmdbuff(len);
+		    alloc_cmdbuff((int)len);
 		    if (ccline.cmdbuff == NULL)
 		    {
 			res = GOTO_NORMAL_MODE;
@@ -1485,18 +1481,18 @@ cmdline_browse_history(
 		}
 	    }
 	    ccline.cmdbuff[len] = NUL;
-	    ccline.cmdpos = ccline.cmdlen = len;
+	    ccline.cmdpos = ccline.cmdlen = (int)len;
 	}
 	else
 	{
-	    alloc_cmdbuff(plen);
+	    alloc_cmdbuff((int)plen);
 	    if (ccline.cmdbuff == NULL)
 	    {
 		res = GOTO_NORMAL_MODE;
 		goto done;
 	    }
 	    STRCPY(ccline.cmdbuff, p);
-	    ccline.cmdpos = ccline.cmdlen = plen;
+	    ccline.cmdpos = ccline.cmdlen = (int)plen;
 	}
 
 	redrawcmd();
@@ -4794,8 +4790,8 @@ open_cmdwin(void)
 	    {
 		// Execute the command directly.
 		ccline.cmdbuff = vim_strnsave(p, plen);
-		ccline.cmdlen = plen;
-		ccline.cmdbufflen = plen + 1;
+		ccline.cmdlen = (int)plen;
+		ccline.cmdbufflen = (int)(plen + 1);
 		cmdwin_result = CAR;
 	    }
 	    else

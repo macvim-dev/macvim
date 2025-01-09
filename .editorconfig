@@ -10,6 +10,10 @@ insert_final_newline = true
 [*.{c,h,proto}]
 indent_size = 4
 
+[src/MacVim/**]
+indent_style = space
+indent_size = 4
+
 [*.{md,yml,sh,bat}]
 # This will become the default after we migrate the codebase
 indent_style = space
@@ -24,6 +28,6 @@ trim_trailing_whitespace = false
 # It can mess up some documentation by trying to strip trailing whitespaces
 trim_trailing_whitespace = false
 
-[src/MacVim/**]
-indent_style = space
-indent_size = 4
+[src/testdir/test*.vim]
+# Some tests need trailing whitespaces, for example `set showbreak=>>\ `
+trim_trailing_whitespace = false

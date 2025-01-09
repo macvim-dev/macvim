@@ -748,17 +748,11 @@ func Test_popup_and_preview_autocommand()
   bw!
 endfunc
 
-func Test_popup_and_previewwindow_dump()
+func s:run_popup_and_previewwindow_dump(lines, dumpfile)
   CheckScreendump
   CheckFeature quickfix
 
-  let lines =<< trim END
-    set previewheight=9
-    silent! pedit
-    call setline(1, map(repeat(["ab"], 10), "v:val .. v:key"))
-    exec "norm! G\<C-E>\<C-E>"
-  END
-  call writefile(lines, 'Xscript', 'D')
+  call writefile(a:lines, 'Xscript', 'D')
   let buf = RunVimInTerminal('-S Xscript', {})
 
   " wait for the script to finish
@@ -768,10 +762,30 @@ func Test_popup_and_previewwindow_dump()
   call term_sendkeys(buf, "o")
   call TermWait(buf, 50)
   call term_sendkeys(buf, "\<C-X>\<C-N>")
-  call VerifyScreenDump(buf, 'Test_popup_and_previewwindow_01', {})
+  call VerifyScreenDump(buf, a:dumpfile, {})
 
   call term_sendkeys(buf, "\<Esc>u")
   call StopVimInTerminal(buf)
+endfunc
+
+func Test_popup_and_previewwindow_dump_pedit()
+  let lines =<< trim END
+    set previewheight=9
+    silent! pedit
+    call setline(1, map(repeat(["ab"], 10), "v:val .. v:key"))
+    exec "norm! G\<C-E>\<C-E>"
+  END
+  call s:run_popup_and_previewwindow_dump(lines, 'Test_popup_and_previewwindow_pedit')
+endfunc
+
+func Test_popup_and_previewwindow_dump_pbuffer()
+  let lines =<< trim END
+    set previewheight=9
+    silent! pbuffer
+    call setline(1, map(repeat(["ab"], 10), "v:val .. v:key"))
+    exec "norm! G\<C-E>\<C-E>\<C-E>"
+  END
+  call s:run_popup_and_previewwindow_dump(lines, 'Test_popup_and_previewwindow_pbuffer')
 endfunc
 
 func Test_balloon_split()
@@ -1676,6 +1690,163 @@ func Test_pum_completeitemalign()
   call VerifyScreenDump(buf, 'Test_pum_completeitemalign_07', {})
   call term_sendkeys(buf, "\<C-E>\<Esc>:T7\<CR>")
   call StopVimInTerminal(buf)
+endfunc
+
+func Test_pum_keep_select()
+  CheckScreendump
+  let lines =<< trim END
+    set completeopt=menu,menuone,noinsert
+  END
+  call writefile(lines, 'Xscript', 'D')
+  let buf = RunVimInTerminal('-S Xscript', {})
+  call TermWait(buf)
+
+  call term_sendkeys(buf, "ggSFab\<CR>Five\<CR>find\<CR>film\<CR>\<C-X>\<C-P>")
+  call TermWait(buf, 50)
+  call VerifyScreenDump(buf, 'Test_pum_keep_select_01', {})
+  call term_sendkeys(buf, "\<C-E>\<Esc>")
+  call TermWait(buf, 50)
+
+  call term_sendkeys(buf, "S\<C-X>\<C-P>")
+  call TermWait(buf, 50)
+  call term_sendkeys(buf, "F")
+  call VerifyScreenDump(buf, 'Test_pum_keep_select_02', {})
+  call term_sendkeys(buf, "\<C-E>\<Esc>")
+
+  call TermWait(buf, 50)
+  call StopVimInTerminal(buf)
+endfunc
+
+func Test_pum_matchins_highlight()
+  CheckScreendump
+  let lines =<< trim END
+    let g:change = 0
+    func Omni_test(findstart, base)
+      if a:findstart
+        return col(".")
+      endif
+      if g:change == 0
+        return [#{word: "foo"}, #{word: "bar"}, #{word: "你好"}]
+      endif
+      return [#{word: "foo", info: "info"}, #{word: "bar"}, #{word: "你好"}]
+    endfunc
+    set omnifunc=Omni_test
+    hi ComplMatchIns ctermfg=red
+  END
+  call writefile(lines, 'Xscript', 'D')
+  let buf = RunVimInTerminal('-S Xscript', {})
+
+  call TermWait(buf)
+  call term_sendkeys(buf, "Sαβγ \<C-X>\<C-O>")
+  call VerifyScreenDump(buf, 'Test_pum_matchins_01', {})
+  call term_sendkeys(buf, "\<C-E>\<Esc>")
+
+  call TermWait(buf)
+  call term_sendkeys(buf, "Sαβγ \<C-X>\<C-O>\<C-N>")
+  call VerifyScreenDump(buf, 'Test_pum_matchins_02', {})
+  call term_sendkeys(buf, "\<C-E>\<Esc>")
+
+  call TermWait(buf)
+  call term_sendkeys(buf, "Sαβγ \<C-X>\<C-O>\<C-N>\<C-N>")
+  call VerifyScreenDump(buf, 'Test_pum_matchins_03', {})
+  call term_sendkeys(buf, "\<C-E>\<Esc>")
+
+  " restore after accept
+  call TermWait(buf)
+  call term_sendkeys(buf, "Sαβγ \<C-X>\<C-O>\<C-Y>")
+  call VerifyScreenDump(buf, 'Test_pum_matchins_04', {})
+  call term_sendkeys(buf, "\<Esc>")
+
+  " restore after cancel completion
+  call TermWait(buf)
+  call term_sendkeys(buf, "Sαβγ \<C-X>\<C-O>\<Space>")
+  call VerifyScreenDump(buf, 'Test_pum_matchins_05', {})
+  call term_sendkeys(buf, "\<Esc>")
+
+  " text after the inserted text shouldn't be highlighted
+  call TermWait(buf)
+  call term_sendkeys(buf, "0ea \<C-X>\<C-O>")
+  call VerifyScreenDump(buf, 'Test_pum_matchins_07', {})
+  call term_sendkeys(buf, "\<C-P>")
+  call VerifyScreenDump(buf, 'Test_pum_matchins_08', {})
+  call term_sendkeys(buf, "\<C-P>")
+  call VerifyScreenDump(buf, 'Test_pum_matchins_09', {})
+  call term_sendkeys(buf, "\<C-Y>")
+  call VerifyScreenDump(buf, 'Test_pum_matchins_10', {})
+  call term_sendkeys(buf, "\<Esc>")
+
+  call term_sendkeys(buf, ":let g:change=1\<CR>S\<C-X>\<C-O>")
+  call VerifyScreenDump(buf, 'Test_pum_matchins_11', {})
+  call term_sendkeys(buf, "\<Esc>")
+
+  call StopVimInTerminal(buf)
+endfunc
+
+func Test_pum_matchins_highlight_combine()
+  CheckScreendump
+  let lines =<< trim END
+    func Omni_test(findstart, base)
+      if a:findstart
+        return col(".")
+      endif
+      return [#{word: "foo"}, #{word: "bar"}, #{word: "你好"}]
+    endfunc
+    set omnifunc=Omni_test
+    hi Normal ctermbg=blue
+    hi CursorLine cterm=underline ctermbg=green
+    set cursorline
+    call setline(1, 'aaa bbb')
+  END
+  call writefile(lines, 'Xscript', 'D')
+  let buf = RunVimInTerminal('-S Xscript', {})
+
+  " when ComplMatchIns is not set, CursorLine applies normally
+  call term_sendkeys(buf, "0ea \<C-X>\<C-O>")
+  call VerifyScreenDump(buf, 'Test_pum_matchins_combine_01', {})
+  call term_sendkeys(buf, "\<C-E>")
+  call VerifyScreenDump(buf, 'Test_pum_matchins_combine_02', {})
+  call term_sendkeys(buf, "\<BS>\<Esc>")
+
+  " when ComplMatchIns is set, it is applied over CursorLine
+  call TermWait(buf)
+  call term_sendkeys(buf, ":hi ComplMatchIns ctermbg=red ctermfg=yellow\<CR>")
+  call TermWait(buf)
+  call term_sendkeys(buf, "0ea \<C-X>\<C-O>")
+  call VerifyScreenDump(buf, 'Test_pum_matchins_combine_03', {})
+  call term_sendkeys(buf, "\<C-P>")
+  call VerifyScreenDump(buf, 'Test_pum_matchins_combine_04', {})
+  call term_sendkeys(buf, "\<C-P>")
+  call VerifyScreenDump(buf, 'Test_pum_matchins_combine_05', {})
+  call term_sendkeys(buf, "\<C-E>")
+  call VerifyScreenDump(buf, 'Test_pum_matchins_combine_06', {})
+  call term_sendkeys(buf, "\<Esc>")
+
+  " Does not highlight the compl leader
+  call TermWait(buf)
+  call term_sendkeys(buf, ":set cot+=menuone,noselect\<CR>")
+  call TermWait(buf)
+  call term_sendkeys(buf, "S\<C-X>\<C-O>f\<C-N>")
+  call VerifyScreenDump(buf, 'Test_pum_matchins_combine_07', {})
+  call term_sendkeys(buf, "\<C-E>\<Esc>")
+
+  call term_sendkeys(buf, ":set cot+=fuzzy\<CR>")
+  call TermWait(buf)
+  call term_sendkeys(buf, "S\<C-X>\<C-O>f\<C-N>")
+  call VerifyScreenDump(buf, 'Test_pum_matchins_combine_08', {})
+  call term_sendkeys(buf, "\<C-E>\<Esc>")
+
+  call StopVimInTerminal(buf)
+endfunc
+
+" this used to crash
+func Test_popup_completion_many_ctrlp()
+  new
+  let candidates=repeat(['a0'], 99)
+  call setline(1, candidates)
+  exe ":norm! VGg\<C-A>"
+  norm! G
+  call feedkeys("o" .. repeat("\<c-p>", 100), 'tx')
+  bw!
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

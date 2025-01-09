@@ -1139,6 +1139,7 @@ win_line(
     long	vcol_prev = -1;		// "wlv.vcol" of previous character
     char_u	*line;			// current line
     char_u	*ptr;			// current position in "line"
+    int		in_curline = wp == curwin && lnum == curwin->w_cursor.lnum;
 
 #ifdef FEAT_PROP_POPUP
     char_u	*p_extra_free2 = NULL;   // another p_extra to be freed
@@ -1171,7 +1172,8 @@ win_line(
     int		vi_attr = 0;		// attributes for Visual and incsearch
 					// highlighting
     int		area_attr = 0;		// attributes desired by highlighting
-    int		search_attr = 0;	// attributes desired by 'hlsearch'
+    int		search_attr = 0;	// attributes desired by 'hlsearch' or
+					// ComplMatchIns
 #ifdef FEAT_SYN_HL
     int		vcol_save_attr = 0;	// saved attr for 'cursorcolumn'
     int		syntax_attr = 0;	// attributes desired by syntax
@@ -1212,7 +1214,7 @@ win_line(
     int		word_end = 0;		// last byte with same spell_attr
     int		cur_checked_col = 0;	// checked column for current line
 #endif
-    int		extra_check = 0;	// has extra highlighting
+    int		extra_check = FALSE;	// has extra highlighting
     int		multi_attr = 0;		// attributes desired by multibyte
     int		mb_l = 1;		// multi-byte byte length
     int		mb_c = 0;		// decoded multi-byte character
@@ -1415,8 +1417,7 @@ win_line(
 	    }
 
 	    // Check if the character under the cursor should not be inverted
-	    if (!highlight_match && lnum == curwin->w_cursor.lnum
-								&& wp == curwin
+	    if (!highlight_match && in_curline
 #ifdef FEAT_GUI
 		    && !gui.in_use
 #endif
@@ -1868,6 +1869,9 @@ win_line(
     }
 #endif
 
+    if ((State & MODE_INSERT) && in_curline && ins_compl_win_active(wp))
+	area_highlighting = TRUE;
+
 #ifdef FEAT_SYN_HL
     // Cursor line highlighting for 'cursorline' in the current window.
     if (wp->w_p_cul && lnum == wp->w_cursor.lnum)
@@ -2011,9 +2015,7 @@ win_line(
 #endif
 
 	// When still displaying '$' of change command, stop at cursor.
-	if (dollar_vcol >= 0 && wp == curwin
-		&& lnum == wp->w_cursor.lnum
-		&& wlv.vcol >= (long)wp->w_virtcol)
+	if (dollar_vcol >= 0 && in_curline && wlv.vcol >= (long)wp->w_virtcol)
 	{
 	    wlv_screen_line(wp, &wlv, FALSE);
 	    // Pretend we have finished updating the window.  Except when
@@ -2391,9 +2393,9 @@ win_line(
 			|| (noinvcur && (colnr_T)wlv.vcol == wp->w_virtcol)))
 		*area_attr_p = 0;		// stop highlighting
 
-#ifdef FEAT_SEARCH_EXTRA
 	    if (wlv.n_extra == 0)
 	    {
+#ifdef FEAT_SEARCH_EXTRA
 		// Check for start/end of 'hlsearch' and other matches.
 		// After end, check for start/end of next match.
 		// When another match, have to check for start again.
@@ -2408,8 +2410,21 @@ win_line(
 		// and bad things happen.
 		if (*ptr == NUL)
 		    has_match_conc = 0;
-	    }
+#else
+		search_attr = 0;
 #endif
+
+		// Check if ComplMatchIns highlight is needed.
+		if ((State & MODE_INSERT) && in_curline
+						&& ins_compl_win_active(wp))
+		{
+		    int ins_match_attr =
+			ins_compl_col_range_attr((int)(ptr - line));
+		    if (ins_match_attr > 0)
+			search_attr =
+			    hl_combine_attr(search_attr, ins_match_attr);
+		}
+	    }
 
 #ifdef FEAT_DIFF
 	    if (wlv.diff_hlf != (hlf_T)0)
@@ -3607,8 +3622,7 @@ win_line(
 	// With 'virtualedit' we may never reach cursor position, but we still
 	// need to correct the cursor column, so do that at end of line.
 	if (!did_wcol && wlv.draw_state == WL_LINE
-		&& wp == curwin && lnum == wp->w_cursor.lnum
-		&& conceal_cursor_line(wp)
+		&& in_curline && conceal_cursor_line(wp)
 		&& (wlv.vcol + skip_cells >= wp->w_virtcol || c == NUL))
 	{
 # ifdef FEAT_RIGHTLEFT
@@ -3853,7 +3867,7 @@ win_line(
 
 		// Update w_cline_height and w_cline_folded if the cursor line
 		// was updated (saves a call to plines() later).
-		if (wp == curwin && lnum == curwin->w_cursor.lnum)
+		if (in_curline)
 		{
 		    curwin->w_cline_row = startrow;
 		    curwin->w_cline_height = wlv.row - startrow;

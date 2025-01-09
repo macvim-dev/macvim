@@ -3050,6 +3050,30 @@ did_set_matchpairs(optset_T *args)
     return NULL;
 }
 
+/*
+ * Process the updated 'messagesopt' option value.
+ */
+    char *
+did_set_messagesopt(optset_T *args UNUSED)
+{
+    if (messagesopt_changed() == FAIL)
+	return e_invalid_argument;
+
+    return NULL;
+}
+
+    int
+expand_set_messagesopt(optexpand_T *args, int *numMatches, char_u ***matches)
+{
+    static char *(p_mopt_values[]) = {"hit-enter", "wait:", "history:", NULL};
+    return expand_set_opt_string(
+	    args,
+	    p_mopt_values,
+	    ARRAY_LENGTH(p_mopt_values) - 1,
+	    numMatches,
+	    matches);
+}
+
 #if defined(FEAT_SPELL) || defined(PROTO)
 /*
  * The 'mkspellmem' option is changed.
@@ -3340,7 +3364,12 @@ parse_statustabline_rulerformat(optset_T *args, int rulerformat)
 	if (wid && *s == '(' && (errmsg = check_stl_option(p_ruf)) == NULL)
 	    ru_wid = wid;
 	else
-	    errmsg = check_stl_option(p_ruf);
+	{
+	    // Validate the flags in 'rulerformat' only if it doesn't point to
+	    // a custom function ("%!" flag).
+	    if ((*varp)[1] != '!')
+		errmsg = check_stl_option(p_ruf);
+	}
     }
     // check 'statusline' or 'tabline' only if it doesn't start with "%!"
     else if (rulerformat || s[0] != '%' || s[1] != '!')

@@ -1,4 +1,4 @@
-.TH VIMTUTOR 1 "04 novembre 2024"
+.TH VIMTUTOR 1 "03 dicembre 2024"
 .SH NOME
 vimtutor \- Un breve corso introduttivo a Vim
 .SH SINTASSI
@@ -18,8 +18,8 @@ Il comando
 .B Vimtutor
 è utile a chi voglia imparare i primi comandi di
 .B Vim.
-L'argomento opzionale [language] specifica l'abbreviazione di due lettere del nome
-di una lingua, per esempio "it" oppure "es".
+L'argomento opzionale [ISO639] specifica l'abbreviazione di due o tre lettere
+del nome di una lingua, per esempio "it" oppure "es".
 .PP
 .B Vimtutor
 utilizza delle copie dei file originali, non c'è pericolo di danneggiare
@@ -29,13 +29,13 @@ i file stessi.
 è sempre iniziato in Modo compatibile con Vi.
 .SH OPZIONI
 .TP
-.BR \-l ", " \-\-language =\fIISO639\fR
+.BR \-l ", " \-\-language\ \fIISO639\fR
 Imposta il codice di due o tre lettere che designa la lingua.
 P.es., 'it', 'es', 'bar'.
 Il default è il linguaggio locale, se una traduzione è disponibile,
 altrimenti viene utilizzato il testo originale in inglese.
 .TP
-.BR \-c ", " \-\-chapter =\fINUMBER\fR
+.BR \-c ", " \-\-chapter\ \fINUMERO\fR
 Imposta il numero del capitolo.  Il default è il capitolo uno.
 .TP
 .BR \-g ", " \-\-gui
@@ -76,7 +76,7 @@ vimtutor --language bar --chapter 1 --gui
 .fi
 .SH FILE
 .TP 15
-/usr/local/lib/vim/vim??/tutor/tutor[.lingua]
+/usr/local/lib/vim/vim??/tutor/tutor1[.lingua]
 I file di testo per il capitolo uno di
 .B Vimtutor
 .

@@ -57,6 +57,8 @@ endfunction
 
 packadd termdebug
 
+" should be the first test to run, since it validates the window layout with
+" win ids
 func Test_termdebug_basic()
   let bin_name = 'XTD_basic'
   let src_name = bin_name .. '.c'
@@ -177,6 +179,62 @@ func Test_termdebug_basic()
 
   call s:cleanup_files(bin_name)
   %bw!
+endfunc
+
+func Test_termdebug_decimal_breakpoints()
+  let bin_name = 'XTD_decimal'
+  let src_name = bin_name .. '.c'
+  call s:generate_files(bin_name)
+
+  exe "edit " .. src_name
+
+  let g:termdebug_config = {}
+  let g:termdebug_config['sign_decimal'] = 1
+
+  exe "Termdebug " .. bin_name
+  call WaitForAssert({-> assert_true(get(g:, "termdebug_is_running", v:false))})
+  call WaitForAssert({-> assert_equal(3, winnr('$'))})
+  let gdb_buf = winbufnr(1)
+  wincmd b
+  Break 9
+  call term_wait(gdb_buf)
+  redraw!
+
+  let i = 2
+  while i <= 258
+    Break
+    call term_wait(gdb_buf)
+    if i == 2
+      call WaitForAssert({-> assert_equal(sign_getdefined('debugBreakpoint2.0')[0].text, '02')})
+    endif
+    if i == 10
+      call WaitForAssert({-> assert_equal(sign_getdefined('debugBreakpoint10.0')[0].text, '10')})
+    endif
+    if i == 168
+      call WaitForAssert({-> assert_equal(sign_getdefined('debugBreakpoint168.0')[0].text, '9+')})
+    endif
+    if i == 255
+      call WaitForAssert({-> assert_equal(sign_getdefined('debugBreakpoint255.0')[0].text, '9+')})
+    endif
+    if i == 256
+      call WaitForAssert({-> assert_equal(sign_getdefined('debugBreakpoint256.0')[0].text, '9+')})
+    endif
+    if i == 258
+      call WaitForAssert({-> assert_equal(sign_getdefined('debugBreakpoint258.0')[0].text, '9+')})
+    endif
+    let i += 1
+  endwhile
+
+  wincmd t
+  quit!
+  redraw!
+  call WaitForAssert({-> assert_equal(1, winnr('$'))})
+  call assert_equal([], sign_getplaced('', #{group: 'TermDebug'})[0].signs)
+
+  call s:cleanup_files(bin_name)
+  %bw!
+
+  unlet g:termdebug_config
 endfunc
 
 func Test_termdebug_tbreak()
@@ -564,4 +622,22 @@ function Test_termdebug_config_types()
   unlet g:termdebug_config
 endfunction
 
+function Test_termdebug_config_debug()
+  let s:error_message = '\[termdebug\] Termdebug already loaded'
+
+  " USER mode: No error message shall be displayed
+  packadd termdebug
+  call assert_true(execute('messages') !~ s:error_message)
+
+  " DEBUG mode: Error message shall now be displayed
+  let g:termdebug_config = {}
+  let g:termdebug_config['debug'] = 1
+  packadd termdebug
+  call assert_true(execute('messages') =~ s:error_message)
+
+  unlet g:termdebug_config
+  unlet g:termdebug_loaded
+  " Revert DEBUG mode, by reloading the plugin
+  source $VIMRUNTIME/pack/dist/opt/termdebug/plugin/termdebug.vim
+endfunction
 " vim: shiftwidth=2 sts=2 expandtab
