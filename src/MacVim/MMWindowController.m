@@ -222,21 +222,24 @@
     if ([win respondsToSelector:@selector(_setContentHasShadow:)])
         [win _setContentHasShadow:NO];
     
-#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7)
-    // Building on Mac OS X 10.7 or greater.
-
-    // This puts the full-screen button in the top right of each window
-    if ([win respondsToSelector:@selector(setCollectionBehavior:)])
-        [win setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
+    // This adds the title bar full-screen button (which calls
+    // toggleFullScreen:) and also populates the Window menu itmes for full
+    // screen tiling. Even if we are using non-native full screen, we still set
+    // this just so we have that button to override. We also intentionally
+    // don't set the flag NSWindowCollectionBehaviorFullScreenDisallowsTiling
+    // in that case because MacVim still works when macOS tries to do native
+    // full screen tiling so we'll allow it.
+    NSWindowCollectionBehavior wcb = win.collectionBehavior;
+    wcb &= ~(NSWindowCollectionBehaviorFullScreenAuxiliary);
+    wcb &= ~(NSWindowCollectionBehaviorFullScreenNone);
+    wcb |= NSWindowCollectionBehaviorFullScreenPrimary;
+    [win setCollectionBehavior:wcb];
 
     // This makes windows animate when opened
-    if ([win respondsToSelector:@selector(setAnimationBehavior:)]) {
-        if (![[NSUserDefaults standardUserDefaults]
-              boolForKey:MMDisableLaunchAnimationKey]) {
-            [win setAnimationBehavior:NSWindowAnimationBehaviorDocumentWindow];
-        }
+    if (![[NSUserDefaults standardUserDefaults]
+          boolForKey:MMDisableLaunchAnimationKey]) {
+        [win setAnimationBehavior:NSWindowAnimationBehaviorDocumentWindow];
     }
-#endif
 
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= 110000
     if (@available(macos 11.0, *)) {
@@ -1041,8 +1044,14 @@
         [fullScreenWindow release];
         fullScreenWindow = nil;
 
-        // The vim view may be too large to fit the screen, so update it.
-        shouldResizeVimView = YES;
+        // View is always at (0,0) except in full screen where it gets set to
+        // [fullScreenWindow getDesiredFrame].
+        [self.vimView setFrameOrigin:NSZeroPoint];
+
+        // Simply resize Vim view to fit within the original window size. Note
+        // that this behavior is similar to guioption-k, even if it's not set
+        // in Vim.
+        [self.vimView setFrameSizeKeepGUISize:[self contentSize]];
     } else {
         // Using native full-screen
         // NOTE: fullScreenEnabled is used to detect if we enter full-screen
@@ -1449,7 +1458,19 @@
 {
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_VERSION_13_0
     if (@available(macos 13.0, *)) {
-        [decoratedWindow setCollectionBehavior:NSWindowCollectionBehaviorCanJoinAllApplications];
+        NSWindowCollectionBehavior wcb = decoratedWindow.collectionBehavior;
+        wcb &= ~(NSWindowCollectionBehaviorPrimary);
+        wcb &= ~(NSWindowCollectionBehaviorAuxiliary);
+        wcb |= NSWindowCollectionBehaviorCanJoinAllApplications;
+        [decoratedWindow setCollectionBehavior:wcb];
+
+        if (fullScreenWindow) { // non-native full screen has a separate window
+            NSWindowCollectionBehavior wcb = fullScreenWindow.collectionBehavior;
+            wcb &= ~(NSWindowCollectionBehaviorPrimary);
+            wcb &= ~(NSWindowCollectionBehaviorAuxiliary);
+            wcb |= NSWindowCollectionBehaviorCanJoinAllApplications;
+            [fullScreenWindow setCollectionBehavior:wcb];
+        }
     }
 #endif
 }
@@ -1460,7 +1481,19 @@
 {
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_VERSION_13_0
     if (@available(macos 13.0, *)) {
-        [decoratedWindow setCollectionBehavior:NSWindowCollectionBehaviorPrimary];
+        NSWindowCollectionBehavior wcb = decoratedWindow.collectionBehavior;
+        wcb &= ~(NSWindowCollectionBehaviorCanJoinAllApplications);
+        wcb &= ~(NSWindowCollectionBehaviorAuxiliary);
+        wcb |= NSWindowCollectionBehaviorPrimary;
+        [decoratedWindow setCollectionBehavior:wcb];
+
+        if (fullScreenWindow) { // non-native full screen has a separate window
+            NSWindowCollectionBehavior wcb = fullScreenWindow.collectionBehavior;
+            wcb &= ~(NSWindowCollectionBehaviorCanJoinAllApplications);
+            wcb &= ~(NSWindowCollectionBehaviorAuxiliary);
+            wcb |= NSWindowCollectionBehaviorPrimary;
+            [fullScreenWindow setCollectionBehavior:wcb];
+        }
     }
 #endif
 }
@@ -1595,6 +1628,15 @@
         fullScreenEnabled = NO;
         [self invFullScreen:self];
     }
+
+    // If we are using a resize increment (i.e. smooth resize is off), macOS
+    // has a quirk/bug that will use the increment to determine the final size
+    // of the original window as fixed increment from the full screen window,
+    // which could annoyingly not be the original size. This could lead to
+    // enter full screen -> exit full screen leading to the window having
+    // different size. Because of that, just set increment to 1,1 here to
+    // alleviate the issue.
+    [decoratedWindow setContentResizeIncrements:NSMakeSize(1, 1)];
 }
 
 - (void)windowDidExitFullScreen:(NSNotification *)notification
@@ -1604,6 +1646,11 @@
         // full-screen by moving the window out from Split View.
         [vimController sendMessage:BackingPropertiesChangedMsgID data:nil];
     }
+
+    // We set the resize increment to 1,1 above just to sure window size was
+    // restored properly. We want to set it back to the correct value, which
+    // would not be 1,1 if we are not using smooth resize.
+    [self updateResizeConstraints:NO];
 
     [self updateTablineSeparator];
 

@@ -102,7 +102,7 @@ static NSDictionary<NSString *, id> *cachedAppDefaults;
     [MMAppController.sharedInstance openNewWindow:NewWindowClean activate:YES extraArgs:args];
     [self waitForVimOpenAndMessages];
 
-    __weak MacVimTests *tests = self;
+    __weak __typeof__(self) self_weak = self;
     [self addTeardownBlock:^{
         MMAppController *app = MMAppController.sharedInstance;
 
@@ -112,12 +112,12 @@ static NSDictionary<NSString *, id> *cachedAppDefaults;
         // another native full screen test immediately it will fail.
         if ([app.keyVimController.windowController fullScreenEnabled] &&
                 app.keyVimController.windowController.window.styleMask & NSWindowStyleMaskFullScreen) {
-            [tests sendStringToVim:@":set nofu\n" withMods:0];
-            [tests waitForFullscreenTransitionIsEnter:NO isNative:YES];
+            [self_weak sendStringToVim:@":set nofu\n" withMods:0];
+            [self_weak waitForFullscreenTransitionIsEnter:NO isNative:YES];
         }
 
         [[app keyVimController] sendMessage:VimShouldCloseMsgID data:nil];
-        [tests waitForVimClose];
+        [self_weak waitForVimClose];
 
         XCTAssertEqual(0, [app vimControllers].count);
     }];
@@ -126,11 +126,15 @@ static NSDictionary<NSString *, id> *cachedAppDefaults;
 /// Creates a file URL in a temporary directory. The file itself is not created.
 /// The directory will be cleaned up automatically.
 - (NSURL *)tempFile:(NSString *)name {
+    NSError *error = nil;
     NSURL *tempDir = [NSFileManager.defaultManager URLForDirectory:NSItemReplacementDirectory
                                                           inDomain:NSUserDomainMask
                                                  appropriateForURL:NSFileManager.defaultManager.homeDirectoryForCurrentUser
                                                             create:YES
-                                                             error:nil];
+                                                             error:&error];
+    if (tempDir == nil) {
+        @throw error;
+    }
     [self addTeardownBlock:^{
         [NSFileManager.defaultManager removeItemAtURL:tempDir error:nil];
     }];
@@ -451,6 +455,9 @@ do { \
 /// messages.
 - (void) testCmdlineRowCalculation {
     [self createTestVimWindow];
+
+    [self sendStringToVim:@":set lines=10 columns=50\n" withMods:0]; // this test needs a sane window size
+    [self waitForEventHandlingAndVimProcess];
 
     MMAppController *app = MMAppController.sharedInstance;
     MMTextView *textView = [[[[app keyVimController] windowController] vimView] textView];
@@ -816,21 +823,83 @@ do { \
         [self waitForEventHandlingAndVimProcess];
         [self waitForEventHandlingAndVimProcess]; // wait one more cycle to make sure we finished the transition
     }
+}
 
+/// Inject a mouse click at the window border to pretend a user has interacted
+/// with the window. Currently macOS 14/15 seems to exhibit a bug (only in VMs)
+/// where full screen restore would restore to the last window frame that a
+/// user has set manually rather than any programmatically set frames. This bug
+/// does not occur in a real MacBook however, makes the issue hard to debug.
+/// This workaround allows tests to pass consistently either in CI (run in a
+/// VM) or on a developer machine.
+/// This issue was filed as FB16348262 with Apple.
+- (void)injectFakeUserWindowInteraction:(NSWindow *)window {
+    NSTimeInterval timestamp = [[NSProcessInfo processInfo] systemUptime];
+    static NSInteger eventNumber = 100000;
+    NSApplication* app = [NSApplication sharedApplication];
+    for (int i = 0; i < 2; i++) {
+        NSEvent *mouseEvent = [NSEvent mouseEventWithType:(i == 0 ? NSEventTypeLeftMouseDown : NSEventTypeLeftMouseUp)
+                                                 location:NSMakePoint(0,0)
+                                            modifierFlags:0
+                                                timestamp:timestamp + i * 0.001
+                                             windowNumber:[window windowNumber]
+                                                  context:0
+                                              eventNumber:eventNumber++
+                                               clickCount:1
+                                                 pressure:1];
+        [app postEvent:mouseEvent atStart:NO];
+    }
 }
 
 /// Utility to test full screen functionality in both non-native/native full
 /// screen.
 - (void) fullScreenTestWithNative:(BOOL)native {
     // Change native full screen setting
-    [self setDefault:MMNativeFullScreenKey toValue:[NSNumber numberWithBool:native]];
+    [self setDefault:MMNativeFullScreenKey toValue:@(native)];
+
+    // The launch animation interferes with setting the frames in quick sequence
+    // and the user action injection below. Disable it.
+    [self setDefault:MMDisableLaunchAnimationKey toValue:@YES];
+
+    // In native full screen, non-smooth resize is more of an edge case due to
+    // macOS's handling of resize constraints. Set this option to exercise that.
+    // Also, when we are setting guifont, we don't cause it to resize the window.
+    [self setDefault:MMSmoothResizeKey toValue:@NO];
 
     [self createTestVimWindow];
 
     MMAppController *app = MMAppController.sharedInstance;
     MMWindowController *winController = app.keyVimController.windowController;
+    MMTextView *textView = [[winController vimView] textView];
 
-    // Enter full screen and check that the states are properly changed.
+    const int numRows = MMMinRows + 10;
+    const int numColumns = MMMinColumns + 10;
+    [self sendStringToVim:@":set guifont=Menlo:h10\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    [self sendStringToVim:[NSString stringWithFormat:@":set lines=%d columns=%d\n", numRows, numColumns] withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+
+    XCTAssertEqual(textView.maxRows, numRows);
+    XCTAssertEqual(textView.maxColumns, numColumns);
+
+    // Intentionally nudge the frame size to be not fixed increment of cell size.
+    // This helps to test that we restore the window properly when leaving full
+    // screen later.
+    NSRect newFrame = winController.window.frame;
+    newFrame.size.width += 1;
+    newFrame.size.height += 2;
+    [winController.window setFrame:newFrame display:YES];
+    [self waitForEventHandlingAndVimProcess];
+
+    NSRect origFrame = winController.window.frame;
+    NSSize origResizeIncrements = winController.window.contentResizeIncrements;
+
+    XCTAssertEqual(textView.maxRows, numRows);
+    XCTAssertEqual(textView.maxColumns, numColumns);
+
+    [self injectFakeUserWindowInteraction:winController.window];
+
+    // 1. Enter full screen. Check that the states are properly changed.
     [self sendStringToVim:@":set fu\n" withMods:0];
     [self waitForFullscreenTransitionIsEnter:YES isNative:native];
     XCTAssertTrue([winController fullScreenEnabled]);
@@ -840,19 +909,30 @@ do { \
         XCTAssertTrue([winController.window isKindOfClass:[MMFullScreenWindow class]]);
     }
 
-    // Exit full screen
+    // 2. Exit full screen. Confirm state changes and proper window restore.
     [self sendStringToVim:@":set nofu\n" withMods:0];
     [self waitForFullscreenTransitionIsEnter:NO isNative:native];
+
     XCTAssertFalse([winController fullScreenEnabled]);
     XCTAssertTrue([winController.window isKindOfClass:[MMWindow class]]);
 
-    // Enter full screen again
+    XCTAssertEqual(textView.maxRows, numRows);
+    XCTAssertEqual(textView.maxColumns, numColumns);
+    XCTAssertTrue(NSEqualRects(origFrame, winController.window.frame),
+                  @"Expected frame to be %@, but was %@",
+                  NSStringFromRect(origFrame),
+                  NSStringFromRect(winController.window.frame));
+    XCTAssertTrue(NSEqualSizes(origResizeIncrements, winController.window.contentResizeIncrements),
+                  @"Expected resize increments to be %@, but was %@",
+                  NSStringFromSize(origResizeIncrements),
+                  NSStringFromSize(winController.window.contentResizeIncrements));
+
+    // 3. Enter full screen again
     [self sendStringToVim:@":set fu\n" withMods:0];
     [self waitForFullscreenTransitionIsEnter:YES isNative:native];
     XCTAssertTrue([winController fullScreenEnabled]);
 
-    // Test that resizing the vim view does not work when in full screen as we fix the window size instead
-    MMTextView *textView = [[[[app keyVimController] windowController] vimView] textView];
+    // 3.1 Test that resizing the vim view does not work when in full screen as we fix the window size instead
     const int fuRows = textView.maxRows;
     const int fuCols = textView.maxColumns;
     XCTAssertNotEqual(10, fuRows); // just some basic assumptions as full screen should have more rows/cols than this
@@ -863,6 +943,54 @@ do { \
     [self waitForEventHandlingAndVimProcess]; // need to wait twice to allow full screen to force it back
     XCTAssertEqual(fuRows, textView.maxRows);
     XCTAssertEqual(fuCols, textView.maxColumns);
+
+    // 3.2 Set font to larger size to test that on restore we properly fit the
+    // content back to the window of same size, but with fewer lines/columns.
+    [self sendStringToVim:@":set guifont=Menlo:h13\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+
+    // 4. Exit full screen. Confirm the restored window has fewer lines but same size.
+    [self sendStringToVim:@":set nofu\n" withMods:0];
+    [self waitForFullscreenTransitionIsEnter:NO isNative:native];
+
+    XCTAssertLessThan(textView.maxRows, numRows); // fewer lines/columns due to fitting
+    XCTAssertLessThan(textView.maxColumns, numColumns);
+    XCTAssertTrue(NSEqualRects(winController.window.frame, winController.window.frame),
+                  @"Expected frame to be %@, but was %@",
+                  NSStringFromRect(origFrame),
+                  NSStringFromRect(winController.window.frame));
+
+    // Now, set the rows/columns to minimum allowed by MacVim to test that on
+    // restore we will obey that and resize window if necessary.
+    [self sendStringToVim:@":set guifont=Menlo:h10\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    [self sendStringToVim:[NSString stringWithFormat:@":set lines=%d columns=%d\n", MMMinRows, MMMinColumns] withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    origFrame = winController.window.frame;
+
+    [self injectFakeUserWindowInteraction:winController.window];
+
+    // 5. Enter full screen again.
+    [self sendStringToVim:@":set fu\n" withMods:0];
+    [self waitForFullscreenTransitionIsEnter:YES isNative:native];
+
+    // 5.1. Set font to larger size. Unlike last time, on restore the window
+    // will be larger this time because we will end up with too few
+    // lines/columns if we try to fit within the content.
+    [self sendStringToVim:@":set guifont=Menlo:h13\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+
+    // 6. Exit full screen. Confirm the restored window has same number of
+    // lines but a larger size due to the need to fit the min lines/columns.
+    [self sendStringToVim:@":set nofu\n" withMods:0];
+    [self waitForFullscreenTransitionIsEnter:NO isNative:native];
+
+    XCTAssertEqual(MMMinRows, textView.maxRows);
+    XCTAssertEqual(MMMinColumns, textView.maxColumns);
+    XCTAssertTrue(winController.window.frame.size.width > origFrame.size.width || winController.window.frame.size.height > origFrame.size.height,
+                  @"Expected final frame %@ to be larger than %@",
+                  NSStringFromSize(winController.window.frame.size),
+                  NSStringFromSize(origFrame.size));
 }
 
 - (void) testFullScreenNonNative {
@@ -878,12 +1006,7 @@ do { \
 /// process until the Vim window has been presented.
 - (void)fullScreenDelayedTestWithNative:(BOOL)native fuoptEmpty:(BOOL)fuoptEmpty {
     // Change native full screen setting
-    [self setDefault:MMNativeFullScreenKey toValue:[NSNumber numberWithBool:native]];
-
-    // The default non-smooth resize window option results can result in an
-    // inaccurate window restore in native full screen. Temporary fix is to
-    // just use smooth resize for now.
-    [self setDefault:MMSmoothResizeKey toValue:@YES];
+    [self setDefault:MMNativeFullScreenKey toValue:@(native)];
 
     if (fuoptEmpty)
         XCTAssertFalse(native);
@@ -944,6 +1067,7 @@ do { \
     [self fullScreenDelayedTestWithNative:YES fuoptEmpty:NO];
 }
 
+/// Test setting 'fuoptions' with non-native full screen.
 - (void) testFullScreenNonNativeOptions {
     // Change native full screen setting
     [self setDefault:MMNativeFullScreenKey toValue:@NO];
@@ -952,7 +1076,8 @@ do { \
 
     MMAppController *app = MMAppController.sharedInstance;
     MMWindowController *winController = app.keyVimController.windowController;
-    MMTextView *textView = [[winController vimView] textView];
+    MMVimView *vimView = [winController vimView];
+    MMTextView *textView = [vimView textView];
 
     // Test maxvert/maxhorz
     [self sendStringToVim:@":set lines=10\n" withMods:0];
@@ -960,31 +1085,47 @@ do { \
     [self sendStringToVim:@":set fuoptions=\n" withMods:0];
     [self waitForVimProcess];
 
+    [self injectFakeUserWindowInteraction:winController.window];
+
     [self sendStringToVim:@":set fu\n" withMods:0];
     [self waitForFullscreenTransitionIsEnter:YES isNative:NO];
     XCTAssertEqual(textView.maxRows, 10);
     XCTAssertEqual(textView.maxColumns, 30);
+    XCTAssertGreaterThan(vimView.frame.origin.x, 0);
+    XCTAssertGreaterThan(vimView.frame.origin.y, 0);
     [self sendStringToVim:@":set nofu\n" withMods:0];
     [self waitForFullscreenTransitionIsEnter:NO isNative:NO];
+    XCTAssertEqual(vimView.frame.origin.x, 0);
+    XCTAssertEqual(vimView.frame.origin.y, 0);
     [self sendStringToVim:@":set fuoptions=maxvert\n" withMods:0];
     [self sendStringToVim:@":set fu\n" withMods:0];
     [self waitForFullscreenTransitionIsEnter:YES isNative:NO];
     XCTAssertGreaterThan(textView.maxRows, 10);
     XCTAssertEqual(textView.maxColumns, 30);
+    XCTAssertGreaterThan(vimView.frame.origin.x, 0);
+    XCTAssertEqual(vimView.frame.origin.y, 0);
     [self sendStringToVim:@":set nofu\n" withMods:0];
     [self waitForFullscreenTransitionIsEnter:NO isNative:NO];
+    XCTAssertEqual(vimView.frame.origin.x, 0);
+    XCTAssertEqual(vimView.frame.origin.y, 0);
     [self sendStringToVim:@":set fuoptions=maxhorz\n" withMods:0];
     [self sendStringToVim:@":set fu\n" withMods:0];
     [self waitForFullscreenTransitionIsEnter:YES isNative:NO];
     XCTAssertEqual(textView.maxRows, 10);
     XCTAssertGreaterThan(textView.maxColumns, 30);
+    XCTAssertEqual(vimView.frame.origin.x, 0);
+    XCTAssertGreaterThan(vimView.frame.origin.y, 0);
     [self sendStringToVim:@":set nofu\n" withMods:0];
     [self waitForFullscreenTransitionIsEnter:NO isNative:NO];
+    XCTAssertEqual(vimView.frame.origin.x, 0);
+    XCTAssertEqual(vimView.frame.origin.y, 0);
     [self sendStringToVim:@":set fuoptions=maxhorz,maxvert\n" withMods:0];
     [self sendStringToVim:@":set fu\n" withMods:0];
     [self waitForFullscreenTransitionIsEnter:YES isNative:NO];
     XCTAssertGreaterThan(textView.maxRows, 10);
     XCTAssertGreaterThan(textView.maxColumns, 30);
+    XCTAssertEqual(vimView.frame.origin.x, 0);
+    XCTAssertEqual(vimView.frame.origin.y, 0);
 
     // Test background color
     XCTAssertEqualObjects(winController.window.backgroundColor, [NSColor colorWithArgbInt:0xff000000]); // default is black
@@ -1032,6 +1173,44 @@ do { \
     [self sendStringToVim:@":set fu\n" withMods:0];
     [self waitForFullscreenTransitionIsEnter:YES isNative:NO];
     XCTAssertEqualObjects(winController.window.backgroundColor, [NSColor colorWithRed:0 green:0 blue:1 alpha:0.001]);
+}
+
+/// Test that non-native full screen can handle multiple screens. This test
+/// will only run when the machine has 2 monitors and will therefore be skipped
+/// in CI.
+- (void) testFullScreenNonNativeMultiScreen {
+    XCTSkipIf(NSScreen.screens.count <= 1);
+
+    // Change native full screen setting
+    [self setDefault:MMNativeFullScreenKey toValue:@NO];
+
+    [self createTestVimWindow];
+    [self sendStringToVim:@":set lines=45 columns=65\n" withMods:0];
+    [self waitForVimProcess];
+
+    MMAppController *app = MMAppController.sharedInstance;
+    MMWindowController *winController = app.keyVimController.windowController;
+    MMVimView *vimView = [winController vimView];
+    MMTextView *textView = [vimView textView];
+
+    // Test that window restore properly moves the original window to the new screen
+    [winController.window setFrameOrigin:NSScreen.screens[0].frame.origin];
+    [self sendStringToVim:@":set fu\n" withMods:0];
+    [self waitForFullscreenTransitionIsEnter:YES isNative:NO];
+    [winController.window setFrameOrigin:NSScreen.screens[1].frame.origin];
+    [self waitForEventHandling];
+    [self sendStringToVim:@":set nofu\n" withMods:0];
+    [self waitForFullscreenTransitionIsEnter:NO isNative:NO];
+    XCTAssertTrue(NSPointInRect(winController.window.frame.origin, NSScreen.screens[1].frame));
+    XCTAssertEqual(textView.maxRows, 45);
+    XCTAssertEqual(textView.maxColumns, 65);
+    [self sendStringToVim:@":set fu\n" withMods:0];
+    [self waitForFullscreenTransitionIsEnter:YES isNative:NO];
+    [winController.window setFrameOrigin:NSScreen.screens[0].frame.origin];
+    [self waitForEventHandling];
+    [self sendStringToVim:@":set nofu\n" withMods:0];
+    [self waitForFullscreenTransitionIsEnter:NO isNative:NO];
+    XCTAssertTrue(NSPointInRect(winController.window.frame.origin, NSScreen.screens[0].frame));
 }
 
 @end
