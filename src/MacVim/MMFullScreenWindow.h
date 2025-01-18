@@ -17,13 +17,9 @@
 @interface MMFullScreenWindow : NSWindow {
     NSWindow    *target;
     MMVimView   *view;
-    NSPoint     oldPosition;
     NSString    *oldTabBarStyle;
     int         options;
     int         state;
-
-    // These are only valid in full-screen mode and store pre-fu vim size 
-    int         nonFuRows, nonFuColumns;
 
     /// The non-full-screen size of the Vim view. Used for non-maxvert/maxhorz options.
     NSSize      nonFuVimViewSize;
@@ -32,6 +28,7 @@
     int         startFuFlags;
   
     // Controls the speed of the fade in and out.
+    // This feature is deprecated and off by default.
     double      fadeTime;
     double      fadeReservationTime;
 }

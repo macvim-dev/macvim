@@ -58,8 +58,9 @@ enum {
                                backgroundColor:(NSColor *)back
 {
     NSScreen* screen = [t screen];
-
-    // XXX: what if screen == nil?
+    if (screen == nil) {
+        screen = [NSScreen mainScreen];
+    }
 
     // you can't change the style of an existing window in cocoa. create a new
     // window and move the MMTextView into it.
@@ -81,9 +82,11 @@ enum {
     view = [v retain];
 
     [self setHasShadow:NO];
-    [self setShowsResizeIndicator:NO];
     [self setBackgroundColor:back];
     [self setReleasedWhenClosed:NO];
+
+    // this disables any menu items for window tiling and for moving to another screen.
+    [self setMovable:NO];
 
     NSNotificationCenter *nc = [NSNotificationCenter defaultCenter];
     [nc addObserver:self
@@ -169,7 +172,11 @@ enum {
 
     // NOTE: The window may have moved to another screen in between init.. and
     // this call so set the frame again just in case.
-    [self setFrame:[[target screen] frame] display:NO];
+    NSScreen* screen = [target screen];
+    if (screen == nil) {
+        screen = [NSScreen mainScreen];
+    }
+    [self setFrame:[screen frame] display:NO];
 
     oldTabBarStyle = [[view tabBarControl] styleName];
 
@@ -178,8 +185,6 @@ enum {
     [[view tabBarControl] setStyleNamed:style];
 
     // add text view
-    oldPosition = [view frame].origin;
-
     [view removeFromSuperviewWithoutNeedingDisplay];
     [[self contentView] addSubview:view];
     [self setInitialFirstResponder:[view textView]];
@@ -195,8 +200,17 @@ enum {
     }
     
     [self setAppearance:target.appearance];
-
     [self setOpaque:[target isOpaque]];
+
+    // Copy the collection behavior so it retains the window behavior (e.g. in
+    // Stage Manager). Make sure to set the native full screen flags to "none"
+    // as we want to prevent macOS from being able to take this window full
+    // screen (e.g. via the Window menu or dragging in Mission Control).
+    NSWindowCollectionBehavior wcb = target.collectionBehavior;
+    wcb &= ~(NSWindowCollectionBehaviorFullScreenPrimary);
+    wcb &= ~(NSWindowCollectionBehaviorFullScreenAuxiliary);
+    wcb |= NSWindowCollectionBehaviorFullScreenNone;
+    [self setCollectionBehavior:wcb];
 
     // reassign target's window controller to believe that it's now controlling us
     // don't set this sooner, so we don't get an additional
@@ -206,26 +220,15 @@ enum {
 
     // Store view dimension used before entering full-screen, then resize the
     // view to match 'fuopt'.
-    [[view textView] getMaxRows:&nonFuRows columns:&nonFuColumns];
     nonFuVimViewSize = view.frame.size;
 
     // Store options used when entering full-screen so that we can restore
     // dimensions when exiting full-screen.
     startFuFlags = options;
 
-    // HACK! Put window on all Spaces to avoid Spaces (available on OS X 10.5
-    // and later) from moving the full-screen window to a separate Space from
-    // the one the decorated window is occupying.  The collection behavior is
-    // restored further down.
-    NSWindowCollectionBehavior wcb = [self collectionBehavior];
-    [self setCollectionBehavior:NSWindowCollectionBehaviorCanJoinAllSpaces];
-
     // make us visible and target invisible
     [target orderOut:self];
     [self makeKeyAndOrderFront:self];
-
-    // Restore collection behavior (see hack above).
-    [self setCollectionBehavior:wcb];
 
     // fade back in
     if (didBlend) {
@@ -252,22 +255,6 @@ enum {
         }
     }
 
-    // restore old vim view size
-    int currRows, currColumns;
-    [[view textView] getMaxRows:&currRows columns:&currColumns];
-    int newRows = nonFuRows, newColumns = nonFuColumns;
-
-    // resize vim if necessary
-    if (currRows != newRows || currColumns != newColumns) {
-        int newSize[2] = { newRows, newColumns };
-        NSData *data = [NSData dataWithBytes:newSize length:2*sizeof(int)];
-        MMVimController *vimController =
-            [[self windowController] vimController];
-
-        [vimController sendMessage:SetTextDimensionsMsgID data:data];
-        [[view textView] setMaxRows:newRows columns:newColumns];
-    }
-
     // fix up target controller
     [self retain];  // NSWindowController releases us once
     [[self windowController] setWindow:target];
@@ -277,7 +264,17 @@ enum {
     // fix delegate
     id delegate = [self delegate];
     [self setDelegate:nil];
-    
+
+    // if this window ended up on a different screen, we want to move the
+    // original window to this new screen.
+    if (self.screen != target.screen && self.screen != nil && target.screen != nil) {
+        NSPoint topLeftPos = NSMakePoint(NSMinX(target.frame) - NSMinX(target.screen.visibleFrame),
+                                         NSMaxY(target.frame) - NSMaxY(target.screen.visibleFrame));
+        NSPoint newTopLeftPos = NSMakePoint(NSMinX(self.screen.visibleFrame) + topLeftPos.x,
+                                            NSMaxY(self.screen.visibleFrame) + topLeftPos.y);
+        [target setFrameTopLeftPoint:newTopLeftPos];
+    }
+
     // move text view back to original window, hide fullScreen window,
     // show original window
     // do this _after_ resetting delegate and window controller, so the
@@ -286,42 +283,50 @@ enum {
     [view removeFromSuperviewWithoutNeedingDisplay];
     [[target contentView] addSubview:view];
 
-    [view setFrameOrigin:oldPosition];
     [self close];
 
     // Set the text view to initial first responder, otherwise the 'plus'
     // button on the tabline steals the first responder status.
     [target setInitialFirstResponder:[view textView]];
 
-    // HACK! Put decorated window on all Spaces (available on OS X 10.5 and
-    // later) so that the decorated window stays on the same Space as the full
-    // screen window (they may occupy different Spaces e.g. if the full-screen
-    // window was dragged to another Space).  The collection behavior is
-    // restored further down.
-    NSWindowCollectionBehavior wcb = [target collectionBehavior];
-    [target setCollectionBehavior:NSWindowCollectionBehaviorCanJoinAllSpaces];
+    // On Mac OS X 10.7 windows animate when makeKeyAndOrderFront: is called.
+    // This is distracting here, so disable the animation and restore animation
+    // behavior after calling makeKeyAndOrderFront:.
+    NSWindowAnimationBehavior winAnimBehavior = [target animationBehavior];
+    [target setAnimationBehavior:NSWindowAnimationBehaviorNone];
 
-#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7)
-    // HACK! On Mac OS X 10.7 windows animate when makeKeyAndOrderFront: is
-    // called.  This is distracting here, so disable the animation and restore
-    // animation behavior after calling makeKeyAndOrderFront:.
-    NSWindowAnimationBehavior a = NSWindowAnimationBehaviorNone;
-    if ([target respondsToSelector:@selector(animationBehavior)]) {
-        a = [target animationBehavior];
-        [target setAnimationBehavior:NSWindowAnimationBehaviorNone];
-    }
-#endif
+    // Note: Currently, there is a possibility that the full-screen window is
+    // in a different Space from the original window. This could happen if the
+    // full-screen was manually dragged to another Space in Mission Control.
+    // If that's the case, the original window will be restored to the original
+    // Space it was in, which may not be what the user intended.
+    //
+    // We don't address this for a few reasons:
+    // 1. This is a niche case that wouldn't matter 99% of the time.
+    // 2. macOS does not expose explicit control over Spaces in the public APIs.
+    //    We don't have a way to directly determine which space each window is
+    //    on, other than just detecting whether it's on the active space. We
+    //    also don't have a way to place the window on another Space
+    //    programmatically. We could move the window to the active Space by
+    //    changing collectionBehavior to CanJoinAllSpace or MoveToActiveSpace,
+    //    and after it's moved, unset the collectionBehavior. This is tricky to
+    //    do because the move doesn't happen immediately. The window manager
+    //    takes a few cycles before it moves the window over to the active
+    //    space and we would need to continually check onActiveSpace to know
+    //    when that happens. This leads to a fair bit of window management
+    //    complexity.
+    // 3. Even if we implement the above, it could still lead to unintended
+    //    behaviors. If during the window restore process, the user navigated
+    //    to another Space (e.g. a popup dialog box), it's not necessarily the
+    //    correct behavior to put the restored window there. What we want is to
+    //    query the exact Space the full-screen window is on and place the
+    //    original window there, but there's no public APIs to do that.
 
     [target makeKeyAndOrderFront:self];
 
-#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7)
-    // HACK! Restore animation behavior.
-    if (NSWindowAnimationBehaviorNone != a)
-        [target setAnimationBehavior:a];
-#endif
-
-    // Restore collection behavior (see hack above).
-    [target setCollectionBehavior:wcb];
+    // Restore animation behavior.
+    if (NSWindowAnimationBehaviorNone != winAnimBehavior)
+        [target setAnimationBehavior:winAnimBehavior];
 
     // ...but we don't want a focus gained message either, so don't set this
     // sooner
@@ -365,16 +370,11 @@ enum {
     // hidden/displayed.
     ASLogDebug(@"Screen unplugged / resolution changed");
 
-    NSScreen *screen = [target screen];
-    if (!screen) {
-        // Paranoia: if window we originally used for full-screen is gone, try
-        // screen window is on now, and failing that (not sure this can happen)
-        // use main screen.
-        screen = [self screen];
-        if (!screen)
-            screen = [NSScreen mainScreen];
+    NSScreen *screen = [self screen];
+    if (screen == nil) {
+        // See windowDidMove for more explanations.
+        screen = [NSScreen mainScreen];
     }
-
     // Ensure the full-screen window is still covering the entire screen and
     // then resize view according to 'fuopt'.
     [self setFrame:[screen frame] display:NO];
@@ -549,12 +549,24 @@ enum {
     if (state != InFullScreen)
         return;
 
-    // Window may move as a result of being dragged between Spaces.
+    // Window may move as a result of being dragged between screens.
     ASLogDebug(@"Full-screen window moved, ensuring it covers the screen...");
 
+    NSScreen *screen = [self screen];
+    if (screen == nil) {
+        // If for some reason this window got moved to an area not associated
+        // with a screen just fall back to a main one. Otherwise this window
+        // will be stuck on a no-man's land and the user will have no way to
+        // use it. One known way this could happen is when the user has a
+        // larger monitor on the left (where MacVim was started) and a smaller
+        // on the right. The user then drag the full screen window to the right
+        // screen in Mission Control. macOS will refuse to place the window
+        // because it is too big so it gets placed out of bounds.
+        screen = [NSScreen mainScreen];
+    }
     // Ensure the full-screen window is still covering the entire screen and
     // then resize view according to 'fuopt'.
-    [self setFrame:[[self screen] frame] display:NO];
+    [self setFrame:[screen frame] display:NO];
 }
 
 @end // MMFullScreenWindow (Private)
