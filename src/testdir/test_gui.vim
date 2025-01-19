@@ -720,7 +720,7 @@ func Test_set_guioptions()
   elseif has('gui_macvim')
     " Default Value
     set guioptions&
-    call assert_equal('egmrL', &guioptions)
+    call assert_equal('egmrLk', &guioptions)
 
   else
     " Default Value

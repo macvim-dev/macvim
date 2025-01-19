@@ -4198,6 +4198,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 'guioptions' 'go'	string	(default "egmrLtT"   (MS-Windows,
 					   "t" is removed in |defaults.vim|),
 					 "aegimrLtT" (GTK and Motif),
+					 "egmrLk"    (MacVim),
 					 )
 			global
 			{only available when compiled with GUI enabled}

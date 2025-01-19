@@ -863,7 +863,6 @@ do { \
 
     // In native full screen, non-smooth resize is more of an edge case due to
     // macOS's handling of resize constraints. Set this option to exercise that.
-    // Also, when we are setting guifont, we don't cause it to resize the window.
     [self setDefault:MMSmoothResizeKey toValue:@NO];
 
     [self createTestVimWindow];
@@ -874,7 +873,7 @@ do { \
 
     const int numRows = MMMinRows + 10;
     const int numColumns = MMMinColumns + 10;
-    [self sendStringToVim:@":set guifont=Menlo:h10\n" withMods:0];
+    [self sendStringToVim:@":set guioptions-=k guifont=Menlo:h10\n" withMods:0];
     [self waitForEventHandlingAndVimProcess];
     [self sendStringToVim:[NSString stringWithFormat:@":set lines=%d columns=%d\n", numRows, numColumns] withMods:0];
     [self waitForEventHandlingAndVimProcess];
