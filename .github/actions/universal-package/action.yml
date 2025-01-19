@@ -72,8 +72,9 @@ runs:
         # which cause brew install to return non-zero and fail the build.
         export HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=1
 
-        # This will be a no-op if formula was cached
-        brew install --quiet --formula -s ./${formula}.rb
+        # This will be a no-op if formula was cached. We check if the package
+        # exists first just to avoid an "already installed" warning.
+        brew list ${formula} &>/dev/null || brew install --quiet --formula -s ./${formula}.rb
 
         # If formula was cached, this step is necessary to relink it to brew prefix (e.g. /usr/local)
         brew unlink ${formula} && brew link ${formula}
