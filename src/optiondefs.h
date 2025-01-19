@@ -1315,7 +1315,7 @@ static struct vimoption options[] =
 #if defined(FEAT_GUI)
 			    (char_u *)&p_go, PV_NONE, did_set_guioptions, expand_set_guioptions,
 # ifdef FEAT_GUI_MACVIM
-			    {(char_u *)"egmrL", (char_u *)0L}
+			    {(char_u *)"egmrLk", (char_u *)0L}
 # elif defined(UNIX)
 			    {(char_u *)"aegimrLtT", (char_u *)0L}
 # else

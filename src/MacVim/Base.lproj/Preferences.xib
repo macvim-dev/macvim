@@ -195,7 +195,7 @@
                         <button id="f9h-8n-asD" userLabel="allow smooth resizing">
                             <rect key="frame" x="188" y="-1" width="258" height="18"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
-                            <string key="toolTip">Smoothly resizes MacVim's window instead of fixing it to the grid size. It's also recommended to set "guioptions+=k" in your vimrc when this is set.</string>
+                            <string key="toolTip">Smoothly resizes MacVim's window instead of snapping it to increments of the cell size. It's also recommended to have "guioptions+=k" set in Vim when this is on.</string>
                             <buttonCell key="cell" type="check" title="Smoothly resizes window" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="4YN-AX-Vrz">
                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                 <font key="font" metaFont="system"/>
