@@ -58,6 +58,9 @@ if has('gui_running')
   if has('gui_gtk')
     " to keep screendump size unchanged
     set guifont=Monospace\ 10
+  elseif has('gui_macvim')
+    " keep defaults consistent with other GUIs
+    set guioptions-=k
   endif
   set columns=80 lines=25
 endif
