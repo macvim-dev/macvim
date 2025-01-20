@@ -380,6 +380,7 @@ jobs:
       - name: Test Vim (GUI)
         timeout-minutes: 25
         run: |
+          defaults delete org.vim.MacVim  # Clean up stale states left from MacVim tests
           make ${MAKE_BUILD_ARGS} -C src/testdir clean
           make ${MAKE_BUILD_ARGS} -C src testgui
 
