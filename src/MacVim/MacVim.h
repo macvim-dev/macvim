@@ -43,6 +43,9 @@
 #ifndef MAC_OS_X_VERSION_10_14
 # define MAC_OS_X_VERSION_10_14 101400
 #endif
+#ifndef MAC_OS_X_VERSION_10_15
+# define MAC_OS_X_VERSION_10_15 101500
+#endif
 #ifndef MAC_OS_VERSION_11_0
 # define MAC_OS_VERSION_11_0 110000
 #endif
@@ -55,12 +58,18 @@
 #ifndef MAC_OS_VERSION_14_0
 # define MAC_OS_VERSION_14_0 140000
 #endif
+#ifndef MAC_OS_VERSION_15_0
+# define MAC_OS_VERSION_15_0 150000
+#endif
 
 #ifndef NSAppKitVersionNumber10_10
 # define NSAppKitVersionNumber10_10 1343
 #endif
 #ifndef NSAppKitVersionNumber10_10_Max
 # define NSAppKitVersionNumber10_10_Max 1349
+#endif
+#ifndef NSAppKitVersionNumber10_11
+# define NSAppKitVersionNumber10_11 1404
 #endif
 #ifndef NSAppKitVersionNumber10_12
 # define NSAppKitVersionNumber10_12 1504
@@ -73,6 +82,9 @@
 #endif
 #ifndef NSAppKitVersionNumber10_14
 # define NSAppKitVersionNumber10_14 1671
+#endif
+#ifndef NSAppKitVersionNumber10_15
+# define NSAppKitVersionNumber10_15 1894
 #endif
 #ifndef NSAppKitVersionNumber11_0
 # define NSAppKitVersionNumber11_0 2022
