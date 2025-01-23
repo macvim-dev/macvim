@@ -1355,6 +1355,7 @@ static void grid_free(Grid *grid) {
     }
 }
 
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_14
 - (NSFontPanelModeMask)validModesForFontPanel:(NSFontPanel *)fontPanel
 {
     // Lets the user pick only the font face / size, as other properties as not
@@ -1362,6 +1363,7 @@ static void grid_free(Grid *grid) {
     // Otherwise it could just be white text on white background in the preview.
     return NSFontPanelModesMaskStandardModes & (~NSFontPanelModeMaskAllEffects | NSFontPanelModeMaskTextColorEffect | NSFontPanelModeMaskDocumentColorEffect);
 }
+#endif
 
 /// Specifies whether the menu item should be enabled/disabled.
 - (BOOL)validateMenuItem:(NSMenuItem *)item
