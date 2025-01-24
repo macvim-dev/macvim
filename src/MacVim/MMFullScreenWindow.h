@@ -17,7 +17,6 @@
 @interface MMFullScreenWindow : NSWindow {
     NSWindow    *target;
     MMVimView   *view;
-    NSString    *oldTabBarStyle;
     int         options;
     int         state;
 

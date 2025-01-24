@@ -170,30 +170,14 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 /// persisted user settings to have a clean environment.
 + (void)registerDefaults
 {
-    int tabMinWidthKey;
-    int tabMaxWidthKey;
-    int tabOptimumWidthKey;
-    if (shouldUseYosemiteTabBarStyle()) {
-        tabMinWidthKey = 120;
-        tabMaxWidthKey = 0;
-        tabOptimumWidthKey = 0;
-    } else {
-        tabMinWidthKey = 64;
-        tabMaxWidthKey = 6*64;
-        tabOptimumWidthKey = 132;
-    }
-
     NSUserDefaults *ud = NSUserDefaults.standardUserDefaults;
 
     NSDictionary *macvimDefaults = [NSDictionary dictionaryWithObjectsAndKeys:
         [NSNumber numberWithBool:NO],     MMNoWindowKey,
-        [NSNumber numberWithInt:tabMinWidthKey],
-                                          MMTabMinWidthKey,
-        [NSNumber numberWithInt:tabMaxWidthKey],
-                                          MMTabMaxWidthKey,
-        [NSNumber numberWithInt:tabOptimumWidthKey],
-                                          MMTabOptimumWidthKey,
+        [NSNumber numberWithInt:120],     MMTabMinWidthKey,
+        [NSNumber numberWithInt:200],     MMTabOptimumWidthKey,
         [NSNumber numberWithBool:YES],    MMShowAddTabButtonKey,
+        [NSNumber numberWithBool:NO],     MMShowTabScrollButtonsKey,
         [NSNumber numberWithInt:2],       MMTextInsetLeftKey,
         [NSNumber numberWithInt:1],       MMTextInsetRightKey,
         [NSNumber numberWithInt:1],       MMTextInsetTopKey,

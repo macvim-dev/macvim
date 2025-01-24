@@ -29,7 +29,6 @@
 #import "MMVimView.h"
 #import "MMWindowController.h"
 #import "Miscellaneous.h"
-#import <PSMTabBarControl/PSMTabBarControl.h>
 
 // These have to be the same as in option.h
 #define FUOPT_MAXVERT         0x001
@@ -178,12 +177,6 @@ enum {
     }
     [self setFrame:[screen frame] display:NO];
 
-    oldTabBarStyle = [[view tabBarControl] styleName];
-
-    NSString *style =
-        shouldUseYosemiteTabBarStyle() ? (shouldUseMojaveTabBarStyle() ? @"Mojave" : @"Yosemite") : @"Unified";
-    [[view tabBarControl] setStyleNamed:style];
-
     // add text view
     [view removeFromSuperviewWithoutNeedingDisplay];
     [[self contentView] addSubview:view];
@@ -258,8 +251,6 @@ enum {
     // fix up target controller
     [self retain];  // NSWindowController releases us once
     [[self windowController] setWindow:target];
-
-    [[view tabBarControl] setStyleNamed:oldTabBarStyle];
 
     // fix delegate
     id delegate = [self delegate];

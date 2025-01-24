@@ -22,6 +22,7 @@ extern NSString *MMTabMinWidthKey;
 extern NSString *MMTabMaxWidthKey;
 extern NSString *MMTabOptimumWidthKey;
 extern NSString *MMShowAddTabButtonKey;
+extern NSString *MMShowTabScrollButtonsKey;
 extern NSString *MMTextInsetLeftKey;
 extern NSString *MMTextInsetRightKey;
 extern NSString *MMTextInsetTopKey;
@@ -148,11 +149,6 @@ enum {
 @end
 
 
-@interface NSTabView (MMExtras)
-- (void)removeAllTabViewItems;
-@end
-
-
 @interface NSNumber (MMExtras)
 // Used by modifyFont:/convertFont: to allow font size to be changed via menu
 // (bound to Cmd+/Cmd-) or using macaction fontSizeUp:/fontSizeDown:.
@@ -176,9 +172,6 @@ NSView *showHiddenFilesView(void);
 //     http://www.unicode.org/reports/tr15/
 NSString *normalizeFilename(NSString *filename);
 NSArray *normalizeFilenames(NSArray *filenames);
-
-BOOL shouldUseYosemiteTabBarStyle(void);
-BOOL shouldUseMojaveTabBarStyle(void);
 
 int getCurrentAppearance(NSAppearance *appearance);
 

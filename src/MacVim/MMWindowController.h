@@ -91,7 +91,7 @@
 - (void)setWideFont:(NSFont *)font;
 - (void)refreshFonts;
 - (void)processInputQueueDidFinish;
-- (void)showTabBar:(BOOL)on;
+- (void)showTabline:(BOOL)on;
 - (void)showToolbar:(BOOL)on size:(int)size mode:(int)mode;
 - (void)setMouseShape:(int)shape;
 - (void)adjustLinespace:(int)linespace;

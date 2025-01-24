@@ -74,7 +74,7 @@
 - (void)cleanup;
 - (void)dropFiles:(NSArray *)filenames forceOpen:(BOOL)force;
 - (void)file:(NSString *)filename draggedToTabAtIndex:(NSUInteger)tabIndex;
-- (void)filesDraggedToTabBar:(NSArray *)filenames;
+- (void)filesDraggedToTabline:(NSArray *)filenames;
 - (void)dropString:(NSString *)string;
 - (void)appearanceChanged:(int)flag;
 
