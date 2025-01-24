@@ -2152,6 +2152,7 @@ $quote	eval.txt	/*$quote*
 :GnatTags	ft_ada.txt	/*:GnatTags*
 :HelpToc	helphelp.txt	/*:HelpToc*
 :Hexplore	pi_netrw.txt	/*:Hexplore*
+:Justify	usr_25.txt	/*:Justify*
 :LP	pi_logipat.txt	/*:LP*
 :LPE	pi_logipat.txt	/*:LPE*
 :LPF	pi_logipat.txt	/*:LPF*
@@ -4637,6 +4638,7 @@ E1511	options.txt	/*E1511*
 E1512	options.txt	/*E1512*
 E1513	message.txt	/*E1513*
 E1514	options.txt	/*E1514*
+E1515	builtin.txt	/*E1515*
 E152	helphelp.txt	/*E152*
 E153	helphelp.txt	/*E153*
 E154	helphelp.txt	/*E154*
@@ -5623,6 +5625,7 @@ J	change.txt	/*J*
 Japanese	mbyte.txt	/*Japanese*
 Job	eval.txt	/*Job*
 Jobs	eval.txt	/*Jobs*
+Justify()	usr_25.txt	/*Justify()*
 K	various.txt	/*K*
 KDE	gui_x11.txt	/*KDE*
 KVim	gui_x11.txt	/*KVim*
@@ -6286,6 +6289,7 @@ blob-index	eval.txt	/*blob-index*
 blob-literal	eval.txt	/*blob-literal*
 blob-modification	eval.txt	/*blob-modification*
 blob2list()	builtin.txt	/*blob2list()*
+blob2str()	builtin.txt	/*blob2str()*
 blockwise-examples	visual.txt	/*blockwise-examples*
 blockwise-operators	visual.txt	/*blockwise-operators*
 blockwise-put	change.txt	/*blockwise-put*
@@ -6452,6 +6456,7 @@ c_no_ansi	syntax.txt	/*c_no_ansi*
 c_no_bracket_error	syntax.txt	/*c_no_bracket_error*
 c_no_bsd	syntax.txt	/*c_no_bsd*
 c_no_c11	syntax.txt	/*c_no_c11*
+c_no_c23	syntax.txt	/*c_no_c23*
 c_no_c99	syntax.txt	/*c_no_c99*
 c_no_cformat	syntax.txt	/*c_no_cformat*
 c_no_curly_error	syntax.txt	/*c_no_curly_error*
@@ -7456,6 +7461,7 @@ ft-javascript-omni	insert.txt	/*ft-javascript-omni*
 ft-jq-syntax	syntax.txt	/*ft-jq-syntax*
 ft-json-plugin	filetype.txt	/*ft-json-plugin*
 ft-json-syntax	syntax.txt	/*ft-json-syntax*
+ft-kconfig-syntax	syntax.txt	/*ft-kconfig-syntax*
 ft-ksh-syntax	syntax.txt	/*ft-ksh-syntax*
 ft-lace-syntax	syntax.txt	/*ft-lace-syntax*
 ft-lex-syntax	syntax.txt	/*ft-lex-syntax*
@@ -8027,6 +8033,7 @@ gf	editing.txt	/*gf*
 gg	motion.txt	/*gg*
 gh	visual.txt	/*gh*
 gi	insert.txt	/*gi*
+git-vimdumps	terminal.txt	/*git-vimdumps*
 gj	motion.txt	/*gj*
 gk	motion.txt	/*gk*
 glob()	builtin.txt	/*glob()*
@@ -8644,6 +8651,7 @@ jump-motions	motion.txt	/*jump-motions*
 jumplist	motion.txt	/*jumplist*
 jumplist-stack	motion.txt	/*jumplist-stack*
 jumpto-diffs	diff.txt	/*jumpto-diffs*
+justify	usr_25.txt	/*justify*
 k	motion.txt	/*k*
 kcc	uganda.txt	/*kcc*
 kde	gui_x11.txt	/*kde*
@@ -9161,7 +9169,6 @@ netrw-ctrl-r	pi_netrw.txt	/*netrw-ctrl-r*
 netrw-ctrl_l	pi_netrw.txt	/*netrw-ctrl_l*
 netrw-curdir	pi_netrw.txt	/*netrw-curdir*
 netrw-d	pi_netrw.txt	/*netrw-d*
-netrw-debug	pi_netrw.txt	/*netrw-debug*
 netrw-del	pi_netrw.txt	/*netrw-del*
 netrw-delete	pi_netrw.txt	/*netrw-delete*
 netrw-dir	pi_netrw.txt	/*netrw-dir*
@@ -9195,7 +9202,6 @@ netrw-help	pi_netrw.txt	/*netrw-help*
 netrw-hexplore	pi_netrw.txt	/*netrw-hexplore*
 netrw-hide	pi_netrw.txt	/*netrw-hide*
 netrw-hiding	pi_netrw.txt	/*netrw-hiding*
-netrw-history	pi_netrw.txt	/*netrw-history*
 netrw-horiz	pi_netrw.txt	/*netrw-horiz*
 netrw-i	pi_netrw.txt	/*netrw-i*
 netrw-incompatible	pi_netrw.txt	/*netrw-incompatible*
@@ -9306,7 +9312,6 @@ netrw-starstarpat	pi_netrw.txt	/*netrw-starstarpat*
 netrw-start	pi_netrw.txt	/*netrw-start*
 netrw-t	pi_netrw.txt	/*netrw-t*
 netrw-texplore	pi_netrw.txt	/*netrw-texplore*
-netrw-todo	pi_netrw.txt	/*netrw-todo*
 netrw-trailingslash	pi_netrw.txt	/*netrw-trailingslash*
 netrw-transparent	pi_netrw.txt	/*netrw-transparent*
 netrw-u	pi_netrw.txt	/*netrw-u*
@@ -9323,6 +9328,7 @@ netrw-windows-s	pi_netrw.txt	/*netrw-windows-s*
 netrw-write	pi_netrw.txt	/*netrw-write*
 netrw-x	pi_netrw.txt	/*netrw-x*
 netrw-xfer	pi_netrw.txt	/*netrw-xfer*
+netrw.txt	pi_netrw.txt	/*netrw.txt*
 netrw.vim	pi_netrw.txt	/*netrw.vim*
 netterm-mouse	options.txt	/*netterm-mouse*
 network	pi_netrw.txt	/*network*
@@ -9551,9 +9557,17 @@ out_name	channel.txt	/*out_name*
 out_timeout	channel.txt	/*out_timeout*
 p	change.txt	/*p*
 pack-add	repeat.txt	/*pack-add*
+package-cfilter	quickfix.txt	/*package-cfilter*
+package-comment	usr_05.txt	/*package-comment*
 package-create	repeat.txt	/*package-create*
 package-doc	repeat.txt	/*package-doc*
 package-documentation	repeat.txt	/*package-documentation*
+package-editorconfig	usr_05.txt	/*package-editorconfig*
+package-helptoc	helphelp.txt	/*package-helptoc*
+package-justify	usr_25.txt	/*package-justify*
+package-matchit	usr_05.txt	/*package-matchit*
+package-nohlsearch	usr_05.txt	/*package-nohlsearch*
+package-termdebug	terminal.txt	/*package-termdebug*
 package-translate_example	repeat.txt	/*package-translate_example*
 package-translation	repeat.txt	/*package-translation*
 packages	repeat.txt	/*packages*
@@ -9631,7 +9645,6 @@ phtml.vim	syntax.txt	/*phtml.vim*
 pi_getscript.txt	pi_getscript.txt	/*pi_getscript.txt*
 pi_gzip.txt	pi_gzip.txt	/*pi_gzip.txt*
 pi_logipat.txt	pi_logipat.txt	/*pi_logipat.txt*
-pi_netrw.txt	pi_netrw.txt	/*pi_netrw.txt*
 pi_paren.txt	pi_paren.txt	/*pi_paren.txt*
 pi_spec.txt	pi_spec.txt	/*pi_spec.txt*
 pi_tar.txt	pi_tar.txt	/*pi_tar.txt*
@@ -10408,6 +10421,7 @@ status-line	windows.txt	/*status-line*
 statusmsg-variable	eval.txt	/*statusmsg-variable*
 stl-%!	options.txt	/*stl-%!*
 stl-%{	options.txt	/*stl-%{*
+str2blob()	builtin.txt	/*str2blob()*
 str2float()	builtin.txt	/*str2float()*
 str2list()	builtin.txt	/*str2list()*
 str2nr()	builtin.txt	/*str2nr()*

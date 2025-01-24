@@ -1182,6 +1182,9 @@ KMAPSOURCE = ../runtime/keymap
 # Where to look for print resource files
 PRINTSOURCE = ../runtime/print
 
+# Where to look translated README and LICENSE files
+TRANSSOURCE = ../lang
+
 # If you are using Linux, you might want to use this to make vim the
 # default vi editor, it will create a link from vi to Vim when doing
 # "make install".  An existing file will be overwritten!
@@ -1550,6 +1553,7 @@ BASIC_SRC = \
 	indent.c \
 	insexpand.c \
 	json.c \
+	linematch.c \
 	list.c \
 	locale.c \
 	logfile.c \
@@ -1712,6 +1716,7 @@ OBJ_COMMON = \
 	objects/if_xcmdsrv.o \
 	objects/indent.o \
 	objects/insexpand.o \
+	objects/linematch.o \
 	objects/list.o \
 	objects/locale.o \
 	objects/logfile.o \
@@ -1861,6 +1866,7 @@ PRO_AUTO = \
 	debugger.pro \
 	dict.pro \
 	diff.pro \
+	linematch.pro \
 	digraph.pro \
 	drawline.pro \
 	drawscreen.pro \
@@ -2428,6 +2434,11 @@ installrtbase: $(HELPSOURCE)/vim.1 $(DEST_VIM) $(VIMTARGET) $(DEST_RT) \
 	chmod $(VIMSCRIPTMOD) $(SYS_INDOFF_FILE)
 	$(INSTALL_DATA) $(SCRIPTSOURCE)/optwin.vim $(SYS_OPTWIN_FILE)
 	chmod $(VIMSCRIPTMOD) $(SYS_OPTWIN_FILE)
+# install README and LICENCE files
+	$(INSTALL_DATA) ../README.txt $(DEST_RT)
+	chmod $(HELPMOD) $(DEST_RT)/README.txt
+	$(INSTALL_DATA) ../LICENSE $(DEST_RT)
+	chmod $(HELPMOD) $(DEST_RT)/LICENSE
 # install the print resource files
 	cd $(PRINTSOURCE); $(INSTALL_DATA) *.ps $(DEST_PRINT)
 	cd $(DEST_PRINT); chmod $(FILEMOD) *.ps
@@ -2566,7 +2577,7 @@ install-tool-languages:
 
 
 # install the language specific files, if they were unpacked
-install-languages: languages $(DEST_LANG) $(DEST_KMAP)
+install-languages: languages $(DEST_LANG) $(DEST_KMAP) $(DEST_RT)
 	-$(SHELL) ./installman.sh install $(DEST_MAN_DA) "-da" $(INSTALLMANARGS)
 	-$(SHELL) ./installman.sh install $(DEST_MAN_DA_I) "-da" $(INSTALLMANARGS)
 	-$(SHELL) ./installman.sh install $(DEST_MAN_DA_U) "-da.UTF-8" $(INSTALLMANARGS)
@@ -2642,6 +2653,29 @@ install-languages: languages $(DEST_LANG) $(DEST_KMAP)
 	if test -d $(KMAPSOURCE); then \
 	   $(INSTALL_DATA) $(KMAPSOURCE)/README.txt $(KMAPSOURCE)/*.vim $(DEST_KMAP); \
 	   chmod $(FILEMOD) $(DEST_KMAP)/README.txt $(DEST_KMAP)/*.vim; \
+	fi
+# Installing translated README and LICENSE files
+	if test -d $(TRANSSOURCE) ; then \
+	  if test -n "$(LANG)" ; then \
+	    lngusr=$${LANG%%.*} ; \
+	  elif test -n "$(LANGUAGE)" ; then \
+	    lngusr=$${LANGUAGE%%:*} ; \
+	  elif test -n "$(LC_MESSAGES)" ; then \
+	    lngusr=$${LC_MESSAGES%%.*} ; \
+	  fi; \
+	  if test "$$lngusr" = "zh_TW" -o "$$lngusr" = "zh_CN" ; then \
+	    lngusr=`echo $$lngusr | tr '[:upper:]' '[:lower:]'` ; \
+	  elif test -n "$$lngusr" -a "$$lngusr" != "C" -a "$$lngusr" != "POSIX" ; then \
+	    lngusr=$${lngusr%%_*} ; \
+	  fi ; \
+	  if test -f $(TRANSSOURCE)/README.$$lngusr.txt ; then \
+	    $(INSTALL_DATA) $(TRANSSOURCE)/README.$$lngusr.txt $(DEST_RT) ; \
+	    chmod $(HELPMOD) $(DEST_RT)/README.$$lngusr.txt ; \
+	  fi ; \
+	  if test -f $(TRANSSOURCE)/LICENSE.$$lngusr.txt ; then \
+	    $(INSTALL_DATA) $(TRANSSOURCE)/LICENSE.$$lngusr.txt $(DEST_RT) ; \
+	    chmod $(HELPMOD) $(DEST_RT)/LICENSE.$$lngusr.txt ; \
+	  fi ; \
 	fi
 
 # Install the icons for KDE, if the directory exists and the icon doesn't.
@@ -2904,6 +2938,9 @@ uninstall_runtime:
 	-rm -f $(DEST_PLUG)/*.vim $(DEST_PLUG)/README.txt
 	-rmdir $(DEST_FTP) $(DEST_AUTO)/dist $(DEST_AUTO)/xml $(DEST_AUTO)/cargo $(DEST_AUTO)/rust $(DEST_AUTO)
 	-rmdir $(DEST_IMPORT)/dist $(DEST_IMPORT)
+	-rm -f $(DEST_RT)/README.??.txt
+	-rm -f $(DEST_RT)/LICENSE.??.txt
+	-rm -f $(DEST_RT)/README.txt $(DEST_RT)/LICENSE
 	-rmdir $(DEST_PLUG) $(DEST_RT)
 #	This will fail when other Vim versions are installed, no worries.
 	-rmdir $(DEST_VIM)
@@ -2990,6 +3027,8 @@ shadowupdate:
 # Link needed for doing "make install" in a shadow directory.
 runtime:
 	-ln -s ../runtime .
+	-ln -s ../README.txt .
+	-ln -s ../LICENSE .
 
 # Link needed for doing "make" using GTK in a shadow directory.
 pixmaps:
@@ -3376,6 +3415,9 @@ objects/json_test.o: json_test.c
 
 objects/kword_test.o: kword_test.c
 	$(CCC) -o $@ kword_test.c
+
+objects/linematch.o: linematch.c
+	$(CCC) -o $@ linematch.c
 
 objects/list.o: list.c
 	$(CCC) -o $@ list.c
@@ -3804,662 +3846,704 @@ installglinks_haiku: $(HAIKU_GLINKS) install_haiku_extra
 objects/alloc.o: alloc.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/arabic.o: arabic.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/arglist.o: arglist.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/autocmd.o: autocmd.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/beval.o: beval.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/blob.o: blob.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/blowfish.o: blowfish.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/buffer.o: buffer.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h version.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h version.h
 objects/change.o: change.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/charset.o: charset.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/cindent.o: cindent.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/clientserver.o: clientserver.c vim.h protodef.h auto/config.h feature.h \
   os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h option.h \
   beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h
+  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
+  xdiff/xdiff.h xdiff/../vim.h alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h
 objects/cmdexpand.o: cmdexpand.c vim.h protodef.h auto/config.h feature.h \
   os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h option.h \
   beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h
+  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
+  xdiff/xdiff.h xdiff/../vim.h alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h
 objects/cmdhist.o: cmdhist.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/crypt.o: crypt.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/crypt_zip.o: crypt_zip.c vim.h protodef.h auto/config.h feature.h \
   os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h option.h \
   beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h
+  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
+  xdiff/xdiff.h xdiff/../vim.h alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h
 objects/debugger.o: debugger.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/dict.o: dict.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/diff.o: diff.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h xdiff/xdiff.h xdiff/../vim.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/digraph.o: digraph.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/drawline.o: drawline.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/drawscreen.o: drawscreen.c vim.h protodef.h auto/config.h feature.h \
   os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h option.h \
   beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h
+  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
+  xdiff/xdiff.h xdiff/../vim.h alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h
 objects/edit.o: edit.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/eval.o: eval.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/evalbuffer.o: evalbuffer.c vim.h protodef.h auto/config.h feature.h \
   os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h option.h \
   beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h
+  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
+  xdiff/xdiff.h xdiff/../vim.h alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h
 objects/evalfunc.o: evalfunc.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h version.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h version.h
 objects/evalvars.o: evalvars.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h version.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h version.h
 objects/evalwindow.o: evalwindow.c vim.h protodef.h auto/config.h feature.h \
   os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h option.h \
   beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h
+  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
+  xdiff/xdiff.h xdiff/../vim.h alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h
 objects/ex_cmds.o: ex_cmds.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h version.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h version.h
 objects/ex_cmds2.o: ex_cmds2.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h version.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h version.h
 objects/ex_docmd.o: ex_docmd.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h ex_cmdidxs.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h ex_cmdidxs.h
 objects/ex_eval.o: ex_eval.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/ex_getln.o: ex_getln.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/fileio.o: fileio.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/filepath.o: filepath.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/findfile.o: findfile.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/float.o: float.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/fold.o: fold.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/getchar.o: getchar.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/gc.o: gc.c vim.h protodef.h auto/config.h feature.h os_unix.h os_mac.h \
   ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/gui_xim.o: gui_xim.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/hardcopy.o: hardcopy.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h version.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h version.h
 objects/hashtab.o: hashtab.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/help.o: help.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/highlight.o: highlight.c vim.h protodef.h auto/config.h feature.h \
   os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h option.h \
   beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h
+  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
+  xdiff/xdiff.h xdiff/../vim.h alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h
 objects/if_cscope.o: if_cscope.c vim.h protodef.h auto/config.h feature.h \
   os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h option.h \
   beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h
+  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
+  xdiff/xdiff.h xdiff/../vim.h alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h
 objects/if_xcmdsrv.o: if_xcmdsrv.c vim.h protodef.h auto/config.h feature.h \
   os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h option.h \
   beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h version.h
+  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
+  xdiff/xdiff.h xdiff/../vim.h alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h version.h
 objects/indent.o: indent.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/insexpand.o: insexpand.c vim.h protodef.h auto/config.h feature.h \
   os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h option.h \
   beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h
+  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
+  xdiff/xdiff.h xdiff/../vim.h alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h
 objects/json.o: json.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
+objects/linematch.o: linematch.c vim.h protodef.h auto/config.h feature.h \
+  os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h option.h \
+  beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
+  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
+  xdiff/xdiff.h xdiff/../vim.h alloc.h ex_cmds.h spell.h proto.h \
   globals.h errors.h
 objects/list.o: list.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/locale.o: locale.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/logfile.o: logfile.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/main.o: main.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/map.o: map.c vim.h protodef.h auto/config.h feature.h os_unix.h os_mac.h \
   ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/mark.o: mark.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/match.o: match.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/mbyte.o: mbyte.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/memfile.o: memfile.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/memline.o: memline.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/menu.o: menu.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/message.o: message.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/misc1.o: misc1.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h version.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h version.h
 objects/misc2.o: misc2.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/mouse.o: mouse.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/move.o: move.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/normal.o: normal.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h nv_cmds.h nv_cmdidxs.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h nv_cmds.h nv_cmdidxs.h
 objects/ops.o: ops.c vim.h protodef.h auto/config.h feature.h os_unix.h os_mac.h \
   ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/option.o: option.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h optiondefs.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h optiondefs.h
 objects/optionstr.o: optionstr.c vim.h protodef.h auto/config.h feature.h \
   os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h option.h \
   beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h
+  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
+  xdiff/xdiff.h xdiff/../vim.h alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h
 objects/os_unix.o: os_unix.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h os_unixx.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h os_unixx.h
+objects/pathdef.o: auto/pathdef.c vim.h protodef.h auto/config.h feature.h \
+  os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h option.h \
+  beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
+  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
+  xdiff/xdiff.h xdiff/../vim.h alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h
 objects/popupmenu.o: popupmenu.c vim.h protodef.h auto/config.h feature.h \
   os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h option.h \
   beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h
+  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
+  xdiff/xdiff.h xdiff/../vim.h alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h
 objects/popupwin.o: popupwin.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/profiler.o: profiler.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/pty.o: pty.c vim.h protodef.h auto/config.h feature.h os_unix.h os_mac.h \
   ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/quickfix.o: quickfix.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/regexp.o: regexp.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h regexp_bt.c regexp_nfa.c
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h regexp_bt.c regexp_nfa.c
 objects/register.o: register.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/screen.o: screen.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/scriptfile.o: scriptfile.c vim.h protodef.h auto/config.h feature.h \
   os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h option.h \
   beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h
+  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
+  xdiff/xdiff.h xdiff/../vim.h alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h
 objects/search.o: search.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/session.o: session.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/sha256.o: sha256.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/sign.o: sign.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/spell.o: spell.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/spellfile.o: spellfile.c vim.h protodef.h auto/config.h feature.h \
   os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h option.h \
   beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h
+  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
+  xdiff/xdiff.h xdiff/../vim.h alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h
 objects/spellsuggest.o: spellsuggest.c vim.h protodef.h auto/config.h feature.h \
   os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h option.h \
   beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h
+  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
+  xdiff/xdiff.h xdiff/../vim.h alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h
 objects/strings.o: strings.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/syntax.o: syntax.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/tag.o: tag.c vim.h protodef.h auto/config.h feature.h os_unix.h os_mac.h \
   ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/term.o: term.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/terminal.o: terminal.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/testing.o: testing.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/textformat.o: textformat.c vim.h protodef.h auto/config.h feature.h \
   os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h option.h \
   beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h
+  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
+  xdiff/xdiff.h xdiff/../vim.h alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h
 objects/textobject.o: textobject.c vim.h protodef.h auto/config.h feature.h \
   os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h option.h \
   beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h
+  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
+  xdiff/xdiff.h xdiff/../vim.h alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h
 objects/textprop.o: textprop.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/time.o: time.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/typval.o: typval.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/ui.o: ui.c vim.h protodef.h auto/config.h feature.h os_unix.h os_mac.h \
   ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/undo.o: undo.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/usercmd.o: usercmd.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/userfunc.o: userfunc.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/version.o: version.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h version.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h version.h
 objects/vim9class.o: vim9class.c vim.h protodef.h auto/config.h feature.h \
   os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h option.h \
   beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h vim9.h
+  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
+  xdiff/xdiff.h xdiff/../vim.h alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h vim9.h
 objects/vim9cmds.o: vim9cmds.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h vim9.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h vim9.h
 objects/vim9compile.o: vim9compile.c vim.h protodef.h auto/config.h feature.h \
   os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h option.h \
   beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h vim9.h
+  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
+  xdiff/xdiff.h xdiff/../vim.h alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h vim9.h
 objects/vim9execute.o: vim9execute.c vim.h protodef.h auto/config.h feature.h \
   os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h option.h \
   beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h vim9.h
+  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
+  xdiff/xdiff.h xdiff/../vim.h alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h vim9.h
 objects/vim9expr.o: vim9expr.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h vim9.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h vim9.h
 objects/vim9instr.o: vim9instr.c vim.h protodef.h auto/config.h feature.h \
   os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h option.h \
   beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h vim9.h
+  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
+  xdiff/xdiff.h xdiff/../vim.h alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h vim9.h
 objects/vim9script.o: vim9script.c vim.h protodef.h auto/config.h feature.h \
   os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h option.h \
   beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h vim9.h
+  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
+  xdiff/xdiff.h xdiff/../vim.h alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h vim9.h
 objects/vim9type.o: vim9type.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h vim9.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h vim9.h
 objects/viminfo.o: viminfo.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h version.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h version.h
 objects/window.o: window.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/bufwrite.o: bufwrite.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/os_macosx.o: os_macosx.m vim.h protodef.h auto/config.h feature.h \
   os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h option.h \
   beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h
+  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
+  xdiff/xdiff.h xdiff/../vim.h alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h
 objects/os_mac_conv.o: os_mac_conv.c vim.h protodef.h auto/config.h feature.h \
   os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h option.h \
   beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h
+  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
+  xdiff/xdiff.h xdiff/../vim.h alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h
 objects/gui.o: gui.c vim.h protodef.h auto/config.h feature.h os_unix.h os_mac.h \
   ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/gui_gtk.o: gui_gtk.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h ../pixmaps/stock_icons.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h ../pixmaps/stock_icons.h
 objects/gui_gtk_x11.o: gui_gtk_x11.c vim.h protodef.h auto/config.h feature.h \
   os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h option.h \
   beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h ../runtime/vim32x32.xpm \
-  ../runtime/vim16x16.xpm ../runtime/vim48x48.xpm
+  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
+  xdiff/xdiff.h xdiff/../vim.h alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h ../runtime/vim32x32.xpm ../runtime/vim16x16.xpm \
+  ../runtime/vim48x48.xpm
 objects/gui_macvim.o: MacVim/gui_macvim.m MacVim/MMBackend.h MacVim/MacVim.h \
   vim.h protodef.h auto/config.h feature.h os_unix.h os_mac.h ascii.h \
   keymap.h termdefs.h macros.h option.h beval.h proto/gui_beval.pro \
   structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/MMBackend.o: MacVim/MMBackend.m MacVim/MMBackend.h MacVim/MacVim.h vim.h \
   protodef.h auto/config.h feature.h os_unix.h os_mac.h ascii.h keymap.h \
   termdefs.h macros.h option.h beval.h proto/gui_beval.pro structs.h \
   regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h proto/gui_macvim.pro
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h proto/gui_macvim.pro
 objects/MacVim.o: MacVim/MacVim.m MacVim/MacVim.h
 objects/json_test.o: json_test.c main.c vim.h protodef.h auto/config.h feature.h \
   os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h option.h \
   beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h json.c
+  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
+  xdiff/xdiff.h xdiff/../vim.h alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h json.c
 objects/kword_test.o: kword_test.c main.c vim.h protodef.h auto/config.h \
   feature.h os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h \
   option.h beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h charset.c
+  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
+  xdiff/xdiff.h xdiff/../vim.h alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h charset.c
 objects/memfile_test.o: memfile_test.c main.c vim.h protodef.h auto/config.h \
   feature.h os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h \
   option.h beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h memfile.c
+  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
+  xdiff/xdiff.h xdiff/../vim.h alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h memfile.c
 objects/message_test.o: message_test.c main.c vim.h protodef.h auto/config.h \
   feature.h os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h \
   option.h beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h message.c
+  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
+  xdiff/xdiff.h xdiff/../vim.h alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h message.c
 objects/if_mzsch.o: if_mzsch.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h if_mzsch.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h if_mzsch.h
 objects/if_perlsfio.o: if_perlsfio.c vim.h protodef.h auto/config.h feature.h \
   os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h option.h \
   beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h
+  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
+  xdiff/xdiff.h xdiff/../vim.h alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h
 objects/if_tcl.o: if_tcl.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/netbeans.o: netbeans.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h version.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h version.h
 objects/job.o: job.c vim.h protodef.h auto/config.h feature.h os_unix.h os_mac.h \
   ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/channel.o: channel.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
-  globals.h errors.h
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/vterm_encoding.o: libvterm/src/encoding.c libvterm/src/vterm_internal.h \
   libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
   libvterm/src/encoding/DECdrawing.inc libvterm/src/encoding/uk.inc
@@ -4485,44 +4569,68 @@ objects/vterm_vterm.o: libvterm/src/vterm.c libvterm/src/vterm_internal.h \
   libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
   libvterm/src/utf8.h
 objects/xdiffi.o: xdiff/xdiffi.c xdiff/xinclude.h auto/config.h \
-  xdiff/xmacros.h xdiff/xdiff.h vim.h protodef.h auto/config.h \
-  feature.h os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h \
-  option.h beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h xdiff/xtypes.h \
-  xdiff/xutils.h xdiff/xprepare.h xdiff/xdiffi.h xdiff/xemit.h
+  xdiff/xmacros.h xdiff/xdiff.h vim.h protodef.h \
+  feature.h os_unix.h os_mac.h \
+  ascii.h keymap.h termdefs.h \
+  macros.h option.h beval.h \
+  proto/gui_beval.pro structs.h regexp.h \
+  gui.h libvterm/include/vterm.h \
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h \
+  alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h xdiff/xtypes.h xdiff/xutils.h \
+  xdiff/xprepare.h xdiff/xdiffi.h xdiff/xemit.h
 objects/xemit.o: xdiff/xemit.c xdiff/xinclude.h auto/config.h \
-  xdiff/xmacros.h xdiff/xdiff.h vim.h protodef.h auto/config.h \
-  feature.h os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h \
-  option.h beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h xdiff/xtypes.h \
-  xdiff/xutils.h xdiff/xprepare.h xdiff/xdiffi.h xdiff/xemit.h
+  xdiff/xmacros.h xdiff/xdiff.h vim.h protodef.h \
+  feature.h os_unix.h os_mac.h \
+  ascii.h keymap.h termdefs.h \
+  macros.h option.h beval.h \
+  proto/gui_beval.pro structs.h regexp.h \
+  gui.h libvterm/include/vterm.h \
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h \
+  alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h xdiff/xtypes.h xdiff/xutils.h \
+  xdiff/xprepare.h xdiff/xdiffi.h xdiff/xemit.h
 objects/xprepare.o: xdiff/xprepare.c xdiff/xinclude.h auto/config.h \
-  xdiff/xmacros.h xdiff/xdiff.h vim.h protodef.h auto/config.h \
-  feature.h os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h \
-  option.h beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h xdiff/xtypes.h \
-  xdiff/xutils.h xdiff/xprepare.h xdiff/xdiffi.h xdiff/xemit.h
+  xdiff/xmacros.h xdiff/xdiff.h vim.h protodef.h \
+  feature.h os_unix.h os_mac.h \
+  ascii.h keymap.h termdefs.h \
+  macros.h option.h beval.h \
+  proto/gui_beval.pro structs.h regexp.h \
+  gui.h libvterm/include/vterm.h \
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h \
+  alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h xdiff/xtypes.h xdiff/xutils.h \
+  xdiff/xprepare.h xdiff/xdiffi.h xdiff/xemit.h
 objects/xutils.o: xdiff/xutils.c xdiff/xinclude.h auto/config.h \
-  xdiff/xmacros.h xdiff/xdiff.h vim.h protodef.h auto/config.h \
-  feature.h os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h \
-  option.h beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h xdiff/xtypes.h \
-  xdiff/xutils.h xdiff/xprepare.h xdiff/xdiffi.h xdiff/xemit.h
+  xdiff/xmacros.h xdiff/xdiff.h vim.h protodef.h \
+  feature.h os_unix.h os_mac.h \
+  ascii.h keymap.h termdefs.h \
+  macros.h option.h beval.h \
+  proto/gui_beval.pro structs.h regexp.h \
+  gui.h libvterm/include/vterm.h \
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h \
+  alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h xdiff/xtypes.h xdiff/xutils.h \
+  xdiff/xprepare.h xdiff/xdiffi.h xdiff/xemit.h
 objects/xhistogram.o: xdiff/xhistogram.c xdiff/xinclude.h auto/config.h \
-  xdiff/xmacros.h xdiff/xdiff.h vim.h protodef.h auto/config.h \
-  feature.h os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h \
-  option.h beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h xdiff/xtypes.h \
-  xdiff/xutils.h xdiff/xprepare.h xdiff/xdiffi.h xdiff/xemit.h
+  xdiff/xmacros.h xdiff/xdiff.h vim.h protodef.h \
+  feature.h os_unix.h os_mac.h \
+  ascii.h keymap.h termdefs.h \
+  macros.h option.h beval.h \
+  proto/gui_beval.pro structs.h regexp.h \
+  gui.h libvterm/include/vterm.h \
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h \
+  alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h xdiff/xtypes.h xdiff/xutils.h \
+  xdiff/xprepare.h xdiff/xdiffi.h xdiff/xemit.h
 objects/xpatience.o: xdiff/xpatience.c xdiff/xinclude.h auto/config.h \
-  xdiff/xmacros.h xdiff/xdiff.h vim.h protodef.h auto/config.h \
-  feature.h os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h \
-  option.h beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
-  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h xdiff/xtypes.h \
-  xdiff/xutils.h xdiff/xprepare.h xdiff/xdiffi.h xdiff/xemit.h
+  xdiff/xmacros.h xdiff/xdiff.h vim.h protodef.h \
+  feature.h os_unix.h os_mac.h \
+  ascii.h keymap.h termdefs.h \
+  macros.h option.h beval.h \
+  proto/gui_beval.pro structs.h regexp.h \
+  gui.h libvterm/include/vterm.h \
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h \
+  alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h xdiff/xtypes.h xdiff/xutils.h \
+  xdiff/xprepare.h xdiff/xdiffi.h xdiff/xemit.h

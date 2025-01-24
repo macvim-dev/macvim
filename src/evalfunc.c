@@ -1128,6 +1128,7 @@ static argcheck_T arg2_list_any_number[] = {arg_list_any, arg_number};
 static argcheck_T arg2_list_any_string[] = {arg_list_any, arg_string};
 static argcheck_T arg2_list_number[] = {arg_list_number, arg_list_number};
 static argcheck_T arg2_list_number_bool[] = {arg_list_number, arg_bool};
+static argcheck_T arg2_list_string_dict[] = {arg_list_string, arg_dict_any};
 static argcheck_T arg2_listblobmod_item[] = {arg_list_or_blob_mod, arg_item_of_prev};
 static argcheck_T arg2_lnum[] = {arg_lnum, arg_lnum};
 static argcheck_T arg2_lnum_number[] = {arg_lnum, arg_number};
@@ -1150,6 +1151,7 @@ static argcheck_T arg2_string_number[] = {arg_string, arg_number};
 static argcheck_T arg2_string_or_list_dict[] = {arg_string_or_list_any, arg_dict_any};
 static argcheck_T arg2_string_or_list_number[] = {arg_string_or_list_any, arg_number};
 static argcheck_T arg2_string_string_or_number[] = {arg_string, arg_string_or_nr};
+static argcheck_T arg2_blob_dict[] = {arg_blob, arg_dict_any};
 static argcheck_T arg3_any_list_dict[] = {arg_any, arg_list_any, arg_dict_any};
 static argcheck_T arg3_buffer_lnum_lnum[] = {arg_buffer, arg_lnum, arg_lnum};
 static argcheck_T arg3_buffer_number_number[] = {arg_buffer, arg_number, arg_number};
@@ -1843,6 +1845,8 @@ static funcentry_T global_functions[] =
 			ret_bool,	    f_bindtextdomain},
     {"blob2list",	1, 1, FEARG_1,	    arg1_blob,
 			ret_list_number,    f_blob2list},
+    {"blob2str",	1, 2, FEARG_1,	    arg2_blob_dict,
+			ret_list_string,    f_blob2str},
     {"browse",		4, 4, 0,	    arg4_browse,
 			ret_string,	    f_browse},
     {"browsedir",	2, 2, 0,	    arg2_string,
@@ -2713,6 +2717,8 @@ static funcentry_T global_functions[] =
 			ret_list_number,    f_srand},
     {"state",		0, 1, FEARG_1,	    arg1_string,
 			ret_string,	    f_state},
+    {"str2blob",	1, 2, FEARG_1,	    arg2_list_string_dict,
+			ret_blob,	    f_str2blob},
     {"str2float",	1, 2, FEARG_1,	    arg2_string_bool,
 			ret_float,	    f_str2float},
     {"str2list",	1, 2, FEARG_1,	    arg2_string_bool,
@@ -3742,7 +3748,6 @@ f_call(typval_T *argvars, typval_T *rettv)
     char_u	*func;
     partial_T   *partial = NULL;
     dict_T	*selfdict = NULL;
-    char_u	*dot;
     char_u	*tofree = NULL;
 
     if (in_vim9script()
@@ -3768,36 +3773,29 @@ f_call(typval_T *argvars, typval_T *rettv)
     if (func == NULL || *func == NUL)
 	return;		// type error, empty name or null function
 
-    dot = vim_strchr(func, '.');
-    if (dot != NULL)
+    if (argvars[0].v_type == VAR_STRING)
     {
-	imported_T *import = find_imported(func, dot - func, TRUE);
-
-	if (import != NULL && SCRIPT_ID_VALID(import->imp_sid))
+	char_u	*p = func;
+	tofree = trans_function_name(&p, NULL, FALSE, TFN_INT|TFN_QUIET);
+	if (tofree == NULL)
 	{
-	    scriptitem_T *si = SCRIPT_ITEM(import->imp_sid);
-
-	    if (si->sn_autoload_prefix != NULL)
-	    {
-		// Turn "import.Func" into "scriptname#Func".
-		tofree = concat_str(si->sn_autoload_prefix, dot + 1);
-		if (tofree == NULL)
-		    return;
-		func = tofree;
-	    }
+	    emsg_funcname(e_unknown_function_str, func);
+	    return;
 	}
+	func = tofree;
     }
 
     if (argvars[2].v_type != VAR_UNKNOWN)
     {
 	if (check_for_dict_arg(argvars, 2) == FAIL)
-	    return;
+	    goto done;
 
 	selfdict = argvars[2].vval.v_dict;
     }
 
     (void)func_call(func, &argvars[1], partial, selfdict, rettv);
 
+done:
     vim_free(tofree);
 }
 

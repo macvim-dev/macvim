@@ -52,6 +52,7 @@ SRC_ALL =	\
 		src/debugger.c \
 		src/dict.c \
 		src/diff.c \
+		src/linematch.c \
 		src/digraph.c \
 		src/drawline.c \
 		src/drawscreen.c \
@@ -286,6 +287,7 @@ SRC_ALL =	\
 		src/proto/insexpand.pro \
 		src/proto/job.pro \
 		src/proto/json.pro \
+		src/proto/linematch.pro \
 		src/proto/list.pro \
 		src/proto/locale.pro \
 		src/proto/logfile.pro \
@@ -607,6 +609,8 @@ SRC_DOS =	\
 		src/xxd/Make_mvc.mak \
 		nsis/gvim.nsi \
 		nsis/gvim_version.nsh \
+		nsis/Makefile \
+		nsis/Make_mvc.mak \
 		nsis/README.txt \
 		nsis/lang/*.nsi \
 		nsis/lang/README.txt \
@@ -708,8 +712,6 @@ RT_ALL =	\
 		README_VIM9.md \
 		LICENSE \
 		CONTRIBUTING.md \
-		lang/LICENSE.itx \
-		lang/README.itx \
 		runtime/bugreport.vim \
 		runtime/doc/*.awk \
 		runtime/doc/*.pl \
@@ -807,6 +809,14 @@ RT_ALL =	\
 		runtime/pack/dist/opt/shellmenu/plugin/shellmenu.vim \
 		runtime/pack/dist/opt/swapmouse/plugin/swapmouse.vim \
 		runtime/pack/dist/opt/termdebug/plugin/termdebug.vim \
+		runtime/pack/dist/opt/netrw/LICENSE.txt \
+		runtime/pack/dist/opt/netrw/README.md \
+		runtime/pack/dist/opt/netrw/autoload/netrw.vim \
+		runtime/pack/dist/opt/netrw/autoload/netrwSettings.vim \
+		runtime/pack/dist/opt/netrw/autoload/netrw_gitignore.vim \
+		runtime/pack/dist/opt/netrw/doc/netrw.txt \
+		runtime/pack/dist/opt/netrw/plugin/netrwPlugin.vim \
+		runtime/pack/dist/opt/netrw/syntax/netrw.vim
 
 # Runtime files for all distributions without CR/LF translation.
 RT_ALL_BIN =	\
@@ -1033,7 +1043,8 @@ IN_README_DIR = \
 
 # Generic language files.
 LANG_GEN = \
-		README.??x.txt \
+		lang/README.*.txt \
+		lang/LICENSE.*.txt \
 		runtime/doc/*-da.1 \
 		runtime/doc/*-da.UTF-8.1 \
 		runtime/doc/*-de.1 \
@@ -1049,7 +1060,6 @@ LANG_GEN = \
 		runtime/doc/*-ru.UTF-8.1 \
 		runtime/doc/*-tr.1 \
 		runtime/doc/*-tr.UTF-8.1 \
-		runtime/doc/uganda.??x \
 		runtime/lang/README.txt \
 		runtime/lang/Makefile \
 		runtime/lang/Make_all.mak \

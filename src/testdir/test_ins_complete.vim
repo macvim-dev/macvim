@@ -2700,7 +2700,7 @@ func Test_complete_fuzzy_match()
     if a:findstart
       return col(".")
     endif
-    return [#{word: "foo"}, #{word: "foobar"}, #{word: "fooBaz"}, #{word: "foobala"}]
+    return [#{word: "foo"}, #{word: "foobar"}, #{word: "fooBaz"}, #{word: "foobala"}, #{word: "你好吗"}, #{word: "我好"}]
   endfunc
 
   new
@@ -2855,6 +2855,21 @@ func Test_complete_fuzzy_match()
   call feedkeys("STe\<C-X>\<C-N>x\<CR>\<Esc>0", 'tx!')
   call assert_equal('Tex', getline('.'))
 
+  " test case for nosort option
+  set cot=menuone,menu,noinsert,fuzzy,nosort
+  " fooBaz" should have a higher score when the leader is "fb".
+  " With `nosort`, "foobar" should still be shown first in the popup menu.
+  call feedkeys("S\<C-x>\<C-o>fb", 'tx')
+  call assert_equal('foobar', g:word)
+  call feedkeys("S\<C-x>\<C-o>好", 'tx')
+  call assert_equal("你好吗", g:word)
+
+  set cot+=noselect
+  call feedkeys("S\<C-x>\<C-o>好", 'tx')
+  call assert_equal(v:null, g:word)
+  call feedkeys("S\<C-x>\<C-o>好\<C-N>", 'tx')
+  call assert_equal('你好吗', g:word)
+
   " clean up
   set omnifunc=
   bw!
@@ -2971,6 +2986,36 @@ func Test_complete_info_matches()
   bw!
   bw!
   unlet g:what
+  delfunc ShownInfo
+  set cot&
+endfunc
+
+func Test_complete_info_completed()
+  func ShownInfo()
+    let g:compl_info = complete_info(['completed'])
+    return ''
+  endfunc
+  set completeopt+=noinsert
+
+  new
+  call setline(1, ['aaa', 'aab', 'aba', 'abb'])
+  inoremap <buffer><F5> <C-R>=ShownInfo()<CR>
+
+  call feedkeys("Go\<C-X>\<C-N>\<F5>\<Esc>dd", 'tx')
+  call assert_equal({'word': 'aaa', 'menu': '', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''},  g:compl_info['completed'])
+
+  call feedkeys("Go\<C-X>\<C-N>\<C-N>\<F5>\<Esc>dd", 'tx')
+  call assert_equal({'word': 'aab', 'menu': '', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''},  g:compl_info['completed'])
+
+  call feedkeys("Go\<C-X>\<C-N>\<C-N>\<C-N>\<C-N>\<F5>\<Esc>dd", 'tx')
+  call assert_equal({'word': 'abb', 'menu': '', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''},  g:compl_info['completed'])
+
+  set completeopt+=noselect
+  call feedkeys("Go\<C-X>\<C-N>\<F5>\<Esc>dd", 'tx')
+  call assert_equal({}, g:compl_info)
+
+  bw!
+  bw!
   delfunc ShownInfo
   set cot&
 endfunc
