@@ -384,27 +384,35 @@ jobs:
           make ${MAKE_BUILD_ARGS} -C src/testdir clean
           make ${MAKE_BUILD_ARGS} -C src testgui
 
-      # Creates a DMG package of MacVim. Note that this doesn't create a GitHub release for us, because we would prefer to
-      # do it manually, for two reasons: 1) signing / notarization are currently done out of CI, 2) we want to manually
-      # format our release notes and add pictures to make them look nice.
       - name: Build MacVim dmg image
-        if: startsWith(github.ref, 'refs/tags/') && matrix.publish
+        if: matrix.publish && (startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/master')
         run: |
           # Use the --skip-jenkins flag to skip the prettify osascript calls which could fail due to permission issues in
           # CI environment.
           if ${{ matrix.legacy == true }}; then
-            make -C src macvim-dmg-legacy CREATEDMG_FLAGS=--skip-jenkins
+            make -C src macvim-dmg-legacy
           else
-            make -C src macvim-dmg CREATEDMG_FLAGS=--skip-jenkins
+            make -C src macvim-dmg
           fi
 
           if ${{ matrix.publish_postfix != '' }}; then
             mv src/MacVim/build/Release/MacVim.dmg src/MacVim/build/Release/MacVim${{ matrix.publish_postfix }}.dmg
           fi
 
+      # Upload the dmg installer only when making tagged release or making a dev build from a master branch.
+      # Note that this doesn't create a GitHub release for us, because we would prefer to do it manually, for two
+      # reasons: 1) signing / notarization are currently done out of CI, 2) we want to manually format our release notes
+      # and add pictures to make them look nice. 
       - name: Upload MacVim image
-        if: startsWith(github.ref, 'refs/tags/') && matrix.publish
+        if: matrix.publish && (startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/master')
         uses: actions/upload-artifact@v4
         with:
           name: MacVim${{ matrix.publish_postfix  }}.dmg
           path: src/MacVim/build/Release/MacVim${{ matrix.publish_postfix }}.dmg
+
+          # If doing a tagged release, use repository-specified number of retention days (usually 90 days) to make it
+          # easier to audit. (specify "0" to indicate using repository settings)
+          #
+          # Otherwise, we are just doing a dev build for potential testing, just use a maximum of 21 days as we don't
+          # tend to need these for long.
+          retention-days: ${{ startsWith(github.ref, 'refs/tags/') && 0 || (github.retention_days > 21 && 21 || 0) }}
