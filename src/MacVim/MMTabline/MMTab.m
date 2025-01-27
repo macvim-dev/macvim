@@ -20,6 +20,8 @@ typedef NSString * NSAnimatablePropertyKey;
     NSTextField *_titleLabel;
 }
 
+@synthesize tag = _tag;
+
 + (id)defaultAnimationForKey:(NSAnimatablePropertyKey)key
 {
     if ([key isEqualToString:@"fillColor"]) {

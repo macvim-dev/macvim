@@ -764,32 +764,36 @@ static struct specialkey
 
 - (void)updateTabBar
 {
+    // Update the tab bar with the most up-to-date info, including number of
+    // tabs and titles/tooltips. MacVim would also like to know which specific
+    // tabs were moved/added/deleted in order for animation to work, but Vim
+    // does not have specific callbacks to listen to that. Instead, since the
+    // tabpage_T memory address is constant per tab, we use that as a permanent
+    // identifier for each GUI tab so MacVim can do the association.
     NSMutableData *data = [NSMutableData data];
 
+    // 1. Current selected tab index
     int idx = tabpage_index(curtab) - 1;
     [data appendBytes:&idx length:sizeof(int)];
 
     tabpage_T *tp;
+    // 2. Unique id for all the tabs
+    // Do these first so they appear as a consecutive memory block.
     for (tp = first_tabpage; tp != NULL; tp = tp->tp_next) {
-        // Count the number of windows in the tabpage.
-        //win_T *wp = tp->tp_firstwin;
-        //int wincount;
-        //for (wincount = 0; wp != NULL; wp = wp->w_next, ++wincount);
-        //[data appendBytes:&wincount length:sizeof(int)];
-
-        int tabProp = MMTabInfoCount;
-        [data appendBytes:&tabProp length:sizeof(int)];
-        for (tabProp = MMTabLabel; tabProp < MMTabInfoCount; ++tabProp) {
+        [data appendBytes:&tp length:sizeof(void*)];
+    }
+    // Null terminate the unique IDs.
+    tp = 0;
+    [data appendBytes:&tp length:sizeof(void*)];
+    // 3. Labels and tooltips of each tab
+    for (tp = first_tabpage; tp != NULL; tp = tp->tp_next) {
+        for (int tabProp = MMTabLabel; tabProp < MMTabInfoCount; ++tabProp) {
             // This function puts the label of the tab in the global 'NameBuff'.
             get_tabline_label(tp, (tabProp == MMTabToolTip));
-            NSString *s = [NSString stringWithVimString:NameBuff];
-            int len = [s lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
-            if (len < 0)
-                len = 0;
-
-            [data appendBytes:&len length:sizeof(int)];
+            size_t len = STRLEN(NameBuff);
+            [data appendBytes:&len length:sizeof(size_t)];
             if (len > 0)
-                [data appendBytes:[s UTF8String] length:len];
+                [data appendBytes:NameBuff length:len];
         }
     }
 

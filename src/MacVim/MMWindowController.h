@@ -65,7 +65,6 @@
 - (BOOL)presentWindow:(id)unused;
 - (void)moveWindowAcrossScreens:(NSPoint)origin;
 - (void)updateTabsWithData:(NSData *)data;
-- (void)selectTabWithIndex:(int)idx;
 - (void)setTextDimensionsWithRows:(int)rows columns:(int)cols isLive:(BOOL)live
                       keepGUISize:(BOOL)keepGUISize
                      keepOnScreen:(BOOL)onScreen;

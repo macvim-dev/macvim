@@ -39,7 +39,6 @@ static BOOL isDarkMode(NSAppearance *appearance) {
     NSLayoutConstraint *_tabScrollButtonsLeadingConstraint;
     NSLayoutConstraint *_addTabButtonTrailingConstraint;
     BOOL _pendingFixupLayout;
-    MMTab *_selectedTab;
     MMTab *_draggedTab;
     CGFloat _xOffsetForDrag;
     NSInteger _initialDraggedTabIndex;
@@ -64,7 +63,11 @@ static BOOL isDarkMode(NSAppearance *appearance) {
         _tabs = [NSMutableArray new];
         _showsAddTabButton = YES; // get from NSUserDefaults
         _showsTabScrollButtons = YES; // get from NSUserDefaults
-        
+
+        _selectedTabIndex = -1;
+
+        _initialDraggedTabIndex = _finalDraggedTabIndex = NSNotFound;
+
         // This view holds the tab views.
         _tabsContainer = [NSView new];
         _tabsContainer.frame = (NSRect){{0, 0}, frameRect.size};
@@ -269,7 +272,7 @@ static BOOL isDarkMode(NSAppearance *appearance) {
     TabWidth t        = [self tabWidthForTabs:_tabs.count + 1];
     NSRect frame      = _tabsContainer.bounds;
     frame.size.width  = index == _tabs.count ? t.width + t.remainder : t.width;
-    frame.origin.x    = index ? index * (t.width - TabOverlap) : 0;
+    frame.origin.x    = index * (t.width - TabOverlap);
     MMTab *newTab = [[MMTab alloc] initWithFrame:frame tabline:self];
 
     [_tabs insertObject:newTab atIndex:index];
@@ -292,14 +295,7 @@ static BOOL isDarkMode(NSAppearance *appearance) {
         if (![self.delegate tabline:self shouldCloseTabAtIndex:index]) return;
     }
     if (index != NSNotFound) {
-        CGFloat w = NSWidth(tab.frame) - TabOverlap;
         [tab removeFromSuperview];
-        for (NSInteger i = index + 1; i < _tabs.count; i++) {
-            MMTab *tv = _tabs[i];
-            NSRect frame = tv.frame;
-            frame.origin.x -= w;
-            tv.animator.frame = frame;
-        }
         [_tabs removeObject:tab];
         if (index <= _selectedTabIndex) {
             if (index < _selectedTabIndex || index > _tabs.count - 1) {
@@ -311,26 +307,161 @@ static BOOL isDarkMode(NSAppearance *appearance) {
         }
         [self fixupCloseButtons];
         [self evaluateHoverStateForMouse:[self.window mouseLocationOutsideOfEventStream]];
-        if (layoutImmediately) [self fixupLayoutWithAnimation:YES];
-        else _pendingFixupLayout = YES;
+        [self fixupLayoutWithAnimation:YES delayResize:!layoutImmediately];
     } else {
         NSLog(@"CANNOT FIND TAB TO REMOVE");
     }
 }
 
+- (void)updateTabsByTags:(NSInteger *)tags len:(NSUInteger)len delayTabResize:(BOOL)delayTabResize
+{
+    BOOL needUpdate = NO;
+    if (len != _tabs.count) {
+        needUpdate = YES;
+    } else {
+        for (NSUInteger i = 0; i < len; i++) {
+            MMTab *tab = _tabs[i];
+            if (tab.tag != tags[i]) {
+                needUpdate = YES;
+                break;
+            }
+        }
+    }
+    if (!needUpdate)
+        return;
+
+    // Perform a diff between the existing tabs (using MMTab's tags as unique
+    // identifiers) and the input specified tags
+
+    // Create a mapping for tags->index. Could potentially cache this but it's
+    // simpler to recreate this every time to avoid tracking states.
+    NSMutableDictionary *tagToTabIdx = [NSMutableDictionary dictionaryWithCapacity:_tabs.count];
+    for (NSUInteger i = 0; i < _tabs.count; i++) {
+        MMTab *tab = _tabs[i];
+        if (tagToTabIdx[@(tab.tag)] != nil) {
+            NSLog(@"Duplicate tag found in tabs");
+            // Duplicates are not supposed to exist. We need to remove the view
+            // here because the algorithm below will not handle this case and
+            // leaves stale views.
+            [tab removeFromSuperview];
+            continue;
+        }
+        tagToTabIdx[@(tab.tag)] = @(i);
+    }
+
+    const NSInteger oldSelectedTabTag = _selectedTabIndex < 0 ? 0 : _tabs[_selectedTabIndex].tag;
+    NSInteger newSelectedTabIndex = -1;
+
+    // Allocate a new tabs list and store all the new and moved tabs there. This
+    // is simpler than an in-place algorithm.
+    NSMutableArray *newTabs = [NSMutableArray arrayWithCapacity:len];
+    for (NSUInteger i = 0; i < len; i++) {
+        NSInteger tag = tags[i];
+        NSNumber *newTabIdxObj = [tagToTabIdx objectForKey:@(tag)];
+        if (newTabIdxObj == nil) {
+            // Create new tab
+            TabWidth t        = [self tabWidthForTabs:len];
+            NSRect frame      = _tabsContainer.bounds;
+            frame.size.width  = i == (len - 1) ? t.width + t.remainder : t.width;
+            frame.origin.x    = i * (t.width - TabOverlap);
+            MMTab *newTab = [[MMTab alloc] initWithFrame:frame tabline:self];
+            newTab.tag = tag;
+            [newTabs addObject:newTab];
+            [_tabsContainer addSubview:newTab];
+        } else {
+            // Move existing tab
+            NSUInteger newTabIdx = [newTabIdxObj unsignedIntegerValue];
+            [newTabs addObject:_tabs[newTabIdx]];
+            [tagToTabIdx removeObjectForKey:@(tag)];
+
+            // Remap indices if needed
+            if (newTabIdx == _selectedTabIndex) {
+                newSelectedTabIndex = newTabs.count - 1;
+            }
+            if (newTabIdx == _initialDraggedTabIndex) {
+                _initialDraggedTabIndex = newTabs.count - 1;
+                _finalDraggedTabIndex = _initialDraggedTabIndex;
+            }
+        }
+    }
+
+    // Now go through the remaining tabs that did not make it to the new list
+    // and remove them.
+    NSInteger numDeletedTabsBeforeSelected = 0;
+    for (NSUInteger i = 0; i < _tabs.count; i++) {
+        MMTab *tab = _tabs[i];
+        if ([tagToTabIdx objectForKey:@(tab.tag)] == nil) {
+            continue;
+        }
+        [tab removeFromSuperview];
+        if (i < _selectedTabIndex) {
+            numDeletedTabsBeforeSelected++;
+        }
+        if (_draggedTab != nil && _draggedTab == tab) {
+            _draggedTab = nil;
+            _initialDraggedTabIndex = _finalDraggedTabIndex = NSNotFound;
+        }
+    }
+    const BOOL selectedTabMovedByDeleteOnly = newSelectedTabIndex != -1 &&
+        (newSelectedTabIndex == _selectedTabIndex - numDeletedTabsBeforeSelected);
+
+    _tabs = newTabs;
+
+    if (newSelectedTabIndex == -1) {
+        // The old selected tab is removed. Select a new one nearby.
+        newSelectedTabIndex = _selectedTabIndex >= _tabs.count ? _tabs.count - 1 : _selectedTabIndex;
+    }
+    [self selectTabAtIndex:newSelectedTabIndex];
+
+    [self fixupLayoutWithAnimation:YES delayResize:delayTabResize];
+    [self fixupCloseButtons];
+    [self evaluateHoverStateForMouse:[self.window mouseLocationOutsideOfEventStream]];
+
+    // Heuristics for scrolling to the selected tab after update:
+    // 1. If 'delayTabResize' is set, we are trying to line up tab positions, do
+    //    DON'T scroll, even if the old selected tab was removed.
+    // 2. Otherwise if we changed tab selection (happens when the selected tab
+    //    was removed), just scroll to the new selected tab.
+    // 3. If the selected tab has moved in position, scroll to it, unless it
+    //    only moved due to the earlier tabs being deleted (meaning that the tab
+    //    ordering was preserved). This helps prevent unnecessary scrolling
+    //    around when the user is trying to delete tabs in other areas.
+    // This chould potentially be exposed to the caller for more custimization.
+    const NSInteger newSelectedTabTag = _selectedTabIndex < 0 ? 0 : _tabs[_selectedTabIndex].tag;
+    BOOL scrollToSelected = NO;
+    if (!delayTabResize) {
+        if (oldSelectedTabTag != newSelectedTabTag)
+            scrollToSelected = YES;
+        else if (!selectedTabMovedByDeleteOnly)
+            scrollToSelected = YES;
+    }
+    if (scrollToSelected)
+        [self scrollTabToVisibleAtIndex:_selectedTabIndex];
+}
+
 - (void)selectTabAtIndex:(NSInteger)index
 {
-    if (_selectedTabIndex <= _tabs.count - 1) {
+    if (_draggedTab != nil) {
+        // Selected a non-dragged tab, simply unset the dragging operation. This
+        // is somewhat Vim-specific, as it does not support re-ordering a
+        // non-active tab. Could be made configurable in the future.
+        if (index < 0 || index >= _tabs.count || _tabs[index] != _draggedTab) {
+            _draggedTab = nil;
+            _initialDraggedTabIndex = _finalDraggedTabIndex = NSNotFound;
+            [self fixupLayoutWithAnimation:YES];
+        }
+    }
+    if (_selectedTabIndex >= 0 && _selectedTabIndex <= _tabs.count - 1) {
         _tabs[_selectedTabIndex].state = MMTabStateUnselected;
     }
     if (index <= _tabs.count - 1) {
         _selectedTabIndex = index;
-        _tabs[_selectedTabIndex].state = MMTabStateSelected;
+        if (index >= 0)
+            _tabs[_selectedTabIndex].state = MMTabStateSelected;
     }
     else {
         NSLog(@"TRIED TO SELECT OUT OF BOUNDS: %ld/%ld", index, _tabs.count - 1);
     }
-    _selectedTab = _tabs[_selectedTabIndex];
     [self fixupTabZOrder];
 }
 
@@ -429,17 +560,30 @@ NSComparisonResult SortTabsForZOrder(MMTab *tab1, MMTab *tab2, void *draggedTab)
     [_tabsContainer sortSubviewsUsingFunction:SortTabsForZOrder context:(__bridge void *)(_draggedTab)];
 }
 
-- (void)fixupLayoutWithAnimation:(BOOL)shouldAnimate
+- (void)fixupLayoutWithAnimation:(BOOL)shouldAnimate delayResize:(BOOL)delayResize
 {
     if (_tabs.count == 0) return;
+
+    if (delayResize) {
+        // The pending delayed resize is trigged by mouse exit, but if we are
+        // already outside, then there's nothing to delay.
+        NSPoint locationInWindow = [self.window mouseLocationOutsideOfEventStream];
+        if (![self mouse:locationInWindow inRect:self.frame]) {
+            delayResize = NO;
+        }
+    }
 
     TabWidth t = [self tabWidthForTabs:_tabs.count];
     for (NSInteger i = 0; i < _tabs.count; i++) {
         MMTab *tab = _tabs[i];
         if (_draggedTab == tab) continue;
         NSRect frame = tab.frame;
-        frame.size.width = i == _tabs.count - 1 ? t.width + t.remainder : t.width;
-        frame.origin.x = i ? i * (t.width - TabOverlap) : 0;
+        if (delayResize) {
+            frame.origin.x = i != 0 ? i * (NSWidth(_tabs[i-1].frame) - TabOverlap) : 0;
+        } else {
+            frame.size.width = i == _tabs.count - 1 ? t.width + t.remainder : t.width;
+            frame.origin.x = i != 0 ? i * (t.width - TabOverlap) : 0;
+        }
         if (shouldAnimate) {
             [NSAnimationContext runAnimationGroup:^(NSAnimationContext * _Nonnull context) {
                 context.allowsImplicitAnimation = YES;
@@ -450,13 +594,22 @@ NSComparisonResult SortTabsForZOrder(MMTab *tab1, MMTab *tab2, void *draggedTab)
             tab.frame = frame;
         }
     }
-    // _tabsContainer expands to fit tabs, is at least as wide as _scrollView.
-    NSRect frame = _tabsContainer.frame;
-    frame.size.width = t.width * _tabs.count - TabOverlap * (_tabs.count - 1);
-    frame.size.width = NSWidth(frame) < NSWidth(_scrollView.frame) ? NSWidth(_scrollView.frame) : NSWidth(frame);
-    if (shouldAnimate) _tabsContainer.animator.frame = frame;
-    else _tabsContainer.frame = frame;
-    [self updateTabScrollButtonsEnabledState];
+    if (delayResize) {
+        _pendingFixupLayout = YES;
+    } else {
+        // _tabsContainer expands to fit tabs, is at least as wide as _scrollView.
+        NSRect frame = _tabsContainer.frame;
+        frame.size.width = t.width * _tabs.count - TabOverlap * (_tabs.count - 1);
+        frame.size.width = NSWidth(frame) < NSWidth(_scrollView.frame) ? NSWidth(_scrollView.frame) : NSWidth(frame);
+        if (shouldAnimate) _tabsContainer.animator.frame = frame;
+        else _tabsContainer.frame = frame;
+        [self updateTabScrollButtonsEnabledState];
+    }
+}
+
+- (void)fixupLayoutWithAnimation:(BOOL)shouldAnimate
+{
+    [self fixupLayoutWithAnimation:shouldAnimate delayResize:NO];
 }
 
 #pragma mark - Mouse
@@ -556,6 +709,7 @@ NSComparisonResult SortTabsForZOrder(MMTab *tab1, MMTab *tab2, void *draggedTab)
             [self.delegate tabline:self didDragTab:_tabs[_finalDraggedTabIndex] toIndex:_finalDraggedTabIndex];
         }
     }
+    _initialDraggedTabIndex = _finalDraggedTabIndex = NSNotFound;
 }
 
 - (void)mouseDragged:(NSEvent *)event
@@ -569,12 +723,13 @@ NSComparisonResult SortTabsForZOrder(MMTab *tab1, MMTab *tab2, void *draggedTab)
     [_tabsContainer autoscroll:event];
     [self fixupTabZOrder];
     [_draggedTab setFrameOrigin:NSMakePoint(mouse.x - _xOffsetForDrag, 0)];
+    MMTab *selectedTab = _selectedTabIndex == -1 ? nil : _tabs[_selectedTabIndex];
     [_tabs sortWithOptions:NSSortStable usingComparator:^NSComparisonResult(MMTab *t1, MMTab *t2) {
         if (NSMinX(t1.frame) <= NSMinX(t2.frame)) return NSOrderedAscending;
         if (NSMinX(t1.frame) >  NSMinX(t2.frame)) return NSOrderedDescending;
         return NSOrderedSame;
     }];
-    _selectedTabIndex = [_tabs indexOfObject:_selectedTab];
+    _selectedTabIndex = _selectedTabIndex == -1 ? -1 : [_tabs indexOfObject:selectedTab];
     _finalDraggedTabIndex = [_tabs indexOfObject:_draggedTab];
     [self fixupLayoutWithAnimation:YES];
 }
@@ -604,6 +759,7 @@ NSComparisonResult SortTabsForZOrder(MMTab *tab1, MMTab *tab2, void *draggedTab)
 - (void)scrollTabToVisibleAtIndex:(NSInteger)index
 {
     if (_tabs.count == 0) return;
+    if (index < 0 || index >= _tabs.count) return;
 
     // Get the amount of time elapsed between the previous invocation
     // of this method and now. Use this elapsed time to set the animation

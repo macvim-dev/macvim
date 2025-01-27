@@ -331,9 +331,6 @@
     // TODO: Remove this method?  Everything can probably be done in
     // presentWindow: but must carefully check dependencies on 'setupDone'
     // flag.
-
-    [vimView addNewTab];
-
     setupDone = YES;
 }
 
@@ -390,11 +387,6 @@
 - (void)updateTabsWithData:(NSData *)data
 {
     [vimView updateTabsWithData:data];
-}
-
-- (void)selectTabWithIndex:(int)idx
-{
-    [vimView selectTabWithIndex:idx];
 }
 
 - (void)setTextDimensionsWithRows:(int)rows columns:(int)cols isLive:(BOOL)live
