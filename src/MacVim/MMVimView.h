@@ -20,8 +20,9 @@
 
 
 @interface MMVimView : NSView {
+    /// The tab that has been requested to be closed and waiting on Vim to respond
+    NSInteger           pendingCloseTabID;
     MMTabline           *tabline;
-    MMTab               *tabToClose;
     MMVimController     *vimController;
     MMTextView          *textView;
     NSMutableArray      *scrollbars;
@@ -44,8 +45,6 @@
 - (MMTabline *)tabline;
 - (IBAction)addNewTab:(id)sender;
 - (void)updateTabsWithData:(NSData *)data;
-- (void)selectTabWithIndex:(int)idx;
-- (MMTab *)addNewTab;
 
 - (void)createScrollbarWithIdentifier:(int32_t)ident type:(int)type;
 - (BOOL)destroyScrollbarWithIdentifier:(int32_t)ident;

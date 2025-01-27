@@ -14,6 +14,7 @@ typedef enum : NSInteger {
 
 @interface MMTab : NSView
 
+@property (nonatomic, readwrite) NSInteger tag; ///< Unique identifier that caller can set for the tab
 @property (nonatomic, copy) NSString *title;
 @property (nonatomic, getter=isCloseButtonHidden) BOOL closeButtonHidden;
 @property (nonatomic) MMTabState state;

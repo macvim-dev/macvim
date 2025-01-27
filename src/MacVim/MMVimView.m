@@ -254,116 +254,80 @@ enum {
     [vimController sendMessage:AddNewTabMsgID data:nil];
 }
 
+/// Callback from Vim to update the tabline with new tab data
 - (void)updateTabsWithData:(NSData *)data
 {
     const void *p = [data bytes];
-    const void *end = p + [data length];
-    int tabIdx = 0;
-    BOOL didCloseTab = NO;
-    
-    // Count how many tabs Vim has and compare to the number MacVim's tabline has.
-    const void *q = [data bytes];
-    int vimNumberOfTabs = 0;
-    q += sizeof(int); // skip over current tab index
-    while (q < end) {
-        int infoCount = *((int*)q); q += sizeof(int);
-        for (unsigned i = 0; i < infoCount; ++i) {
-            int length = *((int*)q); q += sizeof(int);
-            if (length <= 0) continue;
-            q += length;
-            if (i == MMTabLabel) ++vimNumberOfTabs;
-        }
-    }
-    // Close the specific tab where the user clicked the close button.
-    if (tabToClose && vimNumberOfTabs == tabline.numberOfTabs - 1) {
-        [tabline closeTab:tabToClose force:YES layoutImmediately:NO];
-        tabToClose = nil;
-        didCloseTab = YES;
-    }
+    const void * const end = p + [data length];
 
-    // HACK!  Current tab is first in the message.  This way it is not
-    // necessary to guess which tab should be the selected one (this can be
-    // problematic for instance when new tabs are created).
+    // 1. Current tab is first in the message.
     int curtabIdx = *((int*)p);  p += sizeof(int);
 
+    // 2. Read all the tab IDs (which uniquely identify each tab), and count
+    //    the number of Vim tabs in the process of doing so.
+    int numTabs = 0;
+    BOOL pendingCloseTabClosed = (pendingCloseTabID != 0);
+    const intptr_t * const tabIDs = p;
     while (p < end) {
-        MMTab *tv;
+        intptr_t tabID = *((intptr_t*)p); p += sizeof(intptr_t);
+        if (tabID == 0) // null-terminated
+            break;
+        if (pendingCloseTabID != 0 && (NSInteger)tabID == pendingCloseTabID) {
+            // Vim hasn't gotten around to handling the tab close message yet,
+            // just wait until it has done so.
+            pendingCloseTabClosed = NO;
+        }
+        numTabs += 1;
+    }
 
-        //int wincount = *((int*)p);  p += sizeof(int);
-        int infoCount = *((int*)p); p += sizeof(int);
-        unsigned i;
-        for (i = 0; i < infoCount; ++i) {
-            int length = *((int*)p);  p += sizeof(int);
+    BOOL delayTabResize = NO;
+    if (pendingCloseTabClosed) {
+        // When the user has pressed a tab close button, only animate tab
+        // positions, not the widths. This allows the next tab's close button
+        // to line up with the last, allowing the user to close multiple tabs
+        // quickly.
+        delayTabResize = YES;
+        pendingCloseTabID = 0;
+    }
+
+    // Ask the tabline to update all the tabs based on the tab IDs
+    static_assert(sizeof(NSInteger) == sizeof(intptr_t),
+                  "Tab tag size mismatch between Vim and MacVim");
+    [tabline updateTabsByTags:(NSInteger*)tabIDs
+                          len:numTabs
+               delayTabResize:delayTabResize];
+
+    // 3. Read all the tab labels/tooltips and assign to each tab
+    NSInteger tabIdx = 0;
+    while (p < end && tabIdx < tabline.numberOfTabs) {
+        MMTab *tv = [tabline tabAtIndex:tabIdx];
+        for (unsigned i = 0; i < MMTabInfoCount; ++i) {
+            size_t length = *((size_t*)p);  p += sizeof(size_t);
             if (length <= 0)
                 continue;
-
             NSString *val = [[NSString alloc]
                     initWithBytes:(void*)p length:length
                          encoding:NSUTF8StringEncoding];
             p += length;
-
-            switch (i) {
-                case MMTabLabel:
-                    // Set the label of the tab, adding a new tab when needed.
-                    tv = tabline.numberOfTabs <= tabIdx
-                         ? [self addNewTab]
-                         : [tabline tabAtIndex:tabIdx];
-                    tv.title = val;
-                    ++tabIdx;
-                    break;
-                case MMTabToolTip:
-                    if (tv) tv.toolTip = val;
-                    break;
-                default:
-                    ASLogWarn(@"Unknown tab info for index: %d", i);
+            if (i == MMTabLabel) {
+                tv.title = val;
+            } else if (i == MMTabToolTip) {
+                tv.toolTip = val;
             }
-
             [val release];
         }
+        tabIdx += 1;
     }
 
-    // Remove unused tabs from the tabline.
-    long i, count = tabline.numberOfTabs;
-    for (i = count-1; i >= tabIdx; --i) {
-        MMTab *tv = [tabline tabAtIndex:i];
-        [tabline closeTab:tv force:YES layoutImmediately:YES];
-    }
-
-    [self selectTabWithIndex:curtabIdx];
-    // It would be better if we could scroll to the selected tab only if it
-    // reflected user intent. Presumably, the user expects MacVim to scroll
-    // to the selected tab if they: added a tab, clicked a partially hidden
-    // tab, or navigated to a tab with a keyboard command. Since we don't
-    // have this kind of information, we always scroll to selected unless
-    // the window isn't key or we think the user is in the process of
-    // closing a tab by clicking its close button. Doing it this way instead
-    // of using a signal of explicit user intent is probably too aggressive.
-    if (self.window.isKeyWindow && !tabToClose && !didCloseTab) {
-        [tabline scrollTabToVisibleAtIndex:curtabIdx];
-    }
-}
-
-- (void)selectTabWithIndex:(int)idx
-{
-    if (idx < 0 || idx >= tabline.numberOfTabs) {
-        ASLogWarn(@"No tab with index %d exists.", idx);
+    // Finally, select the currently selected tab
+    if (curtabIdx < 0 || curtabIdx >= tabline.numberOfTabs) {
+        ASLogWarn(@"No tab with index %d exists.", curtabIdx);
         return;
     }
-    // Do not try to select a tab if already selected.
-    if (idx != tabline.selectedTabIndex) {
-        [tabline selectTabAtIndex:idx];
-        // We might need to change the scrollbars that are visible.
-        self.pendingPlaceScrollbars = YES;
+    if (curtabIdx != tabline.selectedTabIndex) {
+        [tabline selectTabAtIndex:curtabIdx];
+        [tabline scrollTabToVisibleAtIndex:curtabIdx];
     }
-}
-
-- (MMTab *)addNewTab
-{
-    // NOTE!  A newly created tab is not by selected by default; Vim decides
-    // which tab should be selected at all times.  However, the AppKit will
-    // automatically select the first tab added to a tab view.
-    NSUInteger index = [tabline addTabAtEnd];
-    return [tabline tabAtIndex:index];
 }
 
 - (void)createScrollbarWithIdentifier:(int32_t)ident type:(int)type
@@ -486,7 +450,7 @@ enum {
 {
     // Propagate the selection message to Vim.
     if (NSNotFound != index) {
-        int i = (int)index;   // HACK! Never more than MAXINT tabs?!
+        int i = (int)index;
         NSData *data = [NSData dataWithBytes:&i length:sizeof(int)];
         [vimController sendMessage:SelectTabMsgID data:data];
     }
@@ -497,14 +461,19 @@ enum {
 - (BOOL)tabline:(MMTabline *)tabline shouldCloseTabAtIndex:(NSUInteger)index
 {
     if (index >= 0 && index < tabline.numberOfTabs - 1) {
-        tabToClose = [tabline tabAtIndex:index];
+        // If the user is closing any tab other than the last one, we remember
+        // the state so later on we don't resize the tabs in the layout
+        // animation to preserve the stability of tab positions to allow for
+        // quickly closing multiple tabs. This is similar to how macOS tabs
+        // work.
+        pendingCloseTabID = [tabline tabAtIndex:index].tag;
     }
-    // HACK!  This method is only called when the user clicks the close button
-    // on the tab.  Instead of letting the tab bar close the tab, we return NO
-    // and pass a message on to Vim to let it handle the closing.
-    int i = (int)index;   // HACK! Never more than MAXINT tabs?!
+    // Propagate the close message to Vim
+    int i = (int)index;
     NSData *data = [NSData dataWithBytes:&i length:sizeof(int)];
     [vimController sendMessage:CloseTabMsgID data:data];
+
+    // Let Vim decide whether to close the tab or not.
     return NO;
 }
 
