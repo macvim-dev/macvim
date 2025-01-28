@@ -33,6 +33,7 @@
 - (NSInteger)addTabAtIndex:(NSInteger)index;
 
 - (void)closeTab:(MMTab *)tab force:(BOOL)force layoutImmediately:(BOOL)layoutImmediately;
+- (void)closeAllTabs;
 
 /// Batch update all the tabs using tab tags as unique IDs. Tab line will handle
 /// creating / removing tabs as necessary, and moving tabs to their new

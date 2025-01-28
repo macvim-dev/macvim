@@ -319,6 +319,18 @@ static BOOL isDarkMode(NSAppearance *appearance) {
     }
 }
 
+- (void)closeAllTabs
+{
+    _selectedTabIndex = -1;
+    _draggedTab = nil;
+    _initialDraggedTabIndex = _finalDraggedTabIndex = NSNotFound;
+    for (MMTab *tab in _tabs) {
+        [tab removeFromSuperview];
+    }
+    [_tabs removeAllObjects];
+    [self fixupLayoutWithAnimation:NO];
+}
+
 - (void)updateTabsByTags:(NSInteger *)tags len:(NSUInteger)len delayTabResize:(BOOL)delayTabResize
 {
     BOOL needUpdate = NO;
@@ -612,7 +624,13 @@ NSComparisonResult SortTabsForZOrder(MMTab *tab1, MMTab *tab2, void *draggedTab)
 
 - (void)fixupLayoutWithAnimation:(BOOL)shouldAnimate delayResize:(BOOL)delayResize
 {
-    if (_tabs.count == 0) return;
+    if (_tabs.count == 0) {
+        NSRect frame = _tabsContainer.frame;
+        frame.size.width = 0;
+        _tabsContainer.frame = frame;
+        [self updateTabScrollButtonsEnabledState];
+        return;
+    }
 
     if (delayResize) {
         // The pending delayed resize is trigged by mouse exit, but if we are

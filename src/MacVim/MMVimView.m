@@ -251,6 +251,8 @@ enum {
 
 - (IBAction)addNewTab:(id)sender
 {
+    // Callback from the "Create a new tab button". We override this so we can
+    // send a message to Vim first and let it handle it before replying back.
     [vimController sendMessage:AddNewTabMsgID data:nil];
 }
 
