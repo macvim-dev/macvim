@@ -13,9 +13,9 @@ const CGFloat MinimumTabWidth = 100;
 const CGFloat TabOverlap      = 6;
 const CGFloat ScrollOneTabAllowance = 0.25; // If we are showing 75+% of the tab, consider it to be fully shown when deciding whether to scroll to next tab.
 
-static MMHoverButton* MakeHoverButton(MMTabline *tabline, NSString *imageName, NSString *tooltip, SEL action, BOOL continuous) {
+static MMHoverButton* MakeHoverButton(MMTabline *tabline, MMHoverButtonImage imageType, NSString *tooltip, SEL action, BOOL continuous) {
     MMHoverButton *button = [MMHoverButton new];
-    button.image = [MMHoverButton imageNamed:imageName];
+    button.image = [MMHoverButton imageFromType:imageType];
     button.translatesAutoresizingMaskIntoConstraints = NO;
     button.target = tabline;
     button.action = action;
@@ -81,9 +81,9 @@ static BOOL isDarkMode(NSAppearance *appearance) {
         _scrollView.documentView = _tabsContainer;
         [self addSubview:_scrollView];
 
-        _addTabButton = MakeHoverButton(self, @"AddTabButton", @"New Tab (⌘T)", @selector(addTabAtEnd), NO);
-        _leftScrollButton = MakeHoverButton(self, @"ScrollLeftButton", @"Scroll Tabs", @selector(scrollLeftOneTab), YES);
-        _rightScrollButton = MakeHoverButton(self, @"ScrollRightButton", @"Scroll Tabs", @selector(scrollRightOneTab), YES);
+        _addTabButton = MakeHoverButton(self, MMHoverButtonImageAddTab, @"New Tab (⌘T)", @selector(addTabAtEnd), NO);
+        _leftScrollButton = MakeHoverButton(self, MMHoverButtonImageScrollLeft, @"Scroll Tabs", @selector(scrollLeftOneTab), YES);
+        _rightScrollButton = MakeHoverButton(self, MMHoverButtonImageScrollRight, @"Scroll Tabs", @selector(scrollRightOneTab), YES);
 
         [self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:[_leftScrollButton][_rightScrollButton]-5-[_scrollView]-5-[_addTabButton]" options:NSLayoutFormatAlignAllCenterY metrics:nil views:NSDictionaryOfVariableBindings(_scrollView, _leftScrollButton, _rightScrollButton, _addTabButton)]];
         [self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|[_scrollView]|" options:0 metrics:nil views:@{@"_scrollView":_scrollView}]];
@@ -96,29 +96,8 @@ static BOOL isDarkMode(NSAppearance *appearance) {
         
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(didScroll:) name:NSViewBoundsDidChangeNotification object:_scrollView.contentView];
 
-        // Monitor for scroll wheel events so we can scroll the tabline
-        // horizontally without the user having to hold down SHIFT.
-        _scrollWheelEventMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskScrollWheel handler:^NSEvent * _Nullable(NSEvent * _Nonnull event) {
-            NSPoint location = [_scrollView convertPoint:event.locationInWindow fromView:nil];
-            // We want events:
-            //   where the mouse is over the _scrollView
-            //   and where the user is not modifying it with the SHIFT key
-            //   and initiated by the scroll wheel and not the trackpad
-            if ([_scrollView mouse:location inRect:_scrollView.bounds]
-                && !event.modifierFlags
-                && !event.hasPreciseScrollingDeltas)
-            {
-                // Create a new scroll wheel event based on the original,
-                // but set the new deltaX to the original's deltaY.
-                // stackoverflow.com/a/38991946/111418
-                CGEventRef cgEvent = CGEventCreateCopy(event.CGEvent);
-                CGEventSetIntegerValueField(cgEvent, kCGScrollWheelEventDeltaAxis2, event.scrollingDeltaY);
-                NSEvent *newEvent = [NSEvent eventWithCGEvent:cgEvent];
-                CFRelease(cgEvent);
-                return newEvent;
-            }
-            return event;
-        }];
+        [self addScrollWheelMonitor];
+
     }
     return self;
 }
@@ -139,6 +118,32 @@ static BOOL isDarkMode(NSAppearance *appearance) {
 - (void)viewDidChangeEffectiveAppearance
 {
     for (MMTab *tab in _tabs) tab.state = tab.state;
+}
+
+- (void)viewDidHide
+{
+    if (_scrollWheelEventMonitor != nil) {
+        [NSEvent removeMonitor:_scrollWheelEventMonitor];
+        _scrollWheelEventMonitor = nil;
+    }
+    [super viewDidHide];
+}
+
+- (void)viewDidUnhide
+{
+    [self addScrollWheelMonitor];
+    [super viewDidUnhide];
+}
+
+- (void)dealloc
+{
+    if (_scrollWheelEventMonitor != nil) {
+        [NSEvent removeMonitor:_scrollWheelEventMonitor];
+        _scrollWheelEventMonitor = nil;
+    }
+
+    // This is not necessary after macOS 10.11, but there's no harm in doing so
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
 #pragma mark - Accessors
@@ -544,6 +549,50 @@ NSComparisonResult SortTabsForZOrder(MMTab *tab1, MMTab *tab2, void *draggedTab)
     CGFloat f = floor(tabWidth);
     tabWidth = (tabWidth - f < 0.5) ? f : f + 0.5;
     return (TabWidth){tabWidth, availableWidthForTabs - tabWidth * numTabs};
+}
+
+/// Install a scroll wheel event monitor so that we can convert vertical scroll
+/// wheel events to horizontal ones, so that the user doesn't have to hold down
+/// SHIFT key while scrolling.
+///
+/// Caller *has* to call `removeMonitor:` on `_scrollWheelEventMonitor`
+/// afterwards.
+- (void)addScrollWheelMonitor
+{
+    // We have to use a local event monitor because we are not allowed to
+    // override NSScrollView's scrollWheel: method. If we do so we will lose
+    // macOS responsive scrolling. See:
+    // https://developer.apple.com/library/archive/releasenotes/AppKit/RN-AppKitOlderNotes/index.html#10_9Scrolling
+    if (_scrollWheelEventMonitor != nil)
+        return;
+    __weak NSScrollView *scrollView_weak = _scrollView;
+    __weak __typeof__(self) self_weak = self;
+    _scrollWheelEventMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskScrollWheel handler:^NSEvent * _Nullable(NSEvent * _Nonnull event) {
+        // We want an event:
+        //   - that actually belongs to this window
+        //   - initiated by the scroll wheel and not the trackpad
+        //   - is a vertical scroll event (if this is a horizontal scroll event
+        //     either via holding SHIFT or third-party software we just let it
+        //     through)
+        //   - where the mouse is over the scroll view
+        if (event.window == self_weak.window
+            && !event.hasPreciseScrollingDeltas
+            && (event.scrollingDeltaX == 0 && event.scrollingDeltaY != 0)
+            && [scrollView_weak mouse:[scrollView_weak convertPoint:event.locationInWindow fromView:nil]
+                               inRect:scrollView_weak.bounds])
+        {
+            // Create a new scroll wheel event based on the original,
+            // but set the new deltaX to the original's deltaY.
+            // stackoverflow.com/a/38991946/111418
+            CGEventRef cgEvent = CGEventCreateCopy(event.CGEvent);
+            CGEventSetIntegerValueField(cgEvent, kCGScrollWheelEventDeltaAxis1, 0);
+            CGEventSetIntegerValueField(cgEvent, kCGScrollWheelEventDeltaAxis2, event.scrollingDeltaY);
+            NSEvent *newEvent = [NSEvent eventWithCGEvent:cgEvent];
+            CFRelease(cgEvent);
+            return newEvent;
+        }
+        return event;
+    }];
 }
 
 - (void)fixupCloseButtons

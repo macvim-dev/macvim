@@ -6,41 +6,64 @@
     NSBox *_circle;
 }
 
-+ (NSImage *)imageNamed:(NSString *)name
++ (NSImage *)imageFromType:(MMHoverButtonImage)imageType
 {
-    CGFloat size = [name isEqualToString:@"CloseTabButton"] ? 15 : 17;
-    return [NSImage imageWithSize:NSMakeSize(size, size) flipped:NO drawingHandler:^BOOL(NSRect dstRect) {
-        NSBezierPath *p = [NSBezierPath new];
-        if ([name isEqualToString:@"AddTabButton"]) {
+    if (imageType >= MMHoverButtonImageCount)
+        return nil;
+
+    CGFloat size = imageType == MMHoverButtonImageCloseTab ? 15 : 17;
+
+    static __weak NSImage *imageCache[MMHoverButtonImageCount] = { nil };
+    if (imageCache[imageType] != nil)
+        return imageCache[imageType];
+
+    BOOL (^drawFuncs[MMHoverButtonImageCount])(NSRect) = {
+        // AddTab
+        ^BOOL(NSRect dstRect) {
+            NSBezierPath *p = [NSBezierPath new];
             [p moveToPoint:NSMakePoint( 8.5,  4.5)];
             [p lineToPoint:NSMakePoint( 8.5, 12.5)];
             [p moveToPoint:NSMakePoint( 4.5,  8.5)];
             [p lineToPoint:NSMakePoint(12.5,  8.5)];
             [p setLineWidth:1.2];
             [p stroke];
-        }
-        else if ([name isEqualToString:@"CloseTabButton"]) {
+            return YES;
+        },
+        // CloseTab
+        ^BOOL(NSRect dstRect) {
+            NSBezierPath *p = [NSBezierPath new];
             [p moveToPoint:NSMakePoint( 4.5,  4.5)];
             [p lineToPoint:NSMakePoint(10.5, 10.5)];
             [p moveToPoint:NSMakePoint( 4.5, 10.5)];
             [p lineToPoint:NSMakePoint(10.5,  4.5)];
             [p setLineWidth:1.2];
             [p stroke];
-        }
-        else if ([name isEqualToString:@"ScrollLeftButton"]) {
+            return YES;
+        },
+        // ScrollLeft
+        ^BOOL(NSRect dstRect) {
+            NSBezierPath *p = [NSBezierPath new];
             [p moveToPoint:NSMakePoint( 5.0,  8.5)];
             [p lineToPoint:NSMakePoint(10.0,  4.5)];
             [p lineToPoint:NSMakePoint(10.0, 12.5)];
             [p fill];
-        }
-        else if ([name isEqualToString:@"ScrollRightButton"]) {
+            return YES;
+        },
+        // ScrollRight
+        ^BOOL(NSRect dstRect) {
+            NSBezierPath *p = [NSBezierPath new];
             [p moveToPoint:NSMakePoint(12.0,  8.5)];
             [p lineToPoint:NSMakePoint( 7.0,  4.5)];
             [p lineToPoint:NSMakePoint( 7.0, 12.5)];
             [p fill];
+            return YES;
         }
-        return YES;
-    }];
+    };
+    NSImage *img = [NSImage imageWithSize:NSMakeSize(size, size)
+                                  flipped:NO
+                           drawingHandler:drawFuncs[imageType]];
+    imageCache[imageType] = img;
+    return img;
 }
 
 - (instancetype)initWithFrame:(NSRect)frameRect
@@ -70,22 +93,28 @@
     self.image = super.image;
 }
 
-- (void)setImage:(NSImage *)image
+- (void)setImage:(NSImage *)imageTemplate
 {
-    _circle.cornerRadius = image.size.width / 2.0;
+    _circle.cornerRadius = imageTemplate.size.width / 2.0;
     NSColor *fillColor = self.fgColor ?: NSColor.controlTextColor;
-    super.image = [NSImage imageWithSize:image.size flipped:NO drawingHandler:^BOOL(NSRect dstRect) {
-        [image drawInRect:dstRect];
+    NSImage *image = [NSImage imageWithSize:imageTemplate.size
+                                    flipped:NO
+                             drawingHandler:^BOOL(NSRect dstRect) {
+        [imageTemplate drawInRect:dstRect];
         [fillColor set];
         NSRectFillUsingOperation(dstRect, NSCompositingOperationSourceAtop);
         return YES;
     }];
-    self.alternateImage = [NSImage imageWithSize:image.size flipped:NO drawingHandler:^BOOL(NSRect dstRect) {
+    NSImage *alternateImage = [NSImage imageWithSize:imageTemplate.size
+                                             flipped:NO
+                                      drawingHandler:^BOOL(NSRect dstRect) {
         [[fillColor colorWithAlphaComponent:0.2] set];
         [[NSBezierPath bezierPathWithOvalInRect:dstRect] fill];
-        [super.image drawInRect:dstRect];
+        [image drawInRect:dstRect];
         return YES;
     }];
+    super.image = image;
+    self.alternateImage = alternateImage;
 }
 
 - (void)setEnabled:(BOOL)enabled
