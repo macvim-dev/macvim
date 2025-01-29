@@ -64,6 +64,7 @@ static BOOL isDarkMode(NSAppearance *appearance) {
         _tabs = [NSMutableArray new];
         _showsAddTabButton = YES; // get from NSUserDefaults
         _showsTabScrollButtons = YES; // get from NSUserDefaults
+        _useAnimation = YES; // get from NSUserDefaults
 
         _selectedTabIndex = -1;
 
@@ -624,6 +625,9 @@ NSComparisonResult SortTabsForZOrder(MMTab *tab1, MMTab *tab2, void *draggedTab)
 
 - (void)fixupLayoutWithAnimation:(BOOL)shouldAnimate delayResize:(BOOL)delayResize
 {
+    if (!self.useAnimation)
+        shouldAnimate = NO;
+
     if (_tabs.count == 0) {
         NSRect frame = _tabsContainer.frame;
         frame.size.width = 0;
@@ -859,10 +863,14 @@ NSComparisonResult SortTabsForZOrder(MMTab *tab1, MMTab *tab2, void *draggedTab)
             // Left side of the selected tab is clipped.
             clipBounds.origin.x = tabFrame.origin.x;
         }
-        [NSAnimationContext beginGrouping];
-        [NSAnimationContext.currentContext setDuration:elapsedTime < 0.2 ? 0.05 : 0.2];
-        [_scrollView.contentView.animator setBoundsOrigin:clipBounds.origin];
-        [NSAnimationContext endGrouping];
+        if (_useAnimation) {
+            [NSAnimationContext beginGrouping];
+            [NSAnimationContext.currentContext setDuration:elapsedTime < 0.2 ? 0.05 : 0.2];
+            [_scrollView.contentView.animator setBoundsOrigin:clipBounds.origin];
+            [NSAnimationContext endGrouping];
+        } else {
+            [_scrollView.contentView setBoundsOrigin:clipBounds.origin];
+        }
     }
 }
 

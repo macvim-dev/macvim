@@ -16,6 +16,7 @@
 @property (nonatomic) NSInteger minimumTabWidth;
 @property (nonatomic) BOOL showsAddTabButton;
 @property (nonatomic) BOOL showsTabScrollButtons;
+@property (nonatomic) BOOL useAnimation;
 @property (nonatomic, readonly) NSInteger numberOfTabs;
 @property (nonatomic, retain, readonly) MMHoverButton *addTabButton;
 @property (nonatomic, retain) NSColor *tablineBgColor;

@@ -37,6 +37,7 @@ NSString *MMTitlebarAppearsTransparentKey = @"MMTitlebarAppearsTransparent";
 NSString *MMTitlebarShowsDocumentIconKey  = @"MMTitlebarShowsDocumentIcon";
 NSString *MMNoWindowShadowKey             = @"MMNoWindowShadow";
 NSString *MMDisableLaunchAnimationKey     = @"MMDisableLaunchAnimation";
+NSString *MMDisableTablineAnimationKey    = @"MMDisableTablineAnimation";
 NSString *MMLoginShellKey                 = @"MMLoginShell";
 NSString *MMUntitledWindowKey             = @"MMUntitledWindow";
 NSString *MMZoomBothKey                   = @"MMZoomBoth";

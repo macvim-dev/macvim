@@ -290,6 +290,7 @@ KEY				VALUE ~
 *MMDialogsTrackPwd*		open/save dialogs track the Vim pwd [bool]
 *MMDisableLaunchAnimation*	disable launch animation when opening a new
 				MacVim window [bool]
+*MMDisableTablineAnimation*	disable animation in GUI tabs [bool]
 *MMFontPreserveLineSpacing*	use the line-spacing as specified by font [bool]
 *MMLoginShell*			use login shell for launching Vim [bool]
 *MMLoginShellArgument*		login shell parameter [string]
