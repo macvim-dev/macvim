@@ -868,7 +868,7 @@
 
 - (void)showTabline:(BOOL)on
 {
-    [[vimView tabline] setHidden:!on];
+    [vimView showTabline:on];
     [self updateTablineSeparator];
     shouldMaximizeWindow = YES;
 }

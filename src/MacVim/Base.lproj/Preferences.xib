@@ -280,11 +280,11 @@
             <point key="canvasLocation" x="137.5" y="-17"/>
         </customView>
         <customView id="hr4-G4-3ZG" userLabel="Appearance">
-            <rect key="frame" x="0.0" y="0.0" width="483" height="379"/>
+            <rect key="frame" x="0.0" y="0.0" width="483" height="405"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
             <subviews>
                 <customView id="fw0-VK-Nbz" userLabel="Dark mode selection">
-                    <rect key="frame" x="19" y="201" width="433" height="156"/>
+                    <rect key="frame" x="19" y="227" width="433" height="156"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <subviews>
                         <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="T40-Os-PUf" userLabel="Dark mode selection">
@@ -345,7 +345,7 @@
                     </subviews>
                 </customView>
                 <customView id="7af-iK-4r7" userLabel="Titlebar appearance">
-                    <rect key="frame" x="19" y="118" width="433" height="75"/>
+                    <rect key="frame" x="19" y="144" width="433" height="75"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <subviews>
                         <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="9Rk-gT-kVC" userLabel="Titlebar appearance">
@@ -405,6 +405,33 @@
                                 <binding destination="58" name="value" keyPath="values.MMNoWindowShadow" id="VXH-pD-vgT"/>
                             </connections>
                         </button>
+                    </subviews>
+                </customView>
+                <customView id="C3B-cu-RC2" userLabel="Tabs">
+                    <rect key="frame" x="20" y="118" width="432" height="18"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <subviews>
+                        <button id="rCZ-9B-5RL">
+                            <rect key="frame" x="189" y="-1" width="244" height="18"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
+                            <buttonCell key="cell" type="check" title="Show scroll buttons" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="Yqp-j5-BpX">
+                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                <font key="font" metaFont="system"/>
+                            </buttonCell>
+                            <connections>
+                                <action selector="tabsPropertiesChanged:" target="-1" id="5xm-T0-e3B"/>
+                                <binding destination="58" name="value" keyPath="values.MMShowTabScrollButtons" id="KHi-zu-Jz2"/>
+                            </connections>
+                        </button>
+                        <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="qMc-Md-UwA" userLabel="Tabs">
+                            <rect key="frame" x="-2" y="0.0" width="187" height="17"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
+                            <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Tabs:" id="iUO-3c-iff" userLabel="Tabs:">
+                                <font key="font" metaFont="system"/>
+                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                            </textFieldCell>
+                        </textField>
                     </subviews>
                 </customView>
                 <customView id="BpJ-rH-ona" userLabel="Full Screen">
@@ -508,7 +535,7 @@
                     </subviews>
                 </customView>
             </subviews>
-            <point key="canvasLocation" x="137.5" y="444.5"/>
+            <point key="canvasLocation" x="137.5" y="457.5"/>
         </customView>
         <customView id="Bnq-Nx-GJH" userLabel="Input">
             <rect key="frame" x="0.0" y="0.0" width="483" height="110"/>
@@ -595,7 +622,7 @@
                     </subviews>
                 </customView>
             </subviews>
-            <point key="canvasLocation" x="137.5" y="705"/>
+            <point key="canvasLocation" x="138" y="775"/>
         </customView>
         <customView id="620" userLabel="Advanced">
             <rect key="frame" x="0.0" y="0.0" width="483" height="367"/>

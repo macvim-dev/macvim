@@ -115,6 +115,7 @@ enum {
     tabline.hidden = YES;
     tabline.showsAddTabButton = [ud boolForKey:MMShowAddTabButtonKey];
     tabline.showsTabScrollButtons = [ud boolForKey:MMShowTabScrollButtonsKey];
+    tabline.useAnimation = ![ud boolForKey:MMDisableTablineAnimationKey];
     tabline.optimumTabWidth = [ud integerForKey:MMTabOptimumWidthKey];
     tabline.minimumTabWidth = [ud integerForKey:MMTabMinWidthKey];
     tabline.addTabButton.target = self;
@@ -251,7 +252,34 @@ enum {
 
 - (IBAction)addNewTab:(id)sender
 {
+    // Callback from the "Create a new tab button". We override this so we can
+    // send a message to Vim first and let it handle it before replying back.
     [vimController sendMessage:AddNewTabMsgID data:nil];
+}
+
+- (IBAction)scrollToCurrentTab:(id)sender
+{
+    [tabline scrollTabToVisibleAtIndex:tabline.selectedTabIndex];
+}
+
+- (IBAction)scrollBackwardOneTab:(id)sender
+{
+    [tabline scrollLeftOneTab];
+}
+
+- (IBAction)scrollForwardOneTab:(id)sender
+{
+    [tabline scrollRightOneTab];
+}
+
+- (void)showTabline:(BOOL)on
+{
+    [tabline setHidden:!on];
+    if (!on) {
+        // When the tab is not shown we don't get tab updates from Vim. We just
+        // close all of them as otherwise we will be holding onto stale states.
+        [tabline closeAllTabs];
+    }
 }
 
 /// Callback from Vim to update the tabline with new tab data
@@ -328,6 +356,12 @@ enum {
         [tabline selectTabAtIndex:curtabIdx];
         [tabline scrollTabToVisibleAtIndex:curtabIdx];
     }
+}
+
+- (void)refreshTabProperties
+{
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    tabline.showsTabScrollButtons = [ud boolForKey:MMShowTabScrollButtonsKey];
 }
 
 - (void)createScrollbarWithIdentifier:(int32_t)ident type:(int)type

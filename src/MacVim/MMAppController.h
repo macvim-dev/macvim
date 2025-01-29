@@ -84,6 +84,7 @@
 - (BOOL)openFiles:(NSArray *)filenames withArguments:(NSDictionary *)args;
 
 - (void)refreshAllAppearances;
+- (void)refreshAllTabProperties;
 - (void)refreshAllFonts;
 - (void)refreshAllResizeConstraints;
 - (void)refreshAllTextViews;

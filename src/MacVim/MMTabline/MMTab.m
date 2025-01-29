@@ -39,7 +39,7 @@ typedef NSString * NSAnimatablePropertyKey;
         _tabline = tabline;
         
         _closeButton = [MMHoverButton new];
-        _closeButton.image = [MMHoverButton imageNamed:@"CloseTabButton"];
+        _closeButton.image = [MMHoverButton imageFromType:MMHoverButtonImageCloseTab];
         _closeButton.target = self;
         _closeButton.action = @selector(closeTab:);
         _closeButton.translatesAutoresizingMaskIntoConstraints = NO;

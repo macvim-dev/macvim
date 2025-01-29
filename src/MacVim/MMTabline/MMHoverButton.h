@@ -6,6 +6,14 @@
 
 @property (nonatomic, retain) NSColor *fgColor;
 
-+ (NSImage *)imageNamed:(NSString *)name;
+typedef enum : NSUInteger {
+    MMHoverButtonImageAddTab = 0,
+    MMHoverButtonImageCloseTab,
+    MMHoverButtonImageScrollLeft,
+    MMHoverButtonImageScrollRight,
+    MMHoverButtonImageCount
+} MMHoverButtonImage;
+
++ (NSImage *)imageFromType:(MMHoverButtonImage)imageType;
 
 @end

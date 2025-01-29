@@ -16,6 +16,7 @@
 @property (nonatomic) NSInteger minimumTabWidth;
 @property (nonatomic) BOOL showsAddTabButton;
 @property (nonatomic) BOOL showsTabScrollButtons;
+@property (nonatomic) BOOL useAnimation;
 @property (nonatomic, readonly) NSInteger numberOfTabs;
 @property (nonatomic, retain, readonly) MMHoverButton *addTabButton;
 @property (nonatomic, retain) NSColor *tablineBgColor;
@@ -33,6 +34,7 @@
 - (NSInteger)addTabAtIndex:(NSInteger)index;
 
 - (void)closeTab:(MMTab *)tab force:(BOOL)force layoutImmediately:(BOOL)layoutImmediately;
+- (void)closeAllTabs;
 
 /// Batch update all the tabs using tab tags as unique IDs. Tab line will handle
 /// creating / removing tabs as necessary, and moving tabs to their new
@@ -53,6 +55,8 @@
 - (void)selectTabAtIndex:(NSInteger)index;
 - (MMTab *)tabAtIndex:(NSInteger)index;
 - (void)scrollTabToVisibleAtIndex:(NSInteger)index;
+- (void)scrollLeftOneTab;
+- (void)scrollRightOneTab;
 - (void)setTablineSelBackground:(NSColor *)back foreground:(NSColor *)fore;
 
 @end

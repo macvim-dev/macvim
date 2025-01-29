@@ -8,6 +8,12 @@
 	<string></string>
 	<key>addNewTab:</key>
 	<string></string>
+	<key>scrollToCurrentTab:</key>
+	<string></string>
+	<key>scrollBackwardOneTab:</key>
+	<string></string>
+	<key>scrollForwardOneTab:</key>
+	<string></string>
 	<key>arrangeInFront:</key>
 	<string></string>
 	<key>clearRecentDocuments:</key>

@@ -5648,6 +5648,7 @@ MMCmdLineAlignBottom	gui_mac.txt	/*MMCmdLineAlignBottom*
 MMDefaultTablineColors	gui_mac.txt	/*MMDefaultTablineColors*
 MMDialogsTrackPwd	gui_mac.txt	/*MMDialogsTrackPwd*
 MMDisableLaunchAnimation	gui_mac.txt	/*MMDisableLaunchAnimation*
+MMDisableTablineAnimation	gui_mac.txt	/*MMDisableTablineAnimation*
 MMFontPreserveLineSpacing	gui_mac.txt	/*MMFontPreserveLineSpacing*
 MMFullScreenFadeTime	gui_mac.txt	/*MMFullScreenFadeTime*
 MMLoginShell	gui_mac.txt	/*MMLoginShell*

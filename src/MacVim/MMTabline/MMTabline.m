@@ -8,13 +8,14 @@ typedef struct TabWidth {
     CGFloat remainder;
 } TabWidth;
 
-const CGFloat OptimumTabWidth = 200;
+const CGFloat OptimumTabWidth = 220;
 const CGFloat MinimumTabWidth = 100;
 const CGFloat TabOverlap      = 6;
+const CGFloat ScrollOneTabAllowance = 0.25; // If we are showing 75+% of the tab, consider it to be fully shown when deciding whether to scroll to next tab.
 
-static MMHoverButton* MakeHoverButton(MMTabline *tabline, NSString *imageName, NSString *tooltip, SEL action, BOOL continuous) {
+static MMHoverButton* MakeHoverButton(MMTabline *tabline, MMHoverButtonImage imageType, NSString *tooltip, SEL action, BOOL continuous) {
     MMHoverButton *button = [MMHoverButton new];
-    button.image = [MMHoverButton imageNamed:imageName];
+    button.image = [MMHoverButton imageFromType:imageType];
     button.translatesAutoresizingMaskIntoConstraints = NO;
     button.target = tabline;
     button.action = action;
@@ -63,6 +64,7 @@ static BOOL isDarkMode(NSAppearance *appearance) {
         _tabs = [NSMutableArray new];
         _showsAddTabButton = YES; // get from NSUserDefaults
         _showsTabScrollButtons = YES; // get from NSUserDefaults
+        _useAnimation = YES; // get from NSUserDefaults
 
         _selectedTabIndex = -1;
 
@@ -80,9 +82,9 @@ static BOOL isDarkMode(NSAppearance *appearance) {
         _scrollView.documentView = _tabsContainer;
         [self addSubview:_scrollView];
 
-        _addTabButton = MakeHoverButton(self, @"AddTabButton", @"New Tab (⌘T)", @selector(addTabAtEnd), NO);
-        _leftScrollButton = MakeHoverButton(self, @"ScrollLeftButton", @"Scroll Tabs", @selector(scrollLeftOneTab), YES);
-        _rightScrollButton = MakeHoverButton(self, @"ScrollRightButton", @"Scroll Tabs", @selector(scrollRightOneTab), YES);
+        _addTabButton = MakeHoverButton(self, MMHoverButtonImageAddTab, @"New Tab (⌘T)", @selector(addTabAtEnd), NO);
+        _leftScrollButton = MakeHoverButton(self, MMHoverButtonImageScrollLeft, @"Scroll Tabs", @selector(scrollLeftOneTab), YES);
+        _rightScrollButton = MakeHoverButton(self, MMHoverButtonImageScrollRight, @"Scroll Tabs", @selector(scrollRightOneTab), YES);
 
         [self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:[_leftScrollButton][_rightScrollButton]-5-[_scrollView]-5-[_addTabButton]" options:NSLayoutFormatAlignAllCenterY metrics:nil views:NSDictionaryOfVariableBindings(_scrollView, _leftScrollButton, _rightScrollButton, _addTabButton)]];
         [self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|[_scrollView]|" options:0 metrics:nil views:@{@"_scrollView":_scrollView}]];
@@ -95,29 +97,8 @@ static BOOL isDarkMode(NSAppearance *appearance) {
         
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(didScroll:) name:NSViewBoundsDidChangeNotification object:_scrollView.contentView];
 
-        // Monitor for scroll wheel events so we can scroll the tabline
-        // horizontally without the user having to hold down SHIFT.
-        _scrollWheelEventMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskScrollWheel handler:^NSEvent * _Nullable(NSEvent * _Nonnull event) {
-            NSPoint location = [_scrollView convertPoint:event.locationInWindow fromView:nil];
-            // We want events:
-            //   where the mouse is over the _scrollView
-            //   and where the user is not modifying it with the SHIFT key
-            //   and initiated by the scroll wheel and not the trackpad
-            if ([_scrollView mouse:location inRect:_scrollView.bounds]
-                && !event.modifierFlags
-                && !event.hasPreciseScrollingDeltas)
-            {
-                // Create a new scroll wheel event based on the original,
-                // but set the new deltaX to the original's deltaY.
-                // stackoverflow.com/a/38991946/111418
-                CGEventRef cgEvent = CGEventCreateCopy(event.CGEvent);
-                CGEventSetIntegerValueField(cgEvent, kCGScrollWheelEventDeltaAxis2, event.scrollingDeltaY);
-                NSEvent *newEvent = [NSEvent eventWithCGEvent:cgEvent];
-                CFRelease(cgEvent);
-                return newEvent;
-            }
-            return event;
-        }];
+        [self addScrollWheelMonitor];
+
     }
     return self;
 }
@@ -138,6 +119,32 @@ static BOOL isDarkMode(NSAppearance *appearance) {
 - (void)viewDidChangeEffectiveAppearance
 {
     for (MMTab *tab in _tabs) tab.state = tab.state;
+}
+
+- (void)viewDidHide
+{
+    if (_scrollWheelEventMonitor != nil) {
+        [NSEvent removeMonitor:_scrollWheelEventMonitor];
+        _scrollWheelEventMonitor = nil;
+    }
+    [super viewDidHide];
+}
+
+- (void)viewDidUnhide
+{
+    [self addScrollWheelMonitor];
+    [super viewDidUnhide];
+}
+
+- (void)dealloc
+{
+    if (_scrollWheelEventMonitor != nil) {
+        [NSEvent removeMonitor:_scrollWheelEventMonitor];
+        _scrollWheelEventMonitor = nil;
+    }
+
+    // This is not necessary after macOS 10.11, but there's no harm in doing so
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
 #pragma mark - Accessors
@@ -311,6 +318,18 @@ static BOOL isDarkMode(NSAppearance *appearance) {
     } else {
         NSLog(@"CANNOT FIND TAB TO REMOVE");
     }
+}
+
+- (void)closeAllTabs
+{
+    _selectedTabIndex = -1;
+    _draggedTab = nil;
+    _initialDraggedTabIndex = _finalDraggedTabIndex = NSNotFound;
+    for (MMTab *tab in _tabs) {
+        [tab removeFromSuperview];
+    }
+    [_tabs removeAllObjects];
+    [self fixupLayoutWithAnimation:NO];
 }
 
 - (void)updateTabsByTags:(NSInteger *)tags len:(NSUInteger)len delayTabResize:(BOOL)delayTabResize
@@ -545,6 +564,50 @@ NSComparisonResult SortTabsForZOrder(MMTab *tab1, MMTab *tab2, void *draggedTab)
     return (TabWidth){tabWidth, availableWidthForTabs - tabWidth * numTabs};
 }
 
+/// Install a scroll wheel event monitor so that we can convert vertical scroll
+/// wheel events to horizontal ones, so that the user doesn't have to hold down
+/// SHIFT key while scrolling.
+///
+/// Caller *has* to call `removeMonitor:` on `_scrollWheelEventMonitor`
+/// afterwards.
+- (void)addScrollWheelMonitor
+{
+    // We have to use a local event monitor because we are not allowed to
+    // override NSScrollView's scrollWheel: method. If we do so we will lose
+    // macOS responsive scrolling. See:
+    // https://developer.apple.com/library/archive/releasenotes/AppKit/RN-AppKitOlderNotes/index.html#10_9Scrolling
+    if (_scrollWheelEventMonitor != nil)
+        return;
+    __weak NSScrollView *scrollView_weak = _scrollView;
+    __weak __typeof__(self) self_weak = self;
+    _scrollWheelEventMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskScrollWheel handler:^NSEvent * _Nullable(NSEvent * _Nonnull event) {
+        // We want an event:
+        //   - that actually belongs to this window
+        //   - initiated by the scroll wheel and not the trackpad
+        //   - is a vertical scroll event (if this is a horizontal scroll event
+        //     either via holding SHIFT or third-party software we just let it
+        //     through)
+        //   - where the mouse is over the scroll view
+        if (event.window == self_weak.window
+            && !event.hasPreciseScrollingDeltas
+            && (event.scrollingDeltaX == 0 && event.scrollingDeltaY != 0)
+            && [scrollView_weak mouse:[scrollView_weak convertPoint:event.locationInWindow fromView:nil]
+                               inRect:scrollView_weak.bounds])
+        {
+            // Create a new scroll wheel event based on the original,
+            // but set the new deltaX to the original's deltaY.
+            // stackoverflow.com/a/38991946/111418
+            CGEventRef cgEvent = CGEventCreateCopy(event.CGEvent);
+            CGEventSetIntegerValueField(cgEvent, kCGScrollWheelEventDeltaAxis1, 0);
+            CGEventSetIntegerValueField(cgEvent, kCGScrollWheelEventDeltaAxis2, event.scrollingDeltaY);
+            NSEvent *newEvent = [NSEvent eventWithCGEvent:cgEvent];
+            CFRelease(cgEvent);
+            return newEvent;
+        }
+        return event;
+    }];
+}
+
 - (void)fixupCloseButtons
 {
     if (_tabs.count == 1) {
@@ -562,7 +625,16 @@ NSComparisonResult SortTabsForZOrder(MMTab *tab1, MMTab *tab2, void *draggedTab)
 
 - (void)fixupLayoutWithAnimation:(BOOL)shouldAnimate delayResize:(BOOL)delayResize
 {
-    if (_tabs.count == 0) return;
+    if (!self.useAnimation)
+        shouldAnimate = NO;
+
+    if (_tabs.count == 0) {
+        NSRect frame = _tabsContainer.frame;
+        frame.size.width = 0;
+        _tabsContainer.frame = frame;
+        [self updateTabScrollButtonsEnabledState];
+        return;
+    }
 
     if (delayResize) {
         // The pending delayed resize is trigged by mouse exit, but if we are
@@ -759,7 +831,7 @@ NSComparisonResult SortTabsForZOrder(MMTab *tab1, MMTab *tab2, void *draggedTab)
 - (void)scrollTabToVisibleAtIndex:(NSInteger)index
 {
     if (_tabs.count == 0) return;
-    if (index < 0 || index >= _tabs.count) return;
+    index = index < 0 ? 0 : (index >= _tabs.count ? _tabs.count - 1 : index);
 
     // Get the amount of time elapsed between the previous invocation
     // of this method and now. Use this elapsed time to set the animation
@@ -780,8 +852,8 @@ NSComparisonResult SortTabsForZOrder(MMTab *tab1, MMTab *tab2, void *draggedTab)
     NSTimeInterval elapsedTime = 0.1;
 #endif
 
-    NSRect tabFrame = _tabs[index].frame;
-    NSRect clipBounds = _scrollView.contentView.bounds;
+    NSRect tabFrame = _tabs[index].animator.frame;
+    NSRect clipBounds =_scrollView.contentView.animator.bounds;
     // One side or the other of the selected tab is clipped.
     if (!NSContainsRect(clipBounds, tabFrame)) {
         if (NSMinX(tabFrame) > NSMinX(clipBounds)) {
@@ -791,20 +863,25 @@ NSComparisonResult SortTabsForZOrder(MMTab *tab1, MMTab *tab2, void *draggedTab)
             // Left side of the selected tab is clipped.
             clipBounds.origin.x = tabFrame.origin.x;
         }
-        [NSAnimationContext beginGrouping];
-        [NSAnimationContext.currentContext setDuration:elapsedTime < 0.2 ? 0.05 : 0.2];
-        _scrollView.contentView.animator.bounds = clipBounds;
-        [NSAnimationContext endGrouping];
+        if (_useAnimation) {
+            [NSAnimationContext beginGrouping];
+            [NSAnimationContext.currentContext setDuration:elapsedTime < 0.2 ? 0.05 : 0.2];
+            [_scrollView.contentView.animator setBoundsOrigin:clipBounds.origin];
+            [NSAnimationContext endGrouping];
+        } else {
+            [_scrollView.contentView setBoundsOrigin:clipBounds.origin];
+        }
     }
 }
 
 - (void)scrollLeftOneTab
 {
-    NSRect clipBounds = _scrollView.contentView.bounds;
+    NSRect clipBounds = _scrollView.contentView.animator.bounds;
     for (NSInteger i = _tabs.count - 1; i >= 0; i--) {
         NSRect tabFrame = _tabs[i].frame;
         if (!NSContainsRect(clipBounds, tabFrame)) {
-            if (NSMinX(tabFrame) < NSMinX(clipBounds)) {
+            CGFloat allowance = i == 0 ? 0 : NSWidth(tabFrame) * ScrollOneTabAllowance;
+            if (NSMinX(tabFrame) + allowance < NSMinX(clipBounds)) {
                 [self scrollTabToVisibleAtIndex:i];
                 break;
             }
@@ -814,11 +891,12 @@ NSComparisonResult SortTabsForZOrder(MMTab *tab1, MMTab *tab2, void *draggedTab)
 
 - (void)scrollRightOneTab
 {
-    NSRect clipBounds = _scrollView.contentView.bounds;
+    NSRect clipBounds = _scrollView.contentView.animator.bounds;
     for (NSInteger i = 0; i < _tabs.count; i++) {
         NSRect tabFrame = _tabs[i].frame;
         if (!NSContainsRect(clipBounds, tabFrame)) {
-            if (NSMaxX(tabFrame) > NSMaxX(clipBounds)) {
+            CGFloat allowance = i == _tabs.count - 1 ? 0 : NSWidth(tabFrame) * ScrollOneTabAllowance;
+            if (NSMaxX(tabFrame) - allowance > NSMaxX(clipBounds)) {
                 [self scrollTabToVisibleAtIndex:i];
                 break;
             }
