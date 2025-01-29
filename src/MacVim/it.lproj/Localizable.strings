@@ -1,0 +1,11 @@
+/* Scroll backward button in tabs line */
+"scroll-tabs-backward" = "Scorri indietro";
+
+/* Scroll forward button in tabs line */
+"scroll-tabs-forward" = "Scorri avanti";
+
+// The strings below were generated from Apple localization glossaries (Italian).
+// See extract-specific-localised-strings.swift for details.
+// Do no modify directly!
+
+"create-new-tab-button" = "Crea un nuovo pannello";

@@ -1,0 +1,11 @@
+/* Scroll backward button in tabs line */
+"scroll-tabs-backward" = "Desplaça cap enrere";
+
+/* Scroll forward button in tabs line */
+"scroll-tabs-forward" = "Desplaça cap endavant";
+
+// The strings below were generated from Apple localization glossaries (Catalan).
+// See extract-specific-localised-strings.swift for details.
+// Do no modify directly!
+
+"create-new-tab-button" = "Crear una pestanya nova";

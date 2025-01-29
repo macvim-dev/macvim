@@ -1,0 +1,13 @@
+
+
+/* Scroll backward button in tabs line */
+"scroll-tabs-backward" = "向後捲動";
+
+/* Scroll forward button in tabs line */
+"scroll-tabs-forward" = "向前捲動";
+
+// The strings below were generated from Apple localization glossaries (Traditional Chinese).
+// See extract-specific-localised-strings.swift for details.
+// Do no modify directly!
+
+"create-new-tab-button" = "新增標籤頁";

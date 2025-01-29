@@ -1,0 +1,11 @@
+/* Scroll backward button in tabs line */
+"scroll-tabs-backward" = "뒤로 스크롤";
+
+/* Scroll forward button in tabs line */
+"scroll-tabs-forward" = "앞으로 스크롤";
+
+// The strings below were generated from Apple localization glossaries (Korean).
+// See extract-specific-localised-strings.swift for details.
+// Do no modify directly!
+
+"create-new-tab-button" = "새로운 탭을 생성합니다";

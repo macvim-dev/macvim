@@ -21,7 +21,7 @@ static MMHoverButton* MakeHoverButton(MMTabline *tabline, MMHoverButtonImage ima
     button.action = action;
     button.continuous = continuous;
     [button sizeToFit];
-    [button setToolTip:NSLocalizedString(tooltip, @"Tabline button")];
+    [button setToolTip:tooltip];
     [tabline addSubview:button];
     return button;
 }
@@ -82,9 +82,9 @@ static BOOL isDarkMode(NSAppearance *appearance) {
         _scrollView.documentView = _tabsContainer;
         [self addSubview:_scrollView];
 
-        _addTabButton = MakeHoverButton(self, MMHoverButtonImageAddTab, @"New Tab (⌘T)", @selector(addTabAtEnd), NO);
-        _leftScrollButton = MakeHoverButton(self, MMHoverButtonImageScrollLeft, @"Scroll Tabs", @selector(scrollLeftOneTab), YES);
-        _rightScrollButton = MakeHoverButton(self, MMHoverButtonImageScrollRight, @"Scroll Tabs", @selector(scrollRightOneTab), YES);
+        _addTabButton = MakeHoverButton(self, MMHoverButtonImageAddTab, NSLocalizedString(@"create-new-tab-button", @"Create a new tab button"), @selector(addTabAtEnd), NO);
+        _leftScrollButton = MakeHoverButton(self, MMHoverButtonImageScrollLeft, NSLocalizedString(@"scroll-tabs-backward", @"Scroll backward button in tabs line"), @selector(scrollLeftOneTab), YES);
+        _rightScrollButton = MakeHoverButton(self, MMHoverButtonImageScrollRight, NSLocalizedString(@"scroll-tabs-forward", @"Scroll forward button in tabs line"), @selector(scrollRightOneTab), YES);
 
         [self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:[_leftScrollButton][_rightScrollButton]-5-[_scrollView]-5-[_addTabButton]" options:NSLayoutFormatAlignAllCenterY metrics:nil views:NSDictionaryOfVariableBindings(_scrollView, _leftScrollButton, _rightScrollButton, _addTabButton)]];
         [self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|[_scrollView]|" options:0 metrics:nil views:@{@"_scrollView":_scrollView}]];

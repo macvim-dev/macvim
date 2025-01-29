@@ -1,0 +1,11 @@
+/* Scroll backward button in tabs line */
+"scroll-tabs-backward" = "Posunout dozadu";
+
+/* Scroll forward button in tabs line */
+"scroll-tabs-forward" = "Posunout dopředu";
+
+// The strings below were generated from Apple localization glossaries (Czech).
+// See extract-specific-localised-strings.swift for details.
+// Do no modify directly!
+
+"create-new-tab-button" = "Vytvoří nový panel";

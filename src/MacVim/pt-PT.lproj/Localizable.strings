@@ -1,0 +1,11 @@
+/* Scroll backward button in tabs line */
+"scroll-tabs-backward" = "Deslocar para trás";
+
+/* Scroll forward button in tabs line */
+"scroll-tabs-forward" = "Deslocar para a frente";
+
+// The strings below were generated from Apple localization glossaries (Portuguese).
+// See extract-specific-localised-strings.swift for details.
+// Do no modify directly!
+
+"create-new-tab-button" = "Criar um novo separador.";
