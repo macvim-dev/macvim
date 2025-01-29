@@ -53,6 +53,8 @@
 - (void)selectTabAtIndex:(NSInteger)index;
 - (MMTab *)tabAtIndex:(NSInteger)index;
 - (void)scrollTabToVisibleAtIndex:(NSInteger)index;
+- (void)scrollLeftOneTab;
+- (void)scrollRightOneTab;
 - (void)setTablineSelBackground:(NSColor *)back foreground:(NSColor *)fore;
 
 @end

@@ -39,5 +39,6 @@
 
 // Appearance pane
 - (IBAction)fontPropertiesChanged:(id)sender;
+- (IBAction)tabsPropertiesChanged:(id)sender;
 
 @end

@@ -573,8 +573,11 @@ _cycleWindows:			Select next window (similar to <D-`>)
 _cycleWindowsBackwards:		Select previous window (similar to <D-S-`>)
 _removeWindowFromStageManagerSet  Remove window from a Stage Manager Set. Same
 				as the "Remove Window from Set" menu item.
-joinAllStageManagerSets		Window will float among all Stage Manager sets
-unjoinAllStageManagerSets	Window will only show up in its own set
+joinAllStageManagerSets:	Window will float among all Stage Manager sets
+unjoinAllStageManagerSets:	Window will only show up in its own set
+scrollToCurrentTab:		Scroll to the selected tab in the GUI tab bar
+scrollBackwardOneTab:		Scroll backward by one tab in the tab bar
+scrollForwardOneTab:		Scroll forward by one tab in the tab bar
 
 ==============================================================================
 7. Toolbar						*macvim-toolbar*

@@ -1229,19 +1229,22 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
 - (void)refreshAllAppearances
 {
-    const NSUInteger count = [vimControllers count];
-    for (unsigned i = 0; i < count; ++i) {
-        MMVimController *vc = [vimControllers objectAtIndex:i];
+    for (MMVimController *vc in vimControllers) {
         [vc.windowController refreshApperanceMode];
+    }
+}
+
+- (void)refreshAllTabProperties
+{
+    for (MMVimController *vc in vimControllers) {
+        [vc.windowController.vimView refreshTabProperties];
     }
 }
 
 /// Refresh all Vim text views' fonts.
 - (void)refreshAllFonts
 {
-    const NSUInteger count = [vimControllers count];
-    for (unsigned i = 0; i < count; ++i) {
-        MMVimController *vc = [vimControllers objectAtIndex:i];
+    for (MMVimController *vc in vimControllers) {
         [vc.windowController refreshFonts];
     }
 }
@@ -1250,9 +1253,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 /// and resize the windows to match the constraints.
 - (void)refreshAllResizeConstraints
 {
-    const NSUInteger count = [vimControllers count];
-    for (unsigned i = 0; i < count; ++i) {
-        MMVimController *vc = [vimControllers objectAtIndex:i];
+    for (MMVimController *vc in vimControllers) {
         [vc.windowController updateResizeConstraints:YES];
     }
 }
@@ -1261,9 +1262,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 /// cmdline alignment properties to make sure they are pinned properly.
 - (void)refreshAllTextViews
 {
-    const NSUInteger count = [vimControllers count];
-    for (unsigned i = 0; i < count; ++i) {
-        MMVimController *vc = [vimControllers objectAtIndex:i];
+    for (MMVimController *vc in vimControllers) {
         [vc.windowController.vimView.textView updateCmdlineRow];
         vc.windowController.vimView.textView.needsDisplay = YES;
     }

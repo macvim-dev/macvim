@@ -167,6 +167,11 @@
     [[MMAppController sharedInstance] refreshAllFonts];
 }
 
+- (IBAction)tabsPropertiesChanged:(id)sender
+{
+    [[MMAppController sharedInstance] refreshAllTabProperties];
+}
+
 - (IBAction)smoothResizeChanged:(id)sender
 {
     [[MMAppController sharedInstance] refreshAllResizeConstraints];

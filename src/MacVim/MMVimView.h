@@ -44,7 +44,12 @@
 
 - (MMTabline *)tabline;
 - (IBAction)addNewTab:(id)sender;
+- (IBAction)scrollToCurrentTab:(id)sender;
+- (IBAction)scrollBackwardOneTab:(id)sender;
+- (IBAction)scrollForwardOneTab:(id)sender;
+- (void)showTabline:(BOOL)on;
 - (void)updateTabsWithData:(NSData *)data;
+- (void)refreshTabProperties;
 
 - (void)createScrollbarWithIdentifier:(int32_t)ident type:(int)type;
 - (BOOL)destroyScrollbarWithIdentifier:(int32_t)ident;

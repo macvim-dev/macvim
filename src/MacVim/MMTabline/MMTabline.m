@@ -8,9 +8,10 @@ typedef struct TabWidth {
     CGFloat remainder;
 } TabWidth;
 
-const CGFloat OptimumTabWidth = 200;
+const CGFloat OptimumTabWidth = 220;
 const CGFloat MinimumTabWidth = 100;
 const CGFloat TabOverlap      = 6;
+const CGFloat ScrollOneTabAllowance = 0.25; // If we are showing 75+% of the tab, consider it to be fully shown when deciding whether to scroll to next tab.
 
 static MMHoverButton* MakeHoverButton(MMTabline *tabline, NSString *imageName, NSString *tooltip, SEL action, BOOL continuous) {
     MMHoverButton *button = [MMHoverButton new];
@@ -759,7 +760,7 @@ NSComparisonResult SortTabsForZOrder(MMTab *tab1, MMTab *tab2, void *draggedTab)
 - (void)scrollTabToVisibleAtIndex:(NSInteger)index
 {
     if (_tabs.count == 0) return;
-    if (index < 0 || index >= _tabs.count) return;
+    index = index < 0 ? 0 : (index >= _tabs.count ? _tabs.count - 1 : index);
 
     // Get the amount of time elapsed between the previous invocation
     // of this method and now. Use this elapsed time to set the animation
@@ -780,8 +781,8 @@ NSComparisonResult SortTabsForZOrder(MMTab *tab1, MMTab *tab2, void *draggedTab)
     NSTimeInterval elapsedTime = 0.1;
 #endif
 
-    NSRect tabFrame = _tabs[index].frame;
-    NSRect clipBounds = _scrollView.contentView.bounds;
+    NSRect tabFrame = _tabs[index].animator.frame;
+    NSRect clipBounds =_scrollView.contentView.animator.bounds;
     // One side or the other of the selected tab is clipped.
     if (!NSContainsRect(clipBounds, tabFrame)) {
         if (NSMinX(tabFrame) > NSMinX(clipBounds)) {
@@ -793,18 +794,19 @@ NSComparisonResult SortTabsForZOrder(MMTab *tab1, MMTab *tab2, void *draggedTab)
         }
         [NSAnimationContext beginGrouping];
         [NSAnimationContext.currentContext setDuration:elapsedTime < 0.2 ? 0.05 : 0.2];
-        _scrollView.contentView.animator.bounds = clipBounds;
+        [_scrollView.contentView.animator setBoundsOrigin:clipBounds.origin];
         [NSAnimationContext endGrouping];
     }
 }
 
 - (void)scrollLeftOneTab
 {
-    NSRect clipBounds = _scrollView.contentView.bounds;
+    NSRect clipBounds = _scrollView.contentView.animator.bounds;
     for (NSInteger i = _tabs.count - 1; i >= 0; i--) {
         NSRect tabFrame = _tabs[i].frame;
         if (!NSContainsRect(clipBounds, tabFrame)) {
-            if (NSMinX(tabFrame) < NSMinX(clipBounds)) {
+            CGFloat allowance = i == 0 ? 0 : NSWidth(tabFrame) * ScrollOneTabAllowance;
+            if (NSMinX(tabFrame) + allowance < NSMinX(clipBounds)) {
                 [self scrollTabToVisibleAtIndex:i];
                 break;
             }
@@ -814,11 +816,12 @@ NSComparisonResult SortTabsForZOrder(MMTab *tab1, MMTab *tab2, void *draggedTab)
 
 - (void)scrollRightOneTab
 {
-    NSRect clipBounds = _scrollView.contentView.bounds;
+    NSRect clipBounds = _scrollView.contentView.animator.bounds;
     for (NSInteger i = 0; i < _tabs.count; i++) {
         NSRect tabFrame = _tabs[i].frame;
         if (!NSContainsRect(clipBounds, tabFrame)) {
-            if (NSMaxX(tabFrame) > NSMaxX(clipBounds)) {
+            CGFloat allowance = i == _tabs.count - 1 ? 0 : NSWidth(tabFrame) * ScrollOneTabAllowance;
+            if (NSMaxX(tabFrame) - allowance > NSMaxX(clipBounds)) {
                 [self scrollTabToVisibleAtIndex:i];
                 break;
             }
