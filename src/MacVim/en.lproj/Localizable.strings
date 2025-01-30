@@ -1,0 +1,9 @@
+﻿/* Create a new tab button */
+"create-new-tab-button" = "Create a new tab";
+
+/* Scroll backward button in tabs line */
+"scroll-tabs-backward" = "Scroll backwards";
+
+/* Scroll forward button in tabs line */
+"scroll-tabs-forward" = "Scroll forwards";
+

@@ -1,0 +1,11 @@
+/* Scroll backward button in tabs line */
+"scroll-tabs-backward" = "Görgetés visszafelé";
+
+/* Scroll forward button in tabs line */
+"scroll-tabs-forward" = "Görgetés előrefelé";
+
+// The strings below were generated from Apple localization glossaries (Hungarian).
+// See extract-specific-localised-strings.swift for details.
+// Do no modify directly!
+
+"create-new-tab-button" = "Új lap létrehozása";

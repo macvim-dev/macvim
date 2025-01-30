@@ -1,0 +1,11 @@
+/* Scroll backward button in tabs line */
+"scroll-tabs-backward" = "Scroll baglæns";
+
+/* Scroll forward button in tabs line */
+"scroll-tabs-forward" = "Scroll forlæns";
+
+// The strings below were generated from Apple localization glossaries (Danish).
+// See extract-specific-localised-strings.swift for details.
+// Do no modify directly!
+
+"create-new-tab-button" = "Opret en ny fane";

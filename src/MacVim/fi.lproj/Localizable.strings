@@ -1,0 +1,11 @@
+/* Scroll backward button in tabs line */
+"scroll-tabs-backward" = "Vieritä taaksepäin";
+
+/* Scroll forward button in tabs line */
+"scroll-tabs-forward" = "Vieritä eteenpäin";
+
+// The strings below were generated from Apple localization glossaries (Finnish).
+// See extract-specific-localised-strings.swift for details.
+// Do no modify directly!
+
+"create-new-tab-button" = "Luo uusi välilehti";

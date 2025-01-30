@@ -1,0 +1,11 @@
+/* Scroll backward button in tabs line */
+"scroll-tabs-backward" = "Desplazarse hacia atrás";
+
+/* Scroll forward button in tabs line */
+"scroll-tabs-forward" = "Desplazarse hacia adelante";
+
+// The strings below were generated from Apple localization glossaries (Spanish).
+// See extract-specific-localised-strings.swift for details.
+// Do no modify directly!
+
+"create-new-tab-button" = "Crear una pestaña nueva";

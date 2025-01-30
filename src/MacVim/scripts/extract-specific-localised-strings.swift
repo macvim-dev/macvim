@@ -19,15 +19,23 @@
 //      cd xib_strings; for f in *.lproj; do cat ../../$f/MainMenu.strings | head -$(awk -v line='Apple localization glossaries' '$0 ~ line {print NR-1}' ../../$f/MainMenu.strings) >! ./test.strings; cat $f/Localizable.strings >> ./test.strings; cp ./test.strings ../../$f/MainMenu.strings; rm ./test.strings; done
 // 3. Run this script with --vimMenu. This should output the updated string names to the individual locale's .vim
 //    translation files.
+// 4. Run this script with --localizableStrings. This will generate the translations for Localizable.strings.
+//    Similar to MainManu.xib, do the following:
+//      cd xib_strings; for f in *.lproj; do cat ../../$f/Localizable.strings | head -$(awk -v line='Apple localization glossaries' '$0 ~ line {print NR-1}' ../../$f/Localizable.strings) >! ./test.strings; cat $f/Localizable.strings >> ./test.strings; cp ./test.strings ../../$f/Localizable.strings; rm ./test.strings; done
 
-var isMainMenu = true
+var isMainMenu = false
+var isVimMenu = false
+var isLocalizable = false
 for argument in CommandLine.arguments {
     switch argument {
     case "--vimMenu":
-        isMainMenu = false
+        isVimMenu = true
 
     case "--mainMenu":
         isMainMenu = true
+
+    case "--localizableStrings":
+        isLocalizable = true
 
     case "--help":
         print("extract-specific-localised-strings.swift [--vimMenu] [--mainMenu]")
@@ -76,7 +84,7 @@ import Foundation
 
 /// The directory containing the .lproj directories where the .strings files will be written.
 var outputDirectory = URL(fileURLWithPath: "./xib_strings")
-if !isMainMenu {
+if isVimMenu {
     outputDirectory = URL(fileURLWithPath: "../../../runtime/lang/macvim_menu")
 }
 
@@ -161,6 +169,12 @@ let neededLocalisations_mainmenu_xib = [
     NeededLocalisation(targetKey: "e16-xE-q4U.title", appleKey: "WHATS_NEW_TITLE", glossaryFilename: "Marmoset"),
 ]
 
+// These are the translations we need for Localizable.strings
+let neededLocalisations_localizable_xib = [
+    // Create new tab button
+    NeededLocalisation(targetKey: "create-new-tab-button", appleKey: "Create a new tab", glossaryFilename: "AppKit"),
+]
+
 // These are the translations for the Vim menus that MacVim re-named to fit Apple's HIG better.
 let neededLocalisations_vim = [
     NeededLocalisation(targetKey: "New\\ Window",  appleKey: "82.title", glossaryFilename: "WebBrowser"),
@@ -193,7 +207,10 @@ let neededLocalisations_vim = [
 ]
 
 var neededLocalisations = neededLocalisations_mainmenu_xib
-if !isMainMenu {
+if isLocalizable {
+    neededLocalisations = neededLocalisations_localizable_xib
+}
+if isVimMenu {
     neededLocalisations = neededLocalisations_vim
 }
 
@@ -360,7 +377,7 @@ for localisation in localisations {
                 return nil
             }
 
-            if isMainMenu {
+            if !isVimMenu {
                 return """
                 "\(neededLocalisation.targetKey)" = "\(translation)";
                 """
@@ -377,13 +394,13 @@ for localisation in localisations {
         }
 
         var targetStringsFileURL = outputDirectory.appendingPathComponents(["\(localisation.code).lproj", "Localizable.strings"])
-        if !isMainMenu {
+        if isVimMenu {
             targetStringsFileURL = outputDirectory.appendingPathComponents(["menu_\(localisation.vimMenuTrans).apple.vim"])
         }
 
         try! FileManager.default.createDirectory(at: targetStringsFileURL.deletingLastPathComponent(), withIntermediateDirectories: true, attributes: nil)
 
-        if isMainMenu {
+        if !isVimMenu {
             try! """
                 // The strings below were generated from Apple localization glossaries (\(localisation.volumeName)).
                 // See extract-specific-localised-strings.swift for details.
