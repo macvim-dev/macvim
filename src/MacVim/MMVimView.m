@@ -264,12 +264,12 @@ enum {
 
 - (IBAction)scrollBackwardOneTab:(id)sender
 {
-    [tabline scrollLeftOneTab];
+    [tabline scrollBackwardOneTab];
 }
 
 - (IBAction)scrollForwardOneTab:(id)sender
 {
-    [tabline scrollRightOneTab];
+    [tabline scrollForwardOneTab];
 }
 
 - (void)showTabline:(BOOL)on

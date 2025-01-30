@@ -174,8 +174,8 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
     NSDictionary *macvimDefaults = [NSDictionary dictionaryWithObjectsAndKeys:
         [NSNumber numberWithBool:NO],     MMNoWindowKey,
-        [NSNumber numberWithInt:120],     MMTabMinWidthKey,
-        [NSNumber numberWithInt:200],     MMTabOptimumWidthKey,
+        [NSNumber numberWithInt:130],     MMTabMinWidthKey,
+        [NSNumber numberWithInt:210],     MMTabOptimumWidthKey,
         [NSNumber numberWithBool:YES],    MMShowAddTabButtonKey,
         [NSNumber numberWithBool:NO],     MMShowTabScrollButtonsKey,
         [NSNumber numberWithInt:2],       MMTextInsetLeftKey,
