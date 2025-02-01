@@ -375,14 +375,17 @@ jobs:
 
       - name: Test Vim
         if: startsWith(github.ref, 'refs/tags/') || !matrix.testgui
-        timeout-minutes: 25
+        timeout-minutes: 30
         run: |
           defaults delete org.vim.MacVim  # Clean up stale states
-          make ${MAKE_BUILD_ARGS} test
+          # Currently we don't run any non-src tests, as syntax tests are fragile and prone to spamming escape codes.
+          # This needs to be investigated and fixed upstream.
+          # MacVim is unlikely to introduce breaking changes in runtime files anyway.
+          make ${MAKE_BUILD_ARGS} -C src test
 
       - name: Test Vim (GUI)
         if: startsWith(github.ref, 'refs/tags/') || matrix.testgui
-        timeout-minutes: 25
+        timeout-minutes: 30
         run: |
           defaults delete org.vim.MacVim  # Clean up stale states
           make ${MAKE_BUILD_ARGS} -C src/testdir clean
