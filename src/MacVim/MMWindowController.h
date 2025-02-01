@@ -84,7 +84,10 @@
 - (void)setBackgroundOption:(int)dark;
 - (void)refreshApperanceMode;
 - (void)updateResizeConstraints:(BOOL)resizeWindow;
-
+- (void)setTablineColorsTabBg:(NSColor *)tabBg tabFg:(NSColor *)tabFg
+                       fillBg:(NSColor *)fillBg fillFg:(NSColor *)fillFg
+                        selBg:(NSColor *)selBg selFg:(NSColor *)selFg;
+- (void)refreshTabProperties;
 - (void)setDefaultColorsBackground:(NSColor *)back foreground:(NSColor *)fore;
 - (void)setFont:(NSFont *)font;
 - (void)setWideFont:(NSFont *)font;

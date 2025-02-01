@@ -62,6 +62,7 @@
 - (void)setBackgroundColor:(int)color;
 - (void)setForegroundColor:(int)color;
 - (void)setSpecialColor:(int)color;
+- (void)setTablineColors:(int[6])colors;
 - (void)setDefaultColorsBackground:(int)bg foreground:(int)fg;
 - (NSConnection *)connection;
 - (NSDictionary *)actionDict;

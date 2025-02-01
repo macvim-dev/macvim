@@ -280,11 +280,11 @@
             <point key="canvasLocation" x="137.5" y="-17"/>
         </customView>
         <customView id="hr4-G4-3ZG" userLabel="Appearance">
-            <rect key="frame" x="0.0" y="0.0" width="483" height="405"/>
+            <rect key="frame" x="0.0" y="0.0" width="483" height="447"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
             <subviews>
                 <customView id="fw0-VK-Nbz" userLabel="Dark mode selection">
-                    <rect key="frame" x="19" y="227" width="433" height="156"/>
+                    <rect key="frame" x="19" y="269" width="433" height="156"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <subviews>
                         <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="T40-Os-PUf" userLabel="Dark mode selection">
@@ -345,11 +345,11 @@
                     </subviews>
                 </customView>
                 <customView id="7af-iK-4r7" userLabel="Titlebar appearance">
-                    <rect key="frame" x="19" y="144" width="433" height="75"/>
+                    <rect key="frame" x="19" y="169" width="433" height="92"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <subviews>
                         <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="9Rk-gT-kVC" userLabel="Titlebar appearance">
-                            <rect key="frame" x="-2" y="57" width="187" height="17"/>
+                            <rect key="frame" x="-2" y="74" width="187" height="17"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Window appearance:" id="HEH-Lo-v4I" userLabel="Titlebar appearance:">
                                 <font key="font" metaFont="system"/>
@@ -358,7 +358,7 @@
                             </textFieldCell>
                         </textField>
                         <button id="7ie-0J-0Zr">
-                            <rect key="frame" x="189" y="56" width="244" height="18"/>
+                            <rect key="frame" x="189" y="73" width="244" height="18"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <buttonCell key="cell" type="check" title="Transparent title bar" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="hzd-hj-Pth">
                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
@@ -369,8 +369,21 @@
                                 <binding destination="58" name="value" keyPath="values.MMTitlebarAppearsTransparent" id="pQP-eb-JXS"/>
                             </connections>
                         </button>
+                        <button id="W5G-Qq-B7Z">
+                            <rect key="frame" x="189" y="55" width="190" height="18"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
+                            <string key="toolTip">Use tab bar's background color for the window title bar color as well. This creates a seamless pane when transparent title bar is also set.</string>
+                            <buttonCell key="cell" type="check" title="Use tabs background color" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="om2-70-baY">
+                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                <font key="font" metaFont="system"/>
+                            </buttonCell>
+                            <connections>
+                                <action selector="tabsPropertiesChanged:" target="-1" id="D9I-8s-GXi"/>
+                                <binding destination="58" name="value" keyPath="values.MMWindowUseTabBackgroundColor" id="8yg-KT-59b"/>
+                            </connections>
+                        </button>
                         <button id="Hqh-Ql-2od">
-                            <rect key="frame" x="189" y="38" width="244" height="18"/>
+                            <rect key="frame" x="189" y="37" width="244" height="18"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <buttonCell key="cell" type="check" title="Hidden title bar" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="W40-cB-m1U">
                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
@@ -394,7 +407,7 @@
                             </connections>
                         </button>
                         <button id="s2M-pj-U8e">
-                            <rect key="frame" x="189" y="-1" width="244" height="18"/>
+                            <rect key="frame" x="189" y="1" width="244" height="18"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <buttonCell key="cell" type="check" title="No drop shadows" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="VM8-tg-mVV">
                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
@@ -408,9 +421,39 @@
                     </subviews>
                 </customView>
                 <customView id="C3B-cu-RC2" userLabel="Tabs">
-                    <rect key="frame" x="20" y="118" width="432" height="18"/>
+                    <rect key="frame" x="20" y="118" width="432" height="43"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <subviews>
+                        <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="qMc-Md-UwA" userLabel="Tabs">
+                            <rect key="frame" x="-2" y="25" width="187" height="17"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
+                            <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Tabs:" id="iUO-3c-iff" userLabel="Tabs:">
+                                <font key="font" metaFont="system"/>
+                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                            </textFieldCell>
+                        </textField>
+                        <popUpButton verticalHuggingPriority="750" id="Ncf-jw-6ZJ" userLabel="Tab colors">
+                            <rect key="frame" x="188" y="18" width="248" height="26"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                            <popUpButtonCell key="cell" type="push" title="Default colors" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" inset="2" selectedItem="OhI-Q1-7PP" id="GVe-19-lXP" userLabel="Tab colors">
+                                <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                <font key="font" metaFont="message"/>
+                                <menu key="menu" title="OtherViews" id="VE4-hh-it9">
+                                    <items>
+                                        <menuItem title="Default colors" state="on" toolTip="Use default tab colors based on macOS light / dark modes." id="OhI-Q1-7PP" userLabel="Default Colors"/>
+                                        <menuItem title="Automatic colors" toolTip="Automatically pick matching colors based on the current Vim foreground/background colors." id="CPh-w1-24K"/>
+                                        <menuItem title="Use Vim colorscheme" id="Nqs-aD-DWs" userLabel="Use Vim colorscheme">
+                                            <string key="toolTip">Use tab colors from Vim's colorscheme, using TabLine/TabLineSel/TabLineFill highlight groups. Some colorschemes will work better than others under this setting.</string>
+                                        </menuItem>
+                                    </items>
+                                </menu>
+                            </popUpButtonCell>
+                            <connections>
+                                <action selector="tabsPropertiesChanged:" target="-1" id="zcR-FW-4Ui"/>
+                                <binding destination="58" name="selectedIndex" keyPath="values.MMTabColorsMode" id="LCa-Uo-szO"/>
+                            </connections>
+                        </popUpButton>
                         <button id="rCZ-9B-5RL">
                             <rect key="frame" x="189" y="-1" width="244" height="18"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
@@ -423,15 +466,6 @@
                                 <binding destination="58" name="value" keyPath="values.MMShowTabScrollButtons" id="KHi-zu-Jz2"/>
                             </connections>
                         </button>
-                        <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="qMc-Md-UwA" userLabel="Tabs">
-                            <rect key="frame" x="-2" y="0.0" width="187" height="17"/>
-                            <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
-                            <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Tabs:" id="iUO-3c-iff" userLabel="Tabs:">
-                                <font key="font" metaFont="system"/>
-                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                            </textFieldCell>
-                        </textField>
                     </subviews>
                 </customView>
                 <customView id="BpJ-rH-ona" userLabel="Full Screen">
@@ -535,7 +569,7 @@
                     </subviews>
                 </customView>
             </subviews>
-            <point key="canvasLocation" x="137.5" y="457.5"/>
+            <point key="canvasLocation" x="137.5" y="478.5"/>
         </customView>
         <customView id="Bnq-Nx-GJH" userLabel="Input">
             <rect key="frame" x="0.0" y="0.0" width="483" height="110"/>
@@ -622,7 +656,7 @@
                     </subviews>
                 </customView>
             </subviews>
-            <point key="canvasLocation" x="138" y="775"/>
+            <point key="canvasLocation" x="138" y="913"/>
         </customView>
         <customView id="620" userLabel="Advanced">
             <rect key="frame" x="0.0" y="0.0" width="483" height="367"/>

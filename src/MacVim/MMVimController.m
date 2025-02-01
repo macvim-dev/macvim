@@ -968,6 +968,26 @@ static BOOL isUnsafeMessage(int msgid);
             }
         }
         break;
+        case SetTablineColorsMsgID:
+        {
+            const void *bytes = [data bytes];
+            unsigned argbTabBg = *((unsigned*)bytes);  bytes += sizeof(unsigned);
+            unsigned argbTabFg = *((unsigned*)bytes);  bytes += sizeof(unsigned);
+            unsigned argbFillBg = *((unsigned*)bytes);  bytes += sizeof(unsigned);
+            unsigned argbFillFg = *((unsigned*)bytes);  bytes += sizeof(unsigned);
+            unsigned argbSelBg = *((unsigned*)bytes);  bytes += sizeof(unsigned);
+            unsigned argbSelFg = *((unsigned*)bytes);  bytes += sizeof(unsigned);
+
+            NSColor *tabBg = [NSColor colorWithRgbInt:argbTabBg];
+            NSColor *tabFg = [NSColor colorWithRgbInt:argbTabFg];
+            NSColor *fillBg = [NSColor colorWithRgbInt:argbFillBg];
+            NSColor *fillFg = [NSColor colorWithRgbInt:argbFillFg];
+            NSColor *selBg = [NSColor colorWithRgbInt:argbSelBg];
+            NSColor *selFg = [NSColor colorWithRgbInt:argbSelFg];
+
+            [windowController setTablineColorsTabBg:tabBg tabFg:tabFg fillBg:fillBg fillFg:fillFg selBg:selBg selFg:selFg];
+        }
+        break;
         case SetDefaultColorsMsgID:
         {
             const void *bytes = [data bytes];

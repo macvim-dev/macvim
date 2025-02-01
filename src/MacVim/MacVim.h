@@ -301,6 +301,7 @@ extern const char * const MMVimMsgIDStrings[];
     MSG(SetWideFontMsgID) \
     MSG(VimShouldCloseMsgID) \
     MSG(SetDefaultColorsMsgID) \
+    MSG(SetTablineColorsMsgID) \
     MSG(ExecuteActionMsgID) \
     MSG(DropFilesMsgID) \
     MSG(DropStringMsgID) \

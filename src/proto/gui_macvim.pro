@@ -63,6 +63,7 @@ int gui_mch_haskey(char_u *name);
 void gui_mch_iconify(void);
 void gui_mch_invert_rectangle(int r, int c, int nr, int nc, int invert);
 void gui_mch_new_colors(void);
+void gui_mch_update_highlight(void);
 void gui_mch_set_bg_color(guicolor_T color);
 int gui_mch_is_blinking(void);
 int gui_mch_is_blink_off(void);

@@ -19,6 +19,8 @@ NSString *MMTabMaxWidthKey                = @"MMTabMaxWidth";
 NSString *MMTabOptimumWidthKey            = @"MMTabOptimumWidth";
 NSString *MMShowAddTabButtonKey           = @"MMShowAddTabButton";
 NSString *MMShowTabScrollButtonsKey       = @"MMShowTabScrollButtons";
+NSString *MMTabColorsModeKey              = @"MMTabColorsMode";
+NSString *MMWindowUseTabBackgroundColorKey      = @"MMWindowUseTabBackgroundColor";
 NSString *MMTextInsetLeftKey              = @"MMTextInsetLeft";
 NSString *MMTextInsetRightKey             = @"MMTextInsetRight";
 NSString *MMTextInsetTopKey               = @"MMTextInsetTop";
@@ -305,9 +307,9 @@ normalizeFilenames(NSArray *filenames)
 
 
 
-int
+AppearanceType
 getCurrentAppearance(NSAppearance *appearance){
-    int flag = 0; // for macOS 10.13 or earlier always return 0;
+    int flag = AppearanceLight; // for macOS 10.13 or earlier always return 0;
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_14
     if (@available(macOS 10.14, *)) {
         NSAppearanceName appearanceName = [appearance bestMatchFromAppearancesWithNames:
@@ -316,11 +318,11 @@ getCurrentAppearance(NSAppearance *appearance){
                 , NSAppearanceNameAccessibilityHighContrastAqua
                 , NSAppearanceNameAccessibilityHighContrastDarkAqua]];
         if ([appearanceName isEqualToString:NSAppearanceNameDarkAqua]) {
-            flag = 1;
+            flag = AppearanceDark;
         } else if ([appearanceName isEqualToString:NSAppearanceNameAccessibilityHighContrastAqua]) {
-            flag = 2;
+            flag = AppearanceLightHighContrast;
         } else if ([appearanceName isEqualToString:NSAppearanceNameAccessibilityHighContrastDarkAqua]) {
-            flag = 3;
+            flag = AppearanceDarkHighContrast;
         }
     }
 #endif

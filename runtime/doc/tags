@@ -5645,7 +5645,6 @@ MMAllowForceClickLookUp	gui_mac.txt	/*MMAllowForceClickLookUp*
 MMAppearanceModeSelection	gui_mac.txt	/*MMAppearanceModeSelection*
 MMCellWidthMultiplier	gui_mac.txt	/*MMCellWidthMultiplier*
 MMCmdLineAlignBottom	gui_mac.txt	/*MMCmdLineAlignBottom*
-MMDefaultTablineColors	gui_mac.txt	/*MMDefaultTablineColors*
 MMDialogsTrackPwd	gui_mac.txt	/*MMDialogsTrackPwd*
 MMDisableLaunchAnimation	gui_mac.txt	/*MMDisableLaunchAnimation*
 MMDisableTablineAnimation	gui_mac.txt	/*MMDisableTablineAnimation*
@@ -5666,6 +5665,7 @@ MMShowAddTabButton	gui_mac.txt	/*MMShowAddTabButton*
 MMShowTabScrollButtons	gui_mac.txt	/*MMShowTabScrollButtons*
 MMShowWhatsNewOnStartup	gui_mac.txt	/*MMShowWhatsNewOnStartup*
 MMSmoothResize	gui_mac.txt	/*MMSmoothResize*
+MMTabColorsMode	gui_mac.txt	/*MMTabColorsMode*
 MMTabMinWidth	gui_mac.txt	/*MMTabMinWidth*
 MMTabOptimumWidth	gui_mac.txt	/*MMTabOptimumWidth*
 MMTextInsetBottom	gui_mac.txt	/*MMTextInsetBottom*
@@ -5678,6 +5678,7 @@ MMTranslateCtrlClick	gui_mac.txt	/*MMTranslateCtrlClick*
 MMUpdaterPrereleaseChannel	gui_mac.txt	/*MMUpdaterPrereleaseChannel*
 MMUseMouseTime	gui_mac.txt	/*MMUseMouseTime*
 MMVerticalSplit	gui_mac.txt	/*MMVerticalSplit*
+MMWindowUseTabBackgroundColor	gui_mac.txt	/*MMWindowUseTabBackgroundColor*
 MMZoomBoth	gui_mac.txt	/*MMZoomBoth*
 MS-DOS	os_msdos.txt	/*MS-DOS*
 MS-Windows	os_win32.txt	/*MS-Windows*

@@ -35,6 +35,15 @@ enum {
     MMScrollerTypeBottom
 };
 
+typedef enum: NSInteger {
+    MMTabColorTypeTabBg = 0,
+    MMTabColorTypeTabFg,
+    MMTabColorTypeSelBg,
+    MMTabColorTypeSelFg,
+    MMTabColorTypeFill,
+    MMTabColorTypeCount
+} MMTabColorType;
+
 
 // TODO:  Move!
 @interface MMScroller : NSScroller {
@@ -72,6 +81,9 @@ enum {
 
 
 @implementation MMVimView
+{
+    NSColor *tabColors[MMTabColorTypeCount];
+}
 
 - (MMVimView *)initWithFrame:(NSRect)frame
                vimController:(MMVimController *)controller
@@ -132,6 +144,9 @@ enum {
 
     [tabline release];
     [scrollbars release];  scrollbars = nil;
+
+    for (NSUInteger i = 0; i < MMTabColorTypeCount; i++)
+        [tabColors[i] release];
 
     // HACK! The text storage is the principal owner of the text system, but we
     // keep only a reference to the text view, so release the text storage
@@ -362,6 +377,7 @@ enum {
 {
     NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
     tabline.showsTabScrollButtons = [ud boolForKey:MMShowTabScrollButtonsKey];
+    [self updateTablineColors];
 }
 
 - (void)createScrollbarWithIdentifier:(int32_t)ident type:(int)type
@@ -453,11 +469,36 @@ enum {
     }
 }
 
+- (void)updateTablineColors
+{
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    MMTabColorsMode tabColorsMode = [ud integerForKey:MMTabColorsModeKey];
+    if (tabColorsMode == MMTabColorsModeDefaultColors) {
+        [tabline setColorsTabBg:nil
+                          tabFg:nil
+                          selBg:nil
+                          selFg:nil
+                           fill:nil];
+    } else if (tabColorsMode == MMTabColorsModeVimColorscheme) {
+        [tabline setColorsTabBg:tabColors[MMTabColorTypeTabBg]
+                          tabFg:tabColors[MMTabColorTypeTabFg]
+                          selBg:tabColors[MMTabColorTypeSelBg]
+                          selFg:tabColors[MMTabColorTypeSelFg]
+                           fill:tabColors[MMTabColorTypeFill]];
+    } else {
+        // tabColorsMode == MMTabColorsModeAutomatic, but catch-all in case it's
+        // set to an out-of-range number.
+        NSColor *back = [[self textView] defaultBackgroundColor];
+        NSColor *fore = [[self textView] defaultForegroundColor];
+        [tabline setAutoColorsSelBg:back fg:fore];
+    }
+
+}
+
 - (void)setDefaultColorsBackground:(NSColor *)back foreground:(NSColor *)fore
 {
     [textView setDefaultColorsBackground:back foreground:fore];
-    
-    [tabline setTablineSelBackground:back foreground:fore];
+    [self updateTablineColors];
 
     CALayer *backedLayer = [self layer];
     if (backedLayer) {
@@ -474,6 +515,21 @@ enum {
         [sb setNeedsDisplay:YES];
     }
     [self setNeedsDisplay:YES];
+}
+
+- (void)setTablineColorsTabBg:(NSColor *)tabBg tabFg:(NSColor *)tabFg
+                       fillBg:(NSColor *)fillBg fillFg:(NSColor *)fillFg
+                        selBg:(NSColor *)selBg selFg:(NSColor *)selFg
+{
+    for (NSUInteger i = 0; i < MMTabColorTypeCount; i++)
+        [tabColors[i] release];
+    tabColors[MMTabColorTypeTabBg] = [tabBg retain];
+    tabColors[MMTabColorTypeTabFg] = [tabFg retain];
+    tabColors[MMTabColorTypeSelBg] = [selBg retain];
+    tabColors[MMTabColorTypeSelFg] = [selFg retain];
+    tabColors[MMTabColorTypeFill] = [fillBg retain];
+    (void)fillFg; // We don't use fillFg as we don't draw anything in the empty area
+    [self updateTablineColors];
 }
 
 
@@ -594,6 +650,19 @@ enum {
 - (void)viewDidChangeEffectiveAppearance
 {
     [vimController appearanceChanged:getCurrentAppearance(self.effectiveAppearance)];
+
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    if ([ud integerForKey:MMTabColorsModeKey] == MMTabColorsModeDefaultColors &&
+        [ud boolForKey:MMWindowUseTabBackgroundColorKey])
+    {
+        // Tab line default colors depends on system light/dark modes. We will
+        // need to notify the window as well if it is set up to use the tab bar
+        // colors. We need to schedule this for later because the tabline's
+        // effectAppearance gets changed *after* this method is called, so we
+        // need to delay the refresh or we would get stale data.
+        MMWindowController *winController = [vimController windowController];
+        [winController performSelectorOnMainThread:@selector(refreshTabProperties) withObject:nil waitUntilDone:NO];
+    }
 }
 @end // MMVimView
 
