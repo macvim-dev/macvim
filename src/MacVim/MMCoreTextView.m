@@ -1333,6 +1333,15 @@ static void grid_free(Grid *grid) {
 
     if (newFont) {
         NSString *name = [newFont fontName];
+
+        // If this is a system monospace font, retrieve the user-friendly
+        // name before we send it to Vim. We don't want to expose the OS-
+        // specific system font name which is confusing to the user.
+        NSString *userMonospaceFontName = [[self vimController] systemFontNamesToAlias][name];
+        if (userMonospaceFontName != nil) {
+            name = userMonospaceFontName;
+        }
+
         unsigned len = (unsigned)[name lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
         if (len > 0) {
             NSMutableData *data = [NSMutableData data];

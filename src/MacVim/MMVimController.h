@@ -56,6 +56,10 @@
     BOOL                hasModifiedBuffer;
 }
 
+/// Mapping from internal names for system monospace font to user-visible one.
+/// E.g. ".AppleSystemUIFontMonospaced-Medium" -> "-monospace-Medium"
+@property (nonatomic, readonly) NSMutableDictionary<NSString*, NSString*>* systemFontNamesToAlias;
+
 - (id)initWithBackend:(id)backend pid:(int)processIdentifier;
 - (void)uninitialize;
 - (unsigned long)vimControllerId;

@@ -1239,12 +1239,14 @@
 
 - (IBAction)fontSizeUp:(id)sender
 {
+    // This creates a new font and triggers text view's changeFont: callback
     [[NSFontManager sharedFontManager] modifyFont:
             [NSNumber numberWithInt:NSSizeUpFontAction]];
 }
 
 - (IBAction)fontSizeDown:(id)sender
 {
+    // This creates a new font and triggers text view's changeFont: callback
     [[NSFontManager sharedFontManager] modifyFont:
             [NSNumber numberWithInt:NSSizeDownFontAction]];
 }
