@@ -71,6 +71,7 @@
 #import "MMWindow.h"
 #import "MMWindowController.h"
 #import "Miscellaneous.h"
+#import "MMTabline/MMTabline.h"
 
 
 // These have to be the same as in option.h
@@ -672,11 +673,61 @@
 #endif
 }
 
+- (void)setTablineColorsTabBg:(NSColor *)tabBg tabFg:(NSColor *)tabFg
+                       fillBg:(NSColor *)fillBg fillFg:(NSColor *)fillFg
+                        selBg:(NSColor *)selBg selFg:(NSColor *)selFg
+{
+    [vimView setTablineColorsTabBg:tabBg tabFg:tabFg fillBg:fillBg fillFg:fillFg selBg:selBg selFg:selFg];
+
+    if([[NSUserDefaults standardUserDefaults] boolForKey:MMWindowUseTabBackgroundColorKey]) {
+        if (!vimView.tabline.hidden) {
+            [self setWindowColorToTablineColor];
+        }
+    }
+}
+
+- (void)setWindowColorToTablineColor
+{
+    NSColor *defaultBg = vimView.textView.defaultBackgroundColor;
+    NSColor *tablineColor = vimView.tabline.tablineFillFgColor;
+    if (defaultBg.alphaComponent == 1.0) {
+        [self setWindowBackgroundColor:tablineColor];
+    } else {
+        // Make sure 'transparency' Vim setting is preserved
+        NSColor *colorWithAlpha = [tablineColor colorWithAlphaComponent:defaultBg.alphaComponent];
+        [self setWindowBackgroundColor:colorWithAlpha];
+    }
+}
+
+- (void)refreshTabProperties
+{
+    [vimView refreshTabProperties];
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    if([ud boolForKey:MMWindowUseTabBackgroundColorKey] && !vimView.tabline.hidden) {
+        [self setWindowColorToTablineColor];
+    } else {
+        [self setWindowBackgroundColor:vimView.textView.defaultBackgroundColor];
+    }
+}
+
 - (void)setDefaultColorsBackground:(NSColor *)back foreground:(NSColor *)fore
+{
+    [vimView setDefaultColorsBackground:back foreground:fore];
+    if([[NSUserDefaults standardUserDefaults] boolForKey:MMWindowUseTabBackgroundColorKey] &&
+       !vimView.tabline.hidden)
+    {
+        [self setWindowColorToTablineColor];
+    }
+    else {
+        [self setWindowBackgroundColor:back];
+    }
+}
+
+- (void)setWindowBackgroundColor:(NSColor *)back
 {
     // NOTE: This is called when the transparency changes so set the opacity
     // flag on the window here (should be faster if the window is opaque).
-    BOOL isOpaque = [back alphaComponent] == 1.0f;
+    const BOOL isOpaque = [back alphaComponent] == 1.0f;
     [decoratedWindow setOpaque:isOpaque];
     if (fullScreenWindow)
         [fullScreenWindow setOpaque:isOpaque];
@@ -727,7 +778,7 @@
         // but if we are toggling the titlebar transparent option, we need to set
         // the window background color in order the title bar to be tinted correctly.
         if ([[NSUserDefaults standardUserDefaults]
-             boolForKey:MMTitlebarAppearsTransparentKey]) {
+                boolForKey:MMTitlebarAppearsTransparentKey]) {
             if ([back alphaComponent] != 0) {
                 [decoratedWindow setBackgroundColor:back];
             } else {
@@ -739,8 +790,6 @@
             }
         }
     }
-
-    [vimView setDefaultColorsBackground:back foreground:fore];
 }
 
 - (void)setFont:(NSFont *)font
@@ -871,6 +920,14 @@
     [vimView showTabline:on];
     [self updateTablineSeparator];
     shouldMaximizeWindow = YES;
+
+    if([[NSUserDefaults standardUserDefaults] boolForKey:MMWindowUseTabBackgroundColorKey]) {
+        if (on) {
+            [self setWindowColorToTablineColor];
+        } else {
+            [self setWindowBackgroundColor:vimView.textView.defaultBackgroundColor];
+        }
+    }
 }
 
 - (void)showToolbar:(BOOL)on size:(int)size mode:(int)mode

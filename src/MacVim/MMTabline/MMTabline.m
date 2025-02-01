@@ -1,6 +1,8 @@
 #import <time.h>
 #import <QuartzCore/QuartzCore.h>
 #import "MMTabline.h"
+
+// Only imported for getCurrentAppearance()
 #import "Miscellaneous.h"
 
 typedef struct TabWidth {
@@ -26,9 +28,20 @@ static MMHoverButton* MakeHoverButton(MMTabline *tabline, MMHoverButtonImage ima
     return button;
 }
 
-static BOOL isDarkMode(NSAppearance *appearance) {
-    int flags = getCurrentAppearance(appearance);
-    return (flags == 1 || flags == 3);
+static CGFloat calculateBrightness(NSColor *color) {
+    if (color.colorSpace.colorSpaceModel == NSColorSpaceModelRGB) {
+        // Calculate brightness according to a formula from
+        // the W3C that gives brightness as the eye perceives it. Then lighten
+        // or darken the default colors based on whether brightness is greater
+        // than 50% to achieve good visual contrast.
+        // www.w3.org/WAI/ER/WD-AERT/#color-contrast
+        CGFloat r, g, b;
+        [color getRed:&r green:&g blue:&b alpha:NULL];
+        return r * 0.299 + g * 0.114 + b * 0.587;
+    } else if (color.colorSpace.colorSpaceModel == NSColorSpaceModelGray) {
+        return color.whiteComponent;
+    }
+    return 1;
 }
 
 @implementation MMTabline
@@ -47,6 +60,7 @@ static BOOL isDarkMode(NSAppearance *appearance) {
     MMHoverButton *_backwardScrollButton;
     MMHoverButton *_forwardScrollButton;
     id _scrollWheelEventMonitor;
+    AppearanceType _appearance; // cached appearance to avoid querying it every time
 }
 
 @synthesize tablineBgColor = _tablineBgColor;
@@ -54,6 +68,8 @@ static BOOL isDarkMode(NSAppearance *appearance) {
 @synthesize tablineSelBgColor = _tablineSelBgColor;
 @synthesize tablineSelFgColor = _tablineSelFgColor;
 @synthesize tablineFillFgColor = _tablineFillFgColor;
+@synthesize tablineUnfocusedFgColor = _tablineUnfocusedFgColor;
+@synthesize tablineUnfocusedSelFgColor = _tablineUnfocusedSelFgColor;
 
 - (instancetype)initWithFrame:(NSRect)frameRect
 {
@@ -111,11 +127,15 @@ static BOOL isDarkMode(NSAppearance *appearance) {
         [self addConstraint:_addTabButtonTrailingConstraint];
         
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(didScroll:) name:NSViewBoundsDidChangeNotification object:_scrollView.contentView];
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(updateTabStates) name:NSWindowDidBecomeKeyNotification object:self.window];
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(updateTabStates) name:NSWindowDidResignKeyNotification object:self.window];
         if ([self useRightToLeft]) {
             [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(updateTabsContainerBoundsForRTL:) name:NSViewFrameDidChangeNotification object:_tabsContainer];
         }
 
         [self addScrollWheelMonitor];
+
+        _appearance = getCurrentAppearance(self.effectiveAppearance);
     }
     return self;
 }
@@ -135,7 +155,8 @@ static BOOL isDarkMode(NSAppearance *appearance) {
 
 - (void)viewDidChangeEffectiveAppearance
 {
-    for (MMTab *tab in _tabs) tab.state = tab.state;
+    _appearance = getCurrentAppearance(self.effectiveAppearance);
+    [self updateTabStates];
 }
 
 - (void)viewDidHide
@@ -217,39 +238,50 @@ static BOOL isDarkMode(NSAppearance *appearance) {
 
 - (NSColor *)tablineBgColor
 {
-    return _tablineBgColor ?: isDarkMode(self.effectiveAppearance)
-        ? [NSColor colorWithWhite:0.2 alpha:1]
-        : [NSColor colorWithWhite:0.8 alpha:1];
+    if (_tablineBgColor != nil)
+        return _tablineBgColor;
+    switch (_appearance) {
+        case AppearanceLight:
+        default:
+            return [NSColor colorWithWhite:0.8 alpha:1];
+        case AppearanceDark:
+            return [NSColor colorWithWhite:0.2 alpha:1];
+        case AppearanceLightHighContrast:
+            return [NSColor colorWithWhite:0.7 alpha:1];
+        case AppearanceDarkHighContrast:
+            return [NSColor colorWithWhite:0.15 alpha:1];
+    }
 }
 
 - (void)setTablineBgColor:(NSColor *)color
 {
     _tablineBgColor = color;
-    for (MMTab *tab in _tabs) tab.state = tab.state;
+    [self updateTabStates];
 }
 
 - (NSColor *)tablineFgColor
 {
-    return _tablineFgColor ?: NSColor.disabledControlTextColor;
+    return _tablineFgColor ?: NSColor.secondaryLabelColor;
 }
 
 - (void)setTablineFgColor:(NSColor *)color
 {
     _tablineFgColor = color;
-    for (MMTab *tab in _tabs) tab.state = tab.state;
+    _tablineUnfocusedFgColor = nil;
+    [self updateTabStates];
 }
 
 - (NSColor *)tablineSelBgColor
 {
-    return _tablineSelBgColor ?: isDarkMode(self.effectiveAppearance)
-        ? [NSColor colorWithWhite:0.4 alpha:1]
-        : NSColor.whiteColor;
+    return _tablineSelBgColor ?: (_appearance == AppearanceLight || _appearance == AppearanceLightHighContrast)
+        ? [NSColor colorWithWhite:0.95 alpha:1]
+        : [NSColor colorWithWhite:0.4 alpha:1];
 }
 
 - (void)setTablineSelBgColor:(NSColor *)color
 {
     _tablineSelBgColor = color;
-    for (MMTab *tab in _tabs) tab.state = tab.state;
+    [self updateTabStates];
 }
 
 - (NSColor *)tablineSelFgColor
@@ -260,23 +292,48 @@ static BOOL isDarkMode(NSAppearance *appearance) {
 - (void)setTablineSelFgColor:(NSColor *)color
 {
     _tablineSelFgColor = color;
+    _tablineUnfocusedSelFgColor = nil;
     _addTabButton.fgColor = color;
     _backwardScrollButton.fgColor = color;
     _forwardScrollButton.fgColor = color;
-    for (MMTab *tab in _tabs) tab.state = tab.state;
+    [self updateTabStates];
 }
 
 - (NSColor *)tablineFillFgColor
 {
-    return _tablineFillFgColor ?: isDarkMode(self.effectiveAppearance)
-        ? [NSColor colorWithWhite:0.2 alpha:1]
-        : [NSColor colorWithWhite:0.8 alpha:1];
+    return _tablineFillFgColor ?: (_appearance == AppearanceLight || _appearance == AppearanceLightHighContrast)
+        ? [NSColor colorWithWhite:0.85 alpha:1]
+        : [NSColor colorWithWhite:0.23 alpha:1];
 }
 
 - (void)setTablineFillFgColor:(NSColor *)color
 {
     _tablineFillFgColor = color;
     self.needsDisplay = YES;
+}
+
+- (NSColor *)tablineUnfocusedFgColor
+{
+    return _tablineUnfocusedFgColor ?: _tablineFgColor ?: NSColor.tertiaryLabelColor;
+}
+
+- (NSColor *)tablineUnfocusedSelFgColor
+{
+    return _tablineUnfocusedSelFgColor ?: _tablineSelFgColor ?: NSColor.tertiaryLabelColor;
+}
+
+- (NSColor *)tablineStrokeColor
+{
+    if (_appearance == AppearanceLight || _appearance == AppearanceDark)
+        return nil; // non-high-contrast modes
+
+    // High-contrast modes. Should stroke to make it easier to read.
+    NSColor *bgColor = self.tablineBgColor;
+    CGFloat brightness = calculateBrightness(bgColor);
+    if (brightness > 0.5)
+        return NSColor.blackColor;
+    else
+        return NSColor.whiteColor;
 }
 
 - (NSInteger)addTabAtEnd
@@ -511,43 +568,59 @@ static BOOL isDarkMode(NSAppearance *appearance) {
     return _tabs[index];
 }
 
-- (void)setTablineSelBackground:(NSColor *)back foreground:(NSColor *)fore
+- (void)setColorsTabBg:(NSColor *)tabBg tabFg:(NSColor *)tabFg
+                 selBg:(NSColor *)selBg selFg:(NSColor *)selFg
+                  fill:(NSColor *)fill
 {
-    // Reset to default tabline colors if user doesn't want auto-generated ones.
-    if ([NSUserDefaults.standardUserDefaults boolForKey:@"MMDefaultTablineColors"]) {
-        self.tablineBgColor = nil;
-        self.tablineFgColor = nil;
-        self.tablineSelBgColor = nil;
-        self.tablineSelFgColor = nil;
-        self.tablineFillFgColor = nil;
-        return;
-    }
+    // Don't use the property mutators as we just want to update the states in
+    // one go at the end.
+    _tablineSelBgColor = selBg;
+    _tablineSelFgColor = selFg;
+    _tablineBgColor = tabBg;
+    _tablineFgColor = tabFg;
+    _tablineFillFgColor = fill;
 
+    _tablineUnfocusedFgColor = [_tablineFgColor blendedColorWithFraction:0.4 ofColor:_tablineBgColor];
+    _tablineUnfocusedSelFgColor = [_tablineSelFgColor blendedColorWithFraction:0.38 ofColor:_tablineSelBgColor];
+
+    _addTabButton.fgColor = _tablineSelFgColor;
+    _backwardScrollButton.fgColor = _tablineSelFgColor;
+    _forwardScrollButton.fgColor = _tablineSelFgColor;
+
+    [self updateTabStates];
+    self.needsDisplay = YES;
+}
+
+- (void)setAutoColorsSelBg:(NSColor *)back fg:(NSColor *)fore;
+{
     // Set the colors for the tabline based on the default background and
-    // foreground colors. Calculate brightness according to a formula from
-    // the W3C that gives brightness as the eye perceives it. Then lighten
-    // or darken the default colors based on whether brightness is greater
-    // than 50% to achieve good visual contrast.
-    // www.w3.org/WAI/ER/WD-AERT/#color-contrast
-    CGFloat r, g, b, brightness;
-    [back getRed:&r green:&g blue:&b alpha:NULL];
-    brightness = r * 0.299 + g * 0.114 + b * 0.587;
-    
-    self.tablineSelBgColor = back;
+    // foreground colors.
+    const CGFloat brightness = calculateBrightness(back);
 
-    self.tablineSelFgColor = (brightness > 0.5)
+    _tablineSelBgColor = back;
+
+    _tablineSelFgColor = (brightness > 0.5)
         ? [fore blendedColorWithFraction:0.6 ofColor:NSColor.blackColor]
         : [fore blendedColorWithFraction:0.6 ofColor:NSColor.whiteColor];
+    _addTabButton.fgColor = _tablineSelFgColor;
+    _backwardScrollButton.fgColor = _tablineSelFgColor;
+    _forwardScrollButton.fgColor = _tablineSelFgColor;
 
-    self.tablineBgColor = (brightness > 0.5)
+    _tablineBgColor = (brightness > 0.5)
         ? [back blendedColorWithFraction:0.16 ofColor:NSColor.blackColor]
         : [back blendedColorWithFraction:0.13 ofColor:NSColor.whiteColor];
 
-    self.tablineFgColor = [self.tablineSelFgColor blendedColorWithFraction:0.5 ofColor:self.tablineBgColor];
+    _tablineFgColor = [_tablineSelFgColor blendedColorWithFraction:0.5 ofColor:_tablineBgColor];
 
-    self.tablineFillFgColor = (brightness > 0.5)
+    _tablineUnfocusedFgColor = [_tablineFgColor blendedColorWithFraction:0.4 ofColor:_tablineBgColor];
+    _tablineUnfocusedSelFgColor = [_tablineSelFgColor blendedColorWithFraction:0.38 ofColor:_tablineSelBgColor];
+
+    _tablineFillFgColor = (brightness > 0.5)
         ? [back blendedColorWithFraction:0.25 ofColor:NSColor.blackColor]
         : [back blendedColorWithFraction:0.18 ofColor:NSColor.whiteColor];
+
+    [self updateTabStates];
+    self.needsDisplay = YES;
 }
 
 #pragma mark - Helpers
@@ -738,6 +811,11 @@ NSComparisonResult SortTabsForZOrderRTL(MMTab *tab1, MMTab *tab2, void *draggedT
 - (void)fixupLayoutWithAnimation:(BOOL)shouldAnimate
 {
     [self fixupLayoutWithAnimation:shouldAnimate delayResize:NO];
+}
+
+- (void)updateTabStates
+{
+    for (MMTab *tab in _tabs) tab.state = tab.state;
 }
 
 #pragma mark - Right-to-left (RTL) support
@@ -943,7 +1021,7 @@ NSComparisonResult SortTabsForZOrderRTL(MMTab *tab1, MMTab *tab2, void *draggedT
     // faster animations. For example, the user might hold down the tab
     // scrolling buttons (causing them to repeatedly fire) or they might
     // rapidly click them.
-#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_12
+#if defined(MAC_OS_X_VERSION_10_12) && MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_12
     static NSTimeInterval lastTime = 0;
     struct timespec t;
     clock_gettime(CLOCK_MONOTONIC, &t);

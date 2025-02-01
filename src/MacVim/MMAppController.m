@@ -178,6 +178,9 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         [NSNumber numberWithInt:210],     MMTabOptimumWidthKey,
         [NSNumber numberWithBool:YES],    MMShowAddTabButtonKey,
         [NSNumber numberWithBool:NO],     MMShowTabScrollButtonsKey,
+        [NSNumber numberWithInt:MMTabColorsModeAutomatic],
+                                          MMTabColorsModeKey,
+        [NSNumber numberWithBool:NO],     MMWindowUseTabBackgroundColorKey,
         [NSNumber numberWithInt:2],       MMTextInsetLeftKey,
         [NSNumber numberWithInt:1],       MMTextInsetRightKey,
         [NSNumber numberWithInt:1],       MMTextInsetTopKey,
@@ -1238,7 +1241,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 - (void)refreshAllTabProperties
 {
     for (MMVimController *vc in vimControllers) {
-        [vc.windowController.vimView refreshTabProperties];
+        [vc.windowController refreshTabProperties];
     }
 }
 

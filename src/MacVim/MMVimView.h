@@ -60,6 +60,9 @@
 - (void)finishPlaceScrollbars;
 
 - (void)setDefaultColorsBackground:(NSColor *)back foreground:(NSColor *)fore;
+- (void)setTablineColorsTabBg:(NSColor *)tabBg tabFg:(NSColor *)tabFg
+                       fillBg:(NSColor *)fillBg fillFg:(NSColor *)fillFg
+                        selBg:(NSColor *)selBg selFg:(NSColor *)selFg;
 
 - (void)viewWillStartLiveResize;
 - (void)viewDidEndLiveResize;

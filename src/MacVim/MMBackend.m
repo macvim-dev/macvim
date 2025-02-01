@@ -293,6 +293,17 @@ static struct specialkey
     specialColor = MM_COLOR(color);
 }
 
+- (void)setTablineColors:(int[6])colors
+{
+    unsigned tabColors[6];
+    for (int i = 0; i < 6; i++) {
+        tabColors[i] = MM_COLOR(colors[i]);
+    }
+    NSMutableData *data = [NSMutableData data];
+    [data appendBytes:&tabColors length:sizeof(tabColors)];
+    [self queueMessage:SetTablineColorsMsgID data:data];
+}
+
 - (void)setDefaultColorsBackground:(int)bg foreground:(int)fg
 {
     defaultBackgroundColor = MM_COLOR_WITH_TRANSP(bg,p_transp);

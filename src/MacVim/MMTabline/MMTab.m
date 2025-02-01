@@ -3,9 +3,10 @@
 #import "MMTabline.h"
 #import "MMHoverButton.h"
 
-#import "MacVim.h" // for availability macros
+// Only imported for AVAILABLE_MAC_OS
+#import "MacVim.h"
 
-#if MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_13
+#if !defined(MAC_OS_X_VERSION_10_13) || MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_13
 typedef NSString * NSAnimatablePropertyKey;
 #endif
 
@@ -46,7 +47,7 @@ typedef NSString * NSAnimatablePropertyKey;
         [self addSubview:_closeButton];
 
         _titleLabel = [NSTextField new];
-#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_11
+#if defined(MAC_OS_X_VERSION_10_11) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_11
         if (AVAILABLE_MAC_OS(10,11)) {
             _titleLabel.font = [NSFont systemFontOfSize:NSFont.smallSystemFontSize weight:NSFontWeightSemibold];
         } else
@@ -109,27 +110,29 @@ typedef NSString * NSAnimatablePropertyKey;
 
 - (void)setState:(MMTabState)state
 {
+    const BOOL hasFocus = (self.window == nil) || [self.window isKeyWindow];
+
     // Transitions to and from MMTabStateSelected
     // DO NOT animate so that UX feels snappier.
     if (state == MMTabStateSelected) {
         _closeButton.fgColor = _tabline.tablineSelFgColor;
-        _titleLabel.textColor = _tabline.tablineSelFgColor;
+        _titleLabel.textColor = hasFocus ? _tabline.tablineSelFgColor : _tabline.tablineUnfocusedSelFgColor;
         self.fillColor = _tabline.tablineSelBgColor;
     }
     else if (state == MMTabStateUnselected) {
         if (_state == MMTabStateSelected) {
             _closeButton.fgColor = _tabline.tablineFgColor;
-            _titleLabel.textColor = _tabline.tablineFgColor;
+            _titleLabel.textColor = hasFocus ? _tabline.tablineFgColor : _tabline.tablineUnfocusedFgColor;
             self.fillColor = _tabline.tablineBgColor;
         } else {
             _closeButton.animator.fgColor = _tabline.tablineFgColor;
-            _titleLabel.animator.textColor = _tabline.tablineFgColor;
+            _titleLabel.animator.textColor = hasFocus ? _tabline.tablineFgColor : _tabline.tablineUnfocusedFgColor;
             self.animator.fillColor = _tabline.tablineBgColor;
         }
     }
     else { // state == MMTabStateUnselectedHover
         _closeButton.animator.fgColor = _tabline.tablineSelFgColor;
-        _titleLabel.animator.textColor = _tabline.tablineSelFgColor;
+        _titleLabel.animator.textColor = hasFocus ? _tabline.tablineSelFgColor : _tabline.tablineUnfocusedSelFgColor;
         self.animator.fillColor = self.unselectedHoverColor;
     }
     _state = state;
@@ -164,6 +167,11 @@ typedef NSString * NSAnimatablePropertyKey;
         [p transformUsingAffineTransform:transform];
     }
     [p fill];
+    NSColor *strokeColor = _tabline.tablineStrokeColor;
+    if (strokeColor != nil) {
+        [strokeColor set];
+        [p stroke];
+    }
 }
 
 @end

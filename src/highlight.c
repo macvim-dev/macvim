@@ -4069,6 +4069,12 @@ highlight_changed(void)
 
 #endif // USER_HIGHLIGHT
 
+#if defined(FEAT_GUI) && defined(FEAT_GUI_MACVIM)
+    // MacVim needs to know about the other highlight colors other than just
+    // the default fg/bg colors.
+    if (gui.in_use)
+	gui_mch_update_highlight();
+#endif
     return OK;
 }
 

@@ -310,11 +310,6 @@ KEY				VALUE ~
 *MMScrollOneDirectionOnly*	scroll along one axis only when using trackpad [bool]
 *MMSmoothResize*		allow smooth resizing of MacVim window [bool]
 *MMShareFindPboard*		share search text to Find Pasteboard [bool]
-*MMShowAddTabButton*		enable "add tab" button on tabline [bool]
-*MMShowTabScrollButtons*	enable tab scroll buttons on tabline [bool]
-*MMTabMinWidth*			minimum width of a tab [int]
-*MMTabOptimumWidth*		default width of a tab [int]
-*MMDefaultTablineColors*	use default colors instead of colorscheme for tabs [bool]
 *MMTextInsetBottom*		text area offset in pixels [int]
 *MMTextInsetLeft*		text area offset in pixels [int]
 *MMTextInsetRight*		text area offset in pixels [int]
@@ -326,6 +321,14 @@ KEY				VALUE ~
 *MMZoomBoth*			zoom button maximizes both directions [bool]
 *MMUpdaterPrereleaseChannel*	opt-in to pre-release software update [bool]
 *MMShowWhatsNewOnStartup*	show "What's New" after updating to new version [bool]
+
+Tabs ~
+*MMTabColorsMode*		use default/auto/colorscheme for tab colors [int]
+*MMWindowUseTabBackgroundColor*	use tabs background fill color as window color [bool]
+*MMShowAddTabButton*		enable "add tab" button on tabline [bool]
+*MMShowTabScrollButtons*	enable tab scroll buttons on tabline [bool]
+*MMTabMinWidth*			minimum width of a tab [int]
+*MMTabOptimumWidth*		default width of a tab [int]
 
 As an example, if you have more than one mouse button and would wish to free
 up Ctrl-click so you can bind it to something else, then the appropriate

@@ -23,6 +23,8 @@ extern NSString *MMTabMaxWidthKey;
 extern NSString *MMTabOptimumWidthKey;
 extern NSString *MMShowAddTabButtonKey;
 extern NSString *MMShowTabScrollButtonsKey;
+extern NSString *MMTabColorsModeKey;
+extern NSString *MMWindowUseTabBackgroundColorKey;
 extern NSString *MMTextInsetLeftKey;
 extern NSString *MMTextInsetRightKey;
 extern NSString *MMTextInsetTopKey;
@@ -104,6 +106,11 @@ enum MMAppearanceModeSelectionEnum {
     MMAppearanceModeSelectionBackgroundOption = 3,
 };
 
+typedef enum : NSInteger {
+    MMTabColorsModeDefaultColors = 0,   ///< Use default colors based on macOS light/dark modes
+    MMTabColorsModeAutomatic,           ///< Automatically derive tab colors based on foreground/background colors
+    MMTabColorsModeVimColorscheme,      ///< Use Vim colorscheme TabLine/TabLineSel/TabLineFill colors
+} MMTabColorsMode;
 
 enum {
     // These values are chosen so that the min text view size is not too small
@@ -174,7 +181,13 @@ NSView *showHiddenFilesView(void);
 NSString *normalizeFilename(NSString *filename);
 NSArray *normalizeFilenames(NSArray *filenames);
 
-int getCurrentAppearance(NSAppearance *appearance);
+typedef enum : int {
+    AppearanceLight = 0,
+    AppearanceDark,
+    AppearanceLightHighContrast,
+    AppearanceDarkHighContrast,
+} AppearanceType;
+AppearanceType getCurrentAppearance(NSAppearance *appearance);
 
 // Pasteboard helpers
 NSPasteboardType getPasteboardFilenamesType(void);

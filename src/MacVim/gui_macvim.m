@@ -633,6 +633,17 @@ gui_mch_new_colors(void)
 
     ASLogDebug(@"back=%ld norm=%ld", gui.def_back_pixel, gui.def_norm_pixel);
 
+    [[MMBackend sharedInstance]
+        setDefaultColorsBackground:gui.def_back_pixel
+                        foreground:gui.def_norm_pixel];
+}
+
+/*
+ * Called when any highlight has been changed in general
+ */
+    void
+gui_mch_update_highlight(void)
+{
     // If using a highlight group for fullscreen background color we need to
     // update the app when a new color scheme has been picked. This function
     // technically wouldn't be called if a user manually set the relevant
@@ -641,9 +652,34 @@ gui_mch_new_colors(void)
     if (fuoptions_flags & FUOPT_BGCOLOR_HLGROUP)
         gui_mch_fuopt_update();
 
-    [[MMBackend sharedInstance]
-        setDefaultColorsBackground:gui.def_back_pixel
-                        foreground:gui.def_norm_pixel];
+    // Update the GUI with tab colors
+    // We can cache the tabline syn IDs because they will never change.
+    static int tablineSynIds[3] = { 0 };
+    char *tablineSynNames[3] = {"TabLine", "TabLineFill", "TabLineSel"};
+
+    BOOL hasTablineColors = YES;
+    int tablineColors[6] = { 0 };
+    for (int i = 0; i < 3; i++) {
+        if (tablineSynIds[i] <= 0)
+            tablineSynIds[i] = syn_name2id((char_u *)tablineSynNames[i]);
+        if (tablineSynIds[i] > 0) {
+            guicolor_T bg, fg;
+            syn_id2colors(tablineSynIds[i], &fg, &bg);
+            tablineColors[i*2] = (int)bg;
+            tablineColors[i*2+1] = (int)fg;
+        } else {
+            hasTablineColors = NO;
+        }
+    }
+    if (hasTablineColors) {
+        // Cache the old colors just so we don't spam the IPC channel if the
+        // colors didn't actually change.
+        static int oldTablineColors[6] = { 0 };
+        if (memcmp(oldTablineColors, tablineColors, sizeof(oldTablineColors)) != 0) {
+            memcpy(oldTablineColors, tablineColors, sizeof(oldTablineColors));
+            [[MMBackend sharedInstance] setTablineColors:tablineColors];
+        }
+    }
 }
 
 /*
@@ -1994,6 +2030,8 @@ gui_mch_leave_fullscreen(void)
 gui_mch_fuopt_update(void)
 {
     if (!gui.in_use)
+        return;
+    if (!p_fullscreen)
         return;
 
     guicolor_T fg, bg;
