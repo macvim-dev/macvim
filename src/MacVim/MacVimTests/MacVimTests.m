@@ -536,10 +536,12 @@ do { \
     [[[app keyVimController] windowController] fontSizeUp:nil];
     [self waitForEventHandlingAndVimProcess];
     XCTAssertEqualObjects([textView font], [NSFont monospacedSystemFontOfSize:13 weight:NSFontWeightHeavy]);
+    XCTAssertEqualObjects([[app keyVimController] evaluateVimExpression:@"&guifont"], @"-monospace-Heavy:h13");
 
     [[[app keyVimController] windowController] fontSizeDown:nil];
     [self waitForEventHandlingAndVimProcess];
     XCTAssertEqualObjects([textView font], [NSFont monospacedSystemFontOfSize:12 weight:NSFontWeightHeavy]);
+    XCTAssertEqualObjects([[app keyVimController] evaluateVimExpression:@"&guifont"], @"-monospace-Heavy:h12");
 }
 
 /// Test that dark mode settings work and the corresponding Vim bindings are functional.

@@ -250,6 +250,8 @@ static BOOL isUnsafeMessage(int msgid);
     [mainMenu release];  mainMenu = nil;
     [creationDate release];  creationDate = nil;
 
+    [_systemFontNamesToAlias release];  _systemFontNamesToAlias = nil;
+
     [super dealloc];
 }
 
@@ -927,6 +929,14 @@ static BOOL isUnsafeMessage(int msgid);
                             fontWeight = NSFontWeightBlack;
                     }
                     font = [NSFont monospacedSystemFontOfSize:size weight:fontWeight];
+
+                    // We cache the internal name -> user-facing alias mapping
+                    // to allow fontSizeUp/Down actions to be able to retain
+                    // the user-facing font name in 'guifont'.
+                    if (_systemFontNamesToAlias == nil) {
+                        _systemFontNamesToAlias = [[NSMutableDictionary alloc] initWithCapacity:9];
+                    }
+                    _systemFontNamesToAlias[font.fontName] = name;
                 }
                 else
 #endif
