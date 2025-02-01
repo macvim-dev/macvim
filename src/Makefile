@@ -3744,21 +3744,31 @@ macvim-dmg-legacy: DMGFILESYSTEM = HFS+
 macvim-dmg-legacy: DMGFORMAT = UDZO
 macvim-dmg-legacy: macvim-dmg
 
+# Build the dmg installer.
+# First, create 1x/2x versions of backgorund images and volume icons.
+# Second, use create-dmg to create the image.
+# - Note: Background is 472 pt high, but the macOS title bar is an additional
+#   28. Add them up (472+28=500) so the window can show the entire image
+#   without being clipped. Note that if the user has "Show Path Bar" set in
+#   Finder this will still clip the bottom but there's nothing we can do about
+#   that.
 macvim-dmg:
 	rm -rf $(DMGDIR)
 	mkdir -p $(DMGDIR)
 	cp -a $(RELEASEDIR)/MacVim.app $(DMGDIR)/
+	tiffutil -cathidpicheck MacVim/dmg/background@1x.png MacVim/dmg/background@2x.png -out $(DMGDIR)/background.tiff
+	MacVim/scripts/create_icns MacVim/dmg/volume_icons $(DMGDIR) volume
 	rm -rf $(RELEASEDIR)/$(DMGFILE)
 	MacVim/create-dmg/create-dmg \
 		--filesystem "$(DMGFILESYSTEM)" \
 		--format "$(DMGFORMAT)" \
 		--volname "MacVim" \
-		--volicon MacVim/icons/MacVim.icns \
-		--background MacVim/dmg/background.png \
-		--window-size 650 470 \
-		--icon-size 80 \
-		--icon MacVim.app 240 320 \
-		--app-drop-link 410 320 \
+		--volicon $(DMGDIR)/volume.icns \
+		--background $(DMGDIR)/background.tiff \
+		--window-size 650 500 \
+		--icon-size 128 \
+		--icon MacVim.app 210 290 \
+		--app-drop-link 440 290 \
 		$(CREATEDMG_FLAGS) $(RELEASEDIR)/$(DMGFILE) $(DMGDIR)
 
 macvimclean:

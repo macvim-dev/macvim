@@ -1,0 +1,29 @@
+#!/bin/sh
+
+# Utility script to create an icns file from an iconset folder. It will handle
+# duplicating the necessary images for 1x/2x use so we don't have to commit
+# identical images to the repository.
+
+if [[ $# == 0 || $# == 1 || $# == 2 ]]; then
+    echo "Usage: create_icns <folder> <output_folder> <icns_name>"
+    exit -1
+fi
+
+set -e
+
+icons_folder=$1
+output_folder=$2
+output_name=$3
+
+cp -R "$icons_folder" "$output_folder/$output_name.iconset"
+
+cd "$output_folder/$output_name.iconset"
+
+cp icon_32x32@1x.png icon_16x16@2x.png
+cp icon_64x64@1x.png icon_32x32@2x.png
+cp icon_128x128@1x.png icon_64x64@2x.png
+cp icon_256x256@1x.png icon_128x128@2x.png
+cp icon_512x512@1x.png icon_256x256@2x.png
+
+cd ..
+iconutil --convert icns $output_name.iconset --out $output_name.icns
