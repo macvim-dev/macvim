@@ -3717,6 +3717,7 @@ RUNTIME_FOLDER_LIST = MacVim/auto/runtime_folder_list.xcfilelist
 
 RELEASEDIR = MacVim/build/Release
 DMGDIR = MacVim/build/dmg
+DMGSCRATCHDIR = MacVim/build/dmg_scratch
 DMGFILE = MacVim.dmg
 ENTITLEMENTS = MacVim/MacVim.entitlements
 
@@ -3753,18 +3754,20 @@ macvim-dmg-legacy: macvim-dmg
 #   Finder this will still clip the bottom but there's nothing we can do about
 #   that.
 macvim-dmg:
+	rm -rf $(DMGSCRATCHDIR)
+	mkdir -p $(DMGSCRATCHDIR)
+	tiffutil -cathidpicheck MacVim/dmg/background@1x.png MacVim/dmg/background@2x.png -out $(DMGSCRATCHDIR)/background.tiff
+	MacVim/scripts/create_icns MacVim/dmg/volume_icons $(DMGSCRATCHDIR) volume
 	rm -rf $(DMGDIR)
 	mkdir -p $(DMGDIR)
 	cp -a $(RELEASEDIR)/MacVim.app $(DMGDIR)/
-	tiffutil -cathidpicheck MacVim/dmg/background@1x.png MacVim/dmg/background@2x.png -out $(DMGDIR)/background.tiff
-	MacVim/scripts/create_icns MacVim/dmg/volume_icons $(DMGDIR) volume
 	rm -rf $(RELEASEDIR)/$(DMGFILE)
 	MacVim/create-dmg/create-dmg \
 		--filesystem "$(DMGFILESYSTEM)" \
 		--format "$(DMGFORMAT)" \
 		--volname "MacVim" \
-		--volicon $(DMGDIR)/volume.icns \
-		--background $(DMGDIR)/background.tiff \
+		--volicon $(DMGSCRATCHDIR)/volume.icns \
+		--background $(DMGSCRATCHDIR)/background.tiff \
 		--window-size 650 500 \
 		--icon-size 128 \
 		--icon MacVim.app 210 290 \
