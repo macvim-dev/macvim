@@ -163,6 +163,11 @@ static CGSSetWindowBackgroundBlurRadiusFunction* GetCGSSetWindowBackgroundBlurRa
 
 - (void)setBlurRadius:(int)radius
 {
+    [MMWindow setBlurRadius:radius onWindow:self];
+}
+
++ (void)setBlurRadius:(int)radius onWindow:(NSWindow *)win
+{
     if (radius >= 0) {
         CGSConnectionID con = CGSMainConnectionID();
         if (!con) {
@@ -170,7 +175,7 @@ static CGSSetWindowBackgroundBlurRadiusFunction* GetCGSSetWindowBackgroundBlurRa
         }
         CGSSetWindowBackgroundBlurRadiusFunction* function = GetCGSSetWindowBackgroundBlurRadiusFunction();
         if (function) {
-            function(con, (int)[self windowNumber], radius);
+            function(con, (int)[win windowNumber], radius);
         }
     }
 }
