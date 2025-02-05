@@ -71,16 +71,14 @@ NS_ASSUME_NONNULL_BEGIN
 
     MMTextViewHelper            *helper;
 
-    NSMutableDictionary<NSNumber *, NSFont *> *fontVariants;
-    NSMutableSet<NSString *> *characterStrings;
-    NSMutableDictionary<NSNumber *,NSCache<NSString *,id> *> *characterLines;
-    
     // These are used in MMCoreTextView+ToolTip.m
     id trackingRectOwner_;              // (not retained)
     void *trackingRectUserData_;
     NSTrackingRectTag lastToolTipTag_;
     NSString* toolTip_;
 }
+
+@property (nonatomic) NSSize drawRectOffset; ///< A render offset to apply to the draw rects. This is currently only used in specific situations when rendering is blocked.
 
 - (instancetype)initWithFrame:(NSRect)frame;
 

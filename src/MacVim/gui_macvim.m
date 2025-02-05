@@ -1945,6 +1945,12 @@ gui_mch_set_shellsize(
  * Re-calculates size of the Vim view to fit within the window without having
  * to resize the window. Usually happens after UI elements have changed (e.g.
  * adding / removing a toolbar) when guioptions 'k' is set.
+ *
+ * In other GVim implementations this is a synchronous operation (via
+ * gui_mch_newfont). In MacVim we need to request the GUI process to resize us,
+ * and we do this asynchronously to avoid introducing sync points. It does mean
+ * Vim will temporarily draw/behave using the old size until the it receives
+ * the resize message from the GUI.
  */
     void
 gui_mch_resize_view(void)

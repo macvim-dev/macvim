@@ -914,16 +914,7 @@ typedef enum: NSInteger {
     [textView setFrame:textViewRect];
 
     // Immediately place the scrollbars instead of deferring till later here.
-    // Deferral ended up causing some bugs, in particular when in <10.14
-    // CoreText renderer where [NSAnimationContext beginGrouping] is used to
-    // bundle state changes together and the deferred placeScrollbars would get
-    // the wrong data to use. An alternative would be to check for that and only
-    // call finishPlaceScrollbars once we call [NSAnimationContext endGrouping]
-    // but that makes the code mode complicated. Just do it here and the
-    // performance is fine as this gets called occasionally only
-    // (pendingPlaceScrollbars is mostly for the case if we are adding a lot of
-    // scrollbars at once we want to only call placeScrollbars once instead of
-    // doing it N times).
+    // Otherwise in situations like live resize we will see the scroll bars lag.
     self.pendingPlaceScrollbars = NO;
     [self placeScrollbars];
 

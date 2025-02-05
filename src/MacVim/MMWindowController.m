@@ -91,7 +91,6 @@
 - (void)hideTablineSeparator:(BOOL)hide;
 - (void)doFindNext:(BOOL)next;
 - (void)updateToolbar;
-- (BOOL)maximizeWindow:(int)options;
 - (void)applicationDidChangeScreenParameters:(NSNotification *)notification;
 - (void)enterNativeFullScreen;
 - (void)processAfterWindowPresentedQueue;
@@ -414,6 +413,10 @@
     [vimView setDesiredRows:rows columns:cols];
 
     vimView.pendingLiveResize = NO;
+    if (blockRenderUntilResize) {
+        blockRenderUntilResize = NO;
+        [vimView.textView setDrawRectOffset:NSZeroSize];
+    }
     if (vimView.pendingLiveResizeQueued) {
         // There was already a new size queued while Vim was still processing
         // the last one. We need to immediately request another resize now that
@@ -426,11 +429,11 @@
         // only one outstanding resize message at a time
         // inframeSizeMayHaveChanged:.
         vimView.pendingLiveResizeQueued = NO;
-        [self resizeView];
+        [self resizeVimView];
     }
 
     if (setupDone && !live && !keepGUISize) {
-        shouldResizeVimView = YES;
+        [self resizeVimViewAndWindow];
         keepOnScreen = onScreen;
     }
 
@@ -458,13 +461,46 @@
     }
 }
 
-- (void)resizeView
+/// Resize the Vim view to its desired size based on number of rows/cols.
+/// Ignores the window size and force the window to resize along with it.
+- (void)resizeVimViewAndWindow
+{
+    if (setupDone)
+    {
+        shouldResizeVimView = YES;
+    }
+}
+
+/// Resize the Vim view to match the GUI window size. This makes sure the GUI
+/// doesn't change its size and fit everything within it to match. If the text
+/// view ends up changing size, will send a message to Vim to resize itself.
+- (void)resizeVimView
 {
     if (setupDone)
     {
         shouldResizeVimView = YES;
         shouldKeepGUISize = YES;
     }
+}
+
+/// Resize the Vim view to match GUI window size, but also block any text
+/// rendering from happening while we wait for Vim to be resized. This is used
+/// to avoid any flickering as the current rendered texts are going to be
+/// invalidated very soon as Vim will be resized and issue new draw commands.
+///
+/// This happens when say we have guioptions+=k and the user changes the font
+/// or shows the tab bar.
+- (void)resizeVimViewBlockRender
+{
+    [self resizeVimView];
+    if (shouldResizeVimView) {
+        blockRenderUntilResize = YES;
+    }
+}
+
+- (BOOL)isRenderBlocked
+{
+    return blockRenderUntilResize;
 }
 
 - (void)zoomWithRows:(int)rows columns:(int)cols state:(int)state
@@ -805,7 +841,6 @@
 
     [[vimView textView] setFont:font];
     [self updateResizeConstraints:NO];
-    shouldMaximizeWindow = YES;
 }
 
 - (void)setWideFont:(NSFont *)font
@@ -834,69 +869,89 @@
     if (updateToolbarFlag != 0)
         [self updateToolbar];
 
+    const int oldTextViewRows = vimView.textView.pendingMaxRows;
+    const int oldTextViewCols = vimView.textView.pendingMaxColumns;
+    const NSRect oldTextViewFrame = vimView.textView.frame;
+    BOOL vimViewSizeChanged = NO;
+
     // NOTE: If the window has not been presented then we must avoid resizing
     // the views since it will cause them to be constrained to the screen which
     // has not yet been set!
     if (windowPresented && shouldResizeVimView) {
         shouldResizeVimView = NO;
 
-        // Make sure full-screen window stays maximized (e.g. when scrollbar or
-        // tabline is hidden) according to 'fuopt'.
+        NSSize originalSize = [vimView frame].size;
+        int rows = 0, cols = 0;
 
-        BOOL didMaximize = NO;
-        if (shouldMaximizeWindow && fullScreenEnabled &&
-                (fullScreenOptions & (FUOPT_MAXVERT|FUOPT_MAXHORZ)) != 0)
-            didMaximize = [self maximizeWindow:fullScreenOptions];
+        // Setting 'guioptions+=k' will make shouldKeepGUISize true, which
+        // means avoid resizing the window. Instead, resize the view instead
+        // to keep the GUI window's size consistent.
+        // Note: Vim should always have requested shouldKeepGUISize to be true
+        //       when in full screen, but we check for it anyway for safety.
+        bool avoidWindowResize = shouldKeepGUISize || fullScreenEnabled;
 
-        shouldMaximizeWindow = NO;
+        if (!avoidWindowResize) {
+            NSSize contentSize = [vimView constrainRows:&rows columns:&cols
+                                                 toSize:
+                                  fullScreenWindow ? [fullScreenWindow frame].size :
+                                  fullScreenEnabled ? desiredWindowSize :
+                                  [self constrainContentSizeToScreenSize:[vimView desiredSize]]];
 
-        // Resize Vim view and window, but don't do this now if the window was
-        // just reszied because this would make the window "jump" unpleasantly.
-        // Instead wait for Vim to respond to the resize message and do the
-        // resizing then.
-        // TODO: What if the resize message fails to make it back?
-        if (!didMaximize) {
-            NSSize originalSize = [vimView frame].size;
-            int rows = 0, cols = 0;
+            [vimView setFrameSize:contentSize];
 
-            // Setting 'guioptions+=k' will make shouldKeepGUISize true, which
-            // means avoid resizing the window. Instead, resize the view instead
-            // to keep the GUI window's size consistent.
-            bool avoidWindowResize = shouldKeepGUISize || fullScreenEnabled;
-
-            if (!avoidWindowResize) {
-                NSSize contentSize = [vimView constrainRows:&rows columns:&cols
-                                                     toSize:
-                                      fullScreenWindow ? [fullScreenWindow frame].size :
-                                      fullScreenEnabled ? desiredWindowSize :
-                                      [self constrainContentSizeToScreenSize:[vimView desiredSize]]];
-
-                [vimView setFrameSize:contentSize];
-
-                [self resizeWindowToFitContentSize:contentSize
-                                      keepOnScreen:keepOnScreen];
+            [self resizeWindowToFitContentSize:contentSize
+                                  keepOnScreen:keepOnScreen];
+        }
+        else {
+            NSSize frameSize;
+            if (fullScreenWindow) {
+                // Non-native full screen mode.
+                NSRect desiredFrame = [fullScreenWindow getDesiredFrame];
+                frameSize = desiredFrame.size;
+                [vimView setFrameOrigin:desiredFrame.origin]; // This will get set back to normal in MMFullScreenWindow::leaveFullScreen.
+            } else if (fullScreenEnabled) {
+                // Native full screen mode.
+                frameSize = desiredWindowSize;
+            } else {
+                frameSize = originalSize;
             }
-            else {
-                NSSize frameSize;
-                if (fullScreenWindow) {
-                    // Non-native full screen mode.
-                    NSRect desiredFrame = [fullScreenWindow getDesiredFrame];
-                    frameSize = desiredFrame.size;
-                    [vimView setFrameOrigin:desiredFrame.origin]; // This will get set back to normal in MMFullScreenWindow::leaveFullScreen.
-                } else if (fullScreenEnabled) {
-                    // Native full screen mode.
-                    frameSize = desiredWindowSize;
-                } else {
-                    frameSize = originalSize;
-                }
-                [vimView setFrameSizeKeepGUISize:frameSize];
-            }
+            [vimView setFrameSizeKeepGUISize:frameSize];
         }
 
         keepOnScreen = NO;
         shouldKeepGUISize = NO;
+
+        vimViewSizeChanged = (vimView.textView.pendingMaxColumns != oldTextViewCols || vimView.textView.pendingMaxRows != oldTextViewRows);
     }
-    
+
+    if (blockRenderUntilResize) {
+        if (vimViewSizeChanged) {
+            const NSRect newTextViewFrame = vimView.textView.frame;
+
+            // We are currently blocking all rendering to prevent flicker. If
+            // the view frame moved (this happens if the tab or left scroll bar
+            // were shown/hidden) the user will see a temporary flicker as the
+            // text view was moved before Vim has udpated us with new draw calls
+            // to match the new size. To alleviate this, we temporarily apply
+            // a drawing offset in the text view to counter the offset. To the
+            // user it would appear that the text view hasn't moved at all.
+            [vimView.textView setDrawRectOffset:NSMakeSize(NSMinX(oldTextViewFrame) - NSMinX(newTextViewFrame), NSMaxY(oldTextViewFrame) - NSMaxY(newTextViewFrame))];
+        } else {
+            // We were blocking all rendering until Vim has been resized. However
+            // in situations where we turned out to not need to resize Vim to
+            // begin with, we need to remedy the situation as we dropped some
+            // draw commands before. We simply ask Vim to redraw itself for
+            // simplicity instead of caching all the draw commands for this.
+            // This could happen if we changed guifont (which makes Vim think
+            // we need to resize) but turned out we set it to the same font so
+            // the grid size is the same and no need to resize.
+            blockRenderUntilResize = NO;
+            [vimView.textView setDrawRectOffset:NSZeroSize];
+
+            [vimController sendMessage:RedrawMsgID data:nil];
+        }
+    }
+
     // Tell Vim view to update its scrollbars which is done once per update.
     // Do it last so whatever resizing we have done above will take effect
     // immediate too instead of waiting till next frame.
@@ -921,7 +976,6 @@
 {
     [vimView showTabline:on];
     [self updateTablineSeparator];
-    shouldMaximizeWindow = YES;
 
     if([[NSUserDefaults standardUserDefaults] boolForKey:MMWindowUseTabBackgroundColorKey]) {
         if (on) {
@@ -1010,7 +1064,7 @@
         // with live resizing to make sure we don't havae any stale sizes due
         // to rate limiting of IPC messages during live resizing..
         vimView.pendingLiveResizeQueued = NO;
-        [self resizeView];
+        [self resizeVimView];
     }
 }
 
@@ -1378,12 +1432,6 @@
     if (!setupDone)
         return;
 
-    // NOTE: We need to update the window frame size for Split View even though
-    // in full-screen on El Capitan or later.
-    if (floor(NSAppKitVersionNumber) <= NSAppKitVersionNumber10_10_Max
-            && fullScreenEnabled)
-        return;
-
     // NOTE: Since we have no control over when the window may resize (Cocoa
     // may resize automatically) we simply set the view to fill the entire
     // window.  The vim view takes care of notifying Vim if the number of
@@ -1408,7 +1456,7 @@
 - (void)windowDidChangeBackingProperties:(NSNotification *)notification
 {
     ASLogDebug(@"");
-    [vimController sendMessage:BackingPropertiesChangedMsgID data:nil];
+    [vimController sendMessage:RedrawMsgID data:nil];
 }
 
 // This is not an NSWindow delegate method, our custom MMWindow class calls it
@@ -1638,12 +1686,6 @@
 
 - (void)windowDidEnterFullScreen:(NSNotification *)notification
 {
-    if (floor(NSAppKitVersionNumber) > NSAppKitVersionNumber10_10_Max) {
-        // NOTE: On El Capitan, we need to redraw the view when entering
-        // full-screen using :fullscreen option (including Ctrl-Cmd-f).
-        [vimController sendMessage:BackingPropertiesChangedMsgID data:nil];
-    }
-
     // Sometimes full screen will de-focus the text view. This seems to happen
     // when titlebar is configured as hidden. Simply re-assert it to make sure
     // text is still focused.
@@ -1701,12 +1743,6 @@
 
 - (void)windowDidExitFullScreen:(NSNotification *)notification
 {
-    if (floor(NSAppKitVersionNumber) > NSAppKitVersionNumber10_10_Max) {
-        // NOTE: On El Capitan, we need to redraw the view when leaving
-        // full-screen by moving the window out from Split View.
-        [vimController sendMessage:BackingPropertiesChangedMsgID data:nil];
-    }
-
     // We set the resize increment to 1,1 above just to sure window size was
     // restored properly. We want to set it back to the correct value, which
     // would not be 1,1 if we are not using smooth resize.
@@ -1734,7 +1770,6 @@
     ASLogNotice(@"Failed to EXIT full-screen, maximizing window...");
 
     fullScreenEnabled = YES;
-    [self maximizeWindow:fullScreenOptions];
 
     // Sometimes full screen will de-focus the text view. This seems to happen
     // when titlebar is configured as hidden. Simply re-assert it to make sure
@@ -1793,7 +1828,7 @@
             // We only want to resize the window down to match the Vim size if not using smooth resizing.
             // This resizing is going to re-snap the Window size to multiples of grid size. Otherwise
             // the resize constraint is always going to be at an offset to the desired size.
-            shouldResizeVimView = YES;
+            [self resizeVimViewAndWindow];
         }
     }
 }
@@ -2069,83 +2104,10 @@
     updateToolbarFlag = 0;
 }
 
-- (BOOL)maximizeWindow:(int)options
-{
-    // Note:
-    // This is deprecated code and will be removed later. 'fuopt' should be
-    // handled in processInputQueueDidFinish instead.
-
-    if (floor(NSAppKitVersionNumber) > NSAppKitVersionNumber10_10_Max) {
-        // NOTE: Prevent to resize the window in Split View on El Capitan or
-        // later.
-        return NO;
-    }
-
-    int currRows, currColumns;
-    [[vimView textView] getMaxRows:&currRows columns:&currColumns];
-
-    // NOTE: Do not use [NSScreen visibleFrame] when determining the screen
-    // size since it compensates for menu and dock.
-    int maxRows, maxColumns;
-    NSScreen *screen = [decoratedWindow screen];
-    if (!screen) {
-        ASLogNotice(@"Window not on screen, using main screen");
-        screen = [NSScreen mainScreen];
-    }
-    NSSize size = [screen frame].size;
-    [vimView constrainRows:&maxRows columns:&maxColumns toSize:size];
-
-    ASLogDebug(@"Window dimensions max: %dx%d  current: %dx%d",
-            maxRows, maxColumns, currRows, currColumns);
-
-    // Compute current fu size
-    int fuRows = currRows, fuColumns = currColumns;
-    if (options & FUOPT_MAXVERT)
-        fuRows = maxRows;
-    if (options & FUOPT_MAXHORZ)
-        fuColumns = maxColumns;
-
-    // If necessary, resize vim to target fu size
-    if (currRows != fuRows || currColumns != fuColumns) {
-        // The size sent here is queued and sent to vim when it's in
-        // event processing mode again. Make sure to only send the values we
-        // care about, as they override any changes that were made to 'lines'
-        // and 'columns' after 'fu' was set but before the event loop is run.
-        NSData *data = nil;
-        int msgid = 0;
-        if (currRows != fuRows && currColumns != fuColumns) {
-            int newSize[2] = { fuRows, fuColumns };
-            data = [NSData dataWithBytes:newSize length:2*sizeof(int)];
-            msgid = SetTextDimensionsMsgID;
-        } else if (currRows != fuRows) {
-            data = [NSData dataWithBytes:&fuRows length:sizeof(int)];
-            msgid = SetTextRowsMsgID;
-        } else if (currColumns != fuColumns) {
-            data = [NSData dataWithBytes:&fuColumns length:sizeof(int)];
-            msgid = SetTextColumnsMsgID;
-        }
-        NSParameterAssert(data != nil && msgid != 0);
-
-        ASLogDebug(@"%s: %dx%d", MMVimMsgIDStrings[msgid], fuRows, fuColumns);
-        MMVimController *vc = [self vimController];
-        [vc sendMessage:msgid data:data];
-        [[vimView textView] setMaxRows:fuRows columns:fuColumns];
-
-        // Indicate that window was resized
-        return YES;
-    }
-
-    // Indicate that window was not resized
-    return NO;
-}
-
 - (void)applicationDidChangeScreenParameters:(NSNotification *)notification
 {
     if (fullScreenWindow) {
         [fullScreenWindow applicationDidChangeScreenParameters:notification];
-    } else if (fullScreenEnabled) {
-        ASLogDebug(@"Re-maximizing full-screen window...");
-        [self maximizeWindow:fullScreenOptions];
     }
 }
 
