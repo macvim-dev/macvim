@@ -697,6 +697,11 @@ static BOOL isUnsafeMessage(int msgid);
         break;
         case BatchDrawMsgID:
         {
+            if ([windowController isRenderBlocked]) {
+                // Drop all batch draw commands while blocked. If we end up
+                // changing out mind later we will need to ask Vim to redraw.
+                break;
+            }
             [[[windowController vimView] textView] performBatchDrawWithData:data];
         }
         break;
@@ -717,13 +722,11 @@ static BOOL isUnsafeMessage(int msgid);
         case ShowTabBarMsgID:
         {
             [windowController showTabline:YES];
-            [self sendMessage:BackingPropertiesChangedMsgID data:nil];
         }
         break;
         case HideTabBarMsgID:
         {
             [windowController showTabline:NO];
-            [self sendMessage:BackingPropertiesChangedMsgID data:nil];
         }
         break;
 
@@ -753,7 +756,13 @@ static BOOL isUnsafeMessage(int msgid);
 
         case ResizeViewMsgID:
         {
-            [windowController resizeView];
+            // This is sent when Vim wants MacVim to resize Vim to fit
+            // everything within the GUI window, usually because go+=k is set.
+            // Other gVim usually blocks on this but for MacVim it is async
+            // to reduce synchronization points so we schedule a resize for
+            // later. We ask to block any render from happening until we are
+            // done resizing to avoid a momentary annoying flicker.
+            [windowController resizeVimViewBlockRender];
         }
         break;
         case SetWindowTitleMsgID:

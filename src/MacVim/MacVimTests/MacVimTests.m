@@ -25,6 +25,7 @@
 // Expose private methods for testing purposes
 @interface MMAppController (Private)
 + (NSDictionary*)parseOpenURL:(NSURL*)url;
+- (void)processInputQueues:(id)sender;
 @end
 
 @interface MMVimController (Private)
@@ -225,7 +226,90 @@ static NSDictionary<NSString *, id> *cachedAppDefaults;
     method_setImplementation(method, origIMP);
 }
 
-/// Wait for Vim to process all pending messages in its queue.
+static BOOL vimProcessInputBlocked = NO;
+
+/// Block / unblock all Vim message handling from happening. This allows tests
+/// to run with a strong guarantee of ordering of events without them being
+/// subject to timing variations. Any outstanding block will be cleared at the
+/// end of the tests during teardown automatically.
+- (void)blockVimProcessInput:(BOOL)block {
+    SEL sel = @selector(processInputQueues:);
+    Method method = class_getInstanceMethod([MMAppController class], sel);
+
+    __weak __typeof__(self) self_weak = self;
+
+    static IMP origIMP = nil;
+    static BOOL blockedMethodCalled = NO;
+    static BOOL teardownAdded = NO;
+    if (block) {
+        if (origIMP == nil)
+            origIMP = method_getImplementation(method);
+        IMP newIMP = imp_implementationWithBlock(^(id self, id sender) {
+            blockedMethodCalled = YES;
+        });
+        method_setImplementation(method, newIMP);
+        vimProcessInputBlocked = YES;
+
+        if (!teardownAdded) {
+            [self addTeardownBlock:^{
+                if (vimProcessInputBlocked) {
+                    [self_weak blockVimProcessInput:NO];
+                }
+                teardownAdded = NO;
+            }];
+            teardownAdded = YES;
+        }
+    } else {
+        if (origIMP != nil) {
+            method_setImplementation(method, origIMP);
+
+            if (blockedMethodCalled) {
+                MMAppController *app = MMAppController.sharedInstance;
+                [app performSelectorOnMainThread:@selector(processInputQueues:) withObject:nil waitUntilDone:NO];
+                blockedMethodCalled = NO;
+            }
+        }
+        vimProcessInputBlocked = NO;
+    }
+}
+
+/// Wait for a specific message from Vim. Optionally, after receiving the
+/// mesasge, block all future Vim message handling until manually unblocked
+/// or this method was called again. This is useful for tests that want to
+/// test a sequence of events with tight ordering and not be subject to timing
+/// issues.
+- (void)waitForVimMessage:(int)messageID blockFutureMessages:(BOOL)blockMsgs {
+    XCTestExpectation *expectation = [self expectationWithDescription:@"VimMessage"];
+
+    SEL sel = @selector(handleMessage:data:);
+    Method method = class_getInstanceMethod([MMVimController class], sel);
+
+    __weak __typeof__(self) self_weak = self;
+
+    IMP origIMP = method_getImplementation(method);
+    IMP newIMP = imp_implementationWithBlock(^(id self, int msgid, NSData *data) {
+        typedef void (*fn)(id,SEL,int,NSData*);
+        ((fn)origIMP)(self, sel, msgid, data);
+        if (msgid == messageID) {
+            [expectation fulfill];
+            if (blockMsgs) {
+                [self_weak blockVimProcessInput:YES];
+            }
+        }
+    });
+
+    if (vimProcessInputBlocked) {
+        // Make sure unblock message handling first or we will deadlock.
+        [self blockVimProcessInput:NO];
+    }
+
+    method_setImplementation(method, newIMP);
+    [self waitForExpectations:@[expectation] timeout:10];
+    method_setImplementation(method, origIMP);
+}
+
+/// Wait for Vim to process all pending messages in its queue. In future we
+/// should migrate to having tests directly call waitForVimMessage directly.
 - (void)waitForVimProcess {
     // Implement this by sending a loopback message (Vim will send the message
     // back to us) as a synchronization mechanism as Vim handles its messages
@@ -774,6 +858,85 @@ do { \
         XCTAssertEqual(30, textView.maxRows);
         XCTAssertEqual(80, textView.maxColumns);
     }
+}
+
+/// Test resizing the Vim view to match window size (go+=k / full screen) works
+/// and produces a stable image.
+- (void) testResizeVimView {
+    [self createTestVimWindow];
+
+    MMAppController *app = MMAppController.sharedInstance;
+    MMWindowController *win = [[app keyVimController] windowController];
+    MMTextView *textView = [[[[app keyVimController] windowController] vimView] textView];
+
+    [self sendStringToVim:@":set guioptions+=k guifont=Menlo:h10\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+
+    // Set a default 30,80 base size for the entire test
+    [self sendStringToVim:@":set lines=30 columns=80\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    XCTAssertEqual(textView.maxRows, 30);
+    XCTAssertEqual(textView.maxColumns, 80);
+
+    // Test that setting a bigger font will trigger a resize of Vim view to
+    // smaller grid, but also block intermediary rendering to avoid flicker.
+    [self sendStringToVim:@":set guifont=Menlo:h13\n" withMods:0];
+    [self waitForVimMessage:SetFontMsgID blockFutureMessages:YES];
+    XCTAssertEqual(textView.maxRows, 30);
+    XCTAssertEqual(textView.maxColumns, 80);
+    XCTAssertLessThan(textView.pendingMaxRows, 30); // confirms that we have an outstanding resize request to make it smaller
+    XCTAssertLessThan(textView.pendingMaxColumns, 80);
+    XCTAssertTrue(win.isRenderBlocked);
+    // Vim has responded to the size change. We should now have unblocked rendering.
+    [self waitForVimMessage:SetTextDimensionsNoResizeWindowMsgID blockFutureMessages:YES];
+    XCTAssertLessThan(textView.maxRows, 30);
+    XCTAssertLessThan(textView.maxColumns, 80);
+    XCTAssertFalse(win.isRenderBlocked);
+
+    // Make sure if we set it again to the same font, we won't block since we
+    // didn't actually resize anything.
+    [self sendStringToVim:@":set guifont=Menlo:h13\n" withMods:0];
+    [self waitForVimMessage:SetFontMsgID blockFutureMessages:YES];
+    XCTAssertFalse(win.isRenderBlocked);
+
+    // Set it back and make sure it went back to the original rows/cols
+    [self sendStringToVim:@":set guifont=Menlo:h10\n" withMods:0];
+    [self waitForVimMessage:SetTextDimensionsNoResizeWindowMsgID blockFutureMessages:YES];
+    XCTAssertEqual(textView.maxRows, 30);
+    XCTAssertEqual(textView.maxColumns, 80);
+
+    // Test making a new tab would do the same
+    [self sendStringToVim:@":tabnew\n" withMods:0];
+    [self waitForVimMessage:ShowTabBarMsgID blockFutureMessages:YES];
+    XCTAssertEqual(textView.maxRows, 30);
+    XCTAssertLessThan(textView.pendingMaxRows, 30);
+    XCTAssertGreaterThan(textView.drawRectOffset.height, 0);
+    XCTAssertTrue(win.isRenderBlocked);
+    [self waitForVimMessage:SetTextDimensionsNoResizeWindowMsgID blockFutureMessages:YES];
+    XCTAssertLessThan(textView.maxRows, 30);
+    XCTAssertEqual(textView.drawRectOffset.height, 0);
+    XCTAssertFalse(win.isRenderBlocked);
+    [self blockVimProcessInput:NO];
+
+    // Repeat the same font size change test in full screen to exercise that
+    // code path. In particular, it should act like go+=k even if the option
+    // was not explicitly set.
+    [self setDefault:MMNativeFullScreenKey toValue:@NO]; // non-native is faster so use that
+    [self sendStringToVim:@":set guioptions-=k fullscreen\n" withMods:0];
+    [self waitForFullscreenTransitionIsEnter:YES isNative:NO];
+    int fuRows = textView.maxRows;
+    int fuCols = textView.maxColumns;
+    [self sendStringToVim:@":set guifont=Menlo:h13\n" withMods:0];
+    [self waitForVimMessage:SetFontMsgID blockFutureMessages:YES];
+    XCTAssertEqual(textView.maxRows, fuRows);
+    XCTAssertEqual(textView.maxColumns, fuCols);
+    XCTAssertLessThan(textView.pendingMaxRows, fuRows);
+    XCTAssertLessThan(textView.pendingMaxColumns, fuCols);
+    XCTAssertTrue(win.isRenderBlocked);
+    [self waitForVimMessage:SetTextDimensionsNoResizeWindowMsgID blockFutureMessages:YES];
+    XCTAssertLessThan(textView.maxRows, fuRows);
+    XCTAssertLessThan(textView.maxColumns, fuCols);
+    XCTAssertFalse(win.isRenderBlocked);
 }
 
 #pragma mark Full screen tests

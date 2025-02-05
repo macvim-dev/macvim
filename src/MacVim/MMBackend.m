@@ -2206,10 +2206,8 @@ static char_u *extractSelectedText(void)
         const void *bytes = [data bytes];
         int idx = *((int*)bytes) + 1;
         send_tabline_menu_event(idx, TABLINE_MENU_CLOSE);
-        [self redrawScreen];
     } else if (AddNewTabMsgID == msgid) {
         send_tabline_menu_event(0, TABLINE_MENU_NEW);
-        [self redrawScreen];
     } else if (DraggedTabMsgID == msgid) {
         if (!data) return;
         const void *bytes = [data bytes];
@@ -2259,8 +2257,6 @@ static char_u *extractSelectedText(void)
         [self queueMessage:msgid data:d];
 
         gui_resize_shell(cols, rows);
-    } else if (ResizeViewMsgID == msgid) {
-        [self queueMessage:msgid data:data];
     } else if (ExecuteMenuMsgID == msgid) {
         NSDictionary *attrs = [NSDictionary dictionaryWithData:data];
         if (attrs) {
@@ -2332,7 +2328,7 @@ static char_u *extractSelectedText(void)
         [self setImState:YES];
     } else if (DeactivatedImMsgID == msgid) {
         [self setImState:NO];
-    } else if (BackingPropertiesChangedMsgID == msgid) {
+    } else if (RedrawMsgID == msgid) {
         [self redrawScreen];
     } else if (LoopBackMsgID == msgid) {
         // This is a debug message used for confirming a message has been
@@ -2725,8 +2721,6 @@ static char_u *extractSelectedText(void)
         CONVERT_FROM_UTF8_FREE(ws);
     }
     CONVERT_FROM_UTF8_FREE(s);
-
-    [self redrawScreen];
 }
 
 - (void)handleDropFiles:(NSData *)data

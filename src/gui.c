@@ -1714,7 +1714,8 @@ gui_set_shellsize(
 #endif
 
 #ifdef FEAT_GUI_MACVIM
-    if (!mustset && (vim_strchr(p_go, GO_KEEPWINSIZE) != NULL))
+    if (!mustset && (vim_strchr(p_go, GO_KEEPWINSIZE) != NULL
+						       || p_fullscreen))
     {
 	/* We don't want to resize the window, so instruct the GUI to resize
 	 * the view to be within the constraints of the current window's size */

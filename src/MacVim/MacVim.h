@@ -348,7 +348,7 @@ extern const char * const MMVimMsgIDStrings[];
     MSG(SetTooltipMsgID) \
     MSG(GestureMsgID) \
     MSG(AddToMRUMsgID) \
-    MSG(BackingPropertiesChangedMsgID) \
+    MSG(RedrawMsgID) \
     MSG(SetBlurRadiusMsgID) \
     MSG(SetBackgroundOptionMsgID) \
     MSG(NotifyAppearanceChangeMsgID) \

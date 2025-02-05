@@ -222,6 +222,10 @@ static void grid_free(Grid *grid) {
 
 @implementation MMCoreTextView {
     Grid grid;
+    NSMutableSet<NSString *> *characterStrings; ///< Storage for characters in the grid
+
+    NSMutableDictionary<NSNumber *, NSFont *> *fontVariants; ///< Cache for fonts used for each variant (e.g. italic)
+    NSMutableDictionary<NSNumber *,NSCache<NSString *,id> *> *characterLines; ///< Cache for built CTLine objects
 
     BOOL alignCmdLineToBottom; ///< Whether to pin the Vim command-line to the bottom of the window
     int cmdlineRow; ///< Row number (0-indexed) where the cmdline starts. Used for pinning it to the bottom if desired.
@@ -251,8 +255,9 @@ static void grid_free(Grid *grid) {
     antialias = YES;
 
     [self setFont:[NSFont userFixedPitchFontOfSize:0]];
-    fontVariants = [[NSMutableDictionary alloc] init];
     characterStrings = [[NSMutableSet alloc] init];
+
+    fontVariants = [[NSMutableDictionary alloc] init];
     characterLines = [[NSMutableDictionary alloc] init];
     
     helper = [[MMTextViewHelper alloc] init];
@@ -276,8 +281,8 @@ static void grid_free(Grid *grid) {
     [fontWide release];  fontWide = nil;
     [defaultBackgroundColor release];  defaultBackgroundColor = nil;
     [defaultForegroundColor release];  defaultForegroundColor = nil;
-    [fontVariants release];  fontVariants = nil;
     [characterStrings release];  characterStrings = nil;
+    [fontVariants release];  fontVariants = nil;
     [characterLines release];  characterLines = nil;
     
     [helper setTextView:nil];
@@ -478,9 +483,7 @@ static void grid_free(Grid *grid) {
     cellSize.width = columnspace + ceil(em * cellWidthMultiplier);
     cellSize.height = linespace + defaultLineHeightForFont(font);
 
-    [self clearAll];
     [fontVariants removeAllObjects];
-    [characterStrings removeAllObjects];
     [characterLines removeAllObjects];
 }
 
@@ -498,9 +501,7 @@ static void grid_free(Grid *grid) {
         fontWide = [newFont retain];
     }
 
-    [self clearAll];
     [fontVariants removeAllObjects];
-    [characterStrings removeAllObjects];
     [characterLines removeAllObjects];
 }
 
@@ -1485,6 +1486,9 @@ static void grid_free(Grid *grid) {
     rect.size.width = nc*cellSize.width;
     rect.size.height = nr*cellSize.height;
 
+    rect.origin.x += _drawRectOffset.width;
+    rect.origin.y += _drawRectOffset.height;
+
     // Under smooth resizing, full screen, or guioption-k; we frequently have a frame size that's not
     // aligned with the exact grid size. If the user has 'cursorline' set, or the color scheme uses
     // the NonText highlight group, this will leave a small gap on the right filled with bg color looking
@@ -1505,6 +1509,7 @@ static void grid_free(Grid *grid) {
         const CGFloat gapHeight = frame.size.height - grid.rows*cellSize.height - insetSize.height - insetBottom;
         if (row >= cmdlineRow) {
             rect.origin.y -= gapHeight;
+            rect.origin.y -= _drawRectOffset.height; // Pinning ignores draw rect offset for stability
         } else if (row + nr - 1 >= cmdlineRow) {
             // This is an odd case where the gap between cmdline and the top-aligned content is inside
             // the rect so we need to adjust the height as well. During rendering we draw line-by-line
@@ -1512,6 +1517,7 @@ static void grid_free(Grid *grid) {
             // the rect in setNeedsDisplayFromRow:.
             rect.size.height += gapHeight;
             rect.origin.y -= gapHeight;
+            rect.origin.y -= _drawRectOffset.height; // Pinning ignores draw rect offset for stability
         }
     }
     return rect;

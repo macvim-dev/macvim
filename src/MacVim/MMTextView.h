@@ -31,6 +31,8 @@
     MMTextViewHelper    *helper;
 }
 
+@property (nonatomic) NSSize drawRectOffset; // Unused. Only used by MMCoreTextView
+
 - (id)initWithFrame:(NSRect)frame;
 
 - (void)setPreEditRow:(int)row column:(int)col;

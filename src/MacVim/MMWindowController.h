@@ -28,18 +28,22 @@
     MMVimView           *vimView;
     BOOL                setupDone;
     BOOL                windowPresented;
-    BOOL                shouldResizeVimView;
-    BOOL                shouldKeepGUISize;
+
+    BOOL                shouldResizeVimView; ///< Indicates there is a pending command to resize the Vim view
+    BOOL                shouldKeepGUISize; ///< If on, the Vim view resize will try to fit in the existing window. If off, the window resizes to fit Vim view.
+    BOOL                blockRenderUntilResize; ///< Indicates that there should be no text rendering until a Vim view resize is completed to avoid flicker.
+
     BOOL                shouldRestoreUserTopLeft;
-    BOOL                shouldMaximizeWindow;
     int                 updateToolbarFlag;
     BOOL                keepOnScreen;
     NSString            *windowAutosaveKey;
+
     BOOL                fullScreenEnabled; ///< Whether full screen is on (native or not)
     MMFullScreenWindow  *fullScreenWindow; ///< The window used for non-native full screen. Will only be non-nil when in non-native full screen.
     int                 fullScreenOptions;
     BOOL                delayEnterFullScreen;
     NSRect              preFullScreenFrame;
+
     MMWindow            *decoratedWindow;
     NSString            *lastSetTitle;
     NSString            *documentFilename; ///< File name of document being edited, used for the icon at the title bar.
@@ -68,7 +72,10 @@
 - (void)setTextDimensionsWithRows:(int)rows columns:(int)cols isLive:(BOOL)live
                       keepGUISize:(BOOL)keepGUISize
                      keepOnScreen:(BOOL)onScreen;
-- (void)resizeView;
+- (void)resizeVimViewAndWindow;
+- (void)resizeVimView;
+- (void)resizeVimViewBlockRender;
+- (BOOL)isRenderBlocked;
 - (void)zoomWithRows:(int)rows columns:(int)cols state:(int)state;
 - (void)setTitle:(NSString *)title;
 - (void)setDocumentFilename:(NSString *)filename;
