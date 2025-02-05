@@ -367,6 +367,8 @@
         // GUIEnter auto command could cause this).
         [fullScreenWindow enterFullScreen];
         fullScreenEnabled = YES;
+        if (blurRadius != 0)
+            [MMWindow setBlurRadius:blurRadius onWindow:fullScreenWindow];
         shouldResizeVimView = YES;
     } else if (delayEnterFullScreen) {
         [self enterNativeFullScreen];
@@ -1017,6 +1019,9 @@
     blurRadius = radius;
     if (windowPresented) { 
         [decoratedWindow setBlurRadius:radius];
+        if (fullScreenWindow) {
+            [MMWindow setBlurRadius:radius onWindow:fullScreenWindow];
+        }
     }
 }
 
@@ -1045,8 +1050,9 @@
 
         NSColor *fullscreenBg = back;
 
-        // See setDefaultColorsBackground: for why set a transparent
-        // background color, and why 0.001 instead of 0.
+        // Copy option: 'transparency'
+        //   See setDefaultColorsBackground: for why set a transparent
+        //   background color, and why 0.001 instead of 0.
         if ([fullscreenBg alphaComponent] != 1) {
             fullscreenBg = [fullscreenBg colorWithAlphaComponent:0.001];
         }
@@ -1068,6 +1074,13 @@
         if (windowPresented) {
             [fullScreenWindow enterFullScreen];
             fullScreenEnabled = YES;
+
+            // Copy option: 'blurradius'
+            //   Do this here instead of in full screen window since this
+            //   involves calling private APIs and we want to limit where we
+            //   do that.
+            if (blurRadius != 0)
+                [MMWindow setBlurRadius:blurRadius onWindow:fullScreenWindow];
 
             // The resize handle disappears so the vim view needs to update the
             // scrollbars.

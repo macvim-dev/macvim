@@ -29,6 +29,7 @@
 - (void)setContentMaxSize:(NSSize)size;
 - (void)setContentSize:(NSSize)size;
 - (void)setBlurRadius:(int)radius;
++ (void)setBlurRadius:(int)radius onWindow:(NSWindow *)win;
 
 - (IBAction)toggleFullScreen:(id)sender;
 - (IBAction)realToggleFullScreen:(id)sender;
