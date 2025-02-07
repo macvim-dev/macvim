@@ -420,6 +420,7 @@
     vimView.pendingLiveResize = NO;
     if (blockRenderUntilResize) {
         blockRenderUntilResize = NO;
+        blockedRenderTextViewFrame = NSZeroRect;
         [vimView.textView setDrawRectOffset:NSZeroSize];
     }
     if (vimView.pendingLiveResizeQueued) {
@@ -506,6 +507,9 @@
         shouldResizeVimView = YES;
         shouldKeepGUISize = YES;
         blockRenderUntilResize = YES;
+        blockedRenderTextViewFrame = [self.window convertRectToScreen:
+                                      [vimView convertRect:vimView.textView.frame
+                                                    toView:nil]];
         if (!vimController.isHandlingInputQueue)
             [self processInputQueueDidFinish];
     }
@@ -884,7 +888,6 @@
 
     const int oldTextViewRows = vimView.textView.pendingMaxRows;
     const int oldTextViewCols = vimView.textView.pendingMaxColumns;
-    const NSRect oldTextViewFrame = vimView.textView.frame;
     BOOL vimViewSizeChanged = NO;
 
     // NOTE: If the window has not been presented then we must avoid resizing
@@ -899,8 +902,6 @@
         // Setting 'guioptions+=k' will make shouldKeepGUISize true, which
         // means avoid resizing the window. Instead, resize the view instead
         // to keep the GUI window's size consistent.
-        // Note: Vim should always have requested shouldKeepGUISize to be true
-        //       when in full screen, but we check for it anyway for safety.
         bool avoidWindowResize = shouldKeepGUISize || fullScreenEnabled;
 
         if (!avoidWindowResize) {
@@ -939,16 +940,18 @@
 
     if (blockRenderUntilResize) {
         if (vimViewSizeChanged) {
-            const NSRect newTextViewFrame = vimView.textView.frame;
+            const NSRect newTextViewFrame = [self.window convertRectToScreen:[vimView convertRect:vimView.textView.frame toView:nil]];
 
             // We are currently blocking all rendering to prevent flicker. If
-            // the view frame moved (this happens if the tab or left scroll bar
-            // were shown/hidden) the user will see a temporary flicker as the
-            // text view was moved before Vim has udpated us with new draw calls
+            // the view frame moved (this happens if say the tab bar was shown
+            // or hidden) the user will see a temporary flicker as the text
+            // view was moved before Vim has updated us with new draw calls
             // to match the new size. To alleviate this, we temporarily apply
             // a drawing offset in the text view to counter the offset. To the
             // user it would appear that the text view hasn't moved at all.
-            [vimView.textView setDrawRectOffset:NSMakeSize(NSMinX(oldTextViewFrame) - NSMinX(newTextViewFrame), NSMaxY(oldTextViewFrame) - NSMaxY(newTextViewFrame))];
+            [vimView.textView setDrawRectOffset:
+             NSMakeSize(NSMinX(blockedRenderTextViewFrame) - NSMinX(newTextViewFrame),
+                        NSMaxY(blockedRenderTextViewFrame) - NSMaxY(newTextViewFrame))];
         } else {
             // We were blocking all rendering until Vim has been resized. However
             // in situations where we turned out to not need to resize Vim to
@@ -959,6 +962,7 @@
             // we need to resize) but turned out we set it to the same font so
             // the grid size is the same and no need to resize.
             blockRenderUntilResize = NO;
+            blockedRenderTextViewFrame = NSZeroRect;
             [vimView.textView setDrawRectOffset:NSZeroSize];
 
             [vimController sendMessage:RedrawMsgID data:nil];
@@ -1139,6 +1143,22 @@
         // custom full-screen can appear on any screen, as opposed to native
         // full-screen which always uses the main screen.)
         if (windowPresented) {
+            const BOOL shouldPreventFlicker = (fuoptions & FUOPT_MAXVERT) && (fuoptions & FUOPT_MAXHORZ);
+            if (shouldPreventFlicker) {
+                // Prevent visual flickering by temporarily blocking new render
+                // until Vim has updated/resized itself.
+                // We don't do the same when exiting full screen because when
+                // going in this direction the flickering is less noticeable
+                // and it looks odd when the user sees a clamped view.
+                // Also, don't do this if maxvert/maxhorz not set because it
+                // looks quite off in that situation as Vim is supposed to move
+                // visually.
+                blockRenderUntilResize = YES;
+                blockedRenderTextViewFrame = [decoratedWindow convertRectToScreen:
+                                              [vimView convertRect:vimView.textView.frame
+                                                            toView:nil]];
+            }
+
             [fullScreenWindow enterFullScreen];
             fullScreenEnabled = YES;
 
@@ -1149,8 +1169,6 @@
             if (blurRadius != 0)
                 [MMWindow setBlurRadius:blurRadius onWindow:fullScreenWindow];
 
-            // The resize handle disappears so the vim view needs to update the
-            // scrollbars.
             shouldResizeVimView = YES;
         }
     }
@@ -1664,8 +1682,6 @@
 }
 
 
-#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7)
-
 // -- Full-screen delegate ---------------------------------------------------
 
 - (NSApplicationPresentationOptions)window:(NSWindow *)window
@@ -1794,8 +1810,6 @@
     // Vim's state.
     [vimController addVimInput:@"<C-\\><C-N>:set fu<CR>"];
 }
-
-#endif // (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7)
 
 - (void)runAfterWindowPresentedUsingBlock:(void (^)(void))block
 {

@@ -1499,6 +1499,8 @@ static void grid_free(Grid *grid) {
     if (col + nc == grid.cols) {
         const NSInteger insetRight = [[NSUserDefaults standardUserDefaults] integerForKey:MMTextInsetRightKey];
         CGFloat extraWidth = frame.size.width - insetRight - (rect.size.width + rect.origin.x);
+        if (extraWidth > cellSize.width * 4) // just a sane cap so Vim doesn't look really stretched when resized before Vim could catch up
+            extraWidth = cellSize.width * 4;
         rect.size.width += extraWidth;
     }
 
