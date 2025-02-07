@@ -17,6 +17,7 @@
 #import "MMApplication.h"
 #import "MMFullScreenWindow.h"
 #import "MMWindow.h"
+#import "MMTabline.h"
 #import "MMTextView.h"
 #import "MMWindowController.h"
 #import "MMVimController.h"
@@ -887,6 +888,8 @@ do { \
     XCTAssertLessThan(textView.pendingMaxRows, 30); // confirms that we have an outstanding resize request to make it smaller
     XCTAssertLessThan(textView.pendingMaxColumns, 80);
     XCTAssertTrue(win.isRenderBlocked);
+    XCTAssertEqual(textView.drawRectOffset.width, 0);
+    XCTAssertEqual(textView.drawRectOffset.height, 0);
     // Vim has responded to the size change. We should now have unblocked rendering.
     [self waitForVimMessage:SetTextDimensionsNoResizeWindowMsgID blockFutureMessages:YES];
     XCTAssertLessThan(textView.maxRows, 30);
@@ -910,7 +913,7 @@ do { \
     [self waitForVimMessage:ShowTabBarMsgID blockFutureMessages:YES];
     XCTAssertEqual(textView.maxRows, 30);
     XCTAssertLessThan(textView.pendingMaxRows, 30);
-    XCTAssertGreaterThan(textView.drawRectOffset.height, 0);
+    XCTAssertEqual(textView.drawRectOffset.height, MMTablineHeight);
     XCTAssertTrue(win.isRenderBlocked);
     [self waitForVimMessage:SetTextDimensionsNoResizeWindowMsgID blockFutureMessages:YES];
     XCTAssertLessThan(textView.maxRows, 30);
@@ -923,7 +926,11 @@ do { \
     // was not explicitly set.
     [self setDefault:MMNativeFullScreenKey toValue:@NO]; // non-native is faster so use that
     [self sendStringToVim:@":set guioptions-=k fullscreen\n" withMods:0];
+    [self waitForVimMessage:EnterFullScreenMsgID blockFutureMessages:YES];
+    XCTAssertTrue(win.isRenderBlocked);
+    [self blockVimProcessInput:NO];
     [self waitForFullscreenTransitionIsEnter:YES isNative:NO];
+    XCTAssertFalse(win.isRenderBlocked);
     int fuRows = textView.maxRows;
     int fuCols = textView.maxColumns;
     [self sendStringToVim:@":set guifont=Menlo:h13\n" withMods:0];

@@ -31,7 +31,9 @@
 
     BOOL                shouldResizeVimView; ///< Indicates there is a pending command to resize the Vim view
     BOOL                shouldKeepGUISize; ///< If on, the Vim view resize will try to fit in the existing window. If off, the window resizes to fit Vim view.
+
     BOOL                blockRenderUntilResize; ///< Indicates that there should be no text rendering until a Vim view resize is completed to avoid flicker.
+    NSRect              blockedRenderTextViewFrame; ///< The old screen-based coords for the text view when render was blocked.
 
     BOOL                shouldRestoreUserTopLeft;
     int                 updateToolbarFlag;

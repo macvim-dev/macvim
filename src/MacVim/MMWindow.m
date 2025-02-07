@@ -213,11 +213,12 @@ static CGSSetWindowBackgroundBlurRadiusFunction* GetCGSSetWindowBackgroundBlurRa
 
 - (IBAction)toggleFullScreen:(id)sender
 {
-    // HACK! This is an NSWindow method used to enter full-screen on OS X 10.7.
-    // We override it so that we can interrupt and pass this on to Vim first.
-    // An alternative hack would be to reroute the action message sent by the
-    // full-screen button in the top right corner of a window, but there could
-    // be other places where this action message is sent from.
+    // This is an NSWindow method used to enter full-screen since OS X 10.7
+    // Lion. We override it so that we can interrupt and pass this on to Vim
+    // first, as it is full-screen aware (":set fullscreen") and it's better to
+    // only have one path to enter full screen. For non-native full screen this
+    // does mean this button will now enter non-native full screen instead of
+    // native one.
     // To get to the original method (and enter Lion full-screen) we need to
     // call realToggleFullScreen: defined below.
 
@@ -227,11 +228,8 @@ static CGSSetWindowBackgroundBlurRadiusFunction* GetCGSSetWindowBackgroundBlurRa
 
 - (IBAction)realToggleFullScreen:(id)sender
 {
-#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7)
-    // HACK! See toggleFullScreen: comment above.
-    if ([NSWindow instancesRespondToSelector:@selector(toggleFullScreen:)])
-        [super toggleFullScreen:sender];
-#endif
+    // See toggleFullScreen: comment above.
+    [super toggleFullScreen:sender];
 }
 
 - (void)setToolbar:(NSToolbar *)toolbar
