@@ -182,4 +182,9 @@
     [[MMAppController sharedInstance] refreshAllTextViews];
 }
 
+- (IBAction)nonNativeFullScreenShowMenuChanged:(id)sender
+{
+    [[MMAppController sharedInstance] refreshAllFullScreenPresentationOptions];
+}
+
 @end

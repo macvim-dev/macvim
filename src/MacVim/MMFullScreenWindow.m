@@ -134,6 +134,22 @@ enum {
     options = opt;
 }
 
+- (void)updatePresentationOptions
+{
+    // Hide Dock and menu bar when going to full screen. Only do so if the current screen
+    // has a menu bar and dock.
+    if ([self screenHasDockAndMenu]) {
+        const bool showMenu = [[NSUserDefaults standardUserDefaults]
+                               boolForKey:MMNonNativeFullScreenShowMenuKey];
+
+        [NSApplication sharedApplication].presentationOptions = showMenu ?
+            NSApplicationPresentationAutoHideDock :
+            NSApplicationPresentationAutoHideDock | NSApplicationPresentationAutoHideMenuBar;
+    } else {
+        [NSApplication sharedApplication].presentationOptions = NSApplicationPresentationDefault;
+    }
+}
+
 - (void)enterFullScreen
 {
     ASLogDebug(@"Enter full-screen now");
@@ -147,16 +163,7 @@ enum {
     [winController setWindow:nil];
     [target setDelegate:nil];
 
-    // Hide Dock and menu bar when going to full screen. Only do so if the current screen
-    // has a menu bar and dock.
-    if ([self screenHasDockAndMenu]) {
-        const bool showMenu = [[NSUserDefaults standardUserDefaults]
-                               boolForKey:MMNonNativeFullScreenShowMenuKey];
-
-        [NSApplication sharedApplication].presentationOptions = showMenu ?
-            NSApplicationPresentationAutoHideDock :
-            NSApplicationPresentationAutoHideDock | NSApplicationPresentationAutoHideMenuBar;
-    }
+    [self updatePresentationOptions];
 
     // fade to black
     Boolean didBlend = NO;
@@ -376,6 +383,10 @@ enum {
 - (NSEdgeInsets) viewOffset {
     NSEdgeInsets offset = NSEdgeInsetsMake(0, 0, 0, 0);
 
+    NSScreen *screen = [self screen];
+    if (screen == nil)
+        return offset;
+
     NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
     const BOOL showMenu = [ud boolForKey:MMNonNativeFullScreenShowMenuKey];
 
@@ -390,29 +401,28 @@ enum {
         // In the future there may be more. E.g. we can draw tabs in the safe area.
         // If menu is shown, we ignore this because this doesn't make sense.
         if (safeAreaBehavior == 0 || showMenu) {
-            offset = [self screen].safeAreaInsets;
+            offset = screen.safeAreaInsets;
         }
     }
 #endif
 
     if (showMenu) {
-        // Offset by menu height
-        if (offset.top == 0) {
-            const CGFloat menuBarHeight = [[[NSApplication sharedApplication] mainMenu] menuBarHeight];
-            if (menuBarHeight > offset.top) {
-                offset.top = menuBarHeight;
-            }
-        } else {
-            // Unfortunately, if there is a notch (safe area != 0), menuBarHeight does *not* return
-            // the menu height shown in the main screen, so we need to calculate it otherwise.
-            // visibleArea is supposed to give us this information but it's oddly off by one, leading
-            // to a one-pixel black line, so we need to manually increment it by one. Yes, it sucks.
-            NSRect visibleFrame = [self screen].visibleFrame;
-            visibleFrame.size.height += 1;
-            const CGFloat menuBarHeight = [self screen].frame.size.height - NSMaxY(visibleFrame);
-            if (menuBarHeight > offset.top) {
-                offset.top = menuBarHeight;
-            }
+        // Offset by menu height. We use NSScreen's visibleFrame which is the
+        // most reliable way to do so, as NSApp.mainMenu.menuBarHeight could
+        // give us the wrong height if one screen is a laptop screen with
+        // notch, or the user has configured to use single Space for all
+        // screens and we're in a screen without the menu bar.
+        //
+        // Quirks of visibleFrame API:
+        // - It oddly leaves a one pixel gap between menu bar and screen,
+        //   leading to a black bar. We manually adjust for it.
+        // - It will sometimes leave room for the Dock even when it's
+        //   auto-hidden (depends on screen configuration and OS version). As
+        //   such we just use the max Y component (where the menu is) and
+        //   ignore the rest.
+        const CGFloat menuBarHeight = NSMaxY(screen.frame) - NSMaxY(screen.visibleFrame) - 1;
+        if (menuBarHeight > offset.top) {
+            offset.top = menuBarHeight;
         }
     }
 
@@ -514,14 +524,7 @@ enum {
 - (void)windowDidBecomeMain:(NSNotification *)notification
 {
     // Hide menu and dock when this window gets focus.
-    if ([self screenHasDockAndMenu]) {
-        const bool showMenu = [[NSUserDefaults standardUserDefaults]
-                               boolForKey:MMNonNativeFullScreenShowMenuKey];
-
-        [NSApplication sharedApplication].presentationOptions = showMenu ?
-            NSApplicationPresentationAutoHideDock :
-            NSApplicationPresentationAutoHideDock | NSApplicationPresentationAutoHideMenuBar;
-    }
+    [self updatePresentationOptions];
 }
 
 
@@ -530,9 +533,7 @@ enum {
     // Un-hide menu/dock when we lose focus. This makes sure if we have multiple
     // windows opened, when the non-fullscreen windows get focus they will have the
     // dock and menu showing (since presentationOptions is per-app, not per-window).
-    if ([self screenHasDockAndMenu]) {
-        [NSApplication sharedApplication].presentationOptions = NSApplicationPresentationDefault;
-    }
+    [NSApplication sharedApplication].presentationOptions = NSApplicationPresentationDefault;
 }
 
 - (void)windowDidMove:(NSNotification *)notification
@@ -558,6 +559,10 @@ enum {
     // Ensure the full-screen window is still covering the entire screen and
     // then resize view according to 'fuopt'.
     [self setFrame:[screen frame] display:NO];
+
+    if ([self isMainWindow]) {
+        [self updatePresentationOptions];
+    }
 }
 
 @end // MMFullScreenWindow (Private)

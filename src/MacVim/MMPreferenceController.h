@@ -40,5 +40,6 @@
 // Appearance pane
 - (IBAction)fontPropertiesChanged:(id)sender;
 - (IBAction)tabsPropertiesChanged:(id)sender;
+- (IBAction)nonNativeFullScreenShowMenuChanged:(id)sender;
 
 @end

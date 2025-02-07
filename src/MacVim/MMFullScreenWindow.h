@@ -35,6 +35,7 @@
 - (MMFullScreenWindow *)initWithWindow:(NSWindow *)t view:(MMVimView *)v
                                backgroundColor:(NSColor *)back;
 - (void)setOptions:(int)opt;
+- (void)updatePresentationOptions;
 - (void)enterFullScreen;
 - (void)leaveFullScreen;
 - (NSRect)getDesiredFrame;

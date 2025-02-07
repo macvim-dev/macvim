@@ -290,6 +290,11 @@
     return vimView;
 }
 
+- (MMFullScreenWindow *)fullScreenWindow
+{
+    return fullScreenWindow;
+}
+
 - (NSString *)windowAutosaveKey
 {
     return windowAutosaveKey;
@@ -468,6 +473,8 @@
     if (setupDone)
     {
         shouldResizeVimView = YES;
+        if (!vimController.isHandlingInputQueue)
+            [self processInputQueueDidFinish];
     }
 }
 
@@ -480,6 +487,8 @@
     {
         shouldResizeVimView = YES;
         shouldKeepGUISize = YES;
+        if (!vimController.isHandlingInputQueue)
+            [self processInputQueueDidFinish];
     }
 }
 
@@ -492,9 +501,13 @@
 /// or shows the tab bar.
 - (void)resizeVimViewBlockRender
 {
-    [self resizeVimView];
-    if (shouldResizeVimView) {
+    if (setupDone)
+    {
+        shouldResizeVimView = YES;
+        shouldKeepGUISize = YES;
         blockRenderUntilResize = YES;
+        if (!vimController.isHandlingInputQueue)
+            [self processInputQueueDidFinish];
     }
 }
 

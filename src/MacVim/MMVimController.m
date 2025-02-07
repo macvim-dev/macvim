@@ -557,6 +557,8 @@ static BOOL isUnsafeMessage(int msgid);
 {
     if (!isInitialized) return;
 
+    _isHandlingInputQueue = YES;
+
     // NOTE: This method must not raise any exceptions (see comment in the
     // calling method).
     @try {
@@ -566,6 +568,7 @@ static BOOL isUnsafeMessage(int msgid);
     @catch (NSException *ex) {
         ASLogDebug(@"Exception: pid=%d id=%lu reason=%@", pid, identifier, ex);
     }
+    _isHandlingInputQueue = NO;
 }
 
 - (NSToolbarItem *)toolbar:(NSToolbar *)theToolbar
