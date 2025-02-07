@@ -83,11 +83,13 @@
 - (NSArray *)filterOpenFiles:(NSArray *)filenames;
 - (BOOL)openFiles:(NSArray *)filenames withArguments:(NSDictionary *)args;
 
+// Refresh functions are used by preference pane to push through settings changes
 - (void)refreshAllAppearances;
 - (void)refreshAllTabProperties;
 - (void)refreshAllFonts;
 - (void)refreshAllResizeConstraints;
 - (void)refreshAllTextViews;
+- (void)refreshAllFullScreenPresentationOptions;
 
 - (void)openNewWindow:(enum NewWindowMode)mode activate:(BOOL)activate extraArgs:(NSArray *)args;
 - (void)openNewWindow:(enum NewWindowMode)mode activate:(BOOL)activate;

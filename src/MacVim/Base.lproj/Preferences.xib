@@ -507,6 +507,7 @@
                                 </connections>
                             </buttonCell>
                             <connections>
+                                <action selector="nonNativeFullScreenShowMenuChanged:" target="-1" id="7gA-SN-OaM"/>
                                 <binding destination="58" name="value" keyPath="values.MMNonNativeFullScreenShowMenu" id="5wX-jg-QPo"/>
                             </connections>
                         </button>

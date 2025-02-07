@@ -38,6 +38,7 @@
  */
 
 #import "MMAppController.h"
+#import "MMFullScreenWindow.h"
 #import "MMPreferenceController.h"
 #import "MMVimController.h"
 #import "MMVimView.h"
@@ -1269,6 +1270,19 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     for (MMVimController *vc in vimControllers) {
         [vc.windowController.vimView.textView updateCmdlineRow];
         vc.windowController.vimView.textView.needsDisplay = YES;
+    }
+}
+
+/// Refresh all non-native full screen windows to update their presentation
+/// options (show/hide menu and dock).
+- (void)refreshAllFullScreenPresentationOptions
+{
+    for (MMVimController *vc in vimControllers) {
+        MMFullScreenWindow *fullScreenWindow = vc.windowController.fullScreenWindow;
+        if (fullScreenWindow != nil) {
+            [fullScreenWindow updatePresentationOptions];
+            [vc.windowController resizeVimView];
+        }
     }
 }
 

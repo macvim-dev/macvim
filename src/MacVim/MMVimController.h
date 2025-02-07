@@ -60,6 +60,8 @@
 /// E.g. ".AppleSystemUIFontMonospaced-Medium" -> "-monospace-Medium"
 @property (nonatomic, readonly) NSMutableDictionary<NSString*, NSString*>* systemFontNamesToAlias;
 
+@property (nonatomic, readonly) BOOL isHandlingInputQueue;
+
 - (id)initWithBackend:(id)backend pid:(int)processIdentifier;
 - (void)uninitialize;
 - (unsigned long)vimControllerId;
