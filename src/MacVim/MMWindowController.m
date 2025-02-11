@@ -86,7 +86,6 @@
                         keepOnScreen:(BOOL)onScreen;
 - (NSSize)constrainContentSizeToScreenSize:(NSSize)contentSize;
 - (NSRect)constrainFrame:(NSRect)frame;
-- (BOOL)askBackendForSelectedText:(NSPasteboard *)pb;
 - (void)updateTablineSeparator;
 - (void)hideTablineSeparator:(BOOL)hide;
 - (void)doFindNext:(BOOL)next;
@@ -1642,7 +1641,7 @@
 - (id)validRequestorForSendType:(NSString *)sendType
                      returnType:(NSString *)returnType
 {
-    const BOOL sendOk = (([sendType isEqual:NSPasteboardTypeString] && [self askBackendForSelectedText:nil])
+    const BOOL sendOk = (([sendType isEqual:NSPasteboardTypeString] && [self.vimController hasSelectedText])
                          || [sendType length] == 0);
     const BOOL returnOk = ([returnType isEqual:NSPasteboardTypeString] || [returnType length] == 0);
     if (sendOk && returnOk)
@@ -1662,7 +1661,14 @@
     // We should really be fine here since we already checked the types in
     // validRequestsForSendType: above.
     (void)types;
-    return [self askBackendForSelectedText:pboard];
+
+    NSString *string = [vimController selectedText];
+    if (string != nil) {
+        NSArray *types = [NSArray arrayWithObject:NSPasteboardTypeString];
+        [pboard declareTypes:types owner:nil];
+        return [pboard setString:string forType:NSPasteboardTypeString];
+    }
+    return NO;
 }
 
 /// Called by the OS when it tries to update the selection. This could happen
@@ -1672,9 +1678,8 @@
     // Replace the current selection with the text on the pasteboard.
     NSArray *types = [pboard types];
     if ([types containsObject:NSPasteboardTypeString]) {
-        NSString *input = [NSString stringWithFormat:@"s%@",
-                 [pboard stringForType:NSPasteboardTypeString]];
-        [vimController addVimInput:input];
+        NSString *input = [pboard stringForType:NSPasteboardTypeString];
+        [vimController replaceSelectedText:input];
         return YES;
     }
 
@@ -1984,30 +1989,6 @@
     contentRect.size = constrainedSize;
 
     return [decoratedWindow frameRectForContentRect:contentRect];
-}
-
-/// Ask Vim to fill in the pasteboard with the currently selected text in visual mode.
-- (BOOL)askBackendForSelectedText:(NSPasteboard *)pb
-{
-    // This could potentially be done via evaluateExpression by yanking the
-    // selection, then returning the results via getreg('@') and restoring the
-    // register. Using a dedicated API is probably a little safer (e.g. it
-    // prevents TextYankPost autocmd's from triggering) and efficient
-    // and hence this is what we use for now.
-    BOOL reply = NO;
-    id backendProxy = [vimController backendProxy];
-
-    if (backendProxy) {
-        @try {
-            reply = [backendProxy selectedTextToPasteboard:pb];
-        }
-        @catch (NSException *ex) {
-            ASLogDebug(@"selectedTextToPasteboard: failed: pid=%d reason=%@",
-                    [vimController pid], ex);
-        }
-    }
-
-    return reply;
 }
 
 - (void)updateTablineSeparator

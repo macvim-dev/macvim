@@ -648,8 +648,7 @@ static void grid_free(Grid *grid) {
 
 - (void)insertText:(id)string replacementRange:(NSRange)replacementRange
 {
-    // We are not currently replacementRange right now.
-    [helper insertText:string];
+    [helper insertText:string replacementRange:replacementRange];
 }
 
 - (void)doCommandBySelector:(SEL)selector
@@ -1992,7 +1991,7 @@ static void rowColFromUtfRange(const Grid* grid, NSRange range,
         // top of said selection and if so, show definition of that instead.
         MMVimController *vc = [self vimController];
         id<MMBackendProtocol> backendProxy = [vc backendProxy];
-        if ([backendProxy selectedTextToPasteboard:nil]) {
+        if ([backendProxy hasSelectedText]) {
             int selRow = 0, selCol = 0;
             const BOOL isMouseInSelection = [backendProxy mouseScreenposIsSelection:row column:col selRow:&selRow selCol:&selCol];
 

@@ -65,7 +65,7 @@
 - (NSColor *)insertionPointColor;
 
 - (void)keyDown:(NSEvent *)event;
-- (void)insertText:(id)string;
+- (void)insertText:(id)string replacementRange:(NSRange)replacementRange;
 - (void)doCommandBySelector:(SEL)selector;
 - (void)scrollWheel:(NSEvent *)event;
 - (void)mouseDown:(NSEvent *)event;

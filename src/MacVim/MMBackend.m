@@ -1380,158 +1380,140 @@ static struct specialkey
     return eval;
 }
 
-/// Extracts the text currently selected in visual mode, and returns it.
-///
-/// @return the string representing the selected text, or NULL if failure.
-static char_u *extractSelectedText(void)
+- (BOOL)hasSelectedText
 {
-    // Note: Most of the functionality in Vim that allows for extracting useful
-    // text from a selection are in the register & clipboard utility functions.
-    // Unfortunately, most of those functions would actually send the text to
-    // the system clipboard, which we don't want (since we just want to extract
-    // the text instead of polluting the system clipboard). We don't want to
-    // refactor upstream Vim code too much to avoid merge pains later, so we
-    // duplicate a fair bit of the code from the functions below.
-
-    if (!(VIsual_active && (State & MODE_NORMAL))) {
-        // This only works when we are in visual mode and have stuff to select.
-        return NULL;
-    }    
-
-    // Step 1: Find a register to yank the selection to. If we don't do this we
-    // have to duplicate a lot of code in op_yank(). We save it off to a backup
-    // first so we can restore it later to avoid polluting the registers.
-
-    // Just use the yank / '0' register as it makes sense, but it doesn't
-    // really matter.
-    yankreg_T *target_reg = get_y_register(0);
-
-    // Move the contents to the backup without doing memory allocs.
-    yankreg_T backup_reg = *target_reg;
-    target_reg->y_array = NULL;
-    target_reg->y_size = 0;
-
-    // Step 2: Preserve the local states, and then invoke yank.
-    // Note: These were copied from clip_get_selection() in clipboard.c
-    yankreg_T	*old_y_previous, *old_y_current;
-    pos_T	old_cursor;
-    pos_T	old_visual;
-    int		old_visual_mode;
-    colnr_T	old_curswant;
-    int		old_set_curswant;
-    pos_T	old_op_start, old_op_end;
-    oparg_T	oa;
-    cmdarg_T	ca;
-
-    // Avoid triggering autocmds such as TextYankPost.
-    block_autocmds();
-
-    // Yank the selected text into the target register.
-    old_y_previous = get_y_previous();
-    old_y_current = get_y_current();
-    old_cursor = curwin->w_cursor;
-    old_curswant = curwin->w_curswant;
-    old_set_curswant = curwin->w_set_curswant;
-    old_op_start = curbuf->b_op_start;
-    old_op_end = curbuf->b_op_end;
-    old_visual = VIsual;
-    old_visual_mode = VIsual_mode;
-    clear_oparg(&oa);
-    oa.regname = '0'; // Use the '0' (yank) register. We will restore it later to avoid pollution.
-    oa.op_type = OP_YANK;
-    CLEAR_FIELD(ca);
-    ca.oap = &oa;
-    ca.cmdchar = 'y';
-    ca.count1 = 1;
-    ca.retval = CA_NO_ADJ_OP_END;
-    do_pending_operator(&ca, 0, TRUE);
-
-    // Step 3: Extract the text from the yank ('0') register.
-    char_u *str = get_reg_contents(0, 0);
-
-    // Step 4: Clean up the yank register, and restore it back.
-    set_y_current(target_reg); // should not be necessary as it's done in do_pending_operator above (since regname was set to 0), but just to be safe and verbose in intention.
-    free_yank_all();
-    *target_reg = backup_reg;
-
-    // Step 5: Restore all the loose states that were modified during yank.
-    // Note: These were copied from clip_get_selection() in clipboard.c
-    set_y_previous(old_y_previous);
-    set_y_current(old_y_current);
-    curwin->w_cursor = old_cursor;
-    changed_cline_bef_curs();   // need to update w_virtcol et al
-    curwin->w_curswant = old_curswant;
-    curwin->w_set_curswant = old_set_curswant;
-    curbuf->b_op_start = old_op_start;
-    curbuf->b_op_end = old_op_end;
-    VIsual = old_visual;
-    VIsual_mode = old_visual_mode;
-
-    unblock_autocmds();
-
-    return str;
+    return (VIsual_active && (State & MODE_NORMAL));
 }
 
-/// Extract the currently selected text (in visual mode) and send that to the
-/// provided pasteboard.
-- (BOOL)selectedTextToPasteboard:(byref NSPasteboard *)pboard
-{
-    if (VIsual_active && (State & MODE_NORMAL)) {
-        // If there is no pasteboard, just return YES to indicate that there is
-        // text to copy.
-        if (!pboard)
-            return YES;
-
-        char_u *str = extractSelectedText();
-        if (!str)
-            return NO;
-        
-        if (output_conv.vc_type != CONV_NONE) {
-            char_u *conv_str = string_convert(&output_conv, str, NULL);
-            if (conv_str) {
-                vim_free(str);
-                str = conv_str;
-            }
-        }
-
-        NSString *string = [[NSString alloc] initWithUTF8String:(char*)str];
-
-        NSArray *types = [NSArray arrayWithObject:NSPasteboardTypeString];
-        [pboard declareTypes:types owner:nil];
-        BOOL ok = [pboard setString:string forType:NSPasteboardTypeString];
-    
-        [string release];
-        vim_free(str);
-
-        return ok;
-    }
-
-    return NO;
-}
-
-/// Returns the currently selected text. We should consolidate this with
-/// selectedTextToPasteboard: above when we have time. (That function has a
-/// fast path just to query whether selected text exists)
+/// Returns the currently selected text.
 - (NSString *)selectedText
 {
     if (VIsual_active && (State & MODE_NORMAL)) {
-        char_u *str = extractSelectedText();
-        if (!str)
-            return nil;
+        // This is basically doing the following:
+        // - join(getregion(getpos("."), getpos("v"), { type: visualmode() }),"\n")
+        // - Add extra "\n" if we have a linewise selection
         
-        if (output_conv.vc_type != CONV_NONE) {
-            char_u *conv_str = string_convert(&output_conv, str, NULL);
-            if (conv_str) {
-                vim_free(str);
-                str = conv_str;
+        // Call getpos()
+        typval_T pos1, pos2;
+        {
+            typval_T arg_posmark;
+            init_tv(&arg_posmark);
+            arg_posmark.v_type = VAR_STRING;
+
+            arg_posmark.vval.v_string = (char_u*)".";
+            typval_T args1[1] = { arg_posmark };
+            f_getpos(args1, &pos1);
+            if (pos1.v_type != VAR_LIST)
+                return nil;
+
+            arg_posmark.vval.v_string = (char_u*)"v";
+            typval_T args2[1] = { arg_posmark };
+            f_getpos(args2, &pos2);
+            if (pos2.v_type != VAR_LIST) {
+                list_unref(pos1.vval.v_list);
+                return nil;
             }
         }
 
-        NSString *string = [[NSString alloc] initWithUTF8String:(char*)str];
-        vim_free(str);
-        return [string autorelease];
+        // Call getregion()
+        typval_T arg_opts;
+        init_tv(&arg_opts);
+        arg_opts.v_type = VAR_DICT;
+        arg_opts.vval.v_dict = dict_alloc();
+        arg_opts.vval.v_dict->dv_refcount += 1;
+
+        char_u visualmode[2] = { VIsual_mode, '\0' };
+        dict_add_string(arg_opts.vval.v_dict, "type", visualmode);
+
+        typval_T args[3] = { pos1, pos2, arg_opts };
+        typval_T regionLines;
+        f_getregion(args, &regionLines);
+
+        // Join the results
+        NSMutableArray *returnLines = [NSMutableArray array];
+        if (regionLines.v_type == VAR_LIST) {
+            list_T *lines = regionLines.vval.v_list;
+            for (listitem_T *item = lines->lv_first; item != NULL; item = item->li_next) {
+                if (item->li_tv.v_type == VAR_STRING) {
+                    char_u *str = item->li_tv.vval.v_string;
+                    if (output_conv.vc_type != CONV_NONE) {
+                        char_u *conv_str = string_convert(&output_conv, str, NULL);
+                        if (conv_str) {
+                            [returnLines addObject:[NSString stringWithUTF8String:(char*)conv_str]];
+                            vim_free(conv_str);
+                        }
+                    } else {
+                        [returnLines addObject:[NSString stringWithUTF8String:(char*)str]];
+                    }
+                }
+            }
+            list_unref(lines);
+        }
+        dict_unref(arg_opts.vval.v_dict);
+        list_unref(pos1.vval.v_list);
+        list_unref(pos2.vval.v_list);
+
+        if (VIsual_mode == 'V')
+            [returnLines addObject:@""]; // need trailing endline for linewise
+        return [returnLines componentsJoinedByString:@"\n"];
     }
     return nil;
+}
+
+/// Replace the selected text in visual mode with the new suppiled one.
+- (oneway void)replaceSelectedText:(in bycopy NSString *)text
+{
+    if (VIsual_active && (State & MODE_NORMAL)) {
+        // The only real way Vim has in doing this consistently is to use the
+        // register put functionality as there is no generic API for this.
+        // We find an arbitrary register ('0'), back it up, replace it with our
+        // own content, paste it in, then restore the register to old value.
+        yankreg_T *target_reg = get_y_register(0);
+        yankreg_T backup_reg = *target_reg;
+        target_reg->y_array = NULL;
+        target_reg->y_size = 0;
+
+        // If selection is blockwise, we try to match it. Only do it if input
+        // and selected text have same number of lines, as otherwise it could
+        // be awkward.
+        int yank_type = MAUTO;
+        char_u *vimtext = [text vimStringSave];
+        if (VIsual_mode == Ctrl_V) {
+            long text_lines = string_count(vimtext, (char_u*)"\n", FALSE) + 1;
+
+            linenr_T v1 = VIsual.lnum;
+            linenr_T v2 = curwin->w_cursor.lnum;
+            long num_lines = v1 > v2 ? v1 - v2 + 1 : v2 - v1 + 1;
+
+            if (text_lines == num_lines)
+                yank_type = MBLOCK;
+        }
+        write_reg_contents_ex('0', vimtext, -1, FALSE, yank_type, -1);
+        vim_free(vimtext);
+
+        oparg_T oap;
+        CLEAR_FIELD(oap);
+        oap.regname = '0';
+
+        cmdarg_T cap;
+        CLEAR_FIELD(cap);
+        cap.oap = &oap;
+        cap.cmdchar = 'P';
+        cap.count1 = 1;
+
+        nv_put(&cap);
+
+        // Clean up the temporary register, and restore the old state.
+        yankreg_T *old_y_current = get_y_current();
+        set_y_current(target_reg);
+        free_yank_all();
+        set_y_current(old_y_current);
+        *target_reg = backup_reg;
+
+        // nv_put does not trigger a redraw command as it's done on a higher
+        // level, so just do a manual one here to make sure it's done.
+        [self redrawScreen];
+    }
 }
 
 /// Returns whether the provided mouse screen position is on a visually
