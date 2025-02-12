@@ -72,10 +72,8 @@ static void f_getenv(typval_T *argvars, typval_T *rettv);
 static void f_getfontname(typval_T *argvars, typval_T *rettv);
 static void f_getjumplist(typval_T *argvars, typval_T *rettv);
 static void f_getpid(typval_T *argvars, typval_T *rettv);
-static void f_getpos(typval_T *argvars, typval_T *rettv);
 static void f_getreg(typval_T *argvars, typval_T *rettv);
 static void f_getreginfo(typval_T *argvars, typval_T *rettv);
-static void f_getregion(typval_T *argvars, typval_T *rettv);
 static void f_getregionpos(typval_T *argvars, typval_T *rettv);
 static void f_getregtype(typval_T *argvars, typval_T *rettv);
 static void f_gettagstack(typval_T *argvars, typval_T *rettv);
@@ -5758,7 +5756,7 @@ f_getcursorcharpos(typval_T *argvars, typval_T *rettv)
 /*
  * "getpos(string)" function
  */
-    static void
+    void
 f_getpos(typval_T *argvars, typval_T *rettv)
 {
     if (in_vim9script() && check_for_string_arg(argvars, 0) == FAIL)
@@ -5949,7 +5947,7 @@ getregionpos(
 /*
  * "getregion()" function
  */
-    static void
+    void
 f_getregion(typval_T *argvars, typval_T *rettv)
 {
     pos_T		p1, p2;

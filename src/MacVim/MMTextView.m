@@ -724,7 +724,7 @@
 
 - (void)insertText:(id)string
 {
-    [helper insertText:string];
+    [helper insertText:string replacementRange:NSMakeRange(0, 0)];
 }
 
 - (void)doCommandBySelector:(SEL)selector

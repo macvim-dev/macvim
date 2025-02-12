@@ -112,7 +112,6 @@ static void	nv_record(cmdarg_T *cap);
 static void	nv_at(cmdarg_T *cap);
 static void	nv_halfpage(cmdarg_T *cap);
 static void	nv_join(cmdarg_T *cap);
-static void	nv_put(cmdarg_T *cap);
 static void	nv_put_opt(cmdarg_T *cap, int fix_indent);
 static void	nv_open(cmdarg_T *cap);
 #ifdef FEAT_NETBEANS_INTG
@@ -7339,7 +7338,7 @@ nv_join(cmdarg_T *cap)
 /*
  * "P", "gP", "p" and "gp" commands.
  */
-    static void
+    void
 nv_put(cmdarg_T *cap)
 {
     nv_put_opt(cap, FALSE);

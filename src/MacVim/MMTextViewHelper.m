@@ -221,7 +221,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     currentEvent = nil;
 }
 
-- (void)insertText:(id)string
+- (void)insertText:(id)string replacementRange:(NSRange)replacementRange
 {
     if ([self hasMarkedText]) {
         [self sendMarkedText:nil position:0];
@@ -240,6 +240,20 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     // latter case.
     if ([string isKindOfClass:[NSAttributedString class]])
         string = [string string];
+
+    if (replacementRange.length > 0)
+    {
+        // Replacement range is a concept we don't really have a way to fulfill
+        // as we don't have proper access to the underlying text storage. This
+        // should usually be triggered when we have selected text though, and
+        // so we simply ask Vim to replace the current selection with the new
+        // text, and it should hopefully work.
+        // Only known way of this being called is Apple Intelligence Writing
+        // Tools.
+        MMVimController *vc = [self vimController];
+        [vc replaceSelectedText:string];
+        return;
+    }
 
     //int len = [string length];
     //ASLogDebug(@"len=%d char[0]=%#x char[1]=%#x string='%@'", [string length],

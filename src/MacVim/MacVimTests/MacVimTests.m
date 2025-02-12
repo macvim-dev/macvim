@@ -362,17 +362,22 @@ static BOOL vimProcessInputBlocked = NO;
 /// Send a single key to MacVim via event handling system.
 - (void)sendKeyToVim:(NSString*)chars withMods:(int)mods {
     NSApplication* app = [NSApplication sharedApplication];
+
+    NSString *modChars = chars;
+    if (mods & NSEventModifierFlagControl) {
+        unichar ch = [chars characterAtIndex:0] & ~0x60;
+        modChars = [NSString stringWithCharacters:&ch length:1];
+    }
     NSEvent* keyEvent = [NSEvent keyEventWithType:NSEventTypeKeyDown
                                          location:NSMakePoint(50, 50)
                                     modifierFlags:mods
                                         timestamp:100
                                      windowNumber:[[NSApp mainWindow] windowNumber]
                                           context:0
-                                       characters:chars
+                                       characters:modChars
                       charactersIgnoringModifiers:chars
                                         isARepeat:NO
                                           keyCode:0];
-
     [app postEvent:keyEvent atStart:NO];
 }
 
@@ -1382,6 +1387,76 @@ do { \
     [self sendStringToVim:@":set nofu\n" withMods:0];
     [self waitForFullscreenTransitionIsEnter:NO isNative:NO];
     XCTAssertTrue(NSPointInRect(winController.window.frame.origin, NSScreen.screens[0].frame));
+}
+
+#pragma mark Vim IPC
+
+/// Test the selected text related IPC APIs
+- (void)testIPCSelectedText {
+    [self createTestVimWindow];
+    [self sendStringToVim:@":put =['abcd', 'efgh', 'ijkl']\nggdd" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+
+    MMAppController *app = MMAppController.sharedInstance;
+    MMVimController *vc = app.keyVimController;
+
+    // Set up register
+    [self sendStringToVim:@"ggyy" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    NSString *regcontents = [vc evaluateVimExpression:@"getreg()"];
+    XCTAssertEqualObjects(regcontents, @"abcd\n");
+
+    // Get selected texts in visual mode
+    XCTAssertFalse([vc hasSelectedText]);
+    XCTAssertNil([vc selectedText]);
+    [self sendStringToVim:@"lvjl" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    XCTAssertTrue([vc hasSelectedText]);
+    XCTAssertEqualObjects([vc selectedText], @"bcd\nefg");
+
+    // Get selected texts in visual line mode
+    [self sendStringToVim:@"V" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    XCTAssertTrue([vc hasSelectedText]);
+    XCTAssertEqualObjects([vc selectedText], @"abcd\nefgh\n");
+
+    // Get selected texts in visual block mode
+    [self sendKeyToVim:@"v" withMods:NSEventModifierFlagControl];
+    [self waitForEventHandlingAndVimProcess];
+    XCTAssertTrue([vc hasSelectedText]);
+    XCTAssertEqualObjects([vc selectedText], @"bc\nfg");
+
+    // Set selected texts in visual block mode
+    NSString *changedtick = [vc evaluateVimExpression:@"b:changedtick"];
+    [vc replaceSelectedText:@"xyz\n1234"];
+    NSString *changedtick2 = [vc evaluateVimExpression:@"b:changedtick"];
+    XCTAssertEqualObjects([vc evaluateVimExpression:@"getline(1)"], @"axyz d");
+    XCTAssertEqualObjects([vc evaluateVimExpression:@"getline(2)"], @"e1234h");
+    XCTAssertEqualObjects([vc evaluateVimExpression:@"getline(3)"], @"ijkl");
+    XCTAssertNotEqualObjects(changedtick, changedtick2);
+
+    // Make sure replacing texts when nothing is selected won't set anything
+    [vc replaceSelectedText:@"foobar"];
+    NSString *changedtick3 = [vc evaluateVimExpression:@"b:changedtick"];
+    XCTAssertEqualObjects(changedtick2, changedtick3);
+
+    // Select in visual block again but send a different number of lines, make sure we intentionaly won't treat it as block text
+    [self sendStringToVim:@"ggjjvll" withMods:0];
+    [self sendKeyToVim:@"v" withMods:NSEventModifierFlagControl];
+    [self waitForEventHandlingAndVimProcess];
+    [vc replaceSelectedText:@"xyz\n1234\n"]; // ending in newline means it gets interpreted as line-wise
+    XCTAssertEqualObjects([vc evaluateVimExpression:@"getline(1)"], @"axyz d");
+    XCTAssertEqualObjects([vc evaluateVimExpression:@"getline(2)"], @"e1234h");
+    XCTAssertEqualObjects([vc evaluateVimExpression:@"getline(3)"], @"xyz");
+    XCTAssertEqualObjects([vc evaluateVimExpression:@"getline(4)"], @"1234");
+    XCTAssertEqualObjects([vc evaluateVimExpression:@"getline(5)"], @"l");
+
+    // Make sure registers didn't get stomped (internally the implementation uses register and manually restores it)
+    regcontents = [[app keyVimController] evaluateVimExpression:@"getreg()"];
+    XCTAssertEqualObjects(regcontents, @"abcd\n");
+
+    [self sendStringToVim:@":set nomodified\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
 }
 
 @end

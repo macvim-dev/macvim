@@ -33,4 +33,8 @@ void may_start_select(int c);
 int unadjust_for_sel(void);
 int unadjust_for_sel_inner(pos_T *pp);
 void set_cursor_for_append_to_line(void);
+
+// MacVim only
+void nv_put(cmdarg_T *cap);
+
 /* vim: set ft=c : */

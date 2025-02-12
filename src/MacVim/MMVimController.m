@@ -533,6 +533,49 @@ static BOOL isUnsafeMessage(int msgid);
     return eval;
 }
 
+- (BOOL)hasSelectedText
+{
+    BOOL hasSelectedText = NO;
+    if (backendProxy) {
+        @try {
+            hasSelectedText = [backendProxy hasSelectedText];
+        }
+        @catch (NSException *ex) {
+            ASLogDebug(@"hasSelectedText: failed: pid=%d reason=%@",
+                    pid, ex);
+        }
+    }
+    return hasSelectedText;
+}
+
+- (NSString *)selectedText
+{
+    NSString *selectedText = nil;
+    if (backendProxy) {
+        @try {
+            selectedText = [backendProxy selectedText];
+        }
+        @catch (NSException *ex) {
+            ASLogDebug(@"selectedText: failed: pid=%d reason=%@",
+                    pid, ex);
+        }
+    }
+    return selectedText;
+}
+
+- (void)replaceSelectedText:(NSString *)text
+{
+    if (backendProxy) {
+        @try {
+            [backendProxy replaceSelectedText:text];
+        }
+        @catch (NSException *ex) {
+            ASLogDebug(@"replaceSelectedText: failed: pid=%d reason=%@",
+                    pid, ex);
+        }
+    }
+}
+
 - (id)backendProxy
 {
     return backendProxy;

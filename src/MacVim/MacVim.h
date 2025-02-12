@@ -192,8 +192,9 @@ typedef NSString* NSAttributedStringKey;
 - (NSString *)evaluateExpression:(in bycopy NSString *)expr;
 - (id)evaluateExpressionCocoa:(in bycopy NSString *)expr
                   errorString:(out bycopy NSString **)errstr;
-- (BOOL)selectedTextToPasteboard:(byref NSPasteboard *)pboard;
+- (BOOL)hasSelectedText;
 - (NSString *)selectedText;
+- (oneway void)replaceSelectedText:(in bycopy NSString *)text;
 - (BOOL)mouseScreenposIsSelection:(int)row column:(int)column selRow:(byref int *)startRow selCol:(byref int *)startCol;
 - (oneway void)acknowledgeConnection;
 @end
