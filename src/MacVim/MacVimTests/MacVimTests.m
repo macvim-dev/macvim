@@ -1394,7 +1394,7 @@ do { \
 /// Test the selected text related IPC APIs
 - (void)testIPCSelectedText {
     [self createTestVimWindow];
-    [self sendStringToVim:@":put =['abcd', 'efgh', 'ijkl']\nggdd" withMods:0];
+    [self sendStringToVim:@":call setline(1,['abcd','efgh','ijkl'])\n" withMods:0];
     [self waitForEventHandlingAndVimProcess];
 
     MMAppController *app = MMAppController.sharedInstance;
