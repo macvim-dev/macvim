@@ -1,0 +1,416 @@
+name: MacVim Build and Test
+
+# Child workflow to be called by other workflows for building/testing MacVim
+
+on:
+  workflow_call:
+    inputs:
+      skip:
+        type: boolean
+      os:
+        type: string
+      legacy:
+        type: boolean
+      xcode:
+        type: string
+      publish:
+        type: boolean
+      publish_postfix:
+        type: string
+      optimized:
+        type: boolean
+      vimtags:
+        type: boolean
+      check-xcodeproj-compat:
+        type: boolean
+
+env:
+  MACOSX_DEPLOYMENT_TARGET: '10.13'
+  MACOSX_DEPLOYMENT_TARGET_LEGACY: '10.9'
+
+  MACVIM_ARCHS: "x86_64 arm64"  # Universal app for Intel/Apple Silicon
+  MACVIM_ARCHS_LEGACY: "x86_64 arm64" # Build universal for legacy too, mostly just to make building/testing on Apple Silicon CI work. In reality all Apple Silicon Macs shoud use non-legacy.
+
+  CC: clang
+
+  MAKE_BUILD_ARGS: LINK_AS_NEEDED=yes # In macOS we never over-specify link dependencies and we already check against external deps in smoketest. With LTO, linking takes a while, so we want to avoid using link.sh.
+
+  vi_cv_path_python: /Library/Frameworks/Python.framework/Versions/2.7/bin/python
+  vi_cv_path_python3: "%s/bin/python3"
+  vi_cv_path_plain_lua: "%s/bin/lua"
+  vi_cv_path_ruby: "%s/opt/ruby/bin/ruby"
+  vi_cv_dll_name_perl: /System/Library/Perl/%s/darwin-thread-multi-2level/CORE/libperl.dylib
+  vi_cv_dll_name_python: /Library/Frameworks/Python.framework/Versions/2.7/Python
+  vi_cv_dll_name_python3: /usr/local/Frameworks/Python.framework/Versions/Current/Python
+  vi_cv_dll_name_python3_arm64: /opt/homebrew/Frameworks/Python.framework/Versions/Current/Python
+  vi_cv_dll_name_ruby: /usr/local/opt/ruby/lib/libruby.dylib
+  vi_cv_dll_name_ruby_arm64: /opt/homebrew/opt/ruby/lib/libruby.dylib
+  vi_cv_dll_name_lua: /usr/local/lib/liblua.dylib
+  vi_cv_dll_name_lua_arm64: /opt/homebrew/lib/liblua.dylib
+
+  MACVIM_APP: src/MacVim/build/Release/MacVim.app
+  VIM_BIN: src/MacVim/build/Release/MacVim.app/Contents/MacOS/Vim
+  MACVIM_BIN: src/MacVim/build/Release/MacVim.app/Contents/MacOS/MacVim
+
+  TERM: xterm
+  BASH_SILENCE_DEPRECATION_WARNING: 1
+
+jobs:
+  # Builds and test MacVim
+  build-and-test:
+    if: ${{ !inputs.skip }}
+    runs-on: ${{ inputs.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up legacy build
+        if: inputs.legacy
+        run: |
+          # Set the correct build env vars to target the correct architectures and min OS targets.
+          echo "MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET_LEGACY" >> $GITHUB_ENV
+          echo "MACVIM_ARCHS=$MACVIM_ARCHS_LEGACY" >> $GITHUB_ENV
+
+          # Use Sparkle 1 because Sparkle 2 requires newer OS version than our legacy build.
+          # Later, we pass the --enable-sparkle_1 flag to configure to set the corresponding ifdef.
+          ln -fhs Sparkle_1.framework src/MacVim/Sparkle.framework
+
+          # Sparkle shows a dialog asking if the user wants to check for updates on 2nd launch of
+          # MacVim. On Sparkle 1 this is annoyingly a modal dialog box and interferes with tests.
+          # Just disable it by pre-setting to not check for updates.
+          defaults write org.vim.MacVim SUEnableAutomaticChecks 0
+
+      - name: Set up Xcode
+        if: inputs.xcode != ''
+        run: |
+          sudo xcode-select -s /Applications/Xcode_${{ inputs.xcode }}.app/Contents/Developer
+          xcode-select -p
+          xcodebuild -version
+
+      # Set up, install, and cache gettext library for localization.
+
+      - name: Set up gettext
+        if: inputs.publish
+        uses: ./.github/actions/universal-package
+        with:
+          formula: gettext
+          contents: lib/libintl.a,lib/libintl.dylib
+
+      # Set up, install, and cache libsodium library for encryption.
+
+      - name: Set up libsodium
+        if: inputs.publish
+        uses: ./.github/actions/universal-package
+        with:
+          formula: libsodium
+          contents: lib/libsodium.a,lib/libsodium.dylib
+
+      # Set up remaining packages and tools
+
+      - name: Install packages
+        run: |
+          brew install --quiet libtool
+
+      - name: Install packages for testing
+        run: |
+          # Apple diff is broken. Use GNU diff instead. See http://github.com/vim/vim/issues/14056.
+          brew install --quiet diffutils
+
+      # Cache Python 2 to avoid downloading the installer every time. This cache shouldn't change
+      # over time as Python 2.7 is legacy.  Can't directly cache to
+      # /Library/Frameworks/Python.framework due to permission issues.
+      #
+      # Note: Legacy self-hosted runner already has this installed and doesn't need this.
+      - name: Cache Python 2
+        if: inputs.publish && !inputs.legacy
+        uses: actions/cache@v4
+        with:
+          path: python27-cache
+          key: ${{ inputs.os }}-python27
+
+      - name: Install scripting runtimes
+        if: inputs.publish
+        run: |
+          # We no longer need to install/update Python 3, as it's guaranteed to
+          # be installed on runners. Since we use stable ABI, the exact version
+          # on CI does not matter.
+
+          brew install --quiet ruby
+          brew install --quiet lua
+
+          if [[ -d $(brew --prefix)/Cellar/perl ]]; then
+            # We just use system perl to reduce dependencies
+            brew unlink perl
+          fi
+
+          echo "vi_cv_path_python3=$(printf $vi_cv_path_python3 $(brew --prefix))" >> $GITHUB_ENV
+          echo "vi_cv_path_plain_lua=$(printf $vi_cv_path_plain_lua $(brew --prefix))" >> $GITHUB_ENV
+          echo "vi_cv_path_ruby=$(printf $vi_cv_path_ruby $(brew --prefix))" >> $GITHUB_ENV
+
+          # With Perl, we need to manually specify the version number because the dylib path depends on it.
+          export PERL_VERSION=$(perl -e 'print $^V =~ s/v(\d\.\d+).*/\1/r')
+          echo "vi_cv_dll_name_perl=$(printf $vi_cv_dll_name_perl $PERL_VERSION)" >> $GITHUB_ENV
+
+          # New runner images (macos-13) no longer have Python2 installed. We
+          # need to install Python2 manually. Installing from the official
+          # installer is the easiest way as Homebrew no longer ships python@2
+          # and this way does not invole manual building from source. We
+          # mostly only need the headers to build a dynamic build anyway.
+          #
+          # This will be removed in the future as Python2 has been completely
+          # unsupported for years.
+          if [ -d /Library/Frameworks/Python.framework/Versions/2.7 ]; then
+            echo "Python 2.7 already installed"
+          elif [ -d python27-cache ]; then
+            sudo cp -R python27-cache /Library/Frameworks/Python.framework/Versions/2.7
+          else
+            curl https://www.python.org/ftp/python/2.7.18/python-2.7.18-macosx10.9.pkg -o ~/Downloads/python-2.7.18-macosx10.9.pkg
+            sudo installer -pkg ~/Downloads/python-2.7.18-macosx10.9.pkg -target /
+            cp -R /Library/Frameworks/Python.framework/Versions/2.7 python27-cache # Allow this to be cached
+          fi
+
+      # All set up steps are done. Build and test MacVim below.
+
+      - name: Configure
+        run: |
+          set -o verbose
+
+          CONFOPT=(
+            --with-local-dir=$(brew --prefix)
+            --with-features=huge
+            --enable-netbeans
+            --with-tlib=ncurses
+            --enable-cscope
+            --enable-gui=macvim
+            --with-compiledby="GitHub Actions"
+          )
+          if ${{ inputs.publish == true }}; then
+            CONFOPT+=(
+              --enable-perlinterp=dynamic
+              --enable-pythoninterp=dynamic
+              --enable-python3interp=dynamic
+              --with-python3-stable-abi=3.9 # macOS and Xcode currently ships 3.9, so we don't want go higher than that.
+              --enable-rubyinterp=dynamic
+              --enable-luainterp=dynamic
+              --with-lua-prefix=$(brew --prefix)
+              --with-macarchs="$MACVIM_ARCHS"
+            )
+          else
+            CONFOPT+=(
+              --disable-sparkle       # Disable Sparkle for testing that this flag builds and works
+              --enable-nls=no --enable-libsodium=no # Disable gettext and libsodium unless we built them ourselves for publish
+            )
+          fi
+          if ${{ inputs.legacy == true }}; then
+            CONFOPT+=(
+              --enable-sparkle_1
+            )
+          fi
+          echo "CONFOPT: ${CONFOPT[@]}"
+
+          ./configure "${CONFOPT[@]}" --enable-fail-if-missing
+
+          sed -i.bak -f ci/config.mk.sed -f ci/config.mk.clang.sed -f ci/config.mk.xcode.sed src/auto/config.mk
+          if clang --version | grep -qs '^Apple clang version \(1[3-9]\|[2-9]\d\)\.'; then
+            sed -i.bak -f ci/config.mk.clang-12.sed src/auto/config.mk
+          fi
+
+          if ${{ inputs.optimized == true }}; then
+            # Additional optimizations like link-time optimizations that are a bit slower to build.
+            sed -i.bak -f ci/config.mk.optimized.sed src/auto/config.mk
+          fi
+
+      - name: Modify configure result
+        if: inputs.publish
+        run: |
+          set -o verbose
+          # Ruby is keg-only in Homebrew, so need to manually link in the path so Vim will know where to look for the binaries.
+          perl -p -i -e "s#(?<=-DDYNAMIC_RUBY_DLL=\\\\\").*?(?=\\\\\")#${vi_cv_dll_name_ruby}#" src/auto/config.mk
+          grep -q -- "-DDYNAMIC_PERL_DLL=\\\\\"${vi_cv_dll_name_perl}\\\\\"" src/auto/config.mk
+          grep -q -- "-DDYNAMIC_PYTHON_DLL=\\\\\"${vi_cv_dll_name_python}\\\\\"" src/auto/config.mk
+          grep -q -- "-DDYNAMIC_PYTHON3_DLL=\\\\\"${vi_cv_dll_name_python3}\\\\\"" src/auto/config.mk
+          grep -q -- "-DDYNAMIC_RUBY_DLL=\\\\\"${vi_cv_dll_name_ruby}\\\\\"" src/auto/config.mk
+
+          # Also search for the arm64 overrides for the default library locations, which are different from x86_64
+          # because Homebrew puts them at a different place.
+          grep -q -- "-DDYNAMIC_PYTHON3_DLL_ARM64=\\\\\"${vi_cv_dll_name_python3_arm64}\\\\\"" src/auto/config.mk
+          grep -q -- "-DDYNAMIC_RUBY_DLL_ARM64=\\\\\"${vi_cv_dll_name_ruby_arm64}\\\\\"" src/auto/config.mk
+          grep -q -- "-DDYNAMIC_LUA_DLL_ARM64=\\\\\"${vi_cv_dll_name_lua_arm64}\\\\\"" src/auto/config.mk
+
+      - name: Show configure output
+        run: |
+          cat src/auto/config.mk
+          cat src/auto/config.h
+
+      - name: Build
+        env:
+          LC_ALL: C
+        run: |
+          NPROC=$(getconf _NPROCESSORS_ONLN)
+          echo "Building MacVim with ${NPROC} cores"
+
+          set -o verbose
+          make ${MAKE_BUILD_ARGS} -j${NPROC}
+
+      - name: Check version
+        run: |
+          ${VIM_BIN} --version
+          ${VIM_BIN} -u NONE -i NONE --not-a-term -esNX -V1 -c 'echo "\nprof_nsec:" .. has("prof_nsec") .. "\n"' -c quit
+          ${VIM_BIN} -u NONE -i NONE --not-a-term -esNX -V1 -S ci/if_ver-1.vim -c quit
+          ${VIM_BIN} -u NONE -i NONE --not-a-term -esNX -V1 -S ci/if_ver-2.vim -c quit
+
+      - name: Smoketest
+        run: |
+          set -o verbose
+
+          # Make sure there isn't any dynamic linkage to third-party dependencies in the built binary, as we should only use
+          # static linkage to avoid dependency hell. Test that all those dylib's are in /usr/lib which is bundled with macOS and not third-party.
+          if otool -L ${VIM_BIN} | grep '\.dylib\s' | grep -v '^\s*/usr/lib/'; then
+            echo 'Found external dynamic linkage!'; false
+          fi
+
+          # Make sure that --disable-sparkle flag will properly exclude all references to Sparkle symbols. This is
+          # necessary because we still use weak linking to Sparkle when that flag is set and so references to Sparkle
+          # wouldn't fail the build (we just remove Sparkle.framework from the built app after the fact).
+          if ${{ inputs.publish == false }}; then
+            # Currently we pass --disable-sparkle flag when publish==false
+            if objdump -t ${MACVIM_BIN} | grep "_SPU\|_SUUpdate"; then
+              echo 'Found references to Sparkle even when using --disable-sparkle'; false
+            fi
+          fi
+
+          # Make sure man pages were bundled
+          man -M `pwd`/${MACVIM_APP}/Contents/man -w mvim
+
+          # Make sure xxd was bundled
+          echo "AB" | ${MACVIM_APP}/Contents/bin/xxd | grep "4142"
+
+      - name: Smoketest (publish)
+        if: inputs.publish
+        run: |
+          set -o verbose
+
+          macvim_excmd() {
+            ${VIM_BIN} -u NONE -i NONE -g -f -X -V1 -es "$@" -c 'echo ""' -c 'qall!' 2>&1
+          }
+
+          # Smoketest scripting languages
+          macvim_excmd -c 'lua print("Test")'     | grep Test
+          macvim_excmd -c 'perl VIM::Msg("Test")' | grep Test
+          macvim_excmd -c 'py3 print("Test")'     | grep Test
+          macvim_excmd -c 'ruby puts("Test")'     | grep Test
+
+          if [[ "$(uname -m)" == "x86_64" ]]; then
+            macvim_excmd -c 'py print "x86 Test"' | grep Test
+          else
+            # Python2 doesn't work in Apple Silicon, test under Rosetta
+            (VIM_BIN="arch -x86_64 ${VIM_BIN}"; macvim_excmd -c 'py print "rosetta Test"' | grep Test)
+          fi
+
+          # Check that localized messages work by printing ':version' and checking against localized word
+          macvim_excmd -c 'lang es_ES' -c 'version' | grep Enlazado
+
+          # Check that libsodium is working
+          macvim_excmd -c 'set cryptmethod=xchacha20v2'
+
+          # Make sure we are building universal x86_64 / arm64 builds and didn't accidentally create a thin app.
+          check_arch() {
+            local archs=($(lipo -archs "$1"))
+            if [[ ${archs[@]} != "$MACVIM_ARCHS" ]]; then
+              echo "Wrong arch(s) in $1: ${archs[@]}"; false
+            else
+              lipo -info "$1"
+            fi
+          }
+          check_arch "${VIM_BIN}"
+          check_arch "${MACVIM_BIN}"
+
+      - name: Check Vim help tags
+        if: inputs.vimtags
+        run: |
+          # Confirm that we can build the help tags, and they match what's in source.
+          make -C runtime/doc vimtags VIMEXE=../../${VIM_BIN}
+          git diff --exit-code -- runtime/doc/tags
+
+      - name: Check Xcode project compatibility version
+        if: inputs['check-xcodeproj-compat']
+        run: |
+          # Confirm that the compatibility version of xcodeproj is correct and not outdated.
+          rm -rf src/MacVim/MacVim_xcode8.xcodeproj
+          make -C src macvim-xcodeproj-compat
+          if ! git diff --exit-code -- src/MacVim/MacVim_xcode8.xcodeproj; then
+            echo 'MacVim_xcode8.xcodeproj is outdated. Run "make -C src macvim-xcodeproj-compat" to re-generate it.'; false
+          fi
+
+      - name: Test MacVim
+        id: test_macvim
+        timeout-minutes: 10
+        run: |
+          make ${MAKE_BUILD_ARGS} -C src macvim-tests
+
+      - name: Upload failed MacVim test results
+        if: ${{ !cancelled() && failure() && steps.test_macvim.conclusion == 'failure' }}
+        uses: ./.github/actions/test_macvim_artifacts
+
+      - name: Build Vim test binaries
+        run: |
+          # Build the unit test binaries first. With link-time-optimization they take some time to link. Running them
+          # separately de-couples them from the timeout in tests, and allow us to build in parallel jobs (since tests
+          # can't run in parallel).
+          NPROC=$(getconf _NPROCESSORS_ONLN)
+
+          set -o verbose
+          make ${MAKE_BUILD_ARGS} -j${NPROC} -C src unittesttargets
+
+      - name: Test Vim
+        if: startsWith(github.ref, 'refs/tags/') || !matrix.testgui
+        timeout-minutes: 30
+        run: |
+          defaults delete org.vim.MacVim  # Clean up stale states
+          # Currently we don't run any non-src tests, as syntax tests are fragile and prone to spamming escape codes.
+          # This needs to be investigated and fixed upstream.
+          # MacVim is unlikely to introduce breaking changes in runtime files anyway.
+          make ${MAKE_BUILD_ARGS} -C src test
+
+      - name: Test Vim (GUI)
+        if: startsWith(github.ref, 'refs/tags/') || matrix.testgui
+        timeout-minutes: 30
+        run: |
+          defaults delete org.vim.MacVim  # Clean up stale states
+          make ${MAKE_BUILD_ARGS} -C src/testdir clean
+          make ${MAKE_BUILD_ARGS} -C src testgui
+
+      - name: Upload failed test files
+        if: ${{ !cancelled() && failure() }}
+        uses: ./.github/actions/test_artifacts
+
+      - name: Build MacVim dmg image
+        if: inputs.publish && (startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/master')
+        run: |
+          if ${{ inputs.legacy == true }}; then
+            make -C src macvim-dmg-legacy
+          else
+            make -C src macvim-dmg
+          fi
+
+          if ${{ inputs.publish_postfix != '' }}; then
+            mv src/MacVim/build/Release/MacVim.dmg src/MacVim/build/Release/MacVim${{ inputs.publish_postfix }}.dmg
+          fi
+
+      # Upload the dmg installer only when making tagged release or making a dev build from a master branch.
+      # Note that this doesn't create a GitHub release for us, because we would prefer to do it manually, for two
+      # reasons: 1) signing / notarization are currently done out of CI, 2) we want to manually format our release notes
+      # and add pictures to make them look nice. 
+      - name: Upload MacVim image
+        if: inputs.publish && (startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/master')
+        uses: actions/upload-artifact@v4
+        with:
+          name: MacVim${{ inputs.publish_postfix  }}.dmg
+          path: src/MacVim/build/Release/MacVim${{ inputs.publish_postfix }}.dmg
+
+          # If doing a tagged release, use repository-specified number of retention days (usually 90 days) to make it
+          # easier to audit. (specify "0" to indicate using repository settings)
+          #
+          # Otherwise, we are just doing a dev build for potential testing, just use a maximum of 21 days as we don't
+          # tend to need these for long.
+          retention-days: ${{ startsWith(github.ref, 'refs/tags/') && 0 || (github.retention_days > 21 && 21 || 0) }}
