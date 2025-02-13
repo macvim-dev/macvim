@@ -837,6 +837,36 @@ find_imported(char_u *name, size_t len, int load)
 }
 
 /*
+ * Find "name" in imported items of extended base class of the class to which
+ * the context :def function belongs.
+ */
+    imported_T *
+find_imported_from_extends(cctx_T *cctx, char_u *name, size_t len, int load)
+{
+    imported_T	*ret = NULL;
+    class_T	*cl_extends;
+
+    if (cctx == NULL || cctx->ctx_ufunc == NULL
+					|| cctx->ctx_ufunc->uf_class == NULL)
+	return NULL;
+
+    cl_extends = cctx->ctx_ufunc->uf_class->class_extends;
+
+    if (cl_extends == NULL || cl_extends->class_class_function_count_child <= 0)
+	return NULL;
+    else
+    {
+	sctx_T current_sctx_save = current_sctx;
+
+	current_sctx = cl_extends->class_class_functions[0]->uf_script_ctx;
+	ret = find_imported(name, len, load);
+	current_sctx = current_sctx_save;
+
+	return ret;
+    }
+}
+
+/*
  * Called when checking for a following operator at "arg".  When the rest of
  * the line is empty or only a comment, peek the next line.  If there is a next
  * line return a pointer to it and set "nextp".
@@ -1034,6 +1064,7 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx, garray_T *lines_to_free)
     int		off;
     char_u	*func_name;
     char_u	*lambda_name;
+    size_t	lambda_namelen;
     ufunc_T	*ufunc;
     int		r = FAIL;
     compiletype_T   compile_type;
@@ -1092,7 +1123,9 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx, garray_T *lines_to_free)
 
     eap->forceit = FALSE;
     // We use the special <Lamba>99 name, but it's not really a lambda.
-    lambda_name = vim_strsave(get_lambda_name());
+    lambda_name = get_lambda_name();
+    lambda_namelen = get_lambda_name_len();
+    lambda_name = vim_strnsave(lambda_name, lambda_namelen);
     if (lambda_name == NULL)
 	return NULL;
 
@@ -1371,7 +1404,7 @@ generate_loadvar(cctx_T *cctx, lhs_T *lhs)
 	case dest_script:
 	case dest_script_v9:
 	    res = compile_load_scriptvar(cctx,
-				  name + (name[1] == ':' ? 2 : 0), NULL, NULL);
+			    name + (name[1] == ':' ? 2 : 0), NULL, NULL, NULL);
 	    break;
 	case dest_env:
 	    // Include $ in the name here
@@ -2493,9 +2526,10 @@ compile_load_lhs(
 	lhs->lhs_type = cctx->ctx_type_stack.ga_len == 0 ? &t_void
 						  : get_type_on_stack(cctx, 0);
 
-	if (lhs->lhs_type->tt_type == VAR_OBJECT)
+	if (lhs->lhs_type->tt_type == VAR_CLASS
+		|| lhs->lhs_type->tt_type == VAR_OBJECT)
 	{
-	    // Check whether the object variable is modifiable
+	    // Check whether the class or object variable is modifiable
 	    if (!lhs_class_member_modifiable(lhs, var_start, cctx))
 		return FAIL;
 	}
@@ -3884,7 +3918,7 @@ add_def_function(ufunc_T *ufunc)
     dfunc->df_idx = def_functions.ga_len;
     ufunc->uf_dfunc_idx = dfunc->df_idx;
     dfunc->df_ufunc = ufunc;
-    dfunc->df_name = vim_strsave(ufunc->uf_name);
+    dfunc->df_name = vim_strnsave(ufunc->uf_name, ufunc->uf_namelen);
     ga_init2(&dfunc->df_var_names, sizeof(char_u *), 10);
     ++dfunc->df_refcount;
     ++def_functions.ga_len;

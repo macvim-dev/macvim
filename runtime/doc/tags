@@ -234,6 +234,7 @@ $quote	eval.txt	/*$quote*
 'ef'	options.txt	/*'ef'*
 'efm'	options.txt	/*'efm'*
 'ei'	options.txt	/*'ei'*
+'eiw'	options.txt	/*'eiw'*
 'ek'	options.txt	/*'ek'*
 'emo'	options.txt	/*'emo'*
 'emoji'	options.txt	/*'emoji'*
@@ -252,6 +253,7 @@ $quote	eval.txt	/*$quote*
 'esckeys'	options.txt	/*'esckeys'*
 'et'	options.txt	/*'et'*
 'eventignore'	options.txt	/*'eventignore'*
+'eventignorewin'	options.txt	/*'eventignorewin'*
 'ex'	options.txt	/*'ex'*
 'expandtab'	options.txt	/*'expandtab'*
 'exrc'	options.txt	/*'exrc'*
@@ -2156,14 +2158,13 @@ $quote	eval.txt	/*$quote*
 :LP	pi_logipat.txt	/*:LP*
 :LPE	pi_logipat.txt	/*:LPE*
 :LPF	pi_logipat.txt	/*:LPF*
-:Launch	pi_netrw.txt	/*:Launch*
+:Launch	eval.txt	/*:Launch*
 :Lexplore	pi_netrw.txt	/*:Lexplore*
 :Lfilter	quickfix.txt	/*:Lfilter*
 :LogiPat	pi_logipat.txt	/*:LogiPat*
 :Man	filetype.txt	/*:Man*
 :MkVimball	pi_vimball.txt	/*:MkVimball*
 :N	editing.txt	/*:N*
-:NetrwClean	pi_netrw.txt	/*:NetrwClean*
 :Nexplore	pi_netrw.txt	/*:Nexplore*
 :Next	editing.txt	/*:Next*
 :NoMatchParen	pi_paren.txt	/*:NoMatchParen*
@@ -2174,7 +2175,7 @@ $quote	eval.txt	/*$quote*
 :Ntree	pi_netrw.txt	/*:Ntree*
 :Nw	pi_netrw.txt	/*:Nw*
 :Nwrite	pi_netrw.txt	/*:Nwrite*
-:Open	pi_netrw.txt	/*:Open*
+:Open	eval.txt	/*:Open*
 :Over	terminal.txt	/*:Over*
 :P	various.txt	/*:P*
 :Pexplore	pi_netrw.txt	/*:Pexplore*
@@ -6981,6 +6982,8 @@ disable-menus	gui.txt	/*disable-menus*
 discard	editing.txt	/*discard*
 dist#vim	eval.txt	/*dist#vim*
 dist#vim9	eval.txt	/*dist#vim9*
+dist#vim9#Launch()	eval.txt	/*dist#vim9#Launch()*
+dist#vim9#Open()	eval.txt	/*dist#vim9#Open()*
 distribute-script	usr_51.txt	/*distribute-script*
 distributed-plugins	usr_05.txt	/*distributed-plugins*
 distribution	intro.txt	/*distribution*
@@ -7630,6 +7633,7 @@ g:NetrwTopLvlMenu	pi_netrw.txt	/*g:NetrwTopLvlMenu*
 g:Netrw_UserMaps	pi_netrw.txt	/*g:Netrw_UserMaps*
 g:Netrw_corehandler	pi_netrw.txt	/*g:Netrw_corehandler*
 g:Netrw_funcref	pi_netrw.txt	/*g:Netrw_funcref*
+g:Openprg	eval.txt	/*g:Openprg*
 g:actual_curbuf	options.txt	/*g:actual_curbuf*
 g:actual_curwin	options.txt	/*g:actual_curwin*
 g:ada#Comment	ft_ada.txt	/*g:ada#Comment*
@@ -7735,8 +7739,6 @@ g:netrw_altv	pi_netrw.txt	/*g:netrw_altv*
 g:netrw_banner	pi_netrw.txt	/*g:netrw_banner*
 g:netrw_bannerbackslash	pi_netrw.txt	/*g:netrw_bannerbackslash*
 g:netrw_browse_split	pi_netrw.txt	/*g:netrw_browse_split*
-g:netrw_browsex_support_remote	pi_netrw.txt	/*g:netrw_browsex_support_remote*
-g:netrw_browsex_viewer	pi_netrw.txt	/*g:netrw_browsex_viewer*
 g:netrw_bufsettings	pi_netrw.txt	/*g:netrw_bufsettings*
 g:netrw_chgperm	pi_netrw.txt	/*g:netrw_chgperm*
 g:netrw_chgwin	pi_netrw.txt	/*g:netrw_chgwin*
@@ -7765,7 +7767,6 @@ g:netrw_ftp_timelist_cmd	pi_netrw.txt	/*g:netrw_ftp_timelist_cmd*
 g:netrw_ftpextracmd	pi_netrw.txt	/*g:netrw_ftpextracmd*
 g:netrw_ftpmode	pi_netrw.txt	/*g:netrw_ftpmode*
 g:netrw_glob_escape	pi_netrw.txt	/*g:netrw_glob_escape*
-g:netrw_gx	pi_netrw.txt	/*g:netrw_gx*
 g:netrw_hide	pi_netrw.txt	/*g:netrw_hide*
 g:netrw_home	pi_netrw.txt	/*g:netrw_home*
 g:netrw_http_cmd	pi_netrw.txt	/*g:netrw_http_cmd*
@@ -7791,7 +7792,6 @@ g:netrw_menu	pi_netrw.txt	/*g:netrw_menu*
 g:netrw_mkdir_cmd	pi_netrw.txt	/*g:netrw_mkdir_cmd*
 g:netrw_mousemaps	pi_netrw.txt	/*g:netrw_mousemaps*
 g:netrw_nobeval	pi_netrw.txt	/*g:netrw_nobeval*
-g:netrw_nogx	pi_netrw.txt	/*g:netrw_nogx*
 g:netrw_preview	pi_netrw.txt	/*g:netrw_preview*
 g:netrw_rcp_cmd	pi_netrw.txt	/*g:netrw_rcp_cmd*
 g:netrw_remote_mkdir	pi_netrw.txt	/*g:netrw_remote_mkdir*
@@ -7817,7 +7817,6 @@ g:netrw_special_syntax	pi_netrw.txt	/*g:netrw_special_syntax*
 g:netrw_ssh_browse_reject	pi_netrw.txt	/*g:netrw_ssh_browse_reject*
 g:netrw_ssh_cmd	pi_netrw.txt	/*g:netrw_ssh_cmd*
 g:netrw_sshport	pi_netrw.txt	/*g:netrw_sshport*
-g:netrw_suppress_gx_mesg	pi_netrw.txt	/*g:netrw_suppress_gx_mesg*
 g:netrw_timefmt	pi_netrw.txt	/*g:netrw_timefmt*
 g:netrw_tmpfile_escape	pi_netrw.txt	/*g:netrw_tmpfile_escape*
 g:netrw_uid	pi_netrw.txt	/*g:netrw_uid*
@@ -8162,6 +8161,7 @@ gvimrc	gui.txt	/*gvimrc*
 gw	change.txt	/*gw*
 gwgw	change.txt	/*gwgw*
 gww	change.txt	/*gww*
+gx	eval.txt	/*gx*
 gzip	pi_gzip.txt	/*gzip*
 gzip-autocmd	pi_gzip.txt	/*gzip-autocmd*
 gzip-example	autocmd.txt	/*gzip-example*
@@ -9159,7 +9159,6 @@ netrw-call	pi_netrw.txt	/*netrw-call*
 netrw-cb	pi_netrw.txt	/*netrw-cb*
 netrw-cd	pi_netrw.txt	/*netrw-cd*
 netrw-chgup	pi_netrw.txt	/*netrw-chgup*
-netrw-clean	pi_netrw.txt	/*netrw-clean*
 netrw-contents	pi_netrw.txt	/*netrw-contents*
 netrw-copyright	pi_netrw.txt	/*netrw-copyright*
 netrw-cr	pi_netrw.txt	/*netrw-cr*
@@ -9169,7 +9168,6 @@ netrw-ctrl-h	pi_netrw.txt	/*netrw-ctrl-h*
 netrw-ctrl-l	pi_netrw.txt	/*netrw-ctrl-l*
 netrw-ctrl-r	pi_netrw.txt	/*netrw-ctrl-r*
 netrw-ctrl_l	pi_netrw.txt	/*netrw-ctrl_l*
-netrw-curdir	pi_netrw.txt	/*netrw-curdir*
 netrw-d	pi_netrw.txt	/*netrw-d*
 netrw-del	pi_netrw.txt	/*netrw-del*
 netrw-delete	pi_netrw.txt	/*netrw-delete*
@@ -9198,8 +9196,6 @@ netrw-gitignore	pi_netrw.txt	/*netrw-gitignore*
 netrw-gn	pi_netrw.txt	/*netrw-gn*
 netrw-gp	pi_netrw.txt	/*netrw-gp*
 netrw-grep	pi_netrw.txt	/*netrw-grep*
-netrw-gx	pi_netrw.txt	/*netrw-gx*
-netrw-handler	pi_netrw.txt	/*netrw-handler*
 netrw-help	pi_netrw.txt	/*netrw-help*
 netrw-hexplore	pi_netrw.txt	/*netrw-hexplore*
 netrw-hide	pi_netrw.txt	/*netrw-hide*
@@ -9328,7 +9324,6 @@ netrw-vexplore	pi_netrw.txt	/*netrw-vexplore*
 netrw-windows-netrc	pi_netrw.txt	/*netrw-windows-netrc*
 netrw-windows-s	pi_netrw.txt	/*netrw-windows-s*
 netrw-write	pi_netrw.txt	/*netrw-write*
-netrw-x	pi_netrw.txt	/*netrw-x*
 netrw-xfer	pi_netrw.txt	/*netrw-xfer*
 netrw.txt	pi_netrw.txt	/*netrw.txt*
 netrw.vim	pi_netrw.txt	/*netrw.vim*
@@ -9434,6 +9429,7 @@ new-vimscript-8.2	version8.txt	/*new-vimscript-8.2*
 new-virtedit	version6.txt	/*new-virtedit*
 news	intro.txt	/*news*
 nextnonblank()	builtin.txt	/*nextnonblank()*
+ngettext()	builtin.txt	/*ngettext()*
 no-eval-feature	eval.txt	/*no-eval-feature*
 no-type-checking	eval.txt	/*no-type-checking*
 no_buffers_menu	gui.txt	/*no_buffers_menu*

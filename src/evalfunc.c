@@ -116,6 +116,7 @@ static void f_min(typval_T *argvars, typval_T *rettv);
 static void f_mzeval(typval_T *argvars, typval_T *rettv);
 #endif
 static void f_nextnonblank(typval_T *argvars, typval_T *rettv);
+static void f_ngettext(typval_T *argvars, typval_T *rettv);
 static void f_nr2char(typval_T *argvars, typval_T *rettv);
 static void f_or(typval_T *argvars, typval_T *rettv);
 #ifdef FEAT_PERL
@@ -381,6 +382,20 @@ arg_blob(type_T *type, type_T *decl_type UNUSED, argcontext_T *context)
 arg_bool(type_T *type, type_T *decl_type UNUSED, argcontext_T *context)
 {
     return check_arg_type(&t_bool, type, context);
+}
+
+/*
+ * Check "type" is a bool or a number.
+ */
+    static int
+arg_bool_or_nr(type_T *type, type_T *decl_type UNUSED, argcontext_T *context)
+{
+    if (type->tt_type == VAR_BOOL
+	    || type->tt_type == VAR_NUMBER
+	    || type_any_or_unknown(type))
+	return OK;
+    arg_type_mismatch(&t_number, type, context->arg_idx + 1);
+    return FAIL;
 }
 
 /*
@@ -1191,6 +1206,7 @@ static argcheck_T arg24_count[] = {arg_string_or_list_or_dict, arg_any, arg_bool
 static argcheck_T arg13_cursor[] = {arg_cursor1, arg_number, arg_number};
 static argcheck_T arg12_deepcopy[] = {arg_any, arg_bool};
 static argcheck_T arg12_execute[] = {arg_string_or_list_string, arg_string};
+static argcheck_T arg12_getchar[] = {arg_bool_or_nr, arg_dict_any};
 static argcheck_T arg23_extend[] = {arg_list_or_dict_mod, arg_same_as_prev, arg_extend3};
 static argcheck_T arg23_extendnew[] = {arg_list_or_dict, arg_same_struct_as_prev, arg_extend3};
 static argcheck_T arg23_get[] = {arg_get1, arg_string_or_nr, arg_any};
@@ -2091,7 +2107,7 @@ static funcentry_T global_functions[] =
 			ret_list_any,	    f_getcellwidths},
     {"getchangelist",	0, 1, FEARG_1,	    arg1_buffer,
 			ret_list_any,	    f_getchangelist},
-    {"getchar",		0, 1, 0,	    arg1_bool,
+    {"getchar",		0, 2, 0,	    arg12_getchar,
 			ret_any,	    f_getchar},
     {"getcharmod",	0, 0, 0,	    NULL,
 			ret_number,	    f_getcharmod},
@@ -2099,7 +2115,7 @@ static funcentry_T global_functions[] =
 			ret_list_number,    f_getcharpos},
     {"getcharsearch",	0, 0, 0,	    NULL,
 			ret_dict_any,	    f_getcharsearch},
-    {"getcharstr",	0, 1, 0,	    arg1_bool,
+    {"getcharstr",	0, 2, 0,	    arg12_getchar,
 			ret_string,	    f_getcharstr},
     {"getcmdcomplpat",	0, 0, 0,	    NULL,
 			ret_string,	    f_getcmdcomplpat},
@@ -2399,6 +2415,8 @@ static funcentry_T global_functions[] =
 			},
     {"nextnonblank",	1, 1, FEARG_1,	    arg1_lnum,
 			ret_number,	    f_nextnonblank},
+    {"ngettext",	3, 4, FEARG_3,	    arg4_string_string_number_string,
+			ret_string,	    f_ngettext},
     {"nr2char",		1, 2, FEARG_1,	    arg2_number_bool,
 			ret_string,	    f_nr2char},
     {"or",		2, 2, FEARG_1,	    arg2_number,
@@ -6408,7 +6426,7 @@ f_has(typval_T *argvars, typval_T *rettv)
 #endif
 		},
 	{"bsd",
-#if defined(BSD) && !defined(MACOS_X)
+#if defined(BSD) && !defined(MACOS_X) && !defined(__GNU__)
 		1
 #else
 		0
@@ -6416,6 +6434,13 @@ f_has(typval_T *argvars, typval_T *rettv)
 		},
 	{"hpux",
 #ifdef hpux
+		1
+#else
+		0
+#endif
+		},
+	{"hurd",
+#ifdef __GNU__
 		1
 #else
 		0
@@ -9393,6 +9418,51 @@ f_nextnonblank(typval_T *argvars, typval_T *rettv)
     }
     rettv->vval.v_number = lnum;
 }
+
+
+/*
+ * "ngettext()" function
+ */
+    static void
+f_ngettext(typval_T *argvars, typval_T *rettv)
+{
+#if defined(HAVE_BIND_TEXTDOMAIN_CODESET)
+    char *prev = NULL;
+#endif
+
+    if (check_for_nonempty_string_arg(argvars, 0) == FAIL
+	|| check_for_nonempty_string_arg(argvars, 1) == FAIL
+	|| check_for_number_arg(argvars, 2) == FAIL
+	|| check_for_opt_string_arg(argvars, 3) == FAIL)
+	return;
+
+    rettv->v_type = VAR_STRING;
+
+    if (argvars[3].v_type == VAR_STRING &&
+	    argvars[3].vval.v_string != NULL &&
+	    *(argvars[3].vval.v_string) != NUL)
+    {
+#if defined(HAVE_BIND_TEXTDOMAIN_CODESET)
+	prev = bind_textdomain_codeset((const char *)argvars[3].vval.v_string, (char *)p_enc);
+#endif
+
+#if defined(HAVE_DNGETTEXT)
+	rettv->vval.v_string = vim_strsave((char_u *)dngettext((const char *)argvars[3].vval.v_string, (const char *)argvars[0].vval.v_string, (const char *)argvars[1].vval.v_string, (int)argvars[2].vval.v_number));
+#else
+	textdomain((const char *)argvars[3].vval.v_string);
+	rettv->vval.v_string = vim_strsave((char_u *)NGETTEXT((const char *)argvars[0].vval.v_string, (const char *)argvars[1].vval.v_string, argvars[2].vval.v_number));
+	textdomain(VIMPACKAGE);
+#endif
+
+#if defined(HAVE_BIND_TEXTDOMAIN_CODESET)
+	if (prev != NULL)
+	    bind_textdomain_codeset((const char *)argvars[3].vval.v_string, prev);
+#endif
+    }
+    else
+	rettv->vval.v_string = vim_strsave((char_u *)NGETTEXT((const char *)argvars[0].vval.v_string, (const char *)argvars[1].vval.v_string, argvars[2].vval.v_number));
+}
+
 
 /*
  * "nr2char()" function

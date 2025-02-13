@@ -247,10 +247,10 @@ func RunTheTest(test)
   echoconsole prefix .. 'Executing ' .. a:test
 
   if has('timers')
-    " No test should take longer than 30 seconds.  If it takes longer we
+    " No test should take longer than 45 seconds.  If it takes longer we
     " assume we are stuck and need to break out.
     let test_timeout_timer =
-          \ timer_start(RunningWithValgrind() ? 50000 : 30000, 'TestTimeout')
+          \ timer_start(RunningWithValgrind() ? 90000 : 45000, 'TestTimeout')
     let g:timeout_start = localtime()
   endif
 
@@ -267,6 +267,9 @@ func RunTheTest(test)
   " Some tests wipe out buffers.  To be consistent, always wipe out all
   " buffers.
   %bwipe!
+
+  " Clear all children notifications in case there are stale ones left
+  let g:child_notification = 0
 
   " The test may change the current directory. Save and restore the
   " directory after executing the test.

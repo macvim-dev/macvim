@@ -210,6 +210,8 @@ typedef struct
     int		wo_diff;
 # define w_p_diff w_onebuf_opt.wo_diff	// 'diff'
 #endif
+    char_u	*wo_eiw;
+# define w_p_eiw w_onebuf_opt.wo_eiw	// 'eventignorewin'
 #ifdef FEAT_FOLDING
     long	wo_fdc;
 # define w_p_fdc w_onebuf_opt.wo_fdc	// 'foldcolumn'
@@ -1934,6 +1936,7 @@ struct ufunc_S
 
     char_u	*uf_name_exp;	// if "uf_name[]" starts with SNR the name with
 				// "<SNR>" as a string, otherwise NULL
+    size_t	uf_namelen;	// length of uf_name (excluding the NUL)
     char_u	uf_name[4];	// name of function (actual size equals name);
 				// can start with <SNR>123_ (<SNR> is K_SPECIAL
 				// KS_EXTRA KE_SNR)

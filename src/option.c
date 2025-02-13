@@ -4321,6 +4321,7 @@ did_set_termguicolors(optset_T *args UNUSED)
 #  endif
 	    !has_vtp_working())
     {
+	p_tgc_set = TRUE;
 	p_tgc = 0;
 	return e_24_bit_colors_are_not_supported_on_this_environment;
     }
@@ -4345,6 +4346,7 @@ did_set_termguicolors(optset_T *args UNUSED)
     term_update_palette_all();
     term_update_wincolor_all();
 # endif
+    p_tgc_set = TRUE;
 
     return NULL;
 }
@@ -6780,6 +6782,7 @@ get_varp(struct vimoption *p)
 #ifdef FEAT_DIFF
 	case PV_DIFF:	return (char_u *)&(curwin->w_p_diff);
 #endif
+	case PV_EIW:	return (char_u *)&(curwin->w_p_eiw);
 #ifdef FEAT_FOLDING
 	case PV_FDC:	return (char_u *)&(curwin->w_p_fdc);
 	case PV_FEN:	return (char_u *)&(curwin->w_p_fen);
@@ -7096,6 +7099,7 @@ copy_winopt(winopt_T *from, winopt_T *to)
     to->wo_diff = from->wo_diff;
     to->wo_diff_saved = from->wo_diff_saved;
 #endif
+    to->wo_eiw = copy_option_val(from->wo_eiw);
 #ifdef FEAT_CONCEAL
     to->wo_cocu = copy_option_val(from->wo_cocu);
     to->wo_cole = from->wo_cole;
@@ -7161,6 +7165,7 @@ check_winopt(winopt_T *wop UNUSED)
 # endif
     check_string_option(&wop->wo_fmr);
 #endif
+    check_string_option(&wop->wo_eiw);
 #ifdef FEAT_SIGNS
     check_string_option(&wop->wo_scl);
 #endif
@@ -7209,6 +7214,7 @@ clear_winopt(winopt_T *wop UNUSED)
 # endif
     clear_string_option(&wop->wo_fmr);
 #endif
+    clear_string_option(&wop->wo_eiw);
 #ifdef FEAT_SIGNS
     clear_string_option(&wop->wo_scl);
 #endif

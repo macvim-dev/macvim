@@ -289,6 +289,59 @@ func Test_termwinscroll_topline()
   set termwinscroll& mouse&
 endfunc
 
+func Test_termwinscroll_topline2()
+  " calling the terminal API doesn't work on Windows
+  CheckNotMSWindows
+
+  set termwinscroll=50000 mouse=a
+  set shell=sh
+  let norm_winid = win_getid()
+  terminal
+  call assert_equal(2, winnr('$'))
+  let buf = bufnr()
+  let win = winnr()
+  call WaitFor({-> !empty(term_getline(buf, 1))})
+
+  let num1 = &termwinscroll / 1000 * 999
+  call writefile(range(num1), 'Xtext', 'D')
+  call term_sendkeys(buf, "cat Xtext\<CR>")
+  call term_sendkeys(buf, "printf '" .. TermNotifyParentCmd(v:false) .. "'\<cr>")
+  let rows = term_getsize(buf)[0]
+  let cnt = 0
+  while !g:child_notification && cnt <= 50000
+    " Spin wait to process the terminal print as quickly as possible. This is
+    " more efficient than calling WaitForChildNotification() as we don't want
+    " to sleep here as the print is I/O-bound.
+    let cnt += 1
+    call term_wait(buf, 0)
+  endwhile
+  call WaitForAssert({-> assert_match(string(num1 - 1), term_getline(buf, rows - 1) .. '\|' .. term_getline(buf, rows - 2))})
+  call feedkeys("\<C-W>N", 'xt')
+  call feedkeys("i", 'xt')
+
+  let num2 = &termwinscroll / 1000 * 8
+  call writefile(range(num2), 'Xtext', 'D')
+  call term_sendkeys(buf, "sleep 2; cat Xtext\<CR>")
+  let winrow = get(get(filter(getwininfo(), 'v:val.winid == norm_winid'), 0, {}), 'winrow', -1)
+
+  call test_setmouse(winrow, 1)
+  call feedkeys("\<LeftMouse>", "xt")
+  call WaitForAssert({-> assert_notequal(buf, bufnr())})
+
+  " Change the terminal window row size
+  call win_move_statusline(win,1)
+  " Before the fix, E340 and E315 would occur multiple times at this point.
+  let winrow2 = get(get(filter(getwininfo(), 'v:val.winid == norm_winid'), 0, {}), 'winrow', -1)
+  call assert_equal(winrow + 1, winrow2)
+
+  call test_setmouse(1, 1)
+  call feedkeys("\<LeftMouse>", "xt")
+  call WaitForAssert({-> assert_equal(buf, bufnr())})
+
+  exe buf . 'bwipe!'
+  set termwinscroll& mouse& sh&
+endfunc
+
 " Resizing the terminal window caused an ml_get error.
 " TODO: This does not reproduce the original problem.
 " TODO: This test starts timing out in Github CI Gui test, why????

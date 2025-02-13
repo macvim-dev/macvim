@@ -231,6 +231,8 @@ SRC_ALL =	\
 		src/testdir/silent.wav \
 		src/testdir/popupbounce.vim \
 		src/testdir/crash/* \
+		src/testdir/ru_RU/LC_MESSAGES/Makefile \
+		src/testdir/ru_RU/LC_MESSAGES/__PACKAGE__.po \
 		src/testdir/ru_RU/LC_MESSAGES/__PACKAGE__.mo \
 		src/proto.h \
 		src/protodef.h \
@@ -773,6 +775,8 @@ RT_ALL =	\
 		runtime/tutor/en/vim-01-beginner.tutor.json \
 		runtime/tutor/it/vim-01-beginner.tutor \
 		runtime/tutor/it/vim-01-beginner.tutor.json \
+		runtime/tutor/sr/vim-01-beginner.tutor \
+		runtime/tutor/sr/vim-01-beginner.tutor.json \
 		runtime/tutor/tutor.tutor \
 		runtime/tutor/tutor.tutor.json \
 		runtime/tutor/tutor.vim \
@@ -812,6 +816,7 @@ RT_ALL =	\
 		runtime/pack/dist/opt/netrw/LICENSE.txt \
 		runtime/pack/dist/opt/netrw/README.md \
 		runtime/pack/dist/opt/netrw/autoload/netrw.vim \
+		runtime/pack/dist/opt/netrw/autoload/netrw/own.vim \
 		runtime/pack/dist/opt/netrw/autoload/netrwSettings.vim \
 		runtime/pack/dist/opt/netrw/autoload/netrw_gitignore.vim \
 		runtime/pack/dist/opt/netrw/doc/netrw.txt \

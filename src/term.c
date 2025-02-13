@@ -1667,6 +1667,11 @@ set_color_count(int nr)
 	sprintf((char *)nr_colors, "%d", t_colors);
     else
 	*nr_colors = NUL;
+#ifdef FEAT_TERMGUICOLORS
+    // xterm-direct, enable termguicolors, when it wasn't set yet
+    if (t_colors == 0x1000000 && !p_tgc_set)
+	set_option_value((char_u *)"termguicolors", 1L, NULL, 0);
+#endif
     set_string_option_direct((char_u *)"t_Co", -1, nr_colors, OPT_FREE, 0);
 }
 
@@ -1700,8 +1705,9 @@ may_adjust_color_count(int val)
 static char *(key_names[]) =
 {
 # ifdef FEAT_TERMRESPONSE
-    // Do this one first, it may cause a screen redraw.
+    // Do those ones first, both may cause a screen redraw.
     "Co",
+    "RGB",
 # endif
     "ku", "kd", "kr", "kl",
     "#2", "#4", "%i", "*7",
@@ -5860,6 +5866,7 @@ handle_dcs(char_u *tp, char_u *argp, int len, char_u *key_name, int *slen)
 {
     int i, j;
 
+    LOG_TR(("Received DCS response: %s", (char*)tp));
     j = 1 + (tp[0] == ESC);
     if (len < j + 3)
 	i = len; // need more chars
@@ -7106,7 +7113,7 @@ req_codes_from_term(void)
     static void
 req_more_codes_from_term(void)
 {
-    char	buf[23];  // extra size to shut up LGTM
+    char	buf[32];  // extra size to shut up LGTM
     int		old_idx = xt_index_out;
 
     // Don't do anything when going to exit.
@@ -7121,7 +7128,10 @@ req_more_codes_from_term(void)
 
 	MAY_WANT_TO_LOG_THIS;
 	LOG_TR(("Requesting XT %d: %s", xt_index_out, key_name));
-	sprintf(buf, "\033P+q%02x%02x\033\\", key_name[0], key_name[1]);
+	if (key_name[2] != NUL)
+	    sprintf(buf, "\033P+q%02x%02x%02x\033\\", key_name[0], key_name[1], key_name[2]);
+	else
+	    sprintf(buf, "\033P+q%02x%02x\033\\", key_name[0], key_name[1]);
 	out_str_nf((char_u *)buf);
 	++xt_index_out;
     }
@@ -7132,7 +7142,9 @@ req_more_codes_from_term(void)
 }
 
 /*
- * Decode key code response from xterm: '<Esc>P1+r<name>=<string><Esc>\'.
+ * Decode key code response from xterm:
+ * '<Esc>P1+r<name>=<string><Esc>\' if it is enabled/supported
+ * '<Esc>P0+r<Esc>\'                if it not enabled
  * A "0" instead of the "1" indicates a code that isn't supported.
  * Both <name> and <string> are encoded in hex.
  * "code" points to the "0" or "1".
@@ -7141,21 +7153,25 @@ req_more_codes_from_term(void)
 got_code_from_term(char_u *code, int len)
 {
 #define XT_LEN 100
-    char_u	name[3];
+    char_u	name[4];
     char_u	str[XT_LEN];
     int		i;
     int		j = 0;
     int		c;
 
     // A '1' means the code is supported, a '0' means it isn't.
+    // If it is supported, there must be a '=' following
     // When half the length is > XT_LEN we can't use it.
-    // Our names are currently all 2 characters.
-    if (code[0] == '1' && code[7] == '=' && len / 2 < XT_LEN)
+    if (code[0] == '1' && (code[7] == '=' || code[9] == '=') && len / 2 < XT_LEN)
     {
 	// Get the name from the response and find it in the table.
 	name[0] = hexhex2nr(code + 3);
 	name[1] = hexhex2nr(code + 5);
-	name[2] = NUL;
+	if (code[9] == '=')
+	    name[2] = hexhex2nr(code + 7);
+	else
+	    name[2] = NUL;
+	name[3] = NUL;
 	for (i = 0; key_names[i] != NULL; ++i)
 	{
 	    if (STRCMP(key_names[i], name) == 0)
@@ -7169,7 +7185,8 @@ got_code_from_term(char_u *code, int len)
 
 	if (key_names[i] != NULL)
 	{
-	    for (i = 8; (c = hexhex2nr(code + i)) >= 0; i += 2)
+	    i = (code[7] == '=') ? 8 : 10;
+	    for (; (c = hexhex2nr(code + i)) >= 0; i += 2)
 		str[j++] = c;
 	    str[j] = NUL;
 	    if (name[0] == 'C' && name[1] == 'o')
@@ -7186,6 +7203,23 @@ got_code_from_term(char_u *code, int len)
 #endif
 		may_adjust_color_count(val);
 	    }
+#ifdef FEAT_TERMGUICOLORS
+	    // when RGB result comes back, it is supported when the result contains an '='
+	    else if (name[0] == 'R' && name[1] == 'G' && name[2] == 'B' && code[9] == '=')
+	    {
+		int val = atoi((char *)str);
+		// only enable it, if termguicolors hasn't been set yet and
+		// there are 8 bits per color channel
+		if (val == 8 && !p_tgc_set)
+		{
+#ifdef FEAT_EVAL
+		    ch_log(NULL, "got_code_from_term(RGB): xterm-direct colors detected");
+#endif
+		    // RGB capability set, enable termguicolors
+		    set_option_value((char_u *)"termguicolors", 1L, NULL, 0);
+		}
+	    }
+#endif
 	    else
 	    {
 		i = find_term_bykeys(str);
@@ -7469,7 +7503,7 @@ ansi_color2rgb(int nr, char_u *r, char_u *g, char_u *b, char_u *ansi_idx)
 	*r = ansi_table[nr][0];
 	*g = ansi_table[nr][1];
 	*b = ansi_table[nr][2];
-	*ansi_idx = nr;
+	*ansi_idx = nr + 1;
     }
     else
     {

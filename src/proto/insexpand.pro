@@ -58,9 +58,11 @@ void f_complete_add(typval_T *argvars, typval_T *rettv);
 void f_complete_check(typval_T *argvars, typval_T *rettv);
 void f_complete_info(typval_T *argvars, typval_T *rettv);
 void ins_compl_delete(void);
-void ins_compl_insert(int in_compl_func);
+void ins_compl_insert(int in_compl_func, int move_cursor);
 void ins_compl_check_keys(int frequency, int in_compl_func);
 int ins_complete(int c, int enable_pum);
-int ins_compl_col_range_attr(int col);
+int ins_compl_col_range_attr(linenr_T lnum, int col);
 void free_insexpand_stuff(void);
+int ins_compl_preinsert_effect(void);
+int ins_compl_lnum_in_range(linenr_T lnum);
 /* vim: set ft=c : */

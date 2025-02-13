@@ -60,8 +60,8 @@ func Test_terminal_TerminalWinOpen()
   close
 
   if has("unix")
-    terminal ++hidden ++open sleep 1
-    sleep 1
+    terminal ++hidden ++open echo
+    call WaitForAssert({-> assert_equal('terminal', &buftype)})
     call assert_fails("echo b:done", 'E121:')
   endif
 
@@ -944,7 +944,15 @@ func Test_terminal_eof_arg()
     call WaitFor({-> getline('$') =~ 'hello'})
     call assert_equal('hello', getline('$'))
   endif
-  call assert_equal(123, bufnr()->term_getjob()->job_info().exitval)
+  let exitval = bufnr()->term_getjob()->job_info().exitval
+  if !has('win32')
+    call assert_equal(123, exitval)
+  else
+    " python 3.13 on Windows returns exit code 1
+    " older versions returned correctly exit code 123
+    " https://github.com/python/cpython/issues/129900
+    call assert_match('1\|123', exitval)
+  endif
   %bwipe!
 endfunc
 
@@ -955,8 +963,10 @@ func Test_terminal_eof_arg_win32_ctrl_z()
 
   call setline(1, ['print("hello")'])
   exe '1term ++eof=<C-Z> ' .. s:python
-  call WaitForAssert({-> assert_match('\^Z', getline(line('$') - 1))})
-  call assert_match('\^Z', getline(line('$') - 1))
+  call WaitForAssert({-> assert_match('\^Z', getline(line('$') - 1) .. getline(line('$')))})
+  " until python 3.12 there was an extra line break, with 3.13 it was removed,
+  " so depending on the python version the ^Z is on the last or second-last line
+  call assert_match('\^Z', getline(line('$') - 1) .. getline(line('$')))
   %bwipe!
 endfunc
 
@@ -976,7 +986,15 @@ func Test_terminal_duplicate_eof_arg()
     call WaitFor({-> getline('$') =~ 'hello'})
     call assert_equal('hello', getline('$'))
   endif
-  call assert_equal(123, bufnr()->term_getjob()->job_info().exitval)
+  let exitval = bufnr()->term_getjob()->job_info().exitval
+  if !has('win32')
+    call assert_equal(123, exitval)
+  else
+    " python 3.13 on Windows returns exit code 1
+    " older versions returned correctly exit code 123
+    " https://github.com/python/cpython/issues/129900
+    call assert_match('1\|123', exitval)
+  endif
   %bwipe!
 endfunc
 
@@ -2152,6 +2170,30 @@ func Test_terminal_ansicolors_default()
   call assert_equal([], term_getansicolors(buf))
 
   exe buf . 'bwipe'
+endfunc
+
+func Test_terminal_ansicolors_default_reset_tgc()
+  CheckFeature termguicolors
+  CheckRunVimInTerminal
+
+  let $PS1="$ "
+  let buf = RunVimInTerminal('-c "term sh"', {'rows': 12})
+  call TermWait(buf)
+  " Wait for the shell to display a prompt
+  call WaitForAssert({-> assert_notequal('', term_getline(buf, 1))})
+
+  call term_sendkeys(buf, "printf '\\033[0;30;41mhello world\\033[0m\\n'\<CR>")
+  call WaitForAssert({-> assert_match('hello world', term_getline(buf, 2))})
+  call term_sendkeys(buf, "\<C-W>:set notgc\<CR>")
+  call term_sendkeys(buf, "printf '\\033[0;30;41mhello world\\033[0m\\n'\<CR>")
+  call WaitForAssert({-> assert_match('hello world', term_getline(buf, 4))})
+
+  call VerifyScreenDump(buf, 'Test_terminal_ansi_reset_tgc', {})
+
+  call term_sendkeys(buf, "exit\<CR>")
+  call TermWait(buf)
+  call StopVimInTerminal(buf)
+  unlet! $PS1
 endfunc
 
 let s:test_colors = [

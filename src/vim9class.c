@@ -561,20 +561,34 @@ validate_abstract_class_methods(
 	    if (!IS_ABSTRACT_METHOD(uf))
 		continue;
 
-	    int method_found = FALSE;
+	    int	concrete_method_found = FALSE;
+	    int	j = 0;
 
-	    for (int j = 0; j < method_count; j++)
+	    // Check if the abstract method is already implemented in one of
+	    // the parent classes.
+	    for (j = 0; !concrete_method_found && j < i; j++)
+	    {
+		ufunc_T *uf2 = extends_methods[j];
+		if (!IS_ABSTRACT_METHOD(uf2) &&
+			STRCMP(uf->uf_name, uf2->uf_name) == 0)
+		    concrete_method_found = TRUE;
+	    }
+
+	    if (concrete_method_found)
+		continue;
+
+	    for (j = 0; j < method_count; j++)
 	    {
 		if (STRCMP(uf->uf_name, cl_fp[j]->uf_name) == 0)
 		{
-		    method_found = TRUE;
+		    concrete_method_found = TRUE;
 		    break;
 		}
 	    }
 
-	    if (!method_found)
+	    if (!concrete_method_found)
 	    {
-		semsg(_(e_abstract_method_str_not_found), uf->uf_name);
+		semsg(_(e_abstract_method_str_not_implemented), uf->uf_name);
 		return FALSE;
 	    }
 	}
@@ -2361,7 +2375,8 @@ early_ret:
 	{
 	    exarg_T	ea;
 	    garray_T	lines_to_free;
-	    int		is_new = STRNCMP(p, "new", 3) == 0;
+	    int		is_new = STRNCMP(p, "new", 3) == 0
+						|| STRNCMP(p, "_new", 4) == 0;
 
 	    if (has_public)
 	    {
@@ -2587,7 +2602,8 @@ early_ret:
 	for (int i = 0; i < classfunctions.ga_len; ++i)
 	{
 	    class_func = ((ufunc_T **)classfunctions.ga_data)[i];
-	    if (STRCMP(class_func->uf_name, "new") == 0)
+	    if (STRCMP(class_func->uf_name, "new") == 0
+				|| STRCMP(class_func->uf_name, "_new") == 0)
 	    {
 		have_new = TRUE;
 		break;
