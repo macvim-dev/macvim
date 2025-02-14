@@ -661,6 +661,7 @@ do { \
     // Manual Light / Dark mode setting
     [self setDefault:MMAppearanceModeSelectionKey toValue:[NSNumber numberWithInt:MMAppearanceModeSelectionLight]];
     [app refreshAllAppearances];
+    [self waitForVimProcess];
     XCTAssertEqualObjects(vimView.effectiveAppearance, [NSAppearance appearanceNamed: NSAppearanceNameAqua]);
     XCTAssertEqualObjects([[app keyVimController] evaluateVimExpression:@"v:os_appearance"], @"0");
 
@@ -672,6 +673,7 @@ do { \
 
     [self setDefault:MMAppearanceModeSelectionKey toValue:[NSNumber numberWithInt:MMAppearanceModeSelectionDark]];
     [app refreshAllAppearances];
+    [self waitForVimProcess];
     XCTAssertEqualObjects(vimView.effectiveAppearance, [NSAppearance appearanceNamed: NSAppearanceNameDarkAqua]);
     XCTAssertEqualObjects([[app keyVimController] evaluateVimExpression:@"v:os_appearance"], @"1");
     XCTAssertEqualObjects([[app keyVimController] evaluateVimExpression:@"g:os_appearance_changed_called"], @"1");
@@ -682,6 +684,7 @@ do { \
 
     [self setDefault:MMAppearanceModeSelectionKey toValue:[NSNumber numberWithInt:MMAppearanceModeSelectionBackgroundOption]];
     [app refreshAllAppearances];
+    [self waitForVimProcess];
     XCTAssertEqualObjects(vimView.effectiveAppearance, [NSAppearance appearanceNamed: NSAppearanceNameDarkAqua]);
     XCTAssertEqualObjects([[app keyVimController] evaluateVimExpression:@"v:os_appearance"], @"1");
     XCTAssertEqualObjects([[app keyVimController] evaluateVimExpression:@"g:os_appearance_changed_called"], @"1"); // we stayed in dark mode, so OSAppearnceChanged didn't trigger
