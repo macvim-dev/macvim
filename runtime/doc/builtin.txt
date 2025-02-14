@@ -3885,6 +3885,8 @@ getcellpixels()						*getcellpixels()*
 		On macOS, system Terminal.app returns sizes in points (before
 		Retina scaling), whereas third-party terminals return raw pixel
 		sizes (post Retina scaling).
+		In MacVim, there is a small delay after startup or changing
+		'guifont' before this will return the updated values.
 
 		Return type: list<any>
 
