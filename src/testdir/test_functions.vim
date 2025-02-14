@@ -4338,6 +4338,32 @@ func Test_getcellpixels_gui()
   endif
 endfunc
 
+" Test for getcellpixels() for MacVim
+func Test_getcellpixels_macvim()
+  CheckGui
+  CheckRunVimInTerminal
+  if has("gui_running") && has('gui_macvim')
+    " MacVim works asynchronously and getcellpixels() does not immediately
+    " work either at launch or after guifont has been changed. It's a
+    " deliberate design decision. Right now the caller has to wait for MacVim
+    " to update the state before getcellpixels() will reflect the correct
+    " value, hence the need for multiple wait's here.
+    call WaitForAssert({-> assert_notequal(0, getcellpixels()[0], 'Uninitialized getcellpixels')})
+    call assert_equal([7, 13], getcellpixels()) " Default font is Menlo:h11
+    set guifont=Menlo:h13
+    call WaitForAssert({-> assert_equal([8, 15], getcellpixels())})
+
+    " Also test hosting a terminal and have that be updated
+    let buf = RunVimInTerminal('', #{})
+    call term_sendkeys(buf, ":redi @\"\<CR>")
+    call term_sendkeys(buf, ":echo getcellpixels()\<CR>")
+    call term_sendkeys(buf, ":redi END\<CR>")
+    call term_sendkeys(buf, "P")
+    call WaitForAssert({-> assert_equal(string(getcellpixels()), term_getline(buf, 3))}, 1000)
+    call StopVimInTerminal(buf)
+  endif
+endfunc
+
 func Str2Blob(s)
   return list2blob(str2list(a:s))
 endfunc

@@ -247,6 +247,9 @@ gui_mch_init(void)
     // correspondence (assuming all characters have the same dimensions).
     gui.scrollbar_width = gui.scrollbar_height = 0;
 
+    // For simplicity we just set char width/height to 1 as the GUI is
+    // decoupled from Vim anyway so Vim doesn't need to know the accurate
+    // pixel sizes.
     gui.char_height = 1;
     gui.char_width = 1;
     gui.char_ascent = 0;
@@ -1662,6 +1665,14 @@ gui_mch_adjust_charwidth(void)
 {
     [[MMBackend sharedInstance] adjustColumnspace:p_columnspace];
     return OK;
+}
+
+    void
+gui_mch_calc_cell_size(struct cellsize *cs_out)
+{
+    NSSize cellsize = [MMBackend sharedInstance].cellSize;
+    cs_out->cs_xpixel = round(cellsize.width);
+    cs_out->cs_ypixel = round(cellsize.height);
 }
 
 
