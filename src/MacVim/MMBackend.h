@@ -57,6 +57,8 @@
 #endif
 }
 
+@property (nonatomic, readonly) NSSize cellSize;
+
 + (MMBackend *)sharedInstance;
 
 - (void)setBackgroundColor:(int)color;

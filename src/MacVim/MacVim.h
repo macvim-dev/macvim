@@ -300,6 +300,7 @@ extern const char * const MMVimMsgIDStrings[];
     MSG(ScrollbarEventMsgID) \
     MSG(SetFontMsgID) \
     MSG(SetWideFontMsgID) \
+    MSG(UpdateCellSizeMsgID) \
     MSG(VimShouldCloseMsgID) \
     MSG(SetDefaultColorsMsgID) \
     MSG(SetTablineColorsMsgID) \

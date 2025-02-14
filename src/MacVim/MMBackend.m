@@ -171,6 +171,7 @@ static struct specialkey
 - (void)handleToggleToolbar;
 - (void)handleScrollbarEvent:(NSData *)data;
 - (void)handleSetFont:(NSData *)data;
+- (void)handleCellSize:(NSData *)data;
 - (void)handleDropFiles:(NSData *)data;
 - (void)handleDropString:(NSData *)data;
 - (void)startOdbEditWithArguments:(NSDictionary *)args;
@@ -1328,6 +1329,9 @@ static struct specialkey
         // modified files when we get here.
         isTerminating = YES;
         getout(0);
+    } else if (UpdateCellSizeMsgID == msgid) {
+        // Immediately handle simple state updates to they can be reflected in Vim.
+        [self handleCellSize:data];
     } else {
         // First remove previous instances of this message from the input
         // queue, else the input queue may fill up as a result of Vim not being
@@ -2703,6 +2707,18 @@ static struct specialkey
         CONVERT_FROM_UTF8_FREE(ws);
     }
     CONVERT_FROM_UTF8_FREE(s);
+}
+
+- (void)handleCellSize:(NSData *)data
+{
+    if (!data) return;
+
+    const void *bytes = [data bytes];
+
+    // Don't use gui.char_width/height because for simplicity we set those to
+    // 1. We store the cell size separately (it's only used for
+    // getcellpixels()).
+    memcpy(&_cellSize, bytes, sizeof(NSSize));
 }
 
 - (void)handleDropFiles:(NSData *)data

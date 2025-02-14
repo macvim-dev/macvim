@@ -43,6 +43,7 @@ void gui_mch_set_font(GuiFont font);
 void gui_mch_expand_font(optexpand_T *args, void *param, int (*add_match)(char_u *val));
 int gui_mch_adjust_charheight(void);
 int gui_mch_adjust_charwidth(void);
+void gui_mch_calc_cell_size(struct cellsize *cs_out);
 void gui_mch_beep(void);
 char_u *gui_mch_browse(int saving, char_u *title, char_u *dflt, char_u *ext, char_u *initdir, char_u *filter);
 char_u *gui_mch_browsedir(char_u *title, char_u *initdir);

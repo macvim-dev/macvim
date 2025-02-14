@@ -4442,7 +4442,16 @@ mch_report_winsize(int fd, int rows, int cols)
 
     // calcurate and set tty pixel size
     struct cellsize cs;
-    mch_calc_cell_size(&cs);
+#if defined(FEAT_GUI) && defined(FEAT_GUI_MACVIM)
+    if (gui.in_use)
+    {
+	gui_mch_calc_cell_size(&cs);
+    }
+    else
+#endif
+    {
+	mch_calc_cell_size(&cs);
+    }
 
     if (cs.cs_xpixel == -1)
     {

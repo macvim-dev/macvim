@@ -1012,6 +1012,14 @@ static BOOL isUnsafeMessage(int msgid);
             }
 
             [windowController setFont:font];
+
+            // Notify Vim of updated cell size for getcellpixels(). Note that
+            // this is asynchronous, which means getcellpixels() will not be
+            // immediately reflected after setting guifont.
+            NSSize cellsize = windowController.vimView.textView.cellSize;
+            [self sendMessage:UpdateCellSizeMsgID
+                         data:[NSData dataWithBytes:&cellsize length:sizeof(cellsize)]];
+
             [name release];
         }
         break;

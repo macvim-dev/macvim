@@ -5425,8 +5425,15 @@ f_getcellpixels(typval_T *argvars UNUSED, typval_T *rettv)
     if (gui.in_use)
     {
         // success pixel size and no gui.
+#ifdef FEAT_GUI_MACVIM
+        struct cellsize cs;
+        gui_mch_calc_cell_size(&cs);
+        list_append_number(rettv->vval.v_list, (varnumber_T)cs.cs_xpixel);
+        list_append_number(rettv->vval.v_list, (varnumber_T)cs.cs_ypixel);
+#else
         list_append_number(rettv->vval.v_list, (varnumber_T)gui.char_width);
         list_append_number(rettv->vval.v_list, (varnumber_T)gui.char_height);
+#endif
     }
     else
 #endif
