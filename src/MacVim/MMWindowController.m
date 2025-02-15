@@ -743,7 +743,7 @@
 - (void)setWindowColorToTablineColor
 {
     NSColor *defaultBg = vimView.textView.defaultBackgroundColor;
-    NSColor *tablineColor = vimView.tabline.tablineFillFgColor;
+    NSColor *tablineColor = vimView.tabline.tablineFillBgColor;
     if (defaultBg.alphaComponent == 1.0) {
         [self setWindowBackgroundColor:tablineColor];
     } else {

@@ -20,13 +20,15 @@
 @property (nonatomic, readonly) NSInteger numberOfTabs;
 @property (nonatomic, retain, readonly) MMHoverButton *addTabButton;
 
-@property (nonatomic, retain) NSColor *tablineBgColor;
-@property (nonatomic, retain) NSColor *tablineFgColor;
-@property (nonatomic, retain) NSColor *tablineSelBgColor;
-@property (nonatomic, retain) NSColor *tablineSelFgColor;
-@property (nonatomic, retain) NSColor *tablineFillFgColor;
+// Main colors
+@property (nonatomic, readonly) NSColor *tablineBgColor;
+@property (nonatomic, readonly) NSColor *tablineFgColor;
+@property (nonatomic, readonly) NSColor *tablineSelBgColor;
+@property (nonatomic, readonly) NSColor *tablineSelFgColor;
+@property (nonatomic, readonly) NSColor *tablineFillBgColor;
+@property (nonatomic, readonly) NSColor *tablineFillFgColor;
 
-// Derived colors that cannot be set directly
+// Derived colors from the main ones
 @property (nonatomic, readonly) NSColor *tablineUnfocusedFgColor;
 @property (nonatomic, readonly) NSColor *tablineUnfocusedSelFgColor;
 @property (nonatomic, readonly) NSColor *tablineStrokeColor;
@@ -69,7 +71,7 @@
 /// colors based on the system light/dark modes.
 - (void)setColorsTabBg:(NSColor *)tabBg tabFg:(NSColor *)tabFg
                  selBg:(NSColor *)selBg selFg:(NSColor *)selFg
-                  fill:(NSColor *)fill;
+                fillBg:(NSColor *)fill fillFg:(NSColor *)fillFg;
 
 /// Lets the tabline calculate best colors to use based on background and
 /// foreground colors of the selected tab. The colors cannot be nil.
