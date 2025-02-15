@@ -110,6 +110,7 @@ typedef enum : NSInteger {
     MMTabColorsModeDefaultColors = 0,   ///< Use default colors based on macOS light/dark modes
     MMTabColorsModeAutomatic,           ///< Automatically derive tab colors based on foreground/background colors
     MMTabColorsModeVimColorscheme,      ///< Use Vim colorscheme TabLine/TabLineSel/TabLineFill colors
+    MMTabColorsModeCount
 } MMTabColorsMode;
 
 enum {

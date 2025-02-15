@@ -67,7 +67,7 @@ static CGFloat calculateBrightness(NSColor *color) {
 @synthesize tablineFgColor = _tablineFgColor;
 @synthesize tablineSelBgColor = _tablineSelBgColor;
 @synthesize tablineSelFgColor = _tablineSelFgColor;
-@synthesize tablineFillFgColor = _tablineFillFgColor;
+@synthesize tablineFillBgColor = _tablineFillBgColor;
 @synthesize tablineUnfocusedFgColor = _tablineUnfocusedFgColor;
 @synthesize tablineUnfocusedSelFgColor = _tablineUnfocusedSelFgColor;
 
@@ -150,7 +150,7 @@ static CGFloat calculateBrightness(NSColor *color) {
 
 - (void)updateLayer
 {
-    self.layer.backgroundColor = self.tablineFillFgColor.CGColor;
+    self.layer.backgroundColor = self.tablineFillBgColor.CGColor;
 }
 
 - (void)viewDidChangeEffectiveAppearance
@@ -253,22 +253,9 @@ static CGFloat calculateBrightness(NSColor *color) {
     }
 }
 
-- (void)setTablineBgColor:(NSColor *)color
-{
-    _tablineBgColor = color;
-    [self updateTabStates];
-}
-
 - (NSColor *)tablineFgColor
 {
     return _tablineFgColor ?: NSColor.secondaryLabelColor;
-}
-
-- (void)setTablineFgColor:(NSColor *)color
-{
-    _tablineFgColor = color;
-    _tablineUnfocusedFgColor = nil;
-    [self updateTabStates];
 }
 
 - (NSColor *)tablineSelBgColor
@@ -278,38 +265,21 @@ static CGFloat calculateBrightness(NSColor *color) {
         : [NSColor colorWithWhite:0.4 alpha:1];
 }
 
-- (void)setTablineSelBgColor:(NSColor *)color
-{
-    _tablineSelBgColor = color;
-    [self updateTabStates];
-}
-
 - (NSColor *)tablineSelFgColor
 {
     return _tablineSelFgColor ?: NSColor.controlTextColor;
 }
 
-- (void)setTablineSelFgColor:(NSColor *)color
+- (NSColor *)tablineFillBgColor
 {
-    _tablineSelFgColor = color;
-    _tablineUnfocusedSelFgColor = nil;
-    _addTabButton.fgColor = color;
-    _backwardScrollButton.fgColor = color;
-    _forwardScrollButton.fgColor = color;
-    [self updateTabStates];
-}
-
-- (NSColor *)tablineFillFgColor
-{
-    return _tablineFillFgColor ?: (_appearance == AppearanceLight || _appearance == AppearanceLightHighContrast)
+    return _tablineFillBgColor ?: (_appearance == AppearanceLight || _appearance == AppearanceLightHighContrast)
         ? [NSColor colorWithWhite:0.85 alpha:1]
         : [NSColor colorWithWhite:0.23 alpha:1];
 }
 
-- (void)setTablineFillFgColor:(NSColor *)color
+- (NSColor *)tablineFillFgColor
 {
-    _tablineFillFgColor = color;
-    self.needsDisplay = YES;
+    return _addTabButton.fgColor;
 }
 
 - (NSColor *)tablineUnfocusedFgColor
@@ -570,7 +540,7 @@ static CGFloat calculateBrightness(NSColor *color) {
 
 - (void)setColorsTabBg:(NSColor *)tabBg tabFg:(NSColor *)tabFg
                  selBg:(NSColor *)selBg selFg:(NSColor *)selFg
-                  fill:(NSColor *)fill
+                fillBg:(NSColor *)fillBg fillFg:(NSColor *)fillFg
 {
     // Don't use the property mutators as we just want to update the states in
     // one go at the end.
@@ -578,14 +548,14 @@ static CGFloat calculateBrightness(NSColor *color) {
     _tablineSelFgColor = selFg;
     _tablineBgColor = tabBg;
     _tablineFgColor = tabFg;
-    _tablineFillFgColor = fill;
+    _tablineFillBgColor = fillBg;
 
     _tablineUnfocusedFgColor = [_tablineFgColor blendedColorWithFraction:0.4 ofColor:_tablineBgColor];
     _tablineUnfocusedSelFgColor = [_tablineSelFgColor blendedColorWithFraction:0.38 ofColor:_tablineSelBgColor];
 
-    _addTabButton.fgColor = _tablineSelFgColor;
-    _backwardScrollButton.fgColor = _tablineSelFgColor;
-    _forwardScrollButton.fgColor = _tablineSelFgColor;
+    _addTabButton.fgColor = fillFg;
+    _backwardScrollButton.fgColor = fillFg;
+    _forwardScrollButton.fgColor = fillFg;
 
     [self updateTabStates];
     self.needsDisplay = YES;
@@ -615,7 +585,7 @@ static CGFloat calculateBrightness(NSColor *color) {
     _tablineUnfocusedFgColor = [_tablineFgColor blendedColorWithFraction:0.4 ofColor:_tablineBgColor];
     _tablineUnfocusedSelFgColor = [_tablineSelFgColor blendedColorWithFraction:0.38 ofColor:_tablineSelBgColor];
 
-    _tablineFillFgColor = (brightness > 0.5)
+    _tablineFillBgColor = (brightness > 0.5)
         ? [back blendedColorWithFraction:0.25 ofColor:NSColor.blackColor]
         : [back blendedColorWithFraction:0.18 ofColor:NSColor.whiteColor];
 

@@ -656,32 +656,44 @@ gui_mch_update_highlight(void)
         gui_mch_fuopt_update();
 
     // Update the GUI with tab colors
-    // We can cache the tabline syn IDs because they will never change.
-    static int tablineSynIds[3] = { 0 };
-    char *tablineSynNames[3] = {"TabLine", "TabLineFill", "TabLineSel"};
 
-    BOOL hasTablineColors = YES;
+    // Highlight attributes for TabLine, TabLineFill, TabLineSel
+    const int attrs[3] = { HL_ATTR(HLF_TP), HL_ATTR(HLF_TPF), HL_ATTR(HLF_TPS) };
+
     int tablineColors[6] = { 0 };
     for (int i = 0; i < 3; i++) {
-        if (tablineSynIds[i] <= 0)
-            tablineSynIds[i] = syn_name2id((char_u *)tablineSynNames[i]);
-        if (tablineSynIds[i] > 0) {
-            guicolor_T bg, fg;
-            syn_id2colors(tablineSynIds[i], &fg, &bg);
-            tablineColors[i*2] = (int)bg;
-            tablineColors[i*2+1] = (int)fg;
+        guicolor_T bg = INVALCOLOR, fg = INVALCOLOR;
+        BOOL reverse = NO;
+        if (attrs[i] > HL_ALL) {
+            attrentry_T *aep = syn_gui_attr2entry(attrs[i]);
+            if (aep != NULL) {
+                bg = aep->ae_u.gui.bg_color;
+                fg = aep->ae_u.gui.fg_color;
+                reverse = (aep->ae_attr & HL_INVERSE) != 0;
+            }
         } else {
-            hasTablineColors = NO;
+            reverse = (attrs[i] & HL_INVERSE) != 0;
         }
+
+        if (bg == INVALCOLOR)
+            bg = gui.def_back_pixel;
+        if (fg == INVALCOLOR)
+            fg = gui.def_norm_pixel;
+
+        if (reverse) {
+            guicolor_T temp = fg;
+            fg = bg;
+            bg = temp;
+        }
+        tablineColors[i*2] = (int)bg;
+        tablineColors[i*2+1] = (int)fg;
     }
-    if (hasTablineColors) {
-        // Cache the old colors just so we don't spam the IPC channel if the
-        // colors didn't actually change.
-        static int oldTablineColors[6] = { 0 };
-        if (memcmp(oldTablineColors, tablineColors, sizeof(oldTablineColors)) != 0) {
-            memcpy(oldTablineColors, tablineColors, sizeof(oldTablineColors));
-            [[MMBackend sharedInstance] setTablineColors:tablineColors];
-        }
+    // Cache the old colors just so we don't spam the IPC channel if the
+    // colors didn't actually change.
+    static int oldTablineColors[6] = { 0 };
+    if (memcmp(oldTablineColors, tablineColors, sizeof(oldTablineColors)) != 0) {
+        memcpy(oldTablineColors, tablineColors, sizeof(oldTablineColors));
+        [[MMBackend sharedInstance] setTablineColors:tablineColors];
     }
 }
 

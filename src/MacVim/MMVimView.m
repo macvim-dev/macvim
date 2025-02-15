@@ -40,7 +40,8 @@ typedef enum: NSInteger {
     MMTabColorTypeTabFg,
     MMTabColorTypeSelBg,
     MMTabColorTypeSelFg,
-    MMTabColorTypeFill,
+    MMTabColorTypeFillBg,
+    MMTabColorTypeFillFg,
     MMTabColorTypeCount
 } MMTabColorType;
 
@@ -377,7 +378,7 @@ typedef enum: NSInteger {
 {
     NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
     tabline.showsTabScrollButtons = [ud boolForKey:MMShowTabScrollButtonsKey];
-    [self updateTablineColors];
+    [self updateTablineColors:MMTabColorsModeCount];
 }
 
 - (void)createScrollbarWithIdentifier:(int32_t)ident type:(int)type
@@ -469,25 +470,35 @@ typedef enum: NSInteger {
     }
 }
 
-- (void)updateTablineColors
+- (void)updateTablineColors:(MMTabColorsMode)mode
 {
     NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
     MMTabColorsMode tabColorsMode = [ud integerForKey:MMTabColorsModeKey];
+    if (tabColorsMode >= MMTabColorsModeCount || tabColorsMode < 0) {
+        // Catch-all for invalid values, which could be useful if we add new
+        // modes and a user goes back and uses an old version of MacVim.
+        tabColorsMode = MMTabColorsModeAutomatic;
+    }
+    if (mode != MMTabColorsModeCount && mode != tabColorsMode) {
+        // Early out to avoid unnecessary updates if this is not relevant.
+        return;
+    }
     if (tabColorsMode == MMTabColorsModeDefaultColors) {
         [tabline setColorsTabBg:nil
                           tabFg:nil
                           selBg:nil
                           selFg:nil
-                           fill:nil];
+                         fillBg:nil
+                         fillFg:nil];
     } else if (tabColorsMode == MMTabColorsModeVimColorscheme) {
         [tabline setColorsTabBg:tabColors[MMTabColorTypeTabBg]
                           tabFg:tabColors[MMTabColorTypeTabFg]
                           selBg:tabColors[MMTabColorTypeSelBg]
                           selFg:tabColors[MMTabColorTypeSelFg]
-                           fill:tabColors[MMTabColorTypeFill]];
+                         fillBg:tabColors[MMTabColorTypeFillBg]
+                         fillFg:tabColors[MMTabColorTypeFillFg]];
     } else {
-        // tabColorsMode == MMTabColorsModeAutomatic, but catch-all in case it's
-        // set to an out-of-range number.
+        // tabColorsMode == MMTabColorsModeAutomatic
         NSColor *back = [[self textView] defaultBackgroundColor];
         NSColor *fore = [[self textView] defaultForegroundColor];
         [tabline setAutoColorsSelBg:back fg:fore];
@@ -498,7 +509,7 @@ typedef enum: NSInteger {
 - (void)setDefaultColorsBackground:(NSColor *)back foreground:(NSColor *)fore
 {
     [textView setDefaultColorsBackground:back foreground:fore];
-    [self updateTablineColors];
+    [self updateTablineColors:MMTabColorsModeAutomatic];
 
     CALayer *backedLayer = [self layer];
     if (backedLayer) {
@@ -527,9 +538,9 @@ typedef enum: NSInteger {
     tabColors[MMTabColorTypeTabFg] = [tabFg retain];
     tabColors[MMTabColorTypeSelBg] = [selBg retain];
     tabColors[MMTabColorTypeSelFg] = [selFg retain];
-    tabColors[MMTabColorTypeFill] = [fillBg retain];
-    (void)fillFg; // We don't use fillFg as we don't draw anything in the empty area
-    [self updateTablineColors];
+    tabColors[MMTabColorTypeFillBg] = [fillBg retain];
+    tabColors[MMTabColorTypeFillFg] = [fillFg retain];
+    [self updateTablineColors:MMTabColorsModeVimColorscheme];
 }
 
 

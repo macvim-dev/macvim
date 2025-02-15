@@ -33,6 +33,10 @@
 - (void)handleMessage:(int)msgid data:(NSData *)data;
 @end
 
+@interface MMVimView (Tests)
+- (void)updateTablineColors:(MMTabColorsMode)mode;
+@end
+
 // Test harness
 @implementation MMAppController (Tests)
 - (NSMutableArray*)vimControllers {
@@ -952,6 +956,63 @@ do { \
     XCTAssertLessThan(textView.maxRows, fuRows);
     XCTAssertLessThan(textView.maxColumns, fuCols);
     XCTAssertFalse(win.isRenderBlocked);
+}
+
+#pragma mark Tabs tests
+
+- (void)testTabColors {
+    [self createTestVimWindow];
+
+    MMAppController *app = MMAppController.sharedInstance;
+    MMVimView *vimView = [[[app keyVimController] windowController] vimView];
+    MMTabline *tabline = [vimView tabline];
+
+    // Test Vim colorscheme mode
+    [self setDefault:MMTabColorsModeKey toValue:@(MMTabColorsModeVimColorscheme)];
+
+    [self sendStringToVim:@":hi Normal guifg=#ff0000 guibg=#00ff00\n" withMods:0];
+    [self waitForVimProcess];
+    [self sendStringToVim:@":hi TabLineSel guifg=#010203 guibg=#040506\n" withMods:0];
+    [self sendStringToVim:@":hi clear TabLineFill\n" withMods:0];
+    [self sendStringToVim:@":hi TabLine guifg=#111213 guibg=NONE gui=inverse\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+
+    // Normal highlight groups
+    XCTAssertEqualObjects(tabline.tablineSelBgColor, [NSColor colorWithRgbInt:0x040506]);
+    XCTAssertEqualObjects(tabline.tablineSelFgColor, [NSColor colorWithRgbInt:0x010203]);
+    // Cleared highlight group should be transparent and fall through to Normal group
+    XCTAssertEqualObjects(tabline.tablineFillBgColor, [NSColor colorWithRgbInt:0x00ff00]);
+    XCTAssertEqualObjects(tabline.tablineFillFgColor, [NSColor colorWithRgbInt:0xff0000]);
+    // One color is transparent, and inversed fg/bg
+    XCTAssertEqualObjects(tabline.tablineBgColor, [NSColor colorWithRgbInt:0x111213]);
+    XCTAssertEqualObjects(tabline.tablineFgColor, [NSColor colorWithRgbInt:0x00ff00]);
+
+    // Cleared highlight group with inversed fg/bg
+    [self sendStringToVim:@":hi TabLineFill gui=inverse\n" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    XCTAssertEqualObjects(tabline.tablineFillBgColor, [NSColor colorWithRgbInt:0xff0000]);
+    XCTAssertEqualObjects(tabline.tablineFillFgColor, [NSColor colorWithRgbInt:0x00ff00]);
+
+    // Test automatic colors mode
+    // Selected tab should have the exact same background as Normal colors
+    [self setDefault:MMTabColorsModeKey toValue:@(MMTabColorsModeAutomatic)];
+    [vimView updateTablineColors:MMTabColorsModeAutomatic];
+    XCTAssertEqualObjects(tabline.tablineSelBgColor, [NSColor colorWithRgbInt:0x00ff00]);
+
+    // Test default colors mode
+    // We just verify that the colors changed, rather than asserting the exact
+    // colors to make it easy to update tuning on them in the future.
+    [self setDefault:MMTabColorsModeKey toValue:@(MMTabColorsModeDefaultColors)];
+    [vimView updateTablineColors:MMTabColorsModeDefaultColors];
+
+    vimView.window.appearance = [NSAppearance appearanceNamed: NSAppearanceNameAqua];
+    [self waitForEventHandling];
+    XCTAssertEqual(tabline.tablineFillBgColor.colorSpace.colorSpaceModel, NSColorSpaceModelGray);
+    XCTAssertGreaterThan(tabline.tablineFillBgColor.whiteComponent, 0.5);
+
+    vimView.window.appearance = [NSAppearance appearanceNamed: NSAppearanceNameDarkAqua];
+    [self waitForEventHandling];
+    XCTAssertLessThan(tabline.tablineFillBgColor.whiteComponent, 0.5);
 }
 
 #pragma mark Full screen tests
