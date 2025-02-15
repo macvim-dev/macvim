@@ -28,22 +28,6 @@ static MMHoverButton* MakeHoverButton(MMTabline *tabline, MMHoverButtonImage ima
     return button;
 }
 
-static CGFloat calculateBrightness(NSColor *color) {
-    if (color.colorSpace.colorSpaceModel == NSColorSpaceModelRGB) {
-        // Calculate brightness according to a formula from
-        // the W3C that gives brightness as the eye perceives it. Then lighten
-        // or darken the default colors based on whether brightness is greater
-        // than 50% to achieve good visual contrast.
-        // www.w3.org/WAI/ER/WD-AERT/#color-contrast
-        CGFloat r, g, b;
-        [color getRed:&r green:&g blue:&b alpha:NULL];
-        return r * 0.299 + g * 0.114 + b * 0.587;
-    } else if (color.colorSpace.colorSpaceModel == NSColorSpaceModelGray) {
-        return color.whiteComponent;
-    }
-    return 1;
-}
-
 @implementation MMTabline
 {
     NSView *_tabsContainer;
@@ -299,7 +283,11 @@ static CGFloat calculateBrightness(NSColor *color) {
 
     // High-contrast modes. Should stroke to make it easier to read.
     NSColor *bgColor = self.tablineBgColor;
-    CGFloat brightness = calculateBrightness(bgColor);
+    CGFloat brightness = 1;
+    if (bgColor.colorSpace.colorSpaceModel == NSColorSpaceModelRGB)
+        brightness = bgColor.brightnessComponent;
+    else if (bgColor.colorSpace.colorSpaceModel == NSColorSpaceModelGray)
+        brightness = bgColor.whiteComponent;
     if (brightness > 0.5)
         return NSColor.blackColor;
     else
@@ -565,29 +553,63 @@ static CGFloat calculateBrightness(NSColor *color) {
 {
     // Set the colors for the tabline based on the default background and
     // foreground colors.
-    const CGFloat brightness = calculateBrightness(back);
 
+    // Calculate CIE Lab color. This is used for deriving other colors that are
+    // brighter / darker versions of the background color. Using Lab gives better
+    // results than simpy blending non-linearized RGB values.
+    // Note: We don't use CGColorSpaceCreateWithName(kCGColorSpaceGenericLab)
+    //       because the API is only available on macOS 10.13+.
+    const CGFloat whitePoint[3] = {0.95947,1,1.08883}; // D65 white point
+    const CGFloat blackPoint[3] = {0,0,0};
+    const CGFloat ranges[4] = {-127, 127, -127, 127};
+    CGColorSpaceRef labRef = CGColorSpaceCreateLab(whitePoint, blackPoint, ranges);
+    NSColorSpace *lab = [[NSColorSpace alloc] initWithCGColorSpace:labRef];
+    NSColor *backLab = [back colorUsingColorSpace:lab];
+    CGColorSpaceRelease(labRef);
+    if (backLab.numberOfComponents > 4)
+        backLab = nil; // don't know how this could happen, but just to be safe
+
+    CGFloat backComponents[4] = { 1, 0, 0, 1 }; // L*/a*/b*/alpha. L* is perceptual lightness from 0-100.
+    [backLab getComponents:backComponents];
+    CGFloat newComponents[4];
+    memcpy(newComponents, backComponents, sizeof(newComponents));
+
+    // Contrast (different in lightness) for fill bg and tab bg colors relative to the background color
+    // Note that this is not perceptively accurate to just add a fixed offset to the L* value but it's
+    // good enough for our purpose.
+    const CGFloat fillContrastDark = 17.0;
+    const CGFloat bgContrastDark = fillContrastDark * 0.71;
+    const CGFloat fillContrastLight = -19.0;
+    const CGFloat bgContrastLight = fillContrastLight * 0.70;
+
+    const CGFloat fillContrast = backComponents[0] >= 40 ? fillContrastLight : fillContrastDark;
+    const CGFloat bgContrast = backComponents[0] >= 40 ? bgContrastLight : bgContrastDark;
+
+    // Assign the colors
     _tablineSelBgColor = back;
 
-    _tablineSelFgColor = (brightness > 0.5)
-        ? [fore blendedColorWithFraction:0.6 ofColor:NSColor.blackColor]
-        : [fore blendedColorWithFraction:0.6 ofColor:NSColor.whiteColor];
+    _tablineSelFgColor = [fore blendedColorWithFraction:0.6
+                                                ofColor:(backComponents[0] >= 50 ? NSColor.blackColor : NSColor.whiteColor)];
     _addTabButton.fgColor = _tablineSelFgColor;
     _backwardScrollButton.fgColor = _tablineSelFgColor;
     _forwardScrollButton.fgColor = _tablineSelFgColor;
 
-    _tablineBgColor = (brightness > 0.5)
-        ? [back blendedColorWithFraction:0.16 ofColor:NSColor.blackColor]
-        : [back blendedColorWithFraction:0.13 ofColor:NSColor.whiteColor];
+    newComponents[0] = backComponents[0] + bgContrast;
+    _tablineBgColor = [[NSColor colorWithColorSpace:lab
+                                         components:newComponents
+                                              count:4]
+                       colorUsingColorSpace:NSColorSpace.sRGBColorSpace];
 
     _tablineFgColor = [_tablineSelFgColor blendedColorWithFraction:0.5 ofColor:_tablineBgColor];
 
     _tablineUnfocusedFgColor = [_tablineFgColor blendedColorWithFraction:0.4 ofColor:_tablineBgColor];
     _tablineUnfocusedSelFgColor = [_tablineSelFgColor blendedColorWithFraction:0.38 ofColor:_tablineSelBgColor];
 
-    _tablineFillBgColor = (brightness > 0.5)
-        ? [back blendedColorWithFraction:0.25 ofColor:NSColor.blackColor]
-        : [back blendedColorWithFraction:0.18 ofColor:NSColor.whiteColor];
+    newComponents[0] = backComponents[0] + fillContrast;
+    _tablineFillBgColor = [[NSColor colorWithColorSpace:lab
+                                             components:newComponents
+                                                  count:4]
+                           colorUsingColorSpace:NSColorSpace.sRGBColorSpace];
 
     [self updateTabStates];
     self.needsDisplay = YES;
