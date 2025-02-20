@@ -5,6 +5,7 @@
 @interface MMHoverButton : NSButton
 
 @property (nonatomic, retain) NSColor *fgColor;
+@property (nonatomic, retain) NSImage *imageTemplate;
 
 typedef enum : NSUInteger {
     MMHoverButtonImageAddTab = 0,

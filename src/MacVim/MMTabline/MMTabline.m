@@ -17,7 +17,7 @@ static const CGFloat ScrollOneTabAllowance = 0.25; // If we are showing 75+% of 
 
 static MMHoverButton* MakeHoverButton(MMTabline *tabline, MMHoverButtonImage imageType, NSString *tooltip, SEL action, BOOL continuous) {
     MMHoverButton *button = [MMHoverButton new];
-    button.image = [MMHoverButton imageFromType:imageType];
+    button.imageTemplate = [MMHoverButton imageFromType:imageType];
     button.translatesAutoresizingMaskIntoConstraints = NO;
     button.target = tabline;
     button.action = action;

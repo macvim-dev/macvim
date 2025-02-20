@@ -90,11 +90,12 @@
 - (void)setFgColor:(NSColor *)color
 {
     _fgColor = color;
-    self.image = super.image;
+    [self setImageTemplate:_imageTemplate];
 }
 
-- (void)setImage:(NSImage *)imageTemplate
+- (void)setImageTemplate:(NSImage *)imageTemplate
 {
+    _imageTemplate = imageTemplate;
     _circle.cornerRadius = imageTemplate.size.width / 2.0;
     NSColor *fillColor = self.fgColor ?: NSColor.controlTextColor;
     NSImage *image = [NSImage imageWithSize:imageTemplate.size
@@ -105,16 +106,7 @@
         NSRectFillUsingOperation(dstRect, NSCompositingOperationSourceAtop);
         return YES;
     }];
-    NSImage *alternateImage = [NSImage imageWithSize:imageTemplate.size
-                                             flipped:NO
-                                      drawingHandler:^BOOL(NSRect dstRect) {
-        [[fillColor colorWithAlphaComponent:0.2] set];
-        [[NSBezierPath bezierPathWithOvalInRect:dstRect] fill];
-        [image drawInRect:dstRect];
-        return YES;
-    }];
-    super.image = image;
-    self.alternateImage = alternateImage;
+    self.image = image;
 }
 
 - (void)setEnabled:(BOOL)enabled
