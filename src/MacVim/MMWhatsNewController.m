@@ -140,6 +140,26 @@ static NSString *_latestVersion;
     return;
 }
 
+// Font size delegates for menu items
+
+#if defined(MAC_OS_VERSION_11_0) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_VERSION_11_0
+- (IBAction)fontSizeUp:(id)sender
+{
+    if (@available(macos 11.0, *)) {
+        CGFloat pageZoom = _webView.pageZoom + 0.25;
+        _webView.pageZoom = pageZoom > 3.0 ? 3.0 : pageZoom;
+    }
+}
+
+- (IBAction)fontSizeDown:(id)sender
+{
+    if (@available(macos 11.0, *)) {
+        CGFloat pageZoom = _webView.pageZoom - 0.25;
+        _webView.pageZoom = pageZoom < 0.25 ? 0.25 : pageZoom;
+    }
+}
+#endif
+
 // WKNavigationDelegate methods
 
 /// Tells web view how to handle links and navigation. Current behavior is
@@ -149,14 +169,21 @@ static NSString *_latestVersion;
     NSURLRequest *request = navigationAction.request;
     NSURL *requestURL = request.URL;
 
-    if ([requestURL isEqual:_whatsNewURL]) {
+    if ([requestURL.scheme isEqual:_whatsNewURL.scheme] &&
+        [requestURL.host isEqual:_whatsNewURL.host] &&
+        [requestURL.port isEqual:_whatsNewURL.port] &&
+        [requestURL.path isEqual:_whatsNewURL.path] &&
+        [requestURL.query isEqual:_whatsNewURL.query])
+    {
+        // Only allow if everything except for fragment is the same (which
+        // we allow so that table of contents anchor links would work).
         decisionHandler(WKNavigationActionPolicyAllow);
     }
     else {
         // We want to open any links in the release notes with a browser instead.
         decisionHandler(WKNavigationActionPolicyCancel);
 
-        if ([request.URL.scheme isEqualToString:@"https"]) {
+        if ([requestURL.scheme isEqualToString:@"https"]) {
             // Just try to be sane and only open https:// urls. There should be
             // no reason why the release notes should contain other schemes and it
             // would be an indication something is wrong or malicious (e.g. file:
