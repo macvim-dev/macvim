@@ -171,7 +171,7 @@ static NSString *_latestVersion;
 
     if ([requestURL.scheme isEqual:_whatsNewURL.scheme] &&
         [requestURL.host isEqual:_whatsNewURL.host] &&
-        [requestURL.port isEqual:_whatsNewURL.port] &&
+        requestURL.port.integerValue == _whatsNewURL.port.integerValue &&
         [requestURL.path isEqual:_whatsNewURL.path] &&
         [requestURL.query isEqual:_whatsNewURL.query])
     {
