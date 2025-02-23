@@ -283,8 +283,6 @@ as general information regarding macOS user defaults.
 Here is a list of relevant dictionary entries:
 
 KEY				VALUE ~
-*MMAllowForceClickLookUp*	use Force click for data lookup instead of
-				<ForceClick> [bool]
 *MMCellWidthMultiplier*		width of a normal glyph in em units [float]
 *MMCmdLineAlignBottom*		Pin command-line to bottom of MacVim [bool]
 *MMDialogsTrackPwd*		open/save dialogs track the Vim pwd [bool]
@@ -307,7 +305,6 @@ KEY				VALUE ~
 *MMTitlebarAppearsTransparent*	enable a transparent titlebar [bool]
 *MMAppearanceModeSelection*	dark mode selection (|macvim-dark-mode|)[bool]
 *MMRendererClipToRow*		clip tall characters to the row they are on [bool]
-*MMScrollOneDirectionOnly*	scroll along one axis only when using trackpad [bool]
 *MMSmoothResize*		allow smooth resizing of MacVim window [bool]
 *MMShareFindPboard*		share search text to Find Pasteboard [bool]
 *MMTextInsetBottom*		text area offset in pixels [int]
@@ -316,11 +313,21 @@ KEY				VALUE ~
 *MMTextInsetTop*		text area offset in pixels [int]
 *MMTexturedWindow*		use brushed metal window (Tiger only) [bool]
 *MMTranslateCtrlClick*		interpret ctrl-click as right-click [bool]
-*MMUseMouseTime*		use mousetime to detect multiple clicks [bool]
 *MMVerticalSplit*		files open in vertical splits [bool]
 *MMZoomBoth*			zoom button maximizes both directions [bool]
 *MMUpdaterPrereleaseChannel*	opt-in to pre-release software update [bool]
 *MMShowWhatsNewOnStartup*	show "What's New" after updating to new version [bool]
+
+Mouse / Trackpad ~
+*MMScrollOneDirectionOnly*	scroll along one axis only when using trackpad [bool]
+*MMAllowForceClickLookUp*	use Force click for data lookup instead of
+				<ForceClick> [bool]
+*MMMouseWheelDisableAcceleration* disable OS scroll wheel acceleration [bool]
+*MMMouseWheelNumLines*		how many lines to scroll when scroll wheel
+				acceleration is turned off [int]
+*MMMouseWheelMinLines*		min number of lines to scroll per scroll wheel
+				click when acceleration is on [int]
+*MMUseMouseTime*		use mousetime to detect multiple clicks [bool]
 
 Tabs ~
 *MMTabColorsMode*		use default/auto/colorscheme for tab colors [int]

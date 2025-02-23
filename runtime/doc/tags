@@ -5654,6 +5654,9 @@ MMFullScreenFadeTime	gui_mac.txt	/*MMFullScreenFadeTime*
 MMLoginShell	gui_mac.txt	/*MMLoginShell*
 MMLoginShellArgument	gui_mac.txt	/*MMLoginShellArgument*
 MMLoginShellCommand	gui_mac.txt	/*MMLoginShellCommand*
+MMMouseWheelDisableAcceleration	gui_mac.txt	/*MMMouseWheelDisableAcceleration*
+MMMouseWheelMinLines	gui_mac.txt	/*MMMouseWheelMinLines*
+MMMouseWheelNumLines	gui_mac.txt	/*MMMouseWheelNumLines*
 MMNativeFullScreen	gui_mac.txt	/*MMNativeFullScreen*
 MMNoFontSubstitution	gui_mac.txt	/*MMNoFontSubstitution*
 MMNoTitleBarWindow	gui_mac.txt	/*MMNoTitleBarWindow*

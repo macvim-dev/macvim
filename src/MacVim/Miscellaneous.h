@@ -61,6 +61,9 @@ extern NSString *MMUseInlineImKey;
 extern NSString *MMSuppressTerminationAlertKey;
 extern NSString *MMNativeFullScreenKey;
 extern NSString *MMUseMouseTimeKey;
+extern NSString *MMMouseWheelDisableAccelerationKey;    ///< Disable native macOS mouse scroll wheel acceleration
+extern NSString *MMMouseWheelMinLinesKey;   ///< Minimum scroll delta for mouse scroll wheel, only when acceleration is on
+extern NSString *MMMouseWheelNumLinesKey;   ///< Number of lines to scroll using mouse scroll wheel, only when acceleration is off
 extern NSString *MMFullScreenFadeTimeKey;
 extern NSString *MMNonNativeFullScreenShowMenuKey;
 extern NSString *MMNonNativeFullScreenSafeAreaBehaviorKey;
@@ -69,7 +72,7 @@ extern NSString *MMCmdLineAlignBottomKey;
 extern NSString *MMRendererClipToRowKey;
 extern NSString *MMAllowForceClickLookUpKey;
 extern NSString *MMUpdaterPrereleaseChannelKey;
-extern NSString *MMLastUsedBundleVersionKey;    // The last used version of MacVim before this launch
+extern NSString *MMLastUsedBundleVersionKey;    ///< The last used version of MacVim before this launch
 extern NSString *MMShowWhatsNewOnStartupKey;
 extern NSString *MMScrollOneDirectionOnlyKey;
 
