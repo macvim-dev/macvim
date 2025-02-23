@@ -3800,9 +3800,9 @@ static unsigned eventModifierFlagsToVimMouseModMask(unsigned modifierFlags)
 
 static int eventButtonNumberToVimMouseButton(int buttonNumber)
 {
-    static int mouseButton[] = { MOUSE_LEFT, MOUSE_RIGHT, MOUSE_MIDDLE };
+    static int mouseButton[] = { MOUSE_LEFT, MOUSE_RIGHT, MOUSE_MIDDLE, MOUSE_X1, MOUSE_X2 };
 
-    return (buttonNumber >= 0 && buttonNumber < 3)
+    return (buttonNumber >= 0 && buttonNumber < 5)
             ? mouseButton[buttonNumber] : -1;
 }
 
