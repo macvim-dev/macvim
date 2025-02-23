@@ -312,15 +312,15 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     else interpretKeyEventsSwallowedKey = NO;
 }
 
-- (void)scrollWheel:(NSEvent *)event
+- (void)calcScrollWheelDeltas:(NSEvent *)event x:(float *)x y:(float *)y eventFlags:(NSEventModifierFlags*)eventFlags
 {
     float dx = 0;
     float dy = 0;
 
-#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+
     if ([event hasPreciseScrollingDeltas]) {
         const NSEventPhase phase = event.phase;
-        NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
 
         CGFloat eventScrollingDeltaX = event.scrollingDeltaX;
         CGFloat eventScrollingDeltaY = event.scrollingDeltaY;
@@ -366,12 +366,40 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
         scrollingDeltaY = 0;
         dx = [event scrollingDeltaX];
         dy = [event scrollingDeltaY];
-    }
-#else
-    dx = [event deltaX];
-    dy = [event deltaY];
-#endif
 
+        if ([ud boolForKey:MMMouseWheelDisableAccelerationKey]) {
+            // Use scroll wheel as discrete steps as macOS acceleration often
+            // leads to unintuitive results.
+            NSInteger numLines = [ud integerForKey:MMMouseWheelNumLinesKey];
+            dx = dx == 0 ? 0 : (dx > 0 ? numLines : -numLines);
+            dy = dy == 0 ? 0 : (dy > 0 ? numLines : -numLines);
+        } else {
+            // Use the default OS acceleration, but we still want to round up
+            // the delta to at least 1 (configurable) as otherwise it's
+            // frustrating to use as MacVim fails to scroll even one line.
+            NSInteger minScrollLines = [ud integerForKey:MMMouseWheelMinLinesKey];
+            dx = dx == 0 ? 0 : (fabs(dx) > minScrollLines ? dx : (dx > 0 ? minScrollLines : -minScrollLines));
+            dy = dy == 0 ? 0 : (fabs(dy) > minScrollLines ? dy : (dy > 0 ? minScrollLines : -minScrollLines));
+        }
+
+        if ((*eventFlags & NSEventModifierFlagShift) && dx != 0 && dy == 0) {
+            // A shift-scroll in macOS converts a normal Y to X-axis scroll.
+            // There is no proper API to query this so this is just done by
+            // heuristics. We need to remove the shift flag, or Vim would see
+            // this as a <S-ScrollWheelRight> which is not what we want.
+            *eventFlags = *eventFlags & (~NSEventModifierFlagShift);
+        }
+    }
+
+    *x = dx;
+    *y = dy;
+}
+
+- (void)scrollWheel:(NSEvent *)event
+{
+    NSEventModifierFlags eventFlags = event.modifierFlags;
+    float dx = 0, dy = 0;
+    [self calcScrollWheelDeltas:event x:&dx y:&dy eventFlags:&eventFlags];
     if (dx == 0 && dy == 0)
         return;
 
@@ -386,7 +414,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     int row, col;
     NSPoint pt = [textView convertPoint:[event locationInWindow] fromView:nil];
     if ([textView convertPoint:pt toRow:&row column:&col]) {
-        unsigned flags = (unsigned)[event modifierFlags];
+        unsigned flags = (unsigned)eventFlags;
         NSMutableData *data = [NSMutableData data];
 
         [data appendBytes:&row length:sizeof(int)];

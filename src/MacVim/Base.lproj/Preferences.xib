@@ -573,11 +573,11 @@
             <point key="canvasLocation" x="137.5" y="478.5"/>
         </customView>
         <customView id="Bnq-Nx-GJH" userLabel="Input">
-            <rect key="frame" x="0.0" y="0.0" width="483" height="110"/>
+            <rect key="frame" x="0.0" y="0.0" width="483" height="155"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
             <subviews>
                 <customView id="DAP-Yi-QU0" userLabel="Trackpad">
-                    <rect key="frame" x="20" y="72" width="433" height="18"/>
+                    <rect key="frame" x="20" y="117" width="433" height="18"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <subviews>
                         <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="f18-Wr-EgZ">
@@ -604,11 +604,11 @@
                     </subviews>
                 </customView>
                 <customView id="GZa-RH-fza" userLabel="Mouse">
-                    <rect key="frame" x="20" y="46" width="433" height="18"/>
+                    <rect key="frame" x="20" y="46" width="433" height="63"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <subviews>
                         <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="3Tx-8j-zQR">
-                            <rect key="frame" x="-2" y="0.0" width="187" height="17"/>
+                            <rect key="frame" x="-2" y="45" width="187" height="17"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Mouse:" id="imK-Tr-YuD">
                                 <font key="font" metaFont="system"/>
@@ -617,7 +617,7 @@
                             </textFieldCell>
                         </textField>
                         <button id="RLs-2Z-8PJ" userLabel="Ctrl-click as right-click">
-                            <rect key="frame" x="189" y="-1" width="199" height="18"/>
+                            <rect key="frame" x="189" y="44" width="199" height="18"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <buttonCell key="cell" type="check" title="Treat Ctrl-click as right-click" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="PYG-cd-wzL" userLabel="Ctrl-click as right-click">
                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
@@ -627,6 +627,43 @@
                                 <binding destination="58" name="value" keyPath="values.MMTranslateCtrlClick" id="ZMh-R3-AYN"/>
                             </connections>
                         </button>
+                        <button id="8rY-bA-ZQt">
+                            <rect key="frame" x="189" y="26" width="224" height="18"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
+                            <buttonCell key="cell" type="check" title="Disable scroll wheel acceleration" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="fRx-Gy-P0M">
+                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                <font key="font" metaFont="system"/>
+                            </buttonCell>
+                            <connections>
+                                <binding destination="58" name="value" keyPath="values.MMMouseWheelDisbleAcceleration" id="899-jt-taC"/>
+                            </connections>
+                        </button>
+                        <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="SqW-DB-w7i">
+                            <rect key="frame" x="210" y="3" width="109" height="17"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
+                            <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="left" title="Lines to scroll:" id="w03-Ox-2xg">
+                                <font key="font" metaFont="system"/>
+                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                            </textFieldCell>
+                            <connections>
+                                <binding destination="58" name="enabled" keyPath="values.MMMouseWheelDisbleAcceleration" id="Mzw-pC-FbR"/>
+                            </connections>
+                        </textField>
+                        <textField focusRingType="none" verticalHuggingPriority="750" id="Zpw-eU-7d1">
+                            <rect key="frame" x="305" y="1" width="32" height="21"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" drawsBackground="YES" id="Vwr-3s-VFd">
+                                <numberFormatter key="formatter" formatterBehavior="default10_4" numberStyle="decimal" formatWidth="-1" minimumIntegerDigits="1" maximumIntegerDigits="2000000000" maximumFractionDigits="3" id="NEj-vx-0Qo"/>
+                                <font key="font" metaFont="system"/>
+                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                            </textFieldCell>
+                            <connections>
+                                <binding destination="58" name="enabled" keyPath="values.MMMouseWheelDisbleAcceleration" id="i3X-ti-Cv8"/>
+                                <binding destination="58" name="value" keyPath="values.MMMouseWheelNumLines" id="ecJ-lb-ghs"/>
+                            </connections>
+                        </textField>
                     </subviews>
                 </customView>
                 <customView id="aUx-jX-mJJ" userLabel="Scrolling">
