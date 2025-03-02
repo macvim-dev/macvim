@@ -2244,6 +2244,11 @@ func Test_input_func()
 
   call assert_fails("call input('F:', '', 'invalid')", 'E180:')
   call assert_fails("call input('F:', '', [])", 'E730:')
+
+  " Test for using 'command' as the completion function
+  call feedkeys(":let c = input('Command? ', '', 'command')\<CR>"
+        \ .. "echo bufnam\<C-A>\<CR>", 'xt')
+  call assert_equal('echo bufname(', c)
 endfunc
 
 " Test for the inputdialog() function
@@ -4471,6 +4476,9 @@ func Test_blob2str()
 
     call assert_equal(['a'], blob2str(0z61, test_null_dict()))
     call assert_equal(['a'], blob2str(0z61, {'encoding': test_null_string()}))
+
+    call assert_equal(["\x80"], blob2str(0z80, {'encoding': 'none'}))
+    call assert_equal(['a', "\x80"], blob2str(0z610A80, {'encoding': 'none'}))
 
     #" Invalid encoding
     call assert_fails("call blob2str(0z80)", "E1515: Unable to convert from 'utf-8' encoding")

@@ -3523,76 +3523,176 @@ def Test_use_imported_class_as_type()
   source Xdir/import/a.vim
 enddef
 
-" FIXME: The following test currently fails.
-" " Test for using an autoloaded class from another autoloaded script
-" def Test_class_from_auloaded_script()
-"   mkdir('Xdir', 'R')
-"   var save_rtp = &rtp
-"   &rtp = getcwd()
-"   exe 'set rtp^=' .. getcwd() .. '/Xdir'
-"
-"   mkdir('Xdir/autoload/SomeClass/bar', 'p')
-"
-"   var lines =<< trim END
-"     vim9script
-"
-"     export class Baz
-"       static var v1: string = "v1"
-"       var v2: string = "v2"
-"       def GetName(): string
-"         return "baz"
-"       enddef
-"     endclass
-"   END
-"   writefile(lines, 'Xdir/autoload/SomeClass/bar/baz.vim', 'D')
-"
-"   lines =<< trim END
-"     vim9script
-"
-"     import autoload './bar/baz.vim'
-"
-"     export def MyTestFoo(): string
-"       assert_fails('var x = baz.Baz.NonExisting()', 'E1325: Method "NonExisting" not found in class "Baz"')
-"       assert_fails('var x = baz.Baz.foobar', 'E1337: Class variable "foobar" not found in class "Baz"')
-"
-"       const instance = baz.Baz.new()
-"       return $'{instance.GetName()} {baz.Baz.v1} {instance.v2}'
-"     enddef
-"   END
-"   writefile(lines, 'Xdir/autoload/SomeClass/foo.vim', 'D')
-"
-"   lines =<< trim END
-"     vim9script
-"
-"     import autoload 'SomeClass/foo.vim'
-"     import autoload 'SomeClass/bar/baz.vim'
-"
-"     def NotInAutoload()
-"       # Use non-existing class method and variable
-"       assert_fails('var x = baz.Baz.NonExisting()', 'E1325: Method "NonExisting" not found in class "Baz"')
-"
-"       var caught_exception = false
-"       try
-"         var x = baz.Baz.foobar
-"       catch /E1337: Class variable "foobar" not found in class "Baz"/
-"         caught_exception = true
-"       endtry
-"       assert_true(caught_exception)
-"
-"       const instance = baz.Baz.new()
-"       assert_equal("baz v1 v2", $'{instance.GetName()} {baz.Baz.v1} {instance.v2}')
-"     enddef
-"
-"     def InAutoload()
-"       assert_equal("baz v1 v2", foo.MyTestFoo())
-"     enddef
-"
-"     NotInAutoload()
-"     InAutoload()
-"   END
-"   v9.CheckScriptSuccess(lines)
-"
-"   &rtp = save_rtp
-" enddef
+" Test for using an autoloaded class from another autoloaded script
+def Test_class_from_auloaded_script()
+  mkdir('Xdir', 'R')
+  var save_rtp = &rtp
+  &rtp = getcwd()
+  exe 'set rtp^=' .. getcwd() .. '/Xdir'
+
+  mkdir('Xdir/autoload/SomeClass/bar', 'p')
+
+  var lines =<< trim END
+    vim9script
+
+    export class Baz
+      static var v1: string = "v1"
+      var v2: string = "v2"
+      def GetName(): string
+        return "baz"
+      enddef
+    endclass
+  END
+  writefile(lines, 'Xdir/autoload/SomeClass/bar/baz.vim', 'D')
+
+  lines =<< trim END
+    vim9script
+
+    import autoload './bar/baz.vim'
+
+    export def MyTestFoo(): string
+      assert_fails('var x = baz.Baz.NonExisting()', 'E1325: Method "NonExisting" not found in class "Baz"')
+      assert_fails('var x = baz.Baz.foobar', 'E1337: Class variable "foobar" not found in class "Baz"')
+
+      const instance = baz.Baz.new()
+      return $'{instance.GetName()} {baz.Baz.v1} {instance.v2}'
+    enddef
+  END
+  writefile(lines, 'Xdir/autoload/SomeClass/foo.vim', 'D')
+
+  lines =<< trim END
+    vim9script
+
+    import autoload 'SomeClass/foo.vim'
+    import autoload 'SomeClass/bar/baz.vim'
+
+    def NotInAutoload()
+      # Use non-existing class method and variable
+      assert_fails('var x = baz.Baz.NonExisting()', 'E1325: Method "NonExisting" not found in class "Baz"')
+
+      var caught_exception = false
+      try
+        var x = baz.Baz.foobar
+      catch /E1337: Class variable "foobar" not found in class "Baz"/
+        caught_exception = true
+      endtry
+      assert_true(caught_exception)
+
+      const instance = baz.Baz.new()
+      assert_equal("baz v1 v2", $'{instance.GetName()} {baz.Baz.v1} {instance.v2}')
+    enddef
+
+    def InAutoload()
+      assert_equal("baz v1 v2", foo.MyTestFoo())
+    enddef
+
+    NotInAutoload()
+    InAutoload()
+  END
+  v9.CheckScriptSuccess(lines)
+
+  &rtp = save_rtp
+enddef
+
+" Test for using an autoloaded enum from another script
+def Test_enum_from_auloaded_script()
+  mkdir('Xdir', 'R')
+  var save_rtp = &rtp
+  &rtp = getcwd()
+  exe 'set rtp^=' .. getcwd() .. '/Xdir'
+
+  mkdir('Xdir/autoload/', 'p')
+
+  var lines =<< trim END
+    vim9script
+    export enum Color
+      Red,
+      Green,
+      Blue
+    endenum
+  END
+  writefile(lines, 'Xdir/autoload/color.vim', 'D')
+
+  lines =<< trim END
+    vim9script
+
+    import autoload 'color.vim'
+
+    def CheckColor()
+      var c = color.Color.Green
+      assert_equal('Green', c.name)
+    enddef
+    CheckColor()
+  END
+  v9.CheckScriptSuccess(lines)
+
+  &rtp = save_rtp
+enddef
+
+" Test for using a non-exported constant as an instance variable initiazer in an
+" imported class
+def Test_import_member_initializer()
+  var lines =<< trim END
+    vim9script
+    const DEFAULT = 'default'
+    export class Foo
+      public var x = DEFAULT
+    endclass
+  END
+  writefile(lines, 'Ximportclass.vim', 'D')
+
+  # The initializer for Foo.x is evaluated in the context of Ximportclass.vim.
+  lines =<< trim END
+    vim9script
+    import './Ximportclass.vim' as X
+    class Bar extends X.Foo
+    endclass
+    var o = Bar.new()
+    assert_equal('default', o.x)
+  END
+  v9.CheckScriptSuccess(lines)
+
+  # Another test
+  lines =<< trim END
+    vim9script
+
+    export interface IObjKey
+      var unique_object_id: string
+    endinterface
+
+    # helper sub-class.
+    export class ObjKey implements IObjKey
+      const unique_object_id = GenerateKey()
+    endclass
+
+    export def GenerateKey(): string
+      return "SomeKey"
+    enddef
+  END
+  writefile(lines, 'XobjKey.vim', 'D')
+
+  lines =<< trim END
+    vim9script
+
+    import "./XobjKey.vim" as obj_key
+
+    const GenKey = obj_key.GenerateKey
+
+    class LocalObjKey implements obj_key.IObjKey
+      const unique_object_id = GenKey()
+    endclass
+
+    type Key1 = obj_key.ObjKey
+    type Key2 = LocalObjKey
+
+    class C1 extends Key1
+    endclass
+    class C2 extends Key2
+    endclass
+    assert_equal('SomeKey', C1.new().unique_object_id)
+    assert_equal('SomeKey', C2.new().unique_object_id)
+  END
+  v9.CheckScriptSuccess(lines)
+enddef
 
 " vim: ts=8 sw=2 sts=2 expandtab tw=80 fdm=marker

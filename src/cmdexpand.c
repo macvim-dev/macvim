@@ -229,8 +229,18 @@ nextwild(
 
     if (xp->xp_numfiles == -1)
     {
-	set_expand_context(xp);
-	cmd_showtail = expand_showtail(xp);
+#ifdef FEAT_EVAL
+        if (ccline->input_fn && ccline->xp_context == EXPAND_COMMANDS)
+	{
+	    // Expand commands typed in input() function
+	    set_cmd_context(xp, ccline->cmdbuff, ccline->cmdlen, ccline->cmdpos, FALSE);
+        }
+        else
+#endif
+        {
+	    set_expand_context(xp);
+        }
+        cmd_showtail = expand_showtail(xp);
     }
 
     if (xp->xp_context == EXPAND_UNSUCCESSFUL)
@@ -276,6 +286,9 @@ nextwild(
 	{
 	    int use_options = options |
 		    WILD_HOME_REPLACE|WILD_ADD_SLASH|WILD_SILENT;
+	    if (use_options & WILD_KEEP_SOLE_ITEM)
+		use_options &= ~WILD_KEEP_SOLE_ITEM;
+
 	    if (escape)
 		use_options |= WILD_ESCAPE;
 
@@ -330,7 +343,7 @@ nextwild(
 
     if (xp->xp_numfiles <= 0 && p2 == NULL)
 	beep_flush();
-    else if (xp->xp_numfiles == 1)
+    else if (xp->xp_numfiles == 1 && !(options & WILD_KEEP_SOLE_ITEM))
 	// free expanded pattern
 	(void)ExpandOne(xp, NULL, NULL, 0, WILD_FREE);
 
@@ -3233,6 +3246,8 @@ ExpandFromContext(
 	ret = ExpandMappings(pat, &regmatch, numMatches, matches);
     else if (xp->xp_context == EXPAND_ARGOPT)
 	ret = expand_argopt(pat, xp, &regmatch, matches, numMatches);
+    else if (xp->xp_context == EXPAND_HIGHLIGHT_GROUP)
+	ret = expand_highlight_group(pat, xp, &regmatch, matches, numMatches);
 #if defined(FEAT_TERMINAL)
     else if (xp->xp_context == EXPAND_TERMINALOPT)
 	ret = expand_terminal_opt(pat, xp, &regmatch, matches, numMatches);
@@ -3251,18 +3266,6 @@ ExpandFromContext(
     return ret;
 }
 
-/*
- * Expand a list of names.
- *
- * Generic function for command line completion.  It calls a function to
- * obtain strings, one by one.	The strings are matched against a regexp
- * program.  Matching strings are copied into an array, which is returned.
- *
- * If 'fuzzy' is TRUE, then fuzzy matching is used. Otherwise, regex matching
- * is used.
- *
- * Returns OK when no problems encountered, FAIL for error (out of memory).
- */
     int
 ExpandGeneric(
     char_u	*pat,
@@ -3274,6 +3277,38 @@ ExpandGeneric(
 					  // returns a string from the list
     int		escaped)
 {
+    return ExpandGenericExt(
+	pat, xp, regmatch, matches, numMatches, func, escaped, 0);
+}
+
+/*
+ * Expand a list of names.
+ *
+ * Generic function for command line completion.  It calls a function to
+ * obtain strings, one by one.	The strings are matched against a regexp
+ * program.  Matching strings are copied into an array, which is returned.
+ *
+ * If 'fuzzy' is TRUE, then fuzzy matching is used. Otherwise, regex matching
+ * is used.
+ *
+ * 'sortStartIdx' allows the caller to control sorting behavior. Items before
+ * the index will not be sorted. Pass 0 to sort all, and -1 to prevent any
+ * sorting.
+ *
+ * Returns OK when no problems encountered, FAIL for error (out of memory).
+ */
+    int
+ExpandGenericExt(
+    char_u	*pat,
+    expand_T	*xp,
+    regmatch_T	*regmatch,
+    char_u	***matches,
+    int		*numMatches,
+    char_u	*((*func)(expand_T *, int)),
+					  // returns a string from the list
+    int		escaped,
+    int		sortStartIdx)
+{
     int		i;
     garray_T	ga;
     char_u	*str;
@@ -3283,6 +3318,7 @@ ExpandGeneric(
     int		match;
     int		sort_matches = FALSE;
     int		funcsort = FALSE;
+    int		sortStartMatchIdx = -1;
 
     fuzzy = cmdline_fuzzy_complete(pat);
     *matches = NULL;
@@ -3358,6 +3394,12 @@ ExpandGeneric(
 	}
 #endif
 
+	if (sortStartIdx >= 0 && i >= sortStartIdx && sortStartMatchIdx == -1)
+	{
+	    // Found first item to start sorting from. This is usually 0.
+	    sortStartMatchIdx = ga.ga_len;
+	}
+
 	++ga.ga_len;
     }
 
@@ -3383,14 +3425,14 @@ ExpandGeneric(
 	funcsort = TRUE;
 
     // Sort the matches.
-    if (sort_matches)
+    if (sort_matches && sortStartMatchIdx != -1)
     {
 	if (funcsort)
 	    // <SNR> functions should be sorted to the end.
 	    qsort((void *)ga.ga_data, (size_t)ga.ga_len, sizeof(char_u *),
 							   sort_func_compare);
 	else
-	    sort_strings((char_u **)ga.ga_data, ga.ga_len);
+	    sort_strings((char_u **)ga.ga_data + sortStartMatchIdx, ga.ga_len - sortStartMatchIdx);
     }
 
     if (!fuzzy)

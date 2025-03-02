@@ -204,7 +204,13 @@ add_member(
 	m->ocm_flags |= OCMFLAG_HAS_TYPE;
     m->ocm_type = type;
     if (init_expr != NULL)
+    {
 	m->ocm_init = init_expr;
+	// Save the script context, we need it when evaluating or compiling the
+	// initializer expression.
+	m->ocm_init_sctx = current_sctx;
+	m->ocm_init_sctx.sc_lnum += SOURCING_LNUM;
+    }
     ++gap->ga_len;
     return OK;
 }
@@ -1355,7 +1361,11 @@ add_class_members(class_T *cl, exarg_T *eap, garray_T *type_list_gap)
 	typval_T	*tv = &cl->class_members_tv[i];
 	if (m->ocm_init != NULL)
 	{
+	    sctx_T	save_current_sctx = current_sctx;
+
+	    current_sctx = m->ocm_init_sctx;
 	    typval_T *etv = eval_expr(m->ocm_init, eap);
+	    current_sctx = save_current_sctx;
 	    if (etv == NULL)
 		return FAIL;
 
@@ -2053,7 +2063,7 @@ early_ret:
     tv.v_type = VAR_CLASS;
     tv.vval.v_class = cl;
     SOURCING_LNUM = start_lnum;
-    int rc = set_var_const(cl->class_name, current_sctx.sc_sid, NULL, &tv, FALSE, 0, 0);
+    int rc = set_var_const(cl->class_name, 0, NULL, &tv, FALSE, 0, 0);
     if (rc == FAIL)
 	goto cleanup;
 

@@ -816,7 +816,9 @@ RT_ALL =	\
 		runtime/pack/dist/opt/netrw/LICENSE.txt \
 		runtime/pack/dist/opt/netrw/README.md \
 		runtime/pack/dist/opt/netrw/autoload/netrw.vim \
-		runtime/pack/dist/opt/netrw/autoload/netrw/own.vim \
+		runtime/pack/dist/opt/netrw/autoload/netrw/fs.vim \
+		runtime/pack/dist/opt/netrw/autoload/netrw/os.vim \
+		runtime/pack/dist/opt/netrw/autoload/netrw/msg.vim \
 		runtime/pack/dist/opt/netrw/autoload/netrwSettings.vim \
 		runtime/pack/dist/opt/netrw/autoload/netrw_gitignore.vim \
 		runtime/pack/dist/opt/netrw/doc/netrw.txt \
@@ -876,6 +878,7 @@ RT_SCRIPTS =	\
 		runtime/syntax/testdir/input/setup/*.* \
 		runtime/syntax/testdir/dumps/*.dump \
 		runtime/syntax/testdir/dumps/*.vim \
+		runtime/syntax/testdir/tools/* \
 		runtime/syntax/generator/Makefile \
 		runtime/syntax/generator/README.md \
 		runtime/syntax/generator/gen_syntax_vim.vim \
@@ -1148,6 +1151,8 @@ IGNORE = \
 		.github/workflows/label.yml \
 		SECURITY.md \
 		ci/unlisted.make \
+		ci/hlgroups.make \
+		ci/hlgroups.ignore \
 		src/libvterm/CODE-MAP \
 		runtime/syntax/testdir/input/html_html \
 

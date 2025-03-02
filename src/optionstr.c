@@ -94,7 +94,7 @@ static char *(p_ttym_values[]) = {"xterm", "xterm2", "dec", "netterm", "jsbterm"
 #endif
 static char *(p_ve_values[]) = {"block", "insert", "all", "onemore", "none", "NONE", NULL};
 // Note: Keep this in sync with check_opt_wim()
-static char *(p_wim_values[]) = {"full", "longest", "list", "lastused", NULL};
+static char *(p_wim_values[]) = {"full", "longest", "list", "lastused", "noselect", NULL};
 static char *(p_wop_values[]) = {"fuzzy", "tagfile", "pum", NULL};
 #ifdef FEAT_WAK
 static char *(p_wak_values[]) = {"yes", "menu", "no", NULL};
@@ -4720,10 +4720,13 @@ did_set_string_option(
 	    setmouse();		    // in case 'mouse' changed
     }
 
-#if defined(FEAT_LUA) || defined(PROTO)
     if (varp == &p_rtp)
+    {
+	export_myvimdir();
+#if defined(FEAT_LUA) || defined(PROTO)
 	update_package_paths_in_lua();
 #endif
+    }
 
 #if defined(FEAT_LINEBREAK)
     // Changing Formatlistpattern when briopt includes the list setting:
@@ -4967,4 +4970,38 @@ restore_shm_value(void)
 	set_option_value_give_err((char_u *)"shm", 0L, shm_buf, 0);
 	vim_memset(shm_buf, 0, SHM_LEN);
     }
+}
+
+/*
+ * Export the environment variable $MYVIMDIR to the first item in runtimepath
+ */
+    void
+export_myvimdir()
+{
+    int		dofree = FALSE;
+    char_u	*p;
+    char_u	*q = p_rtp;
+    char_u	*buf = alloc(MAXPATHL);
+
+    if (buf == NULL)
+	return;
+
+    (void)copy_option_part(&q, buf, MAXPATHL, ",");
+
+    p = vim_getenv((char_u *)"MYVIMDIR", &dofree);
+
+    if (p == NULL || STRCMP(p, buf) != 0)
+    {
+	add_pathsep(buf);
+#ifdef MSWIN
+	// normalize path separators
+	for (q = buf; *q != NUL; q++)
+	    if (*q == '/')
+		*q = '\\';
+#endif
+	vim_setenv((char_u *)"MYVIMDIR", buf);
+    }
+    if (dofree)
+	vim_free(p);
+    vim_free(buf);
 }

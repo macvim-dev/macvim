@@ -497,6 +497,52 @@ func Test_completefunc_info()
   set completefunc&
 endfunc
 
+func ScrollInfoWindowUserDefinedFn(findstart, query)
+  " User defined function (i_CTRL-X_CTRL-U)
+  if a:findstart
+    return col('.')
+  endif
+  let infostr = range(20)->mapnew({_, v -> string(v)})->join("\n")
+  return [{'word': 'foo', 'info': infostr}, {'word': 'bar'}]
+endfunc
+
+func ScrollInfoWindowPageDown()
+  call win_execute(popup_findinfo(), "normal! \<PageDown>")
+  return ''
+endfunc
+
+func ScrollInfoWindowPageUp()
+  call win_execute(popup_findinfo(), "normal! \<PageUp>")
+  return ''
+endfunc
+
+func ScrollInfoWindowTest(mvmt, count, fline)
+  new
+  set completeopt=menuone,popup,noinsert,noselect
+  set completepopup=height:5
+  set completefunc=ScrollInfoWindowUserDefinedFn
+  let keyseq = "i\<C-X>\<C-U>\<C-N>"
+  for _ in range(a:count)
+    let keyseq .= (a:mvmt == "pageup" ? "\<C-R>\<C-R>=ScrollInfoWindowPageUp()\<CR>" :
+          \ "\<C-R>\<C-R>=ScrollInfoWindowPageDown()\<CR>")
+  endfor
+  let keyseq .= "\<C-R>\<C-R>=string(popup_getpos(popup_findinfo()))\<CR>\<ESC>"
+  call feedkeys(keyseq, "tx")
+  call assert_match('''firstline'': ' . a:fline, getline(1))
+  bwipe!
+  set completeopt&
+  set completepopup&
+  set completefunc&
+endfunc
+
+func Test_scroll_info_window()
+  call ScrollInfoWindowTest("", 0, 1)
+  call ScrollInfoWindowTest("pagedown", 1, 4)
+  call ScrollInfoWindowTest("pagedown", 2, 7)
+  call ScrollInfoWindowTest("pagedown", 3, 11)
+  call ScrollInfoWindowTest("pageup", 3, 1)
+endfunc
+
 func CompleteInfoUserDefinedFn(findstart, query)
   " User defined function (i_CTRL-X_CTRL-U)
   if a:findstart
@@ -3171,13 +3217,63 @@ function Test_completeopt_preinsert()
   call assert_equal("fobar", getline('.'))
   call assert_equal(5, col('.'))
 
+  " When the pum is not visible, the preinsert has no effect
   set cot=preinsert
   call feedkeys("Sfoo1 foo2\<CR>f\<C-X>\<C-N>bar", 'tx')
-  call assert_equal("fbar", getline('.'))
-  call assert_equal(4, col('.'))
+  call assert_equal("foo1bar", getline('.'))
+  call assert_equal(7, col('.'))
+
+  set cot=preinsert,menuone
+  call feedkeys("Sfoo1 foo2\<CR>f\<C-X>\<C-N>", 'tx')
+  call assert_equal("foo1", getline('.'))
+  call assert_equal(1, col('.'))
 
   bw!
   set cot&
+  set omnifunc&
+  delfunc Omni_test
+endfunc
+
+" Check that mark positions are correct after triggering multiline completion.
+func Test_complete_multiline_marks()
+  func Omni_test(findstart, base)
+    if a:findstart
+      return col(".")
+    endif
+    return [
+          \ #{word: "func ()\n\t\nend"},
+          \ #{word: "foobar"},
+          \ #{word: "你好\n\t\n我好"}
+          \ ]
+  endfunc
+  set omnifunc=Omni_test
+
+  new
+  let lines = mapnew(range(10), 'string(v:val)')
+  call setline(1, lines)
+  call setpos("'a", [0, 3, 1, 0])
+
+  call feedkeys("A \<C-X>\<C-O>\<C-E>\<BS>", 'tx')
+  call assert_equal(lines, getline(1, '$'))
+  call assert_equal([0, 3, 1, 0], getpos("'a"))
+
+  call feedkeys("A \<C-X>\<C-O>\<C-N>\<C-E>\<BS>", 'tx')
+  call assert_equal(lines, getline(1, '$'))
+  call assert_equal([0, 3, 1, 0], getpos("'a"))
+
+  call feedkeys("A \<C-X>\<C-O>\<C-N>\<C-N>\<C-E>\<BS>", 'tx')
+  call assert_equal(lines, getline(1, '$'))
+  call assert_equal([0, 3, 1, 0], getpos("'a"))
+
+  call feedkeys("A \<C-X>\<C-O>\<C-N>\<C-N>\<C-N>\<C-E>\<BS>", 'tx')
+  call assert_equal(lines, getline(1, '$'))
+  call assert_equal([0, 3, 1, 0], getpos("'a"))
+
+  call feedkeys("A \<C-X>\<C-O>\<C-Y>", 'tx')
+  call assert_equal(['0 func ()', "\t", 'end'] + lines[1:], getline(1, '$'))
+  call assert_equal([0, 5, 1, 0], getpos("'a"))
+
+  bw!
   set omnifunc&
   delfunc Omni_test
 endfunc

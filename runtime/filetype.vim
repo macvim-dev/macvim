@@ -1,7 +1,7 @@
 " Vim support file to detect file types
 "
 " Maintainer:	The Vim Project <https://github.com/vim/vim>
-" Last Change:	2025 Feb 08
+" Last Change:	2025 Feb 23
 " Former Maintainer:	Bram Moolenaar <Bram@vim.org>
 
 " Listen very carefully, I will say this only once
@@ -340,6 +340,11 @@ au BufNewFile,BufRead *.capnp			setf capnp
 
 " Cgdb config file
 au BufNewFile,BufRead cgdbrc			setf cgdbrc
+
+" m17n database files. */m17n/* matches installed files, */.m17n.d/* matches
+" per-user config files, */m17n-db/* matches the git repo. (must be before
+" *.cs)
+au BufNewFile,BufRead */{m17n,.m17n.d,m17n-db}/*.{ali,cs,dir,flt,fst,lnm,mic,mim,tbl} setf m17ndb
 
 " C#
 au BufNewFile,BufRead *.cs,*.csx,*.cake		setf cs
@@ -2347,8 +2352,8 @@ au BufNewFile,BufRead *.zsh,*.zsh-theme,*.zunit		setf zsh
 " Salt state files
 au BufNewFile,BufRead *.sls			setf salt
 
-" Scheme, Supertux configuration, Lips.js history ("racket" patterns are now separate, see above)
-au BufNewFile,BufRead *.scm,*.ss,*.sld,*.stsg,*/supertux2/config,.lips_repl_history	setf scheme
+" Scheme, Supertux configuration, Lips.js history, Guile init file ("racket" patterns are now separate, see above)
+au BufNewFile,BufRead *.scm,*.ss,*.sld,*.stsg,*/supertux2/config,.lips_repl_history,.guile	setf scheme
 
 " Screen RC
 au BufNewFile,BufRead .screenrc,screenrc	setf screen
@@ -3273,7 +3278,7 @@ au BufNewFile,BufRead XF86Config*
 	\|call s:StarSetf('xf86conf')
 
 " XKB
-au BufNewFile,BufRead */usr/share/X11/xkb/{compat,geometry,keycodes,symbols,types}/*	call s:StarSetf('xkb')
+au BufNewFile,BufRead */{,.}xkb/{compat,geometry,keycodes,symbols,types}/*	call s:StarSetf('xkb')
 
 " X11 xmodmap
 au BufNewFile,BufRead *xmodmap*			call s:StarSetf('xmodmap')
@@ -3283,6 +3288,15 @@ au BufNewFile,BufRead */etc/xinetd.d/*		call s:StarSetf('xinetd')
 
 " yum conf (close enough to dosini)
 au BufNewFile,BufRead */etc/yum.repos.d/*	call s:StarSetf('dosini')
+
+" Yarn lock
+au BufNewFile,BufRead yarn.lock			setf yaml
+
+" Zathurarc
+au BufNewFile,BufRead zathurarc			setf zathurarc
+
+" Rofi stylesheet
+au BufNewFile,BufRead *.rasi			setf rasi
 
 " Z-Shell script ending in a star
 au BufNewFile,BufRead .zsh*,.zlog*,.zcompdump*  call s:StarSetf('zsh')
@@ -3328,15 +3342,6 @@ au filetypedetect BufNewFile,BufRead,StdinReadPost *
 	\	|| getline(5) =~ '^#') |
 	\   setf FALLBACK conf |
 	\ endif
-
-" Yarn lock
-au BufNewFile,BufRead yarn.lock			setf yaml
-
-" Zathurarc
-au BufNewFile,BufRead zathurarc			setf zathurarc
-
-" Rofi stylesheet
-au BufNewFile,BufRead *.rasi			setf rasi
 
 " If the GUI is already running, may still need to install the Syntax menu.
 " Don't do it when the 'M' flag is included in 'guioptions'.
