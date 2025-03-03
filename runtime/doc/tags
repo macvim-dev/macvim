@@ -4124,7 +4124,6 @@ CmdwinEnter	autocmd.txt	/*CmdwinEnter*
 CmdwinLeave	autocmd.txt	/*CmdwinLeave*
 ColorScheme	autocmd.txt	/*ColorScheme*
 ColorSchemePre	autocmd.txt	/*ColorSchemePre*
-Colors.plist	gui_mac.txt	/*Colors.plist*
 Command-line	cmdline.txt	/*Command-line*
 Command-line-mode	cmdline.txt	/*Command-line-mode*
 CompleteChanged	autocmd.txt	/*CompleteChanged*

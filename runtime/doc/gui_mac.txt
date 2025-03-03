@@ -402,32 +402,23 @@ top of the screen, you can set |MMNonNativeFullScreenShowMenu| to `NO` and
 ==============================================================================
 5. Special colors					*macvim-colors*
 
-The colors in MacVim are defined in two dictionaries inside the "Resources"
-folder of the application bundle (MacVim.app/Contents/Resources).  It is
-possible to add more colors by modifying these files.  Color names are case
-insensitive when accessed from Vim, but in the dictionary they must be
-lowercase.
+MacVim mostly uses standard Vim colors.  See |gui-colors| and |v:colornames|
+for how to set and override them.
 
 							*SystemColors.plist*
-There are only a few system colors that can be accessed from Vim.  These
-colors are defined in the dictionary "SystemColors.plist".  This dictionary
-stores (key, value) pairs where the key is the name of the color and the
-value is an NSColor selector name.
+There are a few additional system colors that can be used in the |:hi|
+command.  These colors are defined in the dictionary "SystemColors.plist" in
+the MacVim.app bundle.  These color values correspond to NSColor selectors in
+macOS.  The available color names are:
 
-The most useful system colors are: >
-	MacSelectedTextBackgroundColor
-	MacSecondarySelectedColor
-The former is the "Highlight Color" which can be changed in the "Appearance"
-section of the System Settings.  The latter is the selection color used by
-a Cocoa application when it is not in focus.
-
-							*Colors.plist*
-Apart from the system colors, it is also possible to use the standard X11
-color names (see https://en.wikipedia.org/wiki/X11_color_names) which usually
-come in a file called "rgb.txt".  MacVim does not have such a file, instead it
-keeps these colors in a dictionary called "Colors.plist". The key in this
-dictionary is the name of the color and the value is an RGB value on the form
-#rrggbb stored as an integer.
+KEY					VALUE ~
+MacSecondarySelectedControlColor	Selection color when app is not in
+					focus.
+MacSelectedTextBackgroundColor		"Highlight Color" which can be changed
+					in the "Appearance" section of System
+					Settings.
+MacTextBackgroundColor			Normal text background color.
+MacTextColor				Normal text color.
 
 							*macvim-colorscheme*
 MacVim ships with a custom color scheme that is used instead of the default

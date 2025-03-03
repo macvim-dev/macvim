@@ -1860,20 +1860,20 @@ gui_mch_flash(int msec UNUSED)
     guicolor_T
 gui_mch_get_color(char_u *name)
 {
+    guicolor_T color = gui_get_color_cmn(name);
+    if (color != INVALCOLOR)
+        return color;
+
     if (![MMBackend sharedInstance])
 	return INVALCOLOR;
 
     char_u *u8name = CONVERT_TO_UTF8(name);
 
     NSString *key = [NSString stringWithUTF8String:(char*)u8name];
-    guicolor_T color = [[MMBackend sharedInstance] lookupColorWithKey:key];
+    color = [[MMBackend sharedInstance] lookupColorWithKey:key];
 
     CONVERT_TO_UTF8_FREE(u8name);
-
-    if (color != INVALCOLOR)
-        return color;
-
-    return gui_get_color_cmn(name);
+    return color;
 }
 
 

@@ -22,7 +22,6 @@
     NSConnection        *vimServerConnection;
     id                  appProxy;
     unsigned long       identifier;
-    NSDictionary        *colorDict;
     NSDictionary        *sysColorDict;
     NSDictionary        *actionDict;
     BOOL                tabBarVisible;
