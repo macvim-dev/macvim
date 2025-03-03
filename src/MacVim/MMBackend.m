@@ -229,11 +229,8 @@ static struct specialkey
     serverReplyDict = [[NSMutableDictionary alloc] init];
 
     NSBundle *mainBundle = [NSBundle mainBundle];
-    NSString *path = [mainBundle pathForResource:@"Colors" ofType:@"plist"];
-    if (path)
-        colorDict = [[NSDictionary dictionaryWithContentsOfFile:path] retain];
 
-    path = [mainBundle pathForResource:@"SystemColors" ofType:@"plist"];
+    NSString *path = [mainBundle pathForResource:@"SystemColors" ofType:@"plist"];
     if (path)
         sysColorDict = [[NSDictionary dictionaryWithContentsOfFile:path]
             retain];
@@ -242,7 +239,7 @@ static struct specialkey
     if (path)
         actionDict = [[NSDictionary dictionaryWithContentsOfFile:path] retain];
 
-    if (!(colorDict && sysColorDict && actionDict)) {
+    if (!(sysColorDict && actionDict)) {
         ASLogNotice(@"Failed to load dictionaries.%@", MMSymlinkWarningString);
     }
 
@@ -270,7 +267,6 @@ static struct specialkey
     [appProxy release];  appProxy = nil;
     [actionDict release];  actionDict = nil;
     [sysColorDict release];  sysColorDict = nil;
-    [colorDict release];  colorDict = nil;
     [vimServerConnection release];  vimServerConnection = nil;
 #ifdef FEAT_BEVAL
     [lastToolTip release];  lastToolTip = nil;
@@ -1139,25 +1135,9 @@ static struct specialkey
                componentsJoinedByString:@""];
 
     if (stripKey && [stripKey length] > 0) {
-        // First of all try to lookup key in the color dictionary; note that
-        // all keys in this dictionary are lowercase with no whitespace.
-        id obj = [colorDict objectForKey:stripKey];
-        if (obj) return [obj intValue];
-
-        // The key was not in the dictionary; is it perhaps of the form
-        // #rrggbb?
-        if ([stripKey length] > 1 && [stripKey characterAtIndex:0] == '#') {
-            NSScanner *scanner = [NSScanner scannerWithString:stripKey];
-            [scanner setScanLocation:1];
-            unsigned hex = 0;
-            if ([scanner scanHexInt:&hex]) {
-                return (int)hex;
-            }
-        }
-
-        // As a last resort, check if it is one of the system defined colors.
-        // The keys in this dictionary are also lowercase with no whitespace.
-        obj = [sysColorDict objectForKey:stripKey];
+        // Check if it is one of the system defined colors. The keys in this
+        // dictionary are also lowercase with no whitespace.
+        id obj = [sysColorDict objectForKey:stripKey];
         if (obj) {
             NSColor *col = [NSColor performSelector:NSSelectorFromString(obj)];
             if (col) {
@@ -1171,7 +1151,6 @@ static struct specialkey
         }
     }
 
-    ASLogNotice(@"No color with key %@ found.", stripKey);
     return INVALCOLOR;
 }
 
