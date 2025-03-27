@@ -2979,6 +2979,49 @@ trigger_winclosed(win_T *win)
 }
 
 /*
+ * directly is TRUE if the window is closed by ':tabclose' or ':tabonly'.
+ * This allows saving the session before closing multi-window tab.
+ */
+    void
+trigger_tabclosedpre(tabpage_T *tp, int directly)
+{
+    static int	recursive = FALSE;
+    static int	skip = FALSE;
+    tabpage_T	*ptp = curtab;
+
+    // Quickly return when no TabClosedPre autocommands to be executed or
+    // already executing
+    if (!has_tabclosedpre() || recursive)
+	return;
+
+    // Skip if the event have been triggered by ':tabclose' recently
+    if (skip)
+    {
+	skip = FALSE;
+	return;
+    }
+
+    if (valid_tabpage(tp))
+    {
+	goto_tabpage_tp(tp, FALSE, FALSE);
+	if (directly)
+	    skip = TRUE;
+    }
+    recursive = TRUE;
+    window_layout_lock();
+    apply_autocmds(EVENT_TABCLOSEDPRE, NULL, NULL, FALSE, NULL);
+    window_layout_unlock();
+    recursive = FALSE;
+    // tabpage may have been modified or deleted by autocmds
+    if (valid_tabpage(ptp))
+	// try to recover the tappage first
+	goto_tabpage_tp(ptp, FALSE, FALSE);
+    else
+	// fall back to the first tappage
+	goto_tabpage_tp(first_tabpage, FALSE, FALSE);
+}
+
+/*
  * Make a snapshot of all the window scroll positions and sizes of the current
  * tab page.
  */
@@ -3242,7 +3285,8 @@ may_trigger_win_scrolled_resized(void)
     {
 	// Create the list for v:event.windows before making the snapshot.
 	windows_list = list_alloc_with_items(size_count);
-	(void)check_window_scroll_resize(NULL, NULL, NULL, windows_list, NULL);
+	if (windows_list != NULL)
+	    check_window_scroll_resize(NULL, NULL, NULL, windows_list, NULL);
     }
 
     dict_T *scroll_dict = NULL;
@@ -3253,8 +3297,7 @@ may_trigger_win_scrolled_resized(void)
 	if (scroll_dict != NULL)
 	{
 	    scroll_dict->dv_refcount = 1;
-	    (void)check_window_scroll_resize(NULL, NULL, NULL, NULL,
-								  scroll_dict);
+	    check_window_scroll_resize(NULL, NULL, NULL, NULL, scroll_dict);
 	}
     }
 #endif
@@ -3271,7 +3314,11 @@ may_trigger_win_scrolled_resized(void)
     recursive = TRUE;
 
     // If both are to be triggered do WinResized first.
-    if (trigger_resize)
+    if (trigger_resize
+#ifdef FEAT_EVAL
+	    && windows_list != NULL
+#endif
+	    )
     {
 #ifdef FEAT_EVAL
 	save_v_event_T  save_v_event;
@@ -3348,6 +3395,14 @@ win_close_othertab(win_T *win, int free_buf, tabpage_T *tp)
     if (win->w_buffer != NULL)
     {
 	trigger_winclosed(win);
+	// autocmd may have freed the window already.
+	if (!win_valid_any_tab(win))
+	    return;
+    }
+
+    if (tp->tp_firstwin == tp->tp_lastwin)
+    {
+	trigger_tabclosedpre(tp, FALSE);
 	// autocmd may have freed the window already.
 	if (!win_valid_any_tab(win))
 	    return;
@@ -6983,7 +7038,7 @@ win_fix_scroll(int resize)
 	    {
 		int diff = (wp->w_winrow - wp->w_prev_winrow)
 					  + (wp->w_height - wp->w_prev_height);
-		linenr_T lnum = wp->w_cursor.lnum;
+		pos_T cursor = wp->w_cursor;
 		wp->w_cursor.lnum = wp->w_botline - 1;
 
 		//  Add difference in height and row to botline.
@@ -6997,7 +7052,8 @@ win_fix_scroll(int resize)
 		wp->w_fraction = FRACTION_MULT;
 		scroll_to_fraction(wp, wp->w_prev_height);
 
-		wp->w_cursor.lnum = lnum;
+		wp->w_cursor = cursor;
+		wp->w_valid &= ~VALID_WCOL;
 	    }
 	    else if (wp == curwin)
 		wp->w_valid &= ~VALID_CROW;

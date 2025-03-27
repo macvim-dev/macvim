@@ -232,6 +232,7 @@ static void	ex_winpos(exarg_T *eap);
 #endif
 static void	ex_operators(exarg_T *eap);
 static void	ex_put(exarg_T *eap);
+static void	ex_iput(exarg_T *eap);
 static void	ex_copymove(exarg_T *eap);
 static void	ex_submagic(exarg_T *eap);
 static void	ex_join(exarg_T *eap);
@@ -289,7 +290,6 @@ static void	ex_tag_cmd(exarg_T *eap, char_u *name);
 # define ex_endif		ex_ni
 # define ex_endtry		ex_ni
 # define ex_endwhile		ex_ni
-# define ex_enum		ex_ni
 # define ex_eval		ex_ni
 # define ex_execute		ex_ni
 # define ex_finally		ex_ni
@@ -2378,8 +2378,8 @@ do_one_cmd(
 	    goto doend;
 	}
 #endif
-	if (valid_yank_reg(*ea.arg, (ea.cmdidx != CMD_put
-					      && !IS_USER_CMDIDX(ea.cmdidx))))
+	if (valid_yank_reg(*ea.arg, (!IS_USER_CMDIDX(ea.cmdidx)
+			    && ea.cmdidx != CMD_put && ea.cmdidx != CMD_iput)))
 	{
 	    ea.regname = *ea.arg++;
 #ifdef FEAT_EVAL
@@ -3804,8 +3804,12 @@ find_ex_command(
 		if (eq != NULL)
 		{
 		    eq = skipwhite(eq);
-		    if (vim_strchr((char_u *)"+-*/%", *eq) != NULL)
+		    if (vim_strchr((char_u *)"+-*/%.", *eq) != NULL)
+		    {
+			if (eq[0] == '.' && eq[1] == '.')
+			    ++eq;
 			++eq;
+		    }
 		}
 		if (p == NULL || p == eap->cmd || *eq != '=')
 		{
@@ -6542,6 +6546,8 @@ tabpage_close(int forceit)
     if (window_layout_locked(CMD_tabclose))
 	return;
 
+    trigger_tabclosedpre(curtab, TRUE);
+
     // First close all the windows but the current one.  If that worked then
     // close the last window in this tab, that will close it.
     if (!ONE_WINDOW)
@@ -6564,6 +6570,8 @@ tabpage_close_other(tabpage_T *tp, int forceit)
 {
     int		done = 0;
     win_T	*wp;
+
+    trigger_tabclosedpre(tp, TRUE);
 
     // Limit to 1000 windows, autocommands may add a window while we close
     // one.  OK, so I'm paranoid...
@@ -8522,6 +8530,25 @@ ex_put(exarg_T *eap)
     check_cursor_col();
     do_put(eap->regname, NULL, eap->forceit ? BACKWARD : FORWARD, 1L,
 						       PUT_LINE|PUT_CURSLINE);
+}
+
+/*
+ * ":iput".
+ */
+    static void
+ex_iput(exarg_T *eap)
+{
+    // ":0iput" works like ":1iput!".
+    if (eap->line2 == 0)
+    {
+	eap->line2 = 1;
+	eap->forceit = TRUE;
+    }
+    curwin->w_cursor.lnum = eap->line2;
+    check_cursor_col();
+    do_put(eap->regname, NULL, eap->forceit ? BACKWARD : FORWARD, 1L,
+						      PUT_LINE|PUT_CURSLINE
+						      |PUT_FIXINDENT);
 }
 
 /*

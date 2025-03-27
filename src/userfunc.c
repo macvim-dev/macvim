@@ -683,36 +683,28 @@ make_ufunc_name_readable(char_u *name, char_u *buf, size_t bufsize)
 }
 
 static char_u	lambda_name[8 + NUMBUFLEN];
-static size_t	lambda_namelen = 0;
 
 /*
  * Get a name for a lambda.  Returned in static memory.
  */
-    char_u *
+    string_T
 get_lambda_name(void)
 {
     static int	lambda_no = 0;
     int		n;
+    string_T	ret;
 
     n = vim_snprintf((char *)lambda_name, sizeof(lambda_name), "<lambda>%d", ++lambda_no);
     if (n < 1)
-	lambda_namelen = 0;
+	ret.length = 0;
     else
     if (n >= (int)sizeof(lambda_name))
-	lambda_namelen = sizeof(lambda_name) - 1;
+	ret.length = sizeof(lambda_name) - 1;
     else
-	lambda_namelen = (size_t)n;
+	ret.length = (size_t)n;
 
-    return lambda_name;
-}
-
-/*
- * Get the length of the last lambda name.
- */
-    size_t
-get_lambda_name_len(void)
-{
-    return lambda_namelen;
+    ret.string = lambda_name;
+    return ret;
 }
 
 /*
@@ -756,11 +748,10 @@ alloc_ufunc(char_u *name, size_t namelen)
     char_u *
 register_cfunc(cfunc_T cb, cfunc_free_T cb_free, void *state)
 {
-    char_u	*name = get_lambda_name();
-    size_t	namelen = get_lambda_name_len();
+    string_T	name = get_lambda_name();
     ufunc_T	*fp;
 
-    fp = alloc_ufunc(name, namelen);
+    fp = alloc_ufunc(name.string, name.length);
     if (fp == NULL)
 	return NULL;
 
@@ -776,7 +767,7 @@ register_cfunc(cfunc_T cb, cfunc_free_T cb_free, void *state)
 
     hash_add(&func_hashtab, UF2HIKEY(fp), "add C function");
 
-    return name;
+    return name.string;
 }
 #endif
 
@@ -1477,8 +1468,7 @@ lambda_function_body(
     char_u	*cmdline = NULL;
     int		ret = FAIL;
     partial_T	*pt;
-    char_u	*name;
-    size_t	namelen;
+    string_T	name;
     int		lnum_save = -1;
     linenr_T	sourcing_lnum_top = SOURCING_LNUM;
     char_u	*line_arg = NULL;
@@ -1597,8 +1587,7 @@ lambda_function_body(
     }
 
     name = get_lambda_name();
-    namelen = get_lambda_name_len();
-    ufunc = alloc_ufunc(name, namelen);
+    ufunc = alloc_ufunc(name.string, name.length);
     if (ufunc == NULL)
 	goto erret;
     if (hash_add(&func_hashtab, UF2HIKEY(ufunc), "add function") == FAIL)
@@ -1805,10 +1794,9 @@ get_lambda_tv(
 	int	    flags = FC_LAMBDA;
 	char_u	    *p;
 	char_u	    *line_end;
-	char_u	    *name = get_lambda_name();
-	size_t	    namelen = get_lambda_name_len();
+	string_T    name = get_lambda_name();
 
-	fp = alloc_ufunc(name, namelen);
+	fp = alloc_ufunc(name.string, name.length);
 	if (fp == NULL)
 	    goto errret;
 	fp->uf_def_status = UF_NOT_COMPILED;
@@ -3287,7 +3275,7 @@ call_user_func(
     save_did_emsg = did_emsg;
     did_emsg = FALSE;
 
-    if (default_arg_err && (fp->uf_flags & FC_ABORT))
+    if (default_arg_err && (fp->uf_flags & FC_ABORT || trylevel > 0 ))
     {
 	did_emsg = TRUE;
 	retval = FCERR_FAILED;
@@ -7298,9 +7286,9 @@ set_ref_in_previous_funccal(int copyID)
     for (fc = previous_funccal; fc != NULL; fc = fc->fc_caller)
     {
 	fc->fc_copyID = copyID + 1;
-	if (set_ref_in_ht(&fc->fc_l_vars.dv_hashtab, copyID + 1, NULL)
-		|| set_ref_in_ht(&fc->fc_l_avars.dv_hashtab, copyID + 1, NULL)
-		|| set_ref_in_list_items(&fc->fc_l_varlist, copyID + 1, NULL))
+	if (set_ref_in_ht(&fc->fc_l_vars.dv_hashtab, copyID + 1, NULL, NULL)
+		|| set_ref_in_ht(&fc->fc_l_avars.dv_hashtab, copyID + 1, NULL, NULL)
+		|| set_ref_in_list_items(&fc->fc_l_varlist, copyID + 1, NULL, NULL))
 	    return TRUE;
     }
     return FALSE;
@@ -7312,9 +7300,9 @@ set_ref_in_funccal(funccall_T *fc, int copyID)
     if (fc->fc_copyID != copyID)
     {
 	fc->fc_copyID = copyID;
-	if (set_ref_in_ht(&fc->fc_l_vars.dv_hashtab, copyID, NULL)
-		|| set_ref_in_ht(&fc->fc_l_avars.dv_hashtab, copyID, NULL)
-		|| set_ref_in_list_items(&fc->fc_l_varlist, copyID, NULL)
+	if (set_ref_in_ht(&fc->fc_l_vars.dv_hashtab, copyID, NULL, NULL)
+		|| set_ref_in_ht(&fc->fc_l_avars.dv_hashtab, copyID, NULL, NULL)
+		|| set_ref_in_list_items(&fc->fc_l_varlist, copyID, NULL, NULL)
 		|| set_ref_in_func(NULL, fc->fc_func, copyID))
 	    return TRUE;
     }
@@ -7377,7 +7365,7 @@ set_ref_in_func_args(int copyID)
 
     for (i = 0; i < funcargs.ga_len; ++i)
 	if (set_ref_in_item(((typval_T **)funcargs.ga_data)[i],
-							  copyID, NULL, NULL))
+						copyID, NULL, NULL, NULL))
 	    return TRUE;
     return FALSE;
 }

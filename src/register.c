@@ -1374,6 +1374,9 @@ op_yank(oparg_T *oap, int deleting, int mess)
 	    curbuf->b_op_start.col = 0;
 	    curbuf->b_op_end.col = MAXCOL;
 	}
+	if (yanktype != MLINE && !oap->inclusive)
+	    // Exclude the end position.
+	    decl(&curbuf->b_op_end);
     }
 
 #ifdef FEAT_CLIPBOARD
@@ -2376,6 +2379,7 @@ ex_display(exarg_T *eap)
     char_u	*arg = eap->arg;
     int		clen;
     int		type;
+    string_T	insert;
 
     if (arg != NULL && *arg == NUL)
 	arg = NULL;
@@ -2468,7 +2472,8 @@ ex_display(exarg_T *eap)
     }
 
     // display last inserted text
-    if ((p = get_last_insert()) != NULL
+    insert = get_last_insert();
+    if ((p = insert.string) != NULL
 		  && (arg == NULL || vim_strchr(arg, '.') != NULL) && !got_int
 						      && !message_filtered(p))
     {

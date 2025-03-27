@@ -211,6 +211,37 @@ func Test_wildmenu_screendump()
   call StopVimInTerminal(buf)
 endfunc
 
+func Test_wildmenu_with_input_func()
+  CheckScreendump
+
+  let buf = RunVimInTerminal('-c "set wildmenu"', {'rows': 8})
+
+  call term_sendkeys(buf, ":call input('Command? ', '', 'command')\<CR>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_input_func_1', {})
+  call term_sendkeys(buf, "ech\<Tab>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_input_func_2', {})
+  call term_sendkeys(buf, "\<Space>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_input_func_3', {})
+  call term_sendkeys(buf, "bufn\<Tab>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_input_func_4', {})
+  call term_sendkeys(buf, "\<CR>")
+
+  call term_sendkeys(buf, ":set wildoptions+=pum\<CR>")
+
+  call term_sendkeys(buf, ":call input('Command? ', '', 'command')\<CR>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_input_func_5', {})
+  call term_sendkeys(buf, "ech\<Tab>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_input_func_6', {})
+  call term_sendkeys(buf, "\<Space>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_input_func_7', {})
+  call term_sendkeys(buf, "bufn\<Tab>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_input_func_8', {})
+  call term_sendkeys(buf, "\<CR>")
+
+  " clean up
+  call StopVimInTerminal(buf)
+endfunc
+
 func Test_redraw_in_autocmd()
   CheckScreendump
 
@@ -2993,6 +3024,28 @@ func Test_wildmenu_pum_rightleft()
   call term_sendkeys(buf, ":sign \<Tab>")
   call VerifyScreenDump(buf, 'Test_wildmenu_pum_rl', {})
 
+  call StopVimInTerminal(buf)
+endfunc
+
+" Test highlighting when pattern matches non-first character of item
+func Test_wildmenu_pum_hl_nonfirst()
+  CheckScreendump
+  let lines =<< trim END
+    set wildoptions=pum wildchar=<tab> wildmode=noselect,full
+    hi PmenuMatchSel  ctermfg=6 ctermbg=7
+    hi PmenuMatch     ctermfg=4 ctermbg=225
+    func T(a, c, p)
+      return ["oneA", "o neBneB", "aoneC"]
+    endfunc
+    command -nargs=1 -complete=customlist,T MyCmd
+  END
+
+  call writefile(lines, 'Xwildmenu_pum_hl_nonf', 'D')
+  let buf = RunVimInTerminal('-S Xwildmenu_pum_hl_nonf', #{rows: 10, cols: 50})
+
+  call term_sendkeys(buf, ":MyCmd ne\<tab>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_pum_hl_match_nonf', {})
+  call term_sendkeys(buf, "\<Esc>")
   call StopVimInTerminal(buf)
 endfunc
 

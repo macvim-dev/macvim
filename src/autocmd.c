@@ -181,6 +181,7 @@ static keyvalue_T event_tab[NUM_EVENTS] = {
     KEYVALUE_ENTRY(EVENT_SWAPEXISTS, "SwapExists"),
     KEYVALUE_ENTRY(EVENT_SYNTAX, "Syntax"),
     KEYVALUE_ENTRY(EVENT_TABCLOSED, "TabClosed"),
+    KEYVALUE_ENTRY(EVENT_TABCLOSEDPRE, "TabClosedPre"),
     KEYVALUE_ENTRY(EVENT_TABENTER, "TabEnter"),
     KEYVALUE_ENTRY(EVENT_TABLEAVE, "TabLeave"),
     KEYVALUE_ENTRY(EVENT_TABNEW, "TabNew"),
@@ -871,7 +872,7 @@ au_event_disable(char *what)
     if (*what == ',' && *p_ei == NUL)
 	STRCPY(new_ei, what + 1);
     else
-	STRCAT(new_ei, what);
+	STRCPY(new_ei + p_ei_len, what);
     set_string_option_direct((char_u *)"ei", -1, new_ei,
 	    OPT_FREE, SID_NONE);
     vim_free(new_ei);
@@ -2901,6 +2902,14 @@ get_event_name_no_group(expand_T *xp UNUSED, int idx, int win)
     return NULL;
 }
 
+/*
+ * Return TRUE when there is a TabClosedPre autocommand defined.
+ */
+    int
+has_tabclosedpre(void)
+{
+    return (first_autopat[(int)EVENT_TABCLOSEDPRE] != NULL);
+}
 
 #if defined(FEAT_EVAL) || defined(PROTO)
 /*

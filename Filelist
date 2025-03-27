@@ -157,6 +157,7 @@ SRC_ALL =	\
 		src/textobject.c \
 		src/textprop.c \
 		src/time.c \
+		src/tuple.c \
 		src/typval.c \
 		src/ui.c \
 		src/undo.c \
@@ -223,6 +224,7 @@ SRC_ALL =	\
 		src/testdir/samples/*.html \
 		src/testdir/samples/*.txt \
 		src/testdir/samples/*.vim \
+		src/testdir/samples/poc.zip \
 		src/testdir/samples/test000 \
 		src/testdir/samples/test.zip \
 		src/testdir/samples/test_undo.txt.undo \
@@ -338,6 +340,7 @@ SRC_ALL =	\
 		src/proto/textobject.pro \
 		src/proto/textprop.pro \
 		src/proto/time.pro \
+		src/proto/tuple.pro \
 		src/proto/typval.pro \
 		src/proto/ui.pro \
 		src/proto/undo.pro \
@@ -771,16 +774,16 @@ RT_ALL =	\
 		runtime/tools/[a-z]*[a-z0-9] \
 		runtime/tutor/README.txt \
 		runtime/tutor/tutor1 \
+		runtime/tutor/tutor1.utf-8 \
 		runtime/tutor/en/vim-01-beginner.tutor \
 		runtime/tutor/en/vim-01-beginner.tutor.json \
-		runtime/tutor/it/vim-01-beginner.tutor \
-		runtime/tutor/it/vim-01-beginner.tutor.json \
-		runtime/tutor/sr/vim-01-beginner.tutor \
-		runtime/tutor/sr/vim-01-beginner.tutor.json \
+		runtime/tutor/en/vim-02-beginner.tutor \
+		runtime/tutor/en/vim-02-beginner.tutor.json \
 		runtime/tutor/tutor.tutor \
 		runtime/tutor/tutor.tutor.json \
 		runtime/tutor/tutor.vim \
 		runtime/tutor/tutor2 \
+		runtime/tutor/tutor2.utf-8 \
 		runtime/vimrc_example.vim \
 		runtime/pack/dist/opt/cfilter/plugin/cfilter.vim \
 		runtime/pack/dist/opt/comment/plugin/comment.vim \
@@ -804,6 +807,7 @@ RT_ALL =	\
 		runtime/pack/dist/opt/editorconfig/plugin/editorconfig.vim \
 		runtime/pack/dist/opt/helptoc/autoload/helptoc.vim \
 		runtime/pack/dist/opt/helptoc/plugin/helptoc.vim \
+		runtime/pack/dist/opt/hlyank/plugin/hlyank.vim \
 		runtime/pack/dist/opt/justify/plugin/justify.vim \
 		runtime/pack/dist/opt/matchit/plugin/matchit.vim \
 		runtime/pack/dist/opt/matchit/doc/matchit.txt \
@@ -1077,7 +1081,16 @@ LANG_GEN = \
 		runtime/tutor/README.*.txt \
 		runtime/tutor/Makefile \
 		runtime/tutor/Make_all.mak \
-		runtime/tutor/tutor1.utf-8 \
+		runtime/tutor/it/vim-01-beginner.tutor \
+		runtime/tutor/it/vim-01-beginner.tutor.json \
+		runtime/tutor/ru/vim-01-beginner.tutor \
+		runtime/tutor/ru/vim-01-beginner.tutor.json \
+		runtime/tutor/ru/vim-02-beginner.tutor \
+		runtime/tutor/ru/vim-02-beginner.tutor.json \
+		runtime/tutor/sr/vim-01-beginner.tutor \
+		runtime/tutor/sr/vim-01-beginner.tutor.json \
+		runtime/tutor/sr/vim-02-beginner.tutor \
+		runtime/tutor/sr/vim-02-beginner.tutor.json \
 		runtime/tutor/tutor1.?? \
 		runtime/tutor/tutor1.??.utf-8 \
 		runtime/tutor/tutor1.??.euc \
@@ -1090,7 +1103,6 @@ LANG_GEN = \
 		runtime/tutor/tutor1.??_??.utf-8 \
 		runtime/tutor/tutor1.bar \
 		runtime/tutor/tutor1.bar.utf-8 \
-		runtime/tutor/tutor2.utf-8 \
 		runtime/tutor/tutor2.?? \
 		runtime/tutor/tutor2.??.utf-8 \
 		runtime/spell/README.txt \

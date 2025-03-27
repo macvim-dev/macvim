@@ -15,6 +15,7 @@
 
 static int	cmd_showtail;	// Only show path tail in lists ?
 
+static void	set_context_for_wildcard_arg(exarg_T *eap, char_u *arg, int usefilter, expand_T *xp, int *complp);
 static int	ExpandFromContext(expand_T *xp, char_u *, char_u ***, int *, int);
 static char_u	*showmatches_gettail(char_u *s);
 static int	expand_showtail(expand_T *xp);
@@ -230,17 +231,17 @@ nextwild(
     if (xp->xp_numfiles == -1)
     {
 #ifdef FEAT_EVAL
-        if (ccline->input_fn && ccline->xp_context == EXPAND_COMMANDS)
+	if (ccline->input_fn && ccline->xp_context == EXPAND_COMMANDS)
 	{
 	    // Expand commands typed in input() function
 	    set_cmd_context(xp, ccline->cmdbuff, ccline->cmdlen, ccline->cmdpos, FALSE);
-        }
-        else
+	}
+	else
 #endif
-        {
+	{
 	    set_expand_context(xp);
-        }
-        cmd_showtail = expand_showtail(xp);
+	}
+	cmd_showtail = expand_showtail(xp);
     }
 
     if (xp->xp_context == EXPAND_UNSUCCESSFUL)
@@ -419,10 +420,15 @@ cmdline_pum_active(void)
  * items and refresh the screen.
  */
     void
-cmdline_pum_remove(void)
+cmdline_pum_remove(cmdline_info_T *cclp UNUSED)
 {
     int save_p_lz = p_lz;
     int	save_KeyTyped = KeyTyped;
+#ifdef FEAT_EVAL
+    int	save_RedrawingDisabled = RedrawingDisabled;
+    if (cclp->input_fn)
+	RedrawingDisabled = 0;
+#endif
 
     pum_undisplay();
     VIM_CLEAR(compl_match_array);
@@ -434,12 +440,16 @@ cmdline_pum_remove(void)
     // When a function is called (e.g. for 'foldtext') KeyTyped might be reset
     // as a side effect.
     KeyTyped = save_KeyTyped;
+#ifdef FEAT_EVAL
+    if (cclp->input_fn)
+	RedrawingDisabled = save_RedrawingDisabled;
+#endif
 }
 
     void
 cmdline_pum_cleanup(cmdline_info_T *cclp)
 {
-    cmdline_pum_remove();
+    cmdline_pum_remove(cclp);
     wildmenu_cleanup(cclp);
 }
 
@@ -1022,7 +1032,7 @@ ExpandOne(
 
 	// The entries from xp_files may be used in the PUM, remove it.
 	if (compl_match_array != NULL)
-	    cmdline_pum_remove();
+	    cmdline_pum_remove(get_cmdline_info());
     }
     xp->xp_selected = 0;
 
@@ -2723,6 +2733,7 @@ set_cmd_context(
 {
 #ifdef FEAT_EVAL
     cmdline_info_T	*ccline = get_cmdline_info();
+    int			context;
 #endif
     int		old_char = NUL;
     char_u	*nextcomm;
@@ -2745,6 +2756,12 @@ set_cmd_context(
 	xp->xp_context = ccline->xp_context;
 	xp->xp_pattern = ccline->cmdbuff;
 	xp->xp_arg = ccline->xp_arg;
+	if (xp->xp_context == EXPAND_SHELLCMDLINE)
+	{
+	    context = xp->xp_context;
+	    set_context_for_wildcard_arg(NULL, xp->xp_pattern, FALSE, xp,
+								     &context);
+	}
     }
     else
 #endif

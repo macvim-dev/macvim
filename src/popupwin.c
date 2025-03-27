@@ -40,10 +40,10 @@ static int  message_win_time = 3000;
 // hit-enter prompt.
 static int    start_message_win_timer = FALSE;
 
-static int popup_on_cmdline = FALSE;
-
 static void may_start_message_win_timer(win_T *wp);
 #endif
+
+static int popup_on_cmdline = FALSE;
 
 static void popup_adjust_position(win_T *wp);
 
@@ -3586,6 +3586,20 @@ popup_do_filter(int c)
 		&& (wp->w_filter_mode & state) != 0)
 	    res = invoke_popup_filter(wp, c);
 
+    // when Ctrl-C and no popup has been processed (res is still FALSE)
+    // Try to find and close a popup that has no filter callback
+    if (c == Ctrl_C && res == FALSE)
+    {
+	popup_reset_handled(POPUP_HANDLED_2);
+	wp = find_next_popup(FALSE, POPUP_HANDLED_2);
+        if (wp != NULL)
+        {
+	    popup_close_with_retval(wp, -1);
+	    res = TRUE;
+	}
+    }
+
+
     if (must_redraw > was_must_redraw)
     {
 	int save_got_int = got_int;
@@ -4402,13 +4416,13 @@ set_ref_in_one_popup(win_T *wp, int copyID)
     {
 	tv.v_type = VAR_PARTIAL;
 	tv.vval.v_partial = wp->w_close_cb.cb_partial;
-	abort = abort || set_ref_in_item(&tv, copyID, NULL, NULL);
+	abort = abort || set_ref_in_item(&tv, copyID, NULL, NULL, NULL);
     }
     if (wp->w_filter_cb.cb_partial != NULL)
     {
 	tv.v_type = VAR_PARTIAL;
 	tv.vval.v_partial = wp->w_filter_cb.cb_partial;
-	abort = abort || set_ref_in_item(&tv, copyID, NULL, NULL);
+	abort = abort || set_ref_in_item(&tv, copyID, NULL, NULL, NULL);
     }
     abort = abort || set_ref_in_list(wp->w_popup_mask, copyID);
     return abort;
@@ -4573,15 +4587,6 @@ popup_hide_info(void)
 }
 
 /*
- * Returns TRUE if a popup extends into the cmdline area.
- */
-    int
-popup_overlaps_cmdline(void)
-{
-    return popup_on_cmdline;
-}
-
-/*
  * Close any info popup.
  */
     void
@@ -4593,6 +4598,15 @@ popup_close_info(void)
 	popup_close_with_retval(wp, -1);
 }
 #endif
+
+/*
+ * Returns TRUE if a popup extends into the cmdline area.
+ */
+    int
+popup_overlaps_cmdline(void)
+{
+    return popup_on_cmdline;
+}
 
 #if defined(HAS_MESSAGE_WINDOW) || defined(PROTO)
 

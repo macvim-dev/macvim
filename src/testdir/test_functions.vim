@@ -2245,10 +2245,20 @@ func Test_input_func()
   call assert_fails("call input('F:', '', 'invalid')", 'E180:')
   call assert_fails("call input('F:', '', [])", 'E730:')
 
-  " Test for using 'command' as the completion function
+  " Test for using "command" as the completion function
   call feedkeys(":let c = input('Command? ', '', 'command')\<CR>"
         \ .. "echo bufnam\<C-A>\<CR>", 'xt')
   call assert_equal('echo bufname(', c)
+
+  " Test for using "shellcmdline" as the completion function
+  call feedkeys(":let c = input('Shell? ', '', 'shellcmdline')\<CR>"
+        \ .. "vim test_functions.\<C-A>\<CR>", 'xt')
+  call assert_equal('vim test_functions.vim', c)
+  if executable('whoami')
+    call feedkeys(":let c = input('Shell? ', '', 'shellcmdline')\<CR>"
+          \ .. "whoam\<C-A>\<CR>", 'xt')
+    call assert_match('\<whoami\>', c)
+  endif
 endfunc
 
 " Test for the inputdialog() function
@@ -4448,10 +4458,10 @@ func Test_str2blob()
 
     call assert_fails("call str2blob(['abc'], [])", 'E1206: Dictionary required for argument 2')
     call assert_fails("call str2blob(['abc'], {'encoding': []})", 'E730: Using a List as a String')
-    call assert_fails("call str2blob(['abc'], {'encoding': 'ab12xy'})", 'E1515: Unable to convert to ''ab12xy'' encoding')
-    call assert_fails("call str2blob(['ŝş'], {'encoding': 'latin1'})", 'E1515: Unable to convert to ''latin1'' encoding')
-    call assert_fails("call str2blob(['அஇ'], {'encoding': 'latin1'})", 'E1515: Unable to convert to ''latin1'' encoding')
-    call assert_fails("call str2blob(['🁰🁳'], {'encoding': 'latin1'})", 'E1515: Unable to convert to ''latin1'' encoding')
+    call assert_fails("call str2blob(['abc'], {'encoding': 'ab12xy'})", 'E1516: Unable to convert to ''ab12xy'' encoding')
+    call assert_fails("call str2blob(['ŝş'], {'encoding': 'latin1'})", 'E1516: Unable to convert to ''latin1'' encoding')
+    call assert_fails("call str2blob(['அஇ'], {'encoding': 'latin1'})", 'E1516: Unable to convert to ''latin1'' encoding')
+    call assert_fails("call str2blob(['🁰🁳'], {'encoding': 'latin1'})", 'E1516: Unable to convert to ''latin1'' encoding')
   END
   call v9.CheckLegacyAndVim9Success(lines)
 endfunc
