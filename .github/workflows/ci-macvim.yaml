@@ -52,6 +52,7 @@ jobs:
       os: ${{ matrix.os }}
       legacy: ${{ matrix.legacy && true || false }}
       xcode: ${{ matrix.xcode }}
+      testgui: ${{ matrix.testgui && true || false }}
       publish: ${{ matrix.publish && true || false }}
       publish_postfix: ${{ matrix.publish_postfix }}
       optimized: ${{ matrix.optimized && true || false }}
