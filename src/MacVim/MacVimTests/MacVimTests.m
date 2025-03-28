@@ -1470,6 +1470,10 @@ do { \
     NSString *regcontents = [vc evaluateVimExpression:@"getreg()"];
     XCTAssertEqualObjects(regcontents, @"abcd\n");
 
+    // Visual mode
+
+    NSString *changedtick1 = [vc evaluateVimExpression:@"b:changedtick"];
+
     // Get selected texts in visual mode
     XCTAssertFalse([vc hasSelectedText]);
     XCTAssertNil([vc selectedText]);
@@ -1491,29 +1495,78 @@ do { \
     XCTAssertEqualObjects([vc selectedText], @"bc\nfg");
 
     // Set selected texts in visual block mode
-    NSString *changedtick = [vc evaluateVimExpression:@"b:changedtick"];
-    [vc replaceSelectedText:@"xyz\n1234"];
-    NSString *changedtick2 = [vc evaluateVimExpression:@"b:changedtick"];
+    [vc insertOrReplaceSelectedText:@"xyz\n1234"];
     XCTAssertEqualObjects([vc evaluateVimExpression:@"getline(1)"], @"axyz d");
     XCTAssertEqualObjects([vc evaluateVimExpression:@"getline(2)"], @"e1234h");
     XCTAssertEqualObjects([vc evaluateVimExpression:@"getline(3)"], @"ijkl");
-    XCTAssertNotEqualObjects(changedtick, changedtick2);
-
-    // Make sure replacing texts when nothing is selected won't set anything
-    [vc replaceSelectedText:@"foobar"];
-    NSString *changedtick3 = [vc evaluateVimExpression:@"b:changedtick"];
-    XCTAssertEqualObjects(changedtick2, changedtick3);
 
     // Select in visual block again but send a different number of lines, make sure we intentionaly won't treat it as block text
     [self sendStringToVim:@"ggjjvll" withMods:0];
     [self sendKeyToVim:@"v" withMods:NSEventModifierFlagControl];
     [self waitForEventHandlingAndVimProcess];
-    [vc replaceSelectedText:@"xyz\n1234\n"]; // ending in newline means it gets interpreted as line-wise
+    [vc insertOrReplaceSelectedText:@"xyz\n1234\n"]; // ending in newline means it gets interpreted as line-wise
     XCTAssertEqualObjects([vc evaluateVimExpression:@"getline(1)"], @"axyz d");
     XCTAssertEqualObjects([vc evaluateVimExpression:@"getline(2)"], @"e1234h");
     XCTAssertEqualObjects([vc evaluateVimExpression:@"getline(3)"], @"xyz");
     XCTAssertEqualObjects([vc evaluateVimExpression:@"getline(4)"], @"1234");
     XCTAssertEqualObjects([vc evaluateVimExpression:@"getline(5)"], @"l");
+
+    // Normal mode
+
+    // When nothing is selected this will simply insert the text and not replace anything
+    [self sendStringToVim:@"ggll" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    [vc insertOrReplaceSelectedText:@"_normtext_"];
+    XCTAssertEqualObjects([vc evaluateVimExpression:@"getline(1)"], @"ax_normtext_yz d");
+
+    // Insert mode
+
+    [self sendStringToVim:@"ggjja" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    // Should insert the text at the cursor
+    [vc insertOrReplaceSelectedText:@"_inserttext_"];
+    XCTAssertEqualObjects([vc evaluateVimExpression:@"getline(3)"], @"x_inserttext_yz");
+    // Should leave the cursor past the inserted text
+    [self sendStringToVim:@"additional_text" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    XCTAssertEqualObjects([vc evaluateVimExpression:@"getline(3)"], @"x_inserttext_additional_textyz");
+    [self sendKeyToVim:@"[" withMods:NSEventModifierFlagControl]; // escape insert mode
+    [self waitForEventHandlingAndVimProcess];
+
+    // Cmdline mode
+
+    NSString *changedtick2 = [vc evaluateVimExpression:@"b:changedtick"];
+    XCTAssertNotEqualObjects(changedtick1, changedtick2);
+
+    [self sendStringToVim:@":cnoremap z <Left>\n" withMods:0];
+    [self sendStringToVim:@":123" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    [vc insertOrReplaceSelectedText:@"a\nb\n"];
+    XCTAssertEqualObjects([vc evaluateVimExpression:@"getcmdline()"], @"123a\rb\r"); // Vim does internal \n to \r conversion
+    XCTAssertEqualObjects([vc evaluateVimExpression:@"getcmdpos()"], @"8");
+    [self sendKeyToVim:@"[" withMods:NSEventModifierFlagControl]; // escape cmdline
+    [self waitForEventHandlingAndVimProcess];
+
+    [self sendStringToVim:@":123zzz" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    [vc insertOrReplaceSelectedText:@"foobar"];
+    XCTAssertEqualObjects([vc evaluateVimExpression:@"getcmdline()"], @"foobar123");
+    XCTAssertEqualObjects([vc evaluateVimExpression:@"getcmdpos()"], @"7");
+    [self sendKeyToVim:@"[" withMods:NSEventModifierFlagControl]; // escape cmdline
+
+    [self waitForEventHandlingAndVimProcess];
+    [self sendStringToVim:@":123z" withMods:0];
+    [self waitForEventHandlingAndVimProcess];
+    [vc insertOrReplaceSelectedText:@"foobar"];
+    XCTAssertEqualObjects([vc evaluateVimExpression:@"getcmdline()"], @"12foobar3");
+    XCTAssertEqualObjects([vc evaluateVimExpression:@"getcmdpos()"], @"9");
+    [self sendKeyToVim:@"[" withMods:NSEventModifierFlagControl]; // escape cmdline
+    [self waitForEventHandlingAndVimProcess];
+
+    // Make sure that the actual buffer wasn't changed at all during these insertions as they all
+    // went to the cmdline.
+    NSString *changedtick3 = [vc evaluateVimExpression:@"b:changedtick"];
+    XCTAssertEqualObjects(changedtick2, changedtick3);
 
     // Make sure registers didn't get stomped (internally the implementation uses register and manually restores it)
     regcontents = [[app keyVimController] evaluateVimExpression:@"getreg()"];

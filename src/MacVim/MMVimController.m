@@ -563,14 +563,14 @@ static BOOL isUnsafeMessage(int msgid);
     return selectedText;
 }
 
-- (void)replaceSelectedText:(NSString *)text
+- (void)insertOrReplaceSelectedText:(NSString *)text
 {
     if (backendProxy) {
         @try {
-            [backendProxy replaceSelectedText:text];
+            [backendProxy insertOrReplaceSelectedText:text];
         }
         @catch (NSException *ex) {
-            ASLogDebug(@"replaceSelectedText: failed: pid=%d reason=%@",
+            ASLogDebug(@"insertOrReplaceSelectedText: failed: pid=%d reason=%@",
                     pid, ex);
         }
     }
