@@ -13,6 +13,8 @@ on:
         type: boolean
       xcode:
         type: string
+      testgui:
+        type: boolean
       publish:
         type: boolean
       publish_postfix:
@@ -363,7 +365,7 @@ jobs:
           make ${MAKE_BUILD_ARGS} -j${NPROC} -C src unittesttargets
 
       - name: Test Vim
-        if: startsWith(github.ref, 'refs/tags/') || !matrix.testgui
+        if: startsWith(github.ref, 'refs/tags/') || !inputs.testgui
         timeout-minutes: 30
         run: |
           defaults delete org.vim.MacVim  # Clean up stale states
@@ -373,7 +375,7 @@ jobs:
           make ${MAKE_BUILD_ARGS} -C src test
 
       - name: Test Vim (GUI)
-        if: startsWith(github.ref, 'refs/tags/') || matrix.testgui
+        if: startsWith(github.ref, 'refs/tags/') || inputs.testgui
         timeout-minutes: 30
         run: |
           defaults delete org.vim.MacVim  # Clean up stale states
