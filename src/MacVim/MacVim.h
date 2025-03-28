@@ -194,7 +194,7 @@ typedef NSString* NSAttributedStringKey;
                   errorString:(out bycopy NSString **)errstr;
 - (BOOL)hasSelectedText;
 - (NSString *)selectedText;
-- (oneway void)replaceSelectedText:(in bycopy NSString *)text;
+- (oneway void)insertOrReplaceSelectedText:(in bycopy NSString *)text;
 - (BOOL)mouseScreenposIsSelection:(int)row column:(int)column selRow:(byref int *)startRow selCol:(byref int *)startCol;
 - (oneway void)acknowledgeConnection;
 @end

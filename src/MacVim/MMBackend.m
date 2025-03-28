@@ -1443,10 +1443,11 @@ static struct specialkey
     return nil;
 }
 
-/// Replace the selected text in visual mode with the new suppiled one.
-- (oneway void)replaceSelectedText:(in bycopy NSString *)text
+/// Insert or replace text with the supplied text. Works in Normal / Visual /
+/// Insert / Cmdline modes.
+- (oneway void)insertOrReplaceSelectedText:(in bycopy NSString *)text
 {
-    if (VIsual_active && (State & MODE_NORMAL)) {
+    if (State & MODE_NORMAL || State & MODE_INSERT) {
         // The only real way Vim has in doing this consistently is to use the
         // register put functionality as there is no generic API for this.
         // We find an arbitrary register ('0'), back it up, replace it with our
@@ -1474,17 +1475,27 @@ static struct specialkey
         write_reg_contents_ex('0', vimtext, -1, FALSE, yank_type, -1);
         vim_free(vimtext);
 
-        oparg_T oap;
-        CLEAR_FIELD(oap);
-        oap.regname = '0';
+        if (State & MODE_NORMAL || State & MODE_INSERT) {
+            oparg_T oap;
+            CLEAR_FIELD(oap);
+            oap.regname = '0';
 
-        cmdarg_T cap;
-        CLEAR_FIELD(cap);
-        cap.oap = &oap;
-        cap.cmdchar = 'P';
-        cap.count1 = 1;
+            cmdarg_T cap;
+            CLEAR_FIELD(cap);
+            cap.oap = &oap;
+            if (State & MODE_NORMAL) {
+                // Do 'P' or 'v_P' depending if we are in visual mode. They both do
+                // the correct behaviors, so no need to check for VIsual_active.
+                cap.cmdchar = 'P';
+            } else {
+                // Need 'gP' to leave the cursor at the right location.
+                cap.cmdchar = 'g';
+                cap.nchar = 'P';
+            }
+            cap.count1 = 1;
 
-        nv_put(&cap);
+            nv_put(&cap);
+        }
 
         // Clean up the temporary register, and restore the old state.
         yankreg_T *old_y_current = get_y_current();
@@ -1496,6 +1507,73 @@ static struct specialkey
         // nv_put does not trigger a redraw command as it's done on a higher
         // level, so just do a manual one here to make sure it's done.
         [self redrawScreen];
+    } else if (State & MODE_CMDLINE) {
+        // This is basically doing the following:
+        // - let cmdline_str = getcmdline()
+        // - let cmdline_pos = getcmdpos() - 1
+        // - setcmdline(cmdline_str[0:cmdline_pos] .. text .. cmdline_str[cmdline_pos:], cmdline_pos + len(text) + 1)
+
+        typval_T cmdline_str;
+        f_getcmdline(NULL, &cmdline_str);
+
+        typval_T cmdline_pos;
+        f_getcmdpos(NULL, &cmdline_pos);
+
+        char_u *vimtext = [text vimStringSave];
+        for (char_u *c = vimtext; *c != NUL; c++) {
+            // Perform NL conversion due to Vim's internal usage
+            if (*c == '\n')
+                *c = '\r';
+        }
+
+        size_t new_size = STRLEN(vimtext);
+        varnumber_T pos = new_size + 1;
+
+        if (cmdline_str.vval.v_string != NULL && cmdline_pos.vval.v_number != 0) {
+            // Combine original string with new one
+            char_u *orig_str = cmdline_str.vval.v_string;
+            size_t pos_index = cmdline_pos.vval.v_number - 1;
+
+            size_t orig_size = STRLEN(cmdline_str.vval.v_string);
+
+            if (pos_index > orig_size)
+                pos_index = orig_size; // shouldn't really happen
+
+            char_u *newtext = alloc(orig_size + new_size + 1);
+            if (pos_index > 0)
+                memcpy(newtext, orig_str, pos_index);
+            memcpy(newtext + pos_index, vimtext, new_size);
+            if (pos_index < orig_size)
+                memcpy(newtext + pos_index + new_size, orig_str + pos_index, orig_size - pos_index);
+            newtext[orig_size + new_size] = '\0';
+
+            vim_free(vimtext);
+            vimtext = newtext;
+
+            pos += pos_index;
+        }
+
+        {
+            typval_T arg_cmdline_str_new;
+            init_tv(&arg_cmdline_str_new);
+            arg_cmdline_str_new.v_type = VAR_STRING;
+            arg_cmdline_str_new.vval.v_string = vimtext;
+
+            typval_T arg_cmdline_pos;
+            init_tv(&arg_cmdline_pos);
+            arg_cmdline_pos.v_type = VAR_NUMBER;
+            arg_cmdline_pos.vval.v_number = pos;
+
+            typval_T args[2] = { arg_cmdline_str_new, arg_cmdline_pos };
+
+            typval_T ret;
+            f_setcmdline(args, &ret);
+
+            vim_free(vimtext);
+        }
+
+        if (cmdline_str.vval.v_string != NULL)
+            vim_free(cmdline_str.vval.v_string);
     }
 }
 

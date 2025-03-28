@@ -251,7 +251,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
         // Only known way of this being called is Apple Intelligence Writing
         // Tools.
         MMVimController *vc = [self vimController];
-        [vc replaceSelectedText:string];
+        [vc insertOrReplaceSelectedText:string];
         return;
     }
 

@@ -1679,7 +1679,7 @@
     NSArray *types = [pboard types];
     if ([types containsObject:NSPasteboardTypeString]) {
         NSString *input = [pboard stringForType:NSPasteboardTypeString];
-        [vimController replaceSelectedText:input];
+        [vimController insertOrReplaceSelectedText:input];
         return YES;
     }
 

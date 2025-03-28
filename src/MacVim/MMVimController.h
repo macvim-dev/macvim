@@ -94,7 +94,7 @@
                      errorString:(NSString **)errstr;
 - (BOOL)hasSelectedText;
 - (NSString *)selectedText;
-- (void)replaceSelectedText:(NSString *)text;
+- (void)insertOrReplaceSelectedText:(NSString *)text;
 - (void)processInputQueue:(NSArray *)queue;
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12_2
 - (NSTouchBar *)makeTouchBar;
