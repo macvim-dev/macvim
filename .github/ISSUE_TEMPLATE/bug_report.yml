@@ -10,6 +10,8 @@ body:
         Thanks for reporting issues of MacVim!
 
         If you want to report a security issue, instead of reporting it here publicly, please disclose it using the steps listed at https://github.com/macvim-dev/macvim/security/policy.
+
+        For general Vim issues that are not specific to MacVim, please file them at https://github.com/vim/vim.
         
         To make it easier for us to help you please enter detailed information below.
   - type: textarea
@@ -30,56 +32,48 @@ body:
       required: true
   - type: input
     attributes:
-      label: Version of Vim and architecture
+      label: Version of MacVim
       description: >
-        Including patch level, use ":version" to see it [e.g. 8.2.1234, GUI, arm64]
-    validations:
-      required: true
-  - type: textarea
-    attributes:
-      label: Environment
-      description: >
-        OS and architecture [e.g. Big Sur, arm64], terminal [e.g. Apple Terminal/iTerm], value of $TERM, shell [e.g. zsh 5.8]; anything that might matter
-      placeholder: |
-        Operating system:
-        Terminal:
-        Value of $TERM:
-        Shell:
+        MacVim release number (e.g. r181). Use "About MacVim" to find out which one you are using. If building manually from source, provide the Git commit hash instead (e.g. a4466fe3b695).
     validations:
       required: true
   - type: input
     attributes:
-      label: How MacVim was installed
+      label: MacVim installation method
       description: >
-        MacVim has been downloaded from GitHub, installed via Homebrew, MacPorts or builed from git
+        Was MacVim downloaded from GitHub release, installed via Homebrew / Homebrew Cask / MacPorts, or built from source manually?
+  - type: textarea
+    attributes:
+      label: Environment
+      description: >
+        macOS version (e.g. macOS 15.3.2 Sequoia), Mac type (e.g. MacBook Air M2), terminal (e.g. Apple Terminal/iTerm); anything that might matter
+      placeholder: |
+        macOS version:
+        Mac:
+        Terminal:
+    validations:
+      required: true
   - type: textarea
     attributes:
       label: Logs and stack traces
       placeholder: Insert log or other text here (if necessary)
       render: shell
-  - type: input
+  - type: textarea
     attributes:
-      label: Vim configuration where issue is reproducable
-      description: 'e.g. link to your vimrc configuration: url to file/gist/repo..'
+      label: Vim and MacVim configuration where issue is reproducable
+      description: Provide a link to vimrc and/or MacVim settings (see https://github.com/macvim-dev/macvim/wiki/Reporting-an-Issue for how to obtain it).
   - type: checkboxes
     attributes:
-      label: Issue has been tested with given configuration
-      description: This will help us to narrow down the problem more quickly
+      label: How was MacVim launched?
+      description: Different ways of opening MacVim can have an impact on the behavior.
       options:
-        - label: by running MacVim.app from GUI macOS interface
-        - label: by running vim/gvim/etc installed by MacVim
-        - label: by running other versions of vim (e.g. /usr/bin/vim)
+        - label: by launching MacVim.app in macOS (by using the Dock, Spotlight, or the `open` command)
+        - label: by running mvim/gvim in the terminal
   - type: checkboxes
     attributes:
-      label: Issue has been tested with no configuration
-      description: This will help us to narrow down the problem more quickly
+      label: Issue has been tested with clean configuration
+      description: Running MacVim and Vim with clean configurations allow us to narrow down whether this is a configuration issue.
       options:
-        - label: by running `mvim --clean` (or `gvim`, supplied by MacVim distribution)
+        - label: by running `mvim --clean` (or `gvim`, supplied by MacVim distribution). You can also use the File → "New Clean Window" menu item within MacVim.
         - label: by running `vim --clean` (in terminal, supplied by MacVim distribution)
         - label: by running `vim --clean` (in terminal, other suppliers, e.g. /usr/bin/vim)
-  - type: checkboxes
-    attributes:
-      label: Other conditions
-      description: This will help us to narrow down the problem more quickly
-      options:
-        - label: The both Homebrew packages "vim" and "macvim" are installed
