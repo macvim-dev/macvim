@@ -53,7 +53,7 @@ If you would like to install using a package manager, MacVim can be installed vi
 MacVim is also available as a Homebrew cask. It will install the same pre-built binary as the one available from GitHub release:
 
   ```zsh
-  brew install --cask macvim
+  brew install --cask macvim-app
   ```
 
 After installation, MacVim can be launched using the Dock or in the terminal using the `mvim` command.
