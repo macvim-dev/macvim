@@ -1,9 +1,8 @@
 " Test that the system menu can be loaded.
 
-source check.vim
 CheckFeature menu
 
-source screendump.vim
+source util/screendump.vim
 
 func Test_load_menu()
   try
@@ -639,6 +638,7 @@ endfunc
 
 " Test for opening a menu drawn in the cmdline area
 func Test_popupmenu_cmdline()
+  CheckScreendump
   CheckRunVimInTerminal
 
   let lines =<< trim END

@@ -1,10 +1,7 @@
 " Test various aspects of the Vim9 script language.
 
-source check.vim
-source term_util.vim
-import './vim9.vim' as v9
-source screendump.vim
-source shared.vim
+import './util/vim9.vim' as v9
+source util/screendump.vim
 
 def Test_vim9script_feature()
   # example from the help, here the feature is always present
@@ -3655,12 +3652,12 @@ def Test_vim9_comment()
       ], 'E1144:')
   v9.CheckScriptSuccess([
       'vim9script',
-      'import "./vim9.vim" as v9',
+      'import "./util/vim9.vim" as v9',
       'function v9.CheckScriptSuccess # comment',
       ])
   v9.CheckScriptFailure([
       'vim9script',
-      'import "./vim9.vim" as v9',
+      'import "./util/vim9.vim" as v9',
       'function v9.CheckScriptSuccess# comment',
       ], 'E1048: Item not found in script: CheckScriptSuccess#')
 
@@ -4055,6 +4052,22 @@ def Test_error_in_autoload_script()
   &rtp = save_rtp
 enddef
 
+" Test for sourcing a Vim9 script with a function script variable and "noclear".
+" The type for the variable is dynamically allocated and should be freed.
+def Test_source_func_script_var()
+  var lines =<< trim END
+    vim9script noclear
+    var Fn: func(list<any>): number
+    Fn = function('min')
+    assert_equal(2, Fn([4, 2]))
+  END
+  new
+  setline(1, lines)
+  source
+  source
+  bw!
+enddef
+
 def Test_error_in_autoload_script_foldexpr()
   var save_rtp = &rtp
   mkdir('Xvim/autoload', 'pR')
@@ -4158,6 +4171,7 @@ func Test_no_redraw_when_restoring_cpo()
 endfunc
 
 def Run_test_no_redraw_when_restoring_cpo()
+  CheckScreendump
   var lines =<< trim END
     vim9script
     export def Func()
@@ -4189,6 +4203,7 @@ func Test_reject_declaration()
 endfunc
 
 def Run_test_reject_declaration()
+  CheckScreendump
   var buf = g:RunVimInTerminal('', {'rows': 6})
   term_sendkeys(buf, ":vim9cmd var x: number\<CR>")
   g:VerifyScreenDump(buf, 'Test_vim9_reject_declaration_1', {})
@@ -4815,11 +4830,13 @@ def Test_profile_with_lambda()
 enddef
 
 func Test_misplaced_type()
+  CheckScreendump
   CheckRunVimInTerminal
   call Run_Test_misplaced_type()
 endfunc
 
 def Run_Test_misplaced_type()
+  CheckScreendump
   writefile(['let g:somevar = "asdf"'], 'XTest_misplaced_type', 'D')
   var buf = g:RunVimInTerminal('-S XTest_misplaced_type', {'rows': 6})
   term_sendkeys(buf, ":vim9cmd echo islocked('somevar: string')\<CR>")
@@ -5180,7 +5197,7 @@ def Test_null_values()
       [null_dict, 1, '{}', 4, 'dict<any>'],
       [null_function, 1, "function('')", 2, 'func(...): unknown'],
       [null_list, 1, '[]', 3, 'list<any>'],
-      [null_object, 1, 'object of [unknown]', 13, 'object<Unknown>'],
+      [null_object, 1, 'object of [unknown]', 13, 'object<any>'],
       [null_partial, 1, "function('')", 2, 'func(...): unknown'],
       [null_string, 1, "''", 1, 'string']
     ]
@@ -5244,6 +5261,198 @@ def Test_method_call_with_list_arg()
     g:save_list = []
     Bar()
     assert_equal([10, 20], g:save_list)
+  END
+  v9.CheckSourceSuccess(lines)
+enddef
+
+" Test for using more than one has() check in a compound if condition.
+def Test_has_func_shortcircuit()
+  var lines =<< trim END
+    vim9script
+    def Has_And1_Cond(): string
+      # true && false
+      if has('jumplist') && has('foobar')
+        return 'present'
+      endif
+      return 'missing'
+    enddef
+    assert_equal('missing', Has_And1_Cond())
+  END
+  v9.CheckSourceSuccess(lines)
+
+  lines =<< trim END
+    vim9script
+    def Has_And2_Cond(): string
+      # false && true
+      if has('foobar') && has('jumplist')
+        return 'present'
+      endif
+      return 'missing'
+    enddef
+    assert_equal('missing', Has_And2_Cond())
+  END
+  v9.CheckSourceSuccess(lines)
+
+  lines =<< trim END
+    vim9script
+    def Has_And3_Cond(): string
+      # false && false
+      if has('foobar') && has('foobaz')
+        return 'present'
+      endif
+      return 'missing'
+    enddef
+    assert_equal('missing', Has_And3_Cond())
+  END
+  v9.CheckSourceSuccess(lines)
+
+  lines =<< trim END
+    vim9script
+    def Has_Or1_Cond(): string
+      # true || false
+      if has('jumplist') || has('foobar')
+        return 'present'
+      endif
+      return 'missing'
+    enddef
+    assert_equal('present', Has_Or1_Cond())
+  END
+  v9.CheckSourceSuccess(lines)
+
+  lines =<< trim END
+    vim9script
+    def Has_Or2_Cond(): string
+      # false || true
+      if has('foobar') || has('jumplist')
+        return 'present'
+      endif
+      return 'missing'
+    enddef
+    assert_equal('present', Has_Or2_Cond())
+  END
+  v9.CheckSourceSuccess(lines)
+
+  lines =<< trim END
+    vim9script
+    def Has_Or3_Cond(): string
+      # false || false
+      if has('foobar') || has('foobaz')
+        return 'present'
+      endif
+      return 'missing'
+    enddef
+    assert_equal('missing', Has_Or3_Cond())
+  END
+  v9.CheckSourceSuccess(lines)
+enddef
+
+" Test for using more than one len() function in a compound if condition.
+def Test_len_func_shortcircuit()
+  def Len_And1_Cond(): string
+    # true && false
+    if len('xxx') == 3 && len('yyy') == 2
+      return 'match'
+    endif
+    return 'nomatch'
+  enddef
+  assert_equal('nomatch', Len_And1_Cond())
+
+  def Len_And2_Cond(): string
+    # false && true
+    if len('xxx') == 2 && len('yyy') == 3
+      return 'match'
+    endif
+    return 'nomatch'
+  enddef
+  assert_equal('nomatch', Len_And2_Cond())
+
+  def Len_Or1_Cond(): string
+    # true || false
+    if len('xxx') == 3 || len('yyy') == 2
+      return 'match'
+    endif
+    return 'nomatch'
+  enddef
+  assert_equal('match', Len_Or1_Cond())
+
+  def Len_Or2_Cond(): string
+    # false || true
+    if len('xxx') == 2 || len('yyy') == 3
+      return 'match'
+    endif
+    return 'nomatch'
+  enddef
+  assert_equal('match', Len_Or2_Cond())
+enddef
+
+" Test for skipping list/tuple/dict/blob indexing when short circuiting a if
+" condition check.
+def Test_if_cond_shortcircuit_skip_indexing()
+  # indexing a list
+  var lines =<< trim END
+    vim9script
+    def Foo(): string
+      const l = [false]
+      if false && l[0]
+        return 'failed'
+      endif
+      if true || l[0]
+        return 'passed'
+      endif
+      return 'failed'
+    enddef
+    assert_equal('passed', Foo())
+  END
+  v9.CheckSourceSuccess(lines)
+
+  # indexing a tuple
+  lines =<< trim END
+    vim9script
+    def Foo(): string
+      const t = (false)
+      if false && t[0]
+        return 'failed'
+      endif
+      if true || t[0]
+        return 'passed'
+      endif
+      return 'failed'
+    enddef
+    assert_equal('passed', Foo())
+  END
+  v9.CheckSourceSuccess(lines)
+
+  # indexing a dict
+  lines =<< trim END
+    vim9script
+    def Foo(): string
+      const d = {x: false}
+      if false && d['x']
+        return 'failed'
+      endif
+      if true || d['x']
+        return 'passed'
+      endif
+      return 'failed'
+    enddef
+    assert_equal('passed', Foo())
+  END
+  v9.CheckSourceSuccess(lines)
+
+  # indexing a blob
+  lines =<< trim END
+    vim9script
+    def Foo(): string
+      const b = 0z00
+      if false && b[0]
+        return 'failed'
+      endif
+      if true || b[0]
+        return 'passed'
+      endif
+      return 'failed'
+    enddef
+    assert_equal('passed', Foo())
   END
   v9.CheckSourceSuccess(lines)
 enddef

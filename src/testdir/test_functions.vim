@@ -1,10 +1,7 @@
 " Tests for various functions.
 
-source shared.vim
-source check.vim
-source term_util.vim
-source screendump.vim
-import './vim9.vim' as v9
+source util/screendump.vim
+import './util/vim9.vim' as v9
 
 " Must be done first, since the alternate buffer must be unset.
 func Test_00_bufexists()
@@ -951,18 +948,6 @@ func Test_mode()
   execute "normal! gR\<C-o>g@l\<Esc>"
   call assert_equal('n-niV', g:current_modes)
 
-  " Test statusline updates for overstrike mode
-  if CanRunVimInTerminal()
-    let buf = RunVimInTerminal('', {'rows': 12})
-    call term_sendkeys(buf, ":set laststatus=2 statusline=%!mode(1)\<CR>")
-    call term_sendkeys(buf, ":")
-    call TermWait(buf)
-    call VerifyScreenDump(buf, 'Test_mode_1', {})
-    call term_sendkeys(buf, "\<Insert>")
-    call TermWait(buf)
-    call VerifyScreenDump(buf, 'Test_mode_2', {})
-    call StopVimInTerminal(buf)
-  endif
 
   if has('terminal')
     term
@@ -988,6 +973,22 @@ func Test_mode()
   set complete&
   set operatorfunc&
   delfunction OperatorFunc
+endfunc
+
+" Test for the mode() function using Screendump feature
+func Test_mode_screendump()
+  CheckScreendump
+
+  " Test statusline updates for overstrike mode
+  let buf = RunVimInTerminal('', {'rows': 12})
+  call term_sendkeys(buf, ":set laststatus=2 statusline=%!mode(1)\<CR>")
+  call term_sendkeys(buf, ":")
+  call TermWait(buf)
+  call VerifyScreenDump(buf, 'Test_mode_1', {})
+  call term_sendkeys(buf, "\<Insert>")
+  call TermWait(buf)
+  call VerifyScreenDump(buf, 'Test_mode_2', {})
+  call StopVimInTerminal(buf)
 endfunc
 
 " Test for append()
@@ -1028,7 +1029,7 @@ func Test_setline()
   call setline(3, test_null_list())
   call setline(2, ["baz"])
   call assert_equal(['bar', 'baz'], getline(1, '$'))
-  close!
+  bw!
 endfunc
 
 func Test_getbufvar()
@@ -4436,13 +4437,17 @@ func Test_str2blob()
     call assert_equal(0z, str2blob([""]))
     call assert_equal(0z, str2blob([]))
     call assert_equal(0z, str2blob(test_null_list()))
-    call assert_equal(0z, str2blob([test_null_string(), test_null_string()]))
+    call assert_equal(0z, str2blob([test_null_string()]))
+    call assert_equal(0z0A, str2blob([test_null_string(), test_null_string()]))
     call assert_fails("call str2blob('')", 'E1211: List required for argument 1')
     call assert_equal(0z61, str2blob(["a"]))
     call assert_equal(0z6162, str2blob(["ab"]))
     call assert_equal(0z610062, str2blob(["a\nb"]))
     call assert_equal(0z61620A6364, str2blob(["ab", "cd"]))
     call assert_equal(0z0A, str2blob(["", ""]))
+    call assert_equal(0z610A62, str2blob(["a", "b"]))
+    call assert_equal(0z610A0A62, str2blob(["a", "", "b"]))
+    call assert_equal(0z610A0A62, str2blob(["a", test_null_string(), "b"]))
 
     call assert_equal(0zC2ABC2BB, str2blob(["«»"]))
     call assert_equal(0zC59DC59F, str2blob(["ŝş"]))

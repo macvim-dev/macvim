@@ -2612,7 +2612,7 @@ parse_queued_messages(void)
     // If memory allocation fails during startup we'll exit but curbuf or
     // curwin could be NULL.
     if (curbuf == NULL || curwin == NULL)
-       return;
+	return;
 
     old_curbuf_fnum = curbuf->b_fnum;
     old_curwin_id = curwin->w_id;

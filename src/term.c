@@ -1716,7 +1716,7 @@ static char *(key_names[]) =
     // Do those ones first, both may cause a screen redraw.
     "Co",
     // disabled, because it switches termguicolors, but that
-    // is noticable and confuses users
+    // is noticeable and confuses users
     // "RGB",
 # endif
     "ku", "kd", "kr", "kl",
@@ -3620,9 +3620,18 @@ win_new_shellsize(void)
 {
     static int	old_Rows = 0;
     static int	old_Columns = 0;
+    static int	old_coloff = 0;
 
-    if (old_Rows != Rows || old_Columns != Columns)
+    if (old_Rows != Rows || old_Columns != COLUMNS_WITHOUT_TPL()
+	    || old_coloff != TPL_LCOL())
 	ui_new_shellsize();
+    if (old_Columns != COLUMNS_WITHOUT_TPL() || old_coloff != TPL_LCOL())
+    {
+	old_Columns = COLUMNS_WITHOUT_TPL();
+	old_coloff = TPL_LCOL();
+
+	shell_new_columns();
+    }
     if (old_Rows != Rows)
     {
 	// If 'window' uses the whole screen, keep it using that.
@@ -3632,11 +3641,6 @@ win_new_shellsize(void)
 	    p_window = Rows - 1;
 	old_Rows = Rows;
 	shell_new_rows();	// update window sizes
-    }
-    if (old_Columns != Columns)
-    {
-	old_Columns = Columns;
-	shell_new_columns();	// update window sizes
     }
 }
 
@@ -7308,13 +7312,13 @@ update_tcap(int attr)
 	return;
     while (p->bt_string != NULL)
     {
-      if (p->bt_entry == (int)KS_ME)
-	  p->bt_string = &ksme_str[0];
-      else if (p->bt_entry == (int)KS_MR)
-	  p->bt_string = &ksmr_str[0];
-      else if (p->bt_entry == (int)KS_MD)
-	  p->bt_string = &ksmd_str[0];
-      ++p;
+	if (p->bt_entry == (int)KS_ME)
+	    p->bt_string = &ksme_str[0];
+	else if (p->bt_entry == (int)KS_MR)
+	    p->bt_string = &ksmr_str[0];
+	else if (p->bt_entry == (int)KS_MD)
+	    p->bt_string = &ksmd_str[0];
+	++p;
     }
 }
 

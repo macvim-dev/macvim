@@ -1,10 +1,8 @@
 " Test for syntax and syntax iskeyword option
 
-source check.vim
 CheckFeature syntax
 
-source view_util.vim
-source screendump.vim
+source util/screendump.vim
 
 func GetSyntaxItem(pat)
   let c = ''
@@ -193,14 +191,14 @@ func Test_syntax_completion()
   " Check that clearing "Aap" avoids it showing up before Boolean.
   hi Aap ctermfg=blue
   call feedkeys(":syn list \<C-A>\<C-B>\"\<CR>", 'tx')
-  call assert_match('^"syn list Aap Added Boolean Changed Character ', @:)
+  call assert_match('^"syn list Aap Added Bold BoldItalic Boolean Changed Character ', @:)
   hi clear Aap
 
   call feedkeys(":syn list \<C-A>\<C-B>\"\<CR>", 'tx')
-  call assert_match('^"syn list Added Boolean Changed Character ', @:)
+  call assert_match('^"syn list Added Bold BoldItalic Boolean Changed Character ', @:)
 
   call feedkeys(":syn match \<C-A>\<C-B>\"\<CR>", 'tx')
-  call assert_match('^"syn match Added Boolean Changed Character ', @:)
+  call assert_match('^"syn match Added Bold BoldItalic Boolean Changed Character ', @:)
 
   syn cluster Aax contains=Aap
   call feedkeys(":syn list @A\<C-A>\<C-B>\"\<CR>", 'tx')
@@ -631,6 +629,7 @@ endfunc
 
 " Check highlighting for a small piece of C code with a screen dump.
 func Test_syntax_c()
+  CheckScreendump
   CheckRunVimInTerminal
   call writefile([
 	\ '/* comment line at the top */',

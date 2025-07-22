@@ -162,6 +162,7 @@ SRC += \
 	strings.c \
 	syntax.c \
 	tag.c \
+	tabpanel.c \
 	term.c \
 	termlib.c \
 	testing.c \
@@ -182,6 +183,7 @@ SRC += \
 	vim9compile.c \
 	vim9execute.c \
 	vim9expr.c \
+	vim9generics.c \
 	vim9instr.c \
 	vim9script.c \
 	vim9type.c \

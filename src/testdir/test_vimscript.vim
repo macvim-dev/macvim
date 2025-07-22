@@ -2,9 +2,7 @@
 " Most of this was formerly in test49.vim (developed by Servatius Brandt
 " <Servatius.Brandt@fujitsu-siemens.com>)
 
-source check.vim
-source shared.vim
-source script_util.vim
+source util/script_util.vim
 
 "-------------------------------------------------------------------------------
 " Test environment							    {{{1
@@ -25,7 +23,7 @@ com! -nargs=1	     Xout     call Xout(<args>)
 func RunInNewVim(test, verify)
   let init =<< trim END
     set cpo-=C            " support line-continuation in sourced script
-    source script_util.vim
+    source util/script_util.vim
     XpathINIT
     XloopINIT
   END
@@ -7521,6 +7519,7 @@ endfunc
 
 " Test for 'for' loop failures
 func Test_for_loop_failure()
+  CheckFeature job
   func ForFn()
     for x in test_null_job()
     endfor

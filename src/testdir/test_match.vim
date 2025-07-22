@@ -1,8 +1,7 @@
 " Test for :match, :2match, :3match, clearmatches(), getmatches(), matchadd(),
 " matchaddpos(), matcharg(), matchdelete(), and setmatches().
 
-source screendump.vim
-source check.vim
+source util/screendump.vim
 
 function Test_match()
   highlight MyGroup1 term=bold ctermbg=red guibg=red
@@ -345,6 +344,7 @@ func Test_matchdelete_error()
 endfunc
 
 func Test_matchclear_other_window()
+  CheckScreendump
   CheckRunVimInTerminal
   let buf = OtherWindowCommon()
   call term_sendkeys(buf, ":call clearmatches(winid)\<CR>")
@@ -355,6 +355,7 @@ func Test_matchclear_other_window()
 endfunc
 
 func Test_matchadd_other_window()
+  CheckScreendump
   CheckRunVimInTerminal
   let buf = OtherWindowCommon()
   call term_sendkeys(buf, ":call matchadd('Search', 'Hello', 1, -1, #{window: winid})\<CR>")
@@ -366,6 +367,7 @@ func Test_matchadd_other_window()
 endfunc
 
 func Test_match_in_linebreak()
+  CheckScreendump
   CheckRunVimInTerminal
 
   let lines =<< trim END
@@ -381,6 +383,7 @@ func Test_match_in_linebreak()
 endfunc
 
 func Test_match_with_incsearch()
+  CheckScreendump
   CheckRunVimInTerminal
 
   let lines =<< trim END
@@ -420,6 +423,7 @@ func Test_matchdelete_redraw()
 endfunc
 
 func Test_match_tab_with_linebreak()
+  CheckScreendump
   CheckRunVimInTerminal
 
   let lines =<< trim END

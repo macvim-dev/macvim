@@ -233,6 +233,9 @@ do_mouse(
     int		moved;		// Has cursor moved?
     int		in_status_line;	// mouse in status line
     static int	in_tab_line = FALSE; // mouse clicked in tab line
+#if defined(FEAT_TABPANEL)
+    static int	in_tabpanel = FALSE; // mouse clicked in tabpanel
+#endif
     int		in_sep_line;	// mouse in vertical separator line
     int		c1, c2;
 #if defined(FEAT_FOLDING)
@@ -335,7 +338,13 @@ do_mouse(
 
     // Ignore drag and release events if we didn't get a click.
     if (is_click)
+    {
 	got_click = TRUE;
+	in_tab_line = FALSE;
+#if defined(FEAT_TABPANEL)
+	in_tabpanel = FALSE;
+#endif
+    }
     else
     {
 	if (!got_click)			// didn't get click, ignore
@@ -343,9 +352,16 @@ do_mouse(
 	if (!is_drag)			// release, reset got_click
 	{
 	    got_click = FALSE;
-	    if (in_tab_line)
+	    if (in_tab_line
+#if defined(FEAT_TABPANEL)
+		|| in_tabpanel
+#endif
+		    )
 	    {
 		in_tab_line = FALSE;
+#if defined(FEAT_TABPANEL)
+		in_tabpanel = FALSE;
+#endif
 		return FALSE;
 	    }
 	}
@@ -470,6 +486,80 @@ do_mouse(
 
     start_visual.lnum = 0;
 
+    // Check for clicking in the tab page panel.
+#if defined(FEAT_TABPANEL)
+    if (mouse_row < firstwin->w_winrow + topframe->fr_height
+	&& (mouse_col < firstwin->w_wincol
+		|| mouse_col >= firstwin->w_wincol + topframe->fr_width))
+    {
+	if (is_drag)
+	{
+	    if (in_tabpanel)
+	    {
+		c1 = get_tabpagenr_on_tabpanel();
+		tabpage_move(c1 <= 0 ? 9999 : c1 < tabpage_index(curtab)
+								? c1 - 1 : c1);
+	    }
+	    return FALSE;
+	}
+
+	// click in a tab selects that tab page
+	if (is_click
+# ifdef FEAT_CMDWIN
+		&& cmdwin_type == 0
+# endif
+		)
+	{
+	    in_tabpanel = TRUE;
+	    c1 = get_tabpagenr_on_tabpanel();
+	    if (c1 >= 0)
+	    {
+		if ((mod_mask & MOD_MASK_MULTI_CLICK) == MOD_MASK_2CLICK)
+		{
+		    // double click opens new page
+		    end_visual_mode();
+		    tabpage_new();
+		    tabpage_move(c1 == 0 ? 9999 : c1 - 1);
+		}
+		else
+		{
+		    // Go to specified tab page, or next one if not clicking
+		    // on a label.
+		    goto_tabpage(c1);
+
+		    // It's like clicking on the status line of a window.
+		    if (curwin != old_curwin)
+			end_visual_mode();
+		}
+	    }
+	    else
+	    {
+		tabpage_T	*tp;
+
+		// Close the current or specified tab page.
+		if (c1 == -999)
+		    tp = curtab;
+		else
+		    tp = find_tabpage(-c1);
+		if (tp == curtab)
+		{
+		    if (first_tabpage->tp_next != NULL)
+			tabpage_close(FALSE);
+		}
+		else if (tp != NULL)
+		    tabpage_close_other(tp, FALSE);
+	    }
+	}
+	return TRUE;
+    }
+    else if (is_drag && in_tabpanel)
+    {
+	c1 = get_tabpagenr_on_tabpanel();
+	tabpage_move(c1 <= 0 ? 9999 : c1 - 1);
+	return FALSE;
+    }
+#endif
+
     if (TabPageIdxs != NULL)  // only when initialized
     {
 	// Check for clicking in the tab page line.
@@ -487,7 +577,8 @@ do_mouse(
 	    }
 
 	    // click in a tab selects that tab page
-	    if (is_click && cmdwin_type == 0 && mouse_col < Columns)
+	    if (is_click && cmdwin_type == 0
+		    && mouse_col < firstwin->w_wincol + topframe->fr_width)
 	    {
 		in_tab_line = TRUE;
 		c1 = TabPageIdxs[mouse_col];
@@ -1747,7 +1838,7 @@ retnomove:
 
     if (!(flags & MOUSE_FOCUS))
     {
-	if (row < 0 || col < 0)			// check if it makes sense
+	if (row < 0 || col < 0) // check if it makes sense
 	    return IN_UNKNOWN;
 
 	// find the window where the row is in and adjust "row" and "col" to be
@@ -1922,16 +2013,6 @@ retnomove:
 	    // Drag the status line
 	    count = row - W_WINROW(dragwin) - dragwin->w_height + 1
 							     - on_status_line;
-#ifdef FEAT_TERMINAL
-	    if (bt_terminal(dragwin->w_buffer))
-	    {
-		win_T *curwin_save = curwin;
-		curwin = dragwin;
-		update_topline();
-		validate_cursor();
-		curwin = curwin_save;
-	    }
-#endif
 	    win_drag_status_line(dragwin, count);
 	    did_drag |= count;
 	}
@@ -1996,7 +2077,7 @@ retnomove:
 	    for (first = TRUE; curwin->w_topline > 1; )
 	    {
 #ifdef FEAT_DIFF
-		if (curwin->w_topfill < diff_check(curwin, curwin->w_topline))
+		if (curwin->w_topfill < diff_check_fill(curwin, curwin->w_topline))
 		    ++count;
 		else
 #endif
@@ -2008,7 +2089,7 @@ retnomove:
 		(void)hasFolding(curwin->w_topline, &curwin->w_topline, NULL);
 #endif
 #ifdef FEAT_DIFF
-		if (curwin->w_topfill < diff_check(curwin, curwin->w_topline))
+		if (curwin->w_topfill < diff_check_fill(curwin, curwin->w_topline))
 		    ++curwin->w_topfill;
 		else
 #endif
@@ -3164,7 +3245,14 @@ mouse_find_win(int *rowp, int *colp, mouse_find_T popup UNUSED)
 #endif
 
     fp = topframe;
+
+    if (*colp < firstwin->w_wincol
+	    || *colp >= firstwin->w_wincol + fp->fr_width
+	    || *rowp < firstwin->w_winrow)
+	return NULL;
+
     *rowp -= firstwin->w_winrow;
+    *colp -= firstwin->w_wincol;
     for (;;)
     {
 	if (fp->fr_layout == FR_LEAF)

@@ -1,7 +1,7 @@
 " Vim support file to detect file types
 "
-" Maintainer:	The Vim Project <https://github.com/vim/vim>
-" Last Change:	2025 Mar 18
+" Maintainer:		The Vim Project <https://github.com/vim/vim>
+" Last Change:		2025 Jun 18
 " Former Maintainer:	Bram Moolenaar <Bram@vim.org>
 
 " Listen very carefully, I will say this only once
@@ -53,7 +53,7 @@ endfunc
 
 " Vim help file, set ft explicitly, because 'modeline' might be off
 au BufNewFile,BufRead */doc/*.txt
-	\  if getline('$') =~ '\(^\|\s\)vim:.*\<\(ft\|filetype\)=help\>'
+	\  if getline('$') =~ '\%(^\|\s\)vim:\%(.*\%(:\|\s\)\)\?\%(ft\|filetype\)=help\%(:\|\s\|$\)'
 	\|   setf help
 	\| endif
 
@@ -309,6 +309,12 @@ au BufNewFile,BufRead *.bb,*.bbappend,*.bbclass,*/build/conf/*.conf,*/meta{-*,}/
 " Blkid cache file
 au BufNewFile,BufRead */etc/blkid.tab,*/etc/blkid.tab.old   setf xml
 
+" Brighterscript
+au BufNewFile,BufRead *.bs			setf brighterscript
+
+" Brightscript
+au BufNewFile,BufRead *.brs			setf brightscript
+
 " BSDL
 au BufNewFile,BufRead *.bsd,*.bsdl			setf bsdl
 
@@ -429,13 +435,15 @@ if has("fname_case")
 	au BufNewFile,BufRead *.C,*.H if !&fileignorecase | setf cpp | endif
 endif
 
+" MS files (ixx: C++ module interface file, Microsoft Project file)
+au BufNewFile,BufRead *.ixx,*.mpp setf cpp
+
 " C++ 20 modules (clang)
 " https://clang.llvm.org/docs/StandardCPlusPlusModules.html#file-name-requirement
 au BufNewFile,BufRead *.cppm,*.ccm,*.cxxm,*.c++m setf cpp
 
-" .h files can be C, Ch C++, ObjC or ObjC++.
-" Set c_syntax_for_h if you want C, ch_syntax_for_h if you want Ch. ObjC is
-" detected automatically.
+" .h files can be C, C++, Ch, Objective-C, or Objective-C++.
+" Set g_filetype_h to set a different filetype
 au BufNewFile,BufRead *.h			call dist#ft#FTheader()
 
 " Ch (CHscript)
@@ -561,6 +569,9 @@ au BufNewFile,BufRead *.cu,*.cuh		setf cuda
 " Cue
 au BufNewFile,BufRead *.cue			setf cue
 
+" DAX
+au BufNewFile,BufRead *.dax			setf dax
+
 " Debian devscripts
 au BufNewFile,BufRead devscripts.conf,.devscripts	setf sh
 
@@ -595,7 +606,6 @@ endif
 
 " Execline (s6) scripts
 au BufNewFile,BufRead *s6*/\(up\|down\|run\|finish\)    setf execline
-au BufNewFile,BufRead s6-*                              setf execline
 
 " Fontconfig config files
 au BufNewFile,BufRead fonts.conf			setf xml
@@ -680,11 +690,16 @@ au BufNewFile,BufRead *.dfy			setf dafny
 " Dart
 au BufRead,BufNewfile *.dart,*.drt		setf dart
 
+" Debian autopkgtest
+au BufNewFile,BufRead */debian/tests/control	setf autopkgtest
+
 " Debian Control
 au BufNewFile,BufRead */{debian,DEBIAN}/control		setf debcontrol
 au BufNewFile,BufRead control
 	\  if getline(1) =~ '^Source:\|^Package:'
 	\|   setf debcontrol
+	\| elseif getline(1) =~ '^Tests:\|^Test-Command:'
+	\|   setf autopkgtest
 	\| endif
 
 " Debian Copyright
@@ -874,6 +889,9 @@ autocmd BufRead,BufNewFile *.fnl,{,.}fennelrc	setf fennel
 " Fetchmail RC file
 au BufNewFile,BufRead .fetchmailrc		setf fetchmail
 
+" FGA
+au BufNewFile,BufRead *.fga			setf fga
+
 " FIRRTL - Flexible Internal Representation for RTL
 au BufNewFile,BufRead *.fir			setf firrtl
 
@@ -882,6 +900,9 @@ au BufNewFile,BufRead *.fish			setf fish
 
 " Flatpak config
 au BufNewFile,BufRead */flatpak/repo/config	setf dosini
+
+" Flix
+au BufNewFile,BufRead *.flix			setf flix
 
 " Focus Executable
 au BufNewFile,BufRead *.fex,*.focexec		setf focexec
@@ -927,7 +948,7 @@ au BufNewFile,BufRead *.fsh			setf fsh
 au BufNewFile,BufRead *.fsi,*.fsx		setf fsharp
 
 " GDB command files
-au BufNewFile,BufRead .gdbinit,gdbinit,.gdbearlyinit,gdbearlyinit,*.gdb		setf gdb
+au BufNewFile,BufRead .gdbinit,gdbinit,.cuda-gdbinit,cuda-gdbinit,.gdbearlyinit,gdbearlyinit,*.gdb		setf gdb
 
 " GDMO
 au BufNewFile,BufRead *.mo,*.gdmo		setf gdmo
@@ -1018,6 +1039,14 @@ au BufNewFile,BufRead *.gjs			setf javascript.glimmer
 " Gnuplot scripts
 au BufNewFile,BufRead *.gpi,*.gnuplot,.gnuplot_history	setf gnuplot
 
+" GNU Radio Companion files
+au BufNewFile,BufRead *.grc
+	\ if getline(1) =~# '<?xml' |
+	\   setf xml |
+	\ else |
+	\   setf yaml |
+	\ endif
+
 " Go (Google)
 au BufNewFile,BufRead *.go			setf go
 au BufNewFile,BufRead Gopkg.lock		setf toml
@@ -1078,6 +1107,9 @@ au BufNewFile,BufRead *.persistentmodels	setf haskellpersistent
 " Haste
 au BufNewFile,BufRead *.ht			setf haste
 au BufNewFile,BufRead *.htpp			setf hastepreproc
+
+" Haxe
+au BufNewFile,BufRead *.hx			setf haxe
 
 " HCL
 au BufRead,BufNewFile *.hcl			setf hcl
@@ -1408,7 +1440,7 @@ au BufNewFile,BufRead */etc/sensors.conf,*/etc/sensors3.conf	setf sensors
 " LFTP
 au BufNewFile,BufRead lftp.conf,.lftprc,*lftp/rc	setf lftp
 
-" Lifelines (or Lex for C++!)
+" Lifelines, LLVM, or Lex for C++
 au BufNewFile,BufRead *.ll			call dist#ft#FTll()
 
 " Lilo: Linux loader
@@ -1551,7 +1583,7 @@ au BufNewFile,BufRead *.nb,*.wl			setf mma
 au BufNewFile,BufRead *.mel			setf mel
 
 " mbsync
-au BufNewFile,BufRead .mbsyncrc			setf conf
+au BufNewFile,BufRead *.mbsyncrc,isyncrc	setf mbsync
 
 " mcmeta
 au BufNewFile,BufRead *.mcmeta			setf json
@@ -1571,9 +1603,6 @@ au BufNewFile,BufRead *.mmd,*.mmdc,*.mermaid	setf mermaid
 " Meson Build system config
 au BufNewFile,BufRead meson.build,meson.options,meson_options.txt setf meson
 au BufNewFile,BufRead *.wrap			setf dosini
-
-" Messages (logs mostly)
-au BufNewFile,BufRead */log/{auth,cron,daemon,debug,kern,lpr,mail,messages,news/news,syslog,user}{,.log,.err,.info,.warn,.crit,.notice}{,.[0-9]*,-[0-9]*} setf messages
 
 " Metafont
 au BufNewFile,BufRead *.mf			setf mf
@@ -1697,7 +1726,7 @@ au BufNewFile,BufRead .netrc			setf netrc
 au BufNewFile,BufRead */neofetch/config.conf	setf sh
 
 " Nginx
-au BufNewFile,BufRead *.nginx,nginx*.conf,*nginx.conf,*/etc/nginx/*,*/usr/local/nginx/conf/*,*/nginx/*.conf			setf nginx
+au BufNewFile,BufRead *.nginx,nginx*.conf,*nginx.conf,*/nginx/*.conf	setf nginx
 
 " Nim file
 au BufNewFile,BufRead *.nim,*.nims,*.nimble	setf nim
@@ -1723,7 +1752,7 @@ au BufNewFile,BufRead *.me
 	\   setf nroff |
 	\ endif
 au BufNewFile,BufRead *.tr,*.nr,*.roff,*.tmac,*.mom	setf nroff
-au BufNewFile,BufRead *.[1-9]			call dist#ft#FTnroff()
+au BufNewFile,BufRead *.[0-9],*.[013]p,*.[1-8]x,*.3{am,perl,pm,posix,type},*.n	call dist#ft#FTnroff()
 
 " Nroff or Objective C++
 au BufNewFile,BufRead *.mm			call dist#ft#FTmm()
@@ -1749,6 +1778,9 @@ au BufNewFile,BufRead *.nt			setf ntriples
 
 " Nu
 au BufNewFile,BufRead *.nu		setf nu
+
+" Numbat
+au BufNewFile,BufRead *.nbt		setf numbat
 
 " Oblivion Language and Oblivion Script Extender
 au BufNewFile,BufRead *.obl,*.obse,*.oblivion,*.obscript  setf obse
@@ -1777,8 +1809,11 @@ au BufNewFile,BufRead .ondirrc			setf ondir
 " OPAM
 au BufNewFile,BufRead opam,*.opam,*.opam.template,opam.locked,*.opam.locked setf opam
 
+" OpenAL Soft config files
+au BufNewFile,BufRead .alsoftrc,alsoft.conf,alsoft.ini,alsoftrc.sample setf dosini
+
 " OpenFOAM
-au BufNewFile,BufRead [a-zA-Z0-9]*Dict\(.*\)\=,[a-zA-Z]*Properties\(.*\)\=,*Transport\(.*\),fvSchemes,fvSolution,fvConstrains,fvModels,*/constant/g,*/0\(\.orig\)\=/* call dist#ft#FTfoam()
+au BufNewFile,BufRead fvSchemes,fvSolution,fvConstrains,fvModels,*/constant/g	call dist#ft#FTfoam()
 
 " OpenROAD
 au BufNewFile,BufRead *.or				setf openroad
@@ -1803,6 +1838,8 @@ au BufNewFile,BufRead pacman.conf,mpv.conf		setf confini
 au BufNewFile,BufRead */.aws/config,*/.aws/credentials	setf confini
 au BufNewFile,BufRead *.nmconnection			setf confini
 au BufNewFile,BufRead paru.conf				setf confini
+au BufNewFile,BufRead */{,.}gnuradio/*.conf		setf confini
+au BufNewFile,BufRead */gnuradio/conf.d/*.conf		setf confini
 
 " Pacman hooks
 au BufNewFile,BufRead *.hook
@@ -1891,9 +1928,6 @@ au BufNewFile,BufRead *.pod			setf pod
 " Also .theme for Drupal theme files.
 au BufNewFile,BufRead *.php,*.php\d,*.phtml,*.ctp,*.phpt,*.theme	setf php
 
-" PHP config
-au BufNewFile,BufRead php.ini-*,php-fpm.conf*,www.conf*		setf dosini
-
 " Pike and Cmod
 au BufNewFile,BufRead *.pike,*.pmod		setf pike
 au BufNewFile,BufRead *.cmod			setf cmod
@@ -1922,6 +1956,9 @@ au BufNewFile,BufRead Pipfile.lock		setf json
 
 " Pixi lock
 au BufNewFile,BufRead pixi.lock			setf yaml
+
+" Pkl
+au BufNewFile,BufRead *.pkl			setf pkl
 
 " PL/1, PL/I
 au BufNewFile,BufRead *.pli,*.pl1		setf pli
@@ -1963,6 +2000,9 @@ au BufNewFile,BufRead *.inc			call dist#ft#FTinc()
 au BufNewFile,BufRead	*.ps1,*.psd1,*.psm1,*.pssc	setf ps1
 au BufNewFile,BufRead	*.ps1xml			setf ps1xml
 au BufNewFile,BufRead	*.cdxml,*.psc1			setf xml
+
+" Power Query M
+au BufNewFile,BufRead *.pq			setf pq
 
 " Printcap and Termcap
 au BufNewFile,BufRead *printcap
@@ -2050,9 +2090,9 @@ au BufNewFile,BufRead *.arr			setf pyret
 au BufNewFile,BufRead *.pyx,*.pyx+,*.pxd,*.pxi	setf pyrex
 
 " Python, Python Shell Startup and Python Stub Files
-" Quixote (Python-based web framework)
+" Quixote (Python-based web framework) and IPython
 au BufNewFile,BufRead *.py,*.pyw,.pythonstartup,.pythonrc,.python_history,.jline-jython.history	setf python
-au BufNewFile,BufRead *.ptl,*.pyi,SConstruct		   setf python
+au BufNewFile,BufRead *.ipy,*.ptl,*.pyi,SConstruct		   setf python
 
 " QL
 au BufRead,BufNewFile *.ql,*.qll		setf ql
@@ -2065,6 +2105,9 @@ au BufRead,BufNewFile qmldir			setf qmldir
 
 " Quarto
 au BufRead,BufNewFile *.qmd			setf quarto
+
+" QuickBms
+au BufRead,BufNewFile *.bms			setf quickbms
 
 " Racket (formerly detected as "scheme")
 au BufNewFile,BufRead *.rkt,*.rktd,*.rktl	setf racket
@@ -3132,6 +3175,9 @@ au BufNewFile,BufRead Dockerfile.*,Containerfile.*	call s:StarSetf('dockerfile')
 " Dracula
 au BufNewFile,BufRead drac.*			call s:StarSetf('dracula')
 
+" Execline (s6) scripts
+au BufNewFile,BufRead s6-*			call s:StarSetf('execline')
+
 " Fvwm
 au BufNewFile,BufRead */.fvwm/*			call s:StarSetf('fvwm')
 au BufNewFile,BufRead *fvwmrc*,*fvwm95*.hook
@@ -3180,7 +3226,7 @@ au BufNewFile,BufRead */etc/sensors.d/[^.]*	call s:StarSetf('sensors')
 au BufNewFile,BufRead */etc/logcheck/*.d*/*	call s:StarSetf('logcheck')
 
 " Makefile
-au BufNewFile,BufRead [mM]akefile*		call s:StarSetf('make')
+au BufNewFile,BufRead [mM]akefile*		if expand('<afile>:t') !~ g:ft_ignore_pat | call dist#ft#FTmake() | endif
 
 " Ruby Makefile
 au BufNewFile,BufRead [rR]akefile*		call s:StarSetf('ruby')
@@ -3189,6 +3235,10 @@ au BufNewFile,BufRead [rR]akefile*		call s:StarSetf('ruby')
 au BufNewFile,BufRead {neo,}mutt[[:alnum:]._-]\\\{6\}	setf mail
 
 au BufNewFile,BufRead reportbug-*		call s:StarSetf('mail')
+
+" Messages (logs mostly)
+au BufNewFile,BufRead */log/{auth,cron,daemon,debug,kern,lpr,mail,messages,news/news,syslog,user}{,.log,.err,.info,.warn,.crit,.notice}{,.[0-9]*,-[0-9]*}
+      \ 					call s:StarSetf('messages')
 
 " Modconf
 au BufNewFile,BufRead */etc/modutils/*
@@ -3211,17 +3261,29 @@ au BufNewFile,BufRead neomuttrc*,Neomuttrc*		call s:StarSetf('neomuttrc')
 " Nfs
 au BufNewFile,BufRead nfs.conf,nfsmount.conf		setf dosini
 
+" Nginx
+au BufNewFile,BufRead */etc/nginx/*,*/usr/local/nginx/conf/*	call s:StarSetf('nginx')
+
 " Nroff macros
 au BufNewFile,BufRead tmac.*			call s:StarSetf('nroff')
 
 " OpenBSD hostname.if
 au BufNewFile,BufRead */etc/hostname.*		call s:StarSetf('config')
 
+" OpenFOAM
+au BufNewFile,BufRead [a-zA-Z0-9]*Dict{,.*},[a-zA-Z]*Properties{,.*},*Transport.*,*/0{,.orig}/*
+      \ if expand("<amatch>") !~ g:ft_ignore_pat
+      \|  call dist#ft#FTfoam()
+      \|endif
+
 " Pam conf
 au BufNewFile,BufRead */etc/pam.d/*		call s:StarSetf('pamconf')
 
 " Pandoc
 au BufNewFile,BufRead,BufFilePost *.pandoc,*.pdk,*.pd,*.pdc	setf pandoc
+
+" PHP config
+au BufNewFile,BufRead php.ini-*,php-fpm.conf*,www.conf*		call s:StarSetf('dosini')
 
 " Printcap and Termcap
 au BufNewFile,BufRead *printcap*
@@ -3264,7 +3326,7 @@ au BufNewFile,BufRead .tcshrc*	call dist#ft#SetFileTypeShell("tcsh")
 au BufNewFile,BufRead .login*,.cshrc*  call dist#ft#CSH()
 
 " tmux configuration with arbitrary extension
-au BufNewFile,BufRead {.,}tmux*.conf*		setf tmux
+au BufNewFile,BufRead {.,}tmux*.conf*		call s:StarSetf('tmux')
 
 " Universal Scene Description
 au BufNewFile,BufRead *.usda,*.usd		setf usd

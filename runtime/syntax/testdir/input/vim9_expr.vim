@@ -2,6 +2,22 @@ vim9script
 # Vim9-script expressions
 
 
+# Number
+
+# ' separated
+
+echo   1'000'000
+echo   1'000'000.00
+echo  -1'000'000
+echo  -1'000'000.00
+
+echo   0b1000'0000
+echo   0o1000'0000
+echo   0x1000'0000
+echo  -0b1000'0000
+echo  -0o1000'0000
+echo  -0x1000'0000
+
 # Dictionary
 
 echo {}
@@ -50,6 +66,33 @@ echo {
 
 # match as keys not scope dictionaries
 echo { b: 42, w: 42, t: 42, g: 42, l: 42, s: 42, a: 42, v: 42  }
+
+" Register
+
+echo @" @@
+echo @0 @1 @2 @3 @4 @5 @6 @7 @8 @9
+echo @a @b @c @d @e @f @g @h @i @j @k @l @m @n @o @p @q @r @s @t @u @v @w @x @y @z
+echo @A @B @C @D @E @F @G @H @I @J @K @L @M @N @O @P @Q @R @S @T @U @V @W @X @Y @Z
+echo @- @: @. @% @# @= @* @+ @~ @_ @/
+
+# read-only @:, @., @%, @~
+@" = "foo" 
+@0 = "foo"
+@1 = "foo"
+@9 = "foo"
+@a = "foo"
+@k = "foo"
+@z = "foo"
+@A = "foo"
+@K = "foo"
+@Z = "foo"
+@- = "foo"
+@# = "foo"
+@= = "foo"
+@* = "foo"
+@+ = "foo"
+@_ = "foo"
+@/ = "foo"
 
 # Operators
 
@@ -149,7 +192,7 @@ def Foo()
 enddef
 
 
-# Issue #16227 (Vimscript ternary expression highlighting)
+# Issue #16227 (Vim script ternary expression highlighting)
 
 var foo = 'foo'                         # comment
 var bar = foo == 'foo' ? 'bar' : 'baz'

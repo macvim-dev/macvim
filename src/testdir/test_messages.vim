@@ -1,10 +1,6 @@
 " Tests for :messages, :echomsg, :echoerr
 
-source check.vim
-source shared.vim
-source term_util.vim
-source view_util.vim
-source screendump.vim
+source util/screendump.vim
 
 func Test_messages()
   let oldmore = &more
@@ -324,6 +320,7 @@ endfunc
 
 " Test more-prompt scrollback
 func Test_message_more_scrollback()
+  CheckScreendump
   CheckRunVimInTerminal
 
   let lines =<< trim END
@@ -348,6 +345,7 @@ func Test_message_more_scrollback()
 endfunc
 
 func Test_message_not_cleared_after_mode()
+  CheckScreendump
   CheckRunVimInTerminal
 
   let lines =<< trim END
@@ -383,6 +381,7 @@ func Test_message_not_cleared_after_mode()
 endfunc
 
 func Test_mode_cleared_after_silent_message()
+  CheckScreendump
   CheckRunVimInTerminal
 
   let lines =<< trim END
@@ -407,6 +406,7 @@ endfunc
 
 " Test verbose message before echo command
 func Test_echo_verbose_system()
+  CheckScreendump
   CheckRunVimInTerminal
   CheckUnix    " needs the "seq" command
   CheckNotMac  " the macos TMPDIR is too long for snapshot testing

@@ -309,7 +309,7 @@ ex_menu(
 	goto theend;
     }
 #if defined(FEAT_GUI) && !(defined(FEAT_GUI_GTK) || defined(FEAT_GUI_PHOTON) \
-        || defined(FEAT_GUI_MACVIM))
+	|| defined(FEAT_GUI_MACVIM))
     old_menu_height = gui.menu_height;
 # if defined(FEAT_TOOLBAR) && !defined(FEAT_GUI_MSWIN)
     old_toolbar_height = gui.toolbar_height;
@@ -2412,7 +2412,7 @@ execute_menu(exarg_T *eap, vimmenu_T *menu, int mode_idx)
 	// simply execute the associated Vim command. Note that if you
 	// physically press the menu item (or the associated shortcut key), the
 	// macaction is always invoked even if the menu isn't bound to <Nop>.
-        if (menu->mac_action != NULL && menu->strings[idx] != NULL && menu->strings[idx][0] == NUL)
+	if (menu->mac_action != NULL && menu->strings[idx] != NULL && menu->strings[idx][0] == NUL)
 	{
 	    // Count on the fact taht ex_macaction() only looks at eap->arg.
 	    old_arg = eap->arg;
@@ -3100,8 +3100,8 @@ ex_macmenu(exarg_T *eap)
 		break;
 	    }
 
-            if (STRICMP("<nop>", arg) == 0)
-            {
+	    if (STRICMP("<nop>", arg) == 0)
+	    {
 		/* This is to let the user unset a key equivalent, thereby
 		 * freeing up that key combination to be used for a :map
 		 * command (which would otherwise not be possible since key
@@ -3109,8 +3109,8 @@ ex_macmenu(exarg_T *eap)
 		mac_key = 0;
 		mac_mods = 0;
 		set_key = TRUE;
-                continue;
-            }
+		continue;
+	    }
 
 	    /* Find end of modifier list */
 	    last_dash = arg;

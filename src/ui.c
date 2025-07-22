@@ -611,7 +611,7 @@ ui_get_shellsize(void)
 	    // autosaves the dimensions of the first window.
 	    || gui.starting
 # endif
-            )
+	    )
 	retval = gui_get_shellsize();
     else
 #endif

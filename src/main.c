@@ -469,6 +469,36 @@ main
 #endif // NO_VIM_MAIN
 #endif // PROTO
 
+#if defined(FEAT_X11) && defined(FEAT_XCLIPBOARD) && defined(FEAT_CLIPBOARD)
+/*
+ * Restore the state after a fatal X error.
+ */
+    static void
+x_restore_state(void)
+{
+    State = MODE_NORMAL;
+    VIsual_active = FALSE;
+    got_int = TRUE;
+    need_wait_return = FALSE;
+    global_busy = FALSE;
+    exmode_active = 0;
+    skip_redraw = FALSE;
+    RedrawingDisabled = 0;
+    no_wait_return = 0;
+    vgetc_busy = 0;
+# ifdef FEAT_EVAL
+    emsg_skip = 0;
+# endif
+    emsg_off = 0;
+    setmouse();
+    settmode(TMODE_RAW);
+    starttermcap();
+    scroll_start();
+    redraw_later_clear();
+    choose_clipmethod();
+}
+#endif
+
 /*
  * vim_main2() is needed for FEAT_MZSCHEME, but we define it always to keep
  * things simple.
@@ -661,13 +691,34 @@ vim_main2(void)
 # endif
     {
 	setup_term_clip();
-	TIME_MSG("setup clipboard");
+	TIME_MSG("setup x11 clipboard");
     }
 #endif
 
 #ifdef FEAT_CLIENTSERVER
     // Prepare for being a Vim server.
     prepare_server(&params);
+#endif
+
+#ifdef FEAT_WAYLAND
+# ifdef FEAT_GUI
+    if (!gui.in_use)
+# endif
+    {
+	if (wayland_init_client(wayland_display_name) == OK)
+	{
+	    TIME_MSG("connected to Wayland display");
+
+# ifdef FEAT_WAYLAND_CLIPBOARD
+	    if (wayland_cb_init((char*)p_wse) == OK)
+		TIME_MSG("setup Wayland clipboard");
+	}
+# endif
+    }
+#endif
+
+#ifdef FEAT_CLIPBOARD
+    choose_clipmethod();
 #endif
 
     /*
@@ -683,7 +734,7 @@ vim_main2(void)
 #if defined(UNIX) || defined(VMS)
     // When switching screens and something caused a message from a vimrc
     // script, need to output an extra newline on exit.
-    if ((did_emsg || msg_didout) && *T_TI != NUL)
+    if ((did_emsg || msg_didout) && *T_TI != NUL && params.edit_type != EDIT_STDIN)
 	newline_on_exit = TRUE;
 #endif
 
@@ -762,9 +813,9 @@ vim_main2(void)
     // whereas this may be VIM2, which looks weird.
     if (params.servername != NULL && gui.in_use)
     {
-        serverRegisterName(params.servername);
-        vim_free(params.servername);
-        params.servername = NULL;
+	serverRegisterName(params.servername);
+	vim_free(params.servername);
+	params.servername = NULL;
     }
 # endif
 #endif
@@ -840,9 +891,28 @@ vim_main2(void)
 	    getout(1);
     }
 
-    // Execute any "+", "-c" and "-S" arguments.
-    if (params.n_commands > 0)
-	exe_commands(&params);
+#if defined(FEAT_X11) && defined(FEAT_XCLIPBOARD)
+    // Temporarily set x_jump_env to here in case there is an X11 IO error,
+    // because x_jump_env is only actually set in main_loop(), before
+    // exe_commands(). May not be the best solution since commands passed via
+    // the command line can be very broad like sourcing a file, in which case
+    // an X IO error results in the command being partially done. In theory we
+    // could use SETJMP in RealWaitForChar(), but the stack frame for that may
+    // possibly exit and then LONGJMP is called on it.
+    int jump_result = SETJMP(x_jump_env);
+
+    if (jump_result == 0)
+    {
+#endif
+	// Execute any "+", "-c" and "-S" arguments.
+	if (params.n_commands > 0)
+	    exe_commands(&params);
+#if defined(FEAT_X11) && defined(FEAT_XCLIPBOARD)
+    }
+    else
+	// Restore state and continue just like what main_loop() does.
+	x_restore_state();
+#endif
 
     // Must come before the may_req_ calls.
     starting = 0;
@@ -1088,6 +1158,13 @@ common_init_2(mparm_T *paramp)
 #ifdef FEAT_SIGNS
     init_signs();
 #endif
+
+#ifdef FEAT_QUICKFIX
+    // initialize quickfix list
+    // don't send an error message when memory allocation fails
+    // do it when the user tries to access the quickfix list
+    qf_init_stack();
+#endif
 }
 
 /*
@@ -1299,39 +1376,19 @@ main_loop(
 #if defined(FEAT_X11) && defined(FEAT_XCLIPBOARD)
     // Setup to catch a terminating error from the X server.  Just ignore
     // it, restore the state and continue.  This might not always work
-    // properly, but at least we don't exit unexpectedly when the X server
-    // exits while Vim is running in a console.
+    // properly, but at least we hopefully don't exit unexpectedly when the X
+    // server exits while Vim is running in a console.
     if (!cmdwin && !noexmode && SETJMP(x_jump_env))
-    {
-	State = MODE_NORMAL;
-	VIsual_active = FALSE;
-	got_int = TRUE;
-	need_wait_return = FALSE;
-	global_busy = FALSE;
-	exmode_active = 0;
-	skip_redraw = FALSE;
-	RedrawingDisabled = 0;
-	no_wait_return = 0;
-	vgetc_busy = 0;
-# ifdef FEAT_EVAL
-	emsg_skip = 0;
-# endif
-	emsg_off = 0;
-	setmouse();
-	settmode(TMODE_RAW);
-	starttermcap();
-	scroll_start();
-	redraw_later_clear();
-    }
+	x_restore_state();
 #endif
 
     clear_oparg(&oa);
     while (!cmdwin || cmdwin_result == 0)
     {
 #ifdef FEAT_GUI_MACVIM
-        // Cocoa needs an NSAutoreleasePool in place or it will leak memory.
-        // This particular pool gets released once every loop.
-        void *autoreleasePool = gui_macvim_new_autoreleasepool();
+	// Cocoa needs an NSAutoreleasePool in place or it will leak memory.
+	// This particular pool gets released once every loop.
+	void *autoreleasePool = gui_macvim_new_autoreleasepool();
 #endif
 
 	if (stuff_empty())
@@ -1647,9 +1704,9 @@ main_loop(
 	}
 
 #ifdef FEAT_GUI_MACVIM
-        // TODO! Make sure there are no continue statements that will cause
-        // this not to be called or MacVim will leak memory!
-        gui_macvim_release_autoreleasepool(autoreleasePool);
+	// TODO! Make sure there are no continue statements that will cause
+	// this not to be called or MacVim will leak memory!
+	gui_macvim_release_autoreleasepool(autoreleasePool);
 #endif
     }
 
@@ -2508,6 +2565,11 @@ command_line_scan(mparm_T *parmp)
 	    case 'X':		// "-X"  don't connect to X server
 #if (defined(UNIX) || defined(VMS)) && defined(FEAT_X11)
 		x_no_connect = TRUE;
+#endif
+		break;
+	    case 'Y':		// "-Y" don't connect to Wayland compositor
+#if defined(FEAT_WAYLAND)
+		wayland_no_connect = TRUE;
 #endif
 		break;
 
@@ -3714,6 +3776,9 @@ usage(void)
     main_msg(_("-display <display>\tConnect Vim to this particular X-server"));
 # endif
     main_msg(_("-X\t\t\tDo not connect to X server"));
+#endif
+#if defined(FEAT_WAYLAND)
+    main_msg(_("-Y\t\t\tDo not connect to Wayland compositor"));
 #endif
 #ifdef FEAT_CLIENTSERVER
     main_msg(_("--remote <files>\tEdit <files> in a Vim server if possible"));

@@ -540,8 +540,8 @@ EXTERN int	garbage_collect_at_exit INIT(= FALSE);
 #define t_super			(static_types[84])
 #define t_const_super		(static_types[85])
 
-#define t_object		(static_types[86])
-#define t_const_object		(static_types[87])
+#define t_object_any		(static_types[86])
+#define t_const_object_any	(static_types[87])
 
 #define t_class			(static_types[88])
 #define t_const_class		(static_types[89])
@@ -731,7 +731,7 @@ EXTERN type_T static_types[96]
     {VAR_CLASS, 0, 0, TTFLAG_STATIC, &t_bool, NULL, NULL},
     {VAR_CLASS, 0, 0, TTFLAG_STATIC|TTFLAG_CONST, &t_bool, NULL, NULL},
 
-    // 86: t_object
+    // 86: t_object_any
     {VAR_OBJECT, 0, 0, TTFLAG_STATIC, NULL, NULL, NULL},
     {VAR_OBJECT, 0, 0, TTFLAG_STATIC|TTFLAG_CONST, NULL, NULL, NULL},
 
@@ -971,9 +971,9 @@ EXTERN int	gui_win_y INIT(= -1);
 #endif
 
 #ifdef FEAT_CLIPBOARD
-EXTERN Clipboard_T clip_star;	// PRIMARY selection in X11
-# ifdef FEAT_X11
-EXTERN Clipboard_T clip_plus;	// CLIPBOARD selection in X11
+EXTERN Clipboard_T clip_star;	// PRIMARY selection in X11/Wayland
+# if defined(FEAT_X11) || defined(FEAT_WAYLAND_CLIPBOARD)
+EXTERN Clipboard_T clip_plus;	// CLIPBOARD selection in X11/Wayland
 # else
 #  define clip_plus clip_star	// there is only one clipboard
 #  define ONE_CLIPBOARD
@@ -1012,9 +1012,10 @@ EXTERN win_T	*curwin;	// currently active window
 #define AUCMD_WIN_COUNT 5
 
 typedef struct {
-  win_T	*auc_win;	// Window used in aucmd_prepbuf().  When not NULL the
-			// window has been allocated.
-  int	auc_win_used;	// This auc_win is being used.
+    // Window used in aucmd_prepbuf().  When not NULL the window has been
+    // allocated.
+    win_T	*auc_win;
+    int		auc_win_used;	// This auc_win is being used.
 } aucmdwin_T;
 
 EXTERN aucmdwin_T aucmd_win[AUCMD_WIN_COUNT];
@@ -1054,6 +1055,10 @@ EXTERN tabpage_T    *first_tabpage;
 EXTERN tabpage_T    *curtab;
 EXTERN tabpage_T    *lastused_tabpage;
 EXTERN int	    redraw_tabline INIT(= FALSE);  // need to redraw tabline
+
+#if defined(FEAT_TABPANEL)
+EXTERN int	    redraw_tabpanel INIT(= FALSE);  // need to redraw tabpanel
+#endif
 
 /*
  * All buffers are linked in a list. 'firstbuf' points to the first entry,
@@ -1611,7 +1616,7 @@ EXTERN int	autocmd_bufnr INIT(= 0);     // fnum for <abuf> on cmdline
 EXTERN char_u	*autocmd_match INIT(= NULL); // name for <amatch> on cmdline
 EXTERN int	aucmd_cmdline_changed_count INIT(= 0);
 
-EXTERN int	did_cursorhold INIT(= FALSE); // set when CursorHold t'gerd
+EXTERN int	did_cursorhold INIT(= TRUE);  // set when CursorHold t'gerd
 EXTERN pos_T	last_cursormoved	      // for CursorMoved event
 # ifdef DO_INIT
 		    = {0, 0, 0}
@@ -2067,4 +2072,24 @@ EXTERN char_u showcmd_buf[SHOWCMD_BUFLEN];
 
 #ifdef FEAT_TERMGUICOLORS
 EXTERN int	p_tgc_set INIT(= FALSE);
+#endif
+
+// If we've already warned about missing/unavailable clipboard
+EXTERN int did_warn_clipboard INIT(= FALSE);
+
+#ifdef FEAT_CLIPBOARD
+EXTERN clipmethod_T clipmethod INIT(= CLIPMETHOD_NONE);
+#endif
+
+#ifdef FEAT_WAYLAND
+
+// Don't connect to Wayland compositor if TRUE
+EXTERN int wayland_no_connect INIT(= FALSE);
+
+// Wayland display name (ex. wayland-0). Can be NULL
+EXTERN char *wayland_display_name INIT(= NULL);
+
+// Wayland display file descriptor; set by wayland_init_client()
+EXTERN int wayland_display_fd;
+
 #endif

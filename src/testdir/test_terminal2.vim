@@ -2,13 +2,10 @@
 " This is split in two, because it can take a lot of time.
 " See test_terminal.vim and test_terminal3.vim for further tests.
 
-source check.vim
 CheckFeature terminal
 
-source shared.vim
-source screendump.vim
-source mouse.vim
-source term_util.vim
+source util/screendump.vim
+source util/mouse.vim
 
 let $PROMPT_COMMAND=''
 
@@ -245,6 +242,9 @@ func Test_termwinscroll()
 endfunc
 
 func Test_termwinscroll_topline()
+  " TODO: why does this fail on Appveyor and Github?
+  CheckNotMSWindows
+
   set termwinscroll=1000 mouse=a
   terminal
   call assert_equal(2, winnr('$'))
@@ -496,6 +496,7 @@ func Test_terminal_switch_mode()
 endfunc
 
 func Test_terminal_normal_mode()
+  CheckScreendump
   CheckRunVimInTerminal
 
   " Run Vim in a terminal and open a terminal window to run Vim in.

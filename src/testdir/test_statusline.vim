@@ -3,9 +3,7 @@
 " Not tested yet:
 "   %N
 
-source view_util.vim
-source check.vim
-source screendump.vim
+source util/screendump.vim
 
 func SetUp()
   set laststatus=2
@@ -16,6 +14,10 @@ func TearDown()
 endfunc
 
 func s:get_statusline()
+  if has('gui_running')
+    redraw!
+    sleep 1m
+  endif
   return ScreenLines(&lines - 1, &columns)[0]
 endfunc
 

@@ -23,8 +23,12 @@ SRC_ALL =	\
 		ci/appveyor.bat \
 		ci/config.mk*.sed \
 		ci/if_ver*.vim \
+		ci/if_feat_check.vim \
 		ci/setup-xvfb.sh \
+		ci/setup-sway.sh \
 		ci/remove_snap.sh \
+		ci/ddebs.list \
+		ci/pinned-pkgs \
 		src/Make_all.mak \
 		src/README.md \
 		src/alloc.c \
@@ -147,6 +151,7 @@ SRC_ALL =	\
 		src/strings.c \
 		src/structs.h \
 		src/syntax.c \
+		src/tabpanel.c \
 		src/tag.c \
 		src/term.c \
 		src/terminal.c \
@@ -172,6 +177,7 @@ SRC_ALL =	\
 		src/vim9compile.c \
 		src/vim9execute.c \
 		src/vim9expr.c \
+		src/vim9generics.c \
 		src/vim9instr.c \
 		src/vim9script.c \
 		src/vim9type.c \
@@ -179,63 +185,67 @@ SRC_ALL =	\
 		src/winclip.c \
 		src/window.c \
 		src/xxd/xxd.c \
-		src/testdir/gen_opt_test.vim \
-		src/testdir/README.txt \
-		src/testdir/Make_all.mak \
 		src/testdir/*.in \
 		src/testdir/*.py \
-		src/testdir/keycode_check.vim \
-		src/testdir/keycode_check.json \
-		src/testdir/lsan-suppress.txt \
-		src/testdir/sautest/autoload/*.vim \
-		src/testdir/testluaplugin/lua/testluaplugin/*.lua \
-		src/testdir/check.vim \
+		src/testdir/Make_all.mak \
+		src/testdir/README.txt \
 		src/testdir/commondumps.vim \
-		src/testdir/gui_init.vim \
-		src/testdir/gui_preinit.vim \
-		src/testdir/mouse.vim \
-		src/testdir/runtest.vim \
-		src/testdir/screendump.vim \
-		src/testdir/setup.vim \
-		src/testdir/setup_gui.vim \
-		src/testdir/shared.vim \
-		src/testdir/vim9.vim \
-		src/testdir/script_util.vim \
-		src/testdir/summarize.vim \
-		src/testdir/term_util.vim \
-		src/testdir/view_util.vim \
-		src/testdir/viewdumps.vim \
-		src/testdir/test[0-9]*.ok \
-		src/testdir/test77a.ok \
-		src/testdir/test77a.com \
-		src/testdir/test_*.vim \
+		src/testdir/crash/* \
+		src/testdir/dumps/*.dump \
+		src/testdir/dumps/*.vim \
+		src/testdir/keycode_check.json \
+		src/testdir/keycode_check.vim \
+		src/testdir/lsan-suppress.txt \
 		src/testdir/python2/*.py \
 		src/testdir/python3/*.py \
+		src/testdir/python_after/*.py \
+		src/testdir/python_before/*.py \
 		src/testdir/pythonx/*.py \
 		src/testdir/pythonx/topmodule/__init__.py \
 		src/testdir/pythonx/topmodule/submodule/__init__.py \
 		src/testdir/pythonx/topmodule/submodule/subsubmodule/__init__.py \
 		src/testdir/pythonx/topmodule/submodule/subsubmodule/subsubsubmodule.py \
-		src/testdir/python_after/*.py \
-		src/testdir/python_before/*.py \
 		src/testdir/pyxfile/*.py \
-		src/testdir/dumps/*.dump \
-		src/testdir/dumps/*.vim \
+		src/testdir/ru_RU/LC_MESSAGES/Makefile \
+		src/testdir/ru_RU/LC_MESSAGES/__PACKAGE__.mo \
+		src/testdir/ru_RU/LC_MESSAGES/__PACKAGE__.po \
+		src/testdir/runtest.vim \
 		src/testdir/samples/*.html \
 		src/testdir/samples/*.txt \
 		src/testdir/samples/*.vim \
+		src/testdir/samples/evil.zip \
+		src/testdir/samples/evil.tar \
 		src/testdir/samples/poc.zip \
-		src/testdir/samples/test000 \
+		src/testdir/samples/sample.tar \
 		src/testdir/samples/test.zip \
+		src/testdir/samples/test000 \
 		src/testdir/samples/test_undo.txt.undo \
 		src/testdir/samples/testa.zip \
-		src/testdir/color_ramp.vim \
+		src/testdir/sautest/autoload/*.vim \
 		src/testdir/silent.wav \
-		src/testdir/popupbounce.vim \
-		src/testdir/crash/* \
-		src/testdir/ru_RU/LC_MESSAGES/Makefile \
-		src/testdir/ru_RU/LC_MESSAGES/__PACKAGE__.po \
-		src/testdir/ru_RU/LC_MESSAGES/__PACKAGE__.mo \
+		src/testdir/test77a.com \
+		src/testdir/test77a.ok \
+		src/testdir/test[0-9]*.ok \
+		src/testdir/test_*.vim \
+		src/testdir/testluaplugin/lua/testluaplugin/*.lua \
+		src/testdir/util/check.vim \
+		src/testdir/util/color_ramp.vim \
+		src/testdir/util/gen_opt_test.vim \
+		src/testdir/util/gui_init.vim \
+		src/testdir/util/gui_preinit.vim \
+		src/testdir/util/mouse.vim \
+		src/testdir/util/popupbounce.vim \
+		src/testdir/util/screendump.vim \
+		src/testdir/util/script_util.vim \
+		src/testdir/util/setup.vim \
+		src/testdir/util/setup_gui.vim \
+		src/testdir/util/shared.vim \
+		src/testdir/util/summarize.vim \
+		src/testdir/util/term_util.vim \
+		src/testdir/util/view_util.vim \
+		src/testdir/util/vim9.vim \
+		src/testdir/util/window_manager.vim \
+		src/testdir/viewdumps.vim \
 		src/proto.h \
 		src/protodef.h \
 		src/proto/alloc.pro \
@@ -331,6 +341,7 @@ SRC_ALL =	\
 		src/proto/spellsuggest.pro \
 		src/proto/strings.pro \
 		src/proto/syntax.pro \
+		src/proto/tabpanel.pro \
 		src/proto/tag.pro \
 		src/proto/term.pro \
 		src/proto/terminal.pro \
@@ -352,6 +363,7 @@ SRC_ALL =	\
 		src/proto/vim9compile.pro \
 		src/proto/vim9execute.pro \
 		src/proto/vim9expr.pro \
+		src/proto/vim9generics.pro \
 		src/proto/vim9instr.pro \
 		src/proto/vim9script.pro \
 		src/proto/vim9type.pro \
@@ -484,6 +496,12 @@ SRC_UNIX =	\
 		src/gui_xmebwp.h \
 		src/gui_x11.c \
 		src/gui_x11_pm.h \
+		src/auto/wayland/README.txt \
+		src/auto/wayland/Makefile \
+		src/auto/wayland/protocols/ext-data-control-v1.xml \
+		src/auto/wayland/protocols/wlr-data-control-unstable-v1.xml \
+		src/auto/wayland/protocols/xdg-shell.xml \
+		src/auto/wayland/protocols/primary-selection-unstable-v1.xml \
 		src/if_xcmdsrv.c \
 		src/link.sh \
 		src/installman.sh \
@@ -502,18 +520,21 @@ SRC_UNIX =	\
 		src/proto/gui_motif.pro \
 		src/proto/gui_xmdlg.pro \
 		src/proto/gui_x11.pro \
+		src/proto/wayland.pro \
 		src/proto/if_xcmdsrv.pro \
 		src/proto/os_unix.pro \
 		src/proto/pty.pro \
 		src/pty.c \
 		src/testdir/Makefile \
-		src/testdir/unix.vim \
+		src/testdir/util/unix.vim \
 		src/toolcheck \
 		src/vim_icon.xbm \
 		src/vim_mask.xbm \
 		src/vimtutor \
 		src/gvimtutor \
+		src/wayland.c \
 		src/which.sh \
+		src/gen-wayland-protocols.sh \
 		src/xxd/Makefile \
 
 # Source files for both MS Windows and Unix-like.
@@ -599,7 +620,7 @@ SRC_DOS =	\
 		src/testdir/Make_dos.mak \
 		src/testdir/Make_mvc.mak \
 		src/testdir/Make_ming.mak \
-		src/testdir/dos.vim \
+		src/testdir/util/dos.vim \
 		src/uninstall.c \
 		src/vim.rc \
 		src/vim.manifest \
@@ -652,7 +673,7 @@ SRC_AMI =	\
 		src/os_amiga.h \
 		src/proto/os_amiga.pro \
 		src/testdir/Make_amiga.mak \
-		src/testdir/amiga.vim \
+		src/testdir/util/amiga.vim \
 		src/xxd/Make_amiga.mak \
 
 # Source files for Haiku (also in the extra archive).
@@ -683,7 +704,7 @@ SRC_VMS =	\
 		src/os_vms_mms.c \
 		src/proto/os_vms.pro \
 		src/testdir/Make_vms.mms \
-		src/testdir/vms.vim \
+		src/testdir/util/vms.vim \
 		src/xxd/Make_vms.mms \
 		vimtutor.com \
 
@@ -774,7 +795,6 @@ RT_ALL =	\
 		runtime/tools/[a-z]*[a-z0-9] \
 		runtime/tutor/README.txt \
 		runtime/tutor/tutor1 \
-		runtime/tutor/tutor1.utf-8 \
 		runtime/tutor/en/vim-01-beginner.tutor \
 		runtime/tutor/en/vim-01-beginner.tutor.json \
 		runtime/tutor/en/vim-02-beginner.tutor \
@@ -783,7 +803,6 @@ RT_ALL =	\
 		runtime/tutor/tutor.tutor.json \
 		runtime/tutor/tutor.vim \
 		runtime/tutor/tutor2 \
-		runtime/tutor/tutor2.utf-8 \
 		runtime/vimrc_example.vim \
 		runtime/pack/dist/opt/cfilter/plugin/cfilter.vim \
 		runtime/pack/dist/opt/comment/plugin/comment.vim \
@@ -806,6 +825,8 @@ RT_ALL =	\
 		runtime/pack/dist/opt/editorconfig/ftdetect/editorconfig.vim \
 		runtime/pack/dist/opt/editorconfig/plugin/editorconfig.vim \
 		runtime/pack/dist/opt/helptoc/autoload/helptoc.vim \
+		runtime/pack/dist/opt/helptoc/doc/helptoc.txt \
+		runtime/pack/dist/opt/helptoc/doc/tags \
 		runtime/pack/dist/opt/helptoc/plugin/helptoc.vim \
 		runtime/pack/dist/opt/hlyank/plugin/hlyank.vim \
 		runtime/pack/dist/opt/justify/plugin/justify.vim \
@@ -823,7 +844,6 @@ RT_ALL =	\
 		runtime/pack/dist/opt/netrw/autoload/netrw/fs.vim \
 		runtime/pack/dist/opt/netrw/autoload/netrw/os.vim \
 		runtime/pack/dist/opt/netrw/autoload/netrw/msg.vim \
-		runtime/pack/dist/opt/netrw/autoload/netrwSettings.vim \
 		runtime/pack/dist/opt/netrw/autoload/netrw_gitignore.vim \
 		runtime/pack/dist/opt/netrw/doc/netrw.txt \
 		runtime/pack/dist/opt/netrw/plugin/netrwPlugin.vim \
@@ -862,6 +882,7 @@ RT_SCRIPTS =	\
 		runtime/indent/testdir/*.vim \
 		runtime/indent/testdir/*.in \
 		runtime/indent/testdir/*.ok \
+		runtime/indent/testdir/tools/* \
 		runtime/ftplugin/*.vim \
 		runtime/ftplugin/logtalk.dict \
 		runtime/ftplugin/README.txt \
@@ -925,7 +946,6 @@ RT_DOS =	\
 		README_dos.txt \
 		runtime/doc/Make_mvc.mak \
 		runtime/indent/Make_mvc.mak \
-		runtime/tutor/Make_mvc.mak \
 		runtime/lang/Make_mvc.mak \
 		vimtutor.bat \
 
@@ -1079,8 +1099,6 @@ LANG_GEN = \
 		runtime/keymap/README.txt \
 		runtime/keymap/*.vim \
 		runtime/tutor/README.*.txt \
-		runtime/tutor/Makefile \
-		runtime/tutor/Make_all.mak \
 		runtime/tutor/it/vim-01-beginner.tutor \
 		runtime/tutor/it/vim-01-beginner.tutor.json \
 		runtime/tutor/ru/vim-01-beginner.tutor \
@@ -1092,19 +1110,9 @@ LANG_GEN = \
 		runtime/tutor/sr/vim-02-beginner.tutor \
 		runtime/tutor/sr/vim-02-beginner.tutor.json \
 		runtime/tutor/tutor1.?? \
-		runtime/tutor/tutor1.??.utf-8 \
-		runtime/tutor/tutor1.??.euc \
-		runtime/tutor/tutor1.??.sjis \
-		runtime/tutor/tutor1.??.iso9 \
-		runtime/tutor/tutor1.??.big5 \
-		runtime/tutor/tutor1.??.cp1250 \
-		runtime/tutor/tutor1.??.cp1251 \
-		runtime/tutor/tutor1.??.cp737 \
-		runtime/tutor/tutor1.??_??.utf-8 \
+		runtime/tutor/tutor1.??_?? \
 		runtime/tutor/tutor1.bar \
-		runtime/tutor/tutor1.bar.utf-8 \
 		runtime/tutor/tutor2.?? \
-		runtime/tutor/tutor2.??.utf-8 \
 		runtime/spell/README.txt \
 		runtime/spell/??/*.diff \
 		runtime/spell/??/main.aap \
@@ -1148,6 +1156,7 @@ LANG_SRC = \
 		src/po/sjiscorr.c \
 		src/po/big5corr.c \
 		src/po/*.po \
+		src/po/vim.pot \
 
 # The language files for the Win32 lang archive.
 LANG_DOS = \

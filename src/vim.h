@@ -195,6 +195,10 @@
 # define FEAT_X11
 #endif
 
+#if defined(HAVE_WAYLAND) && defined(WANT_WAYLAND)
+#define FEAT_WAYLAND
+#endif
+
 #ifdef NO_X11_INCLUDES
     // In os_mac_conv.c and os_macosx.m NO_X11_INCLUDES is defined to avoid
     // X11 headers.  Disable all X11 related things to avoid conflicts.
@@ -855,7 +859,10 @@ extern int (*dyn_libintl_wputenv)(const wchar_t *envstring);
 #define EXPAND_SHELLCMDLINE	60
 #define EXPAND_FINDFUNC		61
 #define EXPAND_HIGHLIGHT_GROUP  62
-#define EXPAND_MACACTION	63
+#define EXPAND_FILETYPECMD	63
+#define EXPAND_PATTERN_IN_BUF	64
+#define EXPAND_RETAB		65
+#define EXPAND_MACACTION	66
 
 
 // Values for exmode_active (0 is no exmode)
@@ -891,6 +898,8 @@ extern int (*dyn_libintl_wputenv)(const wchar_t *envstring);
 #define WILD_BUFLASTUSED	    0x1000
 #define BUF_DIFF_FILTER		    0x2000
 #define WILD_KEEP_SOLE_ITEM	    0x4000
+#define WILD_MAY_EXPAND_PATTERN	    0x8000
+#define WILD_FUNC_TRIGGER	    0x10000 // called from wildtrigger()
 
 // Flags for expand_wildcards()
 #define EW_DIR		0x01	// include directory names
@@ -919,6 +928,14 @@ extern int (*dyn_libintl_wputenv)(const wchar_t *envstring);
 #define FINDFILE_FILE	0	// only files
 #define FINDFILE_DIR	1	// only directories
 #define FINDFILE_BOTH	2	// files and directories
+
+#if defined(FEAT_TABPANEL)
+# define COLUMNS_WITHOUT_TPL()		(Columns - tabpanel_width())
+# define TPL_LCOL()			tabpanel_leftcol()
+#else
+# define COLUMNS_WITHOUT_TPL()		Columns
+# define TPL_LCOL()			0
+#endif
 
 #define W_ENDCOL(wp)	((wp)->w_wincol + (wp)->w_width)
 #ifdef FEAT_MENU
@@ -1373,6 +1390,7 @@ enum auto_event
     EVENT_BUFWRITEPRE,		// before writing a buffer
     EVENT_CMDLINECHANGED,	// command line was modified
     EVENT_CMDLINEENTER,		// after entering the command line
+    EVENT_CMDLINELEAVEPRE,	// just before leaving the command line
     EVENT_CMDLINELEAVE,		// before leaving the command line
     EVENT_CMDUNDEFINED,		// command undefined
     EVENT_CMDWINENTER,		// after entering the cmdline window
@@ -1548,6 +1566,9 @@ typedef enum
     , HLF_ST	    // status lines of terminal windows
     , HLF_STNC	    // status lines of not-current terminal windows
     , HLF_MSG	    // message area
+    , HLF_TPL	    // tabpanel
+    , HLF_TPLS	    // tabpanel selected
+    , HLF_TPLF	    // tabpanel filler
     , HLF_COUNT	    // MUST be the last one
 } hlf_T;
 
@@ -1559,7 +1580,8 @@ typedef enum
 		  'B', 'P', 'R', 'L', \
 		  '+', '=', 'k', '<','[', ']', '{', '}', 'x', 'X', \
 		  '*', '#', '_', '!', '.', 'o', 'q', \
-		  'z', 'Z', 'g'}
+		  'z', 'Z', 'g', \
+		  '%', '^', '&' }
 
 /*
  * Values for behaviour in spell_move_to
@@ -2213,9 +2235,11 @@ typedef int sock_T;
 #define VV_TYPE_ENUMVALUE 109
 #define VV_STACKTRACE	110
 #define VV_TYPE_TUPLE	111
+#define VV_WAYLAND_DISPLAY 112
+#define VV_CLIPMETHOD 113
 // MacVim-specific values go here
-#define VV_OS_APPEARANCE 112
-#define VV_LEN		113	// number of v: vars
+#define VV_OS_APPEARANCE 114
+#define VV_LEN		115	// number of v: vars
 
 // used for v_number in VAR_BOOL and VAR_SPECIAL
 #define VVAL_FALSE	0L	// VAR_BOOL
@@ -2269,6 +2293,13 @@ typedef int sock_T;
 #   define WM_OLE (WM_APP+0)
 #  endif
 # endif
+
+typedef enum {
+    CLIPMETHOD_FAIL,
+    CLIPMETHOD_NONE,
+    CLIPMETHOD_WAYLAND,
+    CLIPMETHOD_X11,
+} clipmethod_T;
 
 // Info about selected text
 typedef struct

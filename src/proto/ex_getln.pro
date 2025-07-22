@@ -39,10 +39,12 @@ void f_getcmdscreenpos(typval_T *argvars, typval_T *rettv);
 void f_getcmdtype(typval_T *argvars, typval_T *rettv);
 void f_setcmdline(typval_T *argvars, typval_T *rettv);
 void f_setcmdpos(typval_T *argvars, typval_T *rettv);
+void f_wildtrigger(typval_T *argvars, typval_T *rettv);
 int get_cmdline_firstc(void);
 int get_list_range(char_u **str, int *num1, int *num2);
 char *did_set_cedit(optset_T *args);
 int is_in_cmdwin(void);
 char_u *script_get(exarg_T *eap, char_u *cmd);
 void get_user_input(typval_T *argvars, typval_T *rettv, int inputdialog, int secret);
+int parse_pattern_and_range(pos_T *is_start, int *search_delim, int *skiplen, int *patlen);
 /* vim: set ft=c : */

@@ -1,8 +1,6 @@
 " Tests for Unicode manipulations
 
-source check.vim
-source view_util.vim
-source screendump.vim
+source util/screendump.vim
 
 " Visual block Insert adjusts for multi-byte char
 func Test_visual_block_insert()
@@ -294,6 +292,7 @@ func Test_getcellwidths()
 endfunc
 
 func Test_setcellwidths_dump()
+  CheckScreendump
   CheckRunVimInTerminal
 
   let lines =<< trim END
@@ -311,6 +310,7 @@ endfunc
 
 " Test setcellwidths() on characters that are not targets of 'ambiwidth'.
 func Test_setcellwidths_with_non_ambiwidth_character_dump()
+  CheckScreendump
   CheckRunVimInTerminal
 
   let lines =<< trim END
@@ -333,6 +333,7 @@ endfunc
 " For some reason this test causes Test_customlist_completion() to fail on CI,
 " so run it as the last test.
 func Test_zz_ambiwidth_hl_dump()
+  CheckScreendump
   CheckRunVimInTerminal
 
   let lines =<< trim END

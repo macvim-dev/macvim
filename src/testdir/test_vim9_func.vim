@@ -1,10 +1,7 @@
 " Test various aspects of the Vim9 script language.
 
-source check.vim
-source term_util.vim
-source view_util.vim
-import './vim9.vim' as v9
-source screendump.vim
+import './util/vim9.vim' as v9
+source util/screendump.vim
 
 func Test_def_basic()
   def SomeFunc(): string
@@ -1004,7 +1001,18 @@ def Test_nested_function()
         enddef
       enddef
   END
-  v9.CheckDefFailure(lines, 'E1117:')
+  v9.CheckDefFailure(lines, 'E1117: Cannot use ! with nested :def')
+
+  lines =<< trim END
+      def Outer()
+        function Inner()
+          " comment
+        endfunc
+        function! Inner()
+        endfunc
+      enddef
+  END
+  v9.CheckDefFailure(lines, 'E1117: Cannot use ! with nested :function')
 
   lines =<< trim END
       vim9script
@@ -3204,6 +3212,7 @@ def Test_nested_closure_fails()
 enddef
 
 def Run_Test_closure_in_for_loop_fails()
+  CheckScreendump
   var lines =<< trim END
     vim9script
     redraw
@@ -3600,6 +3609,7 @@ func Test_silent_echo()
 endfunc
 
 def Run_Test_silent_echo()
+  CheckScreendump
   var lines =<< trim END
     vim9script
     def EchoNothing()
@@ -4645,6 +4655,7 @@ def Test_invalid_redir()
 enddef
 
 func Test_keytyped_in_nested_function()
+  CheckScreendump
   CheckRunVimInTerminal
 
   call Run_Test_keytyped_in_nested_function()

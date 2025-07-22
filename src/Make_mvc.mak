@@ -342,7 +342,11 @@ MSVCRT_NAME = vcruntime$(MSVCRT_VER)
 
 ### Set the default $(WINVER) to make it work with Windows 7
 !ifndef WINVER
+! if "$(CPU)" == "ARM64"
+WINVER = 0x0A00
+! else
 WINVER = 0x0601
+! endif
 !endif
 
 # Use multiprocess build
@@ -533,7 +537,7 @@ CON_LIB = $(CON_LIB) /DELAYLOAD:comdlg32.dll /DELAYLOAD:ole32.dll DelayImp.lib
 CFLAGS = -c /W3 /GF /nologo -I. -Iproto -DHAVE_PATHDEF -DWIN32 -DHAVE_STDINT_H \
 		$(CSCOPE_DEFS) $(TERM_DEFS) $(SOUND_DEFS) $(NETBEANS_DEFS) \
 		$(NBDEBUG_DEFS) $(XPM_DEFS) $(SOD_DEFS) $(SOD_INC) \
-		$(CHANNEL_DEFS) $(DEFINES) \
+		$(CHANNEL_DEFS) $(DEFINES) $(CI_CFLAGS) \
 		-DWINVER=$(WINVER) -D_WIN32_WINNT=$(WINVER) \
 		/source-charset:utf-8
 
@@ -571,7 +575,8 @@ CPUNR = sse2
 !  error *** ERROR Unknown target architecture "$(CPUNR)". Make aborted.
 ! endif
 !elseif "$(CPU)" == "ARM64"
-# TODO: Validate CPUNR.
+# TODO: Validate CPUNR depending on the VS version.
+CPUNR = armv8.0
 !endif
 
 # Convert processor ID to MVC-compatible number
@@ -779,6 +784,7 @@ OBJ = \
 	$(OUTDIR)\spellsuggest.obj \
 	$(OUTDIR)\strings.obj \
 	$(OUTDIR)\syntax.obj \
+	$(OUTDIR)\tabpanel.obj \
 	$(OUTDIR)\tag.obj \
 	$(OUTDIR)\term.obj \
 	$(OUTDIR)\testing.obj \
@@ -797,6 +803,7 @@ OBJ = \
 	$(OUTDIR)\vim9compile.obj \
 	$(OUTDIR)\vim9execute.obj \
 	$(OUTDIR)\vim9expr.obj \
+	$(OUTDIR)\vim9generics.obj \
 	$(OUTDIR)\vim9instr.obj \
 	$(OUTDIR)\vim9script.obj \
 	$(OUTDIR)\vim9type.obj \
@@ -1430,14 +1437,14 @@ clean: testclean
 	$(MAKE) /NOLOGO -f Make_mvc.mak clean
 	cd ..
 
-# Run vim script to generate the Ex command lookup table.
+# Run Vim script to generate the Ex command lookup table.
 # This only needs to be run when a command name has been added or changed.
 # If this fails because you don't have Vim yet, first build and install Vim
 # without changes.
 cmdidxs: ex_cmds.h
 	vim --clean -N -X --not-a-term -u create_cmdidxs.vim -c quit
 
-# Run vim script to generate the normal/visual mode command lookup table.
+# Run Vim script to generate the normal/visual mode command lookup table.
 # This only needs to be run when a new normal/visual mode command has been
 # added.  If this fails because you don't have Vim yet:
 #   - change nv_cmds[] in nv_cmds.h to add the new normal/visual mode command.
@@ -1778,6 +1785,8 @@ $(OUTDIR)/strings.obj:	$(OUTDIR) strings.c  $(INCL)
 
 $(OUTDIR)/syntax.obj:	$(OUTDIR) syntax.c  $(INCL)
 
+$(OUTDIR)/tabpanel.obj:	$(OUTDIR) tabpanel.c  $(INCL)
+
 $(OUTDIR)/tag.obj:	$(OUTDIR) tag.c  $(INCL)
 
 $(OUTDIR)/term.obj:	$(OUTDIR) term.c  $(INCL)
@@ -1815,6 +1824,8 @@ $(OUTDIR)/vim9compile.obj:	$(OUTDIR) vim9compile.c  $(INCL) vim9.h
 $(OUTDIR)/vim9execute.obj:	$(OUTDIR) vim9execute.c  $(INCL) vim9.h
 
 $(OUTDIR)/vim9expr.obj:	$(OUTDIR) vim9expr.c  $(INCL) vim9.h
+
+$(OUTDIR)/vim9generics.obj:	$(OUTDIR) vim9generics.c  $(INCL) vim9.h
 
 $(OUTDIR)/vim9instr.obj:	$(OUTDIR) vim9instr.c  $(INCL) vim9.h
 
@@ -2001,6 +2012,7 @@ proto.h: \
 	proto/spellsuggest.pro \
 	proto/strings.pro \
 	proto/syntax.pro \
+	proto/tabpanel.pro \
 	proto/tag.pro \
 	proto/term.pro \
 	proto/testing.pro \
@@ -2019,6 +2031,7 @@ proto.h: \
 	proto/vim9compile.pro \
 	proto/vim9execute.pro \
 	proto/vim9expr.pro \
+	proto/vim9generics.pro \
 	proto/vim9instr.pro \
 	proto/vim9script.pro \
 	proto/vim9type.pro \

@@ -4,9 +4,7 @@ if !has('gui_running') && has('unix')
   set term=ansi
 endif
 
-source view_util.vim
-source check.vim
-source screendump.vim
+source util/screendump.vim
 
 " Test for scrolling that modifies buffer during visual block
 func Test_visual_block_scroll()
@@ -174,6 +172,30 @@ func Test_matchparen_ignore_sh_case()
     call term_wait(buf)
   endfor
   call VerifyScreenDump(buf, 'Test_matchparen_sh_case_2', {})
+  call StopVimInTerminal(buf)
+endfunc
+
+" Test for the WinScrolled event
+func Test_scroll_winscrolled()
+  CheckScreendump
+
+  let lines =<< trim END
+    source $VIMRUNTIME/plugin/matchparen.vim
+    set scrolloff=1
+    call setline(1, ['foobar {', '', '', '', '}'])
+    call cursor(5, 1)
+  END
+
+  let filename = 'Xmatchparen_winscrolled'
+  call writefile(lines, filename, 'D')
+
+  let buf = RunVimInTerminal('-S '.filename, #{rows: 7})
+  call VerifyScreenDump(buf, 'Test_matchparen_winscrolled1', {})
+  call term_sendkeys(buf, "\<C-E>")
+  call VerifyScreenDump(buf, 'Test_matchparen_winscrolled2', {})
+  call term_sendkeys(buf, "\<C-Y>")
+  call VerifyScreenDump(buf, 'Test_matchparen_winscrolled1', {})
+
   call StopVimInTerminal(buf)
 endfunc
 

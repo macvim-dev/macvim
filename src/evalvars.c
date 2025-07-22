@@ -163,6 +163,8 @@ static struct vimvar
     {VV_NAME("t_enumvalue",	 VAR_NUMBER), NULL, VV_RO},
     {VV_NAME("stacktrace",	 VAR_LIST), &t_list_dict_any, VV_RO},
     {VV_NAME("t_tuple",		 VAR_NUMBER), NULL, VV_RO},
+    {VV_NAME("wayland_display",  VAR_STRING), NULL, VV_RO},
+    {VV_NAME("clipmethod",  VAR_STRING), NULL, VV_RO},
     // MacVim-specific value go here
     {VV_NAME("os_appearance",    VAR_NUMBER), NULL, VV_RO},
 };
@@ -3196,6 +3198,20 @@ eval_variable(
 	    int	    has_g_prefix = STRNCMP(name, "g:", 2) == 0;
 	    ufunc_T *ufunc = find_func(name, FALSE);
 
+	    if (ufunc != NULL && cc == '<')
+	    {
+		// handle generic function
+		char_u	*argp = name + len;
+		name[len] = cc;
+		ufunc = eval_generic_func(ufunc, name, &argp);
+		name[len] = NUL;
+		if (ufunc == NULL)
+		{
+		    ret = FAIL;
+		    goto done;
+		}
+	    }
+
 	    // In Vim9 script we can get a function reference by using the
 	    // function name.  For a global non-autoload function "g:" is
 	    // required.
@@ -3207,9 +3223,22 @@ eval_variable(
 		{
 		    rettv->v_type = VAR_FUNC;
 		    if (has_g_prefix)
+		    {
 			// Keep the "g:", otherwise script-local may be
 			// assumed.
-			rettv->vval.v_string = vim_strsave(name);
+			if (cc != '<')
+			    rettv->vval.v_string = vim_strsave(name);
+			else
+			{
+			    // append the generic function arguments
+			    char_u	*argp = name + len;
+			    name[len] = cc;
+			    rettv->vval.v_string =
+				append_generic_func_type_args(name, len,
+									&argp);
+			    name[len] = NUL;
+			}
+		    }
 		    else
 			rettv->vval.v_string = vim_strnsave(ufunc->uf_name, ufunc->uf_namelen);
 		    if (rettv->vval.v_string != NULL)

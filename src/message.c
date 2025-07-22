@@ -71,8 +71,6 @@ static int msg_wait = 0;
 static FILE *verbose_fd = NULL;
 static int  verbose_did_open = FALSE;
 
-static int  did_warn_clipboard = FALSE;
-
 /*
  * When writing messages to the screen, there are many different situations.
  * A number of variables is used to remember the current state:
@@ -1127,17 +1125,17 @@ messagesopt_changed(void)
 
     // Either "wait" or "hit-enter" is required
     if (!(messages_flags_new & (MESSAGES_HIT_ENTER | MESSAGES_WAIT)))
-        return FAIL;
+	return FAIL;
 
     // "history" must be set
     if (!(messages_flags_new & MESSAGES_HISTORY))
-        return FAIL;
+	return FAIL;
 
     if (messages_history_new < 0 || messages_history_new > 10000)
-        return FAIL;
+	return FAIL;
 
     if (messages_wait_new < 0 || messages_wait_new > 10000)
-        return FAIL;
+	return FAIL;
 
     msg_flags = messages_flags_new;
     msg_wait = messages_wait_new;
@@ -3513,7 +3511,6 @@ do_more_prompt(int typed_char)
     static void
 mch_errmsg_c(char *str)
 {
-    int	    len = (int)STRLEN(str);
     DWORD   nwrite = 0;
     DWORD   mode = 0;
     HANDLE  h = GetStdHandle(STD_ERROR_HANDLE);
@@ -3521,10 +3518,14 @@ mch_errmsg_c(char *str)
     if (GetConsoleMode(h, &mode) && enc_codepage >= 0
 	    && (int)GetConsoleCP() != enc_codepage)
     {
+	int	len = (int)STRLEN(str);
 	WCHAR	*w = enc_to_utf16((char_u *)str, &len);
 
-	WriteConsoleW(h, w, len, &nwrite, NULL);
-	vim_free(w);
+	if (w != NULL)
+	{
+	    WriteConsoleW(h, w, len, &nwrite, NULL);
+	    vim_free(w);
+	}
     }
     else
     {
@@ -3619,19 +3620,21 @@ mch_errmsg(char *str)
     static void
 mch_msg_c(char *str)
 {
-    int	    len = (int)STRLEN(str);
     DWORD   nwrite = 0;
     DWORD   mode;
     HANDLE  h = GetStdHandle(STD_OUTPUT_HANDLE);
 
-
     if (GetConsoleMode(h, &mode) && enc_codepage >= 0
 	    && (int)GetConsoleCP() != enc_codepage)
     {
+	int	len = (int)STRLEN(str);
 	WCHAR	*w = enc_to_utf16((char_u *)str, &len);
 
-	WriteConsoleW(h, w, len, &nwrite, NULL);
-	vim_free(w);
+	if (w != NULL)
+	{
+	    WriteConsoleW(h, w, len, &nwrite, NULL);
+	    vim_free(w);
+	}
     }
     else
     {
@@ -4172,11 +4175,11 @@ msg_warn_missing_clipboard(void)
     if (!global_busy && !did_warn_clipboard)
     {
 #ifdef FEAT_CLIPBOARD
-       msg(_("W23: Clipboard register not available, using register 0"));
+	msg(_("W23: Clipboard register not available, using register 0"));
 #else
-       msg(_("W24: Clipboard register not available. See :h W24"));
+	msg(_("W24: Clipboard register not available. See :h W24"));
 #endif
-       did_warn_clipboard = TRUE;
+	did_warn_clipboard = TRUE;
     }
 }
 

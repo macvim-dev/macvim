@@ -1,9 +1,6 @@
 " Test commands that are not compiled in a :def function
 
-source check.vim
-import './vim9.vim' as v9
-source term_util.vim
-source view_util.vim
+import './util/vim9.vim' as v9
 
 def Test_vim9cmd()
   var lines =<< trim END
@@ -159,7 +156,7 @@ def Test_cmdmod_execute()
   v9.CheckScriptSuccess(lines)
   delfunc g:TheFunc
 
-  # vim9cmd execute(cmd) executes code in vim9 script context
+  # vim9cmd execute(cmd) executes code in Vim9 script context
   lines =<< trim END
     vim9cmd execute("g:vim9executetest = 'bar'")
     call assert_equal('bar', g:vim9executetest)
@@ -176,7 +173,7 @@ def Test_cmdmod_execute()
   unlet g:vim9executetest1
   unlet g:vim9executetest2
 
-  # legacy call execute(cmd) executes code in vim script context
+  # legacy call execute(cmd) executes code in Vim script context
   lines =<< trim END
     vim9script
     legacy call execute("let g:vim9executetest = 'bar'")
@@ -1705,7 +1702,7 @@ def Test_lockvar()
       enddef
       SetList()
   END
-  v9.CheckScriptFailure(lines, 'E1119', 4)
+  v9.CheckScriptFailure(lines, 'E1119:', 4)
 
   lines =<< trim END
       vim9script
@@ -1716,7 +1713,7 @@ def Test_lockvar()
       enddef
       AddToList()
   END
-  v9.CheckScriptFailure(lines, 'E741', 2)
+  v9.CheckScriptFailure(lines, 'E741:', 2)
 
   lines =<< trim END
       vim9script
@@ -1727,7 +1724,7 @@ def Test_lockvar()
       enddef
       AddToList()
   END
-  v9.CheckScriptFailure(lines, 'E741', 2)
+  v9.CheckScriptFailure(lines, 'E741:', 2)
 
   # can unlet a locked list item but not change it
   lines =<< trim END
@@ -1742,7 +1739,7 @@ def Test_lockvar()
     lockvar ll[1]
     ll[1] = 9
   END
-  v9.CheckDefExecAndScriptFailure(lines, ['E1119:', 'E741'], 3)
+  v9.CheckDefExecAndScriptFailure(lines, ['E1119:', 'E741:'], 3)
 
   # can unlet a locked dict item but not change it
   lines =<< trim END
@@ -1757,26 +1754,26 @@ def Test_lockvar()
     lockvar dd.a
     dd.a = 3
   END
-  v9.CheckDefExecAndScriptFailure(lines, ['E1121:', 'E741'], 3)
+  v9.CheckDefExecAndScriptFailure(lines, ['E1121:', 'E741:'], 3)
 
   lines =<< trim END
       var theList = [1, 2, 3]
       lockvar theList
   END
-  v9.CheckDefFailure(lines, 'E1178', 2)
+  v9.CheckDefFailure(lines, 'E1178:', 2)
 
   lines =<< trim END
       var theList = [1, 2, 3]
       unlockvar theList
   END
-  v9.CheckDefFailure(lines, 'E1178', 2)
+  v9.CheckDefFailure(lines, 'E1178:', 2)
 
   lines =<< trim END
       vim9script
       var name = 'john'
       lockvar nameX
   END
-  v9.CheckScriptFailure(lines, 'E1246', 3)
+  v9.CheckScriptFailure(lines, 'E1246:', 3)
 
   lines =<< trim END
       vim9script
@@ -1786,14 +1783,14 @@ def Test_lockvar()
       enddef
       LockIt()
   END
-  v9.CheckScriptFailure(lines, 'E1246', 1)
+  v9.CheckScriptFailure(lines, 'E1246:', 1)
 
   lines =<< trim END
       vim9script
       const name = 'john'
       unlockvar name
   END
-  v9.CheckScriptFailure(lines, 'E46', 3)
+  v9.CheckScriptFailure(lines, 'E46:', 3)
 
   lines =<< trim END
       vim9script
@@ -1803,7 +1800,7 @@ def Test_lockvar()
       enddef
       UnLockIt()
   END
-  v9.CheckScriptFailure(lines, 'E46', 1)
+  v9.CheckScriptFailure(lines, 'E46:', 1)
 
   lines =<< trim END
       def _()
@@ -1811,7 +1808,7 @@ def Test_lockvar()
       enddef
       defcomp
   END
-  v9.CheckScriptFailure(lines, 'E179', 1)
+  v9.CheckScriptFailure(lines, 'E179:', 1)
 
   lines =<< trim END
       def T()
@@ -1819,7 +1816,7 @@ def Test_lockvar()
       enddef
       defcomp
   END
-  v9.CheckScriptFailure(lines, 'E179', 1)
+  v9.CheckScriptFailure(lines, 'E179:', 1)
 enddef
 
 def Test_substitute_expr()

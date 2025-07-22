@@ -608,7 +608,16 @@ edit(
 		    if (c != K_IGNORE && c != K_NOP)
 			vungetc(c);
 		    count = 0;
-		    nomove = TRUE;
+
+		    if (!bt_prompt(curwin->w_buffer)
+#ifdef FEAT_TERMINAL
+			    && !bt_terminal(curwin->w_buffer)
+#endif
+			    && stop_insert_mode)
+			// :stopinsert command via callback or via server command
+			nomove = FALSE;
+		    else
+			nomove = TRUE;
 		    ins_compl_prep(ESC);
 		    goto doESCkey;
 		}
@@ -684,7 +693,7 @@ edit(
 			&& stop_arrow() == OK)
 		{
 		    ins_compl_delete();
-		    ins_compl_insert(FALSE, FALSE);
+		    ins_compl_insert(FALSE);
 		}
 		// Delete preinserted text when typing special chars
 		else if (IS_WHITE_NL_OR_NUL(c) && ins_compl_preinsert_effect())
@@ -920,6 +929,8 @@ doESCkey:
 	    break;
 
 	case Ctrl_R:	// insert the contents of a register
+	    if (ctrl_x_mode_register() && !ins_compl_active())
+		goto docomplete;
 	    ins_reg();
 	    auto_format(FALSE, TRUE);
 	    inserted_space = FALSE;
@@ -1410,6 +1421,11 @@ normalchar:
 #endif
 	       )
 	    did_cursorhold = FALSE;
+
+	// Check if we need to cancel completion mode because the window
+	// or tab page was changed
+	if (ins_compl_active() && !ins_compl_win_active(curwin))
+	    ins_compl_cancel();
 
 	// If the cursor was moved we didn't just insert a space
 	if (arrow_used)
@@ -2190,7 +2206,7 @@ insertchar(
 	    i -= middle_len;
 
 	    // Check some expected things before we go on
-	    if (i >= 0 && lead_end[end_len - 1] == end_comment_pending)
+	    if (i >= 0 && end_len > 0 && lead_end[end_len - 1] == end_comment_pending)
 	    {
 		// Backspace over all the stuff we want to replace
 		backspace_until_column(i);
@@ -2971,7 +2987,7 @@ stuff_inserted(
 
     do
     {
-	stuffReadbuffLen(insert.string, insert.length);
+	stuffReadbuffLen(insert.string, (long)insert.length);
 	// a trailing "0" is inserted as "<C-V>048", "^" as "<C-V>^"
 	switch (last)
 	{
@@ -3031,7 +3047,7 @@ get_last_insert_save(void)
 	return NULL;
 
     if (insert.length > 0 && s[insert.length - 1] == ESC)	// remove trailing ESC
-	s[insert.length - 1] = NUL;
+	s[--insert.length] = NUL;
     return s;
 }
 
@@ -5477,7 +5493,7 @@ do_insert_char_pre(int c)
 
     // Lock the text to avoid weird things from happening.
     ++textlock;
-    set_vim_var_string(VV_CHAR, buf, buflen);  // set v:char
+    set_vim_var_string(VV_CHAR, buf, (int)buflen);  // set v:char
 
     res = NULL;
     if (ins_apply_autocmds(EVENT_INSERTCHARPRE))

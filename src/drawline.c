@@ -388,7 +388,8 @@ handle_lnum_col(
 	// If 'signcolumn' is set to 'number' and a sign is present
 	// in 'lnum', then display the sign instead of the line
 	// number.
-	if ((*wp->w_p_scl == 'n' && *(wp->w_p_scl + 1) == 'u') && sign_present)
+	if ((*wp->w_p_scl == 'n' && *(wp->w_p_scl + 1) == 'u') && sign_present
+		&& wlv->sattr.sat_text != NULL)
 	    get_sign_display_info(TRUE, wp, wlv);
 	else
 #endif
@@ -1475,9 +1476,9 @@ win_line(
 
     CLEAR_FIELD(line_changes);
 
-    if (wlv.filler_lines < 0 || linestatus < 0)
+    if (linestatus < 0)
     {
-	if (wlv.filler_lines == -1 || linestatus == -1)
+	if (linestatus == -1)
 	{
 	    if (diff_find_change(wp, lnum, &line_changes))
 	    {
@@ -1507,9 +1508,6 @@ win_line(
 	}
 	else
 	    wlv.diff_hlf = HLF_ADD;
-
-	if (linestatus == 0)
-	    wlv.filler_lines = 0;
 
 	area_highlighting = TRUE;
     }
@@ -2771,6 +2769,13 @@ win_line(
 #endif
 		// no more cells to skip
 		skip_cells = 0;
+#ifdef FEAT_TERMINAL
+		if (term_show_buffer(wp->w_buffer)
+		    && wlv.vcol == 0
+		    && wlv.win_attr == term_get_attr(wp, lnum, -1))
+		    // reset highlighting attribute
+		    wlv.win_attr = 0;
+#endif
 	    }
 
 	    if (has_mbyte)
@@ -4383,7 +4388,7 @@ win_line(
 									  == 2
 				 || (*mb_off2cells)(
 				     LineOffset[wlv.screen_row - 1]
-							    + (int)Columns - 2,
+							    + (int)topframe->fr_width - 2,
 				     LineOffset[wlv.screen_row]
 						      + screen_Columns) == 2)))
 		{
@@ -4393,17 +4398,17 @@ win_line(
 		    // auto-wrap, we overwrite the character.
 		    if (screen_cur_col != wp->w_width)
 			screen_char(LineOffset[wlv.screen_row - 1]
-						       + (unsigned)Columns - 1,
-				       wlv.screen_row - 1, (int)(Columns - 1));
+						       + (unsigned)topframe->fr_width - 1,
+				       wlv.screen_row - 1, (int)(topframe->fr_width - 1));
 
 		    // When there is a multi-byte character, just output a
 		    // space to keep it simple.
 		    if (has_mbyte && MB_BYTE2LEN(ScreenLines[LineOffset[
-				     wlv.screen_row - 1] + (Columns - 1)]) > 1)
+				     wlv.screen_row - 1] + (topframe->fr_width - 1)]) > 1)
 			out_char(' ');
 		    else
 			out_char(ScreenLines[LineOffset[wlv.screen_row - 1]
-							    + (Columns - 1)]);
+							    + (topframe->fr_width - 1)]);
 		    // force a redraw of the first char on the next line
 		    ScreenAttrs[LineOffset[wlv.screen_row]] = (sattr_T)-1;
 		    screen_start();	// don't know where cursor is now

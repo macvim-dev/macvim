@@ -1,8 +1,7 @@
 " Test using builtin functions in the Vim9 script language.
 
-source check.vim
-source screendump.vim
-import './vim9.vim' as v9
+source util/screendump.vim
+import './util/vim9.vim' as v9
 
 " Test for passing too many or too few arguments to builtin functions
 func Test_internalfunc_arg_error()
@@ -1037,7 +1036,7 @@ def Test_execute()
 
   v9.CheckSourceDefAndScriptFailure(['execute(123)'], ['E1013: Argument 1: type mismatch, expected string but got number', 'E1222: String or List required for argument 1'])
   v9.CheckSourceDefFailure(['execute([123])'], 'E1013: Argument 1: type mismatch, expected list<string> but got list<number>')
-  v9.CheckSourceDefExecFailure(['echo execute(["xx", 123])'], 'E492')
+  v9.CheckSourceDefExecFailure(['echo execute(["xx", 123])'], 'E492:')
   v9.CheckSourceDefAndScriptFailure(['execute("xx", 123)'], ['E1013: Argument 2: type mismatch, expected string but got number', 'E1174: String required for argument 2'])
 enddef
 
@@ -1648,6 +1647,7 @@ def Test_foldtextresult()
 enddef
 
 def Test_foreach()
+  CheckFeature job
   v9.CheckSourceDefAndScriptFailure(['foreach(test_null_job(), "")'], ['E1013: Argument 1: type mismatch, expected list<any> but got job', 'E1251: List, Tuple, Dictionary, Blob or String required for argument 1'])
 enddef
 
@@ -2430,7 +2430,7 @@ def Test_instanceof()
     enddef
     Bar()
   END
-  v9.CheckSourceScriptFailure(lines, 'E1013: Argument 1: type mismatch, expected object<Unknown> but got string')
+  v9.CheckSourceScriptFailure(lines, 'E1013: Argument 1: type mismatch, expected object<any> but got string')
 
   lines =<< trim END
     vim9script

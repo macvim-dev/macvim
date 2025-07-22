@@ -71,6 +71,7 @@ static keyvalue_T command_complete_tab[] =
     KEYVALUE_ENTRY(EXPAND_FILES, "file"),
     KEYVALUE_ENTRY(EXPAND_FILES_IN_PATH, "file_in_path"),
     KEYVALUE_ENTRY(EXPAND_FILETYPE, "filetype"),
+    KEYVALUE_ENTRY(EXPAND_FILETYPECMD, "filetypecmd"),
     KEYVALUE_ENTRY(EXPAND_FUNCTIONS, "function"),
     KEYVALUE_ENTRY(EXPAND_HELP, "help"),
     KEYVALUE_ENTRY(EXPAND_HIGHLIGHT, "highlight"),
@@ -87,6 +88,7 @@ static keyvalue_T command_complete_tab[] =
     KEYVALUE_ENTRY(EXPAND_MESSAGES, "messages"),
     KEYVALUE_ENTRY(EXPAND_SETTINGS, "option"),
     KEYVALUE_ENTRY(EXPAND_PACKADD, "packadd"),
+    KEYVALUE_ENTRY(EXPAND_RETAB, "retab"),
     KEYVALUE_ENTRY(EXPAND_RUNTIME, "runtime"),
 #if defined(FEAT_EVAL)
     KEYVALUE_ENTRY(EXPAND_SCRIPTNAMES, "scriptnames"),
@@ -485,16 +487,33 @@ get_commandtype(int expand)
 
 #ifdef FEAT_EVAL
 /*
- * Get the name of completion type "expand" as a string.
+ * Get the name of completion type "expand" as an allocated string.
+ * "compl_arg" is the function name for "custom" and "customlist" types.
+ * Returns NULL if no completion is available or on allocation failure.
  */
     char_u *
-cmdcomplete_type_to_str(int expand)
+cmdcomplete_type_to_str(int expand, char_u *compl_arg)
 {
     keyvalue_T *kv;
+    char_u     *cmd_compl;
 
     kv = get_commandtype(expand);
+    if (kv == NULL || kv->value.string == NULL)
+	return NULL;
 
-    return (kv == NULL) ? NULL : kv->value.string;
+    cmd_compl = kv->value.string;
+    if (expand == EXPAND_USER_LIST || expand == EXPAND_USER_DEFINED)
+    {
+	char_u	*buffer;
+
+	buffer = alloc(STRLEN(cmd_compl) + STRLEN(compl_arg) + 2);
+	if (buffer == NULL)
+	    return NULL;
+	sprintf((char *)buffer, "%s,%s", cmd_compl, compl_arg);
+	return buffer;
+    }
+
+    return vim_strsave(cmd_compl);
 }
 
 /*
@@ -599,16 +618,21 @@ uc_list(char_u *name, size_t name_len)
 		msg_putchar('|');
 		--len;
 	    }
-	    while (len-- > 0)
-		msg_putchar(' ');
+	    if (len != 0)
+		msg_puts(&"    "[4 - len]);
 
 	    msg_outtrans_attr(cmd->uc_name, HL_ATTR(HLF_D));
 	    len = (int)cmd->uc_namelen + 4;
 
-	    do {
-		msg_putchar(' ');
-		++len;
-	    } while (len < 22);
+	    if (len < 21)
+	    {
+		// Field padding spaces   12345678901234567
+		static char spaces[18] = "                 ";
+		msg_puts(&spaces[len - 4]);
+		len = 21;
+	    }
+	    msg_putchar(' ');
+	    ++len;
 
 	    // "over" is how much longer the name is than the column width for
 	    // the name, we'll try to align what comes after.
@@ -625,7 +649,8 @@ uc_list(char_u *name, size_t name_len)
 		case (EX_EXTRA|EX_NOSPC|EX_NEEDARG): IObuff[len++] = '1'; break;
 	    }
 
-	    do {
+	    do
+	    {
 		IObuff[len++] = ' ';
 	    } while (len < 5 - over);
 
@@ -648,7 +673,8 @@ uc_list(char_u *name, size_t name_len)
 		    IObuff[len++] = '.';
 	    }
 
-	    do {
+	    do
+	    {
 		IObuff[len++] = ' ';
 	    } while (len < 8 - over);
 
@@ -662,7 +688,8 @@ uc_list(char_u *name, size_t name_len)
 		    break;
 		}
 
-	    do {
+	    do
+	    {
 		IObuff[len++] = ' ';
 	    } while (len < 13 - over);
 
@@ -687,7 +714,8 @@ uc_list(char_u *name, size_t name_len)
 #endif
 	    }
 
-	    do {
+	    do
+	    {
 		IObuff[len++] = ' ';
 	    } while (len < 25 - over);
 

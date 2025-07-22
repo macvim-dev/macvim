@@ -146,6 +146,9 @@ gui_start(char_u *arg UNUSED)
 	    emsg(msg);
 #endif
     }
+    else
+	// Reset clipmethod to CLIPMETHOD_NONE
+	choose_clipmethod();
 
     vim_free(old_term);
 
@@ -357,7 +360,7 @@ gui_read_child_pipe(int fd)
     if (bytes_read < 0)
 	return GUI_CHILD_IO_ERROR;
     buffer[bytes_read] = NUL;
-    if (strcmp(buffer, "ok") == 0)
+    if (STRCMP(buffer, "ok") == 0)
 	return GUI_CHILD_OK;
     return GUI_CHILD_FAILED;
 }
@@ -1426,7 +1429,7 @@ gui_update_cursor(
 gui_position_menu(void)
 {
 # if !(defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MOTIF) \
-        || defined(FEAT_GUI_MACVIM))
+	|| defined(FEAT_GUI_MACVIM))
     if (gui.menu_is_active && gui.in_use)
 	gui_mch_set_menu_pos(0, 0, gui.menu_width, gui.menu_height);
 # endif
@@ -1454,7 +1457,7 @@ gui_position_components(int total_width UNUSED)
 
     text_area_y = 0;
 #if defined(FEAT_MENU) && !(defined(FEAT_GUI_GTK) || defined(FEAT_GUI_PHOTON) \
-        || defined(FEAT_GUI_MACVIM))
+	|| defined(FEAT_GUI_MACVIM))
     gui.menu_width = total_width;
     if (gui.menu_is_active)
 	text_area_y += gui.menu_height;
@@ -2365,6 +2368,8 @@ gui_outstr_nowrap(
 # endif
        )
     {
+	size_t	slen = 2;		    // 2 spaces by default
+
 # ifdef FEAT_NETBEANS_INTG
 	if (*s == MULTISIGN_BYTE)
 	    multi_sign = TRUE;
@@ -2373,14 +2378,16 @@ gui_outstr_nowrap(
 	if (*curwin->w_p_scl == 'n' && *(curwin->w_p_scl + 1) == 'u' &&
 		(curwin->w_p_nu || curwin->w_p_rnu))
 	{
-	    sprintf((char *)extra, "%*c ", number_width(curwin), ' ');
-	    s = extra;
+	    int	n = number_width(curwin);
+
+	    slen = MIN(n, (int)sizeof(extra) - 1);
 	}
-	else
-	    s = (char_u *)"  ";
+	vim_memset(extra, ' ', slen);
+	extra[slen] = NUL;
+	s = extra;
 	if (len == 1 && col > 0)
 	    --col;
-	len = (int)STRLEN(s);
+	len = (int)slen;
 	if (len > 2)
 	    // right align sign icon in the number column
 	    signcol = col + len - 3;
@@ -3803,10 +3810,6 @@ get_tabline_label(
     tabpage_T	*tp,
     int		tooltip)	// TRUE: get tooltip
 {
-    int		modified = FALSE;
-    char_u	buf[40];
-    int		wincount;
-    win_T	*wp;
     char_u	**opt;
 
     // Use 'guitablabel' or 'guitabtooltip' if it's set.
@@ -3852,26 +3855,42 @@ get_tabline_label(
     // use a default label.
     if (**opt == NUL || *NameBuff == NUL)
     {
+	win_T	*wp;
+	int	wincount = 0;
+	int	modified = FALSE;
+
 	// Get the buffer name into NameBuff[] and shorten it.
 	get_trans_bufname(tp == curtab ? curbuf : tp->tp_curwin->w_buffer);
 	if (!tooltip)
 	    shorten_dir(NameBuff);
 
-	wp = (tp == curtab) ? firstwin : tp->tp_firstwin;
-	for (wincount = 0; wp != NULL; wp = wp->w_next, ++wincount)
+	FOR_ALL_WINDOWS_IN_TAB(tp, wp)
+	{
+	    ++wincount;
 	    if (bufIsChanged(wp->w_buffer))
 		modified = TRUE;
+	}
+
 	if (modified || wincount > 1)
 	{
+	    char_u  buf[40] = "+ ";		// Tentatively assume modified only
+	    size_t  buflen = 2;
+	    size_t  NameBufflen = STRLEN(NameBuff);
+
 	    if (wincount > 1)
-		vim_snprintf((char *)buf, sizeof(buf), "%d", wincount);
-	    else
-		buf[0] = NUL;
-	    if (modified)
-		STRCAT(buf, "+");
-	    STRCAT(buf, " ");
-	    STRMOVE(NameBuff + STRLEN(buf), NameBuff);
-	    mch_memmove(NameBuff, buf, STRLEN(buf));
+		buflen = vim_snprintf_safelen(
+		    (char *)buf,
+		    sizeof(buf),
+		    "%d%s ",
+		    wincount,
+		    modified ? "+" : "");
+
+	    // Make sure resulting NameBuff will not exceed its bounds.
+	    if (NameBufflen + buflen < MAXPATHL)
+	    {
+		mch_memmove(NameBuff + buflen, NameBuff, NameBufflen + 1);	// +1 for NUL
+		mch_memmove(NameBuff, buf, buflen);
+	    }
 	}
     }
 }
@@ -4348,7 +4367,7 @@ gui_update_scrollbars(
 	    h = (sb->height + sb->status_height) * gui.char_height;
 	    y = sb->top * gui.char_height + gui.border_offset;
 #if defined(FEAT_MENU) && !(defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MOTIF) \
-        || defined(FEAT_GUI_PHOTON) || defined(FEAT_GUI_MACVIM))
+	|| defined(FEAT_GUI_PHOTON) || defined(FEAT_GUI_MACVIM))
 	    if (gui.menu_is_active)
 		y += gui.menu_height;
 #endif
@@ -4951,6 +4970,7 @@ xy2win(int x, int y, mouse_find_T popup)
 	return NULL;
     }
 # else
+
     if (row < 0 || col < 0)		// before first window
 	return NULL;
 # endif
@@ -5223,10 +5243,11 @@ get_find_dialog_text(
 	text = arg;
     if (text != NULL)
     {
-	text = vim_strsave(text);
+	int len = (int)STRLEN(text);
+
+	text = vim_strnsave(text, len);
 	if (text != NULL)
 	{
-	    int len = (int)STRLEN(text);
 	    int i;
 
 	    // Remove "\V"

@@ -162,19 +162,19 @@ typedef struct ff_visited_list_hdr
  */
 typedef struct ff_search_ctx_T
 {
-     ff_stack_T			*ffsc_stack_ptr;
-     ff_visited_list_hdr_T	*ffsc_visited_list;
-     ff_visited_list_hdr_T	*ffsc_dir_visited_list;
-     ff_visited_list_hdr_T	*ffsc_visited_lists_list;
-     ff_visited_list_hdr_T	*ffsc_dir_visited_lists_list;
-     string_T			ffsc_file_to_search;
-     string_T			ffsc_start_dir;
-     string_T			ffsc_fix_path;
-     string_T			ffsc_wc_path;
-     int			ffsc_level;
-     string_T			*ffsc_stopdirs_v;
-     int			ffsc_find_what;
-     int			ffsc_tagfile;
+    ff_stack_T			*ffsc_stack_ptr;
+    ff_visited_list_hdr_T	*ffsc_visited_list;
+    ff_visited_list_hdr_T	*ffsc_dir_visited_list;
+    ff_visited_list_hdr_T	*ffsc_visited_lists_list;
+    ff_visited_list_hdr_T	*ffsc_dir_visited_lists_list;
+    string_T			ffsc_file_to_search;
+    string_T			ffsc_start_dir;
+    string_T			ffsc_fix_path;
+    string_T			ffsc_wc_path;
+    int				ffsc_level;
+    string_T			*ffsc_stopdirs_v;
+    int				ffsc_find_what;
+    int				ffsc_tagfile;
 } ff_search_ctx_T;
 
 // locally needed functions
@@ -1166,7 +1166,8 @@ vim_findfile(void *search_ctx_arg)
 			    if (*suf == NUL)
 				break;
 			    file_path.length = len + copy_option_part(&suf,
-				  file_path.string + len, MAXPATHL - len, ",");
+				  file_path.string + len,
+				  (int)(MAXPATHL - len), ",");
 			}
 		    }
 		}
@@ -1819,11 +1820,10 @@ find_file_in_path_option(
 	// copy file name into NameBuff, expanding environment variables
 	save_char = ptr[len];
 	ptr[len] = NUL;
-	expand_env_esc(ptr, NameBuff, MAXPATHL, FALSE, TRUE, NULL);
+	file_to_findlen = expand_env_esc(ptr, NameBuff, MAXPATHL, FALSE, TRUE, NULL);
 	ptr[len] = save_char;
 
 	vim_free(*file_to_find);
-	file_to_findlen = STRLEN(NameBuff);
 	*file_to_find = vim_strnsave(NameBuff, file_to_findlen);
 	if (*file_to_find == NULL)	// out of memory
 	{

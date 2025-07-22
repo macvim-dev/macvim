@@ -1,8 +1,6 @@
 " Tests for the substitute (:s) command
 
-source shared.vim
-source check.vim
-source screendump.vim
+source util/screendump.vim
 
 " NOTE: This needs to be the first test to be
 "       run in the file, since it depends on
@@ -728,6 +726,7 @@ func Test_sub_cmd_9()
 endfunc
 
 func Test_sub_highlight_zero_match()
+  CheckScreendump
   CheckRunVimInTerminal
 
   let lines =<< trim END

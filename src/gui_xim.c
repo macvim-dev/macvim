@@ -295,7 +295,7 @@ im_add_to_input(char_u *str, int len)
 }
 
 # ifndef FEAT_GUI_MACVIM
-     static void
+    static void
 im_preedit_window_set_position(void)
 {
     int x, y, width, height;

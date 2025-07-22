@@ -3,7 +3,7 @@
 " BREAKAGES IF USED OUTSIDE OF NETRW.VIM ARE EXPECTED.
 
 let s:deprecation_msgs = []
-function! netrw#own#Deprecate(name, version, alternatives)
+function! netrw#msg#Deprecate(name, version, alternatives)
     " If running on neovim use vim.deprecate
     if has('nvim')
         let s:alternative = a:alternatives->get('nvim', v:null)
@@ -26,5 +26,45 @@ function! netrw#own#Deprecate(name, version, alternatives)
 
     call add(s:deprecation_msgs, a:name)
 endfunction
+
+" netrw#msg#Notify: {{{
+"   Usage: netrw#msg#Notify('ERROR'|'WARNING'|'NOTE', 'some message')
+"          netrw#msg#Notify('ERROR'|'WARNING'|'NOTE', ["message1","message2",...])
+"          (this function can optionally take a list of messages)
+function! netrw#msg#Notify(level, msg)
+    if has('nvim')
+        " Convert string to corresponding vim.log.level value
+        if a:level ==# 'ERROR'
+            let level = 4
+        elseif a:level ==# 'WARNING'
+            let level = 3
+        elseif a:level ==# 'NOTE'
+            let level = 2
+        endif
+        call v:lua.vim.notify(a:msg, level)
+        return
+    endif
+
+    if a:level ==# 'WARNING'
+        echohl WarningMsg
+    elseif a:level ==# 'ERROR'
+        echohl ErrorMsg
+    else
+        echoerr printf('"%s" is not a valid level', a:level)
+        return
+    endif
+
+    if type(a:msg) == v:t_list
+        for msg in a:msg
+            echomsg msg
+        endfor
+    else
+        echomsg a:msg
+    endif
+
+    echohl None
+endfunction
+
+" }}}
 
 " vim:ts=8 sts=4 sw=4 et fdm=marker

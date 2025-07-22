@@ -20,7 +20,8 @@
  * 10..35 = registers 'a' to 'z' ('A' to 'Z' for appending)
  *     36 = delete register '-'
  *     37 = Selection register '*'. Only if FEAT_CLIPBOARD defined
- *     38 = Clipboard register '+'. Only if FEAT_CLIPBOARD and FEAT_X11 defined
+ *     38 = Clipboard register '+'. Only if FEAT_CLIPBOARD and FEAT_X11
+ *                                  or FEAT_WAYLAND_CLIPBOARD defined
  */
 static yankreg_T	y_regs[NUM_REGISTERS];
 
@@ -846,7 +847,7 @@ insert_reg(
 	{
 	    for (i = 0; i < y_current->y_size; ++i)
 	    {
-		if (regname == '-')
+		if (regname == '-' && y_current->y_type == MCHAR)
 		{
 		    int dir = BACKWARD;
 		    if ((State & REPLACE_FLAG) != 0)
@@ -867,11 +868,13 @@ insert_reg(
 		    do_put(regname, NULL, dir, 1L, PUT_CURSEND);
 		}
 		else
+		{
 		    stuffescaped(y_current->y_array[i].string, literally);
-		// Insert a newline between lines and after last line if
-		// y_type is MLINE.
-		if (y_current->y_type == MLINE || i < y_current->y_size - 1)
-		    stuffcharReadbuff('\n');
+		    // Insert a newline between lines and after last line if
+		    // y_type is MLINE.
+		    if (y_current->y_type == MLINE || i < y_current->y_size - 1)
+			stuffcharReadbuff('\n');
+		}
 	    }
 	}
     }
@@ -1168,7 +1171,7 @@ op_yank(oparg_T *oap, int deleting, int mess)
     linenr_T		yankendlnum = oap->end.lnum;
     char_u		*pnew;
     struct block_def	bd;
-#if defined(FEAT_CLIPBOARD) && defined(FEAT_X11)
+#if defined(FEAT_CLIPBOARD) && (defined(FEAT_X11) || defined(FEAT_WAYLAND_CLIPBOARD))
     int			did_star = FALSE;
 #endif
 
@@ -1394,12 +1397,12 @@ op_yank(oparg_T *oap, int deleting, int mess)
 
 	clip_own_selection(&clip_star);
 	clip_gen_set_selection(&clip_star);
-# ifdef FEAT_X11
+# if defined(FEAT_X11) || defined(FEAT_WAYLAND_CLIPBOARD)
 	did_star = TRUE;
 # endif
     }
 
-# ifdef FEAT_X11
+# if defined(FEAT_X11) || defined(FEAT_WAYLAND_CLIPBOARD)
     // If we were yanking to the '+' register, send result to selection.
     // Also copy to the '*' register, in case auto-select is off.  But not when
     // 'clipboard' has "unnamedplus" and not "unnamed"; and not when
@@ -2066,7 +2069,8 @@ do_put(
 	    else
 	    {
 		totlen = count * yanklen;
-		do {
+		do
+		{
 		    oldp = ml_get(lnum);
 		    oldlen = ml_get_len(lnum);
 		    if (lnum > start_lnum)

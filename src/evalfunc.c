@@ -305,7 +305,7 @@ arg_object(type_T *type, type_T *decl_type UNUSED, argcontext_T *context)
     if (type->tt_type == VAR_OBJECT
 	    || type_any_or_unknown(type))
 	return OK;
-    arg_type_mismatch(&t_object, type, context->arg_idx + 1);
+    arg_type_mismatch(&t_object_any, type, context->arg_idx + 1);
     return FAIL;
 }
 
@@ -2089,6 +2089,8 @@ static funcentry_T global_functions[] =
 			ret_number,	    f_cindent},
     {"clearmatches",	0, 1, FEARG_1,	    arg1_number,
 			ret_void,	    f_clearmatches},
+    {"cmdcomplete_info",0, 0, 0,	    NULL,
+			ret_dict_any,	    f_cmdcomplete_info},
     {"col",		1, 2, FEARG_1,	    arg2_string_or_list_number,
 			ret_number,	    f_col},
     {"complete",	2, 2, FEARG_2,	    arg2_number_list,
@@ -2099,6 +2101,8 @@ static funcentry_T global_functions[] =
 			ret_number_bool,    f_complete_check},
     {"complete_info",	0, 1, FEARG_1,	    arg1_list_string,
 			ret_dict_any,	    f_complete_info},
+    {"complete_match",	0, 2, 0,	    NULL,
+			ret_list_any,	    f_complete_match},
     {"confirm",		1, 4, FEARG_1,	    arg4_string_string_number_string,
 			ret_number,	    f_confirm},
     {"copy",		1, 1, FEARG_1,	    NULL,
@@ -2273,6 +2277,8 @@ static funcentry_T global_functions[] =
 			ret_string,	    f_getcmdwintype},
     {"getcompletion",	2, 3, FEARG_1,	    arg3_string_string_bool,
 			ret_list_string,    f_getcompletion},
+    {"getcompletiontype", 1, 1, FEARG_1,    arg1_string,
+			ret_string,	    f_getcompletiontype},
     {"getcurpos",	0, 1, FEARG_1,	    arg1_number,
 			ret_list_number,    f_getcurpos},
     {"getcursorcharpos", 0, 1, FEARG_1,	    arg1_number,
@@ -3121,6 +3127,8 @@ static funcentry_T global_functions[] =
 			ret_string,	    f_visualmode},
     {"wildmenumode",	0, 0, 0,	    NULL,
 			ret_number,	    f_wildmenumode},
+    {"wildtrigger",	0, 0, 0,	    NULL,
+			ret_void,	    f_wildtrigger},
     {"win_execute",	2, 3, FEARG_2,	    arg23_win_execute,
 			ret_string,	    f_win_execute},
     {"win_findbuf",	1, 1, FEARG_1,	    arg1_number,
@@ -3941,6 +3949,17 @@ f_call(typval_T *argvars, typval_T *rettv)
 	{
 	    emsg_funcname(e_unknown_function_str, func);
 	    return;
+	}
+	if (*p == '<')
+	{
+	    // generic function
+	    char_u *s = append_generic_func_type_args(tofree, STRLEN(tofree),
+									&p);
+	    if (s != NULL)
+	    {
+		vim_free(tofree);
+		tofree = s;
+	    }
 	}
 	func = tofree;
     }
@@ -5159,6 +5178,7 @@ common_function(typval_T *argvars, typval_T *rettv, int is_funcref)
     partial_T   *arg_pt = NULL;
     char_u	*trans_name = NULL;
     int		is_global = FALSE;
+    char_u	*start_bracket = NULL;
 
     if (in_vim9script()
 	    && (check_for_string_or_func_arg(argvars, 0) == FAIL
@@ -5196,6 +5216,12 @@ common_function(typval_T *argvars, typval_T *rettv, int is_funcref)
 	name = s;
 	trans_name = save_function_name(&name, &is_global, FALSE,
 		   TFN_INT | TFN_QUIET | TFN_NO_AUTOLOAD | TFN_NO_DEREF, NULL);
+	if (*name == '<')
+	{
+	    // generic function
+	    start_bracket = name;
+	    skip_generic_func_type_args(&name);
+	}
 	if (*name != NUL)
 	    s = NULL;
     }
@@ -5338,6 +5364,9 @@ common_function(typval_T *argvars, typval_T *rettv, int is_funcref)
 		else if (is_funcref)
 		{
 		    pt->pt_func = find_func(trans_name, is_global);
+		    if (IS_GENERIC_FUNC(pt->pt_func) && start_bracket != NULL)
+			pt->pt_func = eval_generic_func(pt->pt_func, s,
+							&start_bracket);
 		    func_ptr_ref(pt->pt_func);
 		    vim_free(name);
 		}
@@ -5360,8 +5389,19 @@ common_function(typval_T *argvars, typval_T *rettv, int is_funcref)
 	{
 	    // result is a VAR_FUNC
 	    rettv->v_type = VAR_FUNC;
-	    rettv->vval.v_string = name;
-	    func_ref(name);
+	    if (start_bracket == NULL)
+	    {
+		rettv->vval.v_string = name;
+		func_ref(name);
+	    }
+	    else
+	    {
+		// generic function
+		STRCPY(IObuff, name);
+		STRCAT(IObuff, start_bracket);
+		rettv->vval.v_string = vim_strsave(IObuff);
+		vim_free(name);
+	    }
 	}
     }
 theend:
@@ -5579,41 +5619,41 @@ f_get(typval_T *argvars, typval_T *rettv)
 f_getcellpixels(typval_T *argvars UNUSED, typval_T *rettv)
 {
     if (rettv_list_alloc(rettv) == FAIL)
-        return;
+	return;
 
 #if defined(FEAT_GUI)
     if (gui.in_use)
     {
-        // success pixel size and no gui.
+	// success pixel size and no gui.
 #ifdef FEAT_GUI_MACVIM
-        struct cellsize cs;
-        gui_mch_calc_cell_size(&cs);
-        list_append_number(rettv->vval.v_list, (varnumber_T)cs.cs_xpixel);
-        list_append_number(rettv->vval.v_list, (varnumber_T)cs.cs_ypixel);
+	struct cellsize cs;
+	gui_mch_calc_cell_size(&cs);
+	list_append_number(rettv->vval.v_list, (varnumber_T)cs.cs_xpixel);
+	list_append_number(rettv->vval.v_list, (varnumber_T)cs.cs_ypixel);
 #else
-        list_append_number(rettv->vval.v_list, (varnumber_T)gui.char_width);
-        list_append_number(rettv->vval.v_list, (varnumber_T)gui.char_height);
+	list_append_number(rettv->vval.v_list, (varnumber_T)gui.char_width);
+	list_append_number(rettv->vval.v_list, (varnumber_T)gui.char_height);
 #endif
     }
     else
 #endif
     {
-        struct cellsize cs;
+	struct cellsize cs;
 #if defined(UNIX)
-        mch_calc_cell_size(&cs);
+	mch_calc_cell_size(&cs);
 #else
-        // Non-Unix CUIs are not supported, so set this to -1x-1.
-        cs.cs_xpixel = -1;
-        cs.cs_ypixel = -1;
+	// Non-Unix CUIs are not supported, so set this to -1x-1.
+	cs.cs_xpixel = -1;
+	cs.cs_ypixel = -1;
 #endif
 
-        // failed get pixel size.
-        if (cs.cs_xpixel == -1)
-            return;
+	// failed get pixel size.
+	if (cs.cs_xpixel == -1)
+	    return;
 
-        // success pixel size and no gui.
-        list_append_number(rettv->vval.v_list, (varnumber_T)cs.cs_xpixel);
-        list_append_number(rettv->vval.v_list, (varnumber_T)cs.cs_ypixel);
+	// success pixel size and no gui.
+	list_append_number(rettv->vval.v_list, (varnumber_T)cs.cs_xpixel);
+	list_append_number(rettv->vval.v_list, (varnumber_T)cs.cs_ypixel);
     }
 
 }
@@ -7440,6 +7480,13 @@ f_has(typval_T *argvars, typval_T *rettv)
 		0
 #endif
 		},
+	{"tabpanel",
+#if defined(FEAT_TABPANEL)
+		1,
+#else
+		0,
+#endif
+	},
 	{"tag_binary", 1},	// graduated feature
 	{"tcl",
 #if defined(FEAT_TCL) && !defined(DYNAMIC_TCL)
@@ -7521,7 +7568,8 @@ f_has(typval_T *argvars, typval_T *rettv)
 #endif
 		},
 	{"unnamedplus",
-#if defined(FEAT_CLIPBOARD) && defined(FEAT_X11)
+#if defined(FEAT_CLIPBOARD) && (defined(FEAT_X11) \
+	|| defined(FEAT_WAYLAND_CLIPBOARD))
 		1
 #else
 		0
@@ -7555,6 +7603,20 @@ f_has(typval_T *argvars, typval_T *rettv)
 	{"vreplace", 1},
 	{"vtp",
 #ifdef FEAT_VTP
+		1
+#else
+		0
+#endif
+		},
+	{"wayland",
+#ifdef FEAT_WAYLAND
+		1
+#else
+		0
+#endif
+		},
+	{"wayland_clipboard",
+#ifdef FEAT_WAYLAND_CLIPBOARD
 		1
 #else
 		0
@@ -8865,19 +8927,18 @@ f_line(typval_T *argvars, typval_T *rettv)
 	{
 	    if (switch_win_noblock(&switchwin, wp, tp, TRUE) == OK)
 	    {
+		// With 'splitkeep' != cursor and in diff mode, prevent that the
+		// window scrolls and keep the topline.
+		if (*p_spk != 'c'
 #ifdef FEAT_DIFF
-		// in diff mode, prevent that the window scrolls
-		// and keep the topline
-		if (curwin->w_p_diff && switchwin.sw_curwin->w_p_diff)
-		    skip_update_topline = TRUE;
+		|| (curwin->w_p_diff && switchwin.sw_curwin->w_p_diff)
 #endif
+		)
+		    skip_update_topline = TRUE;
 		check_cursor();
 		fp = var2fpos(&argvars[0], TRUE, &fnum, FALSE);
 	    }
-#ifdef FEAT_DIFF
-	    if (curwin->w_p_diff && switchwin.sw_curwin->w_p_diff)
-		skip_update_topline = FALSE;
-#endif
+	    skip_update_topline = FALSE;
 	    restore_win_noblock(&switchwin, TRUE);
 	}
     }
@@ -9207,7 +9268,7 @@ get_matches_in_str(
 	if (d == NULL)
 	    return FAIL;
 	if (list_append_dict(mlist, d) == FAIL)
-	    return FAIL;;
+	    return FAIL;
 
 	if (dict_add_number(d, matchbuf ? "lnum" : "idx", idx) == FAIL)
 	    return FAIL;

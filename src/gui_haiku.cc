@@ -2091,7 +2091,8 @@ VimDialog::VimDialog(int type, const char *title, const char *message,
     float buttonsHeight   = 0;
     BString strButtons(buttons);
     strButtons.RemoveAll("&");
-    do {
+    do
+    {
 	int32 end = strButtons.FindFirst('\n');
 	if (end != B_ERROR)
 	    strButtons.SetByteAt(end, '\0');
@@ -3819,7 +3820,9 @@ gui_mch_font_dialog(font_family* family, font_style* style, float* size)
 #if defined(FEAT_GUI_DIALOG)
 	// gui.vimWindow->Unlock();
     VimSelectFontDialog *dialog = new VimSelectFontDialog(family, style, size);
-    return dialog->Go();
+    bool ret = dialog->Go();
+	delete dialog;
+	return ret;
 #else
     return NOFONT;
 #endif // FEAT_GUI_DIALOG
@@ -4916,7 +4919,9 @@ gui_mch_dialog(
 {
     VimDialog *dialog = new VimDialog(type, (char*)title, (char*)message,
 	    (char*)buttons, dfltbutton, (char*)textfield, ex_cmd);
-    return dialog->Go();
+    bool ret = dialog->Go();
+    delete dialog;
+	return ret;
 }
 
 #endif // FEAT_GUI_DIALOG

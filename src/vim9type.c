@@ -101,7 +101,7 @@ copy_type_deep_rec(type_T *type, garray_T *type_gap, garray_T *seen_types)
  * Make a deep copy of "type".
  * When allocation fails returns "type".
  */
-    static type_T *
+    type_T *
 copy_type_deep(type_T *type, garray_T *type_gap)
 {
     garray_T seen_types;
@@ -333,13 +333,19 @@ tuple_type_add_types(
     return OK;
 }
 
+/*
+ * Get a list type, based on the member item type in "member_type".
+ */
     type_T *
 get_list_type(type_T *member_type, garray_T *type_gap)
 {
     type_T *type;
 
     // recognize commonly used types
-    if (member_type == NULL || member_type->tt_type == VAR_ANY)
+    // A generic type is t_any initially before being set to a concrete type
+    // later.  So don't use the static t_list_any for a generic type.
+    if (member_type == NULL || (member_type->tt_type == VAR_ANY
+					&& !IS_GENERIC_TYPE(member_type)))
 	return &t_list_any;
     if (member_type->tt_type == VAR_VOID
 	    || member_type->tt_type == VAR_UNKNOWN)
@@ -367,9 +373,7 @@ get_list_type(type_T *member_type, garray_T *type_gap)
  * "tuple_types_ga".
  */
     type_T *
-get_tuple_type(
-    garray_T	*tuple_types_gap,
-    garray_T	*type_gap)
+get_tuple_type(garray_T *tuple_types_gap, garray_T *type_gap)
 {
     type_T	*type;
     type_T	**tuple_types = tuple_types_gap->ga_data;
@@ -397,6 +401,9 @@ get_tuple_type(
     return type;
 }
 
+/*
+ * Get a dict type, based on the member item type in "member_type".
+ */
     type_T *
 get_dict_type(type_T *member_type, garray_T *type_gap)
 {
@@ -764,7 +771,7 @@ oc_typval2type(typval_T *tv)
     if (tv->vval.v_object != NULL)
 	return &tv->vval.v_object->obj_class->class_object_type;
 
-    return &t_object;
+    return &t_object_any;
 }
 
 /*
@@ -806,7 +813,29 @@ fp_typval2type(typval_T *tv, garray_T *type_gap)
 		    type_gap);
 	}
 	else
-	    ufunc = find_func(name, FALSE);
+	{
+	    // Check if name contains "<".  If it does, then replace "<" with
+	    // NUL and lookup the function and then look up the specific
+	    // generic function using the supplied types.
+	    char_u *p = generic_func_find_open_bracket(name);
+	    if (p == NULL)
+		ufunc = find_func(name, FALSE);
+	    else
+	    {
+		// generic function
+		char_u	cc = *p;
+
+		*p = NUL;
+		ufunc = find_func(name, FALSE);
+		*p = cc;
+		if (ufunc != NULL && IS_GENERIC_FUNC(ufunc))
+		{
+		    ufunc = find_generic_func(ufunc, name, &p);
+		    if (ufunc == NULL)
+			return NULL;
+		}
+	    }
+	}
     }
     if (ufunc != NULL)
     {
@@ -1175,6 +1204,122 @@ check_tuple_type_maybe(
 }
 
 /*
+ * Check if the expected and actual types match for a function
+ * Returns OK if "expected" and "actual" are matching function types.
+ * Returns FAIL if "expected" and "actual" are different types.
+ * Returns MAYBE when a runtime type check is needed.
+ */
+    static int
+check_func_type_maybe(
+    type_T	*expected,
+    type_T	*actual,
+    where_T	where)
+{
+    int ret = OK;
+
+    // If the return type is unknown it can be anything, including
+    // nothing, thus there is no point in checking.
+    if (expected->tt_member != &t_unknown)
+    {
+	if (actual->tt_member != NULL
+		&& actual->tt_member != &t_unknown)
+	{
+	    where_T  func_where = where;
+
+	    func_where.wt_kind = WT_METHOD_RETURN;
+	    ret = check_type_maybe(expected->tt_member,
+		    actual->tt_member, FALSE,
+		    func_where);
+	}
+	else
+	    ret = MAYBE;
+    }
+    if (ret != FAIL
+	    && ((expected->tt_flags & TTFLAG_VARARGS)
+		!= (actual->tt_flags & TTFLAG_VARARGS))
+	    && expected->tt_argcount != -1)
+	ret = FAIL;
+    if (ret != FAIL && expected->tt_argcount != -1
+	    && actual->tt_min_argcount != -1
+	    && (actual->tt_argcount == -1
+		|| (actual->tt_argcount < expected->tt_min_argcount
+		    || actual->tt_argcount > expected->tt_argcount)))
+	ret = FAIL;
+    if (ret != FAIL && expected->tt_args != NULL
+	    && actual->tt_args != NULL)
+    {
+	int i;
+
+	for (i = 0; i < expected->tt_argcount
+		&& i < actual->tt_argcount; ++i)
+	{
+	    where_T  func_where = where;
+	    func_where.wt_kind = WT_METHOD_ARG;
+
+	    // Allow for using "any" argument type, lambda's have them.
+	    if (actual->tt_args[i] != &t_any && check_type(
+			expected->tt_args[i], actual->tt_args[i], FALSE,
+			func_where) == FAIL)
+	    {
+		ret = FAIL;
+		break;
+	    }
+	}
+    }
+    if (ret == OK && expected->tt_argcount >= 0
+	    && actual->tt_argcount == -1)
+	// check the argument count at runtime
+	ret = MAYBE;
+
+    return ret;
+}
+
+/*
+ * Check if the expected and actual types match for an object
+ * Returns OK if "expected" and "actual" are matching object types.
+ * Returns FAIL if "expected" and "actual" are different types.
+ * Returns MAYBE when a runtime type check is needed.
+ */
+    static int
+check_object_type_maybe(
+    type_T	*expected,
+    type_T	*actual,
+    where_T	where)
+{
+    int ret = OK;
+
+    if (actual->tt_type == VAR_ANY)
+	return MAYBE;	// use runtime type check
+    if (actual->tt_type != VAR_OBJECT)
+	return FAIL;	// don't use tt_class
+    if (actual->tt_class == NULL)    // null object
+	return OK;
+    // t_object_any matches any object except for an enum item
+    if (expected == &t_object_any && !IS_ENUM(actual->tt_class))
+	return OK;
+
+    // For object method arguments, do a invariant type check in
+    // an extended class.  For all others, do a covariance type check.
+    if (where.wt_kind == WT_METHOD_ARG)
+    {
+	if (actual->tt_class != expected->tt_class)
+	    ret = FAIL;
+    }
+    else if (!class_instance_of(actual->tt_class, expected->tt_class))
+    {
+	// Check if this is an up-cast, if so we'll have to check the type at
+	// runtime.
+	if (where.wt_kind == WT_CAST &&
+		class_instance_of(expected->tt_class, actual->tt_class))
+	    ret = MAYBE;
+	else
+	    ret = FAIL;
+    }
+
+    return ret;
+}
+
+/*
  * Check if the expected and actual types match.
  * Does not allow for assigning "any" to a specific type.
  * When "argidx" > 0 it is included in the error message.
@@ -1246,88 +1391,9 @@ check_type_maybe(
 	else if (expected->tt_type == VAR_TUPLE && actual != &t_any)
 	    ret =  check_tuple_type_maybe(expected, actual, where);
 	else if (expected->tt_type == VAR_FUNC && actual != &t_any)
-	{
-	    // If the return type is unknown it can be anything, including
-	    // nothing, thus there is no point in checking.
-	    if (expected->tt_member != &t_unknown)
-	    {
-		if (actual->tt_member != NULL
-					    && actual->tt_member != &t_unknown)
-		{
-		    where_T  func_where = where;
-
-		    func_where.wt_kind = WT_METHOD_RETURN;
-		    ret = check_type_maybe(expected->tt_member,
-					    actual->tt_member, FALSE,
-					    func_where);
-		}
-		else
-		    ret = MAYBE;
-	    }
-	    if (ret != FAIL
-		    && ((expected->tt_flags & TTFLAG_VARARGS)
-			!= (actual->tt_flags & TTFLAG_VARARGS))
-		    && expected->tt_argcount != -1)
-		ret = FAIL;
-	    if (ret != FAIL && expected->tt_argcount != -1
-		    && actual->tt_min_argcount != -1
-		    && (actual->tt_argcount == -1
-			|| (actual->tt_argcount < expected->tt_min_argcount
-			    || actual->tt_argcount > expected->tt_argcount)))
-		ret = FAIL;
-	    if (ret != FAIL && expected->tt_args != NULL
-						    && actual->tt_args != NULL)
-	    {
-		int i;
-
-		for (i = 0; i < expected->tt_argcount
-					       && i < actual->tt_argcount; ++i)
-		{
-		    where_T  func_where = where;
-		    func_where.wt_kind = WT_METHOD_ARG;
-
-		    // Allow for using "any" argument type, lambda's have them.
-		    if (actual->tt_args[i] != &t_any && check_type(
-			    expected->tt_args[i], actual->tt_args[i], FALSE,
-							func_where) == FAIL)
-		    {
-			ret = FAIL;
-			break;
-		    }
-		}
-	    }
-	    if (ret == OK && expected->tt_argcount >= 0
-						  && actual->tt_argcount == -1)
-		// check the argument count at runtime
-		ret = MAYBE;
-	}
+	    ret = check_func_type_maybe(expected, actual, where);
 	else if (expected->tt_type == VAR_OBJECT)
-	{
-	    if (actual->tt_type == VAR_ANY)
-		return MAYBE;	// use runtime type check
-	    if (actual->tt_type != VAR_OBJECT)
-		return FAIL;	// don't use tt_class
-	    if (actual->tt_class == NULL)
-		return OK;	// A null object matches
-
-	    // For object method arguments, do a invariant type check in
-	    // an extended class.  For all others, do a covariance type check.
-	    if (where.wt_kind == WT_METHOD_ARG)
-	    {
-		if (actual->tt_class != expected->tt_class)
-		    ret = FAIL;
-	    }
-	    else if (!class_instance_of(actual->tt_class, expected->tt_class))
-	    {
-		// Check if this is an up-cast, if so we'll have to check the type at
-		// runtime.
-		if (where.wt_kind == WT_CAST &&
-			class_instance_of(expected->tt_class, actual->tt_class))
-		    ret = MAYBE;
-		else
-		    ret = FAIL;
-	    }
-	}
+	    ret = check_object_type_maybe(expected, actual, where);
 
 	if (ret == FAIL && give_msg)
 	    type_mismatch_where(expected, actual, where);
@@ -1409,13 +1475,99 @@ check_argument_types(
 }
 
 /*
+ * Skip over type in list<type>, dict<type> or tuple<type>.
+ * Returns a pointer to the character after the type.  "syn_error" is set to
+ * TRUE on syntax error.
+ */
+    static char_u *
+skip_member_type(char_u *start, char_u *p, int *syn_error)
+{
+    if (STRNCMP("tuple", start, 5) == 0)
+    {
+	// handle tuple<{type1}, {type2}, ....<type>>
+	p = skipwhite(p + 1);
+	while (*p != '>' && *p != NUL)
+	{
+	    char_u *sp = p;
+
+	    if (STRNCMP(p, "...", 3) == 0)
+		p += 3;
+	    p = skip_type(p, TRUE);
+	    if (p == sp)
+	    {
+		*syn_error = TRUE;
+		return p;  // syntax error
+	    }
+	    if (*p == ',')
+		p = skipwhite(p + 1);
+	}
+	if (*p == '>')
+	    p++;
+    }
+    else
+    {
+	p = skipwhite(p);
+	p = skip_type(skipwhite(p + 1), FALSE);
+	p = skipwhite(p);
+	if (*p == '>')
+	    ++p;
+    }
+
+    return p;
+}
+
+/*
+ * Skip over a function type.  Returns a pointer to the character after the
+ * type.  "syn_error" is set to TRUE on syntax error.
+ */
+    static char_u *
+skip_func_type(char_u *p, int *syn_error)
+{
+    if (*p == '(')
+    {
+	// handle func(args): type
+	++p;
+	while (*p != ')' && *p != NUL)
+	{
+	    char_u *sp = p;
+
+	    if (STRNCMP(p, "...", 3) == 0)
+		p += 3;
+	    p = skip_type(p, TRUE);
+	    if (p == sp)
+	    {
+		*syn_error = TRUE;
+		return p;  // syntax error
+	    }
+	    if (*p == ',')
+		p = skipwhite(p + 1);
+	}
+	if (*p == ')')
+	{
+	    if (p[1] == ':')
+		p = skip_type(skipwhite(p + 2), FALSE);
+	    else
+		++p;
+	}
+    }
+    else
+    {
+	// handle func: return_type
+	p = skip_type(skipwhite(p + 1), FALSE);
+    }
+
+    return p;
+}
+
+/*
  * Skip over a type definition and return a pointer to just after it.
  * When "optional" is TRUE then a leading "?" is accepted.
  */
     char_u *
 skip_type(char_u *start, int optional)
 {
-    char_u *p = start;
+    char_u	*p = start;
+    int		syn_error = FALSE;
 
     if (optional && *p == '?')
 	++p;
@@ -1427,66 +1579,17 @@ skip_type(char_u *start, int optional)
     // Skip over "<type>"; this is permissive about white space.
     if (*skipwhite(p) == '<')
     {
-	if (STRNCMP("tuple", start, 5) == 0)
-	{
-	    // handle tuple<{type1}, {type2}, ....<type>>
-	    p = skipwhite(p + 1);
-	    while (*p != '>' && *p != NUL)
-	    {
-		char_u *sp = p;
-
-		if (STRNCMP(p, "...", 3) == 0)
-		    p += 3;
-		p = skip_type(p, TRUE);
-		if (p == sp)
-		    return p;  // syntax error
-		if (*p == ',')
-		    p = skipwhite(p + 1);
-	    }
-	    if (*p == '>')
-		p++;
-	}
-	else
-	{
-	    p = skipwhite(p);
-	    p = skip_type(skipwhite(p + 1), FALSE);
-	    p = skipwhite(p);
-	    if (*p == '>')
-		++p;
-	}
+	p = skip_member_type(start, p, &syn_error);
+	if (syn_error)
+	    return p;
     }
     else if ((*p == '(' || (*p == ':' && VIM_ISWHITE(p[1])))
 					     && STRNCMP("func", start, 4) == 0)
     {
-	if (*p == '(')
-	{
-	    // handle func(args): type
-	    ++p;
-	    while (*p != ')' && *p != NUL)
-	    {
-		char_u *sp = p;
-
-		if (STRNCMP(p, "...", 3) == 0)
-		    p += 3;
-		p = skip_type(p, TRUE);
-		if (p == sp)
-		    return p;  // syntax error
-		if (*p == ',')
-		    p = skipwhite(p + 1);
-	    }
-	    if (*p == ')')
-	    {
-		if (p[1] == ':')
-		    p = skip_type(skipwhite(p + 2), FALSE);
-		else
-		    ++p;
-	    }
-	}
-	else
-	{
-	    // handle func: return_type
-	    p = skip_type(skipwhite(p + 1), FALSE);
-	}
+	// skip over function type
+	p = skip_func_type(p, &syn_error);
+	if (syn_error)
+	    return p;
     }
 
     return p;
@@ -1504,7 +1607,9 @@ parse_type_member(
 	type_T	    *type,
 	garray_T    *type_gap,
 	int	    give_error,
-	char	    *info)
+	char	    *info,
+	ufunc_T	    *ufunc,
+	cctx_T	    *cctx)
 {
     char_u  *arg_start = *arg;
     type_T  *member_type;
@@ -1523,7 +1628,7 @@ parse_type_member(
     }
     *arg = skipwhite(*arg + 1);
 
-    member_type = parse_type(arg, type_gap, give_error);
+    member_type = parse_type(arg, type_gap, ufunc, cctx, give_error);
     if (member_type == NULL)
 	return NULL;
 
@@ -1547,7 +1652,13 @@ parse_type_member(
  * Return NULL for failure.
  */
     static type_T *
-parse_type_func(char_u **arg, size_t len, garray_T *type_gap, int give_error)
+parse_type_func(
+    char_u	**arg,
+    size_t	len,
+    garray_T	*type_gap,
+    int		give_error,
+    ufunc_T	*ufunc,
+    cctx_T	*cctx)
 {
     char_u  *p;
     type_T  *type;
@@ -1587,7 +1698,7 @@ parse_type_func(char_u **arg, size_t len, garray_T *type_gap, int give_error)
 		return NULL;
 	    }
 
-	    type = parse_type(&p, type_gap, give_error);
+	    type = parse_type(&p, type_gap, ufunc, cctx, give_error);
 	    if (type == NULL)
 		return NULL;
 	    if ((flags & TTFLAG_VARARGS) != 0 && type->tt_type != VAR_LIST)
@@ -1647,7 +1758,7 @@ parse_type_func(char_u **arg, size_t len, garray_T *type_gap, int give_error)
 	if (!VIM_ISWHITE(**arg) && give_error)
 	    semsg(_(e_white_space_required_after_str_str), ":", *arg - 1);
 	*arg = skipwhite(*arg);
-	ret_type = parse_type(arg, type_gap, give_error);
+	ret_type = parse_type(arg, type_gap, ufunc, cctx, give_error);
 	if (ret_type == NULL)
 	    return NULL;
     }
@@ -1677,7 +1788,12 @@ parse_type_func(char_u **arg, size_t len, garray_T *type_gap, int give_error)
  * Return NULL for failure.
  */
     static type_T *
-parse_type_tuple(char_u **arg, garray_T *type_gap, int give_error)
+parse_type_tuple(
+    char_u	**arg,
+    garray_T	*type_gap,
+    int		give_error,
+    ufunc_T	*ufunc,
+    cctx_T	*cctx)
 {
     char_u	*p;
     type_T	*type;
@@ -1714,7 +1830,7 @@ parse_type_tuple(char_u **arg, garray_T *type_gap, int give_error)
 	    p += 3;
 	}
 
-	type = parse_type(&p, type_gap, give_error);
+	type = parse_type(&p, type_gap, ufunc, cctx, give_error);
 	if (type == NULL)
 	    goto on_err;
 
@@ -1782,6 +1898,67 @@ on_err:
 }
 
 /*
+ * Parse a "object" type at "*arg" and advance over it.
+ * When "give_error" is TRUE give error messages, otherwise be quiet.
+ * Return NULL for failure.
+ */
+    static type_T *
+parse_type_object(
+    char_u	**arg,
+    garray_T	*type_gap,
+    int		give_error,
+    cctx_T	*cctx)
+{
+    char_u	*arg_start = *arg;
+    type_T	*object_type;
+    int		prev_called_emsg = called_emsg;
+
+    // object<X> or object<any>
+    if (**arg != '<')
+    {
+	if (give_error)
+	{
+	    if (*skipwhite(*arg) == '<')
+		semsg(_(e_no_white_space_allowed_before_str_str), "<", *arg);
+	    else
+		semsg(_(e_missing_type_after_str), "object");
+	}
+
+	// only "object" is specified
+	return NULL;
+    }
+
+    // skip spaces following "object<"
+    *arg = skipwhite(*arg + 1);
+
+    object_type = parse_type(arg, type_gap, NULL, cctx, give_error);
+    if (object_type == NULL)
+	return NULL;
+
+    *arg = skipwhite(*arg);
+    if (**arg != '>' && called_emsg == prev_called_emsg)
+    {
+	if (give_error)
+	    semsg(_(e_missing_gt_after_type_str), arg_start);
+	return NULL;
+    }
+    ++*arg;
+
+    if (object_type->tt_type == VAR_ANY)
+	return &t_object_any;
+
+    if (object_type->tt_type != VAR_OBJECT)
+    {
+	// specified type is not a class
+	if (give_error)
+	    semsg(_(e_class_name_not_found_str), arg_start);
+	return NULL;
+    }
+
+    return object_type;
+}
+
+/*
  * Parse a user defined type at "*arg" and advance over it.
  * It can be a class or an interface or a typealias name, possibly imported.
  * Return NULL if a type is not found.
@@ -1791,7 +1968,9 @@ parse_type_user_defined(
     char_u	**arg,
     size_t	len,
     garray_T	*type_gap,
-    int		give_error)
+    int		give_error,
+    ufunc_T	*ufunc,
+    cctx_T	*cctx)
 {
     int		did_emsg_before = did_emsg;
     typval_T	tv;
@@ -1833,6 +2012,14 @@ parse_type_user_defined(
 	clear_tv(&tv);
     }
 
+    // Check whether it is a generic type
+    type_T *type = find_generic_type(*arg, len, ufunc, cctx);
+    if (type != NULL)
+    {
+	*arg += len;
+	return type;
+    }
+
     if (give_error && (did_emsg == did_emsg_before))
     {
 	char_u	*p = skip_type(*arg, FALSE);
@@ -1852,7 +2039,12 @@ parse_type_user_defined(
  * Return NULL for failure.
  */
     type_T *
-parse_type(char_u **arg, garray_T *type_gap, int give_error)
+parse_type(
+    char_u	**arg,
+    garray_T	*type_gap,
+    ufunc_T	*ufunc,
+    cctx_T	*cctx,
+    int		give_error)
 {
     char_u  *p = *arg;
     size_t  len;
@@ -1894,8 +2086,9 @@ parse_type(char_u **arg, garray_T *type_gap, int give_error)
 	    if (len == 4 && STRNCMP(*arg, "dict", len) == 0)
 	    {
 		*arg += len;
-		return parse_type_member(arg, &t_dict_any,
-						 type_gap, give_error, "dict");
+		return parse_type_member(arg, &t_dict_any, type_gap,
+						give_error, "dict", ufunc,
+						cctx);
 	    }
 	    break;
 	case 'f':
@@ -1905,7 +2098,8 @@ parse_type(char_u **arg, garray_T *type_gap, int give_error)
 		return &t_float;
 	    }
 	    if (len == 4 && STRNCMP(*arg, "func", len) == 0)
-		return parse_type_func(arg, len, type_gap, give_error);
+		return parse_type_func(arg, len, type_gap, give_error, ufunc,
+									cctx);
 	    break;
 	case 'j':
 	    if (len == 3 && STRNCMP(*arg, "job", len) == 0)
@@ -1918,8 +2112,9 @@ parse_type(char_u **arg, garray_T *type_gap, int give_error)
 	    if (len == 4 && STRNCMP(*arg, "list", len) == 0)
 	    {
 		*arg += len;
-		return parse_type_member(arg, &t_list_any,
-						 type_gap, give_error, "list");
+		return parse_type_member(arg, &t_list_any, type_gap,
+						give_error, "list", ufunc,
+						cctx);
 	    }
 	    break;
 	case 'n':
@@ -1927,6 +2122,13 @@ parse_type(char_u **arg, garray_T *type_gap, int give_error)
 	    {
 		*arg += len;
 		return &t_number;
+	    }
+	    break;
+	case 'o':
+	    if (len == 6 && STRNCMP(*arg, "object", len) == 0)
+	    {
+		*arg += len;
+		return parse_type_object(arg, type_gap, give_error, cctx);
 	    }
 	    break;
 	case 's':
@@ -1940,7 +2142,8 @@ parse_type(char_u **arg, garray_T *type_gap, int give_error)
 	    if (len == 5 && STRNCMP(*arg, "tuple", len) == 0)
 	    {
 		*arg += len;
-		return parse_type_tuple(arg, type_gap, give_error);
+		return parse_type_tuple(arg, type_gap, give_error, ufunc,
+									cctx);
 	    }
 	    break;
 	case 'v':
@@ -1953,7 +2156,8 @@ parse_type(char_u **arg, garray_T *type_gap, int give_error)
     }
 
     // User defined type
-    return parse_type_user_defined(arg, len, type_gap, give_error);
+    return parse_type_user_defined(arg, len, type_gap, give_error, ufunc,
+									cctx);
 }
 
 /*
@@ -1984,10 +2188,12 @@ equal_type(type_T *type1, type_T *type2, int flags)
 	case VAR_JOB:
 	case VAR_CHANNEL:
 	case VAR_INSTR:
-	case VAR_CLASS:
-	case VAR_OBJECT:
 	case VAR_TYPEALIAS:
 	    break;  // not composite is always OK
+	case VAR_OBJECT:
+	case VAR_CLASS:
+	    // Objects are considered equal if they are from the same class
+	    return type1->tt_class == type2->tt_class;
 	case VAR_LIST:
 	case VAR_DICT:
 	    return equal_type(type1->tt_member, type2->tt_member, flags);
@@ -2118,6 +2324,11 @@ common_type(type_T *type1, type_T *type2, type_T **dest, garray_T *type_gap)
 	else if (type1->tt_type == VAR_FUNC)
 	{
 	    common_type_var_func(type1, type2, dest, type_gap);
+	    return;
+	}
+	else if (type1->tt_type == VAR_OBJECT)
+	{
+	    *dest = &t_object_any;
 	    return;
 	}
     }
@@ -2426,7 +2637,7 @@ type_name_class_or_obj(char *name, type_T *type, char **tofree)
 	    name = "enum";
     }
     else
-	class_name = (char_u *)"Unknown";
+	class_name = (char_u *)"any";
 
     size_t len = STRLEN(name) + STRLEN(class_name) + 3;
     *tofree = alloc(len);

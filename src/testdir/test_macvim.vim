@@ -1,6 +1,5 @@
 " Test for MacVim behaviors and regressions
 
-source check.vim
 CheckFeature gui_macvim
 
 " Tests for basic existence of commands and options to make sure no

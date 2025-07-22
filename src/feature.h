@@ -498,7 +498,7 @@
 		|| defined(FEAT_GUI_MSWIN) \
 		|| (defined(FEAT_GUI_MOTIF) && defined(HAVE_XPM)) \
 		|| defined(FEAT_GUI_PHOTON) \
-                || defined(FEAT_GUI_MACVIM) \
+		|| defined(FEAT_GUI_MACVIM) \
 		|| defined(FEAT_GUI_HAIKU))
 
 # define FEAT_TOOLBAR
@@ -530,6 +530,13 @@
 	|| defined(FEAT_GUI_HAIKU) \
 	|| defined(FEAT_GUI_MSWIN))
 # define FEAT_GUI_TABLINE
+#endif
+
+/*
+ * +tabpanel		Tab SideBar
+ */
+#ifdef FEAT_HUGE
+# define FEAT_TABPANEL
 #endif
 
 /*
@@ -818,6 +825,14 @@
 #endif
 
 /*
+ * +wayland		Unix only.  Include code for the Wayland protocol,
+ *                      only works if HAVE_WAYLAND is defined.
+ */
+#if defined(FEAT_NORMAL) && defined(UNIX)
+# define WANT_WAYLAND
+#endif
+
+/*
  * XSMP - X11 Session Management Protocol
  * It may be preferred to disable this if the GUI supports it (e.g.,
  * GNOME/KDE) and implement save-yourself etc. through that, but it may also
@@ -917,11 +932,19 @@
 # endif
 #endif
 
+#if defined(FEAT_NORMAL) && defined(UNIX) \
+    && defined(HAVE_WAYLAND) && defined(WANT_WAYLAND)
+# define FEAT_WAYLAND_CLIPBOARD
+# ifndef FEAT_CLIPBOARD
+#  define FEAT_CLIPBOARD
+# endif
+#endif
+
 /*
  * +dnd		Drag'n'drop support.  Always used for the GTK+ GUI and MacVim.
  */
 #if defined(FEAT_CLIPBOARD) && (defined(FEAT_GUI_GTK) \
-        || defined(FEAT_GUI_MACVIM))
+	|| defined(FEAT_GUI_MACVIM))
 # define FEAT_DND
 #endif
 
@@ -1034,18 +1057,19 @@
  * +tgetent
  */
 
-/*
- * The Netbeans feature requires +eval.
- */
-#if !defined(FEAT_EVAL) && defined(FEAT_NETBEANS_INTG)
-# undef FEAT_NETBEANS_INTG
-#endif
 
 /*
  * The +channel feature requires +eval.
  */
 #if !defined(FEAT_EVAL) && defined(FEAT_JOB_CHANNEL)
 # undef FEAT_JOB_CHANNEL
+#endif
+
+/*
+ * The Netbeans feature requires +eval and +job_channel
+ */
+#if (!defined(FEAT_EVAL) || !defined(FEAT_JOB_CHANNEL)) && defined(FEAT_NETBEANS_INTG)
+# undef FEAT_NETBEANS_INTG
 #endif
 
 /*

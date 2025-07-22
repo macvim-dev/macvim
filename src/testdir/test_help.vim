@@ -1,7 +1,6 @@
 " Tests for :help
 
-source check.vim
-import './vim9.vim' as v9
+import './util/vim9.vim' as v9
 
 func Test_help_restore_snapshot()
   help
@@ -203,6 +202,23 @@ func Test_help_using_visual_match()
       h5\%V]
   END
   call v9.CheckScriptFailure(lines, 'E149:')
+endfunc
+
+func Test_helptag_navigation()
+  let helpdir = tempname()
+  let tempfile = helpdir . '/test.txt'
+  call mkdir(helpdir, 'pR')
+  call writefile(['', '*[tag*', '', '|[tag|'], tempfile)
+  exe 'helptags' helpdir
+  exe 'sp' tempfile
+  exe 'lcd' helpdir
+  setl ft=help
+  let &l:iskeyword='!-~,^*,^|,^",192-255'
+  call cursor(4, 2)
+  " Vim must not escape `[` when expanding the tag
+  exe "normal! \<C-]>"
+  call assert_equal(2, line('.'))
+  bw
 endfunc
 
 

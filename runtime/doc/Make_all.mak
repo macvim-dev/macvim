@@ -154,6 +154,7 @@ DOCS = \
 	vim9class.txt \
 	visual.txt \
 	vietnamese.txt \
+	wayland.txt \
 	windows.txt \
 	workshop.txt
 
@@ -311,6 +312,7 @@ HTMLS = \
 	vim9.html \
 	vim9class.html \
 	visual.html \
+	wayland.html \
 	windows.html \
 	workshop.html
 

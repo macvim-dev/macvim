@@ -26,6 +26,12 @@
 
 #include "os_unixx.h"	    // unix includes for os_unix.c only
 
+#ifdef HAVE_SHM_OPEN
+# include <sys/mman.h>
+# include <sys/stat.h>
+# include <fcntl.h>
+#endif
+
 #ifdef USE_XSMP
 # include <X11/SM/SMlib.h>
 #endif
@@ -135,7 +141,6 @@ static void sig_sysmouse SIGPROTOARG;
 #  include <X11/StringDefs.h>
 static Widget	xterm_Shell = (Widget)0;
 static void clip_update(void);
-static void xterm_update(void);
 # endif
 
 Window	    x11_window = 0;
@@ -1303,33 +1308,43 @@ sigcont_handler SIGDEFARG(sigarg)
 }
 #endif
 
-#if defined(FEAT_CLIPBOARD) && defined(FEAT_X11)
-# ifdef USE_SYSTEM
+#if defined(FEAT_CLIPBOARD)
+# if defined(USE_SYSTEM) && (defined(FEAT_X11) \
+	|| defined(FEAT_WAYLAND_CLIPBOARD))
 static void *clip_star_save = NULL;
 static void *clip_plus_save = NULL;
 # endif
 
+# if defined(FEAT_CLIPBOARD) && (defined(FEAT_X11) \
+	|| defined(FEAT_WAYLAND_CLIPBOARD))
 /*
  * Called when Vim is going to sleep or execute a shell command.
- * We can't respond to requests for the X selections.  Lose them, otherwise
- * other applications will hang.  But first copy the text to cut buffer 0.
+ * We can't respond to requests for the X or Wayland selections.
+ * Lose them, otherwise other applications will hang.  But first
+ * copy the text to cut buffer 0 (for X11). Wayland users must have
+ * a clipboard manager to replicate such behaviour.
  */
     static void
 loose_clipboard(void)
 {
     if (clip_star.owned || clip_plus.owned)
     {
+#ifdef FEAT_X11
 	x11_export_final_selection();
+#endif
 	if (clip_star.owned)
 	    clip_lose_selection(&clip_star);
 	if (clip_plus.owned)
 	    clip_lose_selection(&clip_plus);
+#ifdef FEAT_X11
 	if (x11_display != NULL)
 	    XFlush(x11_display);
+#endif
     }
 }
+#endif
 
-# ifdef USE_SYSTEM
+# if defined(USE_SYSTEM) && (defined(FEAT_X11) || defined(FEAT_WAYLAND_CLIPBOARD))
 /*
  * Save clipboard text to restore later.
  */
@@ -1343,7 +1358,7 @@ save_clipboard(void)
 }
 
 /*
- * Restore clipboard text if no one own the X selection.
+ * Restore clipboard text if no one own the X/Wayland selection.
  */
     static void
 restore_clipboard(void)
@@ -1385,7 +1400,8 @@ mch_suspend(void)
     settmode(TMODE_COOK);
     out_flush();	    // needed to disable mouse on some systems
 
-# if defined(FEAT_CLIPBOARD) && defined(FEAT_X11)
+# if defined(FEAT_CLIPBOARD) && (defined(FEAT_X11) \
+	|| defined(FEAT_WAYLAND_CLIPBOARD))
     loose_clipboard();
 # endif
 # if defined(SIGCONT)
@@ -1810,7 +1826,7 @@ x_IOerror_handler(Display *dpy UNUSED)
  * (e.g. through tmux).
  */
     static void
-may_restore_clipboard(void)
+may_restore_x11_clipboard(void)
 {
     // No point in restoring the connecting if we are exiting or dying.
     if (!exiting && !v_dying && xterm_dpy_retry_count > 0)
@@ -1844,13 +1860,14 @@ ex_xrestore(exarg_T *eap)
 	xterm_display = (char *)vim_strnsave(eap->arg, arglen);
 	xterm_display_allocated = TRUE;
     }
-    smsg(_("restoring display %s"), xterm_display == NULL
+    smsg(_("restoring X11 display %s"), xterm_display == NULL
 		    ? (char *)mch_getenv((char_u *)"DISPLAY") : xterm_display);
 
     clear_xterm_clip();
     x11_window = 0;
     xterm_dpy_retry_count = 5;  // Try reconnecting five times
-    may_restore_clipboard();
+    may_restore_x11_clipboard();
+    choose_clipmethod();
 }
 #endif
 
@@ -2358,7 +2375,7 @@ mch_settitle(char_u *title, char_u *icon)
 	    set_x11_title(title);		// x11
 #endif
 #if defined(FEAT_GUI_GTK) || defined(FEAT_GUI_HAIKU) \
-        || defined(FEAT_GUI_MACVIM) \
+	|| defined(FEAT_GUI_MACVIM) \
 	|| defined(FEAT_GUI_PHOTON)
 	else
 	    gui_mch_settitle(title, icon);
@@ -4402,9 +4419,9 @@ mch_calc_cell_size(struct cellsize *cs_out)
 
    if (retval == -1 || ws.ws_col == 0 || ws.ws_row == 0)
    {
-       cs_out->cs_xpixel = -1;
-       cs_out->cs_ypixel = -1;
-       return;
+	cs_out->cs_xpixel = -1;
+	cs_out->cs_ypixel = -1;
+	return;
    }
 
    // calculate parent tty's pixel per cell.
@@ -4440,7 +4457,7 @@ mch_report_winsize(int fd, int rows, int cols)
     ws.ws_col = cols;
     ws.ws_row = rows;
 
-    // calcurate and set tty pixel size
+    // calculate and set tty pixel size
     struct cellsize cs;
 #if defined(FEAT_GUI) && defined(FEAT_GUI_MACVIM)
     if (gui.in_use)
@@ -4455,14 +4472,14 @@ mch_report_winsize(int fd, int rows, int cols)
 
     if (cs.cs_xpixel == -1)
     {
-        // failed get pixel size.
-        ws.ws_xpixel = 0;
-        ws.ws_ypixel = 0;
+	// failed get pixel size.
+	ws.ws_xpixel = 0;
+	ws.ws_ypixel = 0;
     }
     else
     {
-        ws.ws_xpixel = cols * cs.cs_xpixel;
-        ws.ws_ypixel = rows * cs.cs_ypixel;
+	ws.ws_xpixel = cols * cs.cs_xpixel;
+	ws.ws_ypixel = rows * cs.cs_ypixel;
     }
 
     retval = ioctl(tty_fd, TIOCSWINSZ, &ws);
@@ -4857,8 +4874,11 @@ mch_call_shell_system(
     if (options & SHELL_COOKED)
 	settmode(TMODE_COOK);	    // set to normal mode
 
-# if defined(FEAT_CLIPBOARD) && defined(FEAT_X11)
+# if defined(FEAT_CLIPBOARD) && (defined(FEAT_X11) \
+	|| defined(FEAT_WAYLAND_CLIPBOARD))
+# if defined(FEAT_X11) || defined(FEAT_WAYLAND_CLIPBOARD)
     save_clipboard();
+#endif
     loose_clipboard();
 # endif
 
@@ -4920,7 +4940,8 @@ mch_call_shell_system(
 	settmode(TMODE_RAW);	// set to raw mode
     }
     resettitle();
-# if defined(FEAT_CLIPBOARD) && defined(FEAT_X11)
+# if defined(FEAT_CLIPBOARD) && (defined(FEAT_X11) \
+	|| defined(FEAT_WAYLAND_CLIPBOARD))
     restore_clipboard();
 # endif
     return x;
@@ -5195,7 +5216,7 @@ mch_call_shell_fork(
 	     * different on different machines. This may cause a warning
 	     * message with strict compilers, don't worry about it.
 	     * Call _exit() instead of exit() to avoid closing the connection
-	     * to the X server (esp. with GTK, which uses atexit()).
+	     * to the X/Wayland server (esp. with GTK, which uses atexit()).
 	     */
 	    execvp(argv[0], argv);
 	    _exit(EXEC_FAILED);	    // exec failed, return failure code
@@ -5287,14 +5308,13 @@ mch_call_shell_fork(
 		    else if (wpid == 0) // child
 		    {
 			linenr_T    lnum = curbuf->b_op_start.lnum;
-			int	    written = 0;
+			size_t	    written = 0;
 			char_u	    *lp = ml_get(lnum);
 			size_t	    lplen = (size_t)ml_get_len(lnum);
 
 			close(fromshell_fd);
 			for (;;)
 			{
-			    lplen -= written;
 			    if (lplen == 0)
 				len = 0;
 			    else if (lp[written] == NL)
@@ -5305,10 +5325,10 @@ mch_call_shell_fork(
 				char_u	*s = vim_strchr(lp + written, NL);
 
 				len = write(toshell_fd, (char *)lp + written,
-					   s == NULL ? lplen
+					   s == NULL ? lplen - written
 					      : (size_t)(s - (lp + written)));
 			    }
-			    if (len == (int)lplen)
+			    if (len == (int)(lplen - written))
 			    {
 				// Finished a line, add a NL, unless this line
 				// should not have one.
@@ -5332,7 +5352,7 @@ mch_call_shell_fork(
 				written = 0;
 			    }
 			    else if (len > 0)
-				written += len;
+				written += (size_t)len;
 			}
 			_exit(0);
 		    }
@@ -5618,6 +5638,11 @@ mch_call_shell_fork(
 		    // Handle any X events, e.g. serving the clipboard.
 		    clip_update();
 # endif
+#ifdef FEAT_WAYLAND
+		    // Handle Wayland events such as sending data as the source
+		    // client.
+		    wayland_client_update();
+#endif
 		}
 finished:
 		p_more = p_more_save;
@@ -5644,7 +5669,7 @@ finished:
 		    close(toshell_fd);
 		close(fromshell_fd);
 	    }
-# if defined(FEAT_XCLIPBOARD) && defined(FEAT_X11)
+# if (defined(FEAT_XCLIPBOARD) && defined(FEAT_X11)) || defined(FEAT_WAYLAND)
 	    else
 	    {
 		long delay_msec = 1;
@@ -5655,8 +5680,8 @@ finished:
 		    out_str_t_TE();
 
 		/*
-		 * Similar to the loop above, but only handle X events, no
-		 * I/O.
+		 * Similar to the loop above, but only handle X and Wayland
+		 * events, no I/O.
 		 */
 		for (;;)
 		{
@@ -5683,8 +5708,15 @@ finished:
 			break;
 		    }
 
+#if defined(FEAT_XCLIPBOARD) && defined(FEAT_X11)
 		    // Handle any X events, e.g. serving the clipboard.
 		    clip_update();
+#endif
+#ifdef FEAT_WAYLAND
+		    // Handle Wayland events such as sending data as the source
+		    // client.
+		    wayland_client_update();
+#endif
 
 		    // Wait for 1 to 10 msec. 1 is faster but gives the child
 		    // less time, gradually wait longer.
@@ -6537,8 +6569,11 @@ RealWaitForChar(int fd, long msec, int *check_for_gpm UNUSED, int *interrupted)
 #endif
 #ifndef HAVE_SELECT
 			// each channel may use in, out and err
-	struct pollfd   fds[6 + 3 * MAX_OPEN_CHANNELS];
+	struct pollfd   fds[7 + 3 * MAX_OPEN_CHANNELS];
 	int		nfd;
+# ifdef FEAT_WAYLAND_CLIPBOARD
+	int             wayland_idx = -1;
+# endif
 # ifdef FEAT_XCLIPBOARD
 	int		xterm_idx = -1;
 # endif
@@ -6562,6 +6597,15 @@ RealWaitForChar(int fd, long msec, int *check_for_gpm UNUSED, int *interrupted)
 	fds[0].events = POLLIN;
 	nfd = 1;
 
+# ifdef FEAT_WAYLAND_CLIPBOARD
+	if (wayland_may_restore_connection())
+	{
+	    wayland_idx = nfd;
+	    fds[nfd].fd = wayland_display_fd;
+	    fds[nfd].events = POLLIN;
+	    nfd++;
+	}
+# endif
 # ifdef FEAT_XCLIPBOARD
 	may_restore_clipboard();
 	if (xterm_Shell != (Widget)0)
@@ -6590,9 +6634,9 @@ RealWaitForChar(int fd, long msec, int *check_for_gpm UNUSED, int *interrupted)
 	    nfd++;
 	}
 # endif
-#ifdef FEAT_JOB_CHANNEL
+# ifdef FEAT_JOB_CHANNEL
 	nfd = channel_poll_setup(nfd, &fds, &towait);
-#endif
+# endif
 	if (interrupted != NULL)
 	    *interrupted = FALSE;
 
@@ -6606,6 +6650,15 @@ RealWaitForChar(int fd, long msec, int *check_for_gpm UNUSED, int *interrupted)
 	if (ret == 0 && mzquantum_used)
 	    // MzThreads scheduling is required and timeout occurred
 	    finished = FALSE;
+# endif
+
+# ifdef FEAT_WAYLAND_CLIPBOARD
+	// Technically we should first call wl_display_prepare_read() before
+	// polling the fd, then read and dispatch after we poll. However that is
+	// only needed for multi threaded environments to prevent deadlocks so
+	// we are fine.
+	if (fds[wayland_idx].revents & POLLIN)
+	    wayland_client_update();
 # endif
 
 # ifdef FEAT_XCLIPBOARD
@@ -6640,11 +6693,11 @@ RealWaitForChar(int fd, long msec, int *check_for_gpm UNUSED, int *interrupted)
 		finished = FALSE;	// Try again
 	}
 # endif
-#ifdef FEAT_JOB_CHANNEL
+# ifdef FEAT_JOB_CHANNEL
 	// also call when ret == 0, we may be polling a keep-open channel
 	if (ret >= 0)
 	    channel_poll_check(ret, &fds);
-#endif
+# endif
 
 #else // HAVE_SELECT
 
@@ -6688,8 +6741,19 @@ select_eintr:
 # endif
 	maxfd = fd;
 
+# ifdef FEAT_WAYLAND_CLIPBOARD
+
+	if (wayland_may_restore_connection())
+	{
+	    FD_SET(wayland_display_fd, &rfds);
+
+	    if (maxfd < wayland_display_fd)
+		maxfd = wayland_display_fd;
+	}
+# endif
+
 # ifdef FEAT_XCLIPBOARD
-	may_restore_clipboard();
+	may_restore_x11_clipboard();
 	if (xterm_Shell != (Widget)0)
 	{
 	    FD_SET(ConnectionNumber(xterm_dpy), &rfds);
@@ -6777,6 +6841,15 @@ select_eintr:
 	    finished = FALSE;
 # endif
 
+# ifdef FEAT_WAYLAND_CLIPBOARD
+	// Technically we should first call wl_display_prepare_read() before
+	// polling the fd, then read and dispatch after we poll. However that is
+	// only needed for multi threaded environments to prevent deadlocks so
+	// we are fine.
+	if (ret > 0 && FD_ISSET(wayland_display_fd, &rfds))
+	    wayland_client_update();
+# endif
+
 # ifdef FEAT_XCLIPBOARD
 	if (ret > 0 && xterm_Shell != (Widget)0
 		&& FD_ISSET(ConnectionNumber(xterm_dpy), &rfds))
@@ -6821,11 +6894,11 @@ select_eintr:
 	    }
 	}
 # endif
-#ifdef FEAT_JOB_CHANNEL
+# ifdef FEAT_JOB_CHANNEL
 	// also call when ret == 0, we may be polling a keep-open channel
 	if (ret >= 0)
 	    (void)channel_select_check(ret, &rfds, &wfds);
-#endif
+# endif
 
 #endif // HAVE_SELECT
 
@@ -7001,9 +7074,9 @@ mch_expand_wildcards(
     }
     if (shell_style == STYLE_ECHO)
     {
-       if (strstr((char *)gettail(p_sh), "bash") != NULL)
+	if (strstr((char *)gettail(p_sh), "bash") != NULL)
 	    shell_style = STYLE_GLOBSTAR;
-       else if (strstr((char *)gettail(p_sh), "sh") != NULL)
+	else if (strstr((char *)gettail(p_sh), "sh") != NULL)
 	    shell_style = STYLE_VIMGLOB;
     }
 
@@ -8327,7 +8400,7 @@ clip_update(void)
  * nothing in the X event queue (& no timers pending), then we return
  * immediately.
  */
-    static void
+    void
 xterm_update(void)
 {
     XEvent event;
@@ -8878,3 +8951,44 @@ start_timeout(long msec)
 }
 # endif // PROF_NSEC
 #endif  // FEAT_RELTIME
+
+/*
+ * Create an anonymous/temporary file/object and return its file descriptor.
+ * Returns -1 on error.
+ */
+    int
+mch_create_anon_file(void)
+{
+    int fd = -1;
+#ifdef HAVE_SHM_OPEN
+    const char template[] = "/vimXXXXXX";
+
+    for (int i = 0; i < 100; i++)
+    {
+	mch_get_random((char_u*)template + 4, 6);
+
+	errno = 0;
+	fd = shm_open(template, O_CREAT | O_RDWR | O_EXCL, 0600);
+
+	if (fd >= 0 || errno != EEXIST)
+	    break;
+    }
+    // Remove object name from namespace
+    shm_unlink(template);
+#endif
+    // Last resort
+    if (fd == -1)
+    {
+	char_u	*tempname;
+	// get a name for the temp file
+	if ((tempname = vim_tempname('w', FALSE)) == NULL)
+	{
+	    emsg(_(e_cant_get_temp_file_name));
+	    return -1;
+	}
+	fd = mch_open((char *)tempname, O_CREAT | O_RDWR | O_EXCL, 0600);
+	mch_remove(tempname);
+	vim_free(tempname);
+    }
+    return fd;
+}

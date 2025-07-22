@@ -99,7 +99,7 @@ check_vim9_unlet(char_u *name)
     if (name[1] != ':' || vim_strchr((char_u *)"gwtb", *name) == NULL)
     {
 	// "unlet s:var" is allowed in legacy script.
-	if (*name == 's' && !script_is_vim9())
+	if (*name == 's' && !in_vim9script())
 	    return OK;
 	semsg(_(e_cannot_unlet_str), name);
 	return FAIL;
@@ -292,7 +292,7 @@ compile_lock_unlock(
 #ifdef LOG_LOCKVAR
 	    ch_log(NULL, "LKVAR:    ... INS_LOCKUNLOCK %s", name);
 #endif
-	    if (compile_load(&name, name + len, cctx, FALSE, FALSE) == FAIL)
+	    if (compile_load(&name, len, name + len, cctx, FALSE, FALSE) == FAIL)
 		return FAIL;
 	    isn = ISN_LOCKUNLOCK;
 	}
@@ -1130,7 +1130,8 @@ compile_for(char_u *arg_start, cctx_T *cctx)
 		    goto failed;
 		}
 		p = skipwhite(p + 1);
-		lhs_type = parse_type(&p, cctx->ctx_type_list, TRUE);
+		lhs_type = parse_type(&p, cctx->ctx_type_list, cctx->ctx_ufunc,
+								cctx, TRUE);
 		if (lhs_type == NULL)
 		    goto failed;
 	    }

@@ -1,4 +1,4 @@
-*usr_41.txt*	For Vim version 9.1.  Last change: 2025 Mar 23
+*usr_41.txt*	For Vim version 9.1.  Last change: 2025 Jul 21
 
 		     VIM USER MANUAL - by Bram Moolenaar
 
@@ -35,8 +35,10 @@ like for example .vim files or configuration files like .vimrc and .gvimrc.
 These scripts may define functions, commands and settings that Vim uses to
 customize and extend its behavior.
 
-With a slight abuse of nomenclature, we will use "Vim script" to refer to the
-Vim scripting language throughout this documentation.  This shorthand helps to
+						*vim-script-notation*
+The correct notation is "Vim script" (or "Vim9 script" when refering to the
+new Vim9 language |Vim9-script|), so we will use "Vim script" to refer to the
+Vim scripting language throughout this documentation. This shorthand helps to
 streamline explanations and discussions about scripting with Vim.
 
 A Vim plugin is a collection of one or more Vim scripts, along with additional
@@ -862,7 +864,7 @@ Tuple manipulation:					*tuple-functions*
 	reverse()		reverse the order of items in a Tuple
 	slice()			take a slice of a Tuple
 	string()		string representation of a Tuple
-	tuple2list()		convert a Tuple of items into a list
+	tuple2list()		convert a Tuple into a List
 
 Dictionary manipulation:				*dict-functions*
 	get()			get an entry without an error for a wrong key
@@ -1110,7 +1112,10 @@ Command line:					*command-line-functions*
 	getcmdtype()		return the current command-line type
 	getcmdwintype()		return the current command-line window type
 	getcompletion()		list of command-line completion matches
+	getcompletiontype()	get the type of the command-line completion
+				for specified string
 	fullcommand()		get full command name
+	cmdcomplete_info()	get command-line completion information
 
 Quickfix and location lists:			*quickfix-functions*
 	getqflist()		list of quickfix errors
@@ -1123,6 +1128,8 @@ Insert mode completion:				*completion-functions*
 	complete_add()		add to found matches
 	complete_check()	check if completion should be aborted
 	complete_info()		get current completion information
+	complete_match()	get insert completion start match col and
+				trigger text
 	pumvisible()		check if the popup menu is displayed
 	pum_getpos()		position and size of popup menu if visible
 
@@ -1226,6 +1233,7 @@ Mappings and Menus:			    *mapping-functions*
 	mapset()		restore a mapping
 	menu_info()		get information about a menu item
 	wildmenumode()		check if the wildmode is active
+	wildtrigger()		start wildcard expansion
 
 Testing:				    *test-functions*
 	assert_equal()		assert that two expressions values are equal

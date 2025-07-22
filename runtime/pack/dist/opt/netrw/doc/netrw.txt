@@ -339,10 +339,8 @@ NETRW VARIABLES AND SETTINGS				*netrw-variables* {{{2
     )
 
 Netrw provides a lot of variables which allow you to customize netrw to your
-preferences.  One way to look at them is via the command :NetrwSettings (see
-|netrw-settings|) which will display your current netrw settings.  Most such
-settings are described below, in |netrw-browser-options|, and in
-|netrw-externapp|:
+preferences.  Most such settings are described below, in
+|netrw-browser-options|, and in |netrw-externapp|:
 
  *b:netrw_lastfile*	last file Network-read/written retained on a
 			per-buffer basis (supports plain :Nw )
@@ -431,17 +429,6 @@ settings are described below, in |netrw-browser-options|, and in
   *g:netrw_silent*	=0 : transfers done normally
 			=1 : transfers done silently
 
- *g:netrw_use_errorwindow* =2: messages from netrw will use a popup window
-			     Move the mouse and pause to remove the popup window.
-			     (default value if popup windows are available)
-			 =1 : messages from netrw will use a separate one
-			      line window.  This window provides reliable
-			      delivery of messages.
-			     (default value if popup windows are not available)
-			 =0 : messages from netrw will use echoerr ;
-			      messages don't always seem to show up this
-			      way, but one doesn't have to quit the window.
-
  *g:netrw_cygwin*	=1 assume scp under windows is from cygwin. Also
 			   permits network browsing to use ls with time and
 			   size sorting (default if windows)
@@ -471,7 +458,7 @@ file using root-relative paths, use the full path:
 ==============================================================================
 4. Network-Oriented File Transfer			*netrw-xfer* {{{1
 
-Network-oriented file transfer under Vim is implemented by a vim script
+Network-oriented file transfer under Vim is implemented by a Vim script
 (<netrw.vim>) using plugin techniques.  It currently supports both reading and
 writing across networks using rcp, scp, ftp or ftp+<.netrc>, scp, fetch,
 dav/cadaver, rsync, or sftp.
@@ -775,9 +762,6 @@ below, a {netfile} is a URL to a remote file.
 		effectively remove the user-id and password by using empty
 		strings (ie. "").
 		(related: |netrw-userpass|)
-
-:NetrwSettings  This command is described in |netrw-settings| -- used to
-		display netrw settings and change netrw behavior.
 
 
 ==============================================================================
@@ -1136,7 +1120,6 @@ QUICK REFERENCE: MAPS				*netrw-browse-maps* {{{2
 
 				*netrw-quickcom* *netrw-quickcoms*
 QUICK REFERENCE: COMMANDS	*netrw-explore-cmds* *netrw-browse-cmds* {{{2
-     :NetrwSettings............................................|netrw-settings|
      :Ntree....................................................|netrw-ntree|
      :Explore[!]  [dir] Explore directory of current file......|netrw-explore|
      :Hexplore[!] [dir] Horizontal Split & Explore.............|netrw-explore|
@@ -2568,12 +2551,6 @@ your browsing preferences.  (see also: |netrw-settings|)
 				    |g:netrw_maxfilenamelen|, which affects
 				    local file long listing.
 
-  *g:netrw_errorlvl*		=0: error levels greater than or equal to
-				    this are permitted to be displayed
-				    0: notes
-				    1: warnings
-				    2: errors
-
   *g:netrw_fastbrowse*		=0: slow speed directory browsing;
 				    never re-uses directory listings;
 				    always obtains directory listings.
@@ -2751,11 +2728,6 @@ your browsing preferences.  (see also: |netrw-settings|)
 				     middlemouse     : same as P
 				     rightmouse      : remove file/directory
 				=0: disables mouse maps
-
-  *g:netrw_nobeval*		doesn't exist (default)
-				If this variable exists, then balloon
-				evaluation will be suppressed
-				(see |'ballooneval'|)
 
  *g:netrw_sizestyle*		not defined: actual bytes (default)
 				="b" : actual bytes       (default)
@@ -2971,17 +2943,6 @@ is problematic.  Autochdir sets the current directory to that containing the
 file you edit; this apparently also applies to directories.  In other words,
 autochdir sets the current directory to that containing the "file" (even if
 that "file" is itself a directory).
-
-NETRW SETTINGS WINDOW				*netrw-settings-window* {{{2
-
-With the NetrwSettings.vim plugin, >
-	:NetrwSettings
-will bring up a window with the many variables that netrw uses for its
-settings.  You may change any of their values; when you save the file, the
-settings therein will be used.  One may also press "?" on any of the lines for
-help on what each of the variables do.
-
-(also see: |netrw-browser-var| |netrw-protocol| |netrw-variables|)
 
 
 ==============================================================================

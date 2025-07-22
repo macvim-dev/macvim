@@ -1423,6 +1423,7 @@ ALL_LIBS = \
 	   $(GUI_LIBS2) \
 	   $(X_PRE_LIBS) \
 	   $(X_LIBS) \
+	   $(WAYLAND_LIBS) \
 	   $(X_EXTRA_LIBS) \
 	   $(MZSCHEME_LIBS) \
 	   $(LIBS) \
@@ -1595,6 +1596,7 @@ BASIC_SRC = \
 	spellsuggest.c \
 	strings.c \
 	syntax.c \
+	tabpanel.c \
 	tag.c \
 	term.c \
 	terminal.c \
@@ -1615,6 +1617,7 @@ BASIC_SRC = \
 	vim9compile.c \
 	vim9execute.c \
 	vim9expr.c \
+	vim9generics.c \
 	vim9instr.c \
 	vim9script.c \
 	vim9type.c \
@@ -1632,12 +1635,22 @@ SRC =	$(BASIC_SRC) \
 	$(PERL_SRC) \
 	$(PYTHON_SRC) $(PYTHON3_SRC) \
 	$(TCL_SRC) \
-	$(RUBY_SRC)
+	$(RUBY_SRC) \
+	$(WAYLAND_SRC)
 
 EXTRA_SRC = if_lua.c if_mzsch.c auto/if_perl.c if_perlsfio.c \
 	    if_python.c if_python3.c if_tcl.c if_ruby.c \
 	    gui_beval.c netbeans.c job.c channel.c \
 	    $(GRESOURCE_SRC)
+
+$(WAYLAND_SRC):
+	cd auto/wayland; $(MAKE)
+
+# Needed for parallel jobs to work
+auto/wayland/ext-data-control-v1.h: auto/wayland/ext-data-control-v1.c
+auto/wayland/wlr-data-control-unstable-v1.h: auto/wayland/wlr-data-control-unstable-v1.c
+auto/wayland/primary-selection-unstable-v1.h: auto/wayland/primary-selection-unstable-v1.c
+auto/wayland/xdg-shell.h: auto/wayland/xdg-shell.c
 
 # Unittest files
 JSON_TEST_SRC = json_test.c
@@ -1654,7 +1667,8 @@ UNITTEST_TARGETS = $(JSON_TEST_TARGET) $(KWORD_TEST_TARGET) $(MEMFILE_TEST_TARGE
 RUN_UNITTESTS = run_json_test run_kword_test run_memfile_test run_message_test
 
 # All sources, also the ones that are not configured
-ALL_LOCAL_SRC = $(BASIC_SRC) $(ALL_GUI_SRC) $(UNITTEST_SRC) $(EXTRA_SRC)
+ALL_LOCAL_SRC = $(BASIC_SRC) $(ALL_GUI_SRC) $(UNITTEST_SRC) $(EXTRA_SRC) \
+		$(WAYLAND_SRC)
 ALL_SRC = $(ALL_LOCAL_SRC) $(TERM_SRC) $(XDIFF_SRC)
 
 # Which files to check with lint.  Select one of these three lines.  ALL_SRC
@@ -1756,6 +1770,7 @@ OBJ_COMMON = \
 	objects/spellsuggest.o \
 	objects/strings.o \
 	objects/syntax.o \
+	objects/tabpanel.o \
 	objects/tag.o \
 	objects/term.o \
 	objects/terminal.o \
@@ -1776,6 +1791,7 @@ OBJ_COMMON = \
 	objects/vim9compile.o \
 	objects/vim9execute.o \
 	objects/vim9expr.o \
+	objects/vim9generics.o \
 	objects/vim9instr.o \
 	objects/vim9script.o \
 	objects/vim9type.o \
@@ -1794,7 +1810,8 @@ OBJ_COMMON = \
 	$(OS_EXTRA_OBJ) \
 	$(NETBEANS_OBJ) \
 	$(CHANNEL_OBJ) \
-	$(XDIFF_OBJS_USED)
+	$(XDIFF_OBJS_USED) \
+	$(WAYLAND_OBJ)
 
 # The files included by tests are not in OBJ_COMMON.
 OBJ_MAIN = \
@@ -1949,6 +1966,7 @@ PRO_AUTO = \
 	spellsuggest.pro \
 	strings.pro \
 	syntax.pro \
+	tabpanel.pro \
 	tag.pro \
 	term.pro \
 	terminal.pro \
@@ -1970,6 +1988,7 @@ PRO_AUTO = \
 	vim9compile.pro \
 	vim9execute.pro \
 	vim9expr.pro \
+	vim9generics.pro \
 	vim9instr.pro \
 	vim9script.pro \
 	vim9type.pro \
@@ -2056,7 +2075,7 @@ autoconf:
 	-rm -rf autom4te.cache
 	-rm -f auto/config.status auto/config.cache
 
-# Run vim script to generate the Ex command lookup table.
+# Run Vim script to generate the Ex command lookup table.
 # This only needs to be run when a command name has been added or changed.
 # If this fails because you don't have Vim yet, first build and install Vim
 # without changes.
@@ -2064,7 +2083,7 @@ autoconf:
 cmdidxs: ex_cmds.h
 	vim --clean -X --not-a-term -S create_cmdidxs.vim -c quit
 
-# Run vim script to generate the normal/visual mode command lookup table.
+# Run Vim script to generate the normal/visual mode command lookup table.
 # This only needs to be run when a new normal/visual mode command has been
 # added.
 # This requires a "vim" executable with the +eval feature.
@@ -2976,6 +2995,7 @@ clean celan: testclean macvimclean
 		cd $(PODIR); $(MAKE) prefix=$(DESTDIR)$(prefix) clean; \
 	fi
 	cd xxd; $(MAKE) clean
+	cd auto/wayland; $(MAKE) clean
 
 # Make a shadow directory for compilation on another system or with different
 # features:
@@ -3004,6 +3024,8 @@ shadow:	runtime pixmaps
 	$(MKDIR_P) $(SHADOWDIR)
 	cd $(SHADOWDIR); ln -s $(LINKEDFILES) .
 	mkdir $(SHADOWDIR)/auto
+	mkdir $(SHADOWDIR)/auto/wayland
+	cd $(SHADOWDIR)/auto/wayland; ln -s ../../../auto/wayland/* .
 	cd $(SHADOWDIR)/auto; ln -s ../../auto/configure .
 	$(MKDIR_P) $(SHADOWDIR)/po
 	cd $(SHADOWDIR)/po; ln -s ../../po/*.po ../../po/*.mak ../../po/*.vim ../../po/*.in ../../po/Makefile ../../po/*.c .
@@ -3028,6 +3050,7 @@ shadow:	runtime pixmaps
 				 ../../testdir/ru_RU \
 				 ../../testdir/sautest \
 				 ../../testdir/samples \
+				 ../../testdir/util \
 				 ../../testdir/dumps \
 				 ../../testdir/*.ok \
 				 ../../testdir/testluaplugin \
@@ -3581,6 +3604,9 @@ objects/strings.o: strings.c
 objects/syntax.o: syntax.c
 	$(CCC) -o $@ syntax.c
 
+objects/tabpanel.o: tabpanel.c
+	$(CCC) -o $@ tabpanel.c
+
 objects/tag.o: tag.c
 	$(CCC) -o $@ tag.c
 
@@ -3641,6 +3667,9 @@ objects/vim9execute.o: vim9execute.c
 objects/vim9expr.o: vim9expr.c
 	$(CCC) -o $@ vim9expr.c
 
+objects/vim9generics.o: vim9generics.c
+	$(CCC) -o $@ vim9generics.c
+
 objects/vim9instr.o: vim9instr.c
 	$(CCC) -o $@ vim9instr.c
 
@@ -3655,6 +3684,21 @@ objects/viminfo.o: viminfo.c
 
 objects/window.o: window.c
 	$(CCC) -o $@ window.c
+
+objects/wayland.o: wayland.c
+	$(CCC) $(WAYLAND_CFLAGS) -o $@ wayland.c
+
+objects/wlr-data-control-unstable-v1.o: auto/wayland/wlr-data-control-unstable-v1.c
+	$(CCC) $(WAYLAND_CFLAGS) -o $@ auto/wayland/wlr-data-control-unstable-v1.c
+
+objects/ext-data-control-v1.o: auto/wayland/ext-data-control-v1.c
+	$(CCC) $(WAYLAND_CFLAGS) -o $@ auto/wayland/ext-data-control-v1.c
+
+objects/xdg-shell.o: auto/wayland/xdg-shell.c
+	$(CCC) $(WAYLAND_CFLAGS) -o $@ auto/wayland/xdg-shell.c
+
+objects/primary-selection-unstable-v1.o: auto/wayland/primary-selection-unstable-v1.c
+	$(CCC) $(WAYLAND_CFLAGS) -o $@ auto/wayland/primary-selection-unstable-v1.c
 
 objects/netbeans.o: netbeans.c
 	$(CCC) -o $@ netbeans.c
@@ -4346,6 +4390,11 @@ objects/syntax.o: syntax.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
   libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
   ex_cmds.h spell.h proto.h globals.h errors.h
+objects/tabpanel.o: tabpanel.c vim.h protodef.h auto/config.h feature.h os_unix.h \
+  os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
+  proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/tag.o: tag.c vim.h protodef.h auto/config.h feature.h os_unix.h os_mac.h \
   ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
@@ -4451,6 +4500,12 @@ objects/vim9expr.o: vim9expr.c vim.h protodef.h auto/config.h feature.h os_unix.
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
   libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
   ex_cmds.h spell.h proto.h globals.h errors.h vim9.h
+objects/vim9generics.o: vim9generics.c vim.h protodef.h auto/config.h feature.h \
+  os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h option.h \
+  beval.h proto/gui_beval.pro structs.h regexp.h gui.h \
+  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
+  xdiff/xdiff.h xdiff/../vim.h alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h
 objects/vim9instr.o: vim9instr.c vim.h protodef.h auto/config.h feature.h \
   os_unix.h os_mac.h ascii.h keymap.h termdefs.h macros.h option.h \
   beval.h proto/gui_beval.pro structs.h regexp.h gui.h \

@@ -279,12 +279,13 @@ enum key_extra
     , KE_S_BS = 105		// shift + <BS>
     , KE_SID = 106		// <SID> special key, followed by {nr};
     , KE_ESC = 107		// used for K_ESC
+    , KE_WILD = 108		// triggers wildmode completion
 #ifdef FEAT_GUI_MACVIM
-    , KE_SWIPELEFT = 108	// Swipe trackpad left
-    , KE_SWIPERIGHT = 109	// Swipe trackpad right
-    , KE_SWIPEUP = 110		// Swipe trackpad up
-    , KE_SWIPEDOWN = 111	// Swipe trackpad down
-    , KE_FORCECLICK = 112	// Force click on trackpad
+    , KE_SWIPELEFT = 109	// Swipe trackpad left
+    , KE_SWIPERIGHT = 110	// Swipe trackpad right
+    , KE_SWIPEUP = 111		// Swipe trackpad up
+    , KE_SWIPEDOWN = 112	// Swipe trackpad down
+    , KE_FORCECLICK = 113	// Force click on trackpad
 #endif
 };
 
@@ -497,6 +498,8 @@ enum key_extra
 #define K_COMMAND	TERMCAP2KEY(KS_EXTRA, KE_COMMAND)
 #define K_SCRIPT_COMMAND TERMCAP2KEY(KS_EXTRA, KE_SCRIPT_COMMAND)
 #define K_SID		TERMCAP2KEY(KS_EXTRA, KE_SID)
+
+#define K_WILD		TERMCAP2KEY(KS_EXTRA, KE_WILD)
 
 #ifdef FEAT_GUI_MACVIM
 # define K_SWIPELEFT	TERMCAP2KEY(KS_EXTRA, KE_SWIPELEFT)

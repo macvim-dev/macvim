@@ -461,8 +461,8 @@ cmdsrv_main(
 		    if (p == NULL)
 			break;
 # elif defined(MAC_CLIENTSERVER)
-                    if (serverReadReply(srv, &p, 0) < 0)
-                        break;
+		    if (serverReadReply(srv, &p, 0) < 0)
+			break;
 # else
 		    if (serverReadReply(xterm_dpy, srv, &p, TRUE, -1) < 0)
 			break;
@@ -953,7 +953,7 @@ f_remote_read(typval_T *argvars UNUSED, typval_T *rettv)
 	    r = serverGetReply((HWND)n, FALSE, TRUE, TRUE, timeout);
 	if (r == NULL)
 # elif defined(MAC_CLIENTSERVER)
-        if (serverReadReply(serverStrToPort(serverid), &r, timeout) < 0)
+	if (serverReadReply(serverStrToPort(serverid), &r, timeout) < 0)
 # else
 	if (check_connection() == FAIL
 		|| serverReadReply(X_DISPLAY, serverStrToWin(serverid),

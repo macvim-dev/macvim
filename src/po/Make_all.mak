@@ -4,7 +4,6 @@
 
 LANGUAGES = \
 		af \
-		am \
 		ca \
 		cs \
 		da \
@@ -16,6 +15,7 @@ LANGUAGES = \
 		fr \
 		ga \
 		hu \
+		hy \
 		it \
 		ja \
 		ko.UTF-8 \
@@ -59,7 +59,6 @@ LANGUAGES_UTF8_ONLY = \
 
 POFILES = \
 		af.po \
-		am.po \
 		ca.po \
 		cs.po \
 		da.po \
@@ -71,6 +70,7 @@ POFILES = \
 		fr.po \
 		ga.po \
 		hu.po \
+		hy.po \
 		it.po \
 		ja.po \
 		ko.UTF-8.po \
@@ -107,7 +107,6 @@ POFILES = \
 
 MOFILES = \
 		af.mo \
-		am.mo \
 		ca.mo \
 		cs.mo \
 		da.mo \
@@ -119,6 +118,7 @@ MOFILES = \
 		fr.mo \
 		ga.mo \
 		hu.mo \
+		hy.mo \
 		it.mo \
 		ja.mo \
 		ko.UTF-8.mo \
@@ -169,6 +169,7 @@ CHECKFILES = \
 		fr.ck \
 		ga.ck \
 		hu.ck \
+		hy.ck \
 		it.ck \
 		ja.ck \
 		ko.UTF-8.ck \

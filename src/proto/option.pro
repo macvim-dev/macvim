@@ -1,4 +1,5 @@
 /* option.c */
+char *did_set_showtabpanel(optset_T *args);
 void set_init_1(int clean_arg);
 void set_fencs_unicode(void);
 void set_string_default(char *name, char_u *val);
@@ -64,6 +65,7 @@ char *did_set_pyxversion(optset_T *args);
 char *did_set_readonly(optset_T *args);
 char *did_set_scrollbind(optset_T *args);
 char *did_set_shellslash(optset_T *args);
+char *did_set_maxsearchcount(optset_T *args);
 char *did_set_shiftwidth_tabstop(optset_T *args);
 char *did_set_showtabline(optset_T *args);
 char *did_set_smoothscroll(optset_T *args);
@@ -87,7 +89,10 @@ char *did_set_winheight_helpheight(optset_T *args);
 char *did_set_winminheight(optset_T *args);
 char *did_set_winminwidth(optset_T *args);
 char *did_set_winwidth(optset_T *args);
+char *did_set_wlsteal(optset_T *args);
+char *did_set_wltimeoutlen(optset_T *args);
 char *did_set_wrap(optset_T *args);
+char *did_set_xhistory(optset_T *args);
 
 // MacVim options
 char *did_set_antialias(optset_T *args);

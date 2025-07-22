@@ -1,7 +1,5 @@
 " Tests for cursor() and other functions that get/set the cursor position
 
-source check.vim
-
 func Test_wrong_arguments()
   call assert_fails('call cursor(1. 3)', 'E474:')
   call assert_fails('call cursor(test_null_list())', 'E474:')
@@ -92,6 +90,10 @@ func Test_curswant_with_cursorline()
 endfunc
 
 func Test_screenpos()
+  if has('gui_running')
+    set lines=25
+    set columns=78
+  endif
   rightbelow new
   rightbelow 20vsplit
   call setline(1, ["\tsome text", "long wrapping line here", "next line"])
