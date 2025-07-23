@@ -2,24 +2,33 @@
 
 # Utility script to sign MacVim with a valid Developer ID with hardened runtime
 # along with a provided entitlments file. This script requires a Developer ID
-# cert already installed on the computer.
+# cert already installed on the computer, unless only making adhoc signatures.
 
 # Use the following to verify:
 #     codesign -d --verbose=4 --entitlements - <MacVim_app>
 
 if [[ $# == 0 || $# == 1 ]]; then
-    echo "Usage: sign-developer-id <MacVim_app> <entitlements_file>"
+    echo "Usage: sign-developer-id [--adhoc] <MacVim_app> <entitlements_file>"
     exit -1
 fi
 
 set -e
+
+signature_identity="Developer ID Application"
+
+if [[ "$1" == "--adhoc" ]]; then
+    # Create an adhoc signature. This is useful for local testing, but cannot
+    # generate a valid signed app that you could distribute to other people.
+    signature_identity="-"
+    shift
+fi
 
 macvim_path=$1
 entitlements=$2
 
 if [[ "$macvim_path" =~ dmg ]]; then
     set -x
-    codesign -f -s "Developer ID Application" -o runtime --timestamp "$macvim_path"
+    codesign -f -s "$signature_identity" -o runtime --timestamp "$macvim_path"
 else
     # Sign bottom-up to make sure everything is signed in order.
     # Note: Not using --deep because it's been deprecated since macOS 13, and
@@ -27,21 +36,21 @@ else
     # explicit and sign everything in order to be clear what we are doing.
     if [ -d "$macvim_path/Contents/Frameworks/Sparkle.framework/Versions/A" ]; then
         (set -x
-        codesign -f -s "Developer ID Application" -o runtime --timestamp "$macvim_path/Contents/Frameworks/Sparkle.framework/Versions/A/Resources/Autoupdate.app/Contents/MacOS/fileop"
-        codesign -f -s "Developer ID Application" -o runtime --timestamp "$macvim_path/Contents/Frameworks/Sparkle.framework/Versions/A/Resources/Autoupdate.app")
+        codesign -f -s "$signature_identity" -o runtime --timestamp "$macvim_path/Contents/Frameworks/Sparkle.framework/Versions/A/Resources/Autoupdate.app/Contents/MacOS/fileop"
+        codesign -f -s "$signature_identity" -o runtime --timestamp "$macvim_path/Contents/Frameworks/Sparkle.framework/Versions/A/Resources/Autoupdate.app")
     fi
     if [ -d $macvim_path/Contents/Frameworks/Sparkle.framework/Versions/B ]; then
         (set -x
-        codesign -f -s "Developer ID Application" -o runtime --timestamp "$macvim_path/Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate"
-        codesign -f -s "Developer ID Application" -o runtime --timestamp "$macvim_path/Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app")
+        codesign -f -s "$signature_identity" -o runtime --timestamp "$macvim_path/Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate"
+        codesign -f -s "$signature_identity" -o runtime --timestamp "$macvim_path/Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app")
     fi
     if [ -d $macvim_path/Contents/Frameworks/Sparkle.framework ]; then
         (set -x
-        codesign -f -s "Developer ID Application" -o runtime --timestamp "$macvim_path/Contents/Frameworks/Sparkle.framework")
+        codesign -f -s "$signature_identity" -o runtime --timestamp "$macvim_path/Contents/Frameworks/Sparkle.framework")
     fi
     set -x
-    codesign -f -s "Developer ID Application" -o runtime --timestamp "$macvim_path/Contents/Library/QuickLook/QLStephen.qlgenerator/Contents/MacOS/QLStephen"
-    codesign -f -s "Developer ID Application" -o runtime --timestamp --entitlements $entitlements "$macvim_path/Contents/bin/xxd"
-    codesign -f -s "Developer ID Application" -o runtime --timestamp --entitlements $entitlements "$macvim_path/Contents/MacOS/Vim"
-    codesign -f -s "Developer ID Application" -o runtime --timestamp --entitlements $entitlements "$macvim_path"
+    codesign -f -s "$signature_identity" -o runtime --timestamp "$macvim_path/Contents/Library/QuickLook/QLStephen.qlgenerator/Contents/MacOS/QLStephen"
+    codesign -f -s "$signature_identity" -o runtime --timestamp "$macvim_path/Contents/bin/xxd"
+    codesign -f -s "$signature_identity" -o runtime --timestamp --entitlements $entitlements "$macvim_path/Contents/MacOS/Vim"
+    codesign -f -s "$signature_identity" -o runtime --timestamp --entitlements $entitlements "$macvim_path"
 fi
