@@ -41,7 +41,7 @@ jobs:
 
           # Most up to date OS and Xcode. Used to publish release for the main build.
           - os: macos-15
-            xcode: '16.2'
+            xcode: '16.4'
             testgui: true
             publish: true
             optimized: true
