@@ -3773,7 +3773,7 @@ Makefile:
 
 ##############################################################################
 ### MacVim GUI
-.PHONY: macvim macvim-dmg macvim-dmg-legacy macvimclean macvim-signed macvim-dmg-release macvim-dmg-release-legacy macvim-install-runtime macvim-xcodeproj-compat
+.PHONY: macvim macvim-dmg macvim-dmg-legacy macvimclean macvim-signed macvim-signed-adhoc macvim-dmg-release macvim-dmg-release-legacy macvim-install-runtime macvim-xcodeproj-compat
 
 RUNTIME_FOLDER_LIST = MacVim/auto/runtime_folder_list.xcfilelist
 
@@ -3802,6 +3802,9 @@ macvim-tests:
 
 macvim-signed:
 	MacVim/scripts/sign-developer-id $(RELEASEDIR)/MacVim.app $(ENTITLEMENTS)
+
+macvim-signed-adhoc:
+	MacVim/scripts/sign-developer-id --adhoc $(RELEASEDIR)/MacVim.app $(ENTITLEMENTS)
 
 macvim-dmg-legacy: DMGFILESYSTEM = HFS+
 macvim-dmg-legacy: DMGFORMAT = UDZO
