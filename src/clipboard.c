@@ -2356,8 +2356,6 @@ clip_wl_receive_data(Clipboard_T *cbd, const char *mime_type, int fd)
 
     FD_ZERO(&rfds);
     FD_SET(fd, &rfds);
-    tv.tv_sec = 0;
-    tv.tv_usec = p_wtm * 1000;
 #endif
 
     // Make pipe (read end) non-blocking
@@ -2385,10 +2383,13 @@ clip_wl_receive_data(Clipboard_T *cbd, const char *mime_type, int fd)
 poll_data:
 #ifndef HAVE_SELECT
 		if (poll(&pfd, 1, p_wtm) > 0)
-#else
-		if (select(fd + 1, &rfds, NULL, NULL, &tv) > 0)
-#endif
 		    continue;
+#else
+		tv.tv_sec = 0;
+		tv.tv_usec = p_wtm * 1000;
+		if (select(fd + 1, &rfds, NULL, NULL, &tv) > 0)
+		    continue;
+#endif
 	    }
 	    break;
 	}
@@ -2621,6 +2622,11 @@ clip_wl_send_data(
 	if (written == -1)
 	   break;
 	total += written;
+
+#ifdef HAVE_SELECT
+	tv.tv_sec = 0;
+	tv.tv_usec = p_wtm * 1000;
+#endif
     }
 exit:
     vim_free(string);

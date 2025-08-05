@@ -1,6 +1,6 @@
 dnl configure.ac: autoconf script for Vim
 
-dnl Process this file with autoconf 2.71 to produce "configure".
+dnl Process this file with autoconf 2.72 to produce "configure".
 
 AC_INIT
 AC_CONFIG_SRCDIR([vim.h])
@@ -2346,10 +2346,10 @@ AC_SUBST(RUBY_LIBS)
 AC_MSG_CHECKING(--enable-cscope argument)
 AC_ARG_ENABLE(cscope,
 	[  --enable-cscope         Include cscope interface.], ,
-	[enable_cscope="no"])
+	[enable_cscope="yes"])
 AC_MSG_RESULT($enable_cscope)
 if test "$enable_cscope" = "yes"; then
-  AC_DEFINE(FEAT_CSCOPE)
+  AC_DEFINE(ENABLE_CSCOPE)
 fi
 
 AC_MSG_CHECKING(--disable-netbeans argument)

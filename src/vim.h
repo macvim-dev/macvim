@@ -24,7 +24,11 @@
 // ============ the header file puzzle: order matters =========
 
 #ifdef HAVE_CONFIG_H	// GNU autoconf (or something else) was here
-# include "auto/config.h"
+# ifdef VMS
+#  include "config.h"   /* Rely on /INCLUDE to find it. */
+# else
+#  include "auto/config.h"
+# endif /* def VMS [else] */
 # define HAVE_PATHDEF
 
 /*
@@ -523,6 +527,7 @@ typedef long long vimlong_T;
 
 // for offsetof()
 #include <stddef.h>
+#include <stdbool.h>
 
 #if defined(HAVE_SYS_SELECT_H) && \
 	(!defined(HAVE_SYS_TIME_H) || defined(SYS_SELECT_WITH_SYS_TIME))
