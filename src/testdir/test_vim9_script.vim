@@ -1426,6 +1426,31 @@ def Test_try_catch_fails()
   v9.CheckDefFailure(['for i in range(5)', 'endtry'], 'E170:')
   v9.CheckDefFailure(['if 1', 'endtry'], 'E171:')
   v9.CheckDefFailure(['try', 'echo 1', 'endtry'], 'E1032:')
+  v9.CheckDefFailure(['try'], 'E600:')
+  v9.CheckDefFailure(['try', 'echo 0'], 'E600:')
+  v9.CheckDefFailure(['try', 'echo 0', 'catch'], 'E600:')
+  v9.CheckDefFailure(['try', 'echo 0', 'catch', 'echo 1'], 'E600:')
+  v9.CheckDefFailure(['try', 'echo 0', 'catch', 'echo 1', 'finally'], 'E600:')
+  v9.CheckDefFailure(['try', 'echo 0', 'catch', 'echo 1', 'finally', 'echo 2'], 'E600:')
+
+  # Missing :endtry inside a nested :try
+  var outer1 =<< trim END
+      try
+        echo 0
+      catch
+        echo 1
+  END
+  var outer2 =<< trim END
+      finally
+        echo 2
+      endtry
+  END
+  v9.CheckDefFailure(outer1 + ['try'] + outer2, 'E600:')
+  v9.CheckDefFailure(outer1 + ['try', 'echo 10'] + outer2, 'E600:')
+  v9.CheckDefFailure(outer1 + ['try', 'echo 10', 'catch'] + outer2, 'E600:')
+  v9.CheckDefFailure(outer1 + ['try', 'echo 10', 'catch', 'echo 11'] + outer2, 'E600:')
+  v9.CheckDefFailure(outer1 + ['try', 'echo 10', 'catch', 'echo 11', 'finally'] + outer2, 'E607:')
+  v9.CheckDefFailure(outer1 + ['try', 'echo 10', 'catch', 'echo 11', 'finally', 'echo 12'] + outer2, 'E607:')
 
   v9.CheckDefFailure(['throw'], 'E1143:')
   v9.CheckDefFailure(['throw xxx'], 'E1001:')
@@ -2805,6 +2830,35 @@ def Test_define_global_closure_in_loops()
   delfunc g:Global_0a
   delfunc g:Global_1b
   delfunc g:Global_2c
+enddef
+
+" Test for using a closure in a for loop after another for/while loop
+def Test_for_loop_with_closure_after_another_loop()
+  var lines =<< trim END
+    vim9script
+    def Fn()
+      # first loop with a local variable
+      for i in 'a'
+        var v1 = 0
+      endfor
+      var idx = 1
+      while idx > 0
+        idx -= 1
+      endwhile
+      var results = []
+      var s = 'abc'
+      # second loop with a local variable and a funcref
+      for j in range(2)
+        var k = 0
+        results->add(s)
+        g:FuncRefs = () => j
+      endfor
+      assert_equal(['abc', 'abc'], results)
+    enddef
+    Fn()
+  END
+  v9.CheckScriptSuccess(lines)
+  unlet g:FuncRefs
 enddef
 
 def Test_for_loop_fails()

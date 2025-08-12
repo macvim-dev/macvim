@@ -12,20 +12,18 @@
 !ENDIF
 
 !IFNDEF LANGUAGE
-! IF [powershell.exe -nologo -noprofile $$lng=(Get-UICulture).TwoLetterISOLanguageName; \
-	$$Env:LANGUAGE=$$lng;Set-Content -Path .\lng.tmp -Value "LANGUAGE=$$lng"]
+! IF ![powershell.exe -NoLogo -NoProfile -Command \
+	Set-Content -Path .\_lng.tmp \
+	-Value "LANGUAGE=$$((Get-UICulture).TwoLetterISOLanguageName)"]
+!  INCLUDE _lng.tmp
+!  IF [del /q .\_lng.tmp]
+!  ENDIF
+!  MESSAGE
+!  MESSAGE The %LANGUAGE% environment variable is not set.
+!  MESSAGE This variable will be temporarily set to "$(LANGUAGE)" while "nmake.exe" is running.
+!  MESSAGE See README_mvc.txt for more information on the %LANGUAGE% environment variable.
+!  MESSAGE
 ! ENDIF
-# In order for the "install" and "cleanup-po" rule to work.
-# The others work with just setting the environment variable.
-# And to show in the message.
-! INCLUDE lng.tmp
-! IF [del /q .\lng.tmp]
-! ENDIF
-! MESSAGE
-! MESSAGE The %LANGUAGE% environment variable is not set.
-! MESSAGE This variable will be temporarily set to "$(LANGUAGE)" while "nmake.exe" is running.
-! MESSAGE See README_mvc.txt for more information on the %LANGUAGE% environment variable.
-! MESSAGE
 !ELSE
 ! MESSAGE LANGUAGE is already set "$(LANGUAGE)"
 !ENDIF
@@ -53,8 +51,8 @@ GETTEXT_PATH = D:\Programs\GetText\bin
 # Starting from version 0.22, msgfmt forcibly converts text to UTF-8 regardless
 # of the value of the "charset" field.
 !IF [%comspec% /v:on /e:on /c "for /F "tokens=4 delims= " %G in \
-	('"$(GETTEXT_PATH)\msgfmt.exe" --version^|findstr /rc:[0-9^]\.[0-9^][0-9^]') do \
-		@(set "v=%G" && if !v:~2^,2! GEQ 22 exit /b 1)"]
+	('"$(GETTEXT_PATH)\msgfmt.exe" --version^|findstr /rc:[0-9^]\.[0-9^][0-9^]')\
+	do @(set "v=%G" && if !v:~2^,2! GEQ 22 exit /b 1)"]
 MSGFMT = "$(GETTEXT_PATH)\msgfmt.exe" -v --no-convert
 !ELSE
 MSGFMT = "$(GETTEXT_PATH)\msgfmt.exe" -v
@@ -94,6 +92,13 @@ PSFLAGS = -NoLogo -NoProfile -Command
 
 INSTALLDIR = $(VIMRUNTIME)\lang\$(LANGUAGE)\LC_MESSAGES
 
+!IF ![$(PS) $(PSFLAGS) Set-Content -Path .\_year.tmp \
+	-Value Year=$$((Get-Date).Year)]
+! INCLUDE .\_year.tmp
+! IF [$(RM) .\_year.tmp]
+! ENDIF
+!ENDIF
+
 .SUFFIXES:
 .SUFFIXES: .po .mo .pot .ck
 
@@ -104,8 +109,8 @@ originals : $(MOFILES)
 converted: $(MOCONVERTED)
 
 .po.ck:
-	"$(VIMPROG)" -u NONE --noplugins -e -s -X --cmd "set enc=utf-8" -S check.vim \
-		-c "if error == 0 | q | else | num 2 | cq | endif" $<
+	"$(VIMPROG)" -u NONE --noplugins -e -s -X --cmd "set enc=utf-8" \
+		-S check.vim -c "if error == 0 | q | else | num 2 | cq | endif" $<
 	$(TOUCH_TARGET)
 
 check: $(CHECKFILES)
@@ -456,11 +461,14 @@ first_time: files
 	@ copy /b .\files+.\vim_to_js .\allfiles
 	set OLD_PO_FILE_INPUT=yes
 	set OLD_PO_FILE_OUTPUT=yes
-	$(XGETTEXT) --default-domain=$(LANGUAGE) --add-comments $(XGETTEXT_KEYWORDS) \
-		--files-from=.\allfiles
+	$(XGETTEXT) --default-domain=$(LANGUAGE) --add-comments \
+		$(XGETTEXT_KEYWORDS) --files-from=.\allfiles \
+		--copyright-holder="$(Year), The Vim Project" --package-name=Vim \
+		--msgid-bugs-address="vim-dev@vim.org"
 	"$(VIMPROG)" -u NONE --not-a-term -S fixfilenames.vim $(LANGUAGE).po \
 		$(PO_VIM_INPUTLIST)
 	$(RM) *.js .\vim_to_js
+	@$(MAKE) -lf Make_mvc.mak clean
 
 $(PACKAGE).pot: files
 	"$(VIMPROG)" -u NONE --not-a-term -S tojavascript.vim $(PACKAGE).pot \
@@ -469,10 +477,13 @@ $(PACKAGE).pot: files
 	set OLD_PO_FILE_INPUT=yes
 	set OLD_PO_FILE_OUTPUT=yes
 	$(XGETTEXT) --default-domain=$(PACKAGE) --output=$(PACKAGE).pot \
-		--add-comments $(XGETTEXT_KEYWORDS) --files-from=.\allfiles
+		--add-comments $(XGETTEXT_KEYWORDS) --files-from=.\allfiles \
+		--no-location --copyright-holder="$(Year), The Vim Project" \
+		--package-name=Vim --msgid-bugs-address="vim-dev@vim.org"
 	"$(VIMPROG)" -u NONE --not-a-term -S fixfilenames.vim $(PACKAGE).pot \
 		$(PO_VIM_INPUTLIST)
 	$(RM) *.js .\vim_to_js
+	@$(MAKE) -lf Make_mvc.mak clean
 
 # Only original translations with default encoding should be updated.
 # The files that are converted to a different encoding clearly state "DO NOT EDIT".
@@ -480,7 +491,7 @@ update-po: $(MOFILES:.mo=)
 
 # Don't add a dependency here, we only want to update the .po files manually.
 $(LANGUAGES):
-	@$(MAKE) -nologo -f Make_mvc.mak GETTEXT_PATH="$(GETTEXT_PATH)" $(PACKAGE).pot
+	@$(MAKE) -lf Make_mvc.mak GETTEXT_PATH="$(GETTEXT_PATH)" $(PACKAGE).pot
 	$(CP) $@.po $@.po.orig
 	$(MV) $@.po $@.po.old
 	$(MSGMERGE) $@.po.old $(PACKAGE).pot -o $@.po

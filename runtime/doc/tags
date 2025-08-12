@@ -4747,6 +4747,7 @@ E1559	vim9.txt	/*E1559*
 E156	sign.txt	/*E156*
 E1560	vim9.txt	/*E1560*
 E1561	vim9.txt	/*E1561*
+E1562	options.txt	/*E1562*
 E157	sign.txt	/*E157*
 E158	sign.txt	/*E158*
 E159	sign.txt	/*E159*
@@ -5711,6 +5712,7 @@ GetLatestVimScripts_dat	pi_getscript.txt	/*GetLatestVimScripts_dat*
 Gnome	gui_x11.txt	/*Gnome*
 H	motion.txt	/*H*
 Haiku	os_haiku.txt	/*Haiku*
+HelpToc-mappings	helphelp.txt	/*HelpToc-mappings*
 I	insert.txt	/*I*
 ICCF	uganda.txt	/*ICCF*
 IM-server	mbyte.txt	/*IM-server*

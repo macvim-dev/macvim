@@ -3053,6 +3053,14 @@ func Test_wildmenu_pum_rightleft()
   call term_sendkeys(buf, ":sign \<Tab>")
   call VerifyScreenDump(buf, 'Test_wildmenu_pum_rl', {})
 
+  " Behavior is the same when using 'keymap'.
+  call term_sendkeys(buf, "\<Esc>:set keymap=dvorak\<CR>")
+  call TermWait(buf)
+  " ";gul" -> "sign" when using Dvorak keymap.
+  call term_sendkeys(buf, ":\<C-^>;gul \<Tab>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_pum_rl', {})
+  call term_sendkeys(buf, "\<Esc>:set keymap&\<CR>")
+
   call StopVimInTerminal(buf)
 endfunc
 
@@ -4564,11 +4572,19 @@ func Test_search_complete()
   call feedkeys("gg/r\\n.*\\n\<tab>\<f9>", 'tx')
   call assert_equal(['r\nFoobar\nfooBAr', 'r\nfooBAr\nFooBARR'], g:compl_info.matches)
 
+  " Issue #17858
+  %d
+  set wildcharm=0 incsearch& ignorecase& smartcase& wildoptions&
+  setlocal iskeyword=!-~,192-255
+  let l:lines = ['th=~/foo', 'these', 'tho']
+  call setline(1, l:lines)
+  call feedkeys("G/th\<tab>\<f9>", 'tx')
+  call assert_equal(l:lines, g:compl_info.matches)
+
   bw!
   call test_override("char_avail", 0)
   delfunc GetComplInfo
   unlet! g:compl_info
-  set wildcharm=0 incsearch& ignorecase& smartcase& wildoptions&
 endfunc
 
 func Test_search_wildmenu_screendump()
@@ -4614,6 +4630,36 @@ func Test_search_wildmenu_screendump()
   call VerifyScreenDump(buf, 'Test_search_wildmenu_7', {})
   call term_sendkeys(buf, "\<c-n>\<c-y>")
   call VerifyScreenDump(buf, 'Test_search_wildmenu_8', {})
+
+  " 'incsearch' highlight is restored after dismissing popup (Ctrl_E)
+  call term_sendkeys(buf, "\<esc>:set wop=pum is hls&\<cr>")
+  call term_sendkeys(buf, "gg/th\<tab>\<c-e>")
+  call TermWait(buf, 50)
+  call VerifyScreenDump(buf, 'Test_search_wildmenu_9', {})
+
+  call term_sendkeys(buf, "\<esc>")
+  call StopVimInTerminal(buf)
+endfunc
+
+" Issue #17858
+func Test_search_wildmenu_iminsert()
+  CheckScreendump
+
+  let lines =<< trim [SCRIPT]
+    set wop=pum imi=1
+    setlocal iskeyword=!-~,192-255
+    call setline(1, [
+          \ "global toggle global-local global/local glyphs toggles English",
+          \ "accordingly. toggled accordingly single-byte",
+          \ ])
+    call cursor(2, 42)
+  [SCRIPT]
+  call writefile(lines, 'XTest_search_wildmenu', 'D')
+  let buf = RunVimInTerminal('-S XTest_search_wildmenu', {'rows': 12})
+
+  call term_sendkeys(buf, "/gl\<Tab>")
+  call TermWait(buf, 50)
+  call VerifyScreenDump(buf, 'Test_search_wildmenu_iminsert', {})
 
   call term_sendkeys(buf, "\<esc>")
   call StopVimInTerminal(buf)
@@ -4774,6 +4820,43 @@ func Test_cmdline_changed()
   delfunc TestComplete
   delcommand Test
   call test_override("char_avail", 0)
+endfunc
+
+func Test_wildtrigger_update_screen()
+  CheckScreendump
+  let lines =<< trim [SCRIPT]
+    command! -nargs=* -complete=customlist,TestFn TestCmd echo
+    func TestFn(cmdarg, b, c)
+      if a:cmdarg == 'ax'
+        return []
+      else
+        return map(range(1, 5), 'printf("abc%d", v:val)')
+      endif
+    endfunc
+    set wildmode=noselect,full
+    set wildoptions=pum
+    set wildmenu
+    cnoremap <F8> <C-R>=wildtrigger()[-1]<CR>
+  [SCRIPT]
+  call writefile(lines, 'XTest_wildtrigger', 'D')
+  let buf = RunVimInTerminal('-S XTest_wildtrigger', {'rows': 10})
+
+  call term_sendkeys(buf, ":TestCmd a\<F8>")
+  call VerifyScreenDump(buf, 'Test_wildtrigger_update_screen_1', {})
+
+  " Typing a character when pum is open does not close the pum window
+  " This is needed to prevent pum window from flickering during
+  " ':h cmdline-autocompletion'.
+  call term_sendkeys(buf, "x")
+  call VerifyScreenDump(buf, 'Test_wildtrigger_update_screen_2', {})
+
+  " pum window is closed when no completion candidates are available
+  call term_sendkeys(buf, "\<F8>")
+  call VerifyScreenDump(buf, 'Test_wildtrigger_update_screen_3', {})
+
+  call term_sendkeys(buf, "\<esc>")
+  call StopVimInTerminal(buf)
+  cnoremap <buffer> <F8> <C-R>=wildtrigger()[-1]<CR>
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab
