@@ -1542,6 +1542,7 @@ BASIC_SRC = \
 	findfile.c \
 	float.c \
 	fold.c \
+	fuzzy.c \
 	getchar.c \
 	gc.c \
 	gui_xim.c \
@@ -1720,6 +1721,7 @@ OBJ_COMMON = \
 	objects/findfile.o \
 	objects/float.o \
 	objects/fold.o \
+	objects/fuzzy.o \
 	objects/getchar.o \
 	objects/gc.o \
 	objects/gui_xim.o \
@@ -1905,6 +1907,7 @@ PRO_AUTO = \
 	findfile.pro \
 	float.pro \
 	fold.pro \
+	fuzzy.pro \
 	getchar.pro \
 	gc.pro \
 	gui_xim.pro \
@@ -3340,6 +3343,9 @@ objects/float.o: float.c
 objects/fold.o: fold.c
 	$(CCC) -o $@ fold.c
 
+objects/fuzzy.o: fuzzy.c
+	$(CCC) -o $@ fuzzy.c
+
 objects/getchar.o: getchar.c
 	$(CCC) -o $@ getchar.c
 
@@ -4117,6 +4123,11 @@ objects/fold.o: fold.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
   libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
   ex_cmds.h spell.h proto.h globals.h errors.h
+objects/fuzzy.o: fuzzy.c vim.h protodef.h auto/config.h feature.h os_unix.h \
+ auto/osdef.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
+ proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \
+ libvterm/include/vterm_keycodes.h alloc.h ex_cmds.h spell.h proto.h \
+ globals.h errors.h
 objects/getchar.o: getchar.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   os_mac.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   proto/gui_beval.pro structs.h regexp.h gui.h libvterm/include/vterm.h \

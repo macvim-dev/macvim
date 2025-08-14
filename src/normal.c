@@ -4480,7 +4480,7 @@ nv_brackets(cmdarg_T *cap)
 			    SAFE_islower(cap->nchar) ? ACTION_SHOW : ACTION_GOTO,
 		cap->cmdchar == ']' ? curwin->w_cursor.lnum + 1 : (linenr_T)1,
 		(linenr_T)MAXLNUM,
-		FALSE);
+		FALSE, FALSE);
 	    vim_free(ptr);
 	    curwin->w_set_curswant = TRUE;
 	}
