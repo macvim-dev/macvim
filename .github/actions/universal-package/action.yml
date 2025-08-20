@@ -60,14 +60,15 @@ runs:
 
         echo '::endgroup::'
 
-    - name: Cache keg
-      id: cache-keg
-      uses: actions/cache@v4
+    - name: Restore keg cache
+      id: cache-keg-restore
+      uses: actions/cache/restore@v4
       with:
         path: ${{ steps.setup-formula.outputs.brew_prefix }}/Cellar/${{ inputs.formula }}
         key: ${{ inputs.formula }}-homebrew-cache-custom-unified-prefix${{ steps.setup-formula.outputs.brew_prefix }}-xcode${{ steps.setup-formula.outputs.xcode_version }}-${{ hashFiles(format('{0}.rb', inputs.formula)) }}
 
     - name: Install formula
+      id: install-formula
       shell: bash
       run: |
         echo '::group::Install formula'
@@ -100,3 +101,16 @@ runs:
         done
 
         echo '::endgroup::'
+
+    - name: Save keg cache
+      id: cache-keg-save
+      uses: actions/cache/save@v4
+      # We always save the generated artifact even if the whole run
+      # fails due to other issues. This helps debugging build
+      # failure issues faster if the cache doesn't already exist as
+      # we want subsequent runs to not have to re-generate this
+      # artifact again.
+      if: always() && steps.cache-keg-restore.outputs.cache-hit != 'true' && steps.install-formula.conclusion == 'success'
+      with:
+        path: ${{ steps.setup-formula.outputs.brew_prefix }}/Cellar/${{ inputs.formula }}
+        key: ${{ steps.cache-keg-restore.outputs.cache-primary-key }}
