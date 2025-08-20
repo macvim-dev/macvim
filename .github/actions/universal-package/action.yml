@@ -40,6 +40,13 @@ runs:
           sed '/^[[:blank:]]*def install$/a\'$'\n    ENV["CFLAGS"] = "-arch x86_64 -arch arm64"\n' | \
           sed '/^[[:blank:]]*def install$/a\'$'\n    ENV["LDFLAGS"] = "-arch x86_64 -arch arm64"\n' >${formula}.rb
 
+        # Homebrew requires formula files to be placed in taps and disallows
+        # installing from raw paths, so we manually create a taps folder for a
+        # 'macvim-dev/deps' tap.
+        FORMULA_DIR="$(brew --repository)/Library/Taps/macvim-dev/homebrew-deps/Formula/"
+        mkdir -p "$FORMULA_DIR"
+        cp ${formula}.rb "$FORMULA_DIR"
+
         # Uninstall the already installed formula because we want to build our own
         brew uninstall --ignore-dependencies ${formula} || true
 
@@ -74,7 +81,7 @@ runs:
 
         # This will be a no-op if formula was cached. We check if the package
         # exists first just to avoid an "already installed" warning.
-        brew list ${formula} &>/dev/null || brew install --quiet --formula -s ./${formula}.rb
+        brew list ${formula} &>/dev/null || brew install --quiet --formula -s macvim-dev/deps/${formula}
 
         # If formula was cached, this step is necessary to relink it to brew prefix (e.g. /usr/local)
         brew unlink ${formula} && brew link ${formula}
