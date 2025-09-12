@@ -1633,74 +1633,6 @@ func Test_mouse_termcodes()
 endfunc
 
 " This only checks if the sequence is recognized.
-func Test_term_rgb_response()
-  set t_RF=x
-  set t_RB=y
-
-  " response to t_RF, 4 digits
-  let red = 0x12
-  let green = 0x34
-  let blue = 0x56
-  let seq = printf("\<Esc>]10;rgb:%02x00/%02x00/%02x00\x07", red, green, blue)
-  call feedkeys(seq, 'Lx!')
-  call assert_equal(seq, v:termrfgresp)
-
-  " response to t_RF, 2 digits
-  let red = 0x78
-  let green = 0x9a
-  let blue = 0xbc
-  let seq = printf("\<Esc>]10;rgb:%02x/%02x/%02x\x07", red, green, blue)
-  call feedkeys(seq, 'Lx!')
-  call assert_equal(seq, v:termrfgresp)
-
-  " response to t_RB, 4 digits, dark
-  set background=light
-  eval 'background'->test_option_not_set()
-  let red = 0x29
-  let green = 0x4a
-  let blue = 0x6b
-  let seq = printf("\<Esc>]11;rgb:%02x00/%02x00/%02x00\x07", red, green, blue)
-  call feedkeys(seq, 'Lx!')
-  call assert_equal(seq, v:termrbgresp)
-  call assert_equal('dark', &background)
-
-  " response to t_RB, 4 digits, light
-  set background=dark
-  call test_option_not_set('background')
-  let red = 0x81
-  let green = 0x63
-  let blue = 0x65
-  let seq = printf("\<Esc>]11;rgb:%02x00/%02x00/%02x00\x07", red, green, blue)
-  call feedkeys(seq, 'Lx!')
-  call assert_equal(seq, v:termrbgresp)
-  call assert_equal('light', &background)
-
-  " response to t_RB, 2 digits, dark
-  set background=light
-  call test_option_not_set('background')
-  let red = 0x47
-  let green = 0x59
-  let blue = 0x5b
-  let seq = printf("\<Esc>]11;rgb:%02x/%02x/%02x\x07", red, green, blue)
-  call feedkeys(seq, 'Lx!')
-  call assert_equal(seq, v:termrbgresp)
-  call assert_equal('dark', &background)
-
-  " response to t_RB, 2 digits, light
-  set background=dark
-  call test_option_not_set('background')
-  let red = 0x83
-  let green = 0xa4
-  let blue = 0xc2
-  let seq = printf("\<Esc>]11;rgb:%02x/%02x/%02x\x07", red, green, blue)
-  call feedkeys(seq, 'Lx!')
-  call assert_equal(seq, v:termrbgresp)
-  call assert_equal('light', &background)
-
-  set t_RF= t_RB=
-endfunc
-
-" This only checks if the sequence is recognized.
 " This must be after other tests, because it has side effects to xterm
 " properties.
 func Test_xx01_term_style_response()
@@ -2585,6 +2517,43 @@ func Test_mapping_kitty_function_keys()
   set timeoutlen&
 endfunc
 
+func Test_mapping_kitty_function_keys2()
+  " uses the CSI {number}; {modifiers} ~ form
+  new
+  set timeoutlen=10
+
+  let maps = [
+        \    ['<F3>', '13', 0],
+        \    ['<S-F3>', '13', 2],
+        \    ['<C-F3>', '13', 5],
+        \    ['<C-S-F3>', '13', 6],
+        \
+        \    ['<F5>', '15', 0],
+        \    ['<S-F5>', '15', 2],
+        \    ['<C-F5>', '15', 5],
+        \    ['<C-S-F5>', '15', 6],
+        \ ]
+
+  for map in maps
+    call RunTest_mapping_funckey(map[0], function('GetEscCodeFunckey2'), map[1], map[2])
+  endfor
+
+  bwipe!
+  set timeoutlen&
+endfunc
+
+func Test_mapping_kitty_shift_enter()
+  new
+  set timeoutlen=10
+
+  imap <buffer> <S-CR> YYYY
+  call feedkeys(printf("i123 %s\<esc>", GetEscCodeCSIu("\<cr>", 2)),'Lx!')
+  call assert_equal('123 YYYY', getline(1))
+
+  bwipe!
+  set timeoutlen&
+endfunc
+
 func Test_insert_literal()
   set timeoutlen=10
 
@@ -2801,6 +2770,24 @@ func Test_xterm_direct_no_termguicolors()
   " cleanup
   bw!
   close
+endfunc
+
+func Test_da1_handling()
+  call feedkeys("\<Esc>[?62,52;c", 'Lx!')
+  call assert_equal("\<Esc>[?62,52;c", v:termda1)
+endfunc
+
+" Test if OSC terminal responses are captured correctly
+func Test_term_response_osc()
+  " Test if large OSC responses (that must be processed in chunks) are handled
+  let data = repeat('a', 3000)
+
+  call feedkeys("\<Esc>]12;" .. data .. "\x07", 'Lx!')
+  call assert_equal("\<Esc>]12;" .. data .. "\x07", v:termosc)
+
+  " Test small OSC responses
+  call feedkeys("\<Esc>]15;hello world!\07", 'Lx!')
+  call assert_equal("\<Esc>]15;hello world!\x07", v:termosc)
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

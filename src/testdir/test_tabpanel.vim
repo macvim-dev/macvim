@@ -118,13 +118,36 @@ function Test_tabpanel_mouse()
   call feedkeys("\<LeftMouse>", 'xt')
   call assert_equal(3, tabpagenr())
 
-  " Confirm that tabpagenr() does not change when dragging outside the tabpanel
-  call test_setmouse(3, 30)
-  call feedkeys("\<LeftMouse>", 'xt')
-  call test_setmouse(1, 30)
+  " Drag the active tab page
+  tablast
+  call test_setmouse(3, 1)
+  call feedkeys("\<LeftMouse>\<LeftDrag>", 'xt')
+  call test_setmouse(2, 1)
   call feedkeys("\<LeftDrag>", 'xt')
   call assert_equal(3, tabpagenr())
+  call feedkeys("\<LeftRelease>", 'xt')
+  tabmove $
 
+  " Drag the inactive tab page
+  tablast
+  call test_setmouse(2, 1)
+  call feedkeys("\<LeftMouse>\<LeftDrag>", 'xt')
+  call test_setmouse(1, 1)
+  call feedkeys("\<LeftDrag>", 'xt')
+  call assert_equal(2, tabpagenr())
+  call feedkeys("\<LeftRelease>", 'xt')
+  tabmove 2
+
+  " Confirm that tabpagenr() does not change when dragging outside the tabpanel
+  tablast
+  call test_setmouse(3, 30)
+  call feedkeys("\<LeftMouse>\<LeftDrag>", 'xt')
+  call test_setmouse(1, 30)
+  call feedkeys("\<LeftDrag>", 'xt')
+  call feedkeys("\<LeftRelease>", 'xt')
+  call assert_equal(3, tabpagenr())
+
+  " Test getmousepos()
   call feedkeys("\<LeftMouse>", 'xt')
   call test_setmouse(2, 3)
   let pos = getmousepos()
@@ -748,4 +771,27 @@ function Test_tabpanel_with_cmdline_pum()
 
   call StopVimInTerminal(buf)
 endfunc
+
+function Test_tabpanel_with_cmdline_no_pum()
+  CheckScreendump
+
+  let lines =<< trim END
+    set showtabpanel=2
+    set noruler
+    tabnew aaa
+    set wildoptions-=pum
+  END
+  call writefile(lines, 'XTest_tabpanel_with_cmdline_pum', 'D')
+
+  let buf = RunVimInTerminal('-S XTest_tabpanel_with_cmdline_pum', {'rows': 10, 'cols': 45})
+  call term_sendkeys(buf, "\<C-L>")
+  call VerifyScreenDump(buf, 'Test_tabpanel_with_cmdline_no_pum_0', {})
+  call term_sendkeys(buf, ":tabne\<Tab>")
+  call VerifyScreenDump(buf, 'Test_tabpanel_with_cmdline_no_pum_1', {})
+  call term_sendkeys(buf, "\<Esc>\<C-L>")
+  call VerifyScreenDump(buf, 'Test_tabpanel_with_cmdline_no_pum_0', {})
+
+  call StopVimInTerminal(buf)
+endfunc
+
 " vim: shiftwidth=2 sts=2 expandtab

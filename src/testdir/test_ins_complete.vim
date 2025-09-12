@@ -5199,7 +5199,7 @@ func Test_autocomplete_trigger()
 
   " Test 4a: When autocomplete menu is active, ^X^N completes buffer keywords
   let g:CallCount = 0
-  call feedkeys("S#a\<C-X>\<C-N>\<F2>\<Esc>0", 'tx!')
+  call feedkeys("S#a\<C-E>\<C-X>\<C-N>\<F2>\<Esc>0", 'tx!')
   call assert_equal(['abc', 'abcd'], b:matches->mapnew('v:val.word'))
   call assert_equal(2, g:CallCount)
 
@@ -5225,6 +5225,14 @@ func Test_autocomplete_trigger()
   call feedkeys("Goa\<C-X>\<C-L>\<F2>\<Esc>0", 'tx!')
   call assert_equal(['afoo bar', 'and'], b:matches->mapnew('v:val.word'))
   call assert_equal(1, g:CallCount)
+
+  " Issue #18044
+  %d
+  call setline(1, ["first line", "second line"])
+  call feedkeys("Gof\<C-X>\<C-L>\<Esc>", 'tx!')
+  call assert_equal("first line", getline(3))
+  call feedkeys("Sf\<C-X>\<C-L>\<C-X>\<C-L>\<Esc>", 'tx!')
+  call assert_equal("second line", getline(4))
 
   " Test 5: When invalid prefix stops completion, backspace should restart it
   %d
@@ -5351,7 +5359,7 @@ func Test_autocomplete_timer()
   call assert_equal(-1, b:selected)
 
   " Test 7: Following 'cot' option values have no effect
-  set completeopt=menu,menuone,noselect,noinsert,longest,preinsert
+  set completeopt=menu,menuone,noselect,noinsert,longest
   set complete=.,Ffunction('TestComplete'\\,\ [0\\,\ 0\\,\ 0])
   let g:CallCount = 0
   call feedkeys("Sab\<c-n>\<F2>\<F3>\<Esc>0", 'tx!')
@@ -5458,6 +5466,228 @@ func Test_omni_start_invalid_col()
 
   delfunc OmniFunc
   set omnifunc& complete&
+endfunc
+
+func Test_completetimeout_autocompletetimeout()
+  func OmniFunc(findstart, base)
+    if a:findstart
+      return 1
+    else
+      return ['fooOmni']
+    endif
+  endfunc
+
+  set omnifunc=OmniFunc
+  call test_override("char_avail", 1)
+  inoremap <F2> <Cmd>let b:matches = complete_info(["matches"]).matches<CR>
+
+  call setline(1, ['foobar', 'foobarbaz'])
+  new
+  call setline(1, ['foo', 'foobaz', ''])
+  set complete=.,o,w
+  call feedkeys("G", 'xt!')
+
+  set autocomplete
+  for tt in [1, 80, 1000, -1, 0]
+    exec $'set autocompletetimeout={tt}'
+    call feedkeys("\<Esc>Sf\<F2>\<Esc>0", 'xt!')
+    call assert_equal(['foobaz', 'foo', 'fooOmni', 'foobar', 'foobarbaz'], b:matches->mapnew('v:val.word'))
+  endfor
+  set autocomplete&
+
+  for tt in [80, 1000, -1, 0]
+    exec $'set completetimeout={tt}'
+    call feedkeys("\<Esc>Sf\<C-N>\<F2>\<Esc>0", 'xt!')
+    call assert_equal(['foo', 'foobaz', 'fooOmni', 'foobar', 'foobarbaz'], b:matches->mapnew('v:val.word'))
+  endfor
+
+  " Clock does not have fine granularity, so checking 'elapsed time' is only
+  " approximate. We can only test that some type of timeout is enforced.
+  call setline(1, map(range(60000), '"foo" . v:val'))
+  set completetimeout=1
+  call feedkeys("Gof\<C-N>\<F2>\<Esc>0", 'xt!')
+  let match_count = len(b:matches->mapnew('v:val.word'))
+  call assert_true(match_count < 4000)
+
+  set completetimeout=1000
+  call feedkeys("\<Esc>Sf\<C-N>\<F2>\<Esc>0", 'xt!')
+  let match_count = len(b:matches->mapnew('v:val.word'))
+  call assert_true(match_count > 2000)
+
+  set autocomplete
+  set autocompletetimeout=81
+  call feedkeys("\<Esc>Sf\<F2>\<Esc>0", 'xt!')
+  let match_count = len(b:matches->mapnew('v:val.word'))
+  call assert_true(match_count < 50000)
+
+  set complete& omnifunc& autocomplete& autocompletetimeout& completetimeout&
+  bwipe!
+  %d
+  call test_override("char_avail", 0)
+  iunmap <F2>
+  delfunc OmniFunc
+endfunc
+
+func Test_autocompletedelay()
+  CheckScreendump
+
+  let lines =<< trim [SCRIPT]
+    call setline(1, ['foo', 'foobar', 'foobarbaz'])
+    set autocomplete
+  [SCRIPT]
+  call writefile(lines, 'XTest_autocomplete_delay', 'D')
+  let buf = RunVimInTerminal('-S XTest_autocomplete_delay', {'rows': 10})
+
+  call term_sendkeys(buf, "Gof")
+  call VerifyScreenDump(buf, 'Test_autocompletedelay_1', {})
+
+  call term_sendkeys(buf, "\<Esc>:set autocompletedelay=500\<CR>")
+  call term_sendkeys(buf, "Sf")
+  call VerifyScreenDump(buf, 'Test_autocompletedelay_2', {})
+  call term_sendkeys(buf, "o")
+  call VerifyScreenDump(buf, 'Test_autocompletedelay_3', {})
+  sleep 500m
+  call VerifyScreenDump(buf, 'Test_autocompletedelay_4', {})
+  call term_sendkeys(buf, "\<BS>")
+  call VerifyScreenDump(buf, 'Test_autocompletedelay_5', {})
+  sleep 500m
+  call VerifyScreenDump(buf, 'Test_autocompletedelay_6', {})
+
+  " During delay wait, user can open menu using CTRL_N completion
+  call term_sendkeys(buf, "\<Esc>:set completeopt=menuone,preinsert\<CR>")
+  call term_sendkeys(buf, "Sf\<C-N>")
+  call VerifyScreenDump(buf, 'Test_autocompletedelay_7', {})
+
+  " After the menu is open, ^N/^P and Up/Down should not delay
+  call term_sendkeys(buf, "\<Esc>:set completeopt=menu noruler\<CR>")
+  call term_sendkeys(buf, "\<Esc>Sf")
+  sleep 500ms
+  call term_sendkeys(buf, "\<C-N>")
+  call VerifyScreenDump(buf, 'Test_autocompletedelay_8', {})
+  call term_sendkeys(buf, "\<Down>")
+  call VerifyScreenDump(buf, 'Test_autocompletedelay_9', {})
+
+  " When menu is not open Up/Down moves cursor to different line
+  call term_sendkeys(buf, "\<Esc>Sf")
+  call term_sendkeys(buf, "\<Up>")
+  call VerifyScreenDump(buf, 'Test_autocompletedelay_10', {})
+  call term_sendkeys(buf, "\<Down>")
+  call VerifyScreenDump(buf, 'Test_autocompletedelay_11', {})
+
+  call term_sendkeys(buf, "\<esc>")
+  call StopVimInTerminal(buf)
+endfunc
+
+func Test_autocomplete_completeopt_preinsert()
+  func GetLine()
+    let g:line = getline('.')
+    let g:col = col('.')
+  endfunc
+
+  call test_override("char_avail", 1)
+  new
+  inoremap <buffer><F5> <C-R>=GetLine()<CR>
+  set completeopt=preinsert autocomplete
+  call setline(1, ["foobar", "foozbar"])
+  call feedkeys("Go\<ESC>", 'tx')
+
+  func DoTest(typed, line, col)
+    call feedkeys($"S{a:typed}\<F5>\<ESC>", 'tx')
+    call assert_equal(a:line, g:line)
+    call assert_equal(a:col, g:col)
+  endfunc
+
+  call DoTest("f", 'foo', 2)
+  call DoTest("fo", 'foo', 3)
+  call DoTest("foo", 'foo', 4)
+  call DoTest("foob", 'foobar', 5)
+  call DoTest("foob\<BS>", 'foo', 4)
+  call DoTest("foob\<BS>\<BS>", 'foo', 3)
+  call DoTest("foo\<BS>", 'foo', 3)
+  call DoTest("foo\<BS>\<BS>", 'foo', 2)
+  call DoTest("foo\<BS>\<BS>\<BS>", '', 1)
+
+  call DoTest("foo \<BS>", 'foo', 4)
+  call DoTest("foo \<BS>\<BS>", 'foo', 3)
+
+  call DoTest("f\<C-N>", 'foozbar', 8)
+  call DoTest("f\<C-N>\<C-N>", 'foobar', 7)
+  call DoTest("f\<C-N>\<C-N>\<C-N>", 'foo', 2)
+  call DoTest("f\<C-N>\<C-N>\<C-N>\<C-N>", 'foozbar', 8)
+  call DoTest("f\<C-N>\<C-N>\<C-N>\<C-N>\<C-P>", 'foo', 2)
+  call DoTest("f\<C-N>\<C-N>\<C-N>\<C-N>\<C-P>\<C-P>", 'foobar', 7)
+  call DoTest("f\<C-P>", 'foobar', 7)
+  call DoTest("fo\<BS>\<C-P>", 'foobar', 7)
+
+  call DoTest("zar\<C-O>0f", 'foozar', 2)
+  call DoTest("zar\<C-O>0f\<C-Y>", 'foozar', 4)
+  call DoTest("zar\<C-O>0f\<C-Y>\<BS>", 'foozar', 3)
+
+  call DoTest("zar\<C-O>0f\<C-N>", 'foozbarzar', 8)
+  call DoTest("zar\<C-O>0f\<C-N>\<C-N>", 'foobarzar', 7)
+  call DoTest("zar\<C-O>0f\<C-N>\<C-N>\<C-N>", 'foozar', 2)
+  call DoTest("zar\<C-O>0f\<C-N>\<C-N>\<C-N>\<C-N>", 'foozbarzar', 8)
+  call DoTest("zar\<C-O>0f\<C-N>\<C-N>\<C-N>\<C-N>\<C-P>", 'foozar', 2)
+  call DoTest("zar\<C-O>0f\<C-N>\<C-N>\<C-N>\<C-N>\<C-P>\<C-P>", 'foobarzar', 7)
+  call DoTest("zar\<C-O>0f\<C-P>", 'foobarzar', 7)
+
+  " Should not work with fuzzy
+  set cot+=fuzzy
+  call DoTest("f", 'f', 2)
+  set cot-=fuzzy
+
+  " Verify that redo (dot) works
+  call setline(1, ["foobar", "foozbar", "foobaz", "changed", "change"])
+  call feedkeys($"/foo\<CR>", 'tx')
+  call feedkeys($"cwch\<C-N>\<Esc>n.n.", 'tx')
+  call assert_equal(repeat(['changed'], 3), getline(1, 3))
+
+  %delete _
+  let &l:undolevels = &l:undolevels
+  normal! ifoo
+  let &l:undolevels = &l:undolevels
+  normal! ofoobar
+  let &l:undolevels = &l:undolevels
+  normal! ofoobaz
+  let &l:undolevels = &l:undolevels
+
+  func CheckUndo()
+    let g:errmsg = ''
+    call assert_equal(['foo', 'foobar', 'foobaz'], getline(1, '$'))
+    undo
+    call assert_equal(['foo', 'foobar'], getline(1, '$'))
+    undo
+    call assert_equal(['foo'], getline(1, '$'))
+    undo
+    call assert_equal([''], getline(1, '$'))
+    later 3
+    call assert_equal(['foo', 'foobar', 'foobaz'], getline(1, '$'))
+    call assert_equal('', v:errmsg)
+  endfunc
+
+  " Check that switching buffer with "preinsert" doesn't corrupt undo.
+  new
+  setlocal bufhidden=wipe
+  inoremap <buffer> <F2> <Cmd>enew!<CR>
+  call feedkeys("if\<F2>\<Esc>", 'tx')
+  bwipe!
+  call CheckUndo()
+
+  " Check that closing window with "preinsert" doesn't corrupt undo.
+  new
+  setlocal bufhidden=wipe
+  inoremap <buffer> <F2> <Cmd>close!<CR>
+  call feedkeys("if\<F2>\<Esc>", 'tx')
+  call CheckUndo()
+
+  %delete _
+  delfunc CheckUndo
+
+  bw!
+  set cot& autocomplete&
+  delfunc GetLine
+  delfunc DoTest
+  call test_override("char_avail", 0)
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab nofoldenable

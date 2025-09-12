@@ -959,15 +959,24 @@
 #endif
 
 /*
+ * +socketserver	 Use UNIX domain sockets for clientserver communication
+ */
+#if defined(UNIX) && (defined(WANT_SOCKETSERVER) || \
+	(defined(MAYBE_SOCKETSERVER) && !defined(HAVE_X11)))
+#define FEAT_SOCKETSERVER
+#endif
+
+/*
  * +clientserver	Remote control via the remote_send() function
  *			and the --remote argument
  */
 #if defined(FEAT_GUI_MACVIM)
 # define MAC_CLIENTSERVER
+# undef FEAT_SOCKETSERVER // Not supported right now. Will be added later.
 #endif
 
-#if (defined(MSWIN) || defined(FEAT_XCLIPBOARD) || defined(MAC_CLIENTSERVER)) \
-	&& defined(FEAT_EVAL)
+#if (defined(MSWIN) || defined(FEAT_XCLIPBOARD) || defined(FEAT_SOCKETSERVER) || defined(MAC_CLIENTSERVER)) \
+    && defined(FEAT_EVAL)
 # define FEAT_CLIENTSERVER
 #endif
 

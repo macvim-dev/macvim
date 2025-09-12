@@ -3931,6 +3931,21 @@ did_set_numberwidth(optset_T *args UNUSED)
 #endif
 
 /*
+ * Process the updated 'osctimeoutlen' option value.
+ */
+    char *
+did_set_osctimeoutlen(optset_T *args)
+{
+    if (p_ost < 0)
+    {
+	p_ost = args->os_oldval.number;
+	return e_argument_must_be_positive;
+    }
+
+    return NULL;
+}
+
+/*
  * Process the updated 'paste' option value.  Called after p_paste was set or
  * reset.  When 'paste' is set or reset also change other options.
  */
@@ -4773,7 +4788,7 @@ did_set_winwidth(optset_T *args UNUSED)
     return errmsg;
 }
 
-#ifdef FEAT_WAYLAND_CLIPBOARD
+#if defined(FEAT_WAYLAND_CLIPBOARD) || defined(PROTO)
 /*
  * Process the new 'wlsteal' option value.
  */
@@ -4786,7 +4801,7 @@ did_set_wlsteal(optset_T *args UNUSED)
 }
 #endif
 
-#ifdef FEAT_WAYLAND
+#if defined(FEAT_WAYLAND) || defined(PROTO)
 /*
  * Process the new 'wltimeoutlen' option value.
  */
@@ -9075,7 +9090,7 @@ option_set_callback_func(char_u *optval UNUSED, callback_T *optcb UNUSED)
 #endif
 }
 
-#if defined(FEAT_TABPANEL)
+#if defined(FEAT_TABPANEL) || defined(PROTO)
 /*
  * Process the new 'showtabpanel' option value.
  */

@@ -2118,7 +2118,7 @@ test_mswin_event(char_u *event, dict_T *args)
 }
 #endif // FEAT_EVAL
 
-#ifdef MCH_CURSOR_SHAPE
+#if defined(MCH_CURSOR_SHAPE) || defined(PROTO)
 /*
  * Set the shape of the cursor.
  * 'thickness' can be from 1 (thin) to 99 (block)
@@ -2810,7 +2810,12 @@ executable_file(char *name, char_u **path)
  * the allocated memory.
  */
     static int
-executable_exists(char *name, size_t namelen, char_u **path, int use_path, int use_pathext)
+executable_exists(
+    char	*name,
+    size_t	namelen,
+    char_u	**path,
+    int		use_path,
+    int		use_pathext)
 {
     // WinNT and later can use _MAX_PATH wide characters for a pathname, which
     // means that the maximum pathname is _MAX_PATH * 3 bytes when 'enc' is
@@ -7691,6 +7696,21 @@ mch_total_mem(int special UNUSED)
     }
     // Use physical RAM less reserve for OS + data.
     return (long_u)((ms.ullTotalPhys - WINNT_RESERVE_BYTES) / 1024);
+}
+
+/*
+ * Expand a path into all matching files and/or directories.  Handles "*",
+ * "?", "[a-z]", "**", etc.
+ * "path" has backslashes before chars that are not to be expanded.
+ * Returns the number of matches found.
+ */
+    int
+mch_expandpath(
+    garray_T	*gap,
+    char_u	*path,
+    int		flags)		// EW_* flags
+{
+    return dos_expandpath(gap, path, 0, flags, FALSE);
 }
 
 /*

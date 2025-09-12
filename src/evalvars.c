@@ -141,8 +141,8 @@ static struct vimvar
     {VV_NAME("t_blob",		 VAR_NUMBER), NULL, VV_RO},
     {VV_NAME("t_class",		 VAR_NUMBER), NULL, VV_RO},
     {VV_NAME("t_object",	 VAR_NUMBER), NULL, VV_RO},
-    {VV_NAME("termrfgresp",	 VAR_STRING), NULL, VV_RO},
-    {VV_NAME("termrbgresp",	 VAR_STRING), NULL, VV_RO},
+    {VV_NAME("termrfgresp",	 VAR_STRING), NULL, 0},
+    {VV_NAME("termrbgresp",	 VAR_STRING), NULL, 0},
     {VV_NAME("termu7resp",	 VAR_STRING), NULL, VV_RO},
     {VV_NAME("termstyleresp",	 VAR_STRING), NULL, VV_RO},
     {VV_NAME("termblinkresp",	 VAR_STRING), NULL, VV_RO},
@@ -164,7 +164,9 @@ static struct vimvar
     {VV_NAME("stacktrace",	 VAR_LIST), &t_list_dict_any, VV_RO},
     {VV_NAME("t_tuple",		 VAR_NUMBER), NULL, VV_RO},
     {VV_NAME("wayland_display",  VAR_STRING), NULL, VV_RO},
-    {VV_NAME("clipmethod",  VAR_STRING), NULL, VV_RO},
+    {VV_NAME("clipmethod",	 VAR_STRING), NULL, VV_RO},
+    {VV_NAME("termda1",		 VAR_STRING), NULL, VV_RO},
+    {VV_NAME("termosc",	 VAR_STRING), NULL, VV_RO},
     // MacVim-specific value go here
     {VV_NAME("os_appearance",    VAR_NUMBER), NULL, VV_RO},
 };
@@ -2909,6 +2911,17 @@ set_vim_var_string(
 	vimvars[idx].vv_str = vim_strsave(val);
     else
 	vimvars[idx].vv_str = vim_strnsave(val, len);
+}
+
+    void
+set_vim_var_string_direct(
+    int		idx,
+    char_u	*val)
+{
+    clear_tv(&vimvars[idx].vv_di.di_tv);
+    vimvars[idx].vv_tv_type = VAR_STRING;
+
+    vimvars[idx].vv_str = val;
 }
 
 /*

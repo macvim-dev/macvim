@@ -1232,6 +1232,9 @@ cs_find_common(
 	qf_info_T   *qi = NULL;
 	win_T	    *wp = NULL;
 
+	if (tmp == NULL)
+	    return FALSE;
+
 	f = mch_fopen((char *)tmp, "w");
 	if (f == NULL)
 	    semsg(_(e_cant_open_file_str), tmp);
@@ -1940,12 +1943,18 @@ cs_pathcomponents(char *path)
 
     s = path + strlen(path) - 1;
     for (i = 0; i < p_cspc; ++i)
-	while (s > path && *--s != '/'
+    {
+	while (s > path)
+	{
+	   s--;
+	   if (*s == '/'
 #ifdef MSWIN
-		&& *--s != '\\'
+		|| *s == '\\'
 #endif
 		)
-	    ;
+	      break;
+	}
+    }
     if ((s > path && *s == '/')
 #ifdef MSWIN
 	|| (s > path && *s == '\\')

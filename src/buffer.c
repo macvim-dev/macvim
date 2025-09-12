@@ -2975,7 +2975,11 @@ ExpandBufnames(
 	    else
 		p = vim_strsave(p);
 	    if (p == NULL)
+	    {
+		if (fuzzy && round == 2)
+		    fuzmatch_str_free(fuzmatch, count);
 		return FAIL;
+	    }
 
 	    if (!fuzzy)
 	    {
@@ -5478,7 +5482,8 @@ fix_fname(char_u  *fname)
      * Also expand when there is ".." in the file name, try to remove it,
      * because "c:/src/../README" is equal to "c:/README".
      * Similarly "c:/src//file" is equal to "c:/src/file".
-     * For MS-Windows also expand names like "longna~1" to "longname".
+     * For MS-Windows also expand names like "longna~1" to "longname"
+     * and provide drive letter for all absolute paths.
      */
 #ifdef UNIX
     return FullName_save(fname, TRUE);
@@ -5491,6 +5496,8 @@ fix_fname(char_u  *fname)
 # endif
 # if defined(MSWIN)
 	    || vim_strchr(fname, '~') != NULL
+	    || fname[0] == '/'
+	    || fname[0] == '\\'
 # endif
 	    )
 	return FullName_save(fname, FALSE);

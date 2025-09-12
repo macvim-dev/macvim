@@ -52,16 +52,14 @@ endfunc
 
 " Need X connection for tests that use client server communication
 func s:CheckXConnection()
-  if has('x11')
-    try
-      call remote_send('xxx', '')
-    catch
-      if v:exception =~ 'E240:'
-        throw 'Skipped: no connection to the X server'
-      endif
-      " ignore other errors
-    endtry
-  endif
+  CheckFeature x11
+  try
+    call remote_send('xxx', '')
+  catch /^Vim\%((\a\+)\)\=:E240:/ " not possible to start a remote server
+      throw 'Skipped: No connection to the X server possible'
+  catch
+    " ignore other errors
+  endtry
 endfunc
 
 func s:EndRemoteVim(name, job)
@@ -79,6 +77,10 @@ endfunc
 func Test_wayland_startup()
   call s:PreTest()
   call s:CheckXConnection()
+
+  if v:servername == ""
+    call remote_startserver('VIMSOCKETSERVER')
+  endif
 
   let l:name = 'WLVIMTEST'
   let l:cmd = GetVimCommand() .. ' --servername ' .. l:name
@@ -373,13 +375,17 @@ func Test_wayland_autoselect_works()
 
   call writefile(l:lines, 'Wltester', 'D')
 
+  if v:servername == ""
+    call remote_startserver('VIMSOCKETSERVER')
+  endif
+
   let l:name = 'WLVIMTEST'
   let l:cmd = GetVimCommand() .. ' -S Wltester --servername ' .. l:name
   let l:job = job_start(cmd, {'stoponexit': 'kill', 'out_io': 'null'})
 
   call WaitForAssert({-> assert_equal("run", job_status(l:job))})
   call WaitForAssert({-> assert_match(name, serverlist())})
-  1
+
   call remote_send(l:name, "ve")
   call WaitForAssert({-> assert_equal('LINE', system('wl-paste -p -n'))})
 
@@ -415,6 +421,10 @@ endfunc
 func Test_no_wayland_connect_cmd_flag()
   call s:PreTest()
   call s:CheckXConnection()
+
+  if v:servername == ""
+    call remote_startserver('VIMSOCKETSERVER')
+  endif
 
   let l:name = 'WLFLAGVIMTEST'
   let l:cmd = GetVimCommand() .. ' -Y --servername ' .. l:name
@@ -453,6 +463,10 @@ endfunc
 func Test_wayland_become_inactive()
   call s:PreTest()
   call s:CheckXConnection()
+
+  if v:servername == ""
+    call remote_startserver('VIMSOCKETSERVER')
+  endif
 
   let l:name = 'WLLOSEVIMTEST'
   let l:cmd = GetVimCommand() .. ' --servername ' .. l:name
@@ -544,6 +558,10 @@ func Test_wayland_bad_environment()
 
   let l:old = $XDG_RUNTIME_DIR
   unlet $XDG_RUNTIME_DIR
+
+  if v:servername == ""
+    call remote_startserver('VIMSOCKETSERVER')
+  endif
 
   let l:name = 'WLVIMTEST'
   let l:cmd = GetVimCommand() .. ' --servername ' .. l:name
@@ -648,7 +666,6 @@ func Test_wayland_handle_large_data()
   call system('cmp --silent data_file data_file_cmp')
   call assert_equal(0, v:shell_error)
 
-  " copy the text
   call feedkeys('gg0v$G"+yy', 'x')
   call system('wl-paste -n -t TEXT > data_file')
 

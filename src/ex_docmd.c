@@ -9789,7 +9789,7 @@ eval_vars(
 {
     int		i;
     char_u	*s;
-    char_u	*result;
+    char_u	*result = (char_u *)"";
     char_u	*resultbuf = NULL;
     size_t	resultlen;
     buf_T	*buf;
@@ -10055,15 +10055,35 @@ eval_vars(
 
 #ifdef FEAT_CLIENTSERVER
 	case SPEC_CLIENT:	// Source of last submitted input
+#ifdef MSWIN
 		sprintf((char *)strbuf, PRINTF_HEX_LONG_U,
 							(long_u)clientWindow);
 		result = strbuf;
+#elif defined(MAC_CLIENTSERVER)
+		sprintf((char *)strbuf, PRINTF_HEX_LONG_U,
+							(long_u)clientWindow);
+		result = strbuf;
+#else
+# ifdef FEAT_SOCKETSERVER
+		if (clientserver_method == CLIENTSERVER_METHOD_SOCKET)
+		{
+		    if (client_socket == NULL)
+			result = (char_u *)"";
+		    else
+			result = client_socket;
+		}
+# endif
+# ifdef FEAT_X11
+		if (clientserver_method == CLIENTSERVER_METHOD_X11)
+		{
+		    sprintf((char *)strbuf, PRINTF_HEX_LONG_U,
+							(long_u)clientWindow);
+		    result = strbuf;
+		}
+# endif
+#endif
 		break;
 #endif
-
-	default:
-		result = (char_u *)""; // avoid gcc warning
-		break;
 	}
 
 	resultlen = STRLEN(result);	// length of new string
