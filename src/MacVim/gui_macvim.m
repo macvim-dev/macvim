@@ -1196,12 +1196,6 @@ gui_macvim_font_with_name(char_u *name)
         parseFailed = YES;
     }
 
-    if (!parseFailed) {
-        // Replace underscores with spaces.
-        fontName = [[fontName componentsSeparatedByString:@"_"]
-                                 componentsJoinedByString:@" "];
-    }
-
     const BOOL isSystemFont = [fontName hasPrefix:MMSystemFontAlias];
     if (isSystemFont) {
         if (fontName.length > MMSystemFontAlias.length) {
@@ -1228,6 +1222,16 @@ gui_macvim_font_with_name(char_u *name)
                 || isSystemFont
                 || [NSFont fontWithName:fontName size:size])
             return [[NSString alloc] initWithFormat:@"%@:h%d", fontName, size];
+
+        // If font loading failed, try to replace underscores with spaces for
+        // user convenience. This really only works if the name is a family
+        // name because PostScript names should not have spaces.
+        if ([fontName rangeOfString:@"_"].location != NSNotFound) {
+            fontName = [fontName stringByReplacingOccurrencesOfString:@"_" withString:@" "];
+            if ([NSFont fontWithName:fontName size:size]) {
+                return [[NSString alloc] initWithFormat:@"%@:h%d", fontName, size];
+            }
+        }
     }
 
     return NOFONT;

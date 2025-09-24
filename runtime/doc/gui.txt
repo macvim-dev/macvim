@@ -1135,10 +1135,18 @@ That's all.  XLFDs are not used.  For Chinese this is reported to work well: >
 
 MacVim							*macvim-guifont*
 
-For MacVim you can use something like this: >
-    :set guifont=Menlo:h10
-Fonts with spaces are set like this: >
+In MacVim, you can specify fonts by either the full PostScript name or the
+family name (both can be found in the Font Book app), followed by an optional
+font size (which defaults to `h11`).  Font names can also be completed in the
+cmdline using |complete-set-option|.
+
+Basic example of setting the font to Menlo with default size: >
+    :set guifont=Menlo
+To set a font by its family name which contains spaces: >
     :set guifont=DejaVu\ Sans\ Mono:h13
+When specifying family names with spaces, you can also use underscores
+instead: >
+    :set guifont=DejaVu_Sans_Mono:h13
 To use bold/italic fonts, use the fully specified PostScript name of the
 font, like so: >
     :set guifont=Menlo-Bold:h13
