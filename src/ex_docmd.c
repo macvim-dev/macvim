@@ -1436,7 +1436,7 @@ do_cmdline(
     return retval;
 }
 
-#if defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_EVAL)
 /*
  * Handle when "did_throw" is set after executing commands.
  */
@@ -1630,7 +1630,7 @@ getline_cookie(
 #endif
 }
 
-#if defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_EVAL)
 /*
  * Get the next line source line without advancing.
  */
@@ -3256,7 +3256,7 @@ has_cmdmod(cmdmod_T *cmod, int ignore_silent)
 	    || cmod->cmod_filter_regmatch.regprog != NULL;
 }
 
-#if defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_EVAL)
 /*
  * If Vim9 script and "cmdmod" has anything set give an error and return TRUE.
  */
@@ -3577,7 +3577,7 @@ append_command(char_u *cmd)
     *d = NUL;
 }
 
-#if defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_EVAL)
 /*
  * If "start" points "&opt", "&l:opt", "&g:opt" or "$ENV" return a pointer to
  * the name.  Otherwise just return "start".
@@ -3635,7 +3635,7 @@ one_letter_cmd(char_u *p, cmdidx_T *idx)
     return FALSE;
 }
 
-#if defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_EVAL)
 /*
  * Return TRUE if "cmd" starts with "123->", a number followed by a method
  * call.
@@ -4049,7 +4049,7 @@ find_ex_command(
     return p;
 }
 
-#if defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_EVAL)
 typedef struct
 {
     char	*name;
@@ -5359,6 +5359,7 @@ repl_cmdline(
     void
 separate_nextcmd(exarg_T *eap, int keep_backslash)
 {
+    int		vim9script = in_vim9script();
     char_u	*p;
 
 #ifdef FEAT_QUICKFIX
@@ -5395,14 +5396,14 @@ separate_nextcmd(exarg_T *eap, int keep_backslash)
 	// :@" and :*" do not start a comment!
 	// :redir @" doesn't either.
 	else if ((*p == '"'
-		    && !in_vim9script()
+		    && !vim9script
 		    && !(eap->argt & EX_NOTRLCOM)
 		    && ((eap->cmdidx != CMD_at && eap->cmdidx != CMD_star)
 							      || p != eap->arg)
 		    && (eap->cmdidx != CMD_redir
 					 || p != eap->arg + 1 || p[-1] != '@'))
 		|| (*p == '#'
-		    && in_vim9script()
+		    && vim9script
 		    && !(eap->argt & EX_NOTRLCOM)
 		    && p > eap->cmd && VIM_ISWHITE(p[-1]))
 		|| (*p == '|'
@@ -5426,7 +5427,7 @@ separate_nextcmd(exarg_T *eap, int keep_backslash)
 	    }
 	    else
 	    {
-		eap->nextcmd = check_nextcmd(p);
+		set_nextcmd(eap, p);
 		*p = NUL;
 		break;
 	    }
@@ -5898,8 +5899,7 @@ ends_excmd2(char_u *cmd_start UNUSED, char_u *cmd)
     return c == '"';
 }
 
-#if defined(FEAT_SYN_HL) || defined(FEAT_SEARCH_EXTRA) || defined(FEAT_EVAL) \
-	|| defined(PROTO)
+#if defined(FEAT_SYN_HL) || defined(FEAT_SEARCH_EXTRA) || defined(FEAT_EVAL)
 /*
  * Return the next command, after the first '|' or '\n'.
  * Return NULL if not found.
@@ -5938,7 +5938,16 @@ check_nextcmd(char_u *p)
     void
 set_nextcmd(exarg_T *eap, char_u *arg)
 {
-    char_u *p = check_nextcmd(arg);
+    char_u *p = skipwhite(arg);
+
+    if (in_vim9script() && *p == '#')
+    {
+	char_u *nl = vim_strchr(p, NL);
+	if (nl != NULL)
+	    p = nl;
+    }
+
+    p = check_nextcmd(p);
 
     if (eap->nextcmd == NULL)
 	eap->nextcmd = p;
@@ -6794,7 +6803,7 @@ ex_shell(exarg_T *eap UNUSED)
     do_shell(NULL, 0);
 }
 
-#if defined(HAVE_DROP_FILE) || defined(PROTO)
+#if defined(HAVE_DROP_FILE)
 
 static int drop_busy = FALSE;
 static int drop_filec;
@@ -6970,7 +6979,7 @@ ex_wrongmodifier(exarg_T *eap)
     eap->errmsg = ex_errmsg(e_invalid_command_str, eap->cmd);
 }
 
-#if defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_EVAL)
 
 // callback function for 'findfunc'
 static callback_T ffu_cb;
@@ -7153,7 +7162,7 @@ did_set_findfunc(optset_T *args UNUSED)
     return NULL;
 }
 
-# if defined(EXITFREE) || defined(PROTO)
+# if defined(EXITFREE)
     void
 free_findfunc_option(void)
 {
@@ -7987,7 +7996,7 @@ ex_read(exarg_T *eap)
 
 static char_u	*prev_dir = NULL;
 
-#if defined(EXITFREE) || defined(PROTO)
+#if defined(EXITFREE)
     void
 free_cd_dir(void)
 {
@@ -9066,7 +9075,7 @@ close_redir(void)
 #endif
 }
 
-#if (defined(FEAT_SESSION) || defined(FEAT_EVAL)) || defined(PROTO)
+#if defined(FEAT_SESSION) || defined(FEAT_EVAL)
     int
 vim_mkdir_emsg(char_u *name, int prot UNUSED)
 {
@@ -10189,7 +10198,7 @@ expand_sfile(char_u *arg)
     return result;
 }
 
-#if defined(FEAT_GUI_DIALOG) || defined(FEAT_CON_DIALOG) || defined(PROTO)
+#if defined(FEAT_GUI_DIALOG) || defined(FEAT_CON_DIALOG)
 /*
  * Make a dialog message in "buff[DIALOG_MSG_SIZE]".
  * "format" must contain "%s".
@@ -10359,7 +10368,7 @@ ex_digraphs(exarg_T *eap UNUSED)
 #endif
 }
 
-#if defined(FEAT_SEARCH_EXTRA) || defined(PROTO)
+#if defined(FEAT_SEARCH_EXTRA)
     void
 set_no_hlsearch(int flag)
 {
@@ -10430,7 +10439,7 @@ ex_folddo(exarg_T *eap)
 }
 #endif
 
-#if defined(FEAT_QUICKFIX) || defined(PROTO)
+#if defined(FEAT_QUICKFIX)
 /*
  * Returns TRUE if the supplied Ex cmdidx is for a location list command
  * instead of a quickfix command.

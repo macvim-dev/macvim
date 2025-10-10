@@ -715,6 +715,13 @@ func Test_set_guioptions()
     set guioptions&
     call assert_equal('egmrLtT', &guioptions)
 
+    set guioptions+=C
+    exec 'sleep' . duration
+    call assert_equal('egmrLtTC', &guioptions)
+    set guioptions-=C
+    exec 'sleep' . duration
+    call assert_equal('egmrLtT', &guioptions)
+
   elseif has('gui_macvim')
     " Default Value
     set guioptions&

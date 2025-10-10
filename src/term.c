@@ -131,6 +131,19 @@ static termrequest_T u7_status = TERMREQUEST_INIT;
 static termrequest_T xcc_status = TERMREQUEST_INIT;
 
 #ifdef FEAT_TERMRESPONSE
+# ifdef FEAT_TERMINAL
+// Request foreground color report:
+static termrequest_T rfg_status = TERMREQUEST_INIT;
+static int fg_r = 0;
+static int fg_g = 0;
+static int fg_b = 0;
+static int bg_r = 255;
+static int bg_g = 255;
+static int bg_b = 255;
+# endif
+
+// Request background color report:
+static termrequest_T rbg_status = TERMREQUEST_INIT;
 
 // Request cursor blinking mode report:
 static termrequest_T rbm_status = TERMREQUEST_INIT;
@@ -145,6 +158,10 @@ static termrequest_T *all_termrequests[] = {
     &crv_status,
     &u7_status,
     &xcc_status,
+# ifdef FEAT_TERMINAL
+    &rfg_status,
+# endif
+    &rbg_status,
     &rbm_status,
     &rcs_status,
     &winpos_status,
@@ -1371,7 +1388,7 @@ builtin_tcap_T builtin_terminals[] = {
     {NULL,	    NULL},  // end marker
 };
 
-#if defined(FEAT_TERMGUICOLORS) || defined(PROTO)
+#if defined(FEAT_TERMGUICOLORS)
     static guicolor_T
 termgui_mch_get_color(char_u *name)
 {
@@ -1507,7 +1524,7 @@ init_term_props(int all)
 	    term_props[i].tpr_status = TPR_UNKNOWN;
 }
 
-#if defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_EVAL)
     void
 f_terminalprops(typval_T *argvars UNUSED, typval_T *rettv)
 {
@@ -2378,7 +2395,7 @@ set_termname(char_u *term)
     return OK;
 }
 
-#if defined(EXITFREE) || defined(PROTO)
+#if defined(EXITFREE)
 
 # ifdef HAVE_DEL_CURTERM
 #  include <term.h>	    // declares cur_term
@@ -2453,7 +2470,7 @@ vim_tgetstr(char *s, char_u **pp)
 }
 #endif // HAVE_TGETENT
 
-#if defined(HAVE_TGETENT) && (defined(UNIX) || defined(VMS) || defined(MACOS_X)) || defined(PROTO)
+#if defined(HAVE_TGETENT) && (defined(UNIX) || defined(VMS) || defined(MACOS_X))
 /*
  * Get Columns and Rows from the termcap. Used after a window signal if the
  * ioctl() fails. It doesn't make sense to call tgetent each time if the "co"
@@ -2630,7 +2647,7 @@ term_7to8bit(char_u *p)
     return 0;
 }
 
-#if defined(FEAT_GUI) || defined(PROTO)
+#if defined(FEAT_GUI)
     int
 term_is_gui(char_u *name)
 {
@@ -2638,7 +2655,7 @@ term_is_gui(char_u *name)
 }
 #endif
 
-#if !defined(HAVE_TGETENT) || defined(AMIGA) || defined(PROTO)
+#if !defined(HAVE_TGETENT) || defined(AMIGA)
 
     char_u *
 tltoa(unsigned long i)
@@ -3019,7 +3036,7 @@ term_delete_lines(int line_count)
     OUT_STR(tgoto((char *)T_CDL, 0, line_count));
 }
 
-#if defined(UNIX) || defined(VMS) || defined(PROTO)
+#if defined(UNIX) || defined(VMS)
     void
 term_enable_mouse(int enable)
 {
@@ -3028,7 +3045,7 @@ term_enable_mouse(int enable)
 }
 #endif
 
-#if defined(HAVE_TGETENT) || defined(PROTO)
+#if defined(HAVE_TGETENT)
     void
 term_set_winpos(int x, int y)
 {
@@ -3040,7 +3057,7 @@ term_set_winpos(int x, int y)
     OUT_STR(tgoto((char *)T_CWP, y, x));
 }
 
-# if defined(FEAT_TERMRESPONSE) || defined(PROTO)
+# if defined(FEAT_TERMRESPONSE)
 /*
  * Return TRUE if we can request the terminal for a response.
  */
@@ -3094,7 +3111,7 @@ static int winpos_x = -1;
 static int winpos_y = -1;
 static int did_request_winpos = 0;
 
-#  if defined(FEAT_EVAL) || defined(FEAT_TERMINAL) || defined(PROTO)
+#  if defined(FEAT_EVAL) || defined(FEAT_TERMINAL)
 /*
  * Try getting the Vim window position from the terminal.
  * Returns OK or FAIL.
@@ -3265,7 +3282,7 @@ term_bg_default(void)
 #endif
 }
 
-#if defined(FEAT_TERMGUICOLORS) || defined(PROTO)
+#if defined(FEAT_TERMGUICOLORS)
 
 # define RED(rgb)   (((long_u)(rgb) >> 16) & 0xFF)
 # define GREEN(rgb) (((long_u)(rgb) >>  8) & 0xFF)
@@ -3322,7 +3339,7 @@ term_ul_rgb_color(guicolor_T rgb)
 }
 #endif
 
-#if (defined(UNIX) || defined(VMS) || defined(MACOS_X)) || defined(PROTO)
+#if defined(UNIX) || defined(VMS) || defined(MACOS_X)
 /*
  * Generic function to set window title, using t_ts and t_fs.
  */
@@ -3491,8 +3508,7 @@ ttest(int pairs)
     }
 }
 
-#if (defined(FEAT_GUI) && (defined(FEAT_MENU) || !defined(USE_ON_FLY_SCROLL))) \
-	|| defined(PROTO)
+#if defined(FEAT_GUI) && (defined(FEAT_MENU) || !defined(USE_ON_FLY_SCROLL))
 /*
  * Represent the given long_u as individual bytes, with the most significant
  * byte first, and store them in dst.
@@ -4069,7 +4085,7 @@ stoptermcap(void)
     out_flush();
 }
 
-#if defined(FEAT_TERMRESPONSE) || defined(PROTO)
+#if defined(FEAT_TERMRESPONSE)
 /*
  * Request version string (for xterm) when needed.
  * Only do this after switching to raw mode, otherwise the result will be
@@ -4196,6 +4212,49 @@ check_terminal_behavior(void)
     }
 }
 
+/*
+ * Similar to requesting the version string: Request the terminal background
+ * color when it is the right moment.
+ */
+    void
+may_req_bg_color(void)
+{
+    if (can_get_termresponse() && starting == 0)
+    {
+	int didit = FALSE;
+
+# ifdef FEAT_TERMINAL
+	// Only request foreground if t_RF is set.
+	if (rfg_status.tr_progress == STATUS_GET && *T_RFG != NUL)
+	{
+	    MAY_WANT_TO_LOG_THIS;
+	    LOG_TR1("Sending FG request");
+	    out_str(T_RFG);
+	    termrequest_sent(&rfg_status);
+	    didit = TRUE;
+	}
+# endif
+
+	// Only request background if t_RB is set.
+	if (rbg_status.tr_progress == STATUS_GET && *T_RBG != NUL)
+	{
+	    MAY_WANT_TO_LOG_THIS;
+	    LOG_TR1("Sending BG request");
+	    out_str(T_RBG);
+	    termrequest_sent(&rbg_status);
+	    didit = TRUE;
+	}
+
+	if (didit)
+	{
+	    // check for the characters now, otherwise they might be eaten by
+	    // get_keystroke()
+	    out_flush();
+	    (void)vpeekc_nomap();
+	}
+    }
+}
+
 #endif
 
 /*
@@ -4295,7 +4354,7 @@ cursor_unsleep(void)
     cursor_on();
 }
 
-#if defined(CURSOR_SHAPE) || defined(PROTO)
+#if defined(CURSOR_SHAPE)
 /*
  * Set cursor shape to match Insert or Replace mode.
  */
@@ -4347,7 +4406,7 @@ term_cursor_mode(int forced)
     }
 }
 
-# if defined(FEAT_TERMINAL) || defined(PROTO)
+# if defined(FEAT_TERMINAL)
     void
 term_cursor_color(char_u *color)
 {
@@ -4800,7 +4859,7 @@ static linenr_T orig_topline = 0;
 static int orig_topfill = 0;
 # endif
 #endif
-#if defined(CHECK_DOUBLE_CLICK) || defined(PROTO)
+#if defined(CHECK_DOUBLE_CLICK)
 /*
  * Checking for double-clicks ourselves.
  * "orig_topline" is used to avoid detecting a double-click when the window
@@ -4988,6 +5047,8 @@ handle_u7_response(int *arg, char_u *tp UNUSED, int csi_len UNUSED)
 	term_props[TPR_CURSOR_BLINK].tpr_status = value;
     }
 }
+
+
 
 /*
  * Handle a response to T_CRV: {lead}{first}{x};{vers};{y}c
@@ -5749,6 +5810,93 @@ handle_csi(
     return 0;
 }
 
+static void
+check_for_color_response(char_u *resp, int len)
+{
+    int		i, j;
+    char_u	*argp;
+
+    j = 1 + (resp[0] == ESC);
+    argp = resp + j;
+
+    if (len >= j + 3 && (argp[0] != '1'
+			     || (argp[1] != '1' && argp[1] != '0')
+			     || argp[2] != ';'))
+	i = 0; // no match
+    else
+    {
+	for (i = j; i < len; ++i)
+	    if (resp[i] == '\007' || (resp[0] == OSC ? resp[i] == STERM
+			: (resp[i] == ESC && i + 1 < len && resp[i + 1] == '\\')))
+	    {
+		int is_bg = argp[1] == '1';
+		int is_4digit = i - j >= 21 && resp[j + 11] == '/'
+						  && resp[j + 16] == '/';
+
+		if (i - j >= 15 && STRNCMP(resp + j + 3, "rgb:", 4) == 0
+			    && (is_4digit
+				   || (resp[j + 9] == '/' && resp[j + 12] == '/')))
+		{
+		    char_u *tp_r = resp + j + 7;
+		    char_u *tp_g = resp + j + (is_4digit ? 12 : 10);
+		    char_u *tp_b = resp + j + (is_4digit ? 17 : 13);
+#if defined(FEAT_TERMRESPONSE) && defined(FEAT_TERMINAL)
+		    int rval, gval, bval;
+
+		    rval = hexhex2nr(tp_r);
+		    gval = hexhex2nr(tp_g);
+		    bval = hexhex2nr(tp_b);
+#endif
+		    if (is_bg)
+		    {
+			char *new_bg_val = (3 * '6' < *tp_r + *tp_g +
+					     *tp_b) ? "light" : "dark";
+
+			LOG_TRN("Received RBG response: %s", tp);
+#ifdef FEAT_TERMRESPONSE
+			rbg_status.tr_progress = STATUS_GOT;
+# ifdef FEAT_TERMINAL
+			bg_r = rval;
+			bg_g = gval;
+			bg_b = bval;
+# endif
+#endif
+			if (!option_was_set((char_u *)"bg")
+				      && STRCMP(p_bg, new_bg_val) != 0)
+			{
+			    // value differs, apply it
+			    set_option_value_give_err((char_u *)"bg",
+						  0L, (char_u *)new_bg_val, 0);
+			    reset_option_was_set((char_u *)"bg");
+			    redraw_asap(UPD_CLEAR);
+			}
+		    }
+#if defined(FEAT_TERMRESPONSE) && defined(FEAT_TERMINAL)
+		    else
+		    {
+			LOG_TRN("Received RFG response: %s", tp);
+			rfg_status.tr_progress = STATUS_GOT;
+			fg_r = rval;
+			fg_g = gval;
+			fg_b = bval;
+		    }
+#endif
+		}
+
+#ifdef FEAT_EVAL
+		set_vim_var_string(is_bg ? VV_TERMRBGRESP
+						  : VV_TERMRFGRESP, resp, len);
+#endif
+		apply_autocmds(EVENT_TERMRESPONSEALL,
+			is_bg ? (char_u *)"background" : (char_u *)"foreground",
+			NULL, FALSE, curbuf);
+		break;
+	    }
+    }
+    if (i == len)
+	LOG_TR1("not enough characters for RB");
+}
+
 static oscstate_T osc_state;
 
 /*
@@ -5768,7 +5916,7 @@ handle_osc(char_u *tp, int len, char_u *key_name, int *slen)
 	LOG_TRN("Received OSC response: %s", (char*)tp);
 	// Check if it is a valid OSC sequence, and consume it. OSC format
 	// consists of:
-	// <idenfitifer><data><terminator>
+	// <identifier><data><terminator>
 	// <identifier> is either <Esc>] or an OSC character
 	// <terminator> can be '\007', <Esc>\ or STERM.
 	cur = 1 + (tp[0] == ESC);
@@ -5809,6 +5957,9 @@ handle_osc(char_u *tp, int len, char_u *key_name, int *slen)
 #ifdef FEAT_EVAL
 	    set_vim_var_string_direct(VV_TERMOSC, osc_state.buf.ga_data);
 #endif
+	    // Check for background/foreground colour response
+	    check_for_color_response(osc_state.buf.ga_data, osc_state.buf.ga_len - 1);
+
 	    char_u savebg = *p_bg;
 	    apply_autocmds(EVENT_TERMRESPONSEALL, (char_u *)"osc",
 		    NULL, FALSE, curbuf);
@@ -6589,29 +6740,19 @@ handle_osc:
     return 0;			    // no match found
 }
 
-#if (defined(FEAT_TERMINAL) && defined(FEAT_TERMRESPONSE)) || defined(PROTO)
-
-    static void
-term_get_color(char_u *str, char_u *r, char_u *g, char_u *b)
-{
-    char_u rn[3], gn[3], bn[3];
-
-    if (sscanf((char *)str, "%*[^:]:%2s%*[^/]/%2s%*[^/]/%2s",
-		(char *)&rn, (char *)&gn, (char *)&bn) != 3)
-	return;
-
-    *r = hexhex2nr(rn);
-    *g = hexhex2nr(gn);
-    *b = hexhex2nr(bn);
-}
-
+#if defined(FEAT_TERMINAL) && defined(FEAT_TERMRESPONSE)
 /*
  * Get the text foreground color, if known.
  */
     void
 term_get_fg_color(char_u *r, char_u *g, char_u *b)
 {
-    term_get_color(get_vim_var_str(VV_TERMRFGRESP), r, g, b);
+    if (rfg_status.tr_progress != STATUS_GOT)
+	return;
+
+    *r = fg_r;
+    *g = fg_g;
+    *b = fg_b;
 }
 
 /*
@@ -6620,7 +6761,12 @@ term_get_fg_color(char_u *r, char_u *g, char_u *b)
     void
 term_get_bg_color(char_u *r, char_u *g, char_u *b)
 {
-    term_get_color(get_vim_var_str(VV_TERMRBGRESP), r, g, b);
+    if (rbg_status.tr_progress != STATUS_GOT)
+	return;
+
+    *r = bg_r;
+    *g = bg_g;
+    *b = bg_b;
 }
 #endif
 
@@ -7096,7 +7242,7 @@ show_one_termcode(char_u *name, char_u *code, int printit)
     return len;
 }
 
-#if defined(FEAT_TERMRESPONSE) || defined(PROTO)
+#if defined(FEAT_TERMRESPONSE)
 /*
  * For Xterm >= 140 compiled with OPT_TCAP_QUERY: Obtain the actually used
  * termcap codes from the terminal itself.
@@ -7307,7 +7453,7 @@ check_for_codes_from_term(void)
 }
 #endif
 
-#if (defined(MSWIN) && (!defined(FEAT_GUI) || defined(VIMDLL))) || defined(PROTO)
+#if defined(MSWIN) && (!defined(FEAT_GUI) || defined(VIMDLL))
 static char ksme_str[20];
 static char ksmr_str[20];
 static char ksmd_str[20];
@@ -7459,8 +7605,7 @@ swap_tcap(void)
 #endif
 
 
-#if (defined(MSWIN) && (!defined(FEAT_GUI_MSWIN) || defined(VIMDLL))) || defined(FEAT_TERMINAL) \
-	|| defined(PROTO)
+#if (defined(MSWIN) && (!defined(FEAT_GUI_MSWIN) || defined(VIMDLL))) || defined(FEAT_TERMINAL)
 static int cube_value[] = {
     0x00, 0x5F, 0x87, 0xAF, 0xD7, 0xFF
 };

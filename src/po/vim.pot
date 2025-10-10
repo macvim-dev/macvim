@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Vim\n"
 "Report-Msgid-Bugs-To: vim-dev@vim.org\n"
-"POT-Creation-Date: 2025-08-27 19:10+0200\n"
+"POT-Creation-Date: 2025-10-07 20:28+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2220,10 +2220,16 @@ msgstr ""
 msgid " SPACE/d/j: screen/page/line down, b/u/k: up, q: quit "
 msgstr ""
 
+msgid "W24: Clipboard register not available. See :h W24"
+msgstr ""
+
 msgid "W23: Clipboard register not available, using register 0"
 msgstr ""
 
-msgid "W24: Clipboard register not available. See :h W24"
+msgid "W23: Clipboard register + not available, using register 0"
+msgstr ""
+
+msgid "W23: Clipboard register * not available, using register 0"
 msgstr ""
 
 msgid "Question"
@@ -8222,7 +8228,7 @@ msgid "E1329: Invalid class variable declaration: %s"
 msgstr ""
 
 #, c-format
-msgid "E1330: Invalid type for object variable: %s"
+msgid "E1330: Invalid type used in variable declaration: %s"
 msgstr ""
 
 msgid ""
@@ -8836,6 +8842,9 @@ msgstr ""
 msgid "E1568: OSC command response timed out: %.*s"
 msgstr ""
 
+msgid "E1569: Cannot use listener_add in a listener callback"
+msgstr ""
+
 #. type of cmdline window or 0
 #. result of cmdline window or 0
 #. buffer of cmdline window or NULL
@@ -9414,8 +9423,8 @@ msgid ""
 msgstr ""
 
 msgid ""
-"characters to use for the status line, folds, diffs, buffer text, filler "
-"lines and truncation in the completion menu"
+"characters to use for the status line, folds, diffs,\n"
+"buffer text, filler lines and truncation in the completion menu"
 msgstr ""
 
 msgid "number of lines used for the command-line"
@@ -9757,7 +9766,9 @@ msgstr ""
 msgid "room (in pixels) left above/below the window"
 msgstr ""
 
-msgid "list of ASCII characters that can be combined into complex shapes"
+msgid ""
+"list of ASCII characters that can be combined into complex\n"
+"shapes"
 msgstr ""
 
 msgid "options for text rendering"
@@ -9767,8 +9778,8 @@ msgid "use a pseudo-tty for I/O to external commands"
 msgstr ""
 
 msgid ""
-"\"last\", \"buffer\" or \"current\": which directory used for the file "
-"browser"
+"\"last\", \"buffer\" or \"current\": which directory used for\n"
+"the file browser"
 msgstr ""
 
 msgid "language to be used for the menus"
@@ -9789,7 +9800,9 @@ msgstr ""
 msgid "use balloon evaluation in the GUI"
 msgstr ""
 
-msgid "use balloon evaluation in the terminal"
+msgid ""
+" \n"
+"use balloon evaluation in the terminal"
 msgstr ""
 
 msgid "expression to show in balloon eval"
@@ -9959,22 +9972,32 @@ msgstr ""
 msgid "automatic completion in insert mode"
 msgstr ""
 
-msgid "initial decay timeout for 'autocomplete' algorithm"
+msgid ""
+" \n"
+"initial decay timeout for 'autocomplete' algorithm"
 msgstr ""
 
-msgid "initial decay timeout for CTRL-N and CTRL-P completion"
+msgid ""
+" \n"
+"initial decay timeout for CTRL-N and CTRL-P completion"
 msgstr ""
 
-msgid "delay in msec before menu appears after typing"
+msgid ""
+" \n"
+"delay in msec before menu appears after typing"
 msgstr ""
 
 msgid "whether to use a popup menu for Insert mode completion"
 msgstr ""
 
-msgid "popup menu item align order"
+msgid ""
+" \n"
+"popup menu item align order"
 msgstr ""
 
-msgid "use fuzzy collection for specific completion modes"
+msgid ""
+" \n"
+"use fuzzy collection for specific completion modes"
 msgstr ""
 
 msgid "options for the Insert mode completion info popup"
@@ -9987,6 +10010,9 @@ msgid "minimum width of the popup menu"
 msgstr ""
 
 msgid "maximum width of the popup menu"
+msgstr ""
+
+msgid "popup border style"
 msgstr ""
 
 msgid "user defined function for Insert mode completion"
@@ -10404,7 +10430,9 @@ msgstr ""
 msgid "encoding of the \":make\" and \":grep\" output"
 msgstr ""
 
-msgid "function to display text in the quickfix window"
+msgid ""
+" \n"
+"function to display text in the quickfix window"
 msgstr ""
 
 msgid "system specific"
@@ -10618,7 +10646,9 @@ msgstr ""
 msgid "name of the Python 3 dynamic library"
 msgstr ""
 
-msgid "name of the Python 3 home directory"
+msgid ""
+" \n"
+"name of the Python 3 home directory"
 msgstr ""
 
 msgid "name of the Ruby dynamic library"

@@ -11,7 +11,7 @@
 
 #include "vim.h"
 
-#if defined(FEAT_CSCOPE) || defined(PROTO)
+#if defined(FEAT_CSCOPE)
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -439,7 +439,7 @@ cs_print_tags(void)
  *
  *		Note: All string comparisons are case sensitive!
  */
-#if defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_EVAL)
     static int
 cs_connection(int num, char_u *dbpath, char_u *ppath)
 {
@@ -1233,7 +1233,10 @@ cs_find_common(
 	win_T	    *wp = NULL;
 
 	if (tmp == NULL)
+	{
+	    vim_free(nummatches);
 	    return FALSE;
+	}
 
 	f = mch_fopen((char *)tmp, "w");
 	if (f == NULL)
@@ -2512,7 +2515,7 @@ cs_end(void)
 
 #endif	// FEAT_CSCOPE
 
-#if defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_EVAL)
 
 /*
  * "cscope_connection([{num} , {dbpath} [, {prepend}]])" function

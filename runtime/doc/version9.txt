@@ -1,4 +1,4 @@
-*version9.txt*  For Vim version 9.1.  Last change: 2025 Sep 09
+*version9.txt*  For Vim version 9.1.  Last change: 2025 Oct 07
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -41621,6 +41621,7 @@ Platform specific~
 - The Win32 GUI comes with better toolbar icons.
 
 - Better fullscreen support for Haiku |os_haiku.txt|.
+
 							*new-other-9.2*
 Other new features ~
 ------------------
@@ -41669,6 +41670,10 @@ Default values: ~
 - the default value for 'showcmd' is always enabled when using non-compatible
   mode (previously, it was off on UNIX systems) and consequently removed from
   |defaults.vim|
+- Improve the diff mode experience by updating the 'diffopt' default value to
+  "internal,filler,closeoff,indent-heuristic,inline:char".
+- the 'ruler' option value is always enabled when using non-compatible mode
+  and removed from |defaults.vim|
 
 Completion: ~
 - allow to complete directories from 'cdpath' for |:cd| and similar commands,
@@ -41697,7 +41702,9 @@ Options: ~
 - new option values for 'fillchars':
 	"trunc"		- configure truncation indicator, 'pummaxwidth'
 	"truncrl"	- like "trunc" but in 'rl' mode, 'pummaxwidth'
-	"tpl_vert"	- separators for the 'tabpanel'
+	"tpl_vert"	- vertical separators for the 'tabpanel'
+	"foldinner"	- character used inside the 'foldcolumn' for nested
+			  fold levels
 - 'grepformat' is now a |global-local| option.
 - adjust for GTK3 dropping some mouse cursors 'mouseshape'
 - 'nrformats' accepts the new "blank" suboption, to determine a signed or
@@ -41705,6 +41712,11 @@ Options: ~
 - 'rulerformat' now supports the |stl-%!| item
 - use 'smoothscroll' logic for CTRL-F / CTRL-B for pagewise scrolling
   and CTRL-D / CTRL-U for half-pagewise scrolling
+- Setting 'nowrap' in a modeline could cause long lines to be hidden
+  off-screen.  To make this visible, the listchars "extend" suboption is set
+  to ">" by default, indicating text that extends beyond the window width.
+- 'guioptions': New value |'go-C'| to style the title/caption bar on Windows 11
+  (see also the below platform specific change).
 
 Ex commands: ~
 - allow to specify a priority when defining a new sign |:sign-define|
@@ -41730,6 +41742,19 @@ Functions: ~
 - |chdir()| allows to optionally specify a scope argument
 - |matchfuzzy()| and |matchfuzzypos()| use an improved fuzzy matching
   algorithm (same as fzy).
+- |sha256()| also accepts a |Blob| as argument.
+- |listener_add()| allows to register un-buffered listeners, so that changes
+  are handled as soon as they happen.
+
+Plugins~
+- |zip| plugin works with PowerShell Core.
+
+Platform specific ~
+- MS-Winodws: Paths like "\Windows" and "/Windows" are now considered to be
+  absolute paths (to the current drive) and no longer relative.
+- MS-Windows: The title bar follows the |hl-TitleBar| and |hl-TitleBarNC|
+  highlighting group |gui-w32-title-bar|.
+- macOS: increase default scheduler priority to TASK_DEFAULT_APPLICATION.
 
 Others: ~
 - the regex engines match correctly case-insensitive multi-byte characters
@@ -41737,7 +41762,6 @@ Others: ~
 - the putty terminal is detected using an |TermResponse| autocommand in
   |defaults.vim| and Vim switches to a dark background
 - improve the |vimtutor| and add a second chapter for more advanced tips
-- |CTRL-C| always closes the active |popup-window|.
 - the configure script will favor using GTK3 over GTK2 when auto-detecting the
   gui toolkit
 - |gv| works in operator pending mode and does not abort
@@ -41756,13 +41780,6 @@ Others: ~
   Command-line.
 - |min()|/|max()| can handle all comparable data types.
 - Vim triggers the |TermResponseAll| autocommand for any terminal OSC value.
-- Vim includes the $VIMRUNTIME/plugins/colorresp.vim which parses the terminal
-  OSC response and can trigger a |TermResponseAll| with the "background" or
-  "foreground" value.
-
-Platform specific ~
-- MS-Winodws: Paths like "\Windows" and "/Windows" are now considered to be
-  absolute paths (to the current drive) and no longer relative.
 
 							*added-9.2*
 Added ~
@@ -41794,6 +41811,8 @@ Functions: ~
 |matchstrlist()|	all the matches of a pattern in a List of strings
 |ngettext()|		lookup single/plural message translation
 |popup_setbuf()|	switch to a different buffer in a popup
+|preinserted()|		whether preinserted text has been inserted during
+			completion (see 'completeopt')
 |str2blob()|		convert a List of strings into a blob
 |test_null_tuple()|	return a null tuple
 |tuple2list()|		turn a Tuple of items into a List
@@ -41819,13 +41838,17 @@ Highlighting: ~
 |hl-ComplMatchIns|	matched text of the currently inserted completion
 |hl-DiffTextAdd|	added text within a changed line
 |hl-MsgArea|		highlighting of the Command-line and messages area
+|hl-PmenuBorder|	Popup menu: highlighting of popup border characters
 |hl-PmenuMatch|		Popup menu: highlighting of matched text
 |hl-PmenuMatchSel|	Popup menu: highlighting of matched text in selected
 			line
+|hl-PmenuShadow|	Popup menu: highlighting of the popup shadow
 |hl-PreInsert|		highlighting for completion preinserted text
 |hl-TabPanel|		|tabpanel|: not active tab page label
 |hl-TabPanelFill|	|tabpanel|: filler space
 |hl-TabPanelSel|	|tabpanel|: active tab page label
+|hl-TitleBarNC|		Configure the inactive title/bar on MS-Windows 11
+|hl-TitleBar|		Configure the active title/bar on MS-Windows 11
 
 Commands: ~
 
@@ -41859,6 +41882,7 @@ Options: ~
 'lhistory'		Size of the location list stack |quickfix-stack|
 'maxsearchcount'	Set the maximum number for search-stat |shm-S|
 'messagesopt'		configure |:messages| and |hit-enter| prompt
+'pumborder'		define popup border and decorations
 'pummaxwidth'		maximum width for the completion popup menu
 'showtabpanel'		When to show the |tabpanel|
 'tabclose'		Which tab page to focus after closing a tab page

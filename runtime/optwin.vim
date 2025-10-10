@@ -1,7 +1,7 @@
 " These commands create the option window.
 "
 " Maintainer:	The Vim Project <https://github.com/vim/vim>
-" Last Change:	2025 Sep 02
+" Last Change:	2025 Oct 07
 " Former Maintainer:	Bram Moolenaar <Bram@vim.org>
 
 " If there already is an option window, jump to that one.
@@ -373,7 +373,7 @@ call <SID>AddOption("sidescrolloff", gettext("minimal number of columns to keep 
 call append("$", " \tset siso=" . &siso)
 call <SID>AddOption("display", gettext("include \"lastline\" to show the last line even if it doesn't fit\ninclude \"uhex\" to show unprintable characters as a hex number"))
 call <SID>OptionG("dy", &dy)
-call <SID>AddOption("fillchars", gettext("characters to use for the status line, folds, diffs, buffer text, filler lines and truncation in the completion menu"))
+call <SID>AddOption("fillchars", gettext("characters to use for the status line, folds, diffs,\nbuffer text, filler lines and truncation in the completion menu"))
 call <SID>OptionG("fcs", &fcs)
 call <SID>AddOption("cmdheight", gettext("number of lines used for the command-line"))
 call append("$", " \tset ch=" . &ch)
@@ -689,7 +689,7 @@ if has("gui")
     call append("$", " \tset ghr=" . &ghr)
   endif
   if has("gui_gtk") || has("gui_win32")
-    call <SID>AddOption("guiligatures", gettext("list of ASCII characters that can be combined into complex shapes"))
+    call <SID>AddOption("guiligatures", gettext("list of ASCII characters that can be combined into complex\nshapes"))
     call <SID>OptionG("gli", &gli)
   endif
   if has("directx")
@@ -699,7 +699,7 @@ if has("gui")
   call <SID>AddOption("guipty", gettext("use a pseudo-tty for I/O to external commands"))
   call <SID>BinOptionG("guipty", &guipty)
   if has("browse")
-    call <SID>AddOption("browsedir", gettext("\"last\", \"buffer\" or \"current\": which directory used for the file browser"))
+    call <SID>AddOption("browsedir", gettext("\"last\", \"buffer\" or \"current\": which directory used for\nthe file browser"))
     call <SID>OptionG("bsdir", &bsdir)
   endif
   if has("multi_lang")
@@ -724,7 +724,7 @@ if has("gui")
       call <SID>BinOptionG("beval", &beval)
     endif
     if has("balloon_eval_term")
-      call <SID>AddOption("balloonevalterm", gettext("use balloon evaluation in the terminal"))
+      call <SID>AddOption("balloonevalterm", gettext(" \nuse balloon evaluation in the terminal"))
       call <SID>BinOptionG("bevalterm", &beval)
     endif
     if has("eval")
@@ -841,7 +841,7 @@ if has('wayland')
   call <SID>AddOption("wlseat", gettext("Wayland seat to use"))
   call <SID>OptionG("wse", &wse)
 endif
-if has("wayland_clipboard")
+if has("wayland_focus_steal")
   call <SID>AddOption("wlsteal", gettext("Enable wayland focus stealing functionality in order to access the clipboard"))
   call <SID>BinOptionG("wst", &wst)
 endif
@@ -895,18 +895,19 @@ if has("insert_expand")
   call append("$", "\t" .. s:local_to_buffer)
   call <SID>OptionL("cpt")
   call <SID>AddOption("autocomplete", gettext("automatic completion in insert mode"))
+  call append("$", "\t" .. s:global_or_local)
   call <SID>BinOptionG("ac", &ac)
-  call <SID>AddOption("autocompletetimeout", gettext("initial decay timeout for 'autocomplete' algorithm"))
+  call <SID>AddOption("autocompletetimeout", gettext(" \ninitial decay timeout for 'autocomplete' algorithm"))
   call append("$", " \tset act=" . &act)
-  call <SID>AddOption("completetimeout", gettext("initial decay timeout for CTRL-N and CTRL-P completion"))
+  call <SID>AddOption("completetimeout", gettext(" \ninitial decay timeout for CTRL-N and CTRL-P completion"))
   call append("$", " \tset cto=" . &cto)
-  call <SID>AddOption("autocompletedelay", gettext("delay in msec before menu appears after typing"))
+  call <SID>AddOption("autocompletedelay", gettext(" \ndelay in msec before menu appears after typing"))
   call append("$", " \tset acl=" . &acl)
   call <SID>AddOption("completeopt", gettext("whether to use a popup menu for Insert mode completion"))
   call <SID>OptionL("cot")
-  call <SID>AddOption("completeitemalign", gettext("popup menu item align order"))
+  call <SID>AddOption("completeitemalign", gettext(" \npopup menu item align order"))
   call <SID>OptionG("cia", &cia)
-  call <SID>AddOption("completefuzzycollect", gettext("use fuzzy collection for specific completion modes"))
+  call <SID>AddOption("completefuzzycollect", gettext(" \nuse fuzzy collection for specific completion modes"))
   call <SID>OptionL("cfc")
   if exists("+completepopup")
     call <SID>AddOption("completepopup", gettext("options for the Insert mode completion info popup"))
@@ -918,6 +919,8 @@ if has("insert_expand")
   call <SID>OptionG("pw", &pw)
   call <SID>AddOption("pummaxwidth", gettext("maximum width of the popup menu"))
   call <SID>OptionG("pmw", &pmw)
+  call <SID>AddOption("pumborder", gettext("popup border style"))
+  call <SID>OptionG("pb", &pb)
   call <SID>AddOption("completefunc", gettext("user defined function for Insert mode completion"))
   call append("$", "\t" .. s:local_to_buffer)
   call <SID>OptionL("cfu")
@@ -1284,7 +1287,7 @@ if has("quickfix")
   call <SID>AddOption("makeencoding", gettext("encoding of the \":make\" and \":grep\" output"))
   call append("$", "\t" .. s:global_or_local)
   call <SID>OptionG("menc", &menc)
-  call <SID>AddOption("quickfixtextfunc", gettext("function to display text in the quickfix window"))
+  call <SID>AddOption("quickfixtextfunc", gettext(" \nfunction to display text in the quickfix window"))
   call <SID>OptionG("qftf", &qftf)
 endif
 
@@ -1486,7 +1489,7 @@ if exists("&pythonthreedll")
   call <SID>OptionG("pythonthreedll", &pythonthreedll)
 endif
 if exists("&pythonthreehome")
-  call <SID>AddOption("pythonthreehome", gettext("name of the Python 3 home directory"))
+  call <SID>AddOption("pythonthreehome", gettext(" \nname of the Python 3 home directory"))
   call <SID>OptionG("pythonthreehome", &pythonthreehome)
 endif
 if exists("&rubydll")

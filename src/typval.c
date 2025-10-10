@@ -13,7 +13,7 @@
 
 #include "vim.h"
 
-#if defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_EVAL)
 
 /*
  * Allocate memory for a variable type-value, and make it empty (0 or NULL
@@ -697,7 +697,7 @@ check_for_opt_nonnull_dict_arg(typval_T *args, int idx)
 	    || check_for_nonnull_dict_arg(args, idx) != FAIL) ? OK : FAIL;
 }
 
-#if defined(FEAT_JOB_CHANNEL) || defined(PROTO)
+#if defined(FEAT_JOB_CHANNEL)
 /*
  * Give an error and return FAIL unless "args[idx]" is a channel or a job.
  */
@@ -823,7 +823,6 @@ check_for_opt_lnum_arg(typval_T *args, int idx)
 	    || check_for_lnum_arg(args, idx) != FAIL) ? OK : FAIL;
 }
 
-#if defined(FEAT_JOB_CHANNEL) || defined(PROTO)
 /*
  * Give an error and return FAIL unless "args[idx]" is a string or a blob.
  */
@@ -837,7 +836,6 @@ check_for_string_or_blob_arg(typval_T *args, int idx)
     }
     return OK;
 }
-#endif
 
 /*
  * Give an error and return FAIL unless "args[idx]" is a string or a list.
@@ -1357,9 +1355,11 @@ tv_check_lock(typval_T *tv, char_u *name, int use_gettext)
  * It is OK for "from" and "to" to point to the same item.  This is used to
  * make a copy later.
  */
-    void
+    int
 copy_tv(typval_T *from, typval_T *to)
 {
+    int		ret = OK;
+
     to->v_type = from->v_type;
     to->v_lock = 0;
     switch (from->v_type)
@@ -1465,12 +1465,16 @@ copy_tv(typval_T *from, typval_T *to)
 	    break;
 	case VAR_VOID:
 	    emsg(_(e_cannot_use_void_value));
+	    ret = FAIL;
 	    break;
 	case VAR_UNKNOWN:
 	case VAR_ANY:
 	    internal_error_no_abort("copy_tv(UNKNOWN)");
+	    ret = FAIL;
 	    break;
     }
+
+    return ret;
 }
 
 /*

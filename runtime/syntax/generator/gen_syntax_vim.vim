@@ -1,7 +1,7 @@
 " Vim syntax file generator
 " Language:		 Vim script
 " Maintainer:  Hirohito Higashi (h_east)
-" Last Change: 2025 Aug 27
+" Last Change: 2025 Sep 27
 
 let s:keepcpo= &cpo
 set cpo&vim
@@ -307,6 +307,7 @@ function s:get_vim_command_type(cmd_name)
 		catch
 		chdir
 		class
+		command
 		copy
 		debuggreedy
 		def
@@ -398,9 +399,11 @@ function s:get_vim_command_type(cmd_name)
 		substitute
 		swapname
 		syntax
+		syntime
 		tcl
 		tcldo
 		tclfile
+		terminal
 		this
 		throw
 		type
@@ -412,6 +415,7 @@ function s:get_vim_command_type(cmd_name)
 		vimgrep
 		vimgrepadd
 		while
+		wincmd
 	EOL
 	" Required for original behavior
 	" \	'global', 'vglobal'

@@ -13,7 +13,7 @@
 
 #include "vim.h"
 
-#if defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_EVAL)
 
 static dictitem_T	globvars_var;		// variable used for g:
 static dict_T		globvardict;		// Dictionary with g: variables
@@ -141,8 +141,8 @@ static struct vimvar
     {VV_NAME("t_blob",		 VAR_NUMBER), NULL, VV_RO},
     {VV_NAME("t_class",		 VAR_NUMBER), NULL, VV_RO},
     {VV_NAME("t_object",	 VAR_NUMBER), NULL, VV_RO},
-    {VV_NAME("termrfgresp",	 VAR_STRING), NULL, 0},
-    {VV_NAME("termrbgresp",	 VAR_STRING), NULL, 0},
+    {VV_NAME("termrfgresp",	 VAR_STRING), NULL, VV_RO},
+    {VV_NAME("termrbgresp",	 VAR_STRING), NULL, VV_RO},
     {VV_NAME("termu7resp",	 VAR_STRING), NULL, VV_RO},
     {VV_NAME("termstyleresp",	 VAR_STRING), NULL, VV_RO},
     {VV_NAME("termblinkresp",	 VAR_STRING), NULL, VV_RO},
@@ -289,7 +289,7 @@ evalvars_init(void)
     set_reg_var(0);
 }
 
-#if defined(EXITFREE) || defined(PROTO)
+#if defined(EXITFREE)
 /*
  * Free all vim variables information on exit
  */
@@ -418,7 +418,7 @@ eval_charconvert(
     return OK;
 }
 
-# if defined(FEAT_POSTSCRIPT) || defined(PROTO)
+# if defined(FEAT_POSTSCRIPT)
     int
 eval_printexpr(char_u *fname, char_u *args)
 {
@@ -448,7 +448,7 @@ eval_printexpr(char_u *fname, char_u *args)
 }
 # endif
 
-# if defined(FEAT_DIFF) || defined(PROTO)
+# if defined(FEAT_DIFF)
     void
 eval_diff(
     char_u	*origfile,
@@ -506,7 +506,7 @@ eval_patch(
 }
 # endif
 
-#if defined(FEAT_SPELL) || defined(PROTO)
+#if defined(FEAT_SPELL)
 /*
  * Evaluate an expression to a list with suggestions.
  * For the "expr:" part of 'spellsuggest'.
@@ -2522,7 +2522,7 @@ item_lock(typval_T *tv, int deep, int lock, int check_refcount)
     --recurse;
 }
 
-#if (defined(FEAT_MENU) && defined(FEAT_MULTI_LANG)) || defined(PROTO)
+#if defined(FEAT_MENU) && defined(FEAT_MULTI_LANG)
 /*
  * Delete all "menutrans_" variables.
  */
@@ -3361,7 +3361,7 @@ eval_variable(
 		    }
 		}
 	    }
-	    copy_tv(tv, rettv);
+	    ret = copy_tv(tv, rettv);
 	}
     }
 

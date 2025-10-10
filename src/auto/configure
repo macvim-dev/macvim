@@ -692,14 +692,12 @@ NETBEANS_SRC
 RUBY_LIBS
 RUBY_CFLAGS_EXTRA
 RUBY_CFLAGS
-RUBY_PRO
 RUBY_OBJ
 RUBY_SRC
 vi_cv_path_ruby
 TCL_LIBS
 TCL_CFLAGS_EXTRA
 TCL_CFLAGS
-TCL_PRO
 TCL_OBJ
 TCL_SRC
 vi_cv_path_tcl
@@ -731,14 +729,12 @@ MZSCHEME_MZC
 MZSCHEME_EXTRA
 MZSCHEME_CFLAGS
 MZSCHEME_LIBS
-MZSCHEME_PRO
 MZSCHEME_OBJ
 MZSCHEME_SRC
 vi_cv_path_mzscheme
 LUA_CFLAGS_EXTRA
 LUA_CFLAGS
 LUA_LIBS
-LUA_PRO
 LUA_OBJ
 LUA_SRC
 vi_cv_path_plain_lua
@@ -868,6 +864,7 @@ enable_farsi
 enable_xim
 enable_fontset
 with_wayland
+enable_wayland_focus_steal
 with_x
 enable_gui
 enable_gtk2_check
@@ -1552,6 +1549,9 @@ Optional Features:
   --disable-farsi         Deprecated.
   --enable-xim            Include XIM input support.
   --enable-fontset        Include X fontset output support.
+  --enable-wayland-focus-steal
+                          Include focus stealing support for Wayland
+                          clipboard.
   --enable-gui=OPTS       X11 GUI. default=auto OPTS=auto/no/gtk2/gnome2/gtk3/motif/haiku/photon/carbon/macvim
   --enable-gtk2-check     If auto-select GUI, check for GTK+ 2 default=yes
   --enable-gnome-check    If GTK GUI, check for GNOME default=no
@@ -6393,7 +6393,6 @@ rm -f core conftest.err conftest.$ac_objext conftest.beam \
       LUA_CFLAGS="-I${vi_cv_path_lua_pfx}/include${LUA_INC}"
       LUA_SRC="if_lua.c"
       LUA_OBJ="objects/if_lua.o"
-      LUA_PRO="if_lua.pro"
       printf "%s\n" "#define FEAT_LUA 1" >>confdefs.h
 
     fi
@@ -6478,7 +6477,6 @@ printf "%s\n" "<none>" >&6; }
   if test "$fail_if_missing" = "yes" -a "$lua_ok" != "yes"; then
     as_fn_error $? "could not configure lua" "$LINENO" 5
   fi
-
 
 
 
@@ -6897,7 +6895,6 @@ rm -f core conftest.err conftest.$ac_objext conftest.beam \
     if test $mzs_ok = yes; then
       MZSCHEME_SRC="if_mzsch.c"
       MZSCHEME_OBJ="objects/if_mzsch.o"
-      MZSCHEME_PRO="if_mzsch.pro"
       printf "%s\n" "#define FEAT_MZSCHEME 1" >>confdefs.h
 
     else
@@ -6907,7 +6904,6 @@ rm -f core conftest.err conftest.$ac_objext conftest.beam \
       MZSCHEME_MZC=
     fi
   fi
-
 
 
 
@@ -7118,9 +7114,9 @@ rm -f core conftest.err conftest.$ac_objext conftest.beam \
 	  fi
 	fi
 	PERL_LIBS=$perllibs
-	PERL_SRC="auto/if_perl.c if_perlsfio.c"
-	PERL_OBJ="objects/if_perl.o objects/if_perlsfio.o"
-	PERL_PRO="if_perl.pro if_perlsfio.pro"
+	PERL_SRC="auto/if_perl.c"
+	PERL_OBJ="objects/if_perl.o"
+	PERL_PRO="proto/if_perl.pro"
 	printf "%s\n" "#define FEAT_PERL 1" >>confdefs.h
 
       fi
@@ -7146,7 +7142,7 @@ printf "%s\n" ">>> too old; need Perl version 5.003_01 or later <<<" >&6; }
     if test -n "$PERL"; then
       PERL_DIR="$dir"
       PERL_CFLAGS="-DFEAT_PERL -I$darwindir/CORE"
-      PERL_OBJ="objects/if_perl.o objects/if_perlsfio.o $darwindir/auto/DynaLoader/DynaLoader.a"
+      PERL_OBJ="objects/if_perl.o $darwindir/auto/DynaLoader/DynaLoader.a"
       PERL_LIBS="-L$darwindir/CORE -lperl"
     fi
                 PERL_LIBS=`echo "$PERL_LIBS" | sed -e 's/-arch\ ppc//' -e 's/-arch\ i386//' -e 's/-arch\ x86_64//'`
@@ -8675,7 +8671,6 @@ printf "%s\n" "<not found>" >&6; }
 
 	  TCL_SRC=if_tcl.c
 	  TCL_OBJ=objects/if_tcl.o
-	  TCL_PRO=if_tcl.pro
 	  TCL_CFLAGS="-I$TCL_INC $TCL_DEFS"
 	fi
       fi
@@ -8695,7 +8690,6 @@ printf "%s\n" "too old; need Tcl version 8.0 or later" >&6; }
     as_fn_error $? "could not configure Tcl" "$LINENO" 5
   fi
 fi
-
 
 
 
@@ -8838,7 +8832,6 @@ printf "%s\n" "$rubyhdrdir" >&6; }
 
 	RUBY_SRC="if_ruby.c"
 	RUBY_OBJ="objects/if_ruby.o"
-	RUBY_PRO="if_ruby.pro"
 
 	printf "%s\n" "#define FEAT_RUBY 1" >>confdefs.h
 
@@ -8886,7 +8879,6 @@ printf "%s\n" "too old; need Ruby version 1.9.1 or later" >&6; }
     as_fn_error $? "could not configure Ruby" "$LINENO" 5
   fi
 fi
-
 
 
 
@@ -9513,13 +9505,39 @@ fi
 
 
 if test "$with_wayland" = yes; then
-cppflags_save=$CPPFLAGS
-cflags_save=$CFLAGS
+  cppflags_save=$CPPFLAGS
+  cflags_save=$CFLAGS
+
   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for wayland" >&5
 printf %s "checking for wayland... " >&6; }
   if "$PKG_CONFIG" --exists 'wayland-client'; then
     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 printf "%s\n" "yes" >&6; }
+
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking --enable-wayland-focus-steal argument" >&5
+printf %s "checking --enable-wayland-focus-steal argument... " >&6; }
+    # Check whether --enable-wayland-focus-steal was given.
+if test ${enable_wayland_focus_steal+y}
+then :
+  enableval=$enable_wayland_focus_steal; enable_wayland_fs=$enableval
+else case e in #(
+  e) enable_wayland_fs="yes" ;;
+esac
+fi
+
+
+    if test "$enable_wayland_fs" = "yes"
+then :
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }
+          printf "%s\n" "#define FEAT_WAYLAND_CLIPBOARD_FS 1" >>confdefs.h
+
+else case e in #(
+  e) { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; } ;;
+esac
+fi
+
     printf "%s\n" "#define HAVE_WAYLAND 1" >>confdefs.h
 
     WAYLAND_CPPFLAGS=`$PKG_CONFIG --cflags-only-I wayland-client`
@@ -9530,15 +9548,22 @@ printf "%s\n" "yes" >&6; }
     WAYLAND_SRC=" \
       auto/wayland/wlr-data-control-unstable-v1.c \
       auto/wayland/ext-data-control-v1.c \
-      auto/wayland/xdg-shell.c \
-      auto/wayland/primary-selection-unstable-v1.c \
       wayland.c"
     WAYLAND_OBJ=" \
       objects/wlr-data-control-unstable-v1.o \
       objects/ext-data-control-v1.o \
-      objects/xdg-shell.o \
-      objects/primary-selection-unstable-v1.o \
       objects/wayland.o"
+
+    if test "$enable_wayland_fs" = "yes"
+then :
+  as_fn_append WAYLAND_SRC " \
+            auto/wayland/xdg-shell.c \
+            auto/wayland/primary-selection-unstable-v1.c"
+           as_fn_append WAYLAND_OBJ " \
+            objects/xdg-shell.o \
+            objects/primary-selection-unstable-v1.o"
+fi
+
 
 
 
@@ -13813,8 +13838,13 @@ else case e in #(
 /* end confdefs.h.  */
 
 #include "confdefs.h"
-#ifdef HAVE_TERMCAP_H
+#ifdef HAVE_TERM_H
+# include <term.h>
+#elif defined(HAVE_TERMCAP_H)
 # include <termcap.h>
+#else
+  /* forward declare tgoto */
+  extern char *tgoto(const char *, int, int);
 #endif
 #ifdef HAVE_STRING_H
 # include <string.h>

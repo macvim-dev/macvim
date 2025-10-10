@@ -248,7 +248,7 @@ EXTERN int	did_wait_return INIT(= FALSE);	// wait_return() was used and
 EXTERN int	need_maketitle INIT(= TRUE); // call maketitle() soon
 
 EXTERN int	quit_more INIT(= FALSE);    // 'q' hit at "--more--" msg
-#if defined(UNIX) || defined(VMS) || defined(MACOS_X)
+#if defined(UNIX) || defined(VMS) || defined(MACOS_X) || defined(AMIGA)
 EXTERN int	newline_on_exit INIT(= FALSE);	// did msg in altern. screen
 EXTERN int	intr_char INIT(= 0);	    // extra interrupt character
 #endif
@@ -1603,7 +1603,7 @@ EXTERN int	listcmd_busy INIT(= FALSE); // set when :argdo, :windo or
 					    // :bufdo is executing
 EXTERN int	need_start_insertmode INIT(= FALSE);
 					    // start insert mode soon
-#if defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_EVAL)
 EXTERN char_u	last_mode[MODE_MAX_LENGTH] INIT(= "n"); // for ModeChanged event
 #endif
 EXTERN char_u	*last_cmdline INIT(= NULL); // last command line (for ":)
@@ -1871,9 +1871,6 @@ EXTERN Window	clientWindow INIT(= None);
 EXTERN Atom	commProperty INIT(= None);
 EXTERN char_u	*serverDelayedStartName INIT(= NULL);
 # elif defined(MSWIN)
-#  ifdef PROTO
-typedef int HWND;
-#  endif
 EXTERN HWND	clientWindow INIT(= 0);
 # elif defined(MAC_CLIENTSERVER)
 EXTERN int      clientWindow INIT(= 0);
@@ -2027,9 +2024,6 @@ EXTERN evalarg_T EVALARG_EVALUATE
 #endif
 
 #ifdef MSWIN
-# ifdef PROTO
-typedef int HINSTANCE;
-# endif
 EXTERN int ctrl_break_was_pressed INIT(= FALSE);
 EXTERN HINSTANCE g_hinst INIT(= NULL);
 #endif
@@ -2075,23 +2069,23 @@ EXTERN char_u showcmd_buf[SHOWCMD_BUFLEN];
 EXTERN int	p_tgc_set INIT(= FALSE);
 #endif
 
-// If we've already warned about missing/unavailable clipboard
-EXTERN int did_warn_clipboard INIT(= FALSE);
-
 #ifdef FEAT_CLIPBOARD
 EXTERN clipmethod_T clipmethod INIT(= CLIPMETHOD_NONE);
 #endif
 
 #ifdef FEAT_WAYLAND
 
-// Don't connect to Wayland compositor if TRUE
-EXTERN int wayland_no_connect INIT(= FALSE);
-
-// Wayland display name (ex. wayland-0). Can be NULL
+// Wayland display name for global connection (ex. wayland-0). Can be NULL
 EXTERN char *wayland_display_name INIT(= NULL);
 
-// Wayland display file descriptor; set by wayland_init_client()
-EXTERN int wayland_display_fd;
+// Special mime type used to identify selection events that came from us setting
+// the selection. Is in format of "application/x-vim-instance-<pid>" where <pid>
+// is the PID of the Vim process. Set in main.c
+EXTERN char wayland_vim_special_mime[
+    sizeof("application/x-vim-instance-") + NUMBUFLEN - 1]; // Includes NUL
+
+// Don't connect to Wayland compositor if TRUE
+EXTERN int wayland_no_connect INIT(= FALSE);
 
 #endif
 

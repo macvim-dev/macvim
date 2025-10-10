@@ -59,7 +59,7 @@ static void recording_mode(int attr);
 // Ugly global: overrule attribute used by screen_char()
 static int screen_char_attr = 0;
 
-#if defined(FEAT_CONCEAL) || defined(PROTO)
+#if defined(FEAT_CONCEAL)
 /*
  * Return TRUE if the cursor line in window "wp" may be concealed, according
  * to the 'concealcursor' option.
@@ -229,7 +229,7 @@ win_draw_end(
     set_empty_rows(wp, row);
 }
 
-#if defined(FEAT_FOLDING) || defined(PROTO)
+#if defined(FEAT_FOLDING)
 /*
  * Compute the width of the foldcolumn.  Based on 'foldcolumn' and how much
  * space is available for window "wp", minus "col".
@@ -287,6 +287,8 @@ fill_foldcolumn(
 	    symbol = wp->w_fill_chars.foldopen;
 	else if (first_level == 1)
 	    symbol = wp->w_fill_chars.foldsep;
+	else if (wp->w_fill_chars.foldinner != NUL)
+	    symbol = wp->w_fill_chars.foldinner;
 	else if (first_level + i <= 9)
 	    symbol = '0' + first_level + i;
 	else
@@ -369,7 +371,7 @@ char_needs_redraw(int off_from, int off_to, int cols)
     return FALSE;
 }
 
-#if defined(FEAT_TERMINAL) || defined(PROTO)
+#if defined(FEAT_TERMINAL)
 /*
  * Return the index in ScreenLines[] for the current screen line.
  */
@@ -893,7 +895,7 @@ screen_line(
     }
 }
 
-#if defined(FEAT_RIGHTLEFT) || defined(PROTO)
+#if defined(FEAT_RIGHTLEFT)
 /*
  * Mirror text "str" for right-left displaying.
  * Only works for single-byte characters (e.g., numbers).
@@ -1012,7 +1014,7 @@ get_keymap_str(
     return plen;
 }
 
-#if defined(FEAT_STL_OPT) || defined(PROTO)
+#if defined(FEAT_STL_OPT)
 /*
  * Redraw the status line or ruler of window "wp".
  * When "wp" is NULL redraw the tab pages line from 'tabline'.
@@ -1560,7 +1562,7 @@ screen_puts_len(
     }
 }
 
-#if defined(FEAT_SEARCH_EXTRA) || defined(PROTO)
+#if defined(FEAT_SEARCH_EXTRA)
 /*
  * Prepare for 'hlsearch' highlighting.
  */
@@ -4657,7 +4659,7 @@ comp_col(void)
 #endif
 }
 
-#if defined(FEAT_LINEBREAK) || defined(PROTO)
+#if defined(FEAT_LINEBREAK)
 /*
  * Return the width of the 'number' and 'relativenumber' column.
  * Caller may need to check if 'number' or 'relativenumber' is set.
@@ -4705,7 +4707,7 @@ number_width(win_T *wp)
 }
 #endif
 
-#if defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_EVAL)
 /*
  * Return the current cursor column. This is the actual position on the
  * screen. First column is 0.
@@ -4775,6 +4777,7 @@ static struct charstab filltab[] =
     CHARSTAB_ENTRY(&fill_chars.foldopen,    "foldopen"),
     CHARSTAB_ENTRY(&fill_chars.foldclosed,  "foldclose"),
     CHARSTAB_ENTRY(&fill_chars.foldsep,	    "foldsep"),
+    CHARSTAB_ENTRY(&fill_chars.foldinner,   "foldinner"),
     CHARSTAB_ENTRY(&fill_chars.diff,	    "diff"),
     CHARSTAB_ENTRY(&fill_chars.eob,	    "eob"),
     CHARSTAB_ENTRY(&fill_chars.lastline,    "lastline"),
@@ -4893,6 +4896,7 @@ set_chars_option(win_T *wp, char_u *value, int is_listchars, int apply,
 		fill_chars.foldopen = '-';
 		fill_chars.foldclosed = '+';
 		fill_chars.foldsep = '|';
+		fill_chars.foldinner = NUL;
 		fill_chars.diff = '-';
 		fill_chars.eob = '~';
 		fill_chars.lastline = '@';

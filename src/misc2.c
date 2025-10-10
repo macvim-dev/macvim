@@ -60,11 +60,8 @@ coladvance_force(colnr_T wcol)
     if (wcol == MAXCOL)
 	curwin->w_valid &= ~VALID_VIRTCOL;
     else
-    {
 	// Virtcol is valid
-	curwin->w_valid |= VALID_VIRTCOL;
-	curwin->w_virtcol = wcol;
-    }
+	set_valid_virtcol(curwin, wcol);
     return rc;
 }
 
@@ -101,11 +98,8 @@ coladvance(colnr_T wantcol)
     if (wantcol == MAXCOL || rc == FAIL)
 	curwin->w_valid &= ~VALID_VIRTCOL;
     else if (*ml_get_cursor() != TAB)
-    {
 	// Virtcol is valid when not on a TAB
-	curwin->w_valid |= VALID_VIRTCOL;
-	curwin->w_virtcol = wantcol;
-    }
+	set_valid_virtcol(curwin, wantcol);
     return rc;
 }
 
@@ -2061,8 +2055,7 @@ same_directory(char_u *f1, char_u *f2)
 
 #if defined(FEAT_SESSION) || defined(FEAT_AUTOCHDIR) \
 	|| defined(MSWIN) || defined(FEAT_GUI_GTK) \
-	|| defined(FEAT_NETBEANS_INTG) \
-	|| defined(PROTO)
+	|| defined(FEAT_NETBEANS_INTG)
 /*
  * Change to a file's directory.
  * Caller must call shorten_fnames()!
@@ -2097,7 +2090,7 @@ vim_chdirfile(char_u *fname, char *trigger_autocmd)
 }
 #endif
 
-#if defined(STAT_IGNORES_SLASH) || defined(PROTO)
+#if defined(STAT_IGNORES_SLASH)
 /*
  * Check if "name" ends in a slash and is not a directory.
  * Used for systems where stat() ignores a trailing slash on a file name.
@@ -2127,7 +2120,7 @@ vim_stat(const char *name, stat_T *stp)
 }
 #endif
 
-#if defined(CURSOR_SHAPE) || defined(PROTO)
+#if defined(CURSOR_SHAPE)
 
 /*
  * Handling of cursor and mouse pointer shapes in various modes.
@@ -2435,7 +2428,7 @@ parse_shape_opt(int what)
 }
 
 # if defined(MCH_CURSOR_SHAPE) || defined(FEAT_GUI) \
-	|| defined(FEAT_MOUSESHAPE) || defined(PROTO)
+	|| defined(FEAT_MOUSESHAPE)
 /*
  * Return the index into shape_table[] for the current mode.
  * When "mouse" is TRUE, consider indexes valid for the mouse pointer.
@@ -2488,7 +2481,7 @@ get_shape_idx(int mouse)
 }
 #endif
 
-# if defined(FEAT_MOUSESHAPE) || defined(PROTO)
+# if defined(FEAT_MOUSESHAPE)
 static int current_mouse_shape = 0;
 
 /*
@@ -2542,7 +2535,7 @@ update_mouseshape(int shape_idx)
 
 #endif // CURSOR_SHAPE
 
-#if defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_EVAL)
 /*
  * Mainly for tests: get the name of the current mouse shape.
  */
@@ -2551,7 +2544,7 @@ f_getmouseshape(typval_T *argvars UNUSED, typval_T *rettv)
 {
     rettv->v_type = VAR_STRING;
     rettv->vval.v_string = NULL;
-# if defined(FEAT_MOUSESHAPE) || defined(PROTO)
+# if defined(FEAT_MOUSESHAPE)
     if (current_mouse_shape >= 0
 			      && current_mouse_shape < (int)MSHAPE_NAMES_COUNT)
 	rettv->vval.v_string = vim_strnsave(
@@ -2607,7 +2600,7 @@ get_user_name(char_u *buf, int len)
     return OK;
 }
 
-#if defined(EXITFREE) || defined(PROTO)
+#if defined(EXITFREE)
 /*
  * Free the memory allocated by get_user_name()
  */
@@ -2825,7 +2818,7 @@ vimpty_getenv(const char_u *string)
 
 #endif // !defined(HAVE_SETENV) && !defined(HAVE_PUTENV)
 
-#if defined(FEAT_EVAL) || defined(FEAT_SPELL) || defined(PROTO)
+#if defined(FEAT_EVAL) || defined(FEAT_SPELL)
 /*
  * Return 0 for not writable, 1 for writable file, 2 for a dir which we have
  * rights to write into.
@@ -2860,7 +2853,7 @@ filewritable(char_u *fname)
 }
 #endif
 
-#if defined(FEAT_SPELL) || defined(FEAT_PERSISTENT_UNDO) || defined(PROTO)
+#if defined(FEAT_SPELL) || defined(FEAT_PERSISTENT_UNDO)
 /*
  * Read 2 bytes from "fd" and turn them into an int, MSB first.
  * Returns -1 when encountering EOF.
@@ -3002,8 +2995,7 @@ elapsed(DWORD start_tick)
 
 #if defined(FEAT_JOB_CHANNEL) \
 	|| (defined(UNIX) && (!defined(USE_SYSTEM) \
-	|| (defined(FEAT_GUI) && defined(FEAT_TERMINAL)))) \
-	|| defined(PROTO)
+	|| (defined(FEAT_GUI) && defined(FEAT_TERMINAL))))
 /*
  * Parse "cmd" and put the white-separated parts in "argv".
  * "argv" is an allocated array with "argc" entries and room for 4 more.
@@ -3110,7 +3102,7 @@ build_argv_from_string(char_u *cmd, char ***argv, int *argc)
     return OK;
 }
 
-# if defined(FEAT_JOB_CHANNEL) || defined(PROTO)
+# if defined(FEAT_JOB_CHANNEL)
 /*
  * Build "argv[argc]" from the list "l".
  * "argv[argc]" is set to NULL;

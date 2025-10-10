@@ -14,12 +14,7 @@
 #define USING_FLOAT_STUFF
 #include "vim.h"
 
-#if defined(FEAT_EVAL) || defined(PROTO)
-
-// When not generating protos this is included in proto.h
-#ifdef PROTO
-# include "vim9.h"
-#endif
+#if defined(FEAT_EVAL)
 
 /*
  * Get the index of the current instruction.
@@ -1132,7 +1127,7 @@ compile_for(char_u *arg_start, cctx_T *cctx)
 		p = skipwhite(p + 1);
 		lhs_type = parse_type(&p, cctx->ctx_type_list, cctx->ctx_ufunc,
 								cctx, TRUE);
-		if (lhs_type == NULL)
+		if (lhs_type == NULL || !valid_declaration_type(lhs_type))
 		    goto failed;
 	    }
 
@@ -2641,7 +2636,7 @@ compile_redir(char_u *line, exarg_T *eap, cctx_T *cctx)
     return compile_exec(line, eap, cctx);
 }
 
-#if defined(FEAT_QUICKFIX) || defined(PROTO)
+#if defined(FEAT_QUICKFIX)
     char_u *
 compile_cexpr(char_u *line, exarg_T *eap, cctx_T *cctx)
 {

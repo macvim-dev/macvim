@@ -16,14 +16,6 @@
 #if !defined(GTK_CHECK_VERSION)
 # define GTK_CHECK_VERSION(a, b, c) 0
 #endif
-#if !defined(FEAT_GUI_GTK) && defined(PROTO)
-typedef int GtkWidget;
-typedef int GtkIMContext;
-typedef int gchar;
-typedef int gpointer;
-typedef int PangoAttrIterator;
-typedef int GdkEventKey;
-#endif
 
 #if defined(FEAT_GUI_GTK) && defined(FEAT_XIM)
 # if GTK_CHECK_VERSION(3,0,0)
@@ -79,9 +71,8 @@ xim_log(char *s, ...)
 # define USE_IMSTATUSFUNC (*p_imsf != NUL)
 #endif
 
-#if (defined(FEAT_EVAL) && \
-     (defined(FEAT_XIM) || defined(IME_WITHOUT_XIM) || defined(VIMDLL))) || \
-    defined(PROTO)
+#if defined(FEAT_EVAL) && \
+     (defined(FEAT_XIM) || defined(IME_WITHOUT_XIM) || defined(VIMDLL))
 static callback_T imaf_cb;	    // 'imactivatefunc' callback function
 static callback_T imsf_cb;	    // 'imstatusfunc' callback function
 
@@ -145,7 +136,7 @@ call_imstatusfunc(void)
 }
 #endif
 
-#if defined(EXITFREE) || defined(PROTO)
+#if defined(EXITFREE)
     void
 free_xim_stuff(void)
 {
@@ -157,7 +148,7 @@ free_xim_stuff(void)
 }
 #endif
 
-#if defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_EVAL)
 /*
  * Mark the global 'imactivatefunc' and 'imstatusfunc' callbacks with "copyID"
  * so that they are not garbage collected.
@@ -177,13 +168,13 @@ set_ref_in_im_funcs(int copyID UNUSED)
 #endif
 
 
-#if defined(FEAT_XIM) || defined(PROTO)
+#if defined(FEAT_XIM)
 
 # ifdef FEAT_GUI_MACVIM
 #  define g_return_if_fail(x) if (!(x)) return;
 # endif
 
-# if defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MACVIM) || defined(PROTO)
+# if defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MACVIM)
 static int xim_has_preediting = FALSE;  // IM current status
 
 /*
@@ -1443,7 +1434,7 @@ xim_set_preedit(void)
     }
 }
 
-#  if defined(FEAT_GUI_X11) || defined(PROTO)
+#  if defined(FEAT_GUI_X11)
 #   if defined(XtSpecificationRelease) && XtSpecificationRelease >= 6 && !defined(SUN_SYSTEM)
 #    define USE_X11R6_XIM
 #   endif
@@ -1763,7 +1754,7 @@ im_get_status(void)
 
 # endif // !FEAT_GUI_GTK
 
-# if !(defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MACVIM)) || defined(PROTO)
+# if !(defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MACVIM))
 /*
  * Set up the status area.
  *
@@ -1880,7 +1871,7 @@ xim_get_status_area_height(void)
 
 #else // !defined(FEAT_XIM)
 
-# if defined(IME_WITHOUT_XIM) || defined(VIMDLL) || defined(PROTO)
+# if defined(IME_WITHOUT_XIM) || defined(VIMDLL)
 static int im_was_set_active = FALSE;
 
     int

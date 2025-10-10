@@ -13,7 +13,7 @@
 
 #include "vim.h"
 
-#if defined(FEAT_TABPANEL) || defined(PROTO)
+#if defined(FEAT_TABPANEL)
 
 static void do_by_tplmode(int tplmode, int col_start, int col_end,
 	int *pcurtab_row, int *ptabpagenr);
@@ -150,7 +150,7 @@ draw_tabpanel(void)
     if (maxwidth == 0)
 	return;
 
-    // Reset got_int to avoid build_stl_str_hl() isn't evaluted.
+    // Reset got_int to avoid build_stl_str_hl() isn't evaluated.
     got_int = FALSE;
 
     if (tpl_is_vert)
@@ -465,7 +465,7 @@ starts_with_percent_and_bang(tabpanel_T *pargs)
 
 #ifdef FEAT_EVAL
     // if "fmt" was set insecurely it needs to be evaluated in the sandbox
-    int	use_sandbox = was_set_insecurely(opt_name, opt_scope);
+    int	use_sandbox = was_set_insecurely(curwin, opt_name, opt_scope);
 
     // When the format starts with "%!" then evaluate it as an expression and
     // use the result as the actual format string.

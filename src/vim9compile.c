@@ -14,12 +14,7 @@
 #define USING_FLOAT_STUFF
 #include "vim.h"
 
-#if defined(FEAT_EVAL) || defined(PROTO)
-
-// When not generating protos this is included in proto.h
-#ifdef PROTO
-# include "vim9.h"
-#endif
+#if defined(FEAT_EVAL)
 
 // Functions defined with :def are stored in this growarray.
 // They are never removed, so that they can be found by index.
@@ -2121,7 +2116,8 @@ compile_lhs_set_type(cctx_T *cctx, lhs_T *lhs, char_u *var_end, int is_decl)
 
 	p = skipwhite(var_end + 1);
 	lhs->lhs_type = parse_type(&p, cctx->ctx_type_list, cctx->ctx_ufunc, cctx, TRUE);
-	if (lhs->lhs_type == NULL)
+	if (lhs->lhs_type == NULL
+		|| !valid_declaration_type(lhs->lhs_type))
 	    return FAIL;
 
 	lhs->lhs_has_type = TRUE;
@@ -3438,6 +3434,27 @@ compile_assign_rhs(cctx_T *cctx, cac_T *cac)
 }
 
 /*
+ * Returns OK if "type" supports compound operator "op_arg" (e.g. +=, -=, %=,
+ * etc.).  Compound operators are not supported with a tuple and a dict.
+ * Returns FAIL if compound operator is not supported.
+ */
+    static int
+check_type_supports_compound_op(type_T *type, char_u op_arg)
+{
+    if (type->tt_type == VAR_TUPLE || type->tt_type == VAR_DICT)
+    {
+	char_u	op[2];
+
+	op[0] = op_arg;
+	op[1] = NUL;
+	semsg(_(e_wrong_variable_type_for_str_equal), op);
+	return FAIL;
+    }
+
+    return OK;
+}
+
+/*
  * Compile a compound op assignment statement (+=, -=, *=, %=, etc.)
  */
     static int
@@ -3447,16 +3464,10 @@ compile_assign_compound_op(cctx_T *cctx, cac_T *cac)
     type_T	    *expected;
     type_T	    *stacktype = NULL;
 
-    if (cac->cac_lhs.lhs_type->tt_type == VAR_TUPLE)
-    {
-	// compound operators are not supported with a tuple
-	char_u	op[2];
-
-	op[0] = *cac->cac_op;
-	op[1] = NUL;
-	semsg(_(e_wrong_variable_type_for_str_equal), op);
+    if (cac->cac_lhs.lhs_type->tt_type == VAR_TUPLE
+	    && check_type_supports_compound_op(cac->cac_lhs.lhs_type,
+							*cac->cac_op) == FAIL)
 	return FAIL;
-    }
 
     if (*cac->cac_op == '.')
     {
@@ -3473,6 +3484,10 @@ compile_assign_compound_op(cctx_T *cctx, cac_T *cac)
     {
 	expected = lhs->lhs_member_type;
 	stacktype = get_type_on_stack(cctx, 0);
+
+	if (check_type_supports_compound_op(expected, *cac->cac_op) == FAIL)
+	    return FAIL;
+
 	if (
 		// If variable is float operation with number is OK.
 		!(expected == &t_float && (stacktype == &t_number
@@ -5217,7 +5232,7 @@ link_def_function(ufunc_T *ufunc)
     ++dfunc->df_refcount;
 }
 
-#if defined(EXITFREE) || defined(PROTO)
+#if defined(EXITFREE)
 /*
  * Free all functions defined with ":def".
  */

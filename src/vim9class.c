@@ -14,12 +14,7 @@
 #define USING_FLOAT_STUFF
 #include "vim.h"
 
-#if defined(FEAT_EVAL) || defined(PROTO)
-
-// When not generating protos this is included in proto.h
-#ifdef PROTO
-# include "vim9.h"
-#endif
+#if defined(FEAT_EVAL)
 
 static class_T *first_class = NULL;
 static class_T *next_nonref_class = NULL;
@@ -102,7 +97,7 @@ parse_member(
 	}
 	type_arg = skipwhite(colon + 1);
 	type = parse_type(&type_arg, type_list, NULL, NULL, TRUE);
-	if (type == NULL)
+	if (type == NULL || !valid_declaration_type(type))
 	    return FAIL;
 	*has_type = TRUE;
     }

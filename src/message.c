@@ -592,7 +592,7 @@ emsg_not_now(void)
     return FALSE;
 }
 
-#if defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_EVAL)
 static garray_T ignore_error_list = GA_EMPTY;
 
     void
@@ -620,7 +620,7 @@ ignore_error(const char *msg)
 }
 #endif
 
-#if !defined(HAVE_STRERROR) || defined(PROTO)
+#if !defined(HAVE_STRERROR)
 /*
  * Replacement for perror() that behaves more or less like emsg() was called.
  * v:errmsg will be set and called_emsg will be incremented.
@@ -912,7 +912,7 @@ internal_error(char *where)
     siemsg(_(e_internal_error_str), where);
 }
 
-#if defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_EVAL)
 /*
  * Like internal_error() but do not call abort(), to avoid tests using
  * test_unknown() and test_void() causing Vim to exit.
@@ -936,7 +936,7 @@ emsg_invreg(int name)
     semsg(_(e_invalid_register_name_str), transchar_buf(NULL, name));
 }
 
-#if defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_EVAL)
 /*
  * Give an error message which contains %s for "name[len]".
  */
@@ -1212,7 +1212,7 @@ ex_messages(exarg_T *eap)
     msg_hist_off = FALSE;
 }
 
-#if defined(FEAT_CON_DIALOG) || defined(FIND_REPLACE_DIALOG) || defined(PROTO)
+#if defined(FEAT_CON_DIALOG) || defined(FIND_REPLACE_DIALOG)
 /*
  * Call this after prompting the user.  This will avoid a hit-return message
  * and a delay.
@@ -1664,7 +1664,7 @@ msg_home_replace(char_u *fname)
     msg_home_replace_attr(fname, 0);
 }
 
-#if defined(FEAT_FIND_ID) || defined(PROTO)
+#if defined(FEAT_FIND_ID)
     void
 msg_home_replace_hl(char_u *fname)
 {
@@ -1825,7 +1825,7 @@ msg_outtrans_len_attr(char_u *msgstr, int len, int attr)
     return retval;
 }
 
-#if defined(FEAT_QUICKFIX) || defined(PROTO)
+#if defined(FEAT_QUICKFIX)
     void
 msg_make(char_u *arg)
 {
@@ -1896,7 +1896,7 @@ msg_outtrans_special(
     return retval;
 }
 
-#if defined(FEAT_EVAL) || defined(FEAT_SPELL) || defined(PROTO)
+#if defined(FEAT_EVAL) || defined(FEAT_SPELL)
 /*
  * Return the lhs or rhs of a mapping, with the key codes turned into printable
  * strings, in an allocated string.
@@ -3499,7 +3499,7 @@ do_more_prompt(int typed_char)
 #endif
 }
 
-#if defined(USE_MCH_ERRMSG) || defined(PROTO)
+#if defined(USE_MCH_ERRMSG)
 
 #ifdef mch_errmsg
 # undef mch_errmsg
@@ -4126,7 +4126,7 @@ give_warning_with_source(char_u *message, int hl, int with_source)
     --no_wait_return;
 }
 
-#if defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_EVAL)
     void
 give_warning2(char_u *message, char_u *a1, int hl)
 {
@@ -4171,20 +4171,40 @@ msg_advance(int col)
  * Warn about missing Clipboard Support
  */
     void
-msg_warn_missing_clipboard(void)
+msg_warn_missing_clipboard(bool plus UNUSED, bool star UNUSED)
 {
-    if (!global_busy && !did_warn_clipboard)
+#ifndef FEAT_CLIPBOARD
+    static bool did_warn;
+
+    if (!global_busy && !did_warn)
     {
-#ifdef FEAT_CLIPBOARD
-	msg(_("W23: Clipboard register not available, using register 0"));
-#else
 	msg(_("W24: Clipboard register not available. See :h W24"));
-#endif
-	did_warn_clipboard = TRUE;
+	did_warn = true;
     }
+#else
+    if (!global_busy)
+    {
+	if (plus && star && !clip_plus.did_warn && !clip_star.did_warn)
+	{
+	    msg(_("W23: Clipboard register not available, using register 0"));
+	    clip_plus.did_warn = true;
+	    clip_star.did_warn = true;
+	}
+	else if (plus && !clip_plus.did_warn)
+	{
+	    msg(_("W23: Clipboard register + not available, using register 0"));
+	    clip_plus.did_warn = true;
+	}
+	else if (star && !clip_star.did_warn)
+	{
+	    msg(_("W23: Clipboard register * not available, using register 0"));
+	    clip_star.did_warn = true;
+	}
+    }
+#endif
 }
 
-#if defined(FEAT_CON_DIALOG) || defined(PROTO)
+#if defined(FEAT_CON_DIALOG)
 /*
  * Used for "confirm()" function, and the :confirm command prefix.
  * Versions which haven't got flexible dialogs yet, and console

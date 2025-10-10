@@ -14,7 +14,7 @@
 
 #include "vim.h"
 
-#if defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_EVAL)
 
 #ifdef VMS
 # include <float.h>
@@ -22,6 +22,7 @@
 
 #define NAMESPACE_CHAR	(char_u *)"abglstvw"
 
+static int eval0_simple_funccal(char_u *arg, typval_T *rettv, exarg_T *eap, evalarg_T *evalarg);
 static int eval2(char_u **arg, typval_T *rettv, evalarg_T *evalarg);
 static int eval3(char_u **arg, typval_T *rettv, evalarg_T *evalarg);
 static int eval4(char_u **arg, typval_T *rettv, evalarg_T *evalarg);
@@ -96,7 +97,7 @@ eval_init(void)
     func_init();
 }
 
-#if defined(EXITFREE) || defined(PROTO)
+#if defined(EXITFREE)
     void
 eval_clear(void)
 {
@@ -1004,7 +1005,7 @@ call_func_retlist(
     return rettv.vval.v_list;
 }
 
-#if defined(FEAT_FOLDING) || defined(PROTO)
+#if defined(FEAT_FOLDING)
 /*
  * Evaluate "arg", which is 'foldexpr'.
  * Note: caller must set "curwin" to match "arg".
@@ -1019,7 +1020,7 @@ eval_foldexpr(win_T *wp, int *cp)
     varnumber_T	retval;
     char_u	*s;
     sctx_T	saved_sctx = current_sctx;
-    int		use_sandbox = was_set_insecurely((char_u *)"foldexpr",
+    int		use_sandbox = was_set_insecurely(wp, (char_u *)"foldexpr",
 								    OPT_LOCAL);
 
     arg = skipwhite(wp->w_p_fde);
@@ -2222,7 +2223,8 @@ get_lval(
 		lp->ll_type = parse_type(&tp,
 			       &SCRIPT_ITEM(current_sctx.sc_sid)->sn_type_list,
 			       NULL, NULL, !quiet);
-		if (lp->ll_type == NULL && !quiet)
+		if (!quiet && (lp->ll_type == NULL
+			    || !valid_declaration_type(lp->ll_type)))
 		    return NULL;
 		lp->ll_name_end = tp;
 	    }
@@ -2234,13 +2236,33 @@ get_lval(
 
     if (*p == '.')
     {
-	imported_T *import = find_imported(lp->ll_name, p - lp->ll_name, TRUE);
-	if (import != NULL)
+	// In legacy script, when a local variable and import exists with this name,
+	// prioritize local variable over imports to avoid conflicts.
+	int var_exists = FALSE;
+	if (!vim9script)
 	{
-	    p++;	// skip '.'
-	    p = get_lval_imported(lp, import->imp_sid, p, &v, fne_flags);
-	    if (p == NULL)
-		return NULL;
+	    cc = *p;
+	    *p = NUL;
+	    hashtab_T *local_ht = get_funccal_local_ht();
+	    if (local_ht != NULL)
+	    {
+		hashitem_T *hi = hash_find(local_ht, lp->ll_name);
+		if (!HASHITEM_EMPTY(hi))
+		    var_exists = TRUE;
+	    }
+	    *p = cc;
+	}
+
+	if (!var_exists)
+	{
+	    imported_T *import = find_imported(lp->ll_name, p - lp->ll_name, TRUE);
+	    if (import != NULL)
+	    {
+		p++;	// skip '.'
+		p = get_lval_imported(lp, import->imp_sid, p, &v, fne_flags);
+		if (p == NULL)
+		    return NULL;
+	    }
 	}
     }
 
@@ -3438,7 +3460,7 @@ may_call_simple_func(
  * Handle zero level expression with optimization for a simple function call.
  * Same arguments and return value as eval0().
  */
-    int
+    static int
 eval0_simple_funccal(
     char_u	*arg,
     typval_T	*rettv,

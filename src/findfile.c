@@ -1738,7 +1738,7 @@ find_file_in_path(
 	    file_to_find, search_ctx);
 }
 
-# if defined(EXITFREE) || defined(PROTO)
+# if defined(EXITFREE)
     void
 free_findfile(void)
 {
@@ -2186,7 +2186,7 @@ eval_includeexpr(char_u *ptr, int len)
     current_sctx = curbuf->b_p_script_ctx[BV_INEX];
 
     res = eval_to_string_safe(curbuf->b_p_inex,
-	    was_set_insecurely((char_u *)"includeexpr", OPT_LOCAL),
+	    was_set_insecurely(curwin, (char_u *)"includeexpr", OPT_LOCAL),
 								   TRUE, TRUE);
 
     set_vim_var_string(VV_FNAME, NULL, 0);
@@ -2779,7 +2779,7 @@ simplify_filename(char_u *filename)
     }
     start = p;	    // remember start after "c:/" or "/" or "///"
     p_end = p + STRLEN(p);
-#ifdef UNIX
+# ifdef UNIX
     // Posix says that "//path" is unchanged but "///path" is "/path".
     if (start > filename + 2)
     {
@@ -2787,7 +2787,7 @@ simplify_filename(char_u *filename)
 	p_end -= (size_t)(p - (filename + 1));
 	start = p = filename + 1;
     }
-#endif
+# endif
 
     do
     {
@@ -2979,12 +2979,15 @@ simplify_filename(char_u *filename)
 	    p = getnextcomp(p);
 	}
     } while (*p != NUL);
-#endif // !AMIGA
 
     return (size_t)(p_end - filename);
+#else
+    // Don't touch Amiga filenames
+    return STRLEN(filename);
+#endif // !AMIGA
 }
 
-#if defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_EVAL)
 /*
  * "simplify()" function
  */

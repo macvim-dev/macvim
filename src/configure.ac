@@ -866,7 +866,6 @@ if test "$enable_luainterp" = "yes" -o "$enable_luainterp" = "dynamic"; then
       LUA_CFLAGS="-I${vi_cv_path_lua_pfx}/include${LUA_INC}"
       LUA_SRC="if_lua.c"
       LUA_OBJ="objects/if_lua.o"
-      LUA_PRO="if_lua.pro"
       AC_DEFINE(FEAT_LUA)
     fi
     if test "$enable_luainterp" = "dynamic"; then
@@ -948,7 +947,6 @@ if test "$enable_luainterp" = "yes" -o "$enable_luainterp" = "dynamic"; then
   fi
   AC_SUBST(LUA_SRC)
   AC_SUBST(LUA_OBJ)
-  AC_SUBST(LUA_PRO)
   AC_SUBST(LUA_LIBS)
   AC_SUBST(LUA_CFLAGS)
   AC_SUBST(LUA_CFLAGS_EXTRA)
@@ -1207,7 +1205,6 @@ if test "$enable_mzschemeinterp" = "yes"; then
     if test $mzs_ok = yes; then
       MZSCHEME_SRC="if_mzsch.c"
       MZSCHEME_OBJ="objects/if_mzsch.o"
-      MZSCHEME_PRO="if_mzsch.pro"
       AC_DEFINE(FEAT_MZSCHEME)
     else
       MZSCHEME_CFLAGS=
@@ -1218,7 +1215,6 @@ if test "$enable_mzschemeinterp" = "yes"; then
   fi
   AC_SUBST(MZSCHEME_SRC)
   AC_SUBST(MZSCHEME_OBJ)
-  AC_SUBST(MZSCHEME_PRO)
   AC_SUBST(MZSCHEME_LIBS)
   AC_SUBST(MZSCHEME_CFLAGS)
   AC_SUBST(MZSCHEME_EXTRA)
@@ -1356,9 +1352,9 @@ if test "$enable_perlinterp" = "yes" -o "$enable_perlinterp" = "dynamic"; then
 	  fi
 	fi
 	PERL_LIBS=$perllibs
-	PERL_SRC="auto/if_perl.c if_perlsfio.c"
-	PERL_OBJ="objects/if_perl.o objects/if_perlsfio.o"
-	PERL_PRO="if_perl.pro if_perlsfio.pro"
+	PERL_SRC="auto/if_perl.c"
+	PERL_OBJ="objects/if_perl.o"
+	PERL_PRO="proto/if_perl.pro"
 	AC_DEFINE(FEAT_PERL)
       fi
      fi
@@ -1384,7 +1380,7 @@ if test "$enable_perlinterp" = "yes" -o "$enable_perlinterp" = "dynamic"; then
     if test -n "$PERL"; then
       PERL_DIR="$dir"
       PERL_CFLAGS="-DFEAT_PERL -I$darwindir/CORE"
-      PERL_OBJ="objects/if_perl.o objects/if_perlsfio.o $darwindir/auto/DynaLoader/DynaLoader.a"
+      PERL_OBJ="objects/if_perl.o $darwindir/auto/DynaLoader/DynaLoader.a"
       PERL_LIBS="-L$darwindir/CORE -lperl"
     fi
     dnl Perl on Mac OS X 10.5 adds "-arch" flags but these should only
@@ -2229,7 +2225,6 @@ if test "$enable_tclinterp" = "yes" -o "$enable_tclinterp" = "dynamic"; then
 	  AC_DEFINE(FEAT_TCL)
 	  TCL_SRC=if_tcl.c
 	  TCL_OBJ=objects/if_tcl.o
-	  TCL_PRO=if_tcl.pro
 	  TCL_CFLAGS="-I$TCL_INC $TCL_DEFS"
 	fi
       fi
@@ -2249,7 +2244,6 @@ if test "$enable_tclinterp" = "yes" -o "$enable_tclinterp" = "dynamic"; then
 fi
 AC_SUBST(TCL_SRC)
 AC_SUBST(TCL_OBJ)
-AC_SUBST(TCL_PRO)
 AC_SUBST(TCL_CFLAGS)
 AC_SUBST(TCL_CFLAGS_EXTRA)
 AC_SUBST(TCL_LIBS)
@@ -2326,7 +2320,6 @@ if test "$enable_rubyinterp" = "yes" -o "$enable_rubyinterp" = "dynamic"; then
 
 	RUBY_SRC="if_ruby.c"
 	RUBY_OBJ="objects/if_ruby.o"
-	RUBY_PRO="if_ruby.pro"
 
 	AC_DEFINE(FEAT_RUBY)
 	if test "$enable_rubyinterp" = "dynamic"; then
@@ -2369,7 +2362,6 @@ if test "$enable_rubyinterp" = "yes" -o "$enable_rubyinterp" = "dynamic"; then
 fi
 AC_SUBST(RUBY_SRC)
 AC_SUBST(RUBY_OBJ)
-AC_SUBST(RUBY_PRO)
 AC_SUBST(RUBY_CFLAGS)
 AC_SUBST(RUBY_CFLAGS_EXTRA)
 AC_SUBST(RUBY_LIBS)
@@ -2642,11 +2634,25 @@ AC_ARG_WITH(wayland,
 			 AC_MSG_RESULT([yes])]))
 
 if test "$with_wayland" = yes; then
-cppflags_save=$CPPFLAGS
-cflags_save=$CFLAGS
+  cppflags_save=$CPPFLAGS
+  cflags_save=$CFLAGS
+
   AC_MSG_CHECKING(for wayland)
   if "$PKG_CONFIG" --exists 'wayland-client'; then
     AC_MSG_RESULT([yes])
+
+    AC_MSG_CHECKING(--enable-wayland-focus-steal argument)
+    AC_ARG_ENABLE(wayland-focus-steal,
+		  [AS_HELP_STRING([--enable-wayland-focus-steal],
+                          [Include focus stealing support for Wayland clipboard.])],
+		  [enable_wayland_fs=$enableval],
+		  enable_wayland_fs="yes")
+
+    AS_IF([test "$enable_wayland_fs" = "yes"],
+          [AC_MSG_RESULT([yes])
+          AC_DEFINE(FEAT_WAYLAND_CLIPBOARD_FS)],
+          [AC_MSG_RESULT([no])])
+
     AC_DEFINE(HAVE_WAYLAND)
     WAYLAND_CPPFLAGS=`$PKG_CONFIG --cflags-only-I wayland-client`
     WAYLAND_CFLAGS=`$PKG_CONFIG --cflags-only-other wayland-client`
@@ -2656,15 +2662,20 @@ cflags_save=$CFLAGS
     WAYLAND_SRC=" \
       auto/wayland/wlr-data-control-unstable-v1.c \
       auto/wayland/ext-data-control-v1.c \
-      auto/wayland/xdg-shell.c \
-      auto/wayland/primary-selection-unstable-v1.c \
       wayland.c"
     WAYLAND_OBJ=" \
       objects/wlr-data-control-unstable-v1.o \
       objects/ext-data-control-v1.o \
-      objects/xdg-shell.o \
-      objects/primary-selection-unstable-v1.o \
       objects/wayland.o"
+
+    AS_IF([test "$enable_wayland_fs" = "yes"],
+          [AS_VAR_APPEND([WAYLAND_SRC], " \
+            auto/wayland/xdg-shell.c \
+            auto/wayland/primary-selection-unstable-v1.c")
+           AS_VAR_APPEND([WAYLAND_OBJ], " \
+            objects/xdg-shell.o \
+            objects/primary-selection-unstable-v1.o")])
+
     AC_SUBST(WAYLAND_CPPFLAGS)
     AC_SUBST(WAYLAND_CFLAGS)
     AC_SUBST(WAYLAND_LIBS)
@@ -3865,8 +3876,13 @@ AC_CACHE_CHECK([whether we talk terminfo], [vim_cv_terminfo],
   [
     AC_RUN_IFELSE([AC_LANG_SOURCE([[
 #include "confdefs.h"
-#ifdef HAVE_TERMCAP_H
+#ifdef HAVE_TERM_H
+# include <term.h>
+#elif defined(HAVE_TERMCAP_H)
 # include <termcap.h>
+#else
+  /* forward declare tgoto */
+  extern char *tgoto(const char *, int, int);
 #endif
 #ifdef HAVE_STRING_H
 # include <string.h>

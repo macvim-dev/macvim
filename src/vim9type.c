@@ -14,15 +14,10 @@
 #define USING_FLOAT_STUFF
 #include "vim.h"
 
-#if defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_EVAL)
 
 #ifdef VMS
 # include <float.h>
-#endif
-
-// When not generating protos this is included in proto.h
-#ifdef PROTO
-# include "vim9.h"
 #endif
 
 /*
@@ -997,7 +992,7 @@ valid_declaration_type(type_T *type)
     {
 	char *tofree = NULL;
 	char *name = type_name(type, &tofree);
-	semsg(_(e_invalid_type_for_object_variable_str), name);
+	semsg(_(e_invalid_type_in_variable_declaration_str), name);
 	vim_free(tofree);
 	return FALSE;
     }
@@ -1629,7 +1624,7 @@ parse_type_member(
     *arg = skipwhite(*arg + 1);
 
     member_type = parse_type(arg, type_gap, ufunc, cctx, give_error);
-    if (member_type == NULL)
+    if (member_type == NULL || !valid_declaration_type(member_type))
 	return NULL;
 
     *arg = skipwhite(*arg);
@@ -1699,7 +1694,7 @@ parse_type_func(
 	    }
 
 	    type = parse_type(&p, type_gap, ufunc, cctx, give_error);
-	    if (type == NULL)
+	    if (type == NULL || !valid_declaration_type(type))
 		return NULL;
 	    if ((flags & TTFLAG_VARARGS) != 0 && type->tt_type != VAR_LIST)
 	    {
@@ -1831,7 +1826,7 @@ parse_type_tuple(
 	}
 
 	type = parse_type(&p, type_gap, ufunc, cctx, give_error);
-	if (type == NULL)
+	if (type == NULL || !valid_declaration_type(type))
 	    goto on_err;
 
 	if ((flags & TTFLAG_VARARGS) != 0 && type->tt_type != VAR_LIST)

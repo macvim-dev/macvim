@@ -13,7 +13,7 @@
 
 #include "vim.h"
 
-#if defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_EVAL)
 
 
 /*
@@ -306,7 +306,7 @@ parse_generic_func_type_args(
 
 	// parse the type
 	type_arg = parse_type(&p, &gfatab->gfat_arg_types, NULL, cctx, TRUE);
-	if (type_arg == NULL)
+	if (type_arg == NULL || !valid_declaration_type(type_arg))
 	    return NULL;
 
 	char	*ret_free = NULL;

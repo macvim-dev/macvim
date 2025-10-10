@@ -351,7 +351,7 @@ func Test_termdebug_evaluate_in_popup()
   call TermWait(buf, 400)
   call VerifyScreenDump(buf, 'Test_termdebug_evaluate_in_popup_01', {})
 
-  call term_sendkeys(buf, ":Evaluate p_ptr\<CR>")
+  call term_sendkeys(buf, ":Evaluate *p_ptr\<CR>")
   call TermWait(buf, 400)
   call VerifyScreenDump(buf, 'Test_termdebug_evaluate_in_popup_02', {})
 
@@ -605,5 +605,170 @@ function Test_termdebug_config_types()
 
   unlet g:termdebug_config
 endfunction
+
+func Test_termdebug_toggle_break()
+  let g:test_is_flaky = 1
+  let bin_name = 'XTD_tbreak'
+  let src_name = bin_name .. '.c'
+
+  eval s:generate_files(bin_name)
+
+  execute 'edit ' .. src_name
+  execute 'Termdebug ./' .. bin_name
+
+  call WaitForAssert({-> assert_true(get(g:, "termdebug_is_running", v:false))})
+  call WaitForAssert({-> assert_equal(3, winnr('$'))})
+  let gdb_buf = winbufnr(1)
+  wincmd b
+
+  let bp_line = 22        " 'return' statement in main
+  execute "normal! " .. bp_line .. "G"
+  execute "ToggleBreak"
+
+  call term_wait(gdb_buf)
+  redraw!
+  call assert_equal([
+        \ {'lnum': bp_line, 'id': 1014, 'name': 'debugBreakpoint1.0',
+        \  'priority': 110, 'group': 'TermDebug'}],
+        \ sign_getplaced('', #{group: 'TermDebug'})[0].signs)
+
+  RunOrContinue
+  call term_wait(gdb_buf, 400)
+  redraw!
+  call WaitForAssert({-> assert_equal([
+        \ {'lnum': bp_line, 'id': 12, 'name': 'debugPC', 'priority': 110,
+        \  'group': 'TermDebug'},
+        \ {'lnum': bp_line, 'id': 1014, 'name': 'debugBreakpoint1.0',
+        \  'priority': 110, 'group': 'TermDebug'}],
+        \ sign_getplaced('', #{group: 'TermDebug'})[0].signs)})
+
+  " Add one break point
+  execute "normal! " .. bp_line .. "G"
+  execute "ToggleBreak"
+  call term_wait(gdb_buf)
+  redraw!
+  call WaitForAssert({-> assert_equal([
+        \ {'lnum': bp_line, 'id': 12, 'name': 'debugPC', 'priority': 110,
+        \  'group': 'TermDebug'}],
+        \ sign_getplaced('', #{group: 'TermDebug'})[0].signs)})
+
+  " Remove one break point
+  execute "normal! " .. bp_line .. "G"
+  execute "ToggleBreak"
+  call term_wait(gdb_buf)
+  redraw!
+  call WaitForAssert({-> assert_equal([
+        \ {'lnum': bp_line, 'id': 2014, 'name': 'debugBreakpoint2.0',
+        \  'priority': 110, 'group': 'TermDebug'},
+        \ {'lnum': bp_line, 'id': 12, 'name': 'debugPC', 'priority': 110,
+        \  'group': 'TermDebug'}],
+        \ sign_getplaced('', #{group: 'TermDebug'})[0].signs)})
+
+  " Remove multiple break points
+  execute "Break"
+  execute "Break"
+  execute "Break"
+  execute "Break"
+  call term_wait(gdb_buf, 400)
+  execute "ToggleBreak"
+  call term_wait(gdb_buf)
+  redraw!
+  call WaitForAssert({-> assert_equal([
+        \ {'lnum': bp_line, 'id': 12, 'name': 'debugPC', 'priority': 110,
+        \  'group': 'TermDebug'}],
+        \ sign_getplaced('', #{group: 'TermDebug'})[0].signs)})
+
+
+  wincmd t
+  quit!
+  redraw!
+  call WaitForAssert({-> assert_equal(1, winnr('$'))})
+  call assert_equal([], sign_getplaced('', #{group: 'TermDebug'})[0].signs)
+
+  eval s:cleanup_files(bin_name)
+  %bw!
+endfunc
+
+" Check substitution capabilities and simulate remote debugging
+func Test_termdebug_remote_basic()
+  let bin_name = 'XTD_basicremote'
+  let src_name = bin_name .. '.c'
+  call s:generate_files(bin_name)
+  defer s:cleanup_files(bin_name)
+
+  " Duplicate sources to test the mapping
+  const pwd = getcwd()
+  const src_shadow_dir = "shadow"
+  call mkdir(src_shadow_dir)
+  const src_shadow_file = $"{src_shadow_dir}/{src_name}"
+  call filecopy(src_name, src_shadow_file)
+  defer delete(src_shadow_dir, 'rf')
+
+  let modes = [v:true]
+  " termdebug only wokrs fine if socat is available on the remote machine
+  " otherwise the communication pty will be unstable
+  if executable('socat')
+    let modes += [v:false]
+  endif
+
+  for use_prompt in modes
+    " Set up mock remote and mapping
+    let g:termdebug_config = {}
+
+    let g:termdebug_config['use_prompt'] = use_prompt
+    " favor socat if available
+    if executable('socat')
+      let g:termdebug_config['remote_window'] =
+            \ ['socat', '-d', '-d', '-', 'PTY,raw,echo=0']
+    else
+      let g:termdebug_config['remote_window'] = ['sh']
+    endif
+
+    let g:termdebug_config['substitute_path'] = {}
+    let g:termdebug_config['substitute_path'][pwd] = pwd . '/' . src_shadow_dir
+    defer execute("unlet g:termdebug_config")
+
+    " Launch the debugger and set breakpoints in the shadow file instead
+    exe $"edit {src_shadow_file}"
+    exe $"Termdebug ./{bin_name}"
+    call WaitForAssert({-> assert_true(get(g:, "termdebug_is_running", v:false))})
+    call WaitForAssert({-> assert_equal(3, winnr('$'))})
+    let gdb_buf = winbufnr(1)
+    wincmd b
+    Break 9
+    sleep 100m
+    redraw!
+    call assert_equal([
+          \ {'lnum': 9, 'id': 1014, 'name': 'debugBreakpoint1.0',
+          \  'priority': 110, 'group': 'TermDebug'}],
+          \ sign_getplaced('', #{group: 'TermDebug'})[0].signs)
+    Run
+    call term_wait(gdb_buf, 400)
+    redraw!
+    call WaitForAssert({-> assert_equal([
+          \ {'lnum': 9, 'id': 12, 'name': 'debugPC', 'priority': 110,
+          \  'group': 'TermDebug'},
+          \ {'lnum': 9, 'id': 1014, 'name': 'debugBreakpoint1.0',
+          \  'priority': 110, 'group': 'TermDebug'}],
+          \ sign_getplaced('', #{group: 'TermDebug'})[0].signs)})
+    Finish
+    call term_wait(gdb_buf)
+    redraw!
+    call WaitForAssert({-> assert_equal([
+          \ {'lnum': 9, 'id': 1014, 'name': 'debugBreakpoint1.0',
+          \  'priority': 110, 'group': 'TermDebug'},
+          \ {'lnum': 20, 'id': 12, 'name': 'debugPC',
+          \  'priority': 110, 'group': 'TermDebug'}],
+          \ sign_getplaced('', #{group: 'TermDebug'})[0].signs)})
+
+    " Cleanup, make sure the gdb job is terminated before return
+    " otherwise may interfere with next test
+    Gdb
+    bw!
+    call WaitForAssert({-> assert_equal(1, winnr('$'))})
+  endfor
+
+  %bw!
+endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

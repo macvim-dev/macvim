@@ -10,10 +10,10 @@
 
 #include "vim.h"
 
-#if defined(FEAT_BEVAL_GUI) || defined(PROTO)
+#if defined(FEAT_BEVAL_GUI)
 
 // on Win32 and MacVim only get_beval_info() is required
-#if !(defined(FEAT_GUI_MSWIN) || defined(FEAT_GUI_MACVIM)) || defined(PROTO)
+#if !(defined(FEAT_GUI_MSWIN) || defined(FEAT_GUI_MACVIM))
 
 #ifdef FEAT_GUI_GTK
 # if GTK_CHECK_VERSION(3,0,0)
@@ -138,7 +138,7 @@ gui_mch_create_beval_area(
     return beval;
 }
 
-#if defined(FEAT_BEVAL_TIP) || defined(PROTO)
+#if defined(FEAT_BEVAL_TIP)
 /*
  * Destroy a balloon-eval and free its associated memory.
  */
@@ -175,7 +175,7 @@ gui_mch_disable_beval_area(BalloonEval *beval)
 	removeEventHandler(beval);
 }
 
-#if defined(FEAT_BEVAL_TIP) || defined(PROTO)
+#if defined(FEAT_BEVAL_TIP)
 /*
  * This function returns the BalloonEval * associated with the currently
  * displayed tooltip.  Returns NULL if there is no tooltip currently showing.
@@ -190,8 +190,8 @@ gui_mch_currently_showing_beval(void)
 #endif
 #endif // !(FEAT_GUI_MSWIN || FEAT_GUI_MACVIM)
 
-#if defined(FEAT_NETBEANS_INTG) || defined(FEAT_EVAL) || defined(PROTO)
-# if !(defined(FEAT_GUI_MSWIN) || defined(FEAT_GUI_MACVIM)) || defined(PROTO)
+#if defined(FEAT_NETBEANS_INTG) || defined(FEAT_EVAL)
+# if !(defined(FEAT_GUI_MSWIN) || defined(FEAT_GUI_MACVIM))
 
 /*
  * Show a balloon with "mesg".
@@ -207,10 +207,10 @@ gui_mch_post_balloon(BalloonEval *beval, char_u *mesg)
 	undrawBalloon(beval);
 }
 # endif // !(FEAT_GUI_MSWIN || FEAT_GUI_MACVIM)
-#endif // FEAT_NETBEANS_INTG || PROTO
+#endif // FEAT_NETBEANS_INTG || FEAT_EVAL
 
-#if !(defined(FEAT_GUI_MSWIN) || defined(FEAT_GUI_MACVIM)) || defined(PROTO)
-#if defined(FEAT_BEVAL_TIP) || defined(PROTO)
+#if !(defined(FEAT_GUI_MSWIN) || defined(FEAT_GUI_MACVIM))
+#if defined(FEAT_BEVAL_TIP)
 /*
  * Hide the given balloon.
  */

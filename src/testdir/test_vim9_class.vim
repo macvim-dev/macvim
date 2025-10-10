@@ -1258,7 +1258,7 @@ def Test_class_object_member_inits()
        var value: void
     endclass
   END
-  v9.CheckSourceFailure(lines, 'E1330: Invalid type for object variable: void', 3)
+  v9.CheckSourceFailure(lines, 'E1330: Invalid type used in variable declaration: void', 3)
 enddef
 
 " Test for instance variable access
@@ -12518,7 +12518,7 @@ def Test_super_keyword()
   END
   v9.CheckSourceFailure(lines, 'E1326: Variable "foo" not found in object "B"')
 
-  # Using super to access an overriden method in the parent class
+  # Using super to access an overridden method in the parent class
   lines =<< trim END
     vim9script
 

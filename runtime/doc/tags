@@ -363,6 +363,7 @@ $quote	eval.txt	/*$quote*
 'go'	options.txt	/*'go'*
 'go-!'	options.txt	/*'go-!'*
 'go-A'	options.txt	/*'go-A'*
+'go-C'	options.txt	/*'go-C'*
 'go-F'	options.txt	/*'go-F'*
 'go-L'	options.txt	/*'go-L'*
 'go-M'	options.txt	/*'go-M'*
@@ -875,6 +876,7 @@ $quote	eval.txt	/*$quote*
 'patchexpr'	options.txt	/*'patchexpr'*
 'patchmode'	options.txt	/*'patchmode'*
 'path'	options.txt	/*'path'*
+'pb'	options.txt	/*'pb'*
 'pdev'	options.txt	/*'pdev'*
 'penc'	options.txt	/*'penc'*
 'perldll'	options.txt	/*'perldll'*
@@ -904,6 +906,7 @@ $quote	eval.txt	/*$quote*
 'printoptions'	options.txt	/*'printoptions'*
 'prompt'	options.txt	/*'prompt'*
 'pt'	options.txt	/*'pt'*
+'pumborder'	options.txt	/*'pumborder'*
 'pumheight'	options.txt	/*'pumheight'*
 'pummaxwidth'	options.txt	/*'pummaxwidth'*
 'pumwidth'	options.txt	/*'pumwidth'*
@@ -1564,6 +1567,7 @@ $quote	eval.txt	/*$quote*
 +vtp	various.txt	/*+vtp*
 +wayland	various.txt	/*+wayland*
 +wayland_clipboard	various.txt	/*+wayland_clipboard*
++wayland_focus_steal	various.txt	/*+wayland_focus_steal*
 +wildignore	various.txt	/*+wildignore*
 +wildmenu	various.txt	/*+wildmenu*
 +windows	various.txt	/*+windows*
@@ -2117,7 +2121,20 @@ $quote	eval.txt	/*$quote*
 :%	cmdline.txt	/*:%*
 :&	change.txt	/*:&*
 :&&	change.txt	/*:&&*
-:'	cmdline.txt	/*:'*
+:''	cmdline.txt	/*:''*
+:'(	cmdline.txt	/*:'(*
+:')	cmdline.txt	/*:')*
+:'.	cmdline.txt	/*:'.*
+:'<	cmdline.txt	/*:'<*
+:'>	cmdline.txt	/*:'>*
+:'X	cmdline.txt	/*:'X*
+:'[	cmdline.txt	/*:'[*
+:']	cmdline.txt	/*:']*
+:'^	cmdline.txt	/*:'^*
+:'quote	cmdline.txt	/*:'quote*
+:'x	cmdline.txt	/*:'x*
+:'{	cmdline.txt	/*:'{*
+:'}	cmdline.txt	/*:'}*
 :++	vim9.txt	/*:++*
 :,	cmdline.txt	/*:,*
 :--	vim9.txt	/*:--*
@@ -2235,6 +2252,7 @@ $quote	eval.txt	/*$quote*
 :Rexplore	pi_netrw.txt	/*:Rexplore*
 :RmVimball	pi_vimball.txt	/*:RmVimball*
 :Run	terminal.txt	/*:Run*
+:RunOrContinue	terminal.txt	/*:RunOrContinue*
 :RustEmitAsm	ft_rust.txt	/*:RustEmitAsm*
 :RustEmitIr	ft_rust.txt	/*:RustEmitIr*
 :RustExpand	ft_rust.txt	/*:RustExpand*
@@ -2256,6 +2274,7 @@ $quote	eval.txt	/*$quote*
 :Termdebug	terminal.txt	/*:Termdebug*
 :TermdebugCommand	terminal.txt	/*:TermdebugCommand*
 :Texplore	pi_netrw.txt	/*:Texplore*
+:ToggleBreak	terminal.txt	/*:ToggleBreak*
 :Tutor	pi_tutor.txt	/*:Tutor*
 :URLOpen	eval.txt	/*:URLOpen*
 :Until	terminal.txt	/*:Until*
@@ -2553,6 +2572,7 @@ $quote	eval.txt	/*$quote*
 :def	vim9.txt	/*:def*
 :defc	vim9.txt	/*:defc*
 :defcompile	vim9.txt	/*:defcompile*
+:defe	userfunc.txt	/*:defe*
 :defer	userfunc.txt	/*:defer*
 :del	change.txt	/*:del*
 :delc	map.txt	/*:delc*
@@ -3531,6 +3551,7 @@ $quote	eval.txt	/*$quote*
 :syntax-off	syntax.txt	/*:syntax-off*
 :syntax-on	syntax.txt	/*:syntax-on*
 :syntax-reset	syntax.txt	/*:syntax-reset*
+:synti	syntax.txt	/*:synti*
 :syntime	syntax.txt	/*:syntime*
 :t	change.txt	/*:t*
 :tN	tagsrch.txt	/*:tN*
@@ -4778,6 +4799,7 @@ E1565	remote.txt	/*E1565*
 E1566	remote.txt	/*E1566*
 E1567	remote.txt	/*E1567*
 E1568	options.txt	/*E1568*
+E1569	builtin.txt	/*E1569*
 E157	sign.txt	/*E157*
 E158	sign.txt	/*E158*
 E159	sign.txt	/*E159*
@@ -7643,6 +7665,7 @@ ft-lf-syntax	syntax.txt	/*ft-lf-syntax*
 ft-lifelines-syntax	syntax.txt	/*ft-lifelines-syntax*
 ft-lisp-syntax	syntax.txt	/*ft-lisp-syntax*
 ft-lite-syntax	syntax.txt	/*ft-lite-syntax*
+ft-log-syntax	syntax.txt	/*ft-log-syntax*
 ft-lpc-syntax	syntax.txt	/*ft-lpc-syntax*
 ft-lua-plugin	filetype.txt	/*ft-lua-plugin*
 ft-lua-syntax	syntax.txt	/*ft-lua-syntax*
@@ -8137,6 +8160,7 @@ ge	motion.txt	/*ge*
 gender-neutral	helphelp.txt	/*gender-neutral*
 generic-function-call	vim9.txt	/*generic-function-call*
 generic-function-declaration	vim9.txt	/*generic-function-declaration*
+generic-function-example	vim9.txt	/*generic-function-example*
 generic-functions	vim9.txt	/*generic-functions*
 get()	builtin.txt	/*get()*
 get()-blob	builtin.txt	/*get()-blob*
@@ -8312,6 +8336,7 @@ gui-w32-cmdargs	gui_w32.txt	/*gui-w32-cmdargs*
 gui-w32-dialogs	gui_w32.txt	/*gui-w32-dialogs*
 gui-w32-printing	gui_w32.txt	/*gui-w32-printing*
 gui-w32-start	gui_w32.txt	/*gui-w32-start*
+gui-w32-title-bar	gui_w32.txt	/*gui-w32-title-bar*
 gui-w32-various	gui_w32.txt	/*gui-w32-various*
 gui-w32-windowid	gui_w32.txt	/*gui-w32-windowid*
 gui-w32s	os_win32.txt	/*gui-w32s*
@@ -8472,6 +8497,7 @@ hl-MsgArea	syntax.txt	/*hl-MsgArea*
 hl-NonText	syntax.txt	/*hl-NonText*
 hl-Normal	syntax.txt	/*hl-Normal*
 hl-Pmenu	syntax.txt	/*hl-Pmenu*
+hl-PmenuBorder	syntax.txt	/*hl-PmenuBorder*
 hl-PmenuExtra	syntax.txt	/*hl-PmenuExtra*
 hl-PmenuExtraSel	syntax.txt	/*hl-PmenuExtraSel*
 hl-PmenuKind	syntax.txt	/*hl-PmenuKind*
@@ -8480,6 +8506,7 @@ hl-PmenuMatch	syntax.txt	/*hl-PmenuMatch*
 hl-PmenuMatchSel	syntax.txt	/*hl-PmenuMatchSel*
 hl-PmenuSbar	syntax.txt	/*hl-PmenuSbar*
 hl-PmenuSel	syntax.txt	/*hl-PmenuSel*
+hl-PmenuShadow	syntax.txt	/*hl-PmenuShadow*
 hl-PmenuThumb	syntax.txt	/*hl-PmenuThumb*
 hl-PopupNotification	syntax.txt	/*hl-PopupNotification*
 hl-PopupSelected	syntax.txt	/*hl-PopupSelected*
@@ -8507,6 +8534,8 @@ hl-TabPanelFill	syntax.txt	/*hl-TabPanelFill*
 hl-TabPanelSel	syntax.txt	/*hl-TabPanelSel*
 hl-Terminal	syntax.txt	/*hl-Terminal*
 hl-Title	syntax.txt	/*hl-Title*
+hl-TitleBar	syntax.txt	/*hl-TitleBar*
+hl-TitleBarNC	syntax.txt	/*hl-TitleBarNC*
 hl-ToolbarButton	gui.txt	/*hl-ToolbarButton*
 hl-ToolbarLine	gui.txt	/*hl-ToolbarLine*
 hl-Tooltip	syntax.txt	/*hl-Tooltip*
@@ -9244,6 +9273,7 @@ multi-lang	mlang.txt	/*multi-lang*
 multi-repeat	repeat.txt	/*multi-repeat*
 multibyte	mbyte.txt	/*multibyte*
 multibyte-ime	mbyte.txt	/*multibyte-ime*
+multibyte-ime-compatibility	mbyte.txt	/*multibyte-ime-compatibility*
 multibyte-input	mbyte.txt	/*multibyte-input*
 multilang	mlang.txt	/*multilang*
 multilang-menus	mlang.txt	/*multilang-menus*
@@ -9926,6 +9956,7 @@ postscript-print-util	print.txt	/*postscript-print-util*
 postscript-printing	print.txt	/*postscript-printing*
 pow()	builtin.txt	/*pow()*
 ppwiz.vim	syntax.txt	/*ppwiz.vim*
+preinserted()	builtin.txt	/*preinserted()*
 press-enter	message.txt	/*press-enter*
 press-return	message.txt	/*press-return*
 prevcount-variable	eval.txt	/*prevcount-variable*
@@ -11094,8 +11125,12 @@ termdebug-example	terminal.txt	/*termdebug-example*
 termdebug-frames	terminal.txt	/*termdebug-frames*
 termdebug-mappings	terminal.txt	/*termdebug-mappings*
 termdebug-prompt	terminal.txt	/*termdebug-prompt*
+termdebug-remote	terminal.txt	/*termdebug-remote*
+termdebug-remote-example	terminal.txt	/*termdebug-remote-example*
+termdebug-remote-window	terminal.txt	/*termdebug-remote-window*
 termdebug-starting	terminal.txt	/*termdebug-starting*
 termdebug-stepping	terminal.txt	/*termdebug-stepping*
+termdebug-substitute-path	terminal.txt	/*termdebug-substitute-path*
 termdebug-timeout	terminal.txt	/*termdebug-timeout*
 termdebug-variables	terminal.txt	/*termdebug-variables*
 termdebug_contributing	terminal.txt	/*termdebug_contributing*
@@ -11276,6 +11311,7 @@ type-casting	vim9.txt	/*type-casting*
 type-checking	vim9.txt	/*type-checking*
 type-inference	vim9.txt	/*type-inference*
 type-mistakes	tips.txt	/*type-mistakes*
+type-parameter-naming	vim9.txt	/*type-parameter-naming*
 type-variable-naming	vim9.txt	/*type-variable-naming*
 typealias	vim9class.txt	/*typealias*
 typename()	builtin.txt	/*typename()*
@@ -11894,6 +11930,7 @@ win32-quotes	os_win32.txt	/*win32-quotes*
 win32-restore	os_win32.txt	/*win32-restore*
 win32-startup	os_win32.txt	/*win32-startup*
 win32-term	os_win32.txt	/*win32-term*
+win32-term-colors	os_win32.txt	/*win32-term-colors*
 win32-vimrun	gui_w32.txt	/*win32-vimrun*
 win32-win3.1	os_win32.txt	/*win32-win3.1*
 win32-win95	os_win32.txt	/*win32-win95*

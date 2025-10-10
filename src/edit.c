@@ -49,7 +49,7 @@ static void ins_ctrl_o(void);
 static void ins_shift(int c, int lastc);
 static void ins_del(void);
 static int  ins_bs(int c, int mode, int *inserted_space_p);
-#if defined(FEAT_GUI_TABLINE) || defined(PROTO)
+#if defined(FEAT_GUI_TABLINE)
 static void ins_tabline(int c);
 #endif
 static void ins_left(void);
@@ -693,11 +693,15 @@ edit(
 			&& stop_arrow() == OK)
 		{
 		    ins_compl_delete();
-		    if (ins_compl_has_preinsert()
-			    && ins_compl_has_autocomplete())
-			(void)ins_compl_insert(FALSE, TRUE);
+		    if (ins_compl_preinsert_longest()
+			    && !ins_compl_is_match_selected())
+		    {
+			ins_compl_insert(FALSE, TRUE);
+			ins_compl_init_get_longest();
+			continue;
+		    }
 		    else
-			(void)ins_compl_insert(FALSE, FALSE);
+			ins_compl_insert(FALSE, FALSE);
 		}
 		// Delete preinserted text when typing special chars
 		else if (IS_WHITE_NL_OR_NUL(c) && ins_compl_preinsert_effect())
@@ -987,7 +991,7 @@ doESCkey:
 	case Ctrl_H:
 	    did_backspace = ins_bs(c, BACKSPACE_CHAR, &inserted_space);
 	    auto_format(FALSE, TRUE);
-	    if (did_backspace && p_ac && !char_avail()
+	    if (did_backspace && ins_compl_has_autocomplete() && !char_avail()
 		    && curwin->w_cursor.col > 0)
 	    {
 		c = char_before_cursor();
@@ -1427,7 +1431,8 @@ normalchar:
 	    foldOpenCursor();
 #endif
 	    // Trigger autocompletion
-	    if (p_ac && !char_avail() && vim_isprintc(c))
+	    if (ins_compl_has_autocomplete() && !char_avail()
+		    && vim_isprintc(c))
 	    {
 		update_screen(UPD_VALID); // Show character immediately
 		out_flush();
@@ -1773,7 +1778,7 @@ edit_putchar(int c, int highlight)
     screen_putchar(c, pc_row, pc_col, attr);
 }
 
-#if defined(FEAT_JOB_CHANNEL) || defined(PROTO)
+#if defined(FEAT_JOB_CHANNEL)
 /*
  * Set the insert start position for when using a prompt buffer.
  */
@@ -2640,7 +2645,7 @@ set_last_insert(int c)
     last_insert_skip = 0;
 }
 
-#if defined(EXITFREE) || defined(PROTO)
+#if defined(EXITFREE)
     void
 free_last_insert(void)
 {
@@ -3384,7 +3389,7 @@ replace_do_bs(int limit_col)
 	(void)del_char_after_col(limit_col);
 }
 
-#if defined(FEAT_RIGHTLEFT) || defined(PROTO)
+#if defined(FEAT_RIGHTLEFT)
 /*
  * Map Hebrew keyboard when in hkmap mode.
  */
@@ -4615,7 +4620,7 @@ bracketed_paste(paste_mode_T mode, int drop, garray_T *gap)
     return ret_char;
 }
 
-#if defined(FEAT_GUI_TABLINE) || defined(PROTO)
+#if defined(FEAT_GUI_TABLINE)
     static void
 ins_tabline(int c)
 {
@@ -4638,7 +4643,7 @@ ins_tabline(int c)
 }
 #endif
 
-#if defined(FEAT_GUI) || defined(PROTO)
+#if defined(FEAT_GUI)
     void
 ins_scroll(void)
 {

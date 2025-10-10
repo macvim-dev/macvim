@@ -12,7 +12,7 @@
 
 #include "vim.h"
 
-#if defined(FEAT_JOB_CHANNEL) || defined(PROTO)
+#if defined(FEAT_JOB_CHANNEL)
 
 // TRUE when netbeans is running with a GUI.
 #ifdef FEAT_GUI
@@ -399,7 +399,7 @@ free_unused_channels(int copyID, int mask)
     }
 }
 
-#if defined(FEAT_GUI) || defined(PROTO)
+#if defined(FEAT_GUI)
 
 # if defined(FEAT_GUI_X11) || defined(FEAT_GUI_GTK)
 /*
@@ -3161,7 +3161,7 @@ may_invoke_callback(channel_T *channel, ch_part_T part)
     return TRUE;
 }
 
-#if defined(FEAT_NETBEANS_INTG) || defined(PROTO)
+#if defined(FEAT_NETBEANS_INTG)
 /*
  * Return TRUE when channel "channel" is open for writing to.
  * Also returns FALSE or invalid "channel".
@@ -3498,7 +3498,7 @@ channel_clear(channel_T *channel)
     free_callback(&channel->ch_close_cb);
 }
 
-#if defined(EXITFREE) || defined(PROTO)
+#if defined(EXITFREE)
     void
 channel_free_all(void)
 {
@@ -4169,7 +4169,7 @@ theend:
     free_job_options(&opt);
 }
 
-#if defined(FEAT_GUI_MACVIM) || defined(PROTO)
+#if defined(FEAT_GUI_MACVIM)
 /*
  * Read from channel "channel" in dispatch event handler.
  * Channel may be already read out elsewhere before the handler invoked
@@ -4206,7 +4206,7 @@ channel_may_read_close(channel_T *channel, char *func)
 }
 #endif
 
-#if defined(MSWIN) || defined(__HAIKU__) || defined(FEAT_GUI) || defined(PROTO)
+#if defined(MSWIN) || defined(__HAIKU__) || defined(FEAT_GUI)
 /*
  * Check the channels for anything that is ready to be read.
  * The data is put in the read queue.
@@ -4257,7 +4257,7 @@ channel_handle_events(int only_keep_open)
 }
 #endif
 
-# if defined(FEAT_GUI) || defined(PROTO)
+# if defined(FEAT_GUI)
 /*
  * Return TRUE when there is any channel with a keep_open flag.
  */
@@ -4708,7 +4708,7 @@ ch_raw_common(typval_T *argvars, typval_T *rettv, int eval)
 
 #define KEEP_OPEN_TIME 20  // msec
 
-#if (defined(UNIX) && !defined(HAVE_SELECT)) || defined(PROTO)
+#if defined(UNIX) && !defined(HAVE_SELECT)
 /*
  * Add open channels to the poll struct.
  * Return the adjusted struct index.
@@ -4801,7 +4801,7 @@ channel_poll_check(int ret_in, void *fds_in)
 }
 #endif // UNIX && !HAVE_SELECT
 
-#if (!defined(MSWIN) && defined(HAVE_SELECT)) || defined(PROTO)
+#if !defined(MSWIN) && defined(HAVE_SELECT)
 
 /*
  * The "fd_set" type is hidden to avoid problems with the function proto.
