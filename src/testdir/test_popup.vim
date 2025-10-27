@@ -1168,6 +1168,7 @@ func Test_popup_complete_info_02()
     \     {'word': 'Apr', 'menu': 'April', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''},
     \     {'word': 'May', 'menu': 'May', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''}
     \   ],
+    \   'preinserted_text': '',
     \   'selected': 0,
     \ }
 
@@ -1175,7 +1176,7 @@ func Test_popup_complete_info_02()
   call feedkeys("i\<C-X>\<C-U>\<F5>", 'tx')
   call assert_equal(d, g:compl_info)
 
-  let g:compl_what = ['mode', 'pum_visible', 'selected']
+  let g:compl_what = ['mode', 'pum_visible', 'preinserted_text', 'selected']
   call remove(d, 'items')
   call feedkeys("i\<C-X>\<C-U>\<F5>", 'tx')
   call assert_equal(d, g:compl_info)
@@ -1183,6 +1184,7 @@ func Test_popup_complete_info_02()
   let g:compl_what = ['mode']
   call remove(d, 'selected')
   call remove(d, 'pum_visible')
+  call remove(d, 'preinserted_text')
   call feedkeys("i\<C-X>\<C-U>\<F5>", 'tx')
   call assert_equal(d, g:compl_info)
   bwipe!
@@ -1196,6 +1198,7 @@ func Test_popup_complete_info_no_pum()
         \   'mode': '',
         \   'pum_visible': 0,
         \   'items': [],
+        \   'preinserted_text': '',
         \   'selected': -1,
         \  }
   call assert_equal( d, complete_info() )
@@ -2386,6 +2389,39 @@ func Test_popup_border()
       call term_sendkeys(buf, "\<Esc>:set norightleft\<CR>")
     endif
   endfor
+
+  call StopVimInTerminal(buf)
+endfunc
+
+func Test_popup_shadow_hiddenchar()
+  CheckScreendump
+
+  let lines =<< trim END
+    bold italic underline reverse normal
+    italic underline reverse normal bold
+    underline reverse normal bold italic
+    reverse normal bold italic underline
+    normal bold italic underline reverse
+  END
+  call writefile(lines, 'Xtest', 'D')
+  let buf = RunVimInTerminal('Xtest', {'cols': 75})
+
+  call term_sendkeys(buf, ":set completeopt=menuone,noselect pumborder=shadow\<CR>")
+  call term_sendkeys(buf, ":hi BoldGrp cterm=bold\<CR>")
+  call term_sendkeys(buf, ":hi ItalicGrp cterm=italic,underline\<CR>")
+  call term_sendkeys(buf, ":hi ReverseGrp cterm=reverse\<CR>")
+  call term_sendkeys(buf, ":call matchadd(\"BoldGrp\", \"bold\")\<CR>")
+  call term_sendkeys(buf, ":call matchadd(\"ItalicGrp\", \"italic\")\<CR>")
+  call term_sendkeys(buf, ":call matchadd(\"ItalicGrp\", \"underline\")\<CR>")
+  call term_sendkeys(buf, ":call matchadd(\"ReverseGrp\", \"reverse\")\<CR>")
+
+  call term_sendkeys(buf, "i\<C-N>")
+  call TermWait(buf, 10)
+  call VerifyScreenDump(buf, 'Test_popup_shadow_hiddenchar_1', {'rows': 8})
+  call term_sendkeys(buf, "\<Esc>wwi\<C-N>")
+  call TermWait(buf, 10)
+  call VerifyScreenDump(buf, 'Test_popup_shadow_hiddenchar_2', {'rows': 8})
+  call term_sendkeys(buf, "\<Esc>")
 
   call StopVimInTerminal(buf)
 endfunc

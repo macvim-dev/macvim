@@ -2448,6 +2448,7 @@ $quote	eval.txt	/*$quote*
 :cex	quickfix.txt	/*:cex*
 :cexpr	quickfix.txt	/*:cexpr*
 :cf	quickfix.txt	/*:cf*
+:cfd	quickfix.txt	/*:cfd*
 :cfdo	quickfix.txt	/*:cfdo*
 :cfi	quickfix.txt	/*:cfi*
 :cfile	quickfix.txt	/*:cfile*
@@ -2870,6 +2871,7 @@ $quote	eval.txt	/*$quote*
 :lclose	quickfix.txt	/*:lclose*
 :lcs	if_cscop.txt	/*:lcs*
 :lcscope	if_cscop.txt	/*:lcscope*
+:ld	quickfix.txt	/*:ld*
 :ldo	quickfix.txt	/*:ldo*
 :le	change.txt	/*:le*
 :left	change.txt	/*:left*
@@ -2897,6 +2899,7 @@ $quote	eval.txt	/*$quote*
 :lex	quickfix.txt	/*:lex*
 :lexpr	quickfix.txt	/*:lexpr*
 :lf	quickfix.txt	/*:lf*
+:lfd	quickfix.txt	/*:lfd*
 :lfdo	quickfix.txt	/*:lfdo*
 :lfi	quickfix.txt	/*:lfi*
 :lfile	quickfix.txt	/*:lfile*
@@ -3254,6 +3257,7 @@ $quote	eval.txt	/*$quote*
 :rubydo	if_ruby.txt	/*:rubydo*
 :rubyf	if_ruby.txt	/*:rubyf*
 :rubyfile	if_ruby.txt	/*:rubyfile*
+:rund	undo.txt	/*:rund*
 :rundo	undo.txt	/*:rundo*
 :runtime	repeat.txt	/*:runtime*
 :rv	starting.txt	/*:rv*
@@ -3747,6 +3751,7 @@ $quote	eval.txt	/*$quote*
 :write_a	editing.txt	/*:write_a*
 :write_c	editing.txt	/*:write_c*
 :write_f	editing.txt	/*:write_f*
+:wu	undo.txt	/*:wu*
 :wundo	undo.txt	/*:wundo*
 :wv	starting.txt	/*:wv*
 :wviminfo	starting.txt	/*:wviminfo*
@@ -7769,6 +7774,7 @@ ft-vb-syntax	syntax.txt	/*ft-vb-syntax*
 ft-verilog-indent	indent.txt	/*ft-verilog-indent*
 ft-vhdl-indent	indent.txt	/*ft-vhdl-indent*
 ft-vim-indent	indent.txt	/*ft-vim-indent*
+ft-vim-omni	insert.txt	/*ft-vim-omni*
 ft-vim-plugin	filetype.txt	/*ft-vim-plugin*
 ft-vim-syntax	syntax.txt	/*ft-vim-syntax*
 ft-xf86conf-syntax	syntax.txt	/*ft-xf86conf-syntax*
