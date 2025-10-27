@@ -32,7 +32,9 @@ func Test_macvim_options_commands_exist()
     call assert_true(has('transparency'), 'Missing feature "transparency"')
 
     " Vim system-specific features that we expect to be on in macOS
+    call assert_true(has('clientserver'), 'Missing feature "clientserver"')
     call assert_true(has('clipboard'), 'Missing feature "clipboard"')
+    call assert_true(has('clipboard_working'), 'Missing feature "clipboard_working"')
     call assert_true(has('sound'), 'Missing feature "sound"')
     call assert_true(has('terminal'), 'Missing feature "terminal"')
     call assert_true(has('xim'), 'Missing feature "xim"')
