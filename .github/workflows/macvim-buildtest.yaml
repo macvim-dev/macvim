@@ -405,7 +405,7 @@ jobs:
       # and add pictures to make them look nice. 
       - name: Upload MacVim image
         if: inputs.publish && (startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/master')
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: MacVim${{ inputs.publish_postfix  }}.dmg
           path: src/MacVim/build/Release/MacVim${{ inputs.publish_postfix }}.dmg
