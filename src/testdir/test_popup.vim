@@ -2396,6 +2396,15 @@ endfunc
 func Test_popup_shadow_hiddenchar()
   CheckScreendump
 
+  if has('osx')
+    " On older macOS versions, the default Terminal app does not properly
+    " advertise italics support, which this test requires. When that happens,
+    " Vim just uses t_mr (reverse) as a substitute, which we detect here.
+    if &t_ZH == &t_mr
+      throw 'Skipped: italics not supported'
+    endif
+  endif
+
   let lines =<< trim END
     bold italic underline reverse normal
     italic underline reverse normal bold
