@@ -353,6 +353,8 @@ jobs:
       - name: Upload failed MacVim test results
         if: ${{ !cancelled() && failure() && steps.test_macvim.conclusion == 'failure' }}
         uses: ./.github/actions/test_macvim_artifacts
+        with:
+          artifact-name: ${{ format('{0}-{1}', inputs.os, inputs.xcode) }}
 
       - name: Build Vim test binaries
         run: |
@@ -385,6 +387,8 @@ jobs:
       - name: Upload failed test files
         if: ${{ !cancelled() && failure() }}
         uses: ./.github/actions/test_artifacts
+        with:
+          artifact-name: ${{ format('{0}-{1}', inputs.os, inputs.xcode) }}
 
       - name: Build MacVim dmg image
         if: inputs.publish && (startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/master')
