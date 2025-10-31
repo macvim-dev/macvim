@@ -1,6 +1,14 @@
 # This is a clone of test_artifacts for MacVim-specific files
+# This should be almost identical to test_artifacts, other than the artifact
+# name/path. In the future we could potentially combine the two, but for now
+# it's simpler to keep them separate to ease upstream merging.
 name: 'test_macvim_artifacts'
 description: "Upload failed MacVim test artifacts"
+inputs:
+  artifact-name:
+    description: Name of the artifact
+    required: true
+
 runs:
   using: "composite"
   steps:
@@ -8,7 +16,12 @@ runs:
       uses: actions/upload-artifact@v4
       with:
         # Name of the artifact to upload.
-        name: ${{ github.workflow }}-${{ github.job }}-${{ join(matrix.*, '-') }}-failed-macvim-tests
+        name: ${{ format('GH-{0}-{1}-{2}-{3}-{4}-failed-macvim-tests',
+          github.run_id,
+          github.run_attempt,
+          github.job,
+          strategy.job-index,
+          inputs.artifact-name) }}
 
         # A file, directory or wildcard pattern that describes what
         # to upload.
