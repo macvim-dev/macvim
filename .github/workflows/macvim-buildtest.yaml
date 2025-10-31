@@ -348,6 +348,10 @@ jobs:
         id: test_macvim
         timeout-minutes: 10
         run: |
+          echo '::group::Build MacVim test binaries'
+          # Build test binaries in a separate step to allow grouping in the CI output to make the output more concise.
+          make ${MAKE_BUILD_ARGS} -C src macvim-tests-binaries
+          echo '::endgroup::'
           make ${MAKE_BUILD_ARGS} -C src macvim-tests
 
       - name: Upload failed MacVim test results

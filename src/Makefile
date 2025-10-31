@@ -3753,7 +3753,7 @@ Makefile:
 
 ##############################################################################
 ### MacVim GUI
-.PHONY: macvim macvim-dmg macvim-dmg-legacy macvimclean macvim-signed macvim-signed-adhoc macvim-dmg-release macvim-dmg-release-legacy macvim-install-runtime macvim-xcodeproj-compat
+.PHONY: macvim macvim-dmg macvim-dmg-legacy macvimclean macvim-tests-binaries macvim-tests macvim-signed macvim-signed-adhoc macvim-dmg-release macvim-dmg-release-legacy macvim-install-runtime macvim-xcodeproj-compat
 
 RUNTIME_FOLDER_LIST = MacVim/auto/runtime_folder_list.xcfilelist
 
@@ -3776,6 +3776,9 @@ $(RUNTIME_FOLDER_LIST):
 
 macvim: $(VIMTARGET) $(RUNTIME_FOLDER_LIST)
 	xcodebuild -project MacVim/MacVim.xcodeproj $(XCODEFLAGS)
+
+macvim-tests-binaries:
+	xcodebuild build-for-testing -project MacVim/MacVim.xcodeproj -scheme MacVim $(XCODEFLAGS)
 
 macvim-tests:
 	xcodebuild test -project MacVim/MacVim.xcodeproj -scheme MacVim $(XCODEFLAGS)
