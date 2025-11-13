@@ -745,6 +745,56 @@ static char *(features[]) =
 static int included_patches[] =
 {   /* Add new patch number below this line */
 /**/
+    1912,
+/**/
+    1911,
+/**/
+    1910,
+/**/
+    1909,
+/**/
+    1908,
+/**/
+    1907,
+/**/
+    1906,
+/**/
+    1905,
+/**/
+    1904,
+/**/
+    1903,
+/**/
+    1902,
+/**/
+    1901,
+/**/
+    1900,
+/**/
+    1899,
+/**/
+    1898,
+/**/
+    1897,
+/**/
+    1896,
+/**/
+    1895,
+/**/
+    1894,
+/**/
+    1893,
+/**/
+    1892,
+/**/
+    1891,
+/**/
+    1890,
+/**/
+    1889,
+/**/
+    1888,
+/**/
     1887,
 /**/
     1886,
@@ -4593,7 +4643,7 @@ version_msg_wrap(char_u *s, int wrap)
 {
     int		len = vim_strsize(s) + (wrap ? 2 : 0);
 
-    if (!got_int && len < (int)Columns && msg_col + len >= (int)Columns
+    if (!got_int && len < cmdline_width && msg_col + len >= cmdline_width
 								&& *s != '\n')
 	msg_putchar('\n');
     if (!got_int)
@@ -4651,7 +4701,7 @@ list_in_columns(char_u **items, int size, int current)
     }
     width += 1;
 
-    if (Columns < width)
+    if (cmdline_width < width)
     {
 	// Not enough screen columns - show one per line
 	for (i = 0; i < item_count; ++i)
@@ -4665,7 +4715,7 @@ list_in_columns(char_u **items, int size, int current)
 
     // The rightmost column doesn't need a separator.
     // Sacrifice it to fit in one more column if possible.
-    ncol = (int) (Columns + 1) / width;
+    ncol = (cmdline_width + 1) / width;
     nrow = item_count / ncol + ((item_count % ncol) ? 1 : 0);
 
     // "i" counts columns then rows.  "idx" counts rows then columns.
@@ -5036,7 +5086,7 @@ intro_message(
 	N_("Vim is open source and freely distributable"),
 	"",
 	N_("Help poor children in Uganda!"),
-	N_("type  :help iccf<Enter>       for information "),
+	N_("type  :help Kuwasha<Enter>    for information "),
 	"",
 	N_("type  :q<Enter>               to exit         "),
 	N_("type  :help<Enter>  or  <F1>  for on-line help"),
@@ -5115,7 +5165,7 @@ intro_message(
 		    p = sponsor < 0
 			? N_("Sponsor Vim development!")
 			: N_("Become a registered Vim user!");
-		else if (strstr(p, "iccf") != NULL)
+		else if (strstr(p, "Kuwasha") != NULL)
 		    p = sponsor < 0
 			? N_("type  :help sponsor<Enter>    for information ")
 			: N_("type  :help register<Enter>   for information ");

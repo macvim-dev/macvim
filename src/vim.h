@@ -2098,6 +2098,9 @@ typedef int sock_T;
 // Lowest button code for using the mouse wheel (xterm only)
 #define MOUSEWHEEL_LOW		0x60
 
+// Lowest button code for extra mouse buttons 8-11
+#define MOUSESIDEBUTTONS_LOW		0xa0
+
 #define MOUSE_CLICK_MASK	0x03
 
 #define NUM_MOUSE_CLICKS(code) \
@@ -2259,9 +2262,10 @@ typedef int sock_T;
 #define VV_CLIPMETHOD 113
 #define VV_TERMDA1 114
 #define VV_TERMOSC 115
+#define VV_VIM_DID_INIT		116
 // MacVim-specific values go here
-#define VV_OS_APPEARANCE 116
-#define VV_LEN		117	// number of v: vars
+#define VV_OS_APPEARANCE 117
+#define VV_LEN		118	// number of v: vars
 
 // used for v_number in VAR_BOOL and VAR_SPECIAL
 #define VVAL_FALSE	0L	// VAR_BOOL
@@ -2679,12 +2683,6 @@ typedef int (*opt_expand_cb_T)(optexpand_T *args, int *numMatches, char_u ***mat
 #  endif
 # else
 #  define X_DISPLAY	xterm_dpy
-# endif
-#endif
-
-#if defined(FEAT_BROWSE) && defined(GTK_CHECK_VERSION)
-# if GTK_CHECK_VERSION(2,4,0)
-#  define USE_FILE_CHOOSER
 # endif
 #endif
 

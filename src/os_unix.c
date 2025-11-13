@@ -3759,7 +3759,7 @@ exit_scroll(void)
     {
 	restore_cterm_colors();		// get original colors back
 	msg_clr_eos_force();		// clear the rest of the display
-	windgoto((int)Rows - 1, 0);	// may have moved the cursor
+	windgoto((int)Rows - 1, cmdline_col_off); // may have moved the cursor
     }
 }
 
@@ -5583,7 +5583,7 @@ mch_call_shell_fork(
 				else
 				    msg_outtrans_len(ta_buf + i, 1);
 			    }
-			    windgoto(msg_row, msg_col);
+			    windgoto(msg_row, cmdline_col_off + msg_col);
 			    out_flush();
 			}
 
@@ -5705,7 +5705,7 @@ mch_call_shell_fork(
 			    msg_puts((char *)buffer);
 			}
 
-			windgoto(msg_row, msg_col);
+			windgoto(msg_row, cmdline_col_off + msg_col);
 			cursor_on();
 			out_flush();
 # if FEAT_GUI_MACVIM

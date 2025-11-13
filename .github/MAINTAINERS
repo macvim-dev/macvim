@@ -13,6 +13,7 @@ nsis/lang/russian.nsi					@RestorerZ
 runtime/autoload/freebasic.vim				@dkearns
 runtime/autoload/hare.vim				@selenebun
 runtime/autoload/hcl.vim				@gpanders
+runtime/autoload/javascriptcomplete.vim				@jsit
 runtime/autoload/modula2.vim				@dkearns
 runtime/autoload/rubycomplete.vim			@segfault @dkearns
 runtime/autoload/rust.vim				@lilyball
@@ -286,6 +287,7 @@ runtime/ftplugin/sed.vim				@dkearns
 runtime/ftplugin/sh.vim					@dkearns
 runtime/ftplugin/shaderslang.vim			@mTvare6
 runtime/ftplugin/slint.vim				@ribru17
+runtime/ftplugin/sml.vim				@tocariimaa
 runtime/ftplugin/snakemake.vim				@ribru17
 runtime/ftplugin/solidity.vim				@coti-z
 runtime/ftplugin/solution.vim				@dkearns
@@ -462,6 +464,7 @@ runtime/syntax/chuck.vim				@andreacfromtheapp
 runtime/syntax/clojure.vim				@axvr
 runtime/syntax/codeowners.vim				@jparise
 runtime/syntax/cs.vim					@nickspoons
+runtime/syntax/css.vim					@jsit
 runtime/syntax/csv.vim					@habamax
 runtime/syntax/cucumber.vim				@tpope
 runtime/syntax/d.vim					@JesseKPhillips

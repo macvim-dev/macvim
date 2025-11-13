@@ -94,6 +94,45 @@ function Test_tabpanel_with_vsplit()
   call StopVimInTerminal(buf)
 endfunc
 
+func Call_cmd_funcs()
+  let g:results = [getcmdpos(), getcmdscreenpos(), getcmdline()]
+endfunc
+
+function Test_tabpanel_cmdline()
+  let save_showtabline = &showtabline
+  let g:results = []
+  cnoremap <expr> <F2> Call_cmd_funcs()
+
+  set showtabline=0 showtabpanel=0
+  call Call_cmd_funcs()
+  call assert_equal([0, 0, ''], g:results)
+  call feedkeys(":\<F2>\<Esc>", "xt")
+  call assert_equal([1, 2, ''], g:results)
+  call feedkeys(":pwd\<F2>\<Esc>", "xt")
+  call assert_equal([4, 5, 'pwd'], g:results)
+
+  set showtabline=2 showtabpanel=2 tabpanelopt=columns:20,align:left
+  call Call_cmd_funcs()
+  call assert_equal([0, 0, ''], g:results)
+  call feedkeys(":\<F2>\<Esc>", "xt")
+  call assert_equal([1, 22, ''], g:results)
+  call feedkeys(":pwd\<F2>\<Esc>", "xt")
+  call assert_equal([4, 25, 'pwd'], g:results)
+
+  set showtabline=2 showtabpanel=2 tabpanelopt+=align:right
+  call Call_cmd_funcs()
+  call assert_equal([0, 0, ''], g:results)
+  call feedkeys(":\<F2>\<Esc>", "xt")
+  call assert_equal([1, 2, ''], g:results)
+  call feedkeys(":pwd\<F2>\<Esc>", "xt")
+  call assert_equal([4, 5, 'pwd'], g:results)
+
+  unlet g:results
+  cunmap <F2>
+  call s:reset()
+  let &showtabline = save_showtabline
+endfunc
+
 function Test_tabpanel_mouse()
   let save_showtabline = &showtabline
   let save_mouse = &mouse
@@ -117,6 +156,9 @@ function Test_tabpanel_mouse()
   call test_setmouse(3, 1)
   call feedkeys("\<LeftMouse>", 'xt')
   call assert_equal(3, tabpagenr())
+  call test_setmouse(&lines, 1)
+  call feedkeys("\<LeftMouse>", 'xt')
+  call assert_equal(1, tabpagenr())
 
   " Drag the active tab page
   tablast
@@ -148,8 +190,8 @@ function Test_tabpanel_mouse()
   call assert_equal(3, tabpagenr())
 
   " Test getmousepos()
-  call feedkeys("\<LeftMouse>", 'xt')
   call test_setmouse(2, 3)
+  call feedkeys("\<LeftMouse>", 'xt')
   let pos = getmousepos()
   call assert_equal(0, pos['winid'])
   call assert_equal(0, pos['winrow'])
@@ -404,7 +446,7 @@ function Test_tabpanel_visual()
   let lines =<< trim END
     set showtabpanel=2
     set tabpanelopt=columns:10
-    set showtabline=0
+    set showtabline=0 laststatus=2
     tabnew
     call setbufline(bufnr(), 1, ['aaa1 bbb1 ccc1 ddd1', 'aaa2 bbb2 ccc2 ddd2', 'aaa3 bbb3 ccc3 ddd3', 'aaa4 bbb4 ccc4 ddd4'])
   END
@@ -452,7 +494,7 @@ function Test_tabpanel_tabline_and_tabpanel()
     set showtabpanel=2
     set tabpanelopt=columns:10,vert
     set fillchars=tpl_vert:│
-    set showtabline=2
+    set showtabline=2 laststatus=2
     e aaa.txt
     tabnew
     e bbb.txt

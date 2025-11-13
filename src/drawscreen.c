@@ -502,7 +502,7 @@ win_redr_status(win_T *wp, int ignore_pum UNUSED)
 	if (wp->w_buffer->b_p_ro)
 	    plen += vim_snprintf((char *)p + plen, MAXPATHL - plen, "%s", _("[RO]"));
 
-	this_ru_col = ru_col - (Columns - wp->w_width);
+	this_ru_col = ru_col - (cmdline_width - wp->w_width);
 	n = (wp->w_width + 1) / 2;
 	if (this_ru_col < n)
 	    this_ru_col = n;
@@ -721,8 +721,8 @@ win_redr_ruler(win_T *wp, int always, int ignore_pum)
 	    row = Rows - 1;
 	    fillchar = ' ';
 	    attr = 0;
-	    width = Columns;
-	    off = 0;
+	    off = cmdline_col_off;
+	    width = cmdline_width;
 	}
 
 	// In list mode virtcol needs to be recomputed
@@ -755,7 +755,7 @@ win_redr_ruler(win_T *wp, int always, int ignore_pum)
 	if (wp->w_status_height == 0)	// can't use last char of screen
 	    ++n1;
 
-	this_ru_col = ru_col - (Columns - width);
+	this_ru_col = ru_col - (cmdline_width - width);
 	// Never use more than half the window/screen width, leave the other
 	// half for the filename.
 	n2 = (width + 1) / 2;
@@ -2280,13 +2280,12 @@ win_update(win_T *wp)
 	    // When at start of changed lines: May scroll following lines
 	    // up or down to minimize redrawing.
 	    // Don't do this when the change continues until the end.
-	    // Don't scroll when dollar_vcol >= 0, keep the "$".
 	    // Don't scroll when redrawing the top, scrolled already above.
 	    if (lnum == mod_top
 		    && mod_bot != MAXLNUM
-		    && !(dollar_vcol >= 0 && mod_bot == mod_top + 1)
 		    && row >= top_end)
 	    {
+		int		old_cline_height = 0;
 		int		old_rows = 0;
 		int		new_rows = 0;
 		int		xtra_rows;
@@ -2302,6 +2301,8 @@ win_update(win_T *wp)
 		    if (wp->w_lines[i].wl_valid
 			    && wp->w_lines[i].wl_lnum == mod_bot)
 			break;
+		    if (wp->w_lines[i].wl_lnum == wp->w_cursor.lnum)
+			old_cline_height = wp->w_lines[i].wl_size;
 		    old_rows += wp->w_lines[i].wl_size;
 #ifdef FEAT_FOLDING
 		    if (wp->w_lines[i].wl_valid
@@ -2332,11 +2333,16 @@ win_update(win_T *wp)
 		    j = idx;
 		    for (l = lnum; l < mod_bot; ++l)
 		    {
+			if (dollar_vcol >= 0 && wp == curwin &&
+				old_cline_height > 0 && l == wp->w_cursor.lnum)
+			    // When dollar_vcol >= 0, cursor line isn't fully
+			    // redrawn, and its height remains unchanged.
+			    new_rows += old_cline_height;
 #ifdef FEAT_FOLDING
-			if (hasFoldingWin(wp, l, NULL, &l, TRUE, NULL))
+			else if (hasFoldingWin(wp, l, NULL, &l, TRUE, NULL))
 			    ++new_rows;
-			else
 #endif
+			else
 			    new_rows += plines_correct_topline(wp, l, TRUE);
 			++j;
 			if (new_rows > wp->w_height - row - 2)
@@ -2504,18 +2510,20 @@ win_update(win_T *wp)
 	    wp->w_lines[idx].wl_lnum = lnum;
 	    wp->w_lines[idx].wl_valid = TRUE;
 
+	    int is_curline = wp == curwin && lnum == wp->w_cursor.lnum;
+
 	    // Past end of the window or end of the screen. Note that after
 	    // resizing wp->w_height may be end up too big. That's a problem
 	    // elsewhere, but prevent a crash here.
 	    if (row > wp->w_height || row + wp->w_winrow >= Rows)
 	    {
 		// we may need the size of that too long line later on
-		if (dollar_vcol == -1)
+		if (dollar_vcol == -1 || !is_curline)
 		    wp->w_lines[idx].wl_size = plines_win(wp, lnum, TRUE);
 		++idx;
 		break;
 	    }
-	    if (dollar_vcol == -1)
+	    if (dollar_vcol == -1 || !is_curline)
 		wp->w_lines[idx].wl_size = row - srow;
 	    ++idx;
 #ifdef FEAT_FOLDING
@@ -2601,7 +2609,7 @@ win_update(win_T *wp)
 			    FALSE);
 	    else
 		screen_char(LineOffset[k] + topframe->fr_width - 1, k,
-			Columns - 1);
+			cmdline_width - 1);
     }
 #endif
 
@@ -2706,7 +2714,7 @@ win_update(win_T *wp)
 	    }
 #endif
 	}
-	else if (dollar_vcol == -1)
+	else if (dollar_vcol == -1 || wp != curwin)
 	    wp->w_botline = lnum;
 
 	// Make sure the rest of the screen is blank.
@@ -2731,7 +2739,7 @@ win_update(win_T *wp)
     wp->w_old_botfill = wp->w_botfill;
 #endif
 
-    if (dollar_vcol == -1)
+    if (dollar_vcol == -1 || wp != curwin)
     {
 	// There is a trick with w_botline.  If we invalidate it on each
 	// change that might modify it, this will cause a lot of expensive

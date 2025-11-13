@@ -1,7 +1,7 @@
-*builtin.txt*	For Vim version 9.1.  Last change: 2025 Oct 26
+*builtin.txt*	For Vim version 9.1.  Last change: 2025 Nov 09
 
 
-		  VIM REFERENCE MANUAL    by Bram Moolenaar
+		  VIM REFERENCE MANUAL	  by Bram Moolenaar
 
 
 Builtin functions				*builtin-functions*
@@ -11604,7 +11604,7 @@ synIDtrans({synID})					*synIDtrans()*
 
 
 synconcealed({lnum}, {col})				*synconcealed()*
-		The result is a |List| with currently three items:
+		The result is a |List| with three items:
 		1. The first item in the list is 0 if the character at the
 		   position {lnum} and {col} is not part of a concealable
 		   region, 1 if it is.  {lnum} is used like with |getline()|.

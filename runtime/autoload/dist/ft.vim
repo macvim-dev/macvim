@@ -3,7 +3,7 @@ vim9script
 # Vim functions for file type detection
 #
 # Maintainer:		The Vim Project <https://github.com/vim/vim>
-# Last Change:		2025 Oct 28
+# Last Change:		2025 Nov 11
 # Former Maintainer:	Bram Moolenaar <Bram@vim.org>
 
 # These functions are moved here from runtime/filetype.vim to make startup
@@ -1659,6 +1659,7 @@ const ft_from_ext = {
   # XA65 MOS6510 cross assembler
   "a65": "a65",
   # Applescript
+  "applescript": "applescript",
   "scpt": "applescript",
   # Applix ELF
   "am": "elf",
@@ -2570,6 +2571,8 @@ const ft_from_ext = {
   "builder": "ruby",
   "rxml": "ruby",
   "rjs": "ruby",
+  # Sorbet (Ruby typechecker)
+  "rbi": "ruby",
   # Rust
   "rs": "rust",
   # S-lang
@@ -2998,6 +3001,8 @@ const ft_from_name = {
   "apt.conf": "aptconf",
   # BIND zone
   "named.root": "bindzone",
+  # Brewfile (uses Ruby syntax)
+  "Brewfile": "ruby",
   # Busted (Lua unit testing framework - configuration files)
   ".busted": "lua",
   # Bun history
