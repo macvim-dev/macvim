@@ -1,7 +1,7 @@
 " These commands create the option window.
 "
 " Maintainer:	The Vim Project <https://github.com/vim/vim>
-" Last Change:	2025 Oct 07
+" Last Change:	2025 Nov 26
 " Former Maintainer:	Bram Moolenaar <Bram@vim.org>
 
 " If there already is an option window, jump to that one.
@@ -879,6 +879,8 @@ call append("$", " \tset bs=" . &bs)
 call <SID>AddOption("comments", gettext("definition of what comment lines look like"))
 call append("$", "\t" .. s:local_to_buffer)
 call <SID>OptionL("com")
+call <SID>AddOption("commentstring", gettext("template for comments; used to put the marker in"))
+call <SID>OptionL("cms")
 call <SID>AddOption("formatoptions", gettext("list of flags that tell how automatic formatting works"))
 call append("$", "\t" .. s:local_to_buffer)
 call <SID>OptionL("fo")
@@ -907,8 +909,6 @@ if has("insert_expand")
   call <SID>OptionL("cot")
   call <SID>AddOption("completeitemalign", gettext(" \npopup menu item align order"))
   call <SID>OptionG("cia", &cia)
-  call <SID>AddOption("completefuzzycollect", gettext(" \nuse fuzzy collection for specific completion modes"))
-  call <SID>OptionL("cfc")
   if exists("+completepopup")
     call <SID>AddOption("completepopup", gettext("options for the Insert mode completion info popup"))
     call <SID>OptionG("cpp", &cpp)
@@ -1058,8 +1058,6 @@ if has("folding")
   call <SID>AddOption("foldminlines", gettext("minimum number of screen lines for a fold to be closed"))
   call append("$", "\t" .. s:local_to_window)
   call <SID>OptionL("fml")
-  call <SID>AddOption("commentstring", gettext("template for comments; used to put the marker in"))
-  call <SID>OptionL("cms")
   call <SID>AddOption("foldmethod", gettext("folding type: \"manual\", \"indent\", \"expr\", \"marker\",\n\"syntax\" or \"diff\""))
   call append("$", "\t" .. s:local_to_window)
   call <SID>OptionL("fdm")

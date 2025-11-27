@@ -392,7 +392,7 @@ set_init_clean_rtp(void)
  * vimrc found is located in '$XDG_CONFIG_HOME/vim/vimrc'.
  * In case the '$XDG_CONFIG_HOME' variable is not set, '$HOME/.config' is used
  * as a fallback as is defined in the XDG base dir specification:
- * <https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html>
+ * <https://specifications.freedesktop.org/basedir/latest/>
  */
     static void
 set_init_xdg_rtp(void)
@@ -7020,9 +7020,7 @@ get_varp(struct vimoption *p)
 	case PV_CINSD:	return (char_u *)&(curbuf->b_p_cinsd);
 	case PV_CINW:	return (char_u *)&(curbuf->b_p_cinw);
 	case PV_COM:	return (char_u *)&(curbuf->b_p_com);
-#ifdef FEAT_FOLDING
 	case PV_CMS:	return (char_u *)&(curbuf->b_p_cms);
-#endif
 	case PV_CPT:	return (char_u *)&(curbuf->b_p_cpt);
 #ifdef BACKSLASH_IN_FILENAME
 	case PV_CSL:	return (char_u *)&(curbuf->b_p_csl);
@@ -7614,10 +7612,8 @@ buf_copy_options(buf_T *buf, int flags)
 	    COPY_OPT_SCTX(buf, BV_SN);
 	    buf->b_p_com = vim_strsave(p_com);
 	    COPY_OPT_SCTX(buf, BV_COM);
-#ifdef FEAT_FOLDING
 	    buf->b_p_cms = vim_strsave(p_cms);
 	    COPY_OPT_SCTX(buf, BV_CMS);
-#endif
 	    buf->b_p_fo = vim_strsave(p_fo);
 	    COPY_OPT_SCTX(buf, BV_FO);
 	    buf->b_p_flp = vim_strsave(p_flp);
