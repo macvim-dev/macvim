@@ -118,10 +118,19 @@ static NSString *_latestVersion;
         messageTextField.stringValue = @"";
     }
 
+    WKWebViewConfiguration *config = [[[WKWebViewConfiguration alloc] init] autorelease];
+
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_11
+    if (AVAILABLE_MAC_OS(10, 11)) {
+        // Don't leave stale files in user's Library
+        config.websiteDataStore = [WKWebsiteDataStore nonPersistentDataStore];
+    }
+#endif
+
     // Construct a web view at runtime instead of relying on using the xib because this is
     // more backwards compatible as we can use runtime checks and compiler defines.
     _webView = [[WKWebView alloc] initWithFrame:NSZeroRect
-                                  configuration:[[[WKWebViewConfiguration alloc] init] autorelease]];
+                                  configuration:config];
 
     [webViewContainer addSubview:_webView];
     _webView.frame = webViewContainer.bounds;
