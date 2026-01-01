@@ -15,6 +15,8 @@
 " 2025 Nov 01 by Vim Project fix NetrwChgPerm #18674
 " 2025 Nov 13 by Vim Project don't wipe unnamed buffers #18740
 " 2025 Nov 18 by Vim Project use UNC paths when using scp and Windows paths #18764
+" 2025 Nov 28 by Vim Project fix undefined variable in *NetrwMenu #18829
+" 2025 Dec 26 by Vim Project fix use of g:netrw_cygwin #19015
 " Copyright:  Copyright (C) 2016 Charles E. Campbell {{{1
 "             Permission is hereby granted to use and distribute this code,
 "             with or without modifications, provided that this copyright
@@ -212,7 +214,7 @@ call s:NetrwInit("g:netrw_dirhistmax"       , 10)
 call s:NetrwInit("g:netrw_fastbrowse"       , 1)
 call s:NetrwInit("g:netrw_ftp_browse_reject", '^total\s\+\d\+$\|^Trying\s\+\d\+.*$\|^KERBEROS_V\d rejected\|^Security extensions not\|No such file\|: connect to address [0-9a-fA-F:]*: No route to host$')
 if !exists("g:netrw_ftp_list_cmd")
-  if has("unix") || (exists("g:netrw_cygwin") && g:netrw_cygwin)
+  if has("unix") || g:netrw_cygwin
     let g:netrw_ftp_list_cmd     = "ls -lF"
     let g:netrw_ftp_timelist_cmd = "ls -tlF"
     let g:netrw_ftp_sizelist_cmd = "ls -slF"
@@ -319,7 +321,7 @@ call s:NetrwInit("g:netrw_menu"          , 1)
 call s:NetrwInit("g:netrw_mkdir_cmd"     , g:netrw_ssh_cmd." USEPORT HOSTNAME mkdir")
 call s:NetrwInit("g:netrw_mousemaps"     , (exists("+mouse") && &mouse =~# '[anh]'))
 call s:NetrwInit("g:netrw_retmap"        , 0)
-if has("unix") || (exists("g:netrw_cygwin") && g:netrw_cygwin)
+if has("unix") || g:netrw_cygwin
   call s:NetrwInit("g:netrw_chgperm"       , "chmod PERM FILENAME")
 elseif has("win32")
   call s:NetrwInit("g:netrw_chgperm"       , "cacls FILENAME /e /p PERM")
@@ -441,7 +443,7 @@ function netrw#Explore(indx,dosplit,style,...)
 
   " record current directory
   let curdir     = simplify(b:netrw_curdir)
-  if !exists("g:netrw_cygwin") && has("win32")
+  if !g:netrw_cygwin && has("win32")
     let curdir= substitute(curdir,'\','/','g')
   endif
   let curfiledir = substitute(expand("%:p"),'^\(.*[/\\]\)[^/\\]*$','\1','e')
@@ -519,7 +521,7 @@ function netrw#Explore(indx,dosplit,style,...)
   NetrwKeepj norm! 0
 
   if a:0 > 0
-    if a:1 =~ '^\~' && (has("unix") || (exists("g:netrw_cygwin") && g:netrw_cygwin))
+    if a:1 =~ '^\~' && (has("unix") || g:netrw_cygwin)
       let dirname= simplify(substitute(a:1,'\~',expand("$HOME"),''))
     elseif a:1 == '.'
       let dirname= simplify(exists("b:netrw_curdir")? b:netrw_curdir : getcwd())
@@ -3233,7 +3235,7 @@ function s:NetrwFile(fname)
             let b:netrw_curdir= getcwd()
         endif
 
-        if !exists("g:netrw_cygwin") && has("win32")
+        if !g:netrw_cygwin && has("win32")
             if fname =~ '^\' || fname =~ '^\a:\'
                 " windows, but full path given
                 let ret= fname
@@ -6401,6 +6403,7 @@ function s:NetrwMenu(domenu)
             exe 'sil! menu '.g:NetrwMenuPriority.'.14.8   '.g:NetrwTopLvlMenu.'Marked\ Files.Exe\ Cmd<tab>mx    mx'
             exe 'sil! menu '.g:NetrwMenuPriority.'.14.9   '.g:NetrwTopLvlMenu.'Marked\ Files.Move\ To\ Target<tab>mm    mm'
             exe 'sil! menu '.g:NetrwMenuPriority.'.14.10  '.g:NetrwTopLvlMenu.'Marked\ Files.Obtain<tab>O       O'
+            exe 'sil! menu '.g:NetrwMenuPriority.'.14.11  '.g:NetrwTopLvlMenu.'Marked\ Files.Print<tab>mp       mp'
             exe 'sil! menu '.g:NetrwMenuPriority.'.14.12  '.g:NetrwTopLvlMenu.'Marked\ Files.Replace<tab>R      R'
             exe 'sil! menu '.g:NetrwMenuPriority.'.14.13  '.g:NetrwTopLvlMenu.'Marked\ Files.Set\ Target<tab>mt mt'
             exe 'sil! menu '.g:NetrwMenuPriority.'.14.14  '.g:NetrwTopLvlMenu.'Marked\ Files.Tag<tab>mT mT'
@@ -6428,14 +6431,13 @@ function s:NetrwMenu(domenu)
             let s:netrwcnt = 0
             let curwin     = winnr()
             windo if getline(2) =~# "Netrw" | let s:netrwcnt= s:netrwcnt + 1 | endif
-        endif
-        exe curwin."wincmd w"
+            exe curwin."wincmd w"
 
-        if s:netrwcnt <= 1
-            exe 'sil! unmenu '.g:NetrwTopLvlMenu
-            sil! unlet s:netrw_menu_enabled
+            if s:netrwcnt <= 1
+                exe 'sil! unmenu '.g:NetrwTopLvlMenu
+                sil! unlet s:netrw_menu_enabled
+            endif
         endif
-    endif
     return
   endif
 

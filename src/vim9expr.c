@@ -496,7 +496,7 @@ compile_class_object_index(cctx_T *cctx, char_u **arg, type_T *type)
 	    // Trying to invoke an abstract method in a super class is not
 	    // allowed.
 	    semsg(_(e_abstract_method_str_direct), ufunc->uf_name,
-		    ufunc->uf_defclass->class_name);
+		    ufunc->uf_defclass->class_name.string);
 	    goto done;
 	}
 
@@ -508,7 +508,7 @@ compile_class_object_index(cctx_T *cctx, char_u **arg, type_T *type)
 		((type->tt_type == VAR_OBJECT
 		  && !inside_class_hierarchy(cctx, cl))
 		 || (type->tt_type == VAR_CLASS
-		     && cctx->ctx_ufunc->uf_class != cl)))
+		     && cctx->ctx_ufunc->uf_defclass != cl)))
 	{
 	    semsg(_(e_cannot_access_protected_method_str), name);
 	    goto done;
@@ -551,7 +551,7 @@ compile_class_object_index(cctx_T *cctx, char_u **arg, type_T *type)
 	    if (*name == '_' && !inside_class(cctx, cl))
 	    {
 		emsg_var_cl_define(e_cannot_access_protected_variable_str,
-							m->ocm_name, 0, cl);
+							m->ocm_name.string, 0, cl);
 		goto done;
 	    }
 
@@ -596,7 +596,7 @@ compile_class_object_index(cctx_T *cctx, char_u **arg, type_T *type)
 	    if (*name == '_' && cctx->ctx_ufunc->uf_class != cl)
 	    {
 		emsg_var_cl_define(e_cannot_access_protected_variable_str,
-							m->ocm_name, 0, cl);
+							m->ocm_name.string, 0, cl);
 		goto done;
 	    }
 
@@ -1052,7 +1052,7 @@ compile_load(
 		else
 		{
 		    semsg(_(e_class_variable_str_accessible_only_inside_class_str),
-			    name, cl->class_name);
+			    name, cl->class_name.string);
 		    res = FAIL;
 		}
 	    }
@@ -1511,7 +1511,7 @@ compile_call(
 	    else
 	    {
 		semsg(_(e_class_method_str_accessible_only_inside_class_str),
-			name, cl->class_name);
+			name, cl->class_name.string);
 		res = FAIL;
 	    }
 	    goto theend;

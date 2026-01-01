@@ -140,7 +140,8 @@ def s:GetFilenameChecks(): dict<list<string>>
     bdf: ['file.bdf'],
     beancount: ['file.beancount'],
     bib: ['file.bib'],
-    bicep: ['file.bicep', 'file.bicepparam'],
+    bicep: ['file.bicep'],
+    bicep-params: ['file.bicepparam'],
     bindzone: ['named.root', '/bind/db.file', '/named/db.file', 'any/bind/db.file', 'any/named/db.file', 'foobar.zone'],
     bitbake: ['file.bb', 'file.bbappend', 'file.bbclass', 'build/conf/local.conf', 'meta/conf/layer.conf', 'build/conf/bbappend.conf', 'meta-layer/conf/distro/foo.conf',
       'project-spec/configs/zynqmp-generic-xczu7ev.conf'],
@@ -148,6 +149,7 @@ def s:GetFilenameChecks(): dict<list<string>>
     blank: ['file.bl'],
     blueprint: ['file.blp'],
     bp: ['Android.bp'],
+    bpftrace: ['file.bt'],
     brighterscript: ['file.bs'],
     brightscript: ['file.brs'],
     bsdl: ['file.bsd', 'file.bsdl'],
@@ -275,7 +277,7 @@ def s:GetFilenameChecks(): dict<list<string>>
     elsa: ['file.lc'],
     elvish: ['file.elv'],
     epuppet: ['file.epp'],
-    erlang: ['file.erl', 'file.hrl', 'file.yaws'],
+    erlang: ['file.erl', 'file.hrl', 'file.yaws', 'file.app.src', 'rebar.config'],
     eruby: ['file.erb', 'file.rhtml'],
     esdl: ['file.esdl'],
     esmtprc: ['anyesmtprc', 'esmtprc', 'some-esmtprc'],
@@ -290,13 +292,14 @@ def s:GetFilenameChecks(): dict<list<string>>
     falcon: ['file.fal'],
     fan: ['file.fan', 'file.fwt'],
     faust: ['file.dsp', 'file.lib'],
-    fennel: ['file.fnl', '.fennelrc', 'fennelrc'],
+    fennel: ['file.fnl', '.fennelrc', 'fennelrc', 'file.fnlm'],
     fetchmail: ['.fetchmailrc'],
     fga: ['file.fga'],
     fgl: ['file.4gl', 'file.4gh', 'file.m4gl'],
     firrtl: ['file.fir'],
     fish: ['file.fish'],
     flix: ['file.flix'],
+    fluent: ['file.ftl'],
     focexec: ['file.fex', 'file.focexec'],
     form: ['file.frm'],
     forth: ['file.ft', 'file.fth', 'file.4th'],
@@ -380,6 +383,7 @@ def s:GetFilenameChecks(): dict<list<string>>
     http: ['file.http'],
     hurl: ['file.hurl'],
     hy: ['file.hy', '.hy-history'],
+    hylo: ['file.hylo'],
     hyprlang: ['hyprlock.conf', 'hyprland.conf', 'hypridle.conf', 'hyprpaper.conf', '/hypr/foo.conf'],
     i3config: ['/home/user/.i3/config', '/home/user/.config/i3/config', '/etc/i3/config', '/etc/xdg/i3/config'],
     ibasic: ['file.iba', 'file.ibi'],
@@ -440,6 +444,7 @@ def s:GetFilenameChecks(): dict<list<string>>
     ldif: ['file.ldif'],
     lean: ['file.lean'],
     ledger: ['file.ldg', 'file.ledger', 'file.journal'],
+    leex: ['file.xrl'],
     leo: ['file.leo'],
     less: ['file.less'],
     lex: ['file.lex', 'file.l', 'file.lxx', 'file.l++'],
@@ -576,6 +581,7 @@ def s:GetFilenameChecks(): dict<list<string>>
     ninja: ['file.ninja'],
     nix: ['file.nix'],
     norg: ['file.norg'],
+    nq: ['file.nq'],
     nqc: ['file.nqc'],
     nroff: ['file.tr', 'file.nr', 'file.roff', 'file.tmac', 'tmac.file'],
     nsis: ['file.nsi', 'file.nsh'],
@@ -769,7 +775,7 @@ def s:GetFilenameChecks(): dict<list<string>>
     sshconfig: ['ssh_config', '/.ssh/config', '/etc/ssh/ssh_config.d/file.conf', 'any/etc/ssh/ssh_config.d/file.conf', 'any/.ssh/config', 'any/.ssh/file.conf'],
     sshdconfig: ['sshd_config', '/etc/ssh/sshd_config.d/file.conf', 'any/etc/ssh/sshd_config.d/file.conf'],
     st: ['file.st'],
-    starlark: ['file.ipd', 'file.star', 'file.starlark'],
+    starlark: ['file.ipd', 'file.sky', 'file.star', 'file.starlark'],
     stata: ['file.ado', 'file.do', 'file.imata', 'file.mata'],
     stp: ['file.stp'],
     stylus: ['a.styl', 'file.stylus'],
@@ -1092,6 +1098,7 @@ def s:GetScriptChecks(): dict<list<list<string>>>
             ['#!/path/regina']],
     janet:  [['#!/path/janet']],
     dart:   [['#!/path/dart']],
+    bpftrace:  [['#!/path/bpftrace']],
     vim:    [['#!/path/vim']],
   }
 enddef
@@ -2394,6 +2401,49 @@ func Test_tf_file()
   filetype off
 endfunc
 
+func Test_tf_file_v2()
+  filetype on
+
+  let lines =<< trim END
+    ;# Connect to a MUD server
+    /server mud.example.com 4000
+    ;set verbose on
+    /def greet = /echo Hello, $[name()]
+    /def hp = /send score
+    ;alias n = north
+    ;alias s = south
+    ;set autolog on
+    /def prompt = /echo -p Prompt: %{*}
+  END
+
+  call writefile(lines, "Xfile.tf", "D")
+  split Xfile.tf
+  call assert_equal('tf', &filetype)
+  bw!
+  let lines =<< trim END
+		# This is a comment at the top of the file
+
+		terraform {
+			required_version = ">= 1.0"
+		}
+
+		provider "aws" {
+			region = "us-east-1"
+		}
+
+		resource "aws_s3_bucket" "demo" {
+			bucket = "example-bucket"
+		}
+  END
+  call writefile(lines, "Xfile.tf", "D")
+  split Xfile.tf
+  call assert_equal('terraform', &filetype)
+  bwipe!
+
+  filetype off
+endfunc
+
+
 func Test_ts_file()
   filetype on
 
@@ -3187,9 +3237,9 @@ endfunc
 func Test_m4_format()
   filetype on
 
-  call mkdir('Xm4', 'D')
+  call mkdir('Xm4', 'R')
   cd Xm4
-  call writefile([''], 'alocal.m4', 'D')
+  call writefile([''], 'alocal.m4')
   split alocal.m4
   call assert_equal('m4', &filetype)
   bwipe!
@@ -3200,6 +3250,36 @@ func Test_m4_format()
   bwipe!
 
   cd -
+  filetype off
+endfunc
+
+" Erlang Application Resource File
+func Test_app_file()
+  filetype on
+
+  call writefile(['% line comment', '{application, xfile1,'], 'xfile1.app', 'D')
+  split xfile1.app
+  call assert_equal('erlang', &filetype)
+  bwipe!
+
+  call writefile(['% line comment', "{application, 'Xfile2',"], 'Xfile2.app', 'D')
+  split Xfile2.app
+  call assert_equal('erlang', &filetype)
+  bwipe!
+
+  call writefile([' % line comment',
+        \ ' ',
+        \ ' % line comment',
+        \ ' { ',
+        \ ' % line comment ',
+        \ ' application , ',
+        \ ' % line comment ',
+        \ ' xfile3 , '],
+        \ 'xfile3.app', 'D')
+  split xfile3.app
+  call assert_equal('erlang', &filetype)
+  bwipe!
+
   filetype off
 endfunc
 

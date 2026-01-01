@@ -1,4 +1,4 @@
-*usr_41.txt*	For Vim version 9.1.  Last change: 2025 Nov 09
+*usr_41.txt*	For Vim version 9.1.  Last change: 2025 Dec 13
 
 
 		     VIM USER MANUAL	by Bram Moolenaar
@@ -1137,8 +1137,6 @@ Insert mode completion:				*completion-functions*
 	complete_add()		add to found matches
 	complete_check()	check if completion should be aborted
 	complete_info()		get current completion information
-	complete_match()	get insert completion start match col and
-				trigger text
 	preinserted()		check if text is inserted after cursor
 	pumvisible()		check if the popup menu is displayed
 	pum_getpos()		position and size of popup menu if visible
@@ -1474,6 +1472,9 @@ Various:					*various-functions*
 	rubyeval()		evaluate |Ruby| expression
 
 	debugbreak()		interrupt a program being debugged
+
+	redraw_listener_add()   add callbacks to listen for redraws
+	redraw_listener_remove()    remove a redraw listener
 
 MacVim-specific functions
 	showdefinition()	look up and show definition of provided string

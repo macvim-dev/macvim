@@ -161,7 +161,7 @@ static int suppress_winsize = 1;	// don't fiddle with console
 static WCHAR *exe_pathw = NULL;
 
 static BOOL win8_or_later = FALSE;
-static BOOL win10_22H2_or_later = FALSE;
+BOOL win10_22H2_or_later = FALSE;
 BOOL win11_or_later = FALSE; // used in gui_mch_set_titlebar_colors(void)
 
 #if !defined(FEAT_GUI_MSWIN) || defined(VIMDLL)
@@ -2867,7 +2867,8 @@ executable_exists(
 		goto theend;
 	    }
 
-	    if (mch_getenv("NoDefaultCurrentDirectoryInExePath") == NULL)
+	    if (mch_getenv("NoDefaultCurrentDirectoryInExePath") == NULL &&
+		    strstr((char *)gettail(p_sh), "cmd.exe") != NULL)
 	    {
 		STRCPY(pathbuf.string, ".;");
 		pathbuf.length = 2;
@@ -2919,7 +2920,7 @@ executable_exists(
 		(char *)buf,
 		sizeof(buf),
 		"%.*s%s%s", (int)(e - p), p,
-		!after_pathsep(p, e - 1) ? PATHSEPSTR : "",
+		!after_pathsep(p, e) ? PATHSEPSTR : "",
 		name);
 	}
 
@@ -5483,6 +5484,21 @@ mch_call_shell_terminal(
     return retval;
 }
 #endif
+/* Restore a previous environment variable value, or unset it if NULL.
+ * 'must_free' indicates whether 'old_value' was allocated.
+ */
+    static void
+restore_env_var(char_u *name, char_u *old_value, int must_free)
+{
+    if (old_value != NULL)
+    {
+	vim_setenv(name, old_value);
+	if (must_free)
+	    vim_free(old_value);
+	return;
+    }
+    vim_unsetenv(name);
+}
 
 /*
  * Either execute a command by calling the shell or start a new shell
@@ -5495,6 +5511,8 @@ mch_call_shell(
     int		x = 0;
     int		tmode = cur_tmode;
     WCHAR	szShellTitle[512];
+    int		must_free;
+    char_u	*oldval;
 
 #ifdef FEAT_EVAL
     ch_log(NULL, "executing shell command: %s", cmd);
@@ -5519,6 +5537,11 @@ mch_call_shell(
 	    }
 	}
     }
+    // do not execute anything from the current directory by setting the
+    // environemnt variable $NoDefaultCurrentDirectoryInExePath
+    oldval = vim_getenv((char_u *)"NoDefaultCurrentDirectoryInExePath",
+	    &must_free);
+    vim_setenv((char_u *)"NoDefaultCurrentDirectoryInExePath", (char_u *)"1");
 
     out_flush();
 
@@ -5552,6 +5575,8 @@ mch_call_shell(
 	    // Use a terminal window to run the command in.
 	    x = mch_call_shell_terminal(cmd, options);
 	    resettitle();
+	    restore_env_var((char_u *)"NoDefaultCurrentDirectoryInExePath",
+		    oldval, must_free);
 	    return x;
 	}
     }
@@ -5775,6 +5800,10 @@ mch_call_shell(
 	    }
 	}
     }
+
+    // Restore original value of NoDefaultCurrentDirectoryInExePath
+    restore_env_var((char_u *)"NoDefaultCurrentDirectoryInExePath",
+	    oldval, must_free);
 
     if (tmode == TMODE_RAW)
     {
@@ -9045,22 +9074,38 @@ resize_console_buf(void)
     char *
 GetWin32Error(void)
 {
-    static char *oldmsg = NULL;
-    char *msg = NULL;
+    static char	*oldmsg = NULL;
+    char	*acp_msg = NULL;
+    DWORD	acp_len;
+    char_u	*enc_msg = NULL;
+    int		enc_len = 0;
 
-    FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER|FORMAT_MESSAGE_FROM_SYSTEM,
-	    NULL, GetLastError(), 0, (LPSTR)&msg, 0, NULL);
+    // get formatted message from OS
+    acp_len = FormatMessage(
+	    FORMAT_MESSAGE_ALLOCATE_BUFFER|FORMAT_MESSAGE_FROM_SYSTEM,
+	    NULL, GetLastError(), 0, (LPSTR)&acp_msg, 0, NULL);
+    if (acp_len == 0 || acp_msg == NULL)
+	return NULL;
+
+    // clean oldmsg if remained.
     if (oldmsg != NULL)
-	LocalFree(oldmsg);
-    if (msg == NULL)
+    {
+	vim_free(oldmsg);
+	oldmsg = NULL;
+    }
+
+    acp_to_enc(acp_msg, (int)acp_len, &enc_msg, &enc_len);
+    LocalFree(acp_msg);
+    if (enc_msg == NULL)
 	return NULL;
 
     // remove trailing \r\n
-    char *pcrlf = strstr(msg, "\r\n");
+    char *pcrlf = strstr(enc_msg, "\r\n");
     if (pcrlf != NULL)
 	*pcrlf = NUL;
-    oldmsg = msg;
-    return msg;
+
+    oldmsg = enc_msg;
+    return enc_msg;
 }
 
 #if defined(FEAT_RELTIME)

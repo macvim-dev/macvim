@@ -2128,8 +2128,6 @@ static const funcentry_T global_functions[] =
 			ret_number_bool,    f_complete_check},
     {"complete_info",	0, 1, FEARG_1,	    arg1_list_string,
 			ret_dict_any,	    f_complete_info},
-    {"complete_match",	0, 2, 0,	    NULL,
-			ret_list_any,	    f_complete_match},
     {"confirm",		1, 4, FEARG_1,	    arg4_string_string_number_string,
 			ret_number,	    f_confirm},
     {"copy",		1, 1, FEARG_1,	    NULL,
@@ -2728,6 +2726,10 @@ static const funcentry_T global_functions[] =
 			ret_list_dict_any,  f_readdirex},
     {"readfile",	1, 3, FEARG_1,	    arg3_string_string_number,
 			ret_list_string,    f_readfile},
+    {"redraw_listener_add", 1, 1, FEARG_1,  arg1_dict_any,
+			ret_number,	    f_redraw_listener_add},
+    {"redraw_listener_remove", 1, 1, FEARG_1, arg1_number,
+			ret_void,	    f_redraw_listener_remove},
     {"reduce",		2, 3, FEARG_1,	    arg23_reduce,
 			ret_any,	    f_reduce},
     {"reg_executing",	0, 0, 0,	    NULL,
@@ -6181,8 +6183,17 @@ getregionpos(
     {
 	colnr_T sc1, ec1, sc2, ec2;
 
+	#ifdef FEAT_LINEBREAK
+	int	lbr_saved = reset_lbr();
+	#endif
+
 	getvvcol(curwin, p1, &sc1, NULL, &ec1);
 	getvvcol(curwin, p2, &sc2, NULL, &ec2);
+
+	#ifdef FEAT_LINEBREAK
+	restore_lbr(lbr_saved);
+	#endif
+
 	oap->motion_type = MBLOCK;
 	oap->inclusive = TRUE;
 	oap->op_type = OP_NOP;
@@ -6873,6 +6884,13 @@ f_has(typval_T *argvars, typval_T *rettv)
 		},
 	{"clipboard",
 #ifdef FEAT_CLIPBOARD
+		1
+#else
+		0
+#endif
+		},
+	{"clipboard_provider",
+#ifdef FEAT_CLIPBOARD_PROVIDER
 		1
 #else
 		0
@@ -7610,14 +7628,6 @@ f_has(typval_T *argvars, typval_T *rettv)
 		0
 #endif
 		},
-	{"unnamedplus",
-#if defined(FEAT_CLIPBOARD) && (defined(FEAT_X11) \
-	|| defined(FEAT_WAYLAND_CLIPBOARD))
-		1
-#else
-		0
-#endif
-		},
 	{"user-commands", 1},    // was accidentally included in 5.4
 	{"user_commands", 1},
 	{"vartabs",
@@ -7963,7 +7973,27 @@ f_has(typval_T *argvars, typval_T *rettv)
 	{
 	    x = TRUE;
 #ifdef FEAT_CLIPBOARD
-	    n = clip_star.available;
+	    n = clipmethod == CLIPMETHOD_PROVIDER ? TRUE : clip_star.available;
+#endif
+	}
+	else if (STRICMP(name, "unnamedplus") == 0)
+	{
+	    x = TRUE;
+#ifdef FEAT_CLIPBOARD
+	    // The + register is available when clipmethod is set to a provider,
+	    // but becomes unavailable if on a platform that doesn't support it
+	    // and clipmethod is "none".
+	    // (Windows, MacOS).
+# if defined(FEAT_X11) || defined(FEAT_WAYLAND_CLIPBOARD)
+	    n = TRUE;
+# elif defined(FEAT_EVAL)
+	    if (clipmethod == CLIPMETHOD_PROVIDER)
+		n = TRUE;
+	    else
+		n = FALSE;
+# else
+	    n = FALSE;
+# endif
 #endif
 	}
     }
@@ -11538,7 +11568,7 @@ f_setpos(typval_T *argvars, typval_T *rettv)
 /*
  * Translate a register type string to the yank type and block length
  */
-    static int
+    int
 get_yank_type(char_u **pp, char_u *yank_type, long *block_len)
 {
     char_u *stropt = *pp;

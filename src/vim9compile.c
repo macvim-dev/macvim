@@ -1464,7 +1464,9 @@ vim9_declare_error(char_u *name)
     static int
 valid_dest_reg(int name)
 {
-    if ((name == '@' || valid_yank_reg(name, FALSE)) && name != '.')
+    if (name == '@')
+       name = '"';
+    if (name == '/' || name == '=' || valid_yank_reg(name, TRUE))
 	return TRUE;
     emsg_invreg(name);
     return FAIL;
@@ -1625,8 +1627,8 @@ lhs_class_member_modifiable(lhs_T *lhs, char_u	*var_start, cctx_T *cctx)
 
     if (IS_ENUM(cl))
     {
-	semsg(_(e_enumvalue_str_cannot_be_modified), cl->class_name,
-		m->ocm_name);
+	semsg(_(e_enumvalue_str_cannot_be_modified), cl->class_name.string,
+		m->ocm_name.string);
 	return FALSE;
     }
 
@@ -1641,7 +1643,7 @@ lhs_class_member_modifiable(lhs_T *lhs, char_u	*var_start, cctx_T *cctx)
 	char *msg = (m->ocm_access == VIM_ACCESS_PRIVATE)
 				? e_cannot_access_protected_variable_str
 				: e_variable_is_not_writable_str;
-	emsg_var_cl_define(msg, m->ocm_name, 0, cl);
+	emsg_var_cl_define(msg, m->ocm_name.string, 0, cl);
 	return FALSE;
     }
 
@@ -1756,7 +1758,7 @@ compile_lhs_class_variable(
 	// A class variable can be accessed without the class name
 	// only inside a class.
 	semsg(_(e_class_variable_str_accessible_only_inside_class_str),
-		lhs->lhs_name, defcl->class_name);
+		lhs->lhs_name, defcl->class_name.string);
 	return FAIL;
     }
 
@@ -2053,7 +2055,7 @@ compile_lhs_set_oc_member_type(
 	if (!inside_class(cctx, cl))
 	{
 	    semsg(_(e_enumvalue_str_cannot_be_modified),
-		    cl->class_name, m->ocm_name);
+		    cl->class_name.string, m->ocm_name.string);
 	    return FAIL;
 	}
 	if (lhs->lhs_type->tt_type == VAR_OBJECT &&
@@ -2062,7 +2064,7 @@ compile_lhs_set_oc_member_type(
 	    char *msg = lhs->lhs_member_idx == 0 ?
 		e_enum_str_name_cannot_be_modified :
 		e_enum_str_ordinal_cannot_be_modified;
-	    semsg(_(msg), cl->class_name);
+	    semsg(_(msg), cl->class_name.string);
 	    return FAIL;
 	}
     }
@@ -2073,12 +2075,12 @@ compile_lhs_set_oc_member_type(
     // only inside the class where it is defined.
     if ((m->ocm_access != VIM_ACCESS_ALL) &&
 	    ((is_object && !inside_class(cctx, cl))
-	     || (!is_object && cctx->ctx_ufunc->uf_class != cl)))
+	     || (!is_object && cctx->ctx_ufunc->uf_defclass != cl)))
     {
 	char *msg = (m->ocm_access == VIM_ACCESS_PRIVATE)
 	    ? e_cannot_access_protected_variable_str
 	    : e_variable_is_not_writable_str;
-	emsg_var_cl_define(msg, m->ocm_name, 0, cl);
+	emsg_var_cl_define(msg, m->ocm_name.string, 0, cl);
 	return FAIL;
     }
 
@@ -4116,7 +4118,7 @@ obj_constructor_prologue(ufunc_T *ufunc, cctx_T *cctx)
 		// determined at run time.  Add a runtime type check.
 		where_T	where = WHERE_INIT;
 		where.wt_kind = WT_MEMBER;
-		where.wt_func_name = (char *)m->ocm_name;
+		where.wt_func_name = (char *)m->ocm_name.string;
 		if (need_type_where(type, m->ocm_type, FALSE, -1,
 					where, cctx, FALSE, FALSE) == FAIL)
 		    return FAIL;

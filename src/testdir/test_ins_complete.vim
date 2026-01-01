@@ -2426,6 +2426,52 @@ func Test_completefunc_callback()
     call feedkeys("A\<C-X>\<C-U>\<Esc>", 'x')
     call assert_equal([[1, ''], [0, 'five']], g:CompleteFunc2Args)
     bw!
+
+    #" :setlocal and :setglobal
+    set complete=F completefunc&
+    setlocal completefunc=function('g:CompleteFunc1',\ [22])
+    call setline(1, 'sun')
+    LET g:CompleteFunc1Args = []
+    call feedkeys("A\<C-X>\<C-U>\<Esc>", 'x')
+    call assert_equal([[22, 1, ''], [22, 0, 'sun']], g:CompleteFunc1Args)
+    LET g:CompleteFunc1Args = []
+    call feedkeys("A\<C-N>\<Esc>", 'x')
+    call assert_equal([[22, 1, ''], [22, 0, 'sun']], g:CompleteFunc1Args)
+    new
+    call setline(1, 'sun')
+    LET g:CompleteFunc1Args = []
+    call assert_fails('call feedkeys("A\<C-X>\<C-U>\<Esc>", "x")', 'E764:')
+    call assert_equal([], g:CompleteFunc1Args)
+    LET g:CompleteFunc1Args = []
+    call feedkeys("A\<C-N>\<Esc>", 'x')
+    call assert_equal([], g:CompleteFunc1Args)
+    bw!
+    setglobal completefunc=function('g:CompleteFunc1',\ [23])
+    call setline(1, 'sun')
+    LET g:CompleteFunc1Args = []
+    call feedkeys("A\<C-X>\<C-U>\<Esc>", 'x')
+    call assert_equal([[22, 1, ''], [22, 0, 'sun']], g:CompleteFunc1Args)
+    LET g:CompleteFunc1Args = []
+    call feedkeys("A\<C-N>\<Esc>", 'x')
+    call assert_equal([[22, 1, ''], [22, 0, 'sun']], g:CompleteFunc1Args)
+    setlocal completefunc&
+    call setline(1, 'sun')
+    LET g:CompleteFunc1Args = []
+    call assert_fails('call feedkeys("A\<C-X>\<C-U>\<Esc>", "x")', 'E764:')
+    call assert_equal([], g:CompleteFunc1Args)
+    LET g:CompleteFunc1Args = []
+    call feedkeys("A\<C-N>\<Esc>", 'x')
+    call assert_equal([], g:CompleteFunc1Args)
+    new
+    call setline(1, 'sun')
+    LET g:CompleteFunc1Args = []
+    call feedkeys("A\<C-X>\<C-U>\<Esc>", 'x')
+    call assert_equal([[23, 1, ''], [23, 0, 'sun']], g:CompleteFunc1Args)
+    LET g:CompleteFunc1Args = []
+    call feedkeys("A\<C-N>\<Esc>", 'x')
+    call assert_equal([[23, 1, ''], [23, 0, 'sun']], g:CompleteFunc1Args)
+    set complete& completefunc&
+    :%bw!
   END
   call v9.CheckLegacyAndVim9Success(lines)
 
@@ -2700,6 +2746,52 @@ func Test_omnifunc_callback()
     call feedkeys("A\<C-X>\<C-O>\<Esc>", 'x')
     call assert_equal([[1, ''], [0, 'nine']], g:OmniFunc2Args)
     bw!
+
+    #" :setlocal and :setglobal
+    set complete=o omnifunc&
+    setlocal omnifunc=function('g:OmniFunc1',\ [22])
+    call setline(1, 'sun')
+    LET g:OmniFunc1Args = []
+    call feedkeys("A\<C-X>\<C-O>\<Esc>", 'x')
+    call assert_equal([[22, 1, ''], [22, 0, 'sun']], g:OmniFunc1Args)
+    LET g:OmniFunc1Args = []
+    call feedkeys("A\<C-N>\<Esc>", 'x')
+    call assert_equal([[22, 1, ''], [22, 0, 'sun']], g:OmniFunc1Args)
+    new
+    call setline(1, 'sun')
+    LET g:OmniFunc1Args = []
+    call assert_fails('call feedkeys("A\<C-X>\<C-O>\<Esc>", "x")', 'E764:')
+    call assert_equal([], g:OmniFunc1Args)
+    LET g:OmniFunc1Args = []
+    call feedkeys("A\<C-N>\<Esc>", 'x')
+    call assert_equal([], g:OmniFunc1Args)
+    bw!
+    setglobal omnifunc=function('g:OmniFunc1',\ [23])
+    call setline(1, 'sun')
+    LET g:OmniFunc1Args = []
+    call feedkeys("A\<C-X>\<C-O>\<Esc>", 'x')
+    call assert_equal([[22, 1, ''], [22, 0, 'sun']], g:OmniFunc1Args)
+    LET g:OmniFunc1Args = []
+    call feedkeys("A\<C-N>\<Esc>", 'x')
+    call assert_equal([[22, 1, ''], [22, 0, 'sun']], g:OmniFunc1Args)
+    setlocal omnifunc&
+    call setline(1, 'sun')
+    LET g:OmniFunc1Args = []
+    call assert_fails('call feedkeys("A\<C-X>\<C-O>\<Esc>", "x")', 'E764:')
+    call assert_equal([], g:OmniFunc1Args)
+    LET g:OmniFunc1Args = []
+    call feedkeys("A\<C-N>\<Esc>", 'x')
+    call assert_equal([], g:OmniFunc1Args)
+    new
+    call setline(1, 'sun')
+    LET g:OmniFunc1Args = []
+    call feedkeys("A\<C-X>\<C-O>\<Esc>", 'x')
+    call assert_equal([[23, 1, ''], [23, 0, 'sun']], g:OmniFunc1Args)
+    LET g:OmniFunc1Args = []
+    call feedkeys("A\<C-N>\<Esc>", 'x')
+    call assert_equal([[23, 1, ''], [23, 0, 'sun']], g:OmniFunc1Args)
+    set complete& omnifunc&
+    :%bw!
   END
   call v9.CheckLegacyAndVim9Success(lines)
 
@@ -4806,99 +4898,6 @@ func Test_nearest_cpt_option()
 
   set completeopt&
   delfunc PrintMenuWords
-endfunc
-
-func Test_complete_match()
-  set isexpand=.,/,->,abc,/*,_
-  func TestComplete()
-    let res = complete_match()
-    if res->len() == 0
-      return
-    endif
-    let [startcol, expandchar] = res[0]
-
-    if startcol >= 0
-      let line = getline('.')
-
-      let items = []
-      if expandchar == '/*'
-        let items = ['/** */']
-      elseif expandchar =~ '^/'
-        let items = ['/*! */', '// TODO:', '// fixme:']
-      elseif expandchar =~ '^\.' && startcol < 4
-        let items = ['length()', 'push()', 'pop()', 'slice()']
-      elseif expandchar =~ '^\.' && startcol > 4
-        let items = ['map()', 'filter()', 'reduce()']
-      elseif expandchar =~ '^\abc'
-        let items = ['def', 'ghk']
-      elseif expandchar =~ '^\->'
-        let items = ['free()', 'xfree()']
-      else
-        let items = ['test1', 'test2', 'test3']
-      endif
-
-      call complete(expandchar =~ '^/' ? startcol : startcol + strlen(expandchar), items)
-    endif
-  endfunc
-
-  new
-  inoremap <buffer> <F5> <cmd>call TestComplete()<CR>
-
-  call feedkeys("S/*\<F5>\<C-Y>", 'tx')
-  call assert_equal('/** */', getline('.'))
-
-  call feedkeys("S/\<F5>\<C-N>\<C-Y>", 'tx')
-  call assert_equal('// TODO:', getline('.'))
-
-  call feedkeys("Swp.\<F5>\<C-N>\<C-Y>", 'tx')
-  call assert_equal('wp.push()', getline('.'))
-
-  call feedkeys("Swp.property.\<F5>\<C-N>\<C-Y>", 'tx')
-  call assert_equal('wp.property.filter()', getline('.'))
-
-  call feedkeys("Sp->\<F5>\<C-N>\<C-Y>", 'tx')
-  call assert_equal('p->xfree()', getline('.'))
-
-  call feedkeys("Swp->property.\<F5>\<C-Y>", 'tx')
-  call assert_equal('wp->property.map()', getline('.'))
-
-  call feedkeys("Sabc\<F5>\<C-Y>", 'tx')
-  call assert_equal('abcdef', getline('.'))
-
-  call feedkeys("S_\<F5>\<C-Y>", 'tx')
-  call assert_equal('_test1', getline('.'))
-
-  set ise&
-  call feedkeys("Sabc \<ESC>:let g:result=complete_match()\<CR>", 'tx')
-  call assert_equal([[1, 'abc']], g:result)
-
-  call assert_fails('call complete_match(99, 0)', 'E966:')
-  call assert_fails('call complete_match(1, 99)', 'E964:')
-  call assert_fails('call complete_match(1)', 'E474:')
-
-  set ise=你好,好
-  call feedkeys("S你好 \<ESC>:let g:result=complete_match()\<CR>", 'tx')
-  call assert_equal([[1, '你好'], [4, '好']], g:result)
-
-  set ise=\\,,->
-  call feedkeys("Sabc, \<ESC>:let g:result=complete_match()\<CR>", 'tx')
-  call assert_equal([[4, ',']], g:result)
-
-  set ise=\ ,=
-  call feedkeys("Sif true  \<ESC>:let g:result=complete_match()\<CR>", 'tx')
-  call assert_equal([[8, ' ']], g:result)
-  call feedkeys("Slet a = \<ESC>:let g:result=complete_match()\<CR>", 'tx')
-  call assert_equal([[7, '=']], g:result)
-  set ise={,\ ,=
-  call feedkeys("Sif true  \<ESC>:let g:result=complete_match()\<CR>", 'tx')
-  call assert_equal([[8, ' ']], g:result)
-  call feedkeys("S{ \<ESC>:let g:result=complete_match()\<CR>", 'tx')
-  call assert_equal([[1, '{']], g:result)
-
-  bw!
-  unlet g:result
-  set isexpand&
-  delfunc TestComplete
 endfunc
 
 func Test_register_completion()

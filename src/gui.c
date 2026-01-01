@@ -146,14 +146,22 @@ gui_start(char_u *arg UNUSED)
 	    emsg(msg);
 #endif
     }
+#ifdef HAVE_CLIPMETHOD
     else
 	// Reset clipmethod to CLIPMETHOD_NONE
 	choose_clipmethod();
+#endif
 
 #ifdef FEAT_SOCKETSERVER
     // Install socket server listening socket if we are running it
     if (socket_server_valid())
 	gui_gtk_init_socket_server();
+#endif
+
+#ifdef FEAT_GUI_MSWIN
+    // Enable fullscreen mode
+    if (vim_strchr(p_go, GO_FULLSCREEN) != NULL)
+       gui_mch_set_fullscreen(TRUE);
 #endif
 
     vim_free(old_term);
@@ -3527,7 +3535,7 @@ static int	prev_which_scrollbars[3];
 gui_init_which_components(char_u *oldval UNUSED)
 {
 #ifdef FEAT_GUI_DARKTHEME
-    static int	prev_dark_theme = -1;
+    static int	prev_dark_theme = FALSE;
     int		using_dark_theme = FALSE;
 #endif
 #ifdef FEAT_MENU
@@ -3541,8 +3549,11 @@ gui_init_which_components(char_u *oldval UNUSED)
     int		using_tabline;
 #endif
 #ifdef FEAT_GUI_MSWIN
-    static int	prev_titlebar = -1;
+    static int	prev_titlebar = FALSE;
     int		using_titlebar = FALSE;
+
+    static int	prev_fullscreen = FALSE;
+    int		using_fullscreen = FALSE;
 #endif
 #if defined(FEAT_MENU)
     static int	prev_tearoff = -1;
@@ -3617,6 +3628,9 @@ gui_init_which_components(char_u *oldval UNUSED)
 	    case GO_TITLEBAR:
 		using_titlebar = TRUE;
 		break;
+	    case GO_FULLSCREEN:
+		using_fullscreen = TRUE;
+		break;
 #endif
 #ifdef FEAT_TOOLBAR
 	    case GO_TOOLBAR:
@@ -3644,6 +3658,12 @@ gui_init_which_components(char_u *oldval UNUSED)
     {
 	gui_mch_set_titlebar_colors();
 	prev_titlebar = using_titlebar;
+    }
+
+    if (using_fullscreen != prev_fullscreen)
+    {
+	gui_mch_set_fullscreen(using_fullscreen);
+	prev_fullscreen = using_fullscreen;
     }
 #endif
 

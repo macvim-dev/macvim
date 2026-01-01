@@ -3038,7 +3038,20 @@ color2index(VTermColor *color, int fg, int *boldp)
     {
 	// Use the color as-is if possible, give up otherwise.
 	if (color->index < t_colors)
-	    return color->index + 1;
+	{
+	    uint8_t index = color->index;
+#ifdef MSWIN
+	    // Convert ANSI palette to cterm color index.
+	    // cterm_ansi_idx is a table for the reverse conversion from cterm
+	    // color index to ANSI palette. However, the current table can
+	    // be used for this conversion as well.
+	    // Note: If the contents of cterm_ansi_idx change in the future, a
+	    // different table may be needed for this purpose.
+	    if (index < 16)
+		index = cterm_ansi_idx[index];
+#endif
+	    return index + 1;
+	}
 	// 8-color terminals can actually display twice as many colors by
 	// setting the high-intensity/bold bit.
 	else if (t_colors == 8 && fg && color->index < 16)
@@ -7047,6 +7060,7 @@ conpty_term_and_job_init(
     HANDLE	    o_theirs = NULL;
     HANDLE	    i_ours = NULL;
     HANDLE	    o_ours = NULL;
+    char	    *errmsg = NULL;
 
     ga_init2(&ga_cmd, sizeof(char*), 20);
     ga_init2(&ga_env, sizeof(char*), 20);
@@ -7148,7 +7162,10 @@ conpty_term_and_job_init(
 	    | CREATE_SUSPENDED | CREATE_DEFAULT_ERROR_MODE,
 	    env_wchar, cwd_wchar,
 	    &term->tl_siex.StartupInfo, &proc_info))
+    {
+	errmsg = GetWin32Error();
 	goto failed;
+    }
 
     CloseHandle(i_theirs);
     CloseHandle(o_theirs);
@@ -7162,6 +7179,8 @@ conpty_term_and_job_init(
     channel->ch_write_text_mode = TRUE;
 
     // Use to explicitly delete anonymous pipe handle.
+    // In addition, it is used to prevent the pipe from being closed when input
+    // from a buffer etc. is finished.
     channel->ch_anonymous_pipe = TRUE;
 
     jo = CreateJobObject(NULL, NULL);
@@ -7256,6 +7275,9 @@ failed:
     if (term->tl_conpty != NULL)
 	pClosePseudoConsole(term->tl_conpty);
     term->tl_conpty = NULL;
+    // Propagate errors that occur in CreateProcess
+    if (errmsg)
+	semsg("CreateProcess failed: %s", errmsg);
     return FAIL;
 }
 

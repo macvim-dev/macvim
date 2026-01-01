@@ -1,7 +1,7 @@
 " Vim support file to detect file types
 "
 " Maintainer:		The Vim Project <https://github.com/vim/vim>
-" Last Change:		2025 Nov 11
+" Last Change:		2025 Dec 31
 " Former Maintainer:	Bram Moolenaar <Bram@vim.org>
 
 " If the filetype can be detected from extension or file name(the final path component),
@@ -427,11 +427,15 @@ au BufNewFile,BufRead *.e,*.E			call dist#ft#FTe()
 " Elm Filter Rules file
 au BufNewFile,BufRead filter-rules		setf elmfilt
 
+" Erlang Application Resource Files
+au BufNewFile,BufRead *.app.src			setf erlang
+au BufNewFile,BufRead *.app			call dist#ft#FTapp()
+
 " ESMTP rc file
 au BufNewFile,BufRead *esmtprc			setf esmtprc
 
 " Fennel
-au BufNewFile,BufRead *.fnl,{,.}fennelrc	setf fennel
+au BufNewFile,BufRead {,.}fennelrc	setf fennel
 
 " Flatpak config
 au BufNewFile,BufRead */flatpak/repo/config	setf dosini
