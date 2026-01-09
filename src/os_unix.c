@@ -3687,8 +3687,10 @@ mch_early_init(void)
      * threads’ quality of service classes clamped.
      */
 #ifdef MACOS_X
+# ifdef MAC_OS_X_VERSION_10_7
     integer_t policy = TASK_DEFAULT_APPLICATION;
     task_policy_set(mach_task_self(), TASK_CATEGORY_POLICY, &policy, 1);
+# endif
 #endif
 }
 
@@ -9394,8 +9396,8 @@ socket_server_uninit(void)
 socket_server_list_sockets(void)
 {
     garray_T		str;
-    char_u		*buf;
-    char_u		*path;
+    string_T		buf;
+    string_T		path;
     DIR			*dirp;
     struct dirent	*dp;
     struct sockaddr_un	addr;
@@ -9405,13 +9407,15 @@ socket_server_list_sockets(void)
 	(char_u *)"/tmp"
     };
 
-    if ((buf = alloc(sizeof(addr.sun_path))) == NULL)
+    if ((buf.string = alloc(sizeof(addr.sun_path))) == NULL)
 	return NULL;
-    if ((path = alloc(sizeof(addr.sun_path))) == NULL)
+    if ((path.string = alloc(sizeof(addr.sun_path))) == NULL)
     {
-	vim_free(buf);
+	vim_free(buf.string);
 	return NULL;
     }
+    buf.length = 0;
+    path.length = 0;
 
     ga_init2(&str, 1, 100);
 
@@ -9424,15 +9428,13 @@ socket_server_list_sockets(void)
 
 	if (STRCMP(dir, "/tmp") == 0 ||
 		(known_dirs[1] != NULL && STRCMP(dir, known_dirs[1]) == 0))
-	    vim_snprintf((char *)path, sizeof(addr.sun_path), "%s/vim-%lu",
-		    dir, (unsigned long int)getuid());
+	    path.length = vim_snprintf_safelen((char *)path.string, sizeof(addr.sun_path),
+		"%s/vim-%lu", dir, (unsigned long int)getuid());
 	else
-	    vim_snprintf((char *)path, sizeof(addr.sun_path), "%s/vim", dir);
+	    path.length = vim_snprintf_safelen((char *)path.string, sizeof(addr.sun_path),
+		"%s/vim", dir);
 
-	dir = path;
-
-	dirp = opendir((char *)dir);
-
+	dirp = opendir((char *)path.string);
 	if (dirp == NULL)
 	    continue;
 
@@ -9442,15 +9444,15 @@ socket_server_list_sockets(void)
 	    if (STRCMP(dp->d_name, ".") == 0 || STRCMP(dp->d_name, "..") == 0)
 		continue;
 
-	    vim_snprintf((char *)buf, sizeof(addr.sun_path), "%s/%s",
-		    dir, dp->d_name);
+	    buf.length = vim_snprintf_safelen((char *)buf.string, sizeof(addr.sun_path),
+		"%s/%s", path.string, dp->d_name);
 
 	    // Try sending an ALIVE command. This is more assuring than a
 	    // simple connect, and *also seems to make tests less flaky*.
-	    if (!socket_server_check_alive(buf))
+	    if (!socket_server_check_alive(buf.string))
 		continue;
 
-	    ga_concat(&str, (char_u *)dp->d_name);
+	    ga_concat_len(&str, (char_u *)dp->d_name, buf.length - (path.length + 1));
 	    ga_append(&str, '\n');
 	}
 
@@ -9459,8 +9461,8 @@ socket_server_list_sockets(void)
 	break;
     }
 
-    vim_free(path);
-    vim_free(buf);
+    vim_free(path.string);
+    vim_free(buf.string);
 
     ga_append(&str, NUL);
 

@@ -49,7 +49,6 @@ static int	append_arg_number(win_T *wp, char_u *buf, size_t buflen, int add_file
 static void	free_buffer(buf_T *);
 static void	free_buffer_stuff(buf_T *buf, int free_options);
 static int	bt_nofileread(buf_T *buf);
-static void	no_write_message_buf(buf_T *buf);
 static int	do_buffer_ext(int action, int start, int dir, int count, int flags);
 
 #ifdef UNIX
@@ -707,7 +706,7 @@ aucmd_abort:
     // If the buffer was in curwin and the window has changed, go back to that
     // window, if it still exists.  This avoids that ":edit x" triggering a
     // "tabnext" BufUnload autocmd leaves a window behind without a buffer.
-    if (is_curwin && curwin != the_curwin &&  win_valid_any_tab(the_curwin))
+    if (is_curwin && curwin != the_curwin && win_valid_any_tab(the_curwin))
     {
 	block_autocmds();
 	goto_tabpage_win(the_curtab, the_curwin);
@@ -786,15 +785,12 @@ aucmd_abort:
 
     /*
      * Remove the buffer from the list.
+     * Do not wipe out the buffer if it is used in a window.
      */
-    if (wipe_buf)
+    if (wipe_buf && buf->b_nwindows <= 0)
     {
 	tabpage_T	*tp;
 	win_T		*wp;
-
-	// Do not wipe out the buffer if it is used in a window.
-	if (buf->b_nwindows > 0)
-	    return FALSE;
 
 	FOR_ALL_TAB_WINDOWS(tp, wp)
 	    mark_forget_file(wp, buf->b_fnum);
@@ -1441,19 +1437,10 @@ do_buffer_ext(
     if ((flags & DOBUF_NOPOPUP) && bt_popup(buf) && !bt_terminal(buf))
 	return OK;
 #endif
-    if (action == DOBUF_GOTO && buf != curbuf)
-    {
-	if (!check_can_set_curbuf_forceit((flags & DOBUF_FORCEIT) != 0))
-	    // disallow navigating to another buffer when 'winfixbuf' is applied
-	    return FAIL;
-	if (buf->b_locked_split)
-	{
-	    // disallow navigating to a closing buffer, which like splitting,
-	    // can result in more windows displaying it
-	    emsg(_(e_cannot_switch_to_a_closing_buffer));
-	    return FAIL;
-	}
-    }
+    if (action == DOBUF_GOTO && buf != curbuf
+	    && !check_can_set_curbuf_forceit((flags & DOBUF_FORCEIT) != 0))
+	// disallow navigating to another buffer when 'winfixbuf' is applied
+	return FAIL;
 
     if ((action == DOBUF_GOTO || action == DOBUF_SPLIT)
 						  && (buf->b_flags & BF_DUMMY))
@@ -1559,11 +1546,12 @@ do_buffer_ext(
 	 * Then prefer the buffer we most recently visited.
 	 * Else try to find one that is loaded, after the current buffer,
 	 * then before the current buffer.
-	 * Finally use any buffer.
+	 * Finally use any buffer.  Skip buffers that are closing throughout.
 	 */
 	buf = NULL;	// selected buffer
 	bp = NULL;	// used when no loaded buffer found
-	if (au_new_curbuf.br_buf != NULL && bufref_valid(&au_new_curbuf))
+	if (au_new_curbuf.br_buf != NULL && bufref_valid(&au_new_curbuf)
+		&& !au_new_curbuf.br_buf->b_locked_split)
 	    buf = au_new_curbuf.br_buf;
 	else if (curwin->w_jumplistlen > 0)
 	{
@@ -1580,8 +1568,9 @@ do_buffer_ext(
 		if (buf != NULL)
 		{
 		    // Skip current and unlisted bufs.  Also skip a quickfix
-		    // buffer, it might be deleted soon.
-		    if (buf == curbuf || !buf->b_p_bl || bt_quickfix(buf))
+		    // or closing buffer, it might be deleted soon.
+		    if (buf == curbuf || !buf->b_p_bl || bt_quickfix(buf)
+			    || buf->b_locked_split)
 			buf = NULL;
 		    else if (buf->b_ml.ml_mfp == NULL)
 		    {
@@ -1619,7 +1608,7 @@ do_buffer_ext(
 		}
 		// in non-help buffer, try to skip help buffers, and vv
 		if (buf->b_help == curbuf->b_help && buf->b_p_bl
-			    && !bt_quickfix(buf))
+			    && !bt_quickfix(buf) && !buf->b_locked_split)
 		{
 		    if (buf->b_ml.ml_mfp != NULL)   // found loaded buffer
 			break;
@@ -1637,7 +1626,8 @@ do_buffer_ext(
 	if (buf == NULL)	// No loaded buffer, find listed one
 	{
 	    FOR_ALL_BUFFERS(buf)
-		if (buf->b_p_bl && buf != curbuf && !bt_quickfix(buf))
+		if (buf->b_p_bl && buf != curbuf && !bt_quickfix(buf)
+			&& !buf->b_locked_split)
 		    break;
 	}
 	if (buf == NULL)	// Still no buffer, just take one
@@ -1646,7 +1636,7 @@ do_buffer_ext(
 		buf = curbuf->b_next;
 	    else
 		buf = curbuf->b_prev;
-	    if (bt_quickfix(buf))
+	    if (bt_quickfix(buf) || (buf != curbuf && buf->b_locked_split))
 		buf = NULL;
 	}
     }
@@ -1661,15 +1651,17 @@ do_buffer_ext(
     /*
      * make "buf" the current buffer
      */
-    if (action == DOBUF_SPLIT)	    // split window first
+    // If 'switchbuf' is set jump to the window containing "buf".
+    if (action == DOBUF_SPLIT && swbuf_goto_win_with_buf(buf) != NULL)
+	return OK;
+    // Whether splitting or not, don't open a closing buffer in more windows.
+    if (buf != curbuf && buf->b_locked_split)
     {
-	// If 'switchbuf' is set jump to the window containing "buf".
-	if (swbuf_goto_win_with_buf(buf) != NULL)
-	    return OK;
-
-	if (win_split(0, 0) == FAIL)
-	    return FAIL;
+	emsg(_(e_cannot_switch_to_a_closing_buffer));
+	return FAIL;
     }
+    if (action == DOBUF_SPLIT && win_split(0, 0) == FAIL) // split window first
+	return FAIL;
 
     // go to current buffer - nothing to do
     if (buf == curbuf)
@@ -2093,8 +2085,8 @@ do_autochdir(void)
 }
 #endif
 
-    static void
-no_write_message_buf(buf_T *buf UNUSED)
+    void
+no_write_message_buf(buf_T *buf)
 {
 #ifdef FEAT_TERMINAL
     if (term_job_running(buf->b_term))

@@ -1589,9 +1589,26 @@ term_convert_key(term_T *term, int c, int modmask, char *buf)
     {
 	// don't use VTERM_KEY_ENTER, it may do an unwanted conversion
 
-				// don't use VTERM_KEY_BACKSPACE, it always
-				// becomes 0x7f DEL
-	case K_BS:		c = term_backspace_char; break;
+	case K_BS:
+#ifdef MSWIN
+	    // In ConPTY, we must use VTERM_KEY_BACKSPACE, otherwise it will
+	    // delete one word, equivalent to Alt+Backspace.
+	    if (term->tl_conpty)
+		key = VTERM_KEY_BACKSPACE;
+	    else
+#endif
+		// don't use VTERM_KEY_BACKSPACE, it always becomes 0x7f DEL
+		c = term_backspace_char;
+	    break;
+
+#ifdef MSWIN
+	case BS:
+	    // In ConPTY, we must use VTERM_KEY_BACKSPACE, otherwise it will
+	    // delete one word, equivalent to Alt+Backspace.
+	    if (term->tl_conpty)
+		key = VTERM_KEY_BACKSPACE;
+	    break;
+#endif
 
 	case ESC:		key = VTERM_KEY_ESCAPE; break;
 	case K_DEL:		key = VTERM_KEY_DEL; break;
@@ -5390,7 +5407,7 @@ f_term_dumpwrite(typval_T *argvars, typval_T *rettv UNUSED)
     static void
 dump_is_corrupt(garray_T *gap)
 {
-    ga_concat(gap, (char_u *)"CORRUPT");
+    ga_concat_len(gap, (char_u *)"CORRUPT", 7);
 }
 
     static void
@@ -5421,7 +5438,7 @@ read_dump_file(FILE *fd, VTermPos *cursor_pos)
     int		    c;
     garray_T	    ga_text;
     garray_T	    ga_cell;
-    char_u	    *prev_char = NULL;
+    string_T	    prev_char = {NULL, 0};
     int		    attr = 0;
     cellattr_T	    cell;
     cellattr_T	    empty_cell;
@@ -5500,10 +5517,16 @@ read_dump_file(FILE *fd, VTermPos *cursor_pos)
 	    }
 
 	    // save the character for repeating it
-	    vim_free(prev_char);
+	    VIM_CLEAR_STRING(prev_char);
 	    if (ga_text.ga_data != NULL)
-		prev_char = vim_strnsave(((char_u *)ga_text.ga_data) + prev_len,
-						    ga_text.ga_len - prev_len);
+	    {
+		prev_char.length = (size_t)(ga_text.ga_len - prev_len);
+		prev_char.string = vim_strnsave(
+		    ((char_u *)ga_text.ga_data) + prev_len,
+		    prev_char.length);
+		if (prev_char.string == NULL)
+		    prev_char.length = 0;
+	    }
 
 	    if (c == '@' || c == '|' || c == '>' || c == '\n')
 	    {
@@ -5613,7 +5636,7 @@ read_dump_file(FILE *fd, VTermPos *cursor_pos)
 	}
 	else if (c == '@')
 	{
-	    if (prev_char == NULL)
+	    if (prev_char.string == NULL)
 		dump_is_corrupt(&ga_text);
 	    else
 	    {
@@ -5630,7 +5653,7 @@ read_dump_file(FILE *fd, VTermPos *cursor_pos)
 
 		while (count-- > 0)
 		{
-		    ga_concat(&ga_text, prev_char);
+		    ga_concat_len(&ga_text, prev_char.string, prev_char.length);
 		    append_cell(&ga_cell, &cell);
 		}
 	    }
@@ -5653,7 +5676,7 @@ read_dump_file(FILE *fd, VTermPos *cursor_pos)
 
     ga_clear(&ga_text);
     ga_clear(&ga_cell);
-    vim_free(prev_char);
+    vim_free(prev_char.string);
 
     return max_cells;
 }

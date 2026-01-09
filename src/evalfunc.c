@@ -226,7 +226,7 @@ check_arg_type(
 	type_T		*actual,
 	argcontext_T	*context)
 {
-    return need_type(actual, expected, FALSE,
+    return need_type(actual, expected, 0,
 	    context->arg_idx - context->arg_count, context->arg_idx + 1,
 	    context->arg_cctx, FALSE, FALSE);
 }
@@ -240,7 +240,7 @@ check_arg_type_mod(
 	type_T		*actual,
 	argcontext_T	*context)
 {
-    if (need_type(actual, expected, FALSE,
+    if (need_type(actual, expected, 0,
 	    context->arg_idx - context->arg_count, context->arg_idx + 1,
 	    context->arg_cctx, FALSE, FALSE) == FAIL)
 	return FAIL;
