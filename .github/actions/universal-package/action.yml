@@ -7,15 +7,19 @@ description: Create universal Homebrew package which contains x86_64 and arm64
 # that has both x86_64 and arm64 arch, as Homebrew's distributed bottles are thin binaries with only one arch.
 #
 # We still use Homebrew to manage the library because their formulas are up to date and have correct build instructions
-# that will work. This way we don't have to manually configuring and building and updating the package info.
+# that will work. This way we don't have to manually configure, build, and update the package info.
 
 inputs:
   formula:
-    description: Formura name
+    description: Formula name
     required: true
   contents:
     description: Path for contents in package's keg
     required: true
+  gnuiconv:
+    description: Use the Homebrew GNU libiconv instead of system one
+    type: boolean
+    required: false
 runs:
   using: 'composite'
   steps:
@@ -31,14 +35,24 @@ runs:
         # version and stomp what we have here.
         brew update
 
+        brew cat ${formula} >${formula}.rb
+
+        if [[ "${{ inputs.gnuiconv }}" == "true" ]]; then
+          # Modify formula to build using Homebrew libiconv. Usually just adding "depends_on" is enough, but since we
+          # override "CC" to use vanilla system clang, we need to manually inject the compilation/link flags to specify
+          # the locations.
+          sed -i.bak '/^[[:blank:]]*def install$/i\'$'\n  depends_on "libiconv"\n' ${formula}.rb
+          sed -i.bak '/^[[:blank:]]*def install$/a\'$'\n    ENV["CFLAGS"] += " -I'$(brew --prefix)$'/opt/libiconv/include"\n' ${formula}.rb
+          sed -i.bak '/^[[:blank:]]*def install$/a\'$'\n    ENV["LDFLAGS"] += " -L'$(brew --prefix)$'/opt/libiconv/lib"\n' ${formula}.rb
+        fi
+
         # Patch the official Homebrew formula to explicitly build for min deployment target and a universal binary. We
         # also need to explicitly use system Clang because Homebrew's bundled clang script tries to inject -march
         # compiler flags that will cause universal builds to fail as Clang does not like that.
-        brew cat ${formula} | \
-          sed '/^[[:blank:]]*def install$/a\'$'\n    ENV["MACOSX_DEPLOYMENT_TARGET"] = "'${MACOSX_DEPLOYMENT_TARGET}$'"\n' | \
-          sed '/^[[:blank:]]*def install$/a\'$'\n    ENV["CC"] = "/usr/bin/clang"\n' | \
-          sed '/^[[:blank:]]*def install$/a\'$'\n    ENV["CFLAGS"] = "-arch x86_64 -arch arm64"\n' | \
-          sed '/^[[:blank:]]*def install$/a\'$'\n    ENV["LDFLAGS"] = "-arch x86_64 -arch arm64"\n' >${formula}.rb
+        sed -i.bak '/^[[:blank:]]*def install$/a\'$'\n    ENV["MACOSX_DEPLOYMENT_TARGET"] = "'${MACOSX_DEPLOYMENT_TARGET}$'"\n' ${formula}.rb
+        sed -i.bak '/^[[:blank:]]*def install$/a\'$'\n    ENV["CC"] = "/usr/bin/clang"\n' ${formula}.rb
+        sed -i.bak '/^[[:blank:]]*def install$/a\'$'\n    ENV["CFLAGS"] = "-arch x86_64 -arch arm64"\n' ${formula}.rb
+        sed -i.bak '/^[[:blank:]]*def install$/a\'$'\n    ENV["LDFLAGS"] = "-arch x86_64 -arch arm64"\n' ${formula}.rb
 
         # Homebrew requires formula files to be placed in taps and disallows
         # installing from raw paths, so we manually create a taps folder for a
@@ -85,7 +99,9 @@ runs:
         brew list ${formula} &>/dev/null || brew install --quiet --formula -s macvim-dev/deps/${formula}
 
         # If formula was cached, this step is necessary to relink it to brew prefix (e.g. /usr/local)
-        brew unlink ${formula} && brew link ${formula}
+        # The "-f" is there to force link keg-only formulas. Homebrew doesn't provide a command to just link in the
+        # optional /opt/homebrew/opt/... folders, so we have to resort to doing this.
+        brew unlink ${formula} && brew link -f ${formula}
         echo '::endgroup::'
 
         echo '::group::Verify built version'
