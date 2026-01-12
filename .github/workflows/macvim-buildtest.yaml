@@ -89,6 +89,15 @@ jobs:
           xcode-select -p
           xcodebuild -version
 
+      # Set up, install, and cache GNU libiconv library to work around Apple iconv issues.
+
+      - name: Set up libiconv
+        if: inputs.publish
+        uses: ./.github/actions/universal-package
+        with:
+          formula: libiconv
+          contents: opt/libiconv/lib/libiconv.a,opt/libiconv/lib/libiconv.dylib
+
       # Set up, install, and cache gettext library for localization.
 
       - name: Set up gettext
@@ -97,6 +106,7 @@ jobs:
         with:
           formula: gettext
           contents: lib/libintl.a,lib/libintl.dylib
+          gnuiconv: true  # gettext needs to match MacVim in using the same version of iconv
 
       # Set up, install, and cache libsodium library for encryption.
 
@@ -222,6 +232,9 @@ jobs:
             sed -i.bak -f ci/config.mk.optimized.sed src/auto/config.mk
           fi
 
+          # Use Homebrew GNU libiconv since Apple iconv has been broken since macOS 14
+          sed -i.bak -f ci/config.mk.brew-libiconv.sed src/auto/config.mk
+
       - name: Modify configure result
         if: inputs.publish
         run: |
@@ -269,6 +282,11 @@ jobs:
           # static linkage to avoid dependency hell. Test that all those dylib's are in /usr/lib which is bundled with macOS and not third-party.
           if otool -L ${VIM_BIN} | grep '\.dylib\s' | grep -v '^\s*/usr/lib/'; then
             echo 'Found external dynamic linkage!'; false
+          fi
+
+          # Make sure we are not using system iconv, which has been buggy since macOS 14.
+          if otool -L ${VIM_BIN} | grep '^\s*/usr/lib/libiconv'; then
+            echo 'Using system iconv! We should be linking against GNU iconv instead.'; false
           fi
 
           # Make sure that --disable-sparkle flag will properly exclude all references to Sparkle symbols. This is
