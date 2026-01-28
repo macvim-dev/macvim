@@ -31,6 +31,12 @@
     // Ensure that the window has been loaded by calling this first.
     NSWindow *window = [self window];
 
+    // Set collection behavior to ensure the dialog appears in the current
+    // space rather than jumping to another space.
+    NSWindowCollectionBehavior wcb = window.collectionBehavior;
+    wcb |= NSWindowCollectionBehaviorMoveToActiveSpace;
+    [window setCollectionBehavior:wcb];
+
     if (text && [text length] > 0)
         [findBox setStringValue:text];
 
