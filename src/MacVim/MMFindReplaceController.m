@@ -33,9 +33,11 @@
 
     // Set collection behavior to ensure the dialog appears in the current
     // space rather than jumping to another space.
-    NSWindowCollectionBehavior wcb = window.collectionBehavior;
-    wcb |= NSWindowCollectionBehaviorMoveToActiveSpace;
-    [window setCollectionBehavior:wcb];
+    if (AVAILABLE_MAC_OS(10, 7)) {
+        NSWindowCollectionBehavior wcb = window.collectionBehavior;
+        wcb |= NSWindowCollectionBehaviorMoveToActiveSpace;
+        [window setCollectionBehavior:wcb];
+    }
 
     if (text && [text length] > 0)
         [findBox setStringValue:text];
