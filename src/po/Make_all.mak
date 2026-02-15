@@ -29,6 +29,7 @@ LANGUAGES = \
 		sk \
 		sr \
 		sv \
+		ta \
 		tr \
 		uk \
 		vi \
@@ -84,6 +85,7 @@ POFILES = \
 		sk.po \
 		sr.po \
 		sv.po \
+		ta.po \
 		tr.po \
 		uk.po \
 		vi.po \
@@ -132,6 +134,7 @@ MOFILES = \
 		sk.mo \
 		sr.mo \
 		sv.mo \
+		ta.mo \
 		tr.mo \
 		uk.mo \
 		vi.mo \
@@ -183,6 +186,7 @@ CHECKFILES = \
 		sk.ck \
 		sr.ck \
 		sv.ck \
+		ta.ck \
 		tr.ck \
 		uk.ck \
 		vi.ck \

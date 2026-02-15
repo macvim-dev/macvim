@@ -1507,7 +1507,6 @@ decode_mouse_wheel(MOUSE_EVENT_RECORD *pmer)
 	update_screen(0);
 	setcursor();
 	out_flush();
-	return;
     }
 # endif
     mouse_col = g_xMouse;
@@ -4848,7 +4847,6 @@ mch_system_classic(char *cmd, int options)
 
     // Wait for the command to terminate before continuing
     {
-# ifdef FEAT_GUI
 	int	    delay = 1;
 
 	// Keep updating the window while waiting for the shell to finish.
@@ -4872,9 +4870,6 @@ mch_system_classic(char *cmd, int options)
 	    if (delay < 50)
 		delay += 10;
 	}
-# else
-	WaitForSingleObject(pi.hProcess, INFINITE);
-# endif
 
 	// Get the command exit code
 	GetExitCodeProcess(pi.hProcess, &ret);

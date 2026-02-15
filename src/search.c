@@ -94,10 +94,10 @@ static int	lastc_bytelen = 1;	// >1 for multi-byte char
 static spat_T	    saved_spats[ARRAY_LENGTH(spats)];
 static char_u	    *saved_mr_pattern = NULL;
 static size_t	    saved_mr_patternlen = 0;
-# ifdef FEAT_SEARCH_EXTRA
+#ifdef FEAT_SEARCH_EXTRA
 static int	    saved_spats_last_idx = 0;
 static int	    saved_spats_no_hlsearch = 0;
-# endif
+#endif
 
 // allocated copy of pattern used by search_regcomp()
 static char_u	    *mr_pattern = NULL;
@@ -589,9 +589,9 @@ set_last_search_pat(
     spats[idx].magic = magic;
     spats[idx].no_scs = FALSE;
     spats[idx].off.dir = '/';
-#if defined(FEAT_EVAL)
+# if defined(FEAT_EVAL)
     set_vv_searchforward();
-#endif
+# endif
     spats[idx].off.line = FALSE;
     spats[idx].off.end = FALSE;
     spats[idx].off.off = 0;
@@ -909,9 +909,9 @@ searchit(
 				break;
 			    matchpos = regmatch.startpos[0];
 			    endpos = regmatch.endpos[0];
-# ifdef FEAT_EVAL
+#ifdef FEAT_EVAL
 			    submatch = first_submatch(&regmatch);
-# endif
+#endif
 
 			    // Need to get the line pointer again, a
 			    // multi-line search may have made it invalid.
@@ -956,9 +956,9 @@ searchit(
 				match_ok = TRUE;
 				matchpos = regmatch.startpos[0];
 				endpos = regmatch.endpos[0];
-# ifdef FEAT_EVAL
+#ifdef FEAT_EVAL
 				submatch = first_submatch(&regmatch);
-# endif
+#endif
 			    }
 			    else
 				break;
@@ -1628,9 +1628,7 @@ do_search(
 	if (dircp != NULL)
 	    *dircp = search_delim; // restore second '/' or '?' for normal_cmd()
 
-	if (!shortmess(SHM_SEARCH)
-		&& ((dirc == '/' && LT_POS(pos, curwin->w_cursor))
-			    || (dirc == '?' && LT_POS(curwin->w_cursor, pos))))
+	if (!shortmess(SHM_SEARCH) && sia && sia->sa_wrapped)
 	    show_top_bot_msg = TRUE;
 
 	if (c == FAIL)
@@ -3442,9 +3440,9 @@ find_pattern_in_path(
     char_u	*already = NULL;
     char_u	*startp = NULL;
     char_u	*inc_opt = NULL;
-#if defined(FEAT_QUICKFIX)
+# if defined(FEAT_QUICKFIX)
     win_T	*curwin_save = NULL;
-#endif
+# endif
 
     regmatch.regprog = NULL;
     incl_regmatch.regprog = NULL;
@@ -3508,7 +3506,7 @@ find_pattern_in_path(
 	    char_u *p_fname = (curr_fname == curbuf->b_fname)
 					      ? curbuf->b_ffname : curr_fname;
 
-	    if (inc_opt != NULL && strstr((char *)inc_opt, "\\zs") != NULL)
+	    if (strstr((char *)inc_opt, "\\zs") != NULL)
 		// Use text from '\zs' to '\ze' (or end) of 'include'.
 		new_fname = find_file_name_in_path(incl_regmatch.startp[0],
 		       (int)(incl_regmatch.endp[0] - incl_regmatch.startp[0]),
@@ -3590,8 +3588,7 @@ find_pattern_in_path(
 			 * Isolate the file name.
 			 * Include the surrounding "" or <> if present.
 			 */
-			if (inc_opt != NULL
-				   && strstr((char *)inc_opt, "\\zs") != NULL)
+			if (strstr((char *)inc_opt, "\\zs") != NULL)
 			{
 			    // pattern contains \zs, use the match
 			    p = incl_regmatch.startp[0];
@@ -3907,9 +3904,9 @@ search_line:
 	    {
 		found = TRUE;
 		if (depth == -1 && lnum == curwin->w_cursor.lnum
-#if defined(FEAT_QUICKFIX)
+# if defined(FEAT_QUICKFIX)
 						      && g_do_tagpreview == 0
-#endif
+# endif
 						      )
 		    emsg(_(e_match_is_on_current_line));
 		else if (action == ACTION_SHOW)
@@ -3921,17 +3918,17 @@ search_line:
 		}
 		else
 		{
-#ifdef FEAT_GUI
+# ifdef FEAT_GUI
 		    need_mouse_correct = TRUE;
-#endif
-#if defined(FEAT_QUICKFIX)
+# endif
+# if defined(FEAT_QUICKFIX)
 		    // ":psearch" uses the preview window
 		    if (g_do_tagpreview != 0)
 		    {
 			curwin_save = curwin;
 			prepare_tagpreview(TRUE, TRUE, FALSE);
 		    }
-#endif
+# endif
 		    if (action == ACTION_SPLIT)
 		    {
 			if (win_split(0, 0) == FAIL)
@@ -3941,7 +3938,7 @@ search_line:
 		    if (depth == -1)
 		    {
 			// match in current file
-#if defined(FEAT_QUICKFIX)
+# if defined(FEAT_QUICKFIX)
 			if (g_do_tagpreview != 0)
 			{
 			    if (!win_valid(curwin_save))
@@ -3952,7 +3949,7 @@ search_line:
 				break;	// failed to jump to file
 			}
 			else
-#endif
+# endif
 			    setpcmark();
 			curwin->w_cursor.lnum = lnum;
 			check_cursor();
@@ -3974,7 +3971,7 @@ search_line:
 		    curwin->w_set_curswant = TRUE;
 		}
 
-#if defined(FEAT_QUICKFIX)
+# if defined(FEAT_QUICKFIX)
 		if (g_do_tagpreview != 0
 			   && curwin != curwin_save && win_valid(curwin_save))
 		{
@@ -3983,12 +3980,12 @@ search_line:
 		    redraw_later(UPD_VALID);
 		    win_enter(curwin_save, TRUE);
 		}
-# ifdef FEAT_PROP_POPUP
+#  ifdef FEAT_PROP_POPUP
 		else if (WIN_IS_POPUP(curwin))
 		    // can't keep focus in popup window
 		    win_enter(firstwin, TRUE);
+#  endif
 # endif
-#endif
 		break;
 	    }
 exit_matched:
@@ -4271,9 +4268,9 @@ f_searchcount(typval_T *argvars, typval_T *rettv)
     }
 
     save_last_search_pattern();
-#ifdef FEAT_SEARCH_EXTRA
+# ifdef FEAT_SEARCH_EXTRA
     save_incsearch_state();
-#endif
+# endif
     if (pattern != NULL)
     {
 	if (*pattern == NUL)
@@ -4297,8 +4294,8 @@ f_searchcount(typval_T *argvars, typval_T *rettv)
 
 the_end:
     restore_last_search_pattern();
-#ifdef FEAT_SEARCH_EXTRA
+# ifdef FEAT_SEARCH_EXTRA
     restore_incsearch_state();
-#endif
+# endif
 }
 #endif

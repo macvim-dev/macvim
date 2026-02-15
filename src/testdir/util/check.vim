@@ -123,6 +123,17 @@ func CheckNotMacVim()
   endif
 endfunc
 
+" Command to check for not running on OpenBSD
+command CheckNotOpenBSD call CheckNotOpenBSD()
+func CheckNotOpenBSD()
+  if has('bsd')
+    let uname = trim(system('uname'))
+    if uname == 'OpenBSD'
+      throw 'Skipped: does not work on OpenBSD'
+    endif
+  endif
+endfunc
+
 " Command to check for not running on a MacOS
 command CheckNotMac call CheckNotMac()
 func CheckNotMac()
@@ -337,12 +348,12 @@ func CheckGithubActions()
   endif
 endfunc
 
-command CheckSocketServer call CheckSocketServer()
-func CheckSocketServer()
-  if v:servername == ""
+command RunSocketServer call RunSocketServer()
+func RunSocketServer()
+  if has("socketserver") && v:servername == ""
     try
       call remote_startserver('VIMSOCKETSERVERTEST')
-    catch /^Vim\%((\a\+)\)\=:E240:/ " not possible to start a remote server
+    catch " not possible to start a remote server
       throw 'Skipped: Cannot start remote server'
     endtry
   endif

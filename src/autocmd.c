@@ -851,7 +851,7 @@ check_ei(char_u *ei)
     return OK;
 }
 
-# if defined(FEAT_SYN_HL)
+#if defined(FEAT_SYN_HL)
 
 /*
  * Add "what" to 'eventignore' to skip loading syntax highlighting for every
@@ -897,7 +897,7 @@ au_event_restore(char_u *old_ei)
 	vim_free(old_ei);
     }
 }
-# endif  // FEAT_SYN_HL
+#endif  // FEAT_SYN_HL
 
 /*
  * do_autocmd() -- implements the :autocmd command.  Can be used in the
@@ -1815,10 +1815,10 @@ win_found:
 		    && bufref_valid(&aco->new_curbuf)
 		    && aco->new_curbuf.br_buf->b_ml.ml_mfp != NULL)
 	    {
-# if defined(FEAT_SYN_HL) || defined(FEAT_SPELL)
+#if defined(FEAT_SYN_HL) || defined(FEAT_SPELL)
 		if (curwin->w_s == &curbuf->b_s)
 		    curwin->w_s = &aco->new_curbuf.br_buf->b_s;
-# endif
+#endif
 		--curbuf->b_nwindows;
 		curbuf = aco->new_curbuf.br_buf;
 		curwin->w_buffer = curbuf;
@@ -2531,14 +2531,14 @@ BYPASS_AU:
     return retval;
 }
 
-# ifdef FEAT_EVAL
+#ifdef FEAT_EVAL
 static char_u	*old_termresponse = NULL;
 static char_u	*old_termu7resp = NULL;
 static char_u	*old_termblinkresp = NULL;
 static char_u	*old_termrbgresp = NULL;
 static char_u	*old_termrfgresp = NULL;
 static char_u	*old_termstyleresp = NULL;
-# endif
+#endif
 
 /*
  * Block triggering autocommands until unblock_autocmd() is called.
@@ -2547,7 +2547,7 @@ static char_u	*old_termstyleresp = NULL;
     void
 block_autocmds(void)
 {
-# ifdef FEAT_EVAL
+#ifdef FEAT_EVAL
     // Remember the value of v:termresponse.
     if (autocmd_blocked == 0)
     {
@@ -2558,7 +2558,7 @@ block_autocmds(void)
 	old_termrfgresp = get_vim_var_str(VV_TERMRFGRESP);
 	old_termstyleresp = get_vim_var_str(VV_TERMSTYLERESP);
     }
-# endif
+#endif
     ++autocmd_blocked;
 }
 
@@ -2567,7 +2567,7 @@ unblock_autocmds(void)
 {
     --autocmd_blocked;
 
-# ifdef FEAT_EVAL
+#ifdef FEAT_EVAL
     // When v:termresponse, etc, were set while autocommands were blocked,
     // trigger the autocommands now.  Esp. useful when executing a shell
     // command during startup (vimdiff).
@@ -2599,7 +2599,7 @@ unblock_autocmds(void)
 	    apply_autocmds(EVENT_TERMRESPONSEALL, (char_u *)"cursorshape", NULL, FALSE, curbuf);
 	}
     }
-# endif
+#endif
 }
 
     int
