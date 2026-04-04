@@ -98,7 +98,7 @@ func Call_cmd_funcs()
   let g:results = [getcmdpos(), getcmdscreenpos(), getcmdline()]
 endfunc
 
-function Test_tabpanel_cmdline()
+function Test_tabpanel_cmdline_pos()
   let save_showtabline = &showtabline
   let g:results = []
   cnoremap <expr> <F2> Call_cmd_funcs()
@@ -131,6 +131,29 @@ function Test_tabpanel_cmdline()
   cunmap <F2>
   call s:reset()
   let &showtabline = save_showtabline
+endfunc
+
+function Test_tabpanel_cmdline_compl()
+  CheckScreendump
+
+  let lines =<< trim END
+    set showtabpanel=2
+    set tabpanelopt=columns:10
+    set showtabline=0
+    tabnew
+  END
+  call writefile(lines, 'XTest_tabpanel_cmdline_compl', 'D')
+
+  let buf = RunVimInTerminal('-S XTest_tabpanel_cmdline_compl', {'rows': 10, 'cols': 45})
+  call term_sendkeys(buf, ":ab\<Tab>")
+  call VerifyScreenDump(buf, 'Test_tabpanel_cmdline_compl_0', {})
+
+  call term_sendkeys(buf, "\<Esc>")
+  call term_sendkeys(buf, ":set wildoptions=pum\<CR>")
+  call term_sendkeys(buf, ":ab\<Tab>")
+  call VerifyScreenDump(buf, 'Test_tabpanel_cmdline_compl_1', {})
+
+  call StopVimInTerminal(buf)
 endfunc
 
 function Test_tabpanel_mouse()
@@ -233,7 +256,7 @@ function Test_tabpanel_drawing()
     function MyTabPanel()
       let n = g:actual_curtabpage
       let hi = n == tabpagenr() ? 'TabLineSel' : 'TabLine'
-      let label = printf("\n%%#%sTabNumber#%d:%%#%s#", hi, n, hi)
+      let label = printf("%%@%%#%sTabNumber#%d:%%#%s#", hi, n, hi)
       let label ..= '%1*%f%*'
       return label
     endfunction
@@ -342,12 +365,16 @@ function Test_tabpanel_drawing_fill_tailing()
     let &tabpanel = "abc"
     redraw!
     " Check whether "abc" is cleared
-    let &tabpanel = "\nTOP\n%f\nBOTTOM"
+    let &tabpanel = "%@TOP%@%f%@BOTTOM"
   END
   call writefile(lines, 'XTest_tabpanel_fill_tailing', 'D')
 
   let buf = RunVimInTerminal('-S XTest_tabpanel_fill_tailing', {'rows': 10, 'cols': 45})
+  call VerifyScreenDump(buf, 'Test_tabpanel_drawing_fill_tailing_0', {})
 
+  " TODO: If line breaks within 'tabpanel' using "\n" are no longer supported,
+  " delete the following two lines:
+  call term_sendkeys(buf, ':let &tabpanel = "\nTOP\n%f\nBOTTOM"' .. "\<CR>")
   call VerifyScreenDump(buf, 'Test_tabpanel_drawing_fill_tailing_0', {})
 
   call StopVimInTerminal(buf)
@@ -464,30 +491,7 @@ function Test_tabpanel_visual()
   call StopVimInTerminal(buf)
 endfunc
 
-function Test_tabpanel_commandline()
-  CheckScreendump
-
-  let lines =<< trim END
-    set showtabpanel=2
-    set tabpanelopt=columns:10
-    set showtabline=0
-    tabnew
-  END
-  call writefile(lines, 'XTest_tabpanel_commandline', 'D')
-
-  let buf = RunVimInTerminal('-S XTest_tabpanel_commandline', {'rows': 10, 'cols': 45})
-  call term_sendkeys(buf, ":ab\<Tab>")
-  call VerifyScreenDump(buf, 'Test_tabpanel_commandline_0', {})
-
-  call term_sendkeys(buf, "\<Esc>")
-  call term_sendkeys(buf, ":set wildoptions=pum\<CR>")
-  call term_sendkeys(buf, ":ab\<Tab>")
-  call VerifyScreenDump(buf, 'Test_tabpanel_commandline_1', {})
-
-  call StopVimInTerminal(buf)
-endfunc
-
-function Test_tabpanel_tabline_and_tabpanel()
+function Test_tabpanel_with_tabline()
   CheckScreendump
 
   let lines =<< trim END
@@ -501,10 +505,10 @@ function Test_tabpanel_tabline_and_tabpanel()
     tabnew
     e ccc.txt
   END
-  call writefile(lines, 'XTest_tabpanel_tabline_and_tabpanel', 'D')
+  call writefile(lines, 'XTest_tabpanel_with_tabline', 'D')
 
-  let buf = RunVimInTerminal('-S XTest_tabpanel_tabline_and_tabpanel', {'rows': 10, 'cols': 45})
-  call VerifyScreenDump(buf, 'Test_tabpanel_tabline_and_tabpanel_0', {})
+  let buf = RunVimInTerminal('-S XTest_tabpanel_with_tabline', {'rows': 10, 'cols': 45})
+  call VerifyScreenDump(buf, 'Test_tabpanel_with_tabline_0', {})
 
   call StopVimInTerminal(buf)
 endfunc
@@ -582,7 +586,7 @@ endfunc
 """  call StopVimInTerminal(buf)
 """endfunc
 
-function Test_tabpanel_eval_tabpanel_statusline_tabline()
+function Test_tabpanel_eval()
   CheckScreendump
 
   let lines =<< trim END
@@ -602,17 +606,17 @@ function Test_tabpanel_eval_tabpanel_statusline_tabline()
     tabnew
     e ccc
   END
-  call writefile(lines, 'XTest_tabpanel_eval_tabpanel_statusline_tabline', 'D')
+  call writefile(lines, 'XTest_tabpanel_eval', 'D')
 
-  let buf = RunVimInTerminal('-S XTest_tabpanel_eval_tabpanel_statusline_tabline', {'rows': 10, 'cols': 45})
-  call VerifyScreenDump(buf, 'Test_tabpanel_eval_tabpanel_statusline_tabline_0', {})
+  let buf = RunVimInTerminal('-S XTest_tabpanel_eval', {'rows': 10, 'cols': 45})
+  call VerifyScreenDump(buf, 'Test_tabpanel_eval_0', {})
   call term_sendkeys(buf, ":set tabpanelopt+=align:right\<CR>")
-  call VerifyScreenDump(buf, 'Test_tabpanel_eval_tabpanel_statusline_tabline_1', {})
+  call VerifyScreenDump(buf, 'Test_tabpanel_eval_1', {})
 
   call StopVimInTerminal(buf)
 endfunc
 
-function Test_tabpanel_noeval_tabpanel_statusline_tabline()
+function Test_tabpanel_noeval()
   CheckScreendump
 
   let lines =<< trim END
@@ -629,22 +633,23 @@ function Test_tabpanel_noeval_tabpanel_statusline_tabline()
     tabnew
     e ccc
   END
-  call writefile(lines, 'XTest_tabpanel_noeval_tabpanel_statusline_tabline', 'D')
+  call writefile(lines, 'XTest_tabpanel_noeval', 'D')
 
-  let buf = RunVimInTerminal('-S XTest_tabpanel_noeval_tabpanel_statusline_tabline', {'rows': 10, 'cols': 45})
-  call VerifyScreenDump(buf, 'Test_tabpanel_noeval_tabpanel_statusline_tabline_0', {})
+  let buf = RunVimInTerminal('-S XTest_tabpanel_noeval', {'rows': 10, 'cols': 45})
+  call VerifyScreenDump(buf, 'Test_tabpanel_noeval_0', {})
   call term_sendkeys(buf, ":set tabpanelopt+=align:right\<CR>")
-  call VerifyScreenDump(buf, 'Test_tabpanel_noeval_tabpanel_statusline_tabline_1', {})
+  call VerifyScreenDump(buf, 'Test_tabpanel_noeval_1', {})
 
   call StopVimInTerminal(buf)
 endfunc
 
-function Test_tabpanel_eval_tabpanel_with_linebreaks()
+function Test_tabpanel_eval_with_linebreaks()
   CheckScreendump
 
   let lines =<< trim END
+    let g:ExprRetVal = "top%@$%=[%f]%=$%@bottom"
     function Expr()
-      return "top\n$%=[%f]%=$\nbottom"
+      return g:ExprRetVal
     endfunction
     set showtabpanel=2
     set tabpanel=%!Expr()
@@ -656,12 +661,20 @@ function Test_tabpanel_eval_tabpanel_with_linebreaks()
     tabnew
     e ccc
   END
-  call writefile(lines, 'XTest_tabpanel_eval_tabpanel_with_linebreaks', 'D')
+  call writefile(lines, 'XTest_tabpanel_eval_with_linebreaks', 'D')
 
-  let buf = RunVimInTerminal('-S XTest_tabpanel_eval_tabpanel_with_linebreaks', {'rows': 10, 'cols': 45})
-  call VerifyScreenDump(buf, 'Test_tabpanel_eval_tabpanel_with_linebreaks_0', {})
+  let buf = RunVimInTerminal('-S XTest_tabpanel_eval_with_linebreaks', {'rows': 10, 'cols': 45})
+  call term_sendkeys(buf, "\<C-L>")   " Clear cmdline area
+  call VerifyScreenDump(buf, 'Test_tabpanel_eval_with_linebreaks_0', {})
   call term_sendkeys(buf, ":set tabpanelopt+=align:right\<CR>")
-  call VerifyScreenDump(buf, 'Test_tabpanel_eval_tabpanel_with_linebreaks_1', {})
+  call VerifyScreenDump(buf, 'Test_tabpanel_eval_with_linebreaks_1', {})
+  " TODO: If line breaks within 'tabpanel' using "\n" are no longer supported,
+  " delete the following five lines:
+  call term_sendkeys(buf, ':let g:ExprRetVal = "top\n$%=[%f]%=$\nbottom"' .. "\<CR>")
+  call term_sendkeys(buf, ":set tabpanelopt=columns:10\<CR>")
+  call VerifyScreenDump(buf, 'Test_tabpanel_eval_with_linebreaks_0', {})
+  call term_sendkeys(buf, ":set tabpanelopt+=align:right\<CR>")
+  call VerifyScreenDump(buf, 'Test_tabpanel_eval_with_linebreaks_1', {})
 
   call StopVimInTerminal(buf)
 endfunc
@@ -834,6 +847,80 @@ function Test_tabpanel_with_cmdline_no_pum()
   call VerifyScreenDump(buf, 'Test_tabpanel_with_cmdline_no_pum_0', {})
 
   call StopVimInTerminal(buf)
+endfunc
+
+" When showtabpanel=1 and a second tab is opened, all existing tab pages must
+" have their frame width updated, not just the newly created one.
+function Test_tabpanel_showtabpanel_via_cmd_arg()
+  let tpl_width = 20  " default tpl_columns
+  set showtabpanel=1 noruler
+
+  " With one tab the tabpanel is hidden; no width reduction yet.
+  tabfirst
+  call assert_equal(&columns, winwidth(0))
+
+  " Opening a second tab makes the tabpanel visible; the first tab page must
+  " also get its frame width reduced.
+  tabnew
+  tabfirst
+  call assert_equal(&columns - tpl_width, winwidth(0),
+        \ 'first tab width after tabnew')
+  call assert_equal(tpl_width + 1, win_screenpos(0)[1],
+        \ 'first tab wincol after tabnew')
+
+  tabonly
+  set showtabpanel& noruler&
+endfunc
+
+func Test_tabpanel_no_modeline()
+  let _tpl = &tabpanel
+  let _mls = &modelineexpr
+
+  set nomodelineexpr
+  setlocal modeline
+  new
+  call writefile(['/* vim: set tabpanel=test: */'], 'Xtabpanel.txt', 'D')
+  call assert_fails(':e Xtabpanel.txt', 'E992:')
+
+  let &tabpanel = _tpl
+  let &modelineexpr = _mls
+  bw!
+endfunc
+
+func Test_tabpanel_large_columns()
+  call assert_fails(':set tabpanelopt=columns:10001', 'E474:')
+  call assert_fails(':set tabpanelopt=columns:-1', 'E474:')
+endfunc
+
+func Test_tabpanel_variable_height()
+  CheckFeature tabpanel
+
+  let save_lines = &lines
+  let save_showtabpanel = &showtabpanel
+  let save_tabpanel = &tabpanel
+
+  set lines=10
+  tabnew | tabnew | tabnew | tabnew | tabnew
+
+  let g:tpl_n = 0
+  func! GetTpl() abort
+    let g:tpl_n += 1
+    return g:tpl_n <= 5 ? "x\nx" : "x"
+  endfunc
+
+  set showtabpanel=2
+  let &tabpanel = "%!GetTpl()"
+
+  " Should not crash
+  redraw!
+
+  " Cleanup
+  let &tabpanel = save_tabpanel
+  let &showtabpanel = save_showtabpanel
+  let &lines = save_lines
+  delfunc GetTpl
+  unlet g:tpl_n
+  %bwipeout!
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

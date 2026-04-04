@@ -45,6 +45,12 @@ static int	buf_same_ino(buf_T *buf, stat_T *stp);
 static int	otherfile_buf(buf_T *buf, char_u *ffname);
 #endif
 static int	value_changed(char_u *str, char_u **last);
+#if defined(FEAT_STL_OPT) || defined(FEAT_GUI_TABLINE)
+static int build_stl_str_hl_local(stl_mode_T mode, win_T *wp,
+		char_u *out, size_t outlen, char_u **fmt_arg,
+		char_u *opt_name, int opt_scope, int fillchar, int maxwidth,
+		stl_hlrec_T **hltab, stl_hlrec_T **tabtab, int *lbreaks);
+#endif
 static int	append_arg_number(win_T *wp, char_u *buf, size_t buflen, int add_file);
 static void	free_buffer(buf_T *);
 static void	free_buffer_stuff(buf_T *buf, int free_options);
@@ -74,15 +80,14 @@ static garray_T buf_reuse = GA_EMPTY;	// file numbers to recycle
     static void
 trigger_undo_ftplugin(buf_T *buf, win_T *win)
 {
-    int win_was_locked = win->w_locked;
     window_layout_lock();
-    buf->b_locked++;
-    win->w_locked = TRUE;
+    ++buf->b_locked;
+    ++win->w_locked;
     // b:undo_ftplugin may be set, undo it
     do_cmdline_cmd((char_u*)"if exists('b:undo_ftplugin') | :legacy :exe \
 	    b:undo_ftplugin | endif");
-    buf->b_locked--;
-    win->w_locked = win_was_locked;
+    --buf->b_locked;
+    --win->w_locked;
     window_layout_unlock();
 }
 
@@ -221,7 +226,7 @@ open_buffer(
     {
 	// There MUST be a memfile, otherwise we can't do anything
 	// If we can't create one for the current buffer, take another buffer
-	close_buffer(NULL, curbuf, 0, FALSE, FALSE);
+	close_buffer(curwin, curbuf, 0, FALSE, FALSE, FALSE);
 	FOR_ALL_BUFFERS(curbuf)
 	    if (curbuf->b_ml.ml_mfp != NULL)
 		break;
@@ -539,10 +544,16 @@ can_unload_buffer(buf_T *buf)
  * DOBUF_DEL		buffer is unloaded and removed from buffer list
  * DOBUF_WIPE		buffer is unloaded and really deleted
  * DOBUF_WIPE_REUSE	idem, and add to buf_reuse list
- * When doing all but the first one on the current buffer, the caller should
- * get a new buffer very soon!
+ * When doing all but the first, the caller should get a new buffer very soon!
  *
  * The 'bufhidden' option can force freeing and deleting.
+ *
+ * When "win" is not NULL and we reached the end and unloaded "buf", b_nwindows
+ * is decremented if w_buffer was "buf" after autocmds.  w_buffer is set to
+ * NULL in that case.  Otherwise, w_buffer->b_nwindows is not decremented;
+ * callers should decrement it if they still intend to switch "win"'s buffer or
+ * close "win"!  If "win" was initially curwin displaying "buf", it is
+ * re-entered if autocmds switched windows, if still open.
  *
  * When "abort_if_last" is TRUE then do not close the buffer if autocommands
  * cause there to be only one window with this buffer.  e.g. when ":quit" is
@@ -550,25 +561,35 @@ can_unload_buffer(buf_T *buf)
  *
  * When "ignore_abort" is TRUE don't abort even when aborting() returns TRUE.
  *
- * Return TRUE when we got to the end and b_nwindows was decremented.
+ * When "set_context" is TRUE, also call buflist_setfpos for "win" if it's
+ * showing "buf", and set b_last_cursor if "win" is the buffer's only window.
+ * Not done for closing popups.
+ *
+ * Return TRUE when we got to the end and unloaded "buf".
  */
     int
 close_buffer(
-    win_T	*win,		// if not NULL, set b_last_cursor
+    win_T	*win,
     buf_T	*buf,
     int		action,
     int		abort_if_last,
-    int		ignore_abort)
+    int		ignore_abort,
+    int		set_context)
 {
-    int		is_curbuf;
-    int		nwindows;
+    int		hiding_buf;
     bufref_T	bufref;
-    int		is_curwin = (curwin != NULL && curwin->w_buffer == buf);
-    win_T	*the_curwin = curwin;
+    int		is_curwin = (curwin != NULL && curwin == win
+				&& curwin->w_buffer == buf);
     tabpage_T	*the_curtab = curtab;
     int		unload_buf = (action != 0);
     int		wipe_buf = (action == DOBUF_WIPE || action == DOBUF_WIPE_REUSE);
     int		del_buf = (action == DOBUF_DEL || wipe_buf);
+    int		win_valid = win_valid_any_tab(win);
+    // win_valid is FALSE for closing popups, as they're first removed from the
+    // window list.  If so, skip some side-effects, but treat win as valid.
+    // Shouldn't be possible for autocmds to prematurely free win then, as it's
+    // not in the window list.
+    int		closed_popup = win && !win_valid && WIN_IS_POPUP(win);
 
     CHECK_CURBUF;
 
@@ -643,8 +664,7 @@ close_buffer(
     if ((del_buf || wipe_buf) && !can_unload_buffer(buf))
 	return FALSE;
 
-    // check no autocommands closed the window
-    if (win != NULL && win_valid_any_tab(win))
+    if (set_context && win_valid && win->w_buffer == buf)
     {
 	// Set b_last_cursor when closing the last window for the buffer.
 	// Remember the last cursor position and window options of the buffer.
@@ -660,7 +680,8 @@ close_buffer(
     set_bufref(&bufref, buf);
 
     // When the buffer is no longer in a window, trigger BufWinLeave
-    if (buf->b_nwindows == 1)
+    if ((win_valid || closed_popup) && win->w_buffer == buf
+	    && buf->b_nwindows == 1)
     {
 	++buf->b_locked;
 	++buf->b_locked_split;
@@ -701,85 +722,52 @@ aucmd_abort:
 	if (!ignore_abort && aborting())
 	    return FALSE;
 #endif
+	win_valid = win_valid && win_valid_any_tab(win);
     }
 
     // If the buffer was in curwin and the window has changed, go back to that
     // window, if it still exists.  This avoids that ":edit x" triggering a
     // "tabnext" BufUnload autocmd leaves a window behind without a buffer.
-    if (is_curwin && curwin != the_curwin && win_valid_any_tab(the_curwin))
+    if (is_curwin && curwin != win && win_valid)
     {
 	block_autocmds();
-	goto_tabpage_win(the_curtab, the_curwin);
+	goto_tabpage_win(the_curtab, win);
 	unblock_autocmds();
     }
 
-    nwindows = buf->b_nwindows;
-
-    // decrease the link count from windows (unless not in any window)
-    if (buf->b_nwindows > 0)
-	--buf->b_nwindows;
+    // Remember if the buffer may be hidden soon, or is already hidden.
+    hiding_buf = buf->b_nwindows <= 0 || ((win_valid || closed_popup)
+	    && win->w_buffer == buf && buf->b_nwindows == 1);
 
 #ifdef FEAT_DIFF
-    if (diffopt_hiddenoff() && !unload_buf && buf->b_nwindows == 0)
+    if (diffopt_hiddenoff() && !unload_buf && hiding_buf)
 	diff_buf_delete(buf);	// Clear 'diff' for hidden buffer.
 #endif
 
-    // Return when a window is displaying the buffer or when it's not
-    // unloaded.
-    if (buf->b_nwindows > 0 || !unload_buf)
+    // Return when another window is displaying the buffer or when not unloaded.
+    if (!hiding_buf || !unload_buf)
 	return FALSE;
 
     // Always remove the buffer when there is no file name.
     if (buf->b_ffname == NULL)
 	del_buf = TRUE;
 
-    // When closing the current buffer stop Visual mode before freeing
-    // anything.
-    if (buf == curbuf && VIsual_active
-#if defined(EXITFREE)
-	    && !entered_free_all_mem
-#endif
-	    )
-	end_visual_mode();
-
     // Free all things allocated for this buffer.
     // Also calls the "BufDelete" autocommands when del_buf is TRUE.
-    //
-    // Remember if we are closing the current buffer.  Restore the number of
-    // windows, so that autocommands in buf_freeall() don't get confused.
-    is_curbuf = (buf == curbuf);
-    buf->b_nwindows = nwindows;
-
-    buf_freeall(buf, (del_buf ? BFA_DEL : 0)
+    // Abort if nothing was freed, or if autocommands delete the buffer.
+    if (!buf_freeall(buf, (del_buf ? BFA_DEL : 0)
 		   + (wipe_buf ? BFA_WIPE : 0)
-		   + (ignore_abort ? BFA_IGNORE_ABORT : 0));
-
-    // Autocommands may have deleted the buffer.
-    if (!bufref_valid(&bufref))
-	return FALSE;
-#ifdef FEAT_EVAL
-    // autocmds may abort script processing
-    if (!ignore_abort && aborting())
-	return FALSE;
-#endif
-
-    // It's possible that autocommands change curbuf to the one being deleted.
-    // This might cause the previous curbuf to be deleted unexpectedly.  But
-    // in some cases it's OK to delete the curbuf, because a new one is
-    // obtained anyway.  Therefore only return if curbuf changed to the
-    // deleted buffer.
-    if (buf == curbuf && !is_curbuf)
+		   + (ignore_abort ? BFA_IGNORE_ABORT : 0)))
 	return FALSE;
 
-    if (win_valid_any_tab(win) && win->w_buffer == buf)
-	win->w_buffer = NULL;  // make sure we don't use the buffer now
-
-    // Autocommands may have opened or closed windows for this buffer.
-    // Decrement the count for the close we do here.
-    // Don't decrement b_nwindows if the buffer wasn't displayed in any window
-    // before calling buf_freeall().
-    if (nwindows > 0 && buf->b_nwindows > 0)
+    win_valid = win_valid && win_valid_any_tab(win);
+    if ((win_valid || closed_popup) && win->w_buffer == buf)
+    {
+	// Autocommands may have opened (despite b_locked_split) or closed
+	// windows for this buffer.  Decrement for the close we do here.
 	--buf->b_nwindows;
+	win->w_buffer = NULL;  // make sure we don't use the buffer now
+    }
 
 #ifdef FEAT_ODB_EDITOR
     odb_buffer_close(buf);
@@ -846,6 +834,11 @@ aucmd_abort:
 	    buf->b_p_bl = FALSE;
     }
     // NOTE: at this point "curbuf" may be invalid!
+
+    // When closing curbuf for curwin, is_curwin checks should've ensured
+    // autocmds don't switch windows, unless they closed curwin.  Otherwise
+    // callers may leave the window open to a NULL buffer!
+    assert(!win_valid || !is_curwin || win == curwin);
     return TRUE;
 }
 
@@ -879,8 +872,10 @@ buf_clear_file(buf_T *buf)
  * BFA_WIPE	     buffer is going to be wiped out
  * BFA_KEEP_UNDO     do not free undo information
  * BFA_IGNORE_ABORT  don't abort even when aborting() returns TRUE
+ *
+ * Return TRUE when we got to the end.
  */
-    void
+    int
 buf_freeall(buf_T *buf, int flags)
 {
     int		is_curbuf = (buf == curbuf);
@@ -899,7 +894,7 @@ buf_freeall(buf_T *buf, int flags)
 								  FALSE, buf)
 		&& !bufref_valid(&bufref))
 	    // autocommands deleted the buffer
-	    return;
+	    return FALSE;
     }
     if ((flags & BFA_DEL) && buf->b_p_bl)
     {
@@ -907,7 +902,7 @@ buf_freeall(buf_T *buf, int flags)
 								   FALSE, buf)
 		&& !bufref_valid(&bufref))
 	    // autocommands deleted the buffer
-	    return;
+	    return FALSE;
     }
     if (flags & BFA_WIPE)
     {
@@ -915,7 +910,7 @@ buf_freeall(buf_T *buf, int flags)
 								  FALSE, buf)
 		&& !bufref_valid(&bufref))
 	    // autocommands deleted the buffer
-	    return;
+	    return FALSE;
     }
     --buf->b_locked;
     --buf->b_locked_split;
@@ -933,7 +928,7 @@ buf_freeall(buf_T *buf, int flags)
 #ifdef FEAT_EVAL
     // autocmds may abort script processing
     if ((flags & BFA_IGNORE_ABORT) == 0 && aborting())
-	return;
+	return FALSE;
 #endif
 
     // It's possible that autocommands change curbuf to the one being deleted.
@@ -941,7 +936,17 @@ buf_freeall(buf_T *buf, int flags)
     // it's OK to delete the curbuf, because a new one is obtained anyway.
     // Therefore only return if curbuf changed to the deleted buffer.
     if (buf == curbuf && !is_curbuf)
-	return;
+	return FALSE;
+
+    // If curbuf, stop Visual mode just before freeing, but after autocmds that
+    // may restart it.  May trigger TextYankPost, but with textlock set.
+    if (buf == curbuf && VIsual_active
+#if defined(EXITFREE)
+	    && !entered_free_all_mem
+#endif
+	    )
+	end_visual_mode();
+
 #ifdef FEAT_DIFF
     diff_buf_delete(buf);	    // Can't use 'diff' for unloaded buffer.
 #endif
@@ -979,6 +984,7 @@ buf_freeall(buf_T *buf, int flags)
     clear_buf_prop_types(buf);
 #endif
     buf->b_flags &= ~BF_READERR;    // a read error is no longer relevant
+    return TRUE;
 }
 
 /*
@@ -1227,11 +1233,11 @@ handle_swap_exists(bufref_T *old_curbuf)
 	// open a new, empty buffer.
 	swap_exists_action = SEA_NONE;	// don't want it again
 	swap_exists_did_quit = TRUE;
-	close_buffer(curwin, curbuf, DOBUF_UNLOAD, FALSE, FALSE);
+	close_buffer(curwin, curbuf, DOBUF_UNLOAD, FALSE, FALSE, TRUE);
 	if (old_curbuf == NULL || !bufref_valid(old_curbuf)
 					      || old_curbuf->br_buf == curbuf)
 	{
-	    // Block autocommands here because curwin->w_buffer is NULL.
+	    // Block autocommands here because curwin->w_buffer may be NULL.
 	    block_autocmds();
 	    buf = buflist_new(NULL, NULL, 1L, BLN_CURBUF | BLN_LISTED);
 	    unblock_autocmds();
@@ -1318,9 +1324,12 @@ empty_curbuf(
     // the old one.  But do_ecmd() may have done that already, check
     // if the buffer still exists.
     if (buf != curbuf && bufref_valid(&bufref) && buf->b_nwindows == 0)
-	close_buffer(NULL, buf, action, FALSE, FALSE);
+	close_buffer(NULL, buf, action, FALSE, FALSE, FALSE);
     if (!close_others)
 	need_fileinfo = FALSE;
+    else if (retval == OK && !shortmess(SHM_FILEINFO))
+	// do_ecmd() does not display file info for a new empty buffer.
+	need_fileinfo = TRUE;
     return retval;
 }
 
@@ -1543,7 +1552,7 @@ do_buffer_ext(
 	{
 	    close_windows(buf, FALSE);
 	    if (buf != curbuf && bufref_valid(&bufref) && buf->b_nwindows <= 0)
-		    close_buffer(NULL, buf, action, FALSE, FALSE);
+		    close_buffer(NULL, buf, action, FALSE, FALSE, FALSE);
 	    return OK;
 	}
 
@@ -1876,7 +1885,6 @@ set_curbuf(buf_T *buf, int action)
     bufref_T	newbufref;
     bufref_T	prevbufref;
     int		valid;
-    int		last_winid = get_last_winid();
 
     setpcmark();
     if ((cmdmod.cmod_flags & CMOD_KEEPALT) == 0)
@@ -1890,7 +1898,6 @@ set_curbuf(buf_T *buf, int action)
     prevbuf = curbuf;
     set_bufref(&prevbufref, prevbuf);
     set_bufref(&newbufref, buf);
-    int prev_nwindows = prevbuf->b_nwindows;
 
     // Autocommands may delete the current buffer and/or the buffer we want to
     // go to.  In those cases don't close the buffer.
@@ -1906,11 +1913,7 @@ set_curbuf(buf_T *buf, int action)
 	if (prevbuf == curwin->w_buffer)
 	    reset_synblock(curwin);
 #endif
-	// autocommands may have opened a new window
-	// with prevbuf, grr
-	if (unload ||
-		(prev_nwindows <= 1 && last_winid != get_last_winid()
-		 && action == DOBUF_GOTO && !buf_hide(prevbuf)))
+	if (unload)
 	    close_windows(prevbuf, FALSE);
 #if defined(FEAT_EVAL)
 	if (bufref_valid(&prevbufref) && !aborting())
@@ -1918,22 +1921,17 @@ set_curbuf(buf_T *buf, int action)
 	if (bufref_valid(&prevbufref))
 #endif
 	{
-	    win_T  *previouswin = curwin;
-
 	    // Do not sync when in Insert mode and the buffer is open in
 	    // another window, might be a timer doing something in another
 	    // window.
 	    if (prevbuf == curbuf
 		    && ((State & MODE_INSERT) == 0 || curbuf->b_nwindows <= 1))
 		u_sync(FALSE);
-	    close_buffer(prevbuf == curwin->w_buffer ? curwin : NULL, prevbuf,
+	    close_buffer(curwin, prevbuf,
 		    unload ? action : (action == DOBUF_GOTO
 			&& !buf_hide(prevbuf)
 			&& !bufIsChanged(prevbuf)) ? DOBUF_UNLOAD : 0,
-		    FALSE, FALSE);
-	    if (curwin != previouswin && win_valid(previouswin))
-	      // autocommands changed curwin, Grr!
-	      curwin = previouswin;
+		    FALSE, FALSE, TRUE);
 	}
     }
     // An autocommand may have deleted "buf", already entered it (e.g., when
@@ -1946,10 +1944,6 @@ set_curbuf(buf_T *buf, int action)
 #endif
 	) || curwin->w_buffer == NULL)
     {
-	// autocommands changed curbuf and we will move to another
-	// buffer soon, so decrement curbuf->b_nwindows
-	if (curbuf != NULL && prevbuf != curbuf)
-	    curbuf->b_nwindows--;
 	// If the buffer is not valid but curwin->w_buffer is NULL we must
 	// enter some buffer.  Using the last one is hopefully OK.
 	if (!valid)
@@ -1971,13 +1965,18 @@ set_curbuf(buf_T *buf, int action)
     static void
 enter_buffer(buf_T *buf)
 {
-    // when closing the current buffer stop Visual mode
+    // Stop Visual mode before changing curbuf.  May trigger TextYankPost, but
+    // with textlock set.  Assumes curbuf and curwin->w_buffer is valid; if not,
+    // buf_freeall() should've done this already!
     if (VIsual_active
 #if defined(EXITFREE)
 	    && !entered_free_all_mem
 #endif
 	    )
 	end_visual_mode();
+
+    if (curwin->w_buffer != NULL)
+	--curwin->w_buffer->b_nwindows;
 
     // Get the buffer in the current window.
     curwin->w_buffer = buf;
@@ -3345,6 +3344,10 @@ get_winopts(buf_T *buf)
 	win_T *wp = wip->wi_win;
 
 	copy_winopt(&wp->w_onebuf_opt, &curwin->w_onebuf_opt);
+#ifdef FEAT_STL_OPT
+	// w_stl_rendered_height is not in winvar_T; copy it explicitly.
+	curwin->w_stl_rendered_height = wp->w_stl_rendered_height;
+#endif
 #ifdef FEAT_FOLDING
 	curwin->w_fold_manual = wp->w_fold_manual;
 	curwin->w_foldinvalid = TRUE;
@@ -3370,6 +3373,24 @@ get_winopts(buf_T *buf)
     // Set 'foldlevel' to 'foldlevelstart' if it's not negative.
     if (p_fdls >= 0)
 	curwin->w_p_fdl = p_fdls;
+#endif
+#ifdef FEAT_STL_OPT
+    // Update rendered height for window-local 'statusline'.
+    if (*curwin->w_p_stl != NUL)
+	update_stl_rendered_height(curwin);
+    // If the effective statuslineopt changed, re-adjust all window heights.
+    if (curwin->w_status_height > 0
+	    && curwin->w_status_height != statusline_height(curwin))
+    {
+	frame_change_statusline_height();
+	// win_split_ins() estimated the new window's stlh from the splitting
+	// window, which may differ from the actual stlh after option
+	// inheritance is resolved here.  frame_change_statusline_height()
+	// redistributes space within the stale fr_height values set during the
+	// split, so the content rows may be unequal.  Re-equalize if needed.
+	if (p_ea)
+	    win_equal(curwin, TRUE, 'v');
+    }
 #endif
     after_copy_winopt(curwin);
 }
@@ -3635,7 +3656,7 @@ setfname(
 		return FAIL;
 	    }
 	    // delete from the list
-	    close_buffer(NULL, obuf, DOBUF_WIPE, FALSE, FALSE);
+	    close_buffer(NULL, obuf, DOBUF_WIPE, FALSE, FALSE, FALSE);
 	}
 	sfname = vim_strsave(sfname);
 	if (ffname == NULL || sfname == NULL)
@@ -4377,6 +4398,100 @@ build_stl_str_hl(
     stl_hlrec_T **hltab,	// return: HL attributes (can be NULL)
     stl_hlrec_T **tabtab)	// return: tab page nrs (can be NULL)
 {
+    return build_stl_str_hl_local(STL_MODE_SINGLE, wp, out, outlen, &fmt,
+	    opt_name, opt_scope, fillchar, maxwidth, hltab, tabtab, NULL);
+}
+
+    int
+build_stl_str_hl_mline(
+    win_T	*wp,
+    char_u	*out,		// buffer to write into != NameBuff
+    size_t	outlen,		// length of out[]
+    char_u	**fmt,		// (in/out)
+    char_u	*opt_name,      // option name corresponding to "fmt"
+    int		opt_scope,	// scope for "opt_name"
+    int		fillchar,
+    int		maxwidth,
+    stl_hlrec_T **hltab,	// return: HL attributes (can be NULL)
+    stl_hlrec_T **tabtab)	// return: tab page nrs (can be NULL)
+{
+    return build_stl_str_hl_local(STL_MODE_MULTI, wp, out, outlen, fmt,
+	    opt_name, opt_scope, fillchar, maxwidth, hltab, tabtab, NULL);
+}
+
+# ifdef ENABLE_STL_MODE_MULTI_NL
+    int
+build_stl_str_hl_mline_nl(
+    win_T	*wp,
+    char_u	*out,		// buffer to write into != NameBuff
+    size_t	outlen,		// length of out[]
+    char_u	**fmt,		// (in/out)
+    char_u	*opt_name,      // option name corresponding to "fmt"
+    int		opt_scope,	// scope for "opt_name"
+    int		fillchar,
+    int		maxwidth,
+    stl_hlrec_T **hltab,	// return: HL attributes (can be NULL)
+    stl_hlrec_T **tabtab)	// return: tab page nrs (can be NULL)
+{
+    return build_stl_str_hl_local(STL_MODE_MULTI_NL, wp, out, outlen, fmt,
+	    opt_name, opt_scope, fillchar, maxwidth, hltab, tabtab, NULL);
+}
+# endif
+
+    int
+get_stl_rendered_height(
+    win_T	*wp,
+    char_u	*fmt,
+    char_u	*opt_name,      // option name corresponding to "fmt"
+    int		opt_scope)	// scope for "opt_name"
+{
+    int rendered_height = 0;
+    char_u	buf[MAXPATHL] = {0};
+
+    // Suppress errors while computing height: expressions (%!expr, %{expr})
+    // are evaluated here only to count rendered lines, not for their side
+    // effects.  Any errors (e.g. E48 in sandbox) will surface properly when
+    // the statusline is actually drawn.
+    ++emsg_off;
+    (void)build_stl_str_hl_local(STL_MODE_GET_RENDERED_HEIGHT,
+	    wp, buf, sizeof(buf), &fmt,
+	    opt_name, opt_scope, 0, 0, NULL, NULL, &rendered_height);
+    --emsg_off;
+    return rendered_height;
+}
+
+/*
+ * mode:
+ *  STL_MODE_SINGLE:
+ *  - Does not accept line breaks ("%@")
+ *  STL_MODE_MULTI:
+ *  - Accept line breaks
+ *  - Update fmt_arg to the start of the next line or last NUL position
+ *  STL_MODE_GET_RENDERED_HEIGHT:
+ *  - Just get stl rendered height
+ *  - Update rendered_height (if not NULL)
+ *
+ * NOTE:
+ * Line break counting is performed here because `%{% ... %}` items
+ * are re-evaluated on redraw and may change the final rendered text.
+ * Therefore, layout decisions must be based on the fully evaluated statusline
+ * string, not on pre-evaluation parsing.
+ */
+static int
+build_stl_str_hl_local(
+    stl_mode_T	mode,
+    win_T	*wp,
+    char_u	*out,		// buffer to write into != NameBuff
+    size_t	outlen,		// length of out[]
+    char_u	**fmt_arg,
+    char_u	*opt_name,      // option name corresponding to "fmt"
+    int		opt_scope,	// scope for "opt_name"
+    int		fillchar,
+    int		maxwidth,
+    stl_hlrec_T **hltab,	// return: HL attributes (can be NULL)
+    stl_hlrec_T **tabtab,	// return: tab page nrs (can be NULL)
+    int		*rendered_height)   // return: stl rendered height (can be NULL)
+{
     linenr_T	lnum;
     colnr_T	len;
     size_t	outputlen;	// length of out[] used (excluding the NUL)
@@ -4410,6 +4525,7 @@ build_stl_str_hl(
     char_u	opt;
 # define TMPLEN 70
     char_u	buf_tmp[TMPLEN];
+    char_u	*fmt = *fmt_arg;
     char_u	*usefmt = fmt;
     stl_hlrec_T *sp;
     int		save_redraw_not_allowed = redraw_not_allowed;
@@ -4418,6 +4534,7 @@ build_stl_str_hl(
     // matter?
     // int	called_emsg_before = called_emsg;
     int		did_emsg_before = did_emsg;
+    int		rheight = 1;	// stl rendered height
 
     // When inside update_screen() we do not want redrawing a statusline,
     // ruler, title, etc. to trigger another redraw, it may cause an endless
@@ -4544,7 +4661,23 @@ build_stl_str_hl(
 	 * Handle up to the next '%' or the end.
 	 */
 	while (*s != NUL && *s != '%' && p + 1 < out + outlen)
+# ifdef ENABLE_STL_MODE_MULTI_NL
+	{
+	    if (*s == '\n' || *s == '\r')
+	    {
+		if (mode == STL_MODE_MULTI_NL)
+		{
+		    s++;
+		    goto find_linebreak;
+		}
+		else if (mode == STL_MODE_GET_RENDERED_HEIGHT)
+		    rheight++;
+	    }
+# endif
 	    *p++ = *s++;
+# ifdef ENABLE_STL_MODE_MULTI_NL
+	}
+# endif
 	if (*s == NUL || p + 1 >= out + outlen)
 	    break;
 
@@ -4554,6 +4687,21 @@ build_stl_str_hl(
 	s++;
 	if (*s == NUL)  // ignore trailing %
 	    break;
+
+	if (*s == STL_LINEBREAK)
+	{
+	    if (mode == STL_MODE_MULTI
+# ifdef ENABLE_STL_MODE_MULTI_NL
+		    || mode == STL_MODE_MULTI_NL
+# endif
+	       )
+	    {
+		s++;
+		break;
+	    }
+	    else if (mode == STL_MODE_GET_RENDERED_HEIGHT)
+		rheight++;
+	}
 	if (*s == '%')
 	{
 	    if (p + 1 >= out + outlen)
@@ -5211,14 +5359,52 @@ build_stl_str_hl(
 	    vim_free(str);
 	curitem++;
     }
+# ifdef ENABLE_STL_MODE_MULTI_NL
+find_linebreak:
+# endif
     *p = NUL;
     outputlen = (size_t)(p - out);
     itemcnt = curitem;
 
-# ifdef FEAT_EVAL
-    if (usefmt != fmt)
-	vim_free(usefmt);
+    if (mode == STL_MODE_MULTI
+# ifdef ENABLE_STL_MODE_MULTI_NL
+		    || mode == STL_MODE_MULTI_NL
 # endif
+       )
+    {
+	// In multi-line mode, ownership of the format buffer is transferred
+	// back to the caller via *fmt_arg.
+	// When "%!" evaluation occurred (usefmt != fmt), "usefmt" is the newly
+	// allocated eval result and "fmt" is the caller's original buffer
+	// which is no longer needed.  "s" points into "usefmt", so we free
+	// "fmt" and shift the remaining format string within "usefmt" for the
+	// caller's next iteration.
+# ifdef FEAT_EVAL
+	if (usefmt != fmt)
+	    vim_free(fmt);
+# endif
+	size_t fmt_remain_len = strlen((char *)s);
+
+	mch_memmove(usefmt, s, fmt_remain_len);
+	usefmt[fmt_remain_len] = NUL;
+	*fmt_arg = usefmt;
+    }
+    else
+    {
+	// In single-line mode, the caller retains ownership of its buffer.
+	// Free the eval result if "%!" was used.
+# ifdef FEAT_EVAL
+	if (usefmt != fmt)
+	    vim_free(usefmt);
+# endif
+    }
+
+    if (mode == STL_MODE_GET_RENDERED_HEIGHT)
+    {
+	if (rendered_height != NULL)
+	    *rendered_height = rheight;
+	return 0;
+    }
 
     width = vim_strsize(out);
     if (maxwidth > 0 && width > maxwidth)
@@ -5306,7 +5492,8 @@ build_stl_str_hl(
 	}
 	width = maxwidth;
     }
-    else if (width < maxwidth && outputlen + maxwidth - width + 1 < outlen)
+    else if (width < maxwidth &&
+	    outputlen + (maxwidth - width) * MB_CHAR2LEN(fillchar) + 1 < outlen)
     {
 	// Find how many separators there are, which we will use when
 	// figuring out how many groups there are.
@@ -5961,7 +6148,7 @@ bt_normal(buf_T *buf)
 bt_quickfix(buf_T *buf UNUSED)
 {
 #ifdef FEAT_QUICKFIX
-    return buf != NULL && buf_valid(buf) && buf->b_p_bt[0] == 'q';
+    return buf != NULL && buf->b_p_bt[0] == 'q';
 #else
     return FALSE;
 #endif
@@ -6248,7 +6435,7 @@ wipe_buffer(
     if (!aucmd)		    // Don't trigger BufDelete autocommands here.
 	block_autocmds();
 
-    close_buffer(NULL, buf, DOBUF_WIPE, FALSE, TRUE);
+    close_buffer(NULL, buf, DOBUF_WIPE, FALSE, TRUE, FALSE);
 
     if (!aucmd)
 	unblock_autocmds();

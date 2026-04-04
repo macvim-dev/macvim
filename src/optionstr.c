@@ -75,10 +75,13 @@ static char *(p_kpc_protocol_values[]) = {"none", "mok2", "kitty", NULL};
 static char *(p_popup_cpp_option_values[]) = {"align:", "border:",
     "borderhighlight:", "close:", "height:", "highlight:", "resize:",
     "shadow:", "width:", NULL};
-static char *(p_popup_pvp_option_values[]) = {"height:", "highlight:",
-    "width:", NULL};
+static char *(p_popup_pvp_option_values[]) = {"border:",
+    "borderhighlight:", "close:", "height:", "highlight:", "resize:",
+    "shadow:", "width:", NULL};
 static char *(p_popup_option_on_off_values[]) = {"on", "off", NULL};
 static char *(p_popup_cpp_border_values[]) = {"single", "double", "round",
+    "ascii", "on", "off", "custom:", NULL};
+static char *(p_popup_pvp_border_values[]) = {"single", "double", "round",
     "ascii", "on", "off", "custom:", NULL};
 static char *(p_popup_option_align_values[]) = {"item", "menu", NULL};
 #endif
@@ -92,6 +95,9 @@ static char *(p_ssop_values[]) = {"buffers", "winpos", "resize", "winsize",
     "localoptions", "options", "help", "blank", "globals", "slash", "unix",
     "sesdir", "curdir", "folds", "cursor", "tabpages", "terminal", "skiprtp",
     NULL};
+#endif
+#if defined(FEAT_STL_OPT)
+static char *(p_stlo_values[]) = {"fixedheight", "maxheight:", NULL};
 #endif
 // Keep in sync with SWB_ flags in option.h
 static char *(p_swb_values[]) = {"useopen", "usetab", "split", "newtab", "vsplit", "uselast", NULL};
@@ -143,6 +149,9 @@ static char *(p_csl_values[]) = {"slash", "backslash", NULL};
 #endif
 #ifdef FEAT_SIGNS
 static char *(p_scl_values[]) = {"yes", "no", "auto", "number", NULL};
+#endif
+#ifdef UNIX
+static char *(p_trz_values[]) = {"inband", "sigwinch", "", NULL};
 #endif
 #if defined(MSWIN) && defined(FEAT_TERMINAL)
 static char *(p_twt_values[]) = {"winpty", "conpty", "", NULL};
@@ -215,32 +224,35 @@ trigger_optionset_string(
 	return;
 
     char_u buf_type[7];
+    size_t buf_typelen;
+    size_t oldvallen;
 
-    sprintf((char *)buf_type, "%s",
-	    (opt_flags & OPT_LOCAL) ? "local" : "global");
-    set_vim_var_string(VV_OPTION_OLD, oldval, -1);
+    oldvallen = STRLEN(oldval);
+    set_vim_var_string(VV_OPTION_OLD, oldval, (int)oldvallen);
     set_vim_var_string(VV_OPTION_NEW, newval, -1);
-    set_vim_var_string(VV_OPTION_TYPE, buf_type, -1);
+    buf_typelen = vim_snprintf_safelen((char *)buf_type, sizeof(buf_type),
+	"%s", (opt_flags & OPT_LOCAL) ? "local" : "global");
+    set_vim_var_string(VV_OPTION_TYPE, buf_type, (int)buf_typelen);
     if (opt_flags & OPT_LOCAL)
     {
-	set_vim_var_string(VV_OPTION_COMMAND, (char_u *)"setlocal", -1);
-	set_vim_var_string(VV_OPTION_OLDLOCAL, oldval, -1);
+	set_vim_var_string(VV_OPTION_COMMAND, (char_u *)"setlocal", STRLEN_LITERAL("setlocal"));
+	set_vim_var_string(VV_OPTION_OLDLOCAL, oldval, (int)oldvallen);
     }
     if (opt_flags & OPT_GLOBAL)
     {
-	set_vim_var_string(VV_OPTION_COMMAND, (char_u *)"setglobal", -1);
-	set_vim_var_string(VV_OPTION_OLDGLOBAL, oldval, -1);
+	set_vim_var_string(VV_OPTION_COMMAND, (char_u *)"setglobal", STRLEN_LITERAL("setglobal"));
+	set_vim_var_string(VV_OPTION_OLDGLOBAL, oldval, (int)oldvallen);
     }
     if ((opt_flags & (OPT_LOCAL | OPT_GLOBAL)) == 0)
     {
-	set_vim_var_string(VV_OPTION_COMMAND, (char_u *)"set", -1);
+	set_vim_var_string(VV_OPTION_COMMAND, (char_u *)"set", STRLEN_LITERAL("set"));
 	set_vim_var_string(VV_OPTION_OLDLOCAL, oldval_l, -1);
 	set_vim_var_string(VV_OPTION_OLDGLOBAL, oldval_g, -1);
     }
     if (opt_flags & OPT_MODELINE)
     {
-	set_vim_var_string(VV_OPTION_COMMAND, (char_u *)"modeline", -1);
-	set_vim_var_string(VV_OPTION_OLDLOCAL, oldval, -1);
+	set_vim_var_string(VV_OPTION_COMMAND, (char_u *)"modeline", STRLEN_LITERAL("modeline"));
+	set_vim_var_string(VV_OPTION_OLDLOCAL, oldval, (int)oldvallen);
     }
     apply_autocmds(EVENT_OPTIONSET,
 	    get_option_fullname(opt_idx), NULL, FALSE,
@@ -497,7 +509,6 @@ set_string_option_direct(
 #endif
 }
 
-#if defined(FEAT_PROP_POPUP) || (defined(FEAT_DIFF) && defined(FEAT_FOLDING))
 /*
  * Like set_string_option_direct(), but for a window-local option in "wp".
  * Blocks autocommands to avoid the old curwin becoming invalid.
@@ -521,7 +532,6 @@ set_string_option_direct_in_win(
     curbuf = curwin->w_buffer;
     unblock_autocmds();
 }
-#endif
 
 #if defined(FEAT_PROP_POPUP)
 /*
@@ -661,6 +671,11 @@ check_stl_option(char_u *s)
 	if (!*s)
 	    break;
 	s++;
+	if (*s == STL_LINEBREAK)
+	{
+	    s++;
+	    continue;
+	}
 	if (*s == '%' || *s == STL_TRUNCMARK || *s == STL_SEPARATE)
 	{
 	    s++;
@@ -2814,6 +2829,63 @@ did_set_highlight(optset_T *args UNUSED)
     return NULL;
 }
 
+    static int
+expand_hl_occasions(
+	optexpand_T *args,
+	int *numMatches,
+	char_u ***matches,
+	char_u prefix)
+{
+    char_u	    *p;
+    static char_u   hl_flags[HLF_COUNT] = HL_FLAGS;
+    size_t	    i;
+    int		    count = 0;
+
+    *matches = ALLOC_MULT(char_u *, HLF_COUNT + 1);
+    if (*matches == NULL)
+	return FAIL;
+
+    // We still want to return the full option if it's requested.
+    if (args->oe_include_orig_val)
+    {
+	p = vim_strsave(args->oe_opt_value);
+	if (p == NULL)
+	{
+	    VIM_CLEAR(*matches);
+	    return FAIL;
+	}
+	(*matches)[count++] = p;
+    }
+
+    for (i = 0; i < HLF_COUNT; i++)
+    {
+	p = alloc((prefix == NUL ? 1 : 2) + 1);
+	if (p == NULL)
+	{
+	    if (count == 0)
+	    {
+		VIM_CLEAR(*matches);
+		return FAIL;
+	    }
+	    else
+		break;
+	}
+	if (prefix == NUL)
+	    sprintf((char *)p, "%c", hl_flags[i]);
+	else
+	    sprintf((char *)p, "%c%c", prefix, hl_flags[i]);
+	(*matches)[count++] = p;
+    }
+
+    if (count == 0)
+    {
+	VIM_CLEAR(*matches);
+	return FAIL;
+    }
+    *numMatches = count;
+    return OK;
+}
+
 /*
  * Expand 'highlight' option.
  */
@@ -2822,7 +2894,6 @@ expand_set_highlight(optexpand_T *args, int *numMatches, char_u ***matches)
 {
     char_u	    *p;
     expand_T	    *xp = args->oe_xp;
-    static char_u   hl_flags[HLF_COUNT] = HL_FLAGS;
     size_t	    i;
     int		    count = 0;
 
@@ -2837,49 +2908,9 @@ expand_set_highlight(optexpand_T *args, int *numMatches, char_u ***matches)
     }
 
     if (*xp->xp_pattern == NUL)
-    {
 	// At beginning of a comma-separated list. Return the specific list of
 	// supported occasions.
-	*matches = ALLOC_MULT(char_u *, HLF_COUNT + 1);
-	if (*matches == NULL)
-	    return FAIL;
-
-	// We still want to return the full option if it's requested.
-	if (args->oe_include_orig_val)
-	{
-	    p = vim_strsave(args->oe_opt_value);
-	    if (p == NULL)
-	    {
-		VIM_CLEAR(*matches);
-		return FAIL;
-	    }
-	    (*matches)[count++] = p;
-	}
-
-	for (i = 0; i < HLF_COUNT; i++)
-	{
-	    p = vim_strnsave(&hl_flags[i], 1);
-	    if (p == NULL)
-	    {
-		if (count == 0)
-		{
-		    VIM_CLEAR(*matches);
-		    return FAIL;
-		}
-		else
-		    break;
-	    }
-	    (*matches)[count++] = p;
-	}
-
-	if (count == 0)
-	{
-	    VIM_CLEAR(*matches);
-	    return FAIL;
-	}
-	*numMatches = count;
-	return OK;
-    }
+	return expand_hl_occasions(args, numMatches, matches, NUL);
 
     // We are after the initial character (which indicates the occasion). We
     // already made sure we are not matching after a ':' above, so now we want
@@ -3425,6 +3456,9 @@ did_set_previewpopup(optset_T *args UNUSED)
     if (parse_previewpopup(NULL) == FAIL)
 	return e_invalid_argument;
 
+# if defined(FEAT_QUICKFIX)
+    popup_close_info();
+# endif
     return NULL;
 }
 
@@ -3462,9 +3496,9 @@ expand_set_popupoption(optexpand_T *args, int *numMatches, char_u ***matches,
 	{
 	    return expand_set_opt_string(
 		    args,
-		    previewpopup ? p_popup_option_on_off_values
+		    previewpopup ? p_popup_pvp_border_values
 			: p_popup_cpp_border_values,
-		    (previewpopup ? ARRAY_LENGTH(p_popup_option_on_off_values)
+		    (previewpopup ? ARRAY_LENGTH(p_popup_pvp_border_values) - 1
 			: ARRAY_LENGTH(p_popup_cpp_border_values)) - 1,
 		    numMatches,
 		    matches);
@@ -4056,6 +4090,13 @@ did_set_signcolumn(optset_T *args)
 	curwin->w_nrwidth_line_count = 0;
 # endif
 
+# if defined(FEAT_GUI)
+    // In the GUI, when sign icons are used, a full screen clear is needed
+    // to properly redraw the sign icons.
+    if (gui.in_use && curbuf->b_signlist != NULL)
+	redraw_all_later(UPD_CLEAR);
+# endif
+
     return NULL;
 }
 
@@ -4191,7 +4232,153 @@ expand_set_splitkeep(optexpand_T *args, int *numMatches, char_u ***matches)
     char *
 did_set_statusline(optset_T *args)
 {
-    return parse_statustabline_rulerformat(args, FALSE);
+    char_u  **varp = (char_u **)args->os_varp;
+    char    *ret = parse_statustabline_rulerformat(args, FALSE);
+
+    if (ret != NULL)
+	return ret;
+    update_stl_rendered_height(varp == &curwin->w_p_stl ? curwin : NULL);
+    frame_change_statusline_height();
+
+    return NULL;
+}
+
+/*
+ * Rewrite the 'statuslineopt' string: replace the last "maxheight:N" with
+ * actual_stlh and remove earlier duplicates.  Keyword order is preserved.
+ */
+    static void
+update_stlo_maxheight(char_u **varp, int actual_stlh)
+{
+    const char_u    *src = *varp;
+    const char_u    *last_mh = NULL;
+    const char_u    *p;
+
+    // Find the last "maxheight:" token.
+    p = src;
+    while (*p != NUL)
+    {
+	if (STRNCMP(p, "maxheight:", 10) == 0)
+	    last_mh = p;
+	while (*p != ',' && *p != NUL)
+	    ++p;
+	if (*p == ',')
+	    ++p;
+    }
+
+    if (last_mh == NULL)
+	return;
+
+    size_t	bufsize = STRLEN(src) + NUMBUFLEN + 1;
+    char_u	*buf = alloc(bufsize);
+    if (buf == NULL)
+	return;
+
+    int		len = 0;
+    bool	need_comma = false;
+
+    p = src;
+    while (*p != NUL)
+    {
+	const	char_u	*tok = p;
+	int	tok_len;
+
+	while (*p != ',' && *p != NUL)
+	    ++p;
+	tok_len = (int)(p - tok);
+	if (*p == ',')
+	    ++p;
+
+	if (STRNCMP(tok, "maxheight:", 10) == 0)
+	{
+	    if (tok == last_mh)
+	    {
+		// Replace the last occurrence with the actual value.
+		if (need_comma)
+		    buf[len++] = ',';
+		len += vim_snprintf((char *)buf + len,
+			bufsize - len, "maxheight:%d", actual_stlh);
+		need_comma = true;
+	    }
+	}
+	else
+	{
+	    if (need_comma)
+		buf[len++] = ',';
+	    mch_memmove(buf + len, tok, tok_len);
+	    len += tok_len;
+	    need_comma = true;
+	}
+    }
+    buf[len] = NUL;
+    free_string_option(*varp);
+    *varp = buf;
+}
+
+/*
+ * The 'statuslineopt' option is changed.
+ */
+    char *
+did_set_statuslineopt(optset_T *args)
+{
+    char_u	**varp = (char_u **)args->os_varp;
+    win_T       *wp = varp == &curwin->w_p_stlo ? curwin : NULL;
+
+    if (statuslineopt_changed(*varp, wp) == FAIL)
+	return e_invalid_argument;
+
+    // Sync stl_rendered_height with the current statusline.
+    update_stl_rendered_height(wp);
+
+    // Update the maxheight value to the actual value set.
+    // Note: Must be changed if p_stlo_values are changed.
+    if (*varp != empty_option)
+    {
+	int actual_stlh;
+
+	if (wp != NULL)
+	{
+	    frame_change_statusline_height();
+	    actual_stlh = MIN(wp->w_p_stlo_mh,
+		    wp->w_height + wp->w_status_height - p_wmh);
+	}
+	else
+	    actual_stlh = frame_change_statusline_height();
+
+	// Only re-serialize when the window actually has a status line shown.
+	if (actual_stlh > 0)
+	{
+	    update_stlo_maxheight(varp, actual_stlh);
+	    // Update the parsed maxheight member directly.
+	    if (wp != NULL)
+		wp->w_p_stlo_mh = actual_stlh;
+	    else
+		set_stlo_mh(actual_stlh);
+	}
+    }
+    else
+	frame_change_statusline_height();
+
+    if ((args->os_flags & (OPT_LOCAL | OPT_GLOBAL)) == 0)
+    {
+	// :set clears the local values.
+	clear_string_option(&curwin->w_p_stlo);
+	curwin->w_p_stlo_fh = -1;
+	curwin->w_p_stlo_mh = -1;
+    }
+
+    return NULL;
+}
+
+    int
+expand_set_statuslineopt(optexpand_T *args, int *numMatches, char_u ***matches)
+{
+    return expand_set_opt_string(
+	    args,
+	    p_stlo_values,
+	    ARRAY_LENGTH(p_stlo_values) - 1,
+	    numMatches,
+	    matches);
 }
 #endif
 
@@ -4395,8 +4582,42 @@ did_set_term_option(optset_T *args)
 	    out_str(T_BE);
     }
 
+    if (varp == &T_BSU || varp == &T_ESU)
+	term_set_sync_output(TERM_SYNC_OUTPUT_OFF);
+
     return NULL;
 }
+
+
+#ifdef UNIX
+/*
+ * The 'termresize' option is changed.
+ */
+    char *
+did_set_termresize(optset_T *args UNUSED)
+{
+    // If empty or "inband", then attempt to enable in-band resize events.
+    if (*p_trz == NUL || STRCMP(p_trz, "inband") == 0)
+	term_set_win_resize(true);
+    else if (STRCMP(p_trz, "sigwinch") == 0)
+	term_set_win_resize(false);
+    else
+	return e_invalid_argument;
+
+    return NULL;
+}
+
+    int
+expand_set_termresize(optexpand_T *args, int *numMatches, char_u ***matches)
+{
+    return expand_set_opt_string(
+	    args,
+	    p_trz_values,
+	    ARRAY_LENGTH(p_trz_values) - 1,
+	    numMatches,
+	    matches);
+}
+#endif
 
 #if defined(FEAT_TERMINAL)
 /*
@@ -4881,10 +5102,46 @@ expand_set_winaltkeys(optexpand_T *args, int *numMatches, char_u ***matches)
     char *
 did_set_wincolor(optset_T *args UNUSED)
 {
-#ifdef FEAT_TERMINAL
-    term_update_wincolor(curwin);
-#endif
+    update_wincolor(curwin, args->os_newval.string);
     return NULL;
+}
+
+/*
+ * The 'winhighlight' option is changed
+ */
+    char *
+did_set_winhighlight(optset_T *args)
+{
+    return update_winhighlight(curwin, args->os_newval.string);
+}
+
+/*
+ * Expand 'winhighlight' option.
+ */
+    int
+expand_set_winhighlight(optexpand_T *args, int *numMatches, char_u ***matches)
+{
+    expand_T	    *xp = args->oe_xp;
+
+    if ((xp->xp_pattern > args->oe_set_arg && *(xp->xp_pattern-1) == ':')
+	    || xp->xp_pattern == args->oe_set_arg || *(xp->xp_pattern-1) == ',')
+    {
+	// After a ':' or after a ',', or at the start, so expand highlight
+	// group name.
+
+	// If starts with !, then expand 'highlight' occasions.
+	if (*xp->xp_pattern == '!')
+	    return expand_hl_occasions(args, numMatches, matches, '!');
+	else
+	    return expand_set_opt_generic(
+		    args,
+		    get_highlight_name,
+		    numMatches,
+		    matches);
+    }
+
+    VIM_CLEAR(*matches);
+    return FAIL;
 }
 
     int
@@ -5423,27 +5680,29 @@ export_myvimdir(void)
     int		dofree = FALSE;
     char_u	*p;
     char_u	*q = p_rtp;
-    char_u	*buf = alloc(MAXPATHL);
+    string_T	buf;
 
-    if (buf == NULL)
+    buf.string = alloc(MAXPATHL);
+    if (buf.string == NULL)
 	return;
 
-    (void)copy_option_part(&q, buf, MAXPATHL, ",");
+    buf.length = (size_t)copy_option_part(&q, buf.string, MAXPATHL, ",");
 
     p = vim_getenv((char_u *)"MYVIMDIR", &dofree);
 
-    if (p == NULL || STRCMP(p, buf) != 0)
+    if (p == NULL || STRCMP(p, buf.string) != 0)
     {
-	add_pathsep(buf);
+	if (*buf.string != NUL && !after_pathsep(buf.string, buf.string + buf.length))
+	    STRCPY(buf.string + buf.length, PATHSEPSTR);
 #ifdef MSWIN
 	// normalize path separators
-	for (q = buf; *q != NUL; q++)
+	for (q = buf.string; *q != NUL; q++)
 	    if (*q == '/')
 		*q = '\\';
 #endif
-	vim_setenv((char_u *)"MYVIMDIR", buf);
+	vim_setenv((char_u *)"MYVIMDIR", buf.string);
     }
     if (dofree)
 	vim_free(p);
-    vim_free(buf);
+    vim_free(buf.string);
 }

@@ -1595,8 +1595,12 @@ ml_recover(int checkext)
 			if (!cannot_open)
 			{
 			    line_count = pp->pb_pointer[idx].pe_line_count;
-			    if (readfile(curbuf->b_ffname, NULL, lnum,
-					pp->pb_pointer[idx].pe_old_lnum - 1,
+			    linenr_T pe_old_lnum = pp->pb_pointer[idx].pe_old_lnum;
+			    // Validate pe_line_count and pe_old_lnum from the
+			    // untrusted swap file before passing to readfile().
+			    if (line_count <= 0 || pe_old_lnum < 1 ||
+				    readfile(curbuf->b_ffname, NULL, lnum,
+					pe_old_lnum - 1,
 					line_count, NULL, 0) != OK)
 				cannot_open = TRUE;
 			    else
@@ -1627,6 +1631,27 @@ ml_recover(int checkext)
 		    bnum = pp->pb_pointer[idx].pe_bnum;
 		    line_count = pp->pb_pointer[idx].pe_line_count;
 		    page_count = pp->pb_pointer[idx].pe_page_count;
+		    // Validate pe_bnum and pe_page_count from the untrusted
+		    // swap file before passing to mf_get(), which uses
+		    // page_count to calculate allocation size.  A bogus value
+		    // (e.g. 0x40000000) would cause a multi-GB allocation.
+		    // pe_page_count must be >= 1 and bnum + page_count must
+		    // not exceed the number of pages in the swap file.
+		    if (page_count < 1
+			    || bnum + page_count > mfp->mf_blocknr_max + 1)
+		    {
+			++error;
+			ml_append(lnum++,
+				(char_u *)_("???ILLEGAL BLOCK NUMBER"),
+				(colnr_T)0, TRUE);
+			// Skip this entry and pop back up the stack to keep
+			// recovering whatever else we can.
+			idx = ip->ip_index + 1;
+			bnum = ip->ip_bnum;
+			page_count = 1;
+			--buf->b_ml.ml_stack_top;
+			continue;
+		    }
 		    idx = 0;
 		    continue;
 		}
@@ -1867,13 +1892,12 @@ recover_names(
 {
     int		num_names;
     char_u	*(names[6]);
-    char_u	*tail;
     char_u	*p;
     int		num_files;
     int		file_count = 0;
     char_u	**files;
     char_u	*dirp;
-    char_u	*dir_name;
+    string_T	dir_name;
     char_u	*fname_res = NULL;
 #ifdef HAVE_READLINK
     char_u	fname_buf[MAXPATHL];
@@ -1902,35 +1926,35 @@ recover_names(
      * Do the loop for every directory in 'directory'.
      * First allocate some memory to put the directory name in.
      */
-    dir_name = alloc(STRLEN(p_dir) + 1);
+    dir_name.string = alloc(STRLEN(p_dir) + 1);
     dirp = p_dir;
-    while (dir_name != NULL && *dirp)
+    while (dir_name.string != NULL && *dirp)
     {
 	/*
 	 * Isolate a directory name from *dirp and put it in dir_name (we know
 	 * it is large enough, so use 31000 for length).
 	 * Advance dirp to next directory name.
 	 */
-	(void)copy_option_part(&dirp, dir_name, 31000, ",");
+	dir_name.length = (size_t)copy_option_part(&dirp, dir_name.string, 31000, ",");
 
-	if (dir_name[0] == '.' && dir_name[1] == NUL)	// check current dir
+	if (dir_name.string[0] == '.' && dir_name.string[1] == NUL)	// check current dir
 	{
 	    if (fname == NULL)
 	    {
 #ifdef VMS
-		names[0] = vim_strsave((char_u *)"*_sw%");
+		names[0] = vim_strnsave((char_u *)"*_sw%", STRLEN_LITERAL("*_sw%"));
 #else
-		names[0] = vim_strsave((char_u *)"*.sw?");
+		names[0] = vim_strnsave((char_u *)"*.sw?", STRLEN_LITERAL("*.sw?"));
 #endif
 #if defined(UNIX) || defined(MSWIN)
 		// For Unix names starting with a dot are special.  MS-Windows
 		// supports this too, on some file systems.
-		names[1] = vim_strsave((char_u *)".*.sw?");
-		names[2] = vim_strsave((char_u *)".sw?");
+		names[1] = vim_strnsave((char_u *)".*.sw?", STRLEN_LITERAL(".*.sw?"));
+		names[2] = vim_strnsave((char_u *)".sw?", STRLEN_LITERAL(".sw?"));
 		num_names = 3;
 #else
 # ifdef VMS
-		names[1] = vim_strsave((char_u *)".*_sw%");
+		names[1] = vim_strnsave((char_u *)".*_sw%", STRLEN_LITERAL(".*_sw%"));
 		num_names = 2;
 # else
 		num_names = 1;
@@ -1944,20 +1968,27 @@ recover_names(
 	{
 	    if (fname == NULL)
 	    {
+		string_T    ret;
+
 #ifdef VMS
-		names[0] = concat_fnames(dir_name, (char_u *)"*_sw%", TRUE);
+		names[0] = concat_fnames(dir_name.string, dir_name.length,
+		    (char_u *)"*_sw%", STRLEN_LITERAL("*_sw%"), TRUE, &ret);
 #else
-		names[0] = concat_fnames(dir_name, (char_u *)"*.sw?", TRUE);
+		names[0] = concat_fnames(dir_name.string, dir_name.length,
+		    (char_u *)"*.sw?", STRLEN_LITERAL("*.sw?"), TRUE, &ret);
 #endif
 #if defined(UNIX) || defined(MSWIN)
 		// For Unix names starting with a dot are special.  MS-Windows
 		// supports this too, on some file systems.
-		names[1] = concat_fnames(dir_name, (char_u *)".*.sw?", TRUE);
-		names[2] = concat_fnames(dir_name, (char_u *)".sw?", TRUE);
+		names[1] = concat_fnames(dir_name.string, dir_name.length,
+		    (char_u *)".*.sw?", STRLEN_LITERAL(".*.sw?"), TRUE, &ret);
+		names[2] = concat_fnames(dir_name.string, dir_name.length,
+		    (char_u *)".sw?", STRLEN_LITERAL(".sw?"), TRUE, &ret);
 		num_names = 3;
 #else
 # ifdef VMS
-		names[1] = concat_fnames(dir_name, (char_u *)".*_sw%", TRUE);
+		names[1] = concat_fnames(dir_name.string, dir_name.length,
+		    (char_u *)".*_sw%", STRLEN_LITERAL(".*_sw%"), TRUE, &ret);
 		num_names = 2;
 # else
 		num_names = 1;
@@ -1966,20 +1997,23 @@ recover_names(
 	    }
 	    else
 	    {
-#if defined(UNIX) || defined(MSWIN)
-		int	len = (int)STRLEN(dir_name);
+		char_u	*tail;
 
-		p = dir_name + len;
-		if (after_pathsep(dir_name, p) && len > 1 && p[-1] == p[-2])
+#if defined(UNIX) || defined(MSWIN)
+		p = dir_name.string + dir_name.length;
+		if (after_pathsep(dir_name.string, p) && dir_name.length > 1 && p[-1] == p[-2])
 		{
 		    // Ends with '//', Use Full path for swap name
-		    tail = make_percent_swname(dir_name, p, fname_res);
+		    tail = make_percent_swname(dir_name.string, p, fname_res);
 		}
 		else
 #endif
 		{
+		    string_T	ret;
+
 		    tail = gettail(fname_res);
-		    tail = concat_fnames(dir_name, tail, TRUE);
+		    tail = concat_fnames(dir_name.string, dir_name.length,
+			tail, STRLEN(tail), TRUE, &ret);
 		}
 		if (tail == NULL)
 		    num_names = 0;
@@ -2076,7 +2110,7 @@ recover_names(
 	}
 	else if (do_list)
 	{
-	    if (dir_name[0] == '.' && dir_name[1] == NUL)
+	    if (dir_name.string[0] == '.' && dir_name.string[1] == NUL)
 	    {
 		if (fname == NULL)
 		    msg_puts(_("   In current directory:\n"));
@@ -2086,7 +2120,7 @@ recover_names(
 	    else
 	    {
 		msg_puts(_("   In directory "));
-		msg_home_replace(dir_name);
+		msg_home_replace(dir_name.string);
 		msg_puts(":\n");
 	    }
 
@@ -2109,13 +2143,16 @@ recover_names(
 #ifdef FEAT_EVAL
 	else if (ret_list != NULL)
 	{
+	    string_T	name;
+
 	    for (int i = 0; i < num_files; ++i)
 	    {
-		char_u *name = concat_fnames(dir_name, files[i], TRUE);
-		if (name != NULL)
+		concat_fnames(dir_name.string, dir_name.length,
+		    files[i], STRLEN(files[i]), TRUE, &name);
+		if (name.string != NULL)
 		{
-		    list_append_string(ret_list, name, -1);
-		    vim_free(name);
+		    list_append_string(ret_list, name.string, (int)name.length);
+		    vim_free(name.string);
 		}
 	    }
 	}
@@ -2128,7 +2165,7 @@ recover_names(
 	if (num_files > 0)
 	    FreeWild(num_files, files);
     }
-    vim_free(dir_name);
+    vim_free(dir_name.string);
     return file_count;
 }
 
@@ -2143,26 +2180,26 @@ recover_names(
     char_u *
 make_percent_swname(char_u *dir, char_u *dir_end, char_u *name)
 {
-    char_u *d = NULL, *s, *f;
+    string_T	d = {NULL, 0};
+    string_T	fixed_fname;
+    char_u	*p;
 
-    f = fix_fname(name != NULL ? name : (char_u *)"");
-    if (f == NULL)
+    fixed_fname.string = fix_fname(name != NULL ? name : (char_u *)"");
+    if (fixed_fname.string == NULL)
 	return NULL;
 
-    s = alloc(STRLEN(f) + 1);
-    if (s != NULL)
-    {
-	STRCPY(s, f);
-	for (d = s; *d != NUL; MB_PTR_ADV(d))
-	    if (vim_ispathsep(*d))
-		*d = '%';
+    for (p = fixed_fname.string; *p != NUL; MB_PTR_ADV(p))
+	if (vim_ispathsep(*p))
+	    *p = '%';
+    fixed_fname.length = (size_t)(p - fixed_fname.string);
 
-	dir_end[-1] = NUL;  // remove one trailing slash
-	d = concat_fnames(dir, s, TRUE);
-	vim_free(s);
-    }
-    vim_free(f);
-    return d;
+    // remove one trailing slash
+    p = &dir_end[-1];
+    *p = NUL;
+    concat_fnames(dir, (size_t)(p - dir), fixed_fname.string, fixed_fname.length, TRUE, &d);
+    vim_free(fixed_fname.string);
+
+    return d.string;
 }
 #endif
 
@@ -2409,6 +2446,7 @@ recov_file_names(char_u **names, char_u *path, int prepend_dot)
 
     curbuf->b_shortname = FALSE;
 #endif
+    string_T	ret;
 
     num_names = 0;
 
@@ -2428,9 +2466,11 @@ recov_file_names(char_u **names, char_u *path, int prepend_dot)
      * Form the normal swap file name pattern by appending ".sw?".
      */
 #ifdef VMS
-    names[num_names] = concat_fnames(path, (char_u *)"_sw%", FALSE);
+    names[num_names] = concat_fnames(path, STRLEN(path),
+	(char_u *)"_sw%", STRLEN_LITERAL("_sw%"), FALSE, &ret);
 #else
-    names[num_names] = concat_fnames(path, (char_u *)".sw?", FALSE);
+    names[num_names] = concat_fnames(path, STRLEN(path),
+	(char_u *)".sw?", STRLEN_LITERAL(".sw?"), FALSE, &ret);
 #endif
     if (names[num_names] == NULL)
 	goto end;
@@ -2941,7 +2981,7 @@ ml_append_int(
     int		line_count;	// number of indexes in current block
     int		offset;
     int		from, to;
-    int		space_needed;	// space needed for new line
+    long	space_needed;	// space needed for new line
     int		page_size;
     int		page_count;
     int		db_idx;		// index for lnum in data block
@@ -3018,7 +3058,7 @@ ml_append_int(
  * - not appending to the last line in the file
  * insert in front of the next block.
  */
-    if ((int)dp->db_free < space_needed && db_idx == line_count - 1
+    if ((long)dp->db_free < space_needed && db_idx == line_count - 1
 					    && lnum < buf->b_ml.ml_line_count)
     {
 	/*
@@ -3041,7 +3081,7 @@ ml_append_int(
 
     ++buf->b_ml.ml_line_count;
 
-    if ((int)dp->db_free >= space_needed)	// enough room in data block
+    if ((long)dp->db_free >= space_needed)	// enough room in data block
     {
 	/*
 	 * Insert the new line in an existing data block, or in the data block
@@ -3142,7 +3182,7 @@ ml_append_int(
 		data_moved = ((dp->db_index[db_idx]) & DB_INDEX_MASK) -
 							    dp->db_txt_start;
 		total_moved = data_moved + lines_moved * INDEX_SIZE;
-		if ((int)dp->db_free + total_moved >= space_needed)
+		if ((long)dp->db_free + total_moved >= space_needed)
 		{
 		    in_left = TRUE;	// put new line in left block
 		    space_needed = total_moved;
@@ -3447,7 +3487,7 @@ ml_append_int(
 #endif
 
 #ifdef FEAT_NETBEANS_INTG
-    if (netbeans_active())
+    if (!(flags & ML_APPEND_NEW) && netbeans_active())
     {
 	int line_len = (int)STRLEN(line);
 	if (line_len > 0)
@@ -3456,7 +3496,7 @@ ml_append_int(
     }
 #endif
 #ifdef FEAT_JOB_CHANNEL
-    if (buf->b_write_to_channel)
+    if (!(flags & ML_APPEND_NEW) && buf->b_write_to_channel)
 	channel_write_new_lines(buf);
 #endif
     ret = OK;
@@ -3487,11 +3527,15 @@ ml_append_flush(
 	ml_flush_line(buf);
 
 #ifdef FEAT_EVAL
-    // When inserting above recorded changes: flush the changes before changing
-    // the text.  Then flush the cached line, it may become invalid.
-    may_invoke_listeners(buf, lnum + 1, lnum + 1, 1);
-    if (buf->b_ml.ml_line_lnum != 0)
-	ml_flush_line(buf);
+    if (!(flags & ML_APPEND_NEW))
+    {
+	// When inserting above recorded changes: flush the changes before
+	// changing the text.  Then flush the cached line, it may become
+	// invalid.  Skip during initial file read for performance.
+	may_invoke_listeners(buf, lnum + 1, lnum + 1, 1);
+	if (buf->b_ml.ml_line_lnum != 0)
+	    ml_flush_line(buf);
+    }
 #endif
 
     return ml_append_int(buf, lnum, line, len, flags);
@@ -3647,7 +3691,7 @@ ml_replace_len(
 	    size_t textproplen = curbuf->b_ml.ml_line_len - oldtextlen;
 
 	    // Need to copy over text properties, stored after the text.
-	    newline = alloc(len + (int)textproplen);
+	    newline = alloc(len + textproplen);
 	    if (newline != NULL)
 	    {
 		mch_memmove(newline, line, len);
@@ -4719,45 +4763,61 @@ get_file_in_dir(
     char_u  *fname,
     char_u  *dname)	// don't use "dirname", it is a global for Alpha
 {
-    char_u	*t;
-    char_u	*tail;
-    char_u	*retval;
-    int		save_char;
+    string_T	tail;
+    string_T	retval;
 
-    tail = gettail(fname);
+    tail.string = gettail(fname);
+    tail.length = STRLEN(tail.string);
 
     if (dname[0] == '.' && dname[1] == NUL)
-	retval = vim_strsave(fname);
-    else if (dname[0] == '.' && vim_ispathsep(dname[1]))
+	retval.string =
+	    vim_strnsave(fname, (size_t)(tail.string - fname) + tail.length);
+    else
     {
-	if (tail == fname)	    // no path before file name
-	    retval = concat_fnames(dname + 2, tail, TRUE);
-	else
+	size_t	dname_len = STRLEN(dname);
+
+	if (dname[0] == '.' && vim_ispathsep(dname[1]))
 	{
-	    save_char = *tail;
-	    *tail = NUL;
-	    t = concat_fnames(fname, dname + 2, TRUE);
-	    *tail = save_char;
-	    if (t == NULL)	    // out of memory
-		retval = NULL;
+	    if (tail.string == fname)	    // no path before file name
+		concat_fnames(dname + 2, dname_len - 2,
+		    tail.string, tail.length, TRUE, &retval);
 	    else
 	    {
-		retval = concat_fnames(t, tail, TRUE);
-		vim_free(t);
+		int	    save_char;
+		string_T    tmp;
+
+		save_char = *tail.string;
+		*tail.string = NUL;
+		concat_fnames(fname, (size_t)(tail.string - fname),
+		    dname + 2, dname_len - 2, TRUE, &tmp);
+		*tail.string = save_char;
+		if (tmp.string == NULL)	    // out of memory
+		    retval.string = NULL;
+		else
+		{
+		    concat_fnames(tmp.string, tmp.length,
+			tail.string, tail.length, TRUE, &retval);
+		    vim_free(tmp.string);
+		}
 	    }
 	}
+	else
+	    concat_fnames(dname, dname_len, tail.string, tail.length,
+		TRUE, &retval);
     }
-    else
-	retval = concat_fnames(dname, tail, TRUE);
 
 #ifdef MSWIN
-    if (retval != NULL)
-	for (t = gettail(retval); *t != NUL; MB_PTR_ADV(t))
+    if (retval.string != NULL)
+    {
+	char_u	*t;
+
+	for (t = gettail(retval.string); *t != NUL; MB_PTR_ADV(t))
 	    if (*t == ':')
 		*t = '%';
+    }
 #endif
 
-    return retval;
+    return retval.string;
 }
 
 /*

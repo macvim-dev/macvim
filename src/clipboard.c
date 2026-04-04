@@ -452,6 +452,10 @@ clip_auto_select(void)
     int
 clip_isautosel_star(void)
 {
+# ifdef FEAT_CLIPBOARD_PROVIDER
+    if (clipmethod == CLIPMETHOD_PROVIDER)
+	return false;
+# endif
 # ifdef FEAT_GUI
     if (gui.in_use)
 	return vim_strchr(p_go, GO_ASEL) != NULL
@@ -467,6 +471,10 @@ clip_isautosel_star(void)
     int
 clip_isautosel_plus(void)
 {
+# ifdef FEAT_CLIPBOARD_PROVIDER
+    if (clipmethod == CLIPMETHOD_PROVIDER)
+	return false;
+# endif
 # ifdef FEAT_GUI
     if (gui.in_use)
 	return vim_strchr(p_go, GO_ASELPLUS) != NULL;
@@ -2106,6 +2114,7 @@ clip_get_selection(Clipboard_T *cbd)
     pos_T	old_cursor;
     pos_T	old_visual;
     int		old_visual_mode;
+    colnr_T	old_virtcol;
     colnr_T	old_curswant;
     int		old_set_curswant;
     pos_T	old_op_start, old_op_end;
@@ -2127,6 +2136,7 @@ clip_get_selection(Clipboard_T *cbd)
 	old_y_previous = get_y_previous();
 	old_y_current = get_y_current();
 	old_cursor = curwin->w_cursor;
+	old_virtcol = curwin->w_virtcol;
 	old_curswant = curwin->w_curswant;
 	old_set_curswant = curwin->w_set_curswant;
 	old_op_start = curbuf->b_op_start;
@@ -2147,7 +2157,8 @@ clip_get_selection(Clipboard_T *cbd)
 	set_y_previous(old_y_previous);
 	set_y_current(old_y_current);
 	curwin->w_cursor = old_cursor;
-	changed_cline_bef_curs();   // need to update w_virtcol et al
+	curwin->w_virtcol = old_virtcol;
+	changed_cline_bef_curs();   // old w_virtcol et al. may be invalid
 	curwin->w_curswant = old_curswant;
 	curwin->w_set_curswant = old_set_curswant;
 	curbuf->b_op_start = old_op_start;
@@ -2969,7 +2980,7 @@ clip_wl_receive_data(Clipboard_T *cbd, const char *mime_type, int fd)
 
     if (STRCMP(mime_type, VIM_ATOM_NAME) == 0 && buf.ga_len >= 2)
     {
-	motion_type = *final++;;
+	motion_type = *final++;
 	buf.ga_len--;
     }
     else if (STRCMP(mime_type, VIMENC_ATOM_NAME) == 0 && buf.ga_len >= 3)
@@ -3140,8 +3151,8 @@ vwl_data_source_listener_event_send(
     if (is_vimenc)
     {
 	string[0] = (char_u)motion_type;
-	// strcpy copies the NUL terminator too
-	strcpy((char *)string + 1, (char *)p_enc);
+	// Use vim_strncpy for safer copying
+	vim_strncpy(string + 1, p_enc, STRLEN(p_enc));
     }
     else if (is_vim)
 	string[0] = (char_u)motion_type;
@@ -3782,7 +3793,6 @@ clip_provider_get_callback(
 
     // func_tv owns the function name, so we must make a copy for the callback
     set_callback(callback, &cb);
-    free_callback(&cb);
     clear_tv(&func_tv);
     return OK;
 }
@@ -3842,7 +3852,8 @@ clip_provider_copy(char_u *reg, char_u *provider)
     }
 
     for (int i = 0; i < y_ptr->y_size; i++)
-	if (list_append_string(list, y_ptr->y_array[i].string, -1) == FAIL)
+	if (list_append_string(list, y_ptr->y_array[i].string,
+	    (int)y_ptr->y_array[i].length) == FAIL)
 	{
 	    free_callback(&callback);
 	    list_unref(list);

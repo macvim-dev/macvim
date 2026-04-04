@@ -194,6 +194,7 @@ def s:GetFilenameChecks(): dict<list<string>>
     coco: ['file.atg'],
     codeowners: ['CODEOWNERS'],
     conaryrecipe: ['file.recipe'],
+    concerto: ['file.cto'],
     conf: ['auto.master', 'file.conf', 'texdoc.cnf', '.x11vncrc', '.chktexrc', '.ripgreprc', 'ripgreprc', 'file.ctags'],
     config: ['/etc/hostname.file', 'any/etc/hostname.file', 'configure.in', 'configure.ac', 'file.at', 'aclocal.m4'],
     confini: ['pacman.conf', 'paru.conf', 'mpv.conf', 'any/.aws/config', 'any/.aws/credentials', 'any/.aws/cli/alias', 'file.nmconnection',
@@ -256,6 +257,7 @@ def s:GetFilenameChecks(): dict<list<string>>
              'psprint.conf', 'sofficerc', 'any/.config/lxqt/globalkeyshortcuts.conf', 'any/.config/screengrab/screengrab.conf',
              'any/.local/share/flatpak/repo/config',
              '.alsoftrc', 'alsoft.conf', 'alsoft.ini', 'alsoftrc.sample',
+             '/etc/wireguard/wg0.conf',
              '.notmuch-config', '.notmuch-config.myprofile',
              '~/.config/notmuch/myprofile/config'] + WhenConfigHome('$XDG_CONFIG_HOME/notmuch/myprofile/config'),
     dot: ['file.dot', 'file.gv'],
@@ -278,6 +280,7 @@ def s:GetFilenameChecks(): dict<list<string>>
     elmfilt: ['filter-rules'],
     elsa: ['file.lc'],
     elvish: ['file.elv'],
+    env: ['.env', '.env.file', 'file.env'],
     epuppet: ['file.epp'],
     erlang: ['file.erl', 'file.hrl', 'file.yaws', 'file.app.src', 'rebar.config'],
     eruby: ['file.erb', 'file.rhtml'],
@@ -379,7 +382,7 @@ def s:GetFilenameChecks(): dict<list<string>>
     hostconf: ['/etc/host.conf', 'any/etc/host.conf'],
     hostsaccess: ['/etc/hosts.allow', '/etc/hosts.deny', 'any/etc/hosts.allow', 'any/etc/hosts.deny'],
     # file.component.html should be HTML, not Angular, see #13594
-    html: ['file.html', 'file.htm', 'file.cshtml', 'file.component.html'],
+    html: ['file.html', 'file.htm', 'file.component.html'],
     htmlm4: ['file.html.m4'],
     httest: ['file.htt', 'file.htb'],
     http: ['file.http'],
@@ -417,7 +420,7 @@ def s:GetFilenameChecks(): dict<list<string>>
     jovial: ['file.jov', 'file.j73', 'file.jovial'],
     jproperties: ['file.properties', 'file.properties_xx', 'file.properties_xx_xx', 'some.properties_xx_xx_file', 'org.eclipse.xyz.prefs'],
     jq: ['file.jq'],
-    json: ['file.json', 'file.jsonp', 'file.json-patch', 'file.geojson', 'file.webmanifest', 'Pipfile.lock', 'file.ipynb', 'file.jupyterlab-settings',
+    json: ['file.json', 'file.jsonp', 'file.json-patch', 'file.geojson', 'file.webmanifest', 'Pipfile.lock', 'file.ipynb', 'file.jupyterlab-settings', 'file.cps',
     '.prettierrc', '.firebaserc', '.stylelintrc', '.lintstagedrc', 'file.slnf', 'file.sublime-project', 'file.sublime-settings', 'file.sublime-workspace',
     'file.bd', 'file.bda', 'file.xci', 'flake.lock', 'pack.mcmeta', 'deno.lock', '.swcrc', 'composer.lock', 'symfony.lock'],
     json5: ['file.json5'],
@@ -579,6 +582,7 @@ def s:GetFilenameChecks(): dict<list<string>>
     ncf: ['file.ncf'],
     neomuttlog: ['/home/user/.neomuttdebug1'],
     neomuttrc: ['Neomuttrc', '.neomuttrc', '.neomuttrc-file', '/.neomutt/neomuttrc', '/.neomutt/neomuttrc-file', 'Neomuttrc', 'Neomuttrc-file', 'any/.neomutt/neomuttrc', 'any/.neomutt/neomuttrc-file', 'neomuttrc', 'neomuttrc-file' ],
+    neon: ['file.neon'],
     netlinx: ['file.axs', 'file.axi'],
     netrc: ['.netrc'],
     nginx: ['file.nginx', 'nginxfile.conf', 'filenginx.conf', 'any/etc/nginx/file', 'any/usr/local/nginx/conf/file', 'any/nginx/file.conf'],
@@ -596,6 +600,7 @@ def s:GetFilenameChecks(): dict<list<string>>
     numbat: ['file.nbt'],
     obj: ['file.obj'],
     objdump: ['file.objdump', 'file.cppobjdump'],
+    objectscript_routine: ['file.rtn'],
     obse: ['file.obl', 'file.obse', 'file.oblivion', 'file.obscript'],
     ocaml: ['file.ml', 'file.mli', 'file.mll', 'file.mly', '.ocamlinit', 'file.mlt', 'file.mlp', 'file.mlip', 'file.mli.cppo', 'file.ml.cppo'],
     occam: ['file.occ'],
@@ -680,6 +685,7 @@ def s:GetFilenameChecks(): dict<list<string>>
     rapid: ['file.sysx', 'file.Sysx', 'file.SysX', 'file.SYSx', 'file.SYSX', 'file.modx', 'file.Modx', 'file.ModX', 'file.MODx', 'file.MODX'],
     rasi: ['file.rasi', 'file.rasinc'],
     ratpoison: ['.ratpoisonrc', 'ratpoisonrc'],
+    razor: ['file.cshtml', 'file.razor'],
     rbs: ['file.rbs'],
     rc: ['file.rc', 'file.rch'],
     rcs: ['file,v'],
@@ -734,7 +740,7 @@ def s:GetFilenameChecks(): dict<list<string>>
     sh: ['.bashrc', '.bash_profile', '.bash-profile', '.bash_logout', '.bash-logout', '.bash_aliases', '.bash-aliases', '.bash_history', '.bash-history',
          '/tmp/bash-fc-3Ozjlw', '/tmp/bash-fc.3Ozjlw', 'PKGBUILD', 'file.bash', '/usr/share/doc/bash-completion/filter.sh',
          '/etc/udev/cdsymlinks.conf', 'any/etc/udev/cdsymlinks.conf', 'file.bats', '.ash_history', 'any/etc/neofetch/config.conf', '.xprofile',
-         'user-dirs.defaults', 'user-dirs.dirs', 'makepkg.conf', '.makepkg.conf', 'file.mdd', 'file.cygport', '.env', '.envrc', 'devscripts.conf',
+         'user-dirs.defaults', 'user-dirs.dirs', 'makepkg.conf', '.makepkg.conf', 'file.mdd', 'file.cygport', '.envrc', '.envrc.file', 'file.envrc', 'devscripts.conf',
          '.devscripts', 'file.lo', 'file.la', 'file.lai'],
     shaderslang: ['file.slang'],
     sieve: ['file.siv', 'file.sieve'],
@@ -959,6 +965,7 @@ def s:GetFilenameChecks(): dict<list<string>>
     wgsl: ['file.wgsl'],
     winbatch: ['file.wbt'],
     wit: ['file.wit'],
+    wks: ['file.wks', 'file.wks.in', 'file.wks.inc'],
     wml: ['file.wml'],
     wsh: ['file.wsf', 'file.wsc'],
     wsml: ['file.wsml'],
@@ -986,6 +993,7 @@ def s:GetFilenameChecks(): dict<list<string>>
     yaml: ['file.yaml', 'file.yml', 'file.eyaml', 'file.kyaml', 'file.kyml', 'any/.bundle/config', '.clangd', '.clang-format', '.clang-tidy', 'file.mplstyle', 'matplotlibrc', 'yarn.lock',
            '/home/user/.kube/config', '/home/user/.kube/kuberc', '.condarc', 'condarc', '.mambarc', 'mambarc', 'pixi.lock'],
     yang: ['file.yang'],
+    yara: ['file.yara', 'file.yar'],
     yuck: ['file.yuck'],
     z8a: ['file.z8a'],
     zathurarc: ['zathurarc'],
@@ -2560,6 +2568,39 @@ func Test_cls_file()
   bwipe!
   unlet g:filetype_cls
 
+  let g:filetype_cls = 'objectscript'
+  split Xfile.cls
+  call assert_equal('objectscript', &filetype)
+  bwipe!
+  unlet g:filetype_cls
+
+  " ObjectScript
+
+  call writefile(['Class User.Person Extends (%Persistent, %Populate)'], 'Xfile.cls')
+  split Xfile.cls
+  call assert_equal('objectscript', &filetype)
+  bwipe!
+
+  call writefile(['Import MyApp.Utils', 'Class User.Person Extends %Persistent'], 'Xfile.cls')
+  split Xfile.cls
+  call assert_equal('objectscript', &filetype)
+  bwipe!
+
+  call writefile(['Include MyMacros', 'Class User.Person Extends %Persistent'], 'Xfile.cls')
+  split Xfile.cls
+  call assert_equal('objectscript', &filetype)
+  bwipe!
+
+  call writefile(['IncludeGenerator MyGen', 'Class User.Person Extends %Persistent'], 'Xfile.cls')
+  split Xfile.cls
+  call assert_equal('objectscript', &filetype)
+  bwipe!
+
+  call writefile(['Import MyApp.Utils', 'Include MyMacros', 'IncludeGenerator MyGen', 'Class User.Person Extends %Persistent'], 'Xfile.cls')
+  split Xfile.cls
+  call assert_equal('objectscript', &filetype)
+  bwipe!
+
   " TeX
 
   call writefile(['%'], 'Xfile.cls')
@@ -2739,6 +2780,12 @@ func Test_inc_file()
   call assert_equal('pov', &filetype)
   bwipe!
 
+  " ObjectScript routine
+  call writefile(['ROUTINE Sample [Type=INC]'], 'Xfile.inc', 'D')
+  split Xfile.inc
+  call assert_equal('objectscript_routine', &filetype)
+  bwipe!
+
   let g:filetype_inc = 'foo'
   split Xfile.inc
   call assert_equal('foo', &filetype)
@@ -2820,6 +2867,72 @@ func Test_inc_file()
   split Xfile.inc
   call assert_equal('foo', &filetype)
   bwipe!
+
+  filetype off
+endfunc
+
+func Test_int_file()
+  filetype on
+
+  " Intel HEX
+  call writefile([':10010000214601360121470136007EFE09D2190140'], 'Xfile.int', 'D')
+  split Xfile.int
+  call assert_equal('hex', &filetype)
+  bwipe!
+
+  " ObjectScript routine
+  call writefile(['ROUTINE Sample [Type=INT]'], 'Xfile.int', 'D')
+  split Xfile.int
+  call assert_equal('objectscript_routine', &filetype)
+  bwipe!
+
+  " ObjectScript routine by IRIS marker in first line
+  call writefile(['Exported from IRIS source control'], 'Xfile.int', 'D')
+  split Xfile.int
+  call assert_equal('objectscript_routine', &filetype)
+  bwipe!
+
+  " Not ObjectScript routine by partial IRIS match in first line
+  call writefile(['Exported from IRISation source control'], 'Xfile.int', 'D')
+  split Xfile.int
+  call assert_equal('hex', &filetype)
+  bwipe!
+
+  " ObjectScript routine by %RO marker in first three lines
+  call writefile(['; generated file', '%RO routine metadata'], 'Xfile.int', 'D')
+  split Xfile.int
+  call assert_equal('objectscript_routine', &filetype)
+  bwipe!
+
+  let g:filetype_int = 'foo'
+  split Xfile.int
+  call assert_equal('foo', &filetype)
+  bwipe!
+  unlet g:filetype_int
+
+  filetype off
+endfunc
+
+func Test_mac_file()
+  filetype on
+
+  " Assembly
+  call writefile(['looks like asm'], 'Xfile.mac', 'D')
+  split Xfile.mac
+  call assert_equal('asm', &filetype)
+  bwipe!
+
+  " ObjectScript routine
+  call writefile(['ROUTINE Sample [Type=MAC]'], 'Xfile.mac', 'D')
+  split Xfile.mac
+  call assert_equal('objectscript_routine', &filetype)
+  bwipe!
+
+  let g:filetype_mac = 'foo'
+  split Xfile.mac
+  call assert_equal('foo', &filetype)
+  bwipe!
+  unlet g:filetype_mac
 
   filetype off
 endfunc

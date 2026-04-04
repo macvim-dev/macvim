@@ -1,4 +1,4 @@
-*autocmd.txt*	For Vim version 9.2.  Last change: 2026 Feb 14
+*autocmd.txt*	For Vim version 9.2.  Last change: 2026 Feb 25
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -437,6 +437,7 @@ Name			triggered by ~
 |QuickFixCmdPre|	before a quickfix command is run
 |QuickFixCmdPost|	after a quickfix command is run
 
+|SessionLoadPre|	before loading a session file
 |SessionLoadPost|	after loading a session file
 
 |SessionWritePost|	after writing the session file using
@@ -1190,6 +1191,9 @@ SafeStateAgain			Like SafeState but after processing any
 				triggered often, don't do something that takes
 				time.
 
+							*SessionLoadPre*
+SessionLoadPre			Before loading the session file created using
+				the |:mksession| command.
 							*SessionLoadPost*
 SessionLoadPost			After loading the session file created using
 				the |:mksession| command.

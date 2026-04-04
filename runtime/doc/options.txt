@@ -1,4 +1,4 @@
-*options.txt*	For Vim version 9.2.  Last change: 2026 Feb 14
+*options.txt*	For Vim version 9.2.  Last change: 2026 Apr 03
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -97,6 +97,17 @@ achieve special effects.  These options come in three forms:
 			If the option is a list of flags, superfluous flags
 			are removed.  When adding a flag that was already
 			present the option value doesn't change.
+			When the option supports "key:value" items and {value}
+			contains a "key:value" item or multiple
+			comma-separated items, each item is processed
+			individually:
+			- A "key:value" item where the key already exists with
+			  a different value: the old item is removed and the
+			  new item is appended to the end.
+			- A "key:value" item that is an exact duplicate is
+			  left unchanged.
+			- Other items that already exist are left unchanged.
+			- New items are appended to the end.
 			Also see |:set-args| above.
 
 :se[t] {option}^={value}				*:set^=*
@@ -104,6 +115,11 @@ achieve special effects.  These options come in three forms:
 			the {value} to a string option.  When the option is a
 			comma-separated list, a comma is added, unless the
 			value was empty.
+			When the option supports "key:value" items and {value}
+			contains a "key:value" item or multiple
+			comma-separated items, each item is processed
+			individually.  Works like |:set+=| but new items are
+			prepended to the beginning instead of appended.
 			Also see |:set-args| above.
 
 :se[t] {option}-={value}				*:set-=*
@@ -116,6 +132,12 @@ achieve special effects.  These options come in three forms:
 			When the option is a list of flags, {value} must be
 			exactly as they appear in the option.  Remove flags
 			one by one to avoid problems.
+			When the option supports "key:value" items and {value}
+			contains a "key:value" item or multiple
+			comma-separated items, each item is processed
+			individually.  A "key:value" item removes the existing
+			item with that key regardless of its value.  A "key:"
+			item also removes by key match.
 			The individual values from a comma separated list or
 			list of flags can be inserted by typing 'wildchar'.
 			See |complete-set-option|.
@@ -1005,10 +1027,10 @@ A jump table for the options with a short description can be found at |Q_op|.
 'autowrite' 'aw'	boolean	(default off)
 			global
 	Write the contents of the file, if it has been modified, on each
-	`:next`, `:rewind`, `:last`, `:first`, `:previous`, `:stop`,
-	`:suspend`, `:tag`, `:!`, `:make`, CTRL-] and CTRL-^ command; and when
-	a `:buffer`, CTRL-O, CTRL-I, '{A-Z0-9}, or `{A-Z0-9} command takes one
-	to another file.
+	`:next`, `:rewind`, `:last`, `:first`, `:previous`, `:tag`, `:stop`,
+	`:suspend`, `:!`, `:make`, `:terminal`, CTRL-] or CTRL-^ command; and
+	when a `:buffer`, CTRL-O, CTRL-I, '{A-Z0-9}, or `{A-Z0-9} command
+	switches to another file.
 	A buffer is not written if it becomes hidden, e.g. when 'bufhidden' is
 	set to "hide" and `:next` is used.
 	Note that for some commands the 'autowrite' option is not used, see
@@ -1022,8 +1044,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 			 *'autowriteall'* *'awa'* *'noautowriteall'* *'noawa'*
 'autowriteall' 'awa'	boolean	(default off)
 			global
-	Like 'autowrite', but also used for commands ":edit", ":enew",
-	":quit", ":qall", ":exit", ":xit", ":recover" and closing the Vim
+	Like 'autowrite', but also used for commands `:edit`, `:enew`,
+	`:quit`, `:qall`, `:exit`, `:xit`, `:recover` and closing the Vim
 	window.
 	Setting this option also implies that Vim behaves like 'autowrite' has
 	been set.
@@ -2219,6 +2241,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 	Note: The match limit takes effect only during forward completion
 	(CTRL-N) and is ignored during backward completion (CTRL-P).
 
+	This option cannot be set in a modeline when 'modelineexpr' is off.
+
 						*'completefunc'* *'cfu'*
 'completefunc' 'cfu'	string	(default: empty)
 			local to buffer
@@ -2272,11 +2296,13 @@ A jump table for the options with a short description can be found at |Q_op|.
 	   fuzzy    Enable |fuzzy-matching| for completion candidates.  This
 		    allows for more flexible and intuitive matching, where
 		    characters can be skipped and matches can be found even
-		    if the exact sequence is not typed.
+		    if the exact sequence is not typed (disabled for thesaurus
+		    completion |compl-thesaurus|).
 
 	   longest
 		    When 'autocomplete' is not active, only the longest common
-		    prefix of the matches is inserted.  If the popup menu is
+		    prefix of the matches is inserted (disabled for thesaurus
+		    completion |compl-thesaurus|).  If the popup menu is
 		    displayed, you can use CTRL-L to add more characters.
 		    Whether case is ignored depends on the type of completion.
 		    For buffer text the 'ignorecase' option applies.
@@ -3223,7 +3249,10 @@ A jump table for the options with a short description can be found at |Q_op|.
 					difference.  Non-alphanumeric
 					multi-byte characters such as emoji
 					and CJK characters are considered
-					individual words.
+					individual words.  Small gaps of
+					non-word characters (5 bytes or less)
+					between changes are merged into a
+					single highlight block.
 
 		internal	Use the internal diff library.  This is
 				ignored when 'diffexpr' is set.  *E960*
@@ -3608,6 +3637,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 		|SafeState|,
 		|SafeStateAgain|,
 		|SessionLoadPost|,
+		|SessionLoadPre|,
 		|SessionWritePost|,
 		|ShellCmdPost|,
 		|SigUSR1|,
@@ -4757,6 +4787,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 	You can include a line break.  Simplest method is to use |:let|: >
 		:let &guitabtooltip = "line one\nline two"
 <
+	This option cannot be set in a modeline when 'modelineexpr' is off.
 
 						*'helpfile'* *'hf'*
 'helpfile' 'hf'		string	(default (MS-Windows) "$VIMRUNTIME\doc\help.txt"
@@ -4906,6 +4937,9 @@ A jump table for the options with a short description can be found at |Q_op|.
 	|hl-PmenuBorder|   j  popup menu border characters
 	|hl-PmenuShadow|   H  popup menu shadow
 	|hl-PreInsert|	 I  text inserted when "preinsert" is in 'completeopt'
+	|hl-Normal|	 (  Window color (supersedes 'wincolor' option)
+
+	Note that the "(" occasion is not set by default.
 
 	The display modes are:
 		r	reverse		(termcap entry "mr" and "me")
@@ -5904,6 +5938,15 @@ A jump table for the options with a short description can be found at |Q_op|.
 				---+---+--XXX ~
 			Where "XXX" denotes the first non-blank characters in
 			the line.
+							*lcs-leadtab*
+	  leadtab:xy[z]
+			Like |lcs-tab|, but only for leading tabs.  When
+			omitted, the "tab" setting is used for leading tabs.
+			|lcs-tab| must also be set for this to work. *E1572*
+			You can combine it with "tab:", for example: >
+				:set listchars=tab:>-,leadtab:.\ 
+<			This shows leading tabs as periods(.) and other tabs
+			as ">--".
 							*lcs-trail*
 	  trail:c	Character to show for trailing spaces.  When omitted,
 			trailing spaces are blank.  Overrides the "space" and
@@ -6122,7 +6165,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 	Increasing this limit above 200 also changes the maximum for Ex
 	command recursion, see |E169|.
 	See also |:function|.
-	Also used for maximum depth of callback functions.
+	Also used for maximum depth of callback functions and encoding and
+	decoding of deeply nested json data.
 
 						*'maxmapdepth'* *'mmd'* *E223*
 'maxmapdepth' 'mmd'	number	(default 1000)
@@ -6942,6 +6986,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 	The format of the header produced in |:hardcopy| output.
 	See |pheader-option|.
 
+	This option cannot be set in a modeline when 'modelineexpr' is off.
+
 						*'printmbcharset'* *'pmbcs'*
 'printmbcharset' 'pmbcs'  string (default "")
 			global
@@ -7474,7 +7520,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 	For $XDG_CONFIG_HOME see |xdg-base-dir|.
 
 	The defaults for most systems are setup to search five locations:
-	1. In your home directory, for your personal preferences.
+	1. In your $MYVIMDIR directory, for your personal preferences.
 	2. In a system-wide Vim directory, for preferences from the system
 	   administrator.
 	3. In $VIMRUNTIME, for files distributed with Vim.
@@ -7482,7 +7528,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 	4. In the "after" directory in the system-wide Vim directory.  This is
 	   for the system administrator to overrule or add to the distributed
 	   defaults (rarely needed)
-	5. In the "after" directory in your home directory.  This is for
+	5. In the "after" directory in your $MYVIMDIR directory.  This is for
 	   personal preferences to overrule or add to the distributed defaults
 	   or system-wide settings (rarely needed).
 
@@ -8652,6 +8698,9 @@ A jump table for the options with a short description can be found at |Q_op|.
 	      applied to StatusLineNC for the statusline of non-current
 	      windows.
 	      The number N must be between 1 and 9.  See |hl-User1..9|
+								*stl-%@*
+	@ -   Inserts a newline.  This only takes effect when the "maxheight"
+	      value of 'statuslineopt' is greater than 1, or for |tabpanel|.
 
 	When displaying a flag, Vim removes the leading comma, if any, when
 	that flag comes right after plaintext.  This will make a nice display
@@ -8709,6 +8758,51 @@ A jump table for the options with a short description can be found at |Q_op|.
 	  :function VarExists(var, val)
 	  :    if exists(a:var) | return a:val | else | return '' | endif
 	  :endfunction
+<
+						*'statuslineopt'* *'stlo'*
+'statuslineopt' 'stlo'	string	(default "")
+			global or local to window |global-local|
+			{not available when compiled without the |+statusline|
+			feature}
+	Optional settings for |status-line|.  It can consist of the following
+	items.  All are optional.  Items must be separated by a comma.
+
+	    fixedheight     Fix the status line height to "maxheight".
+			    Without this, the height varies from 1 to
+			    "maxheight" based on the number of newline
+			    |stl-%@| in 'statusline'.
+
+	    maxheight:{n}   Set the maximum status line height to {n}.
+			    {n} must be 1 or greater.  If not specified, the
+			    height is 1.
+			    When {n} is 2 or more, you can use newline
+			    |stl-%@| in 'statusline' to display information on
+			    multiple lines.
+
+			    If {n} cannot be set due to insufficient window
+			    height or other constraints, a best-effort
+			    approach will be taken to set the closest possible
+			    value that does not exceed {n}.  No error will be
+			    shown even if the setting cannot be changed.
+
+			    For the global value, a value applicable to all
+			    windows on all tab pages is used.  For a
+			    window-local value, a value applicable to that
+			    window is used.
+			    Note: When the applied value differs from {n}, the
+			    option is updated to reflect it.
+			    Example of updated options: >vim
+				:set statuslineopt=maxheight:999,fixedheight
+				" Only 20 lines could be applied, so
+				" maxheight is updated to 20.
+				:set statuslineopt?
+				  statuslineopt=maxheight:20,fixedheight
+<
+	Examples: >
+		:set statuslineopt=fixedheight
+		:set stlo=
+		:set stlo=maxheight:2,fixedheight
+		:set stlo-=fixedheight
 <
 						*'suffixes'* *'su'*
 'suffixes' 'su'		string	(default ".bak,~,.o,.h,.info,.swp,.obj")
@@ -8895,11 +8989,11 @@ A jump table for the options with a short description can be found at |Q_op|.
 
 	You can use |g:actual_curtabpage| within a function assigned to
 	tabpanel.  |g:actual_curtabpage| represents current tab's label number.
-	The option value can contain "\n" to force line breaks: >
+	You can use "%@" or "\n" to insert a newline: >
 
 		set tabpanel=%!TabPanel()
 		function! TabPanel() abort
-		  return printf("(%2d)\n  %%f", g:actual_curtabpage)
+		  return "(" .. g:actual_curtabpage .. ")%@  %f"
 		endfunction
 <
 	The result is:
@@ -8913,8 +9007,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 	|           |
 	|           |
 <
-	Note: using "\n" is considered experimental and may change in the
-	future; a %-atom may be used instead.
+	Note: using "\n" is considered experimental and deprecated, prefer
+	the |stl-%@| atom instead.
 
 					*'tabpanelopt'* *'tplo'*
 'tabpanelopt' 'tplo'	string	(default "")
@@ -9187,6 +9281,39 @@ A jump table for the options with a short description can be found at |Q_op|.
 <
 	NOTE: This option is reset when 'compatible' is set.
 
+						*'termresize'* *'trz'*
+'termresize' 'trz'	string	(default "")
+			global
+			{only available in Unix, does not work in the GUI}
+	Determines the method to use for detecting window resize events,
+	possible values are:
+	    "sigwinch":	    Use the SIGWINCH signal.
+	    "inband":	    Receive resize events from the terminal via escape
+			    sequences (recommended if supported by terminal).
+	    "":		    Automatically choose depending on terminal.
+
+	The SIGWINCH handler is always available.  If set to "inband" and the
+	terminal does not support in-band window resize events, then the
+	SIGWINCH handler will be used instead as a fallback.  If set to ""
+	(empty option), then "inband" will be used if Vim detects that the
+	terminal supports it, otherwise "sigwinch".
+
+
+						*'termsync'* *'tsy'*
+'termsync' 'tsy'	boolean (default off)
+			global
+	If the host terminal supports it, buffer all screen updates made
+	during a redraw cycle so that each screen is displayed in the terminal
+	all at once.  This can prevent tearing or flickering when the terminal
+	updates faster than Vim can redraw.  If the host terminal does not
+	support it or if Vim is running graphically, then this option does
+	nothing.
+
+	The specification can be found at:
+	https://github.com/contour-terminal/vt-extensions/blob/master/synchronized-output.md
+
+	The terminal codes used are |t_BS| and |t_ES|.
+
 						*'termwinkey'* *'twk'*
 'termwinkey' 'twk'	string	(default "")
 			local to window
@@ -9255,8 +9382,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 
 	|ConPTY| support depends on the platform.  Windows 10 October 2018
 	Update is the first version that supports ConPTY, however it is still
-	considered unstable.  ConPTY might become stable in the next release
-	of Windows 10.  winpty support needs to be installed.  If neither is
+	considered unstable.  ConPTY has become stable with the initial release
+	of Windows 11.  winpty support needs to be installed.  If neither is
 	supported then you cannot open a terminal window.
 
 						*'terse'* *'noterse'*
@@ -10352,8 +10479,19 @@ A jump table for the options with a short description can be found at |Q_op|.
 						*'wincolor'* *'wcr'*
 'wincolor' 'wcr' string (default empty)
 			local to window
+	DEPRECATED: Use 'winhighlight' if possible, this option uses
+	'winhighlight' internally by setting it to: >vim
+	    set winhighlight=!(:HighlightGroup
+<	If this option is set and 'winhighlight' is changed, then it will not
+	update the option value.  For example, if 'wincolor' is set to "A" and
+	then 'winhighlight' is to an empty value, then 'wincolor' will still
+	remain as "A".  Additionally, the existing value in 'winhighlight' will
+	be discarded when this option is set.
+
 	Highlight group name to use for this window instead of the Normal
-	color |hl-Normal|.
+	color |hl-Normal|.  For other |highlight-groups|, see 'winhighlight'.
+	Note that it is not recommended to set this and 'winhighlight' at the
+	same time.
 
 						*'window'* *'wi'*
 'window' 'wi'		number  (default screen height - 1)
@@ -10411,6 +10549,35 @@ A jump table for the options with a short description can be found at |Q_op|.
 	height of the current window.
 	'winheight' applies to the current window.  Use 'winminheight' to set
 	the minimal height for other windows.
+
+						*'winhighlight'* *'whl'*
+'winhighlight' 'whl'	string (default empty)
+			local to window
+	Window-local highlight group mappings.  Comma-delimited list of
+	highlight |group-name| pairs "{hl-from}:{hl-to},..." where each
+	{hl-from} is a |highlight-groups| item to be overridden by {hl-to}
+	group in the window.  If {hl-from} is "Normal", then it will always
+	map to the "(" (window color) value in 'highlight'.
+
+	If a highlight group name starts with "!", then it is assumed to map
+	to a value in 'highlight'.  For example, this will override the
+	visual mode setting: >vim
+	    set winhighlight=!v:SomeHighlightGroup
+<	This will map the occasion "v" to occasion "l" >vim
+	    set winhighlight=!v:!l
+<
+	Highlights of vertical separators are determined by the window to the
+	left of the separator.  The 'tabline' highlight of a tabpage is
+	decided by the last-focused window of the tabpage.  Highlights of
+	the popupmenu are determined by the current window.  Highlights in the
+	message area cannot be overridden.
+
+	When handling highlight group links, if a highlight group (which may
+	be a link as well) is overridden by 'winhighlight', then all highlight
+	groups that link to it will be affected.  For example, if highlight
+	group C links to B which links to A, then >vim
+	    set winhighlight=B:SomeHighlightGroup
+<	will make SomeHighlightGroup override groups B and C, but not A.
 
 						*'winminheight'* *'wmh'*
 'winminheight' 'wmh'	number	(default 1)

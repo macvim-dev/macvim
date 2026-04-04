@@ -1635,8 +1635,8 @@ static struct specialkey
     {
         colnr_T leftcol, rightcol;
         getvcols(curwin, &curwin->w_cursor, &VIsual,
-                 &leftcol, &rightcol);
-        getvcol(curwin, &m_pos, NULL, &m_pos.col, NULL);
+                 &leftcol, &rightcol, 0);
+        getvcol(curwin, &m_pos, NULL, &m_pos.col, NULL, 0);
         if (m_pos.col < leftcol || m_pos.col > rightcol)
             return NO;
     }

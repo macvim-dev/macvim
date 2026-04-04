@@ -2443,8 +2443,7 @@ luaV_pushversion(lua_State *L)
     "    -- Note: ignores trailing item without trailing `;`. Not using something\n"\
     "    -- simpler in order to preserve empty items (stand for default path).\n"\
     "    local orig = {}\n"\
-    "    for s in orig_str:gmatch('[^;]*;') do\n"\
-    "      s = s:sub(1, -2)  -- Strip trailing semicolon\n"\
+    "    for s in orig_str:gmatch('([^;]*);') do\n"\
     "      orig[#orig + 1] = s\n"\
     "    end\n"\
     "    if key == 'path' then\n"\

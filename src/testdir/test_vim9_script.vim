@@ -1847,6 +1847,41 @@ def Test_vim9script_reload_delfunc()
   g:DoCheck(false)
 enddef
 
+def Test_vim9script_reload_lambda_def_func()
+  CheckFeature timers
+
+  var lines =<< trim END
+    vim9script
+
+    def F()
+      g:call_result += 1
+    enddef
+
+    augroup Xtest933
+      au!
+      au CmdlineLeave : timer_start(0, (_) => F())
+    augroup END
+  END
+
+  g:call_result = 0
+  writefile(lines, 'Xtest933.vim', 'D')
+  source Xtest933.vim
+
+  # Simulate the CmdlineLeave event that fires before the second :so
+  doautocmd CmdlineLeave :
+
+  # Re-source: F is redefined; without the fix this causes E933 when timer fires
+  source Xtest933.vim
+
+  # Allow the 0ms timer to fire
+  sleep 10m
+
+  assert_equal(1, g:call_result)
+
+  augroup Xtest933 | au! | augroup END
+  unlet! g:call_result
+enddef
+
 def Test_vim9script_reload_delvar()
   # write the script with a script-local variable
   var lines =<< trim END
@@ -5754,6 +5789,40 @@ def Test_substitute_cmd()
   END
   writefile(lines, 'Xvim9lines', 'D')
   source Xvim9lines
+enddef
+
+def Test_call_stack_string()
+  CheckScreendump
+  var lines =<< trim END
+    vim9script
+
+    def CheckStack(stack: string, expected: string)
+      const caller = stack->split('\.\.')[-1]->substitute('\[\d\+\]', '', '')
+      if caller !~ expected
+        throw 'fail'
+      endif
+    enddef
+
+    class C
+      static def ClassMethodX()
+        CheckStack(expand('<stack>'), '_C.ClassMethodX$')
+      enddef
+    endclass
+
+    def NormalFuncX()
+      CheckStack(expand('<stack>'), '_NormalFuncX$')
+    enddef
+
+    # creating function names of various lengths till the name in call stack is corrupt
+    for i in range(1, 20)
+      const name = 'Wrapper' .. repeat('A', i) .. 'func'
+      execute "def g:" .. name .. "(id: any)\n  NormalFuncX()\n  C.ClassMethodX()\nenddef"
+      execute "timer_start(0, g:" .. name .. ")"
+    endfor
+  END
+  writefile(lines, 'XTest_call_stack_string', 'D')
+  var buf = g:RunVimInTerminal('-S XTest_call_stack_string', {'rows': 20})
+  g:StopVimInTerminal(buf)
 enddef
 
 " vim: ts=8 sw=2 sts=2 expandtab tw=80 fdm=marker

@@ -1717,7 +1717,7 @@ nfa_regatom(void)
 				    colnr_T vcol = 0;
 
 				    getvvcol(curwin, &curwin->w_cursor,
-							    NULL, NULL, &vcol);
+							 NULL, NULL, &vcol, 0);
 				    n = ++vcol;
 				}
 				// \%{n}v  \%{n}<v  \%{n}>v
@@ -1765,6 +1765,7 @@ collection:
 	    if (*endp == ']')
 	    {
 		int plen;
+		bool range_endpoint;
 		/*
 		 * Try to reverse engineer character classes. For example,
 		 * recognize that [0-9] stands for \d and [A-Za-z_] for \h,
@@ -1812,6 +1813,7 @@ collection:
 		while (regparse < endp)
 		{
 		    int	    oldstartc = startc;
+		    range_endpoint = false;
 
 		    startc = -1;
 		    got_coll_char = FALSE;
@@ -1975,6 +1977,7 @@ collection:
 		    if (emit_range)
 		    {
 			int	endc = startc;
+			range_endpoint = true;
 
 			startc = oldstartc;
 			if (startc > endc)
@@ -2053,7 +2056,14 @@ collection:
 			}
 		    }
 
-		    if (enc_utf8 && (utf_ptr2len(regparse) != (plen = utfc_ptr2len(regparse))))
+		    //
+		    // If this character was consumed as the end of a range, do not emit its
+		    // composing characters separately.  Range handling only uses the base
+		    // codepoint; emitting the composing part again would duplicate the
+		    // character in the postfix stream and corrupt the NFA stack.
+		    //
+		    if (!range_endpoint && enc_utf8 &&
+			    (utf_ptr2len(regparse) != (plen = utfc_ptr2len(regparse))))
 		    {
 			int i = utf_ptr2len(regparse);
 
@@ -2891,16 +2901,16 @@ nfa_print_state2(FILE *debugf, nfa_state_T *state, garray_T *indent)
     // grow indent for state->out
     indent->ga_len -= 1;
     if (state->out1)
-	ga_concat_len(indent, (char_u *)"| ", 2);
+	GA_CONCAT_LITERAL(indent, "| ");
     else
-	ga_concat_len(indent, (char_u *)"  ", 2);
+	GA_CONCAT_LITERAL(indent, "  ");
     ga_append(indent, NUL);
 
     nfa_print_state2(debugf, state->out, indent);
 
     // replace last part of indent for state->out1
     indent->ga_len -= 3;
-    ga_concat_len(indent, (char_u *)"  ", 2);
+    GA_CONCAT_LITERAL(indent, "  ");
     ga_append(indent, NUL);
 
     nfa_print_state2(debugf, state->out1, indent);
@@ -3187,7 +3197,10 @@ nfa_max_width(nfa_state_T *startstate, int depth)
 		    ++len;
 		if (state->c != NFA_ANY)
 		{
-		    // skip over the characters
+		    // Skip over the compiled collection.
+		    // malformed NFAs must not crash width estimation.
+		    if (state->out1 == NULL || state->out1->out == NULL)
+			return -1;
 		    state = state->out1->out;
 		    continue;
 		}

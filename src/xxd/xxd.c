@@ -72,6 +72,8 @@
  * 20.08.2025  remove external library call for autoconversion on z/OS (MVS)
  * 24.08.2025  avoid NULL dereference with autoskip colorless
  * 26.11.2025  update indent in exit_with_usage()
+ * 19.03.2026  Add -t option to end output with terminating null
+ * 25.03.2026  Fix color output issues
  *
  * (c) 1990-1998 by Juergen Weigert (jnweiger@gmail.com)
  *
@@ -152,7 +154,7 @@ extern void perror __P((char *));
 # endif
 #endif
 
-char version[] = "xxd 2025-11-26 by Juergen Weigert et al.";
+char version[] = "xxd 2026-03-25 by Juergen Weigert et al.";
 #ifdef WIN32
 char osver[] = " (Win32)";
 #else
@@ -285,6 +287,7 @@ exit_with_usage(void)
 		  "    -g bytes    number of octets per group in normal output. Default 2 (-e: 4).\n"
 		  "    -h          print this summary.\n"
 		  "    -i          output in C include file style.\n"
+		  "    -t          append terminating zero to C include output (-i).\n"
 		  "    -l len      stop after <len> octets.\n"
 		  "    -n name     set the variable name used in C include output (-i).\n"
 		  "    -o off      add <off> to the displayed file position.\n"
@@ -721,7 +724,16 @@ enable_color(void)
   mode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
   return (int)SetConsoleMode(out, mode);
 #elif defined(UNIX)
-  return isatty(STDOUT_FILENO);
+  char *term;
+
+  if (!isatty(STDOUT_FILENO))
+    return 0;
+
+  term = getenv("TERM");
+  if (term == NULL || *term == '\0' || !strcmp(term, "dumb"))
+    return 0;
+
+  return 1;
 #else
   return 0;
 #endif
@@ -735,6 +747,7 @@ main(int argc, char *argv[])
   int cols = 0, colsgiven = 0, nonzero = 0, autoskip = 0, hextype = HEX_NORMAL;
   int capitalize = 0, decimal_offset = 0;
   int ebcdic = 0;
+  int termination = 0;
   int octspergrp = -1;	/* number of octets grouped in output */
   int grplen;		/* total chars per octet group excluding colors */
   long length = -1, n = 0, seekoff = 0;
@@ -745,6 +758,7 @@ main(int argc, char *argv[])
   char *varname = NULL;
   int addrlen = 9;
   int color = 0;
+  int color_forced = 0;	/* set when -R always is used */
   char *no_color;
   char cur_color = 0;
 
@@ -784,6 +798,7 @@ main(int argc, char *argv[])
       else if (!STRNCMP(pp, "-d", 2)) decimal_offset = 1;
       else if (!STRNCMP(pp, "-r", 2)) revert++;
       else if (!STRNCMP(pp, "-E", 2)) ebcdic++;
+      else if (!STRNCMP(pp, "-t", 2)) termination++;
       else if (!STRNCMP(pp, "-v", 2))
 	{
 	  fprintf(stderr, "%s%s\n", version, osver);
@@ -916,6 +931,7 @@ main(int argc, char *argv[])
 	    {
 	      (void)enable_color();
 	      color = 1;
+	      color_forced = 1;
 	    }
 	  else if (!STRNCMP(pw, "never", 5))
 	    color = 0;
@@ -1014,6 +1030,10 @@ main(int argc, char *argv[])
 	  return 3;
 	}
       rewind(fpo);
+
+      /* Disable auto color when writing to a file. */
+      if (!color_forced)
+	color = 0;
     }
 
   if (revert)
@@ -1069,8 +1089,13 @@ main(int argc, char *argv[])
 	}
 
       p = 0;
-      while ((length < 0 || p < length) && (c = getc_or_die(fp)) != EOF)
+      while ((length < 0 || p < length) && (((c = getc_or_die(fp)) != EOF) || termination))
 	{
+	  if (c == EOF)
+	    {
+	      c = 0;
+	      termination = -1;
+	    }
 	  if (hextype & HEX_BITS)
 	    {
 	      if (p == 0)
@@ -1090,6 +1115,11 @@ main(int argc, char *argv[])
 	      FPRINTF_OR_DIE((fpo, (hexx == hexxa) ? "%s0x%02x" : "%s0X%02X",
 		(p % cols) ? ", " : (!p ? "  " : ",\n  "), c));
 	      p++;
+	    }
+	  if (termination == -1)
+	    {
+	      --p;
+	      break ;
 	    }
 	}
 

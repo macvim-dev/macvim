@@ -951,6 +951,7 @@ heredoc_get(exarg_T *eap, char_u *cmd, int script_get, int vim9compile)
 	    {
 		vim_free(theline);
 		vim_free(text_indent);
+		list_free(l);
 		return FAIL;
 	    }
 	    count++;
@@ -1713,7 +1714,7 @@ ex_let_env(
 	else if (endchars != NULL
 			      && vim_strchr(endchars, *skipwhite(arg)) == NULL)
 	    emsg(_(e_unexpected_characters_in_let));
-	else if (!check_secure())
+	else if (!check_secure() && !check_restricted())
 	{
 	    char_u	*tofree = NULL;
 	    int		c1 = name[len];
@@ -2151,9 +2152,14 @@ do_unlet_var(
     else if (lp->ll_list != NULL)
 	// unlet a List item.
 	listitem_remove(lp->ll_list, lp->ll_li);
-    else
+    else if (lp->ll_dict != NULL)
 	// unlet a Dictionary item.
 	dictitem_remove(lp->ll_dict, lp->ll_di, "unlet");
+    else
+    {
+	semsg(_(e_cannot_unlet_imported_item_str), lp->ll_name);
+	return FAIL;
+    }
 
     return ret;
 }
@@ -2846,16 +2852,19 @@ get_vim_var_dict(int idx)
     void
 set_vim_var_char(int c)
 {
-    char_u	buf[MB_MAXBYTES + 1];
+    char_u  buf[MB_MAXBYTES + 1];
+    size_t  buflen;
 
     if (has_mbyte)
-	buf[(*mb_char2bytes)(c, buf)] = NUL;
+	buflen = (*mb_char2bytes)(c, buf);
     else
     {
 	buf[0] = c;
-	buf[1] = NUL;
+	buflen = 1;
     }
-    set_vim_var_string(VV_CHAR, buf, -1);
+    buf[buflen] = NUL;
+
+    set_vim_var_string(VV_CHAR, buf, (int)buflen);
 }
 
 /*
@@ -3000,15 +3009,16 @@ reset_reg_var(void)
     void
 set_reg_var(int c)
 {
-    char_u	regname;
+    char_u  regname[2];
 
     if (c == 0 || c == ' ')
-	regname = '"';
+	regname[0] = '"';
     else
-	regname = c;
+	regname[0] = c;
+    regname[1] = NUL;
     // Avoid free/alloc when the value is already right.
     if (vimvars[VV_REG].vv_str == NULL || vimvars[VV_REG].vv_str[0] != c)
-	set_vim_var_string(VV_REG, &regname, 1);
+	set_vim_var_string(VV_REG, regname, 1);
 }
 
 /*
@@ -4755,8 +4765,8 @@ setwinvar(typval_T *argvars, int off)
     void
 reset_v_option_vars(void)
 {
-    set_vim_var_string(VV_OPTION_NEW,  NULL, -1);
-    set_vim_var_string(VV_OPTION_OLD,  NULL, -1);
+    set_vim_var_string(VV_OPTION_NEW, NULL, -1);
+    set_vim_var_string(VV_OPTION_OLD, NULL, -1);
     set_vim_var_string(VV_OPTION_OLDLOCAL, NULL, -1);
     set_vim_var_string(VV_OPTION_OLDGLOBAL, NULL, -1);
     set_vim_var_string(VV_OPTION_TYPE, NULL, -1);
@@ -5281,6 +5291,13 @@ put_callback(callback_T *cb, typval_T *tv)
     }
 }
 
+    static bool
+does_callback_own_cb_name(callback_T *cb)
+{
+    // If cb_partial != NULL then *cb->cb_name is owned by the partial.
+    return cb->cb_partial || cb->cb_free_name;
+}
+
 /*
  * Make a copy of "src" into "dest", allocating the function name if needed,
  * without incrementing the refcount.
@@ -5288,19 +5305,13 @@ put_callback(callback_T *cb, typval_T *tv)
     void
 set_callback(callback_T *dest, callback_T *src)
 {
-    if (src->cb_partial == NULL)
+    *dest = *src;
+    if (!does_callback_own_cb_name(src))
     {
-	// just a function name, make a copy
 	dest->cb_name = vim_strsave(src->cb_name);
 	dest->cb_free_name = TRUE;
     }
-    else
-    {
-	// cb_name is a pointer into cb_partial
-	dest->cb_name = src->cb_name;
-	dest->cb_free_name = FALSE;
-    }
-    dest->cb_partial = src->cb_partial;
+    *src = (callback_T){0};
 }
 
 /*

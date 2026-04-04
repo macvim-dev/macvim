@@ -640,6 +640,10 @@ makeopens(
 # ifdef FEAT_EVAL
     if (put_line(fd, "let v:this_session=expand(\"<sfile>:p\")") == FAIL)
 	goto fail;
+
+    if (put_line(fd, "doautoall SessionLoadPre") == FAIL)
+	goto fail;
+
     if (ssop_flags & SSOP_GLOBALS)
 	if (store_session_globals(fd) == FAIL)
 	    goto fail;
@@ -1103,7 +1107,7 @@ write_session_file(char_u *filename)
     escaped_filename = vim_strsave_escaped(filename, escape_chars);
     if (escaped_filename == NULL)
 	return FALSE;
-    mksession_cmdline = alloc(10 + (int)STRLEN(escaped_filename) + 1);
+    mksession_cmdline = alloc(10 + STRLEN(escaped_filename) + 1);
     if (mksession_cmdline == NULL)
     {
 	vim_free(escaped_filename);

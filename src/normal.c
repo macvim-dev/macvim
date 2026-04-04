@@ -1615,7 +1615,8 @@ clear_showcmd(void)
     if (!p_sc)
 	return;
 
-    if (VIsual_active && !char_avail())
+    if (VIsual_active
+	&& stuff_empty() && typebuf.tb_len == 0 && !using_script())
     {
 	int		cursor_bot = LT_POS(VIsual, curwin->w_cursor);
 	long		lines;
@@ -1650,16 +1651,17 @@ clear_showcmd(void)
 	    p_sbr = empty_option;
 	    curwin->w_p_sbr = empty_option;
 #endif
-	    getvcols(curwin, &curwin->w_cursor, &VIsual, &leftcol, &rightcol);
+	    getvcols(curwin, &curwin->w_cursor, &VIsual,
+						    &leftcol, &rightcol, 0);
 #ifdef FEAT_LINEBREAK
 	    p_sbr = saved_sbr;
 	    curwin->w_p_sbr = saved_w_sbr;
 #endif
-	    sprintf((char *)showcmd_buf, "%ldx%ld", lines,
+	    vim_snprintf((char *)showcmd_buf, SHOWCMD_BUFLEN, "%ldx%ld", lines,
 					      (long)(rightcol - leftcol + 1));
 	}
 	else if (VIsual_mode == 'V' || VIsual.lnum != curwin->w_cursor.lnum)
-	    sprintf((char *)showcmd_buf, "%ld", lines);
+	    vim_snprintf((char *)showcmd_buf, SHOWCMD_BUFLEN, "%ld", lines);
 	else
 	{
 	    char_u  *s, *e;
@@ -1691,9 +1693,9 @@ clear_showcmd(void)
 		s += l;
 	    }
 	    if (bytes == chars)
-		sprintf((char *)showcmd_buf, "%d", chars);
+		vim_snprintf((char *)showcmd_buf, SHOWCMD_BUFLEN, "%d", chars);
 	    else
-		sprintf((char *)showcmd_buf, "%d-%d", chars, bytes);
+		vim_snprintf((char *)showcmd_buf, SHOWCMD_BUFLEN, "%d-%d", chars, bytes);
 	}
 	showcmd_buf[SHOWCMD_COLS] = NUL;	// truncate
 	showcmd_visual = TRUE;
@@ -2766,7 +2768,7 @@ nv_zet(cmdarg_T *cap)
 			col = 0;	// like the cursor is in col 0
 		    else
 #endif
-		    getvcol(curwin, &curwin->w_cursor, &col, NULL, NULL);
+		    getvcol(curwin, &curwin->w_cursor, &col, NULL, NULL, 0);
 		    if ((long)col > siso)
 			col -= siso;
 		    else
@@ -2787,7 +2789,7 @@ nv_zet(cmdarg_T *cap)
 			col = 0;	// like the cursor is in col 0
 		    else
 #endif
-		    getvcol(curwin, &curwin->w_cursor, NULL, NULL, &col);
+		    getvcol(curwin, &curwin->w_cursor, NULL, NULL, &col, 0);
 		    n = curwin->w_width - curwin_col_off();
 		    if ((long)col + siso < n)
 			col = 0;
@@ -4296,7 +4298,7 @@ nv_csearch(cmdarg_T *cap)
     {
 	colnr_T	scol, ecol;
 
-	getvcol(curwin, &curwin->w_cursor, &scol, NULL, &ecol);
+	getvcol(curwin, &curwin->w_cursor, &scol, NULL, &ecol, 0);
 	curwin->w_cursor.coladd = ecol - scol;
     }
     else
@@ -5001,7 +5003,7 @@ v_swap_corners(int cmdchar)
     if (cmdchar == 'O' && VIsual_mode == Ctrl_V)
     {
 	old_cursor = curwin->w_cursor;
-	getvcols(curwin, &old_cursor, &VIsual, &left, &right);
+	getvcols(curwin, &old_cursor, &VIsual, &left, &right, 0);
 	curwin->w_cursor.lnum = VIsual.lnum;
 	coladvance(left);
 	VIsual = curwin->w_cursor;
@@ -5928,7 +5930,7 @@ nv_g_dollar_cmd(cmdarg_T *cap)
 	{
 	    colnr_T vcol;
 
-	    getvvcol(curwin, &curwin->w_cursor, NULL, NULL, &vcol);
+	    getvvcol(curwin, &curwin->w_cursor, NULL, NULL, &vcol, 0);
 	    if (vcol >= curwin->w_leftcol + curwin->w_width - col_off)
 		--curwin->w_cursor.col;
 	}
@@ -6494,16 +6496,16 @@ nv_operator(cmdarg_T *cap)
     static void
 set_op_var(int optype)
 {
-    char_u	opchars[3];
-
     if (optype == OP_NOP)
 	set_vim_var_string(VV_OP, NULL, 0);
     else
     {
+	char_u	opchars[3];
+
 	opchars[0] = get_op_char(optype);
 	opchars[1] = get_extra_op_char(optype);
 	opchars[2] = NUL;
-	set_vim_var_string(VV_OP, opchars, -1);
+	set_vim_var_string(VV_OP, opchars, 2);
     }
 }
 #endif
@@ -6766,7 +6768,7 @@ unadjust_for_sel_inner(pos_T *pp)
 	mb_adjustpos(curbuf, pp);
 	if (virtual_active())
 	{
-	    getvcol(curwin, pp, &cs, NULL, &ce);
+	    getvcol(curwin, pp, &cs, NULL, &ce, 0);
 	    pp->coladd = ce - cs;
 	}
     }
@@ -6987,7 +6989,7 @@ nv_edit(cmdarg_T *cap)
     if (VIsual_active && (cap->cmdchar == 'A' || cap->cmdchar == 'I'))
     {
 #ifdef FEAT_TERMINAL
-	if (term_in_normal_mode())
+	if (term_in_normal_mode(curbuf))
 	{
 	    end_visual_mode();
 	    clearop(cap->oap);
@@ -7005,7 +7007,7 @@ nv_edit(cmdarg_T *cap)
 	nv_object(cap);
     }
 #ifdef FEAT_TERMINAL
-    else if (term_in_normal_mode())
+    else if (term_in_normal_mode(curbuf))
     {
 	clearop(cap->oap);
 	term_enter_job_mode();

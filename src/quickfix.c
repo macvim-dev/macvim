@@ -838,6 +838,7 @@ qf_get_next_file_line(qfstate_T *state)
 	// Copy the read part of the line, excluding null-terminator
 	memcpy(state->growbuf, IObuff, IOSIZE - 1);
 	growbuflen = state->linelen;
+	state->growbuf[growbuflen] = NUL;
 
 	for (;;)
 	{
@@ -2070,11 +2071,11 @@ wipe_qf_buffer(qf_info_T *qi)
     if (qfbuf != NULL && qfbuf->b_nwindows == 0)
     {
 	int buf_was_null = FALSE;
-	// can happen when curwin is going to be closed e.g. curwin->w_buffer
-	// was already closed in win_close(), and we are now closing the
-	// window related location list buffer from win_free_mem()
-	// but close_buffer() calls CHECK_CURBUF() macro and requires
-	// curwin->w_buffer == curbuf
+	// Can happen when curwin is closing (e.g: w_buffer was unloaded in
+	// win_close()) and we are now closing the window-related location list
+	// buffer from win_free().  close_buffer() calls CHECK_CURBUF() and
+	// requires curwin->w_buffer == curbuf.  Should be OK to not increment
+	// b_nwindows, especially as autocmds are blocked in win_free().
 	if (curwin->w_buffer == NULL)
 	{
 	    curwin->w_buffer = curbuf;
@@ -2083,7 +2084,7 @@ wipe_qf_buffer(qf_info_T *qi)
 
 	// If the quickfix buffer is not loaded in any window, then
 	// wipe the buffer.
-	close_buffer(NULL, qfbuf, DOBUF_WIPE, FALSE, FALSE);
+	close_buffer(NULL, qfbuf, DOBUF_WIPE, FALSE, FALSE, FALSE);
 	qi->qf_bufnr = INVALID_QFBUFNR;
 	if (buf_was_null)
 	    curwin->w_buffer = NULL;
@@ -2727,9 +2728,10 @@ copy_loclist_stack(win_T *from, win_T *to)
     static int
 qf_get_fnum(qf_list_T *qfl, char_u *directory, char_u *fname)
 {
-    char_u	*ptr = NULL;
+    string_T	ptr = {NULL, 0};
     buf_T	*buf;
-    char_u	*bufname;
+    string_T	bufname;
+    size_t	fname_len;
 
     if (fname == NULL || *fname == NUL)		// no file name
 	return 0;
@@ -2742,42 +2744,52 @@ qf_get_fnum(qf_list_T *qfl, char_u *directory, char_u *fname)
 	slash_adjust(directory);
     slash_adjust(fname);
 # endif
+    fname_len = STRLEN(fname);
     if (directory != NULL && !vim_isAbsName(fname)
-	    && (ptr = concat_fnames(directory, fname, TRUE)) != NULL)
+	    && concat_fnames(directory, STRLEN(directory), fname, fname_len, TRUE, &ptr) != NULL)
     {
 	// Here we check if the file really exists.
 	// This should normally be true, but if make works without
 	// "leaving directory"-messages we might have missed a
 	// directory change.
-	if (mch_getperm(ptr) < 0)
+	if (mch_getperm(ptr.string) < 0)
 	{
-	    vim_free(ptr);
+	    vim_free(ptr.string);
 	    directory = qf_guess_filepath(qfl, fname);
 	    if (directory)
-		ptr = concat_fnames(directory, fname, TRUE);
+		concat_fnames(directory, STRLEN(directory), fname, fname_len, TRUE, &ptr);
 	    else
-		ptr = vim_strsave(fname);
+	    {
+		ptr.length = fname_len;
+		ptr.string = vim_strnsave(fname, fname_len);
+	    }
+	    if (ptr.string == NULL)
+		return 0;
 	}
 	// Use concatenated directory name and file name
-	bufname = ptr;
+	bufname.string = ptr.string;
+	bufname.length = ptr.length;
     }
     else
-	bufname = fname;
+    {
+	bufname.string = fname;
+	bufname.length = fname_len;
+    }
 
-    if (qf_last_bufname != NULL && STRCMP(bufname, qf_last_bufname) == 0
+    if (qf_last_bufname != NULL && STRCMP(bufname.string, qf_last_bufname) == 0
 	    && bufref_valid(&qf_last_bufref))
     {
 	buf = qf_last_bufref.br_buf;
-	vim_free(ptr);
+	vim_free(ptr.string);
     }
     else
     {
 	vim_free(qf_last_bufname);
-	buf = buflist_new(bufname, NULL, (linenr_T)0, BLN_NOOPT);
-	if (bufname == ptr)
-	    qf_last_bufname = bufname;
+	buf = buflist_new(bufname.string, NULL, (linenr_T)0, BLN_NOOPT);
+	if (bufname.string == ptr.string)
+	    qf_last_bufname = bufname.string;
 	else
-	    qf_last_bufname = vim_strsave(bufname);
+	    qf_last_bufname = vim_strnsave(bufname.string, bufname.length);
 	set_bufref(&qf_last_bufref, buf);
     }
     if (buf == NULL)
@@ -2798,11 +2810,12 @@ qf_push_dir(char_u *dirbuf, struct dir_stack_T **stackptr, int is_file_stack)
     struct dir_stack_T  *ds_new;
     struct dir_stack_T  *ds_ptr;
 
-    // allocate new stack element and hook it in
+    // allocate new stack element
     ds_new = ALLOC_ONE_ID(struct dir_stack_T, aid_qf_dirstack);
     if (ds_new == NULL)
 	return NULL;
 
+    // push the new element onto the stack
     ds_new->next = *stackptr;
     *stackptr = ds_new;
 
@@ -2813,19 +2826,36 @@ qf_push_dir(char_u *dirbuf, struct dir_stack_T **stackptr, int is_file_stack)
 	(*stackptr)->dirname = vim_strsave(dirbuf);
     else
     {
+	size_t	dirbuf_len;
+
 	// Okay we don't have an absolute path.
 	// dirbuf must be a subdir of one of the directories on the stack.
 	// Let's search...
+	dirbuf_len = STRLEN(dirbuf);
 	ds_new = (*stackptr)->next;
 	(*stackptr)->dirname = NULL;
 	while (ds_new)
 	{
-	    vim_free((*stackptr)->dirname);
-	    (*stackptr)->dirname = concat_fnames(ds_new->dirname, dirbuf,
-		    TRUE);
-	    if (mch_isdir((*stackptr)->dirname) == TRUE)
-		break;
+	    string_T	dirname;
 
+	    concat_fnames(ds_new->dirname, STRLEN(ds_new->dirname),
+		dirbuf, dirbuf_len, TRUE, &dirname);
+	    if (dirname.string == NULL)
+	    {
+		// pop the new element from the stack and free it
+		ds_ptr = *stackptr;
+		*stackptr = (*stackptr)->next;
+		vim_free(ds_ptr);
+
+		return NULL;
+	    }
+	    if (mch_isdir(dirname.string) == TRUE)
+	    {
+		vim_free((*stackptr)->dirname);
+		(*stackptr)->dirname = dirname.string;
+		break;
+	    }
+	    vim_free(dirname.string);
 	    ds_new = ds_new->next;
 	}
 
@@ -2842,19 +2872,19 @@ qf_push_dir(char_u *dirbuf, struct dir_stack_T **stackptr, int is_file_stack)
 	if (ds_new == NULL)
 	{
 	    vim_free((*stackptr)->dirname);
-	    (*stackptr)->dirname = vim_strsave(dirbuf);
+	    (*stackptr)->dirname = vim_strnsave(dirbuf, dirbuf_len);
 	}
     }
 
     if ((*stackptr)->dirname != NULL)
 	return (*stackptr)->dirname;
-    else
-    {
-	ds_ptr = *stackptr;
-	*stackptr = (*stackptr)->next;
-	vim_free(ds_ptr);
-	return NULL;
-    }
+
+    // pop the new element from the stack and free it
+    ds_ptr = *stackptr;
+    *stackptr = (*stackptr)->next;
+    vim_free(ds_ptr);
+
+    return NULL;
 }
 
 /*
@@ -2923,28 +2953,32 @@ qf_guess_filepath(qf_list_T *qfl, char_u *filename)
 {
     struct dir_stack_T     *ds_ptr;
     struct dir_stack_T     *ds_tmp;
-    char_u		   *fullname;
+    string_T		   fullname;
+    size_t		   filename_len;
 
     // no dirs on the stack - there's nothing we can do
     if (qfl->qf_dir_stack == NULL)
 	return NULL;
 
     ds_ptr = qfl->qf_dir_stack->next;
-    fullname = NULL;
+    fullname.string = NULL;
+    fullname.length = 0;
+    filename_len = STRLEN(filename);
     while (ds_ptr)
     {
-	vim_free(fullname);
-	fullname = concat_fnames(ds_ptr->dirname, filename, TRUE);
+	vim_free(fullname.string);
+	concat_fnames(ds_ptr->dirname, STRLEN(ds_ptr->dirname),
+	    filename, filename_len, TRUE, &fullname);
 
 	// If concat_fnames failed, just go on. The worst thing that can happen
 	// is that we delete the entire stack.
-	if ((fullname != NULL) && (mch_getperm(fullname) >= 0))
+	if ((fullname.string != NULL) && (mch_getperm(fullname.string) >= 0))
 	    break;
 
 	ds_ptr = ds_ptr->next;
     }
 
-    vim_free(fullname);
+    vim_free(fullname.string);
 
     // clean up all dirs we already left
     while (qfl->qf_dir_stack->next != ds_ptr)
@@ -7125,7 +7159,7 @@ unload_dummy_buffer(buf_T *buf, char_u *dirname_start)
     if (curbuf == buf)		// safety check
 	return;
 
-    close_buffer(NULL, buf, DOBUF_UNLOAD, FALSE, TRUE);
+    close_buffer(NULL, buf, DOBUF_UNLOAD, FALSE, TRUE, FALSE);
 
     // When autocommands/'autochdir' option changed directory: go back.
     restore_start_dir(dirname_start);
@@ -8141,11 +8175,7 @@ qf_setprop_qftf(qf_info_T *qi UNUSED, qf_list_T *qfl, dictitem_T *di)
     cb = get_callback(&di->di_tv);
     if (cb.cb_name == NULL || *cb.cb_name == NUL)
 	return OK;
-
     set_callback(&qfl->qf_qftf_cb, &cb);
-    if (cb.cb_free_name)
-	vim_free(cb.cb_name);
-
     return OK;
 }
 

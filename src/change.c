@@ -373,8 +373,6 @@ f_listener_add(typval_T *argvars, typval_T *rettv)
     }
 
     set_callback(&lnr->lr_callback, &callback);
-    if (callback.cb_free_name)
-	vim_free(callback.cb_name);
 
     lnr->lr_id = ++next_listener_id;
     rettv->vval.v_number = lnr->lr_id;
@@ -557,7 +555,10 @@ invoke_sync_listeners(
 
     dict = dict_alloc();
     if (dict == NULL)
+    {
+	list_unref(recorded_changes);
 	return;
+    }
 
     dict_add_number(dict, "lnum", (varnumber_T)start);
     dict_add_number(dict, "end", (varnumber_T)end);
@@ -1262,7 +1263,7 @@ ins_char_bytes(char_u *buf, int charlen)
 	    // characters (zero if it's a TAB).  Count the number of bytes to
 	    // be deleted to make room for the new character, counting screen
 	    // cells.  May result in adding spaces to fill a gap.
-	    getvcol(curwin, &curwin->w_cursor, NULL, &vcol, NULL);
+	    getvcol(curwin, &curwin->w_cursor, NULL, &vcol, NULL, 0);
 	    new_vcol = vcol + chartabsize(buf, vcol);
 	    while (oldp[col + oldlen] != NUL && vcol < new_vcol)
 	    {
@@ -1891,6 +1892,7 @@ open_line(
 	char_u	*lead_repl = NULL;	    // replaces comment leader
 	int	lead_repl_len = 0;	    // length of *lead_repl
 	char_u	lead_middle[COM_MAX_LEN];   // middle-comment string
+	int	lead_middle_len;	    // length of the lead_middle
 	char_u	lead_end[COM_MAX_LEN];	    // end-comment string
 	char_u	*comment_end = NULL;	    // where lead_end has been found
 	int	extra_space = FALSE;	    // append extra space
@@ -1931,7 +1933,7 @@ open_line(
 			require_blank = TRUE;
 		    ++p;
 		}
-		(void)copy_option_part(&p, lead_middle, COM_MAX_LEN, ",");
+		lead_middle_len = copy_option_part(&p, lead_middle, COM_MAX_LEN, ",");
 
 		while (*p && p[-1] != ':')	// find end of end flags
 		{
@@ -1964,7 +1966,7 @@ open_line(
 		    if (current_flag == COM_START)
 		    {
 			lead_repl = lead_middle;
-			lead_repl_len = (int)STRLEN(lead_middle);
+			lead_repl_len = lead_middle_len;
 		    }
 
 		    // If we have hit RETURN immediately after the start

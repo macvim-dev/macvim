@@ -78,6 +78,9 @@ gui_start(char_u *arg UNUSED)
 	cursor_on();			// needed for ":gui" in .vimrc
     full_screen = FALSE;
 
+    // If GUI fails to start, then we will recover afterwards
+    term_disable_dec();
+
 #ifdef GUI_MAY_FORK
     ++recursive;
     /*
@@ -141,6 +144,9 @@ gui_start(char_u *arg UNUSED)
 	termcapinit(old_term);
 	settmode(TMODE_RAW);		// restart RAW mode
 	set_title_defaults();		// set 'title' and 'icon' again
+#ifdef UNIX
+	term_set_win_resize(true);
+#endif
 #if defined(GUI_MAY_SPAWN) && defined(EXPERIMENTAL_GUI_CMD)
 	if (msg != NULL)
 	    emsg(msg);
@@ -211,7 +217,6 @@ gui_attempt_start(void)
 	if (gui_get_x11_windis(&x11_window, &x11_display) == OK)
 	    set_vim_var_nr(VV_WINDOWID, (long)x11_window);
 # endif
-
 	// Display error messages in a dialog now.
 	display_errors();
     }
@@ -222,7 +227,7 @@ gui_attempt_start(void)
 #ifdef GUI_MAY_FORK
 
 // for waitpid()
-# if defined(HAVE_SYS_WAIT_H) || defined(HAVE_UNION_WAIT)
+# if defined(HAVE_SYS_WAIT_H)
 #  include <sys/wait.h>
 # endif
 
@@ -278,11 +283,7 @@ gui_do_fork(void)
 		// The child failed to start the GUI, so the caller must
 		// continue. There may be more error information written
 		// to stderr by the child.
-# ifdef __NeXT__
-		wait4(pid, &exit_status, 0, (struct rusage *)0);
-# else
 		waitpid(pid, &exit_status, 0);
-# endif
 		emsg(_(e_the_child_process_failed_to_start_GUI));
 		return;
 	    }
@@ -484,6 +485,9 @@ gui_init_check(void)
     result = OK;
 #else
 # ifdef FEAT_GUI_GTK
+#  ifdef GDK_WINDOWING_WAYLAND
+    gui.is_wayland = false;
+#  endif
     /*
      * Note: Don't call gtk_init_check() before fork, it will be called after
      * the fork. When calling it before fork, it make vim hang for a while.
@@ -5039,13 +5043,15 @@ xy2win(int x, int y, mouse_find_T popup)
 	else
 	    update_mouseshape(SHAPE_IDX_MORE);
     }
-    else if (row > wp->w_height)	// below status line
+    else if (row >= wp->w_height + wp->w_status_height)	// below status line
 	update_mouseshape(SHAPE_IDX_CLINE);
     else if (!(State & MODE_CMDLINE) && wp->w_vsep_width > 0 && col == wp->w_width
-	    && (row != wp->w_height || !stl_connected(wp)) && msg_scrolled == 0)
+	    && (!(row >= wp->w_height && row < wp->w_height
+	    + wp->w_status_height) || !stl_connected(wp)) && msg_scrolled == 0)
 	update_mouseshape(SHAPE_IDX_VSEP);
     else if (!(State & MODE_CMDLINE) && wp->w_status_height > 0
-				  && row == wp->w_height && msg_scrolled == 0)
+	    && row >= wp->w_height && row < wp->w_height + wp->w_status_height
+	    && msg_scrolled == 0)
 	update_mouseshape(SHAPE_IDX_STATUS);
     else
 	update_mouseshape(-2);
@@ -5373,26 +5379,26 @@ gui_do_findrepl(
 
     ga_init2(&ga, 1, 100);
     if (type == FRD_REPLACEALL)
-	ga_concat_len(&ga, (char_u *)"%s/", 3);
+	GA_CONCAT_LITERAL(&ga, "%s/");
 
-    ga_concat_len(&ga, (char_u *)"\\V", 2);
+    GA_CONCAT_LITERAL(&ga, "\\V");
     if (flags & FRD_MATCH_CASE)
-	ga_concat_len(&ga, (char_u *)"\\C", 2);
+	GA_CONCAT_LITERAL(&ga, "\\C");
     else
-	ga_concat_len(&ga, (char_u *)"\\c", 2);
+	GA_CONCAT_LITERAL(&ga, "\\c");
     if (flags & FRD_WHOLE_WORD)
-	ga_concat_len(&ga, (char_u *)"\\<", 2);
+	GA_CONCAT_LITERAL(&ga, "\\<");
     // escape slash and backslash
     p = vim_strsave_escaped(find_text, (char_u *)"/\\");
     if (p != NULL)
 	ga_concat(&ga, p);
     vim_free(p);
     if (flags & FRD_WHOLE_WORD)
-	ga_concat_len(&ga, (char_u *)"\\>", 2);
+	GA_CONCAT_LITERAL(&ga, "\\>");
 
     if (type == FRD_REPLACEALL)
     {
-	ga_concat_len(&ga, (char_u *)"/", 1);
+	GA_CONCAT_LITERAL(&ga, "/");
 	// Escape slash and backslash.
 	// Also escape tilde and ampersand if 'magic' is set.
 	p = vim_strsave_escaped(repl_text,
@@ -5400,7 +5406,7 @@ gui_do_findrepl(
 	if (p != NULL)
 	    ga_concat(&ga, p);
 	vim_free(p);
-	ga_concat_len(&ga, (char_u *)"/g", 2);
+	GA_CONCAT_LITERAL(&ga, "/g");
     }
     ga_append(&ga, NUL);
 

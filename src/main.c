@@ -942,6 +942,9 @@ vim_main2(void)
 
     may_req_bg_color();
 # endif
+    // Same reason for termresponse, don't want the terminal sending out the
+    // DECRPM response after Vim has exited.
+    send_decrqm_modes();
 
     // start in insert mode
     if (p_im)
@@ -1933,6 +1936,8 @@ getout(int exitval)
     free_cmd_argsW();
 #endif
 
+    term_disable_dec();
+
     mch_exit(exitval);
 }
 
@@ -2850,13 +2855,15 @@ scripterror:
 	    if (parmp->diff_mode && mch_isdir(p) && GARGCOUNT > 0
 				      && !mch_isdir(alist_name(&GARGLIST[0])))
 	    {
-		char_u	    *r;
+		char_u	    *tail;
+		string_T    ret;
 
-		r = concat_fnames(p, gettail(alist_name(&GARGLIST[0])), TRUE);
-		if (r != NULL)
+		tail = gettail(alist_name(&GARGLIST[0]));
+		concat_fnames(p, STRLEN(p), tail, STRLEN(tail), TRUE, &ret);
+		if (ret.string != NULL)
 		{
 		    vim_free(p);
-		    p = r;
+		    p = ret.string;
 		}
 	    }
 # endif
@@ -2929,11 +2936,14 @@ scripterror:
     // one.
     if (parmp->n_commands > 0)
     {
-	p = alloc(STRLEN(parmp->commands[0]) + 3);
+	size_t  plen;
+
+	plen = STRLEN(parmp->commands[0]) + 2;
+	p = alloc(plen + 1);
 	if (p != NULL)
 	{
 	    sprintf((char *)p, ":%s\r", parmp->commands[0]);
-	    set_vim_var_string(VV_SWAPCOMMAND, p, -1);
+	    set_vim_var_string(VV_SWAPCOMMAND, p, (int)plen);
 	    vim_free(p);
 	}
     }

@@ -882,7 +882,7 @@ func Test_stdin_no_newline()
   endif
 
   " Clean up temp file and exit shell
-  call term_sendkeys(buf, "rm -f temp.txt\<CR>")
+  call term_sendkeys(buf, "\<C-U>rm -f temp.txt\<CR>")
   call term_sendkeys(buf, "exit\<CR>")
   call TermWait(buf, 200)
 

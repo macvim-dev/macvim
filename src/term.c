@@ -62,7 +62,7 @@ static void got_code_from_term(char_u *code, int len);
 static void check_for_codes_from_term(void);
 #endif
 static void del_termcode_idx(int idx);
-static int find_term_bykeys(char_u *src);
+static int find_term_bykeys(char_u *src, int *len);
 static int term_is_builtin(char_u *name);
 static int term_7to8bit(char_u *p);
 static void accept_modifiers_for_function_keys(void);
@@ -222,6 +222,31 @@ static int initial_cursor_shape_blink = FALSE;
 
 // The blink flag from the blinking-cursor mode response
 static int initial_cursor_blink = FALSE;
+#endif
+
+// 0	Mode is not recognized	not supported
+//
+// 1	Set			supported and screen updates are not shown to
+//				the user until mode is disabled
+//
+// 2	Reset			supported and screen updates are shown as usual
+//				(e.g. as soon as they arrive)
+//
+// 3	Permanently set		undefined
+//
+// 4	Permanently reset	not supported
+//
+static int sync_output_setting = 0;
+
+// > 0: Currently batching output
+// == 0: No synchronized output
+static int sync_output_state = 0;
+
+#ifdef UNIX
+// DEC mode 2048 (in-band window resize events)
+// https://gist.github.com/rockorager/e695fb2924d36b2bcf1fff4a3704bd83
+static int win_resize_setting = 0;
+static bool win_resize_enabled = false;
 #endif
 
 /*
@@ -648,6 +673,27 @@ static tcap_entry_T builtin_kitty[] = {
     {(int)KS_RBG,	"\033]11;?\033\\"},
 
     {(int)KS_NAME,	NULL}  // end marker
+};
+
+#ifdef HAVE_TGETENT
+/*
+ * Additions for enabling/disabling synchronized output mode for terminal.
+ */
+static tcap_entry_T builtin_sync_output[] = {
+    {(int)KS_BSU,	"\033[?2026h"},
+    {(int)KS_ESU,	"\033[?2026l"},
+    {(int)KS_NAME,	NULL}  // end marker
+};
+#endif
+
+/*
+ * List of DECRQM modes that Vim supports
+ */
+static int dec_modes[] = {
+    2026,   // Synchronized output
+#ifdef UNIX
+    2048    // In-band terminal resize events
+#endif
 };
 
 #ifdef FEAT_TERMGUICOLORS
@@ -2171,6 +2217,8 @@ set_termname(char_u *term)
 #ifdef HAVE_TGETENT
 	if (term_strings_not_set(KS_CF))
 	    apply_builtin_tcap(term, special_term, TRUE);
+	if (term_strings_not_set(KS_BSU) && term_strings_not_set(KS_ESU))
+	    apply_builtin_tcap(term, builtin_sync_output, TRUE);
 #endif
     }
 
@@ -2765,7 +2813,7 @@ termcapinit(char_u *name)
 /*
  * The number of calls to ui_write is reduced by using "out_buf".
  */
-#define OUT_SIZE	2047
+#define OUT_SIZE	8191
 
 // add one to allow mch_write() in os_win32.c to append a NUL
 static char_u		out_buf[OUT_SIZE + 1];
@@ -5570,6 +5618,8 @@ handle_csi_function_key(
  *
  * - DA1 query response: {lead}?...;c
  *
+ * - DECRPM response: {lead}?2026;{mode}$y
+ *
  * Return 0 for no match, -1 for partial match, > 0 for full match.
  */
     static int
@@ -5697,6 +5747,57 @@ handle_csi(
 	key_name[0] = (int)KS_EXTRA;
 	key_name[1] = (int)KE_IGNORE;
     }
+
+    // DECRPM mode 2026 or 2048.
+    else if (first == '?' && trail == 'y' && argc == 2
+	    && (arg[0] == 2026 || arg[0] == 2048))
+    {
+	int setting = arg[1];
+
+	*slen = csi_len;
+	key_name[0] = (int)KS_EXTRA;
+	key_name[1] = (int)KE_IGNORE;
+
+	if (setting >= 0 && setting <= 4)
+	{
+	    LOG_TRN("Received DECRPM mode %d: %s", arg[0], tp);
+
+	    switch (arg[0])
+	    {
+		case 2026:
+		    sync_output_setting = setting;
+		    set_option_value_give_err((char_u *)"termsync",
+			    setting == 1 || setting == 2, NULL, 0);
+		    break;
+#ifdef UNIX
+		case 2048:
+		    win_resize_setting = setting;
+
+		    term_set_win_resize(true);
+		    break;
+#endif
+	    }
+	}
+	else
+	    LOG_TRN("Unknown DECRPM mode %d setting %d", arg[0], setting);
+    }
+
+#ifdef UNIX
+    // In-band window resize event
+    else if (win_resize_enabled && argc >= 3 && arg[0] == 48)
+    {
+	int height = arg[1], width = arg[2];
+
+	*slen = csi_len;
+	key_name[0] = (int)KS_EXTRA;
+	key_name[1] = (int)KE_IGNORE;
+
+	// Only update if needed. Avoids intro message from disappearing on
+	// startup (due to initial event).
+	if (height != Rows || width != Columns)
+	    set_shellsize(width, height, true);
+    }
+#endif
 
     // Version string: Eat it when there is at least one digit and
     // it ends in 'c'
@@ -5906,9 +6007,17 @@ check_for_color_response(char_u *resp, int len)
 static oscstate_T osc_state;
 
 /*
- * Handles any OSC sequence and places the result in "v:termosc". Note that the
- * OSC identifier and terminator character(s) will not be placed in the final
- * result. Returns OK on success and FAIL on failure.
+ * Return true if currently receiving an OSC response.
+ */
+    bool
+in_osc_sequence(void)
+{
+    return osc_state.processing;
+}
+
+/*
+ * Handles any OSC sequence and places the result in "v:termosc". Returns OK on
+ * success and FAIL on failure.
  */
     static int
 handle_osc(char_u *tp, int len, char_u *key_name, int *slen)
@@ -6254,9 +6363,12 @@ check_termcode(
 #endif
 	{
 	    int  mouse_index_found = -1;
+	    int keypad_index_found = -1;
+	    int keypad_slen_found = 0;
 
 	    for (idx = 0; idx < tc_len; ++idx)
 	    {
+		int     is_keypad = FALSE;
 		/*
 		 * Ignore the entry if we are not at the start of
 		 * typebuf.tb_buf[]
@@ -6282,16 +6394,16 @@ check_termcode(
 		     * key code.
 		     */
 		    if (termcodes[idx].name[0] == 'K'
-				       && VIM_ISDIGIT(termcodes[idx].name[1]))
+				       && (VIM_ISDIGIT(termcodes[idx].name[1])
+						|| ASCII_ISUPPER(termcodes[idx].name[1])))
 		    {
-			for (j = idx + 1; j < tc_len; ++j)
-			    if (termcodes[j].len == slen &&
-				    STRNCMP(termcodes[idx].code,
-					    termcodes[j].code, slen) == 0)
-			    {
-				idx = j;
-				break;
-			    }
+			is_keypad = TRUE;
+			// Only use it when there is no other match.
+			if (keypad_index_found < 0)
+			{
+			    keypad_index_found = idx;
+			    keypad_slen_found = slen;
+			}
 		    }
 
 		    if (slen == 2 && len > 2
@@ -6339,7 +6451,7 @@ check_termcode(
 			if (mouse_index_found < 0)
 			    mouse_index_found = idx;
 		    }
-		    else
+		    else if (!is_keypad)
 		    {
 			key_name[0] = termcodes[idx].name[0];
 			key_name[1] = termcodes[idx].name[1];
@@ -6401,13 +6513,33 @@ check_termcode(
 
 			    slen = j;
 			}
-			key_name[0] = termcodes[idx].name[0];
-			key_name[1] = termcodes[idx].name[1];
-			break;
+			if (termcodes[idx].name[0] == 'K'
+					   && (VIM_ISDIGIT(termcodes[idx].name[1])
+						    || ASCII_ISUPPER(termcodes[idx].name[1])))
+			{
+			    is_keypad = TRUE;
+			    if (keypad_index_found < 0)
+			    {
+				keypad_index_found = idx;
+				keypad_slen_found = slen;
+			    }
+			}
+			if (!is_keypad)
+			{
+			    key_name[0] = termcodes[idx].name[0];
+			    key_name[1] = termcodes[idx].name[1];
+			    break;
+			}
 		    }
 		}
 	    }
-	    if (idx == tc_len && mouse_index_found >= 0)
+	    if (idx == tc_len && keypad_index_found >= 0)
+	    {
+		key_name[0] = termcodes[keypad_index_found].name[0];
+		key_name[1] = termcodes[keypad_index_found].name[1];
+		slen = keypad_slen_found;
+	    }
+	    else if (idx == tc_len && mouse_index_found >= 0)
 	    {
 		key_name[0] = termcodes[mouse_index_found].name[0];
 		key_name[1] = termcodes[mouse_index_found].name[1];
@@ -6958,13 +7090,14 @@ replace_termcodes(
 	 */
 	if (do_key_code)
 	{
-	    i = find_term_bykeys(src);
+	    int len;
+	    i = find_term_bykeys(src, &len);
 	    if (i >= 0)
 	    {
 		result[dlen++] = K_SPECIAL;
 		result[dlen++] = termcodes[i].name[0];
 		result[dlen++] = termcodes[i].name[1];
-		src += termcodes[i].len;
+		src += len;
 		// If terminal code matched, continue after it.
 		continue;
 	    }
@@ -7072,18 +7205,88 @@ replace_termcodes(
  * Return the index in termcodes[], or -1 if not found.
  */
     static int
-find_term_bykeys(char_u *src)
+find_term_bykeys(char_u *src, int *matchlen)
 {
-    int		i;
-    int		slen = (int)STRLEN(src);
+    int		i, j;
+    int		len = (int)STRLEN(src);
+    int         found = -1;
+    // Don't return a match for a single character
+    int         foundlen = 1;
+    int         slen, modslen;
+    int         thislen;
 
+    // find longest match
+    // borrows part of check_termcode
     for (i = 0; i < tc_len; ++i)
     {
-	if (slen == termcodes[i].len
+	slen = termcodes[i].len;
+	modslen = termcodes[i].modlen;
+
+	/*
+	 * Check for code with modifier, like xterm uses:
+	 * <Esc>[123;*X  (modslen == slen - 3)
+	 * <Esc>[@;*X    (matches <Esc>[X and <Esc>[1;9X )
+	 * Also <Esc>O*X and <M-O>*X (modslen == slen - 2).
+	 * When there is a modifier the * matches a number.
+	 * When there is no modifier the ;* or * is omitted.
+	 */
+	if (modslen > 0)
+	{
+	    if (len > modslen
+			&& STRNCMP(termcodes[i].code, src, (size_t)modslen) == 0)
+	    {
+		thislen = 0;
+
+		if (src[modslen] == termcodes[i].code[slen - 1])
+		    // no modifiers
+		    thislen = modslen + 1;
+		else if (src[modslen] != ';' && modslen == slen - 3)
+		    // no match for "code;*X" with "code;"
+		    continue;
+		else if (termcodes[i].code[modslen] == '@'
+				&& (src[modslen] != '1'
+					    || src[modslen + 1] != ';'))
+		    // no match for "<Esc>[@" with "<Esc>[1;"
+		    continue;
+		else
+		{
+		    // Skip over the digits, the final char must
+		    // follow. URXVT can use a negative value, thus
+		    // also accept '-'.
+		    for (j = slen - 2; j < len && (SAFE_isdigit(src[j])
+			       || src[j] == '-' || src[j] == ';'); ++j)
+			;
+		    ++j;
+		    if (len < j)	// got a partial sequence
+			continue;
+		    if (src[j - 1] != termcodes[i].code[slen - 1])
+			continue;	// no match
+
+		    thislen = j;
+		}
+
+		if (thislen > foundlen)
+		{
+		    found = i;
+		    foundlen = thislen;
+		}
+	    }
+	}
+	else
+	{
+	    if (slen > foundlen && len >= slen
 			&& STRNCMP(termcodes[i].code, src, (size_t)slen) == 0)
-	    return i;
+	    {
+		found = i;
+		foundlen = slen;
+	    }
+	}
     }
-    return -1;
+
+    if (matchlen != NULL && found >= 0)
+	*matchlen = foundlen;
+
+    return found;
 }
 
 /*
@@ -7389,7 +7592,7 @@ got_code_from_term(char_u *code, int len)
 # endif
 	    else
 	    {
-		i = find_term_bykeys(str);
+		i = find_term_bykeys(str, NULL);
 		if (i >= 0 && name[0] == termcodes[i].name[0]
 					    && name[1] == termcodes[i].name[1])
 		{
@@ -7397,6 +7600,14 @@ got_code_from_term(char_u *code, int len)
 # ifdef FEAT_EVAL
 		    ch_log(NULL, "got_code_from_term(): Entry %c%c did not change",
 							     name[0], name[1]);
+# endif
+		}
+		else if (i >= 0 && name[0] == 'K' && VIM_ISDIGIT(name[1]))
+		{
+		    // Would replace existing entry with keypad key - skip.
+# ifdef FEAT_EVAL
+		    ch_log(NULL, "got_code_from_term(): Skipping entry %c%c in favor of %c%c with matching keys %s",
+			    name[0], name[1], termcodes[i].name[0], termcodes[i].name[1], str);
 # endif
 		}
 		else
@@ -7772,4 +7983,159 @@ term_replace_keycodes(char_u *ta_buf, int ta_len, int len_arg)
 	    i += (*mb_ptr2len_len)(ta_buf + i, ta_len + len - i) - 1;
     }
     return len;
+}
+
+/*
+ * Query the settings for the DEC modes we support
+ */
+    void
+send_decrqm_modes(void)
+{
+    if (termcap_active && cur_tmode == TMODE_RAW)
+    {
+	// Request setting of relevant DEC modes via DECRQM
+	for (int i = 0; i < (int)ARRAY_LENGTH(dec_modes); i++)
+	{
+	    vim_snprintf((char *)IObuff, IOSIZE, "\033[?%d$p", dec_modes[i]);
+	    out_str(IObuff);
+	}
+	out_flush();
+    }
+}
+
+/*
+ * Should be called when cleaning up terminal state.
+ */
+    void
+term_disable_dec(void)
+{
+    term_set_sync_output(TERM_SYNC_OUTPUT_OFF);
+#ifdef UNIX
+    term_set_win_resize(false);
+#endif
+    // Make sure to always flush the output buffer, because this may be called
+    // before starting the GUI
+    out_flush();
+}
+
+#ifdef UNIX
+/*
+ * Enable or disable receiving in-band window resize events from the terminal.
+ * If "state" is true, then if the terminal supports DEC mode 2048 and
+ * 'termresize' is "" or "inband", then enable it and disable the SIGWINCH
+ * signal handling. Otherwise disable the mode if it is enabled and reinstall
+ * the SIGWINCH handler.
+ */
+    void
+term_set_win_resize(bool state)
+{
+# ifdef FEAT_GUI
+    bool    in_gui = gui.in_use;
+
+    if (state && in_gui)
+	return;
+# endif
+
+    if (!state || win_resize_setting == 0 || win_resize_setting == 4)
+    {
+	// Make sure it update internal window size if DEC mode 2048 is
+	// unavailable now.
+	if (win_resize_enabled)
+	{
+	    set_shellsize(0, 0, false);
+	    set_sigwinch_handler();
+	    out_str((char_u *)"\033[?2048l");
+	}
+	win_resize_enabled = false;
+    }
+    else if ((*p_trz == NUL || STRCMP(p_trz, "inband") == 0)
+	    && !win_resize_enabled)
+    {
+	if (win_resize_setting == 2)
+	    out_str((char_u *)"\033[?2048h");
+# ifdef SIGWINCH
+	mch_signal(SIGWINCH, SIG_DFL);
+# endif
+	win_resize_enabled = true;
+    }
+}
+#endif
+
+/*
+ * Enable or disable synchronized output if possible. Specification can be found
+ * here:
+ * https://github.com/contour-terminal/vt-extensions/blob/master/synchronized-output.md
+ *
+ * BSU/ESU do not need to bypass out_buf and go straight to ui_write().
+ * What matters is the order in which they reach the terminal:
+ * - BSU must be emitted before the batched redraw bytes.
+ * - ESU must be emitted after those redraw bytes.
+ * - A FLUSH must emit ESU and BSU together, then flush immediately.
+ * As long as out_flush() is done at those boundaries, putting BSU/ESU in
+ * out_buf reduces small writes without changing the observable protocol.
+ */
+    void
+term_set_sync_output(int flags)
+{
+    bool    allowed;
+#ifdef FEAT_GUI
+    bool    in_gui = gui.in_use;
+#else
+    bool    in_gui = false;
+#endif
+
+    allowed = p_tsy && (sync_output_setting == 1 || sync_output_setting == 2);
+
+    if (flags & TERM_SYNC_OUTPUT_FLUSH)
+    {
+	// Tell terminal to display screen contents, then resume batching.
+	if (allowed && !in_gui && sync_output_state > 0 && *T_ESU != NUL &&
+		*T_BSU != NUL)
+	{
+	    out_str_nf(T_ESU);
+	    out_str_nf(T_BSU);
+	    out_flush();
+	}
+	return;
+    }
+
+    // Forcibly turn off synchronized output (e.g. 'notermsync')
+    if (flags & TERM_SYNC_OUTPUT_OFF)
+    {
+	if (sync_output_state > 0 && *T_ESU != NUL)
+	{
+	    out_str_nf(T_ESU);
+	    out_flush();
+	    sync_output_state = 0;
+	}
+	return;
+    }
+
+    if (!allowed || in_gui || *T_BSU == NUL || *T_ESU == NUL)
+	return;
+
+    // Only enable if we aren't already, and only disable if we have reached
+    // zero.
+    if (flags & TERM_SYNC_OUTPUT_ENABLE)
+    {
+	if (sync_output_state++ > 0)
+	    return;
+	out_str_nf(T_BSU);
+    }
+    else if (flags & TERM_SYNC_OUTPUT_DISABLE)
+    {
+	if (sync_output_state == 0 || --sync_output_state > 0)
+	    return;
+	// Flush the output buffer before ending the sync batch so that
+	// all drawing output is sent to the terminal within the
+	// BSU..ESU window.  Without this, the drawing data remaining in
+	// out_buf would be sent after ESU, outside the sync batch.
+	out_str_nf(T_ESU);
+	out_flush();
+    }
+    else
+    {
+	siemsg("Unknown sync output value %d", flags);
+	return;
+    }
 }

@@ -3178,19 +3178,25 @@ vim_fnamencmp(char_u *x, char_u *y, size_t len)
  * Only add a '/' or '\\' when 'sep' is TRUE and it is necessary.
  */
     char_u  *
-concat_fnames(char_u *fname1, char_u *fname2, int sep)
+concat_fnames(char_u *fname1, size_t fname1len, char_u *fname2, size_t fname2len, int sep, string_T *ret)
 {
-    char_u  *dest;
+    ret->string = alloc(fname1len + (sep ? STRLEN_LITERAL(PATHSEPSTR) : 0) + fname2len + 1);
+    if (ret->string == NULL)
+	ret->length = 0;
+    else
+    {
+	STRCPY(ret->string, fname1);
+	ret->length = fname1len;
+	if (sep && *ret->string != NUL && !after_pathsep(ret->string, ret->string + ret->length))
+	{
+	    STRCPY(ret->string + ret->length, PATHSEPSTR);
+	    ret->length += STRLEN_LITERAL(PATHSEPSTR);
+	}
+	STRCPY(ret->string + ret->length, fname2);
+	ret->length += fname2len;
+    }
 
-    dest = alloc(STRLEN(fname1) + STRLEN(fname2) + 3);
-    if (dest == NULL)
-	return NULL;
-
-    STRCPY(dest, fname1);
-    if (sep)
-	add_pathsep(dest);
-    STRCAT(dest, fname2);
-    return dest;
+    return ret->string;
 }
 
 /*
@@ -3200,8 +3206,14 @@ concat_fnames(char_u *fname1, char_u *fname2, int sep)
     void
 add_pathsep(char_u *p)
 {
-    if (*p != NUL && !after_pathsep(p, p + STRLEN(p)))
-	STRCAT(p, PATHSEPSTR);
+    size_t  plen;
+
+    if (*p == NUL)
+	return;
+
+    plen = STRLEN(p);
+    if (!after_pathsep(p, p + plen))
+	STRCPY(p + plen, PATHSEPSTR);
 }
 
 /*
@@ -3429,8 +3441,6 @@ match_suffix(char_u *fname)
     return (setsuflen != 0);
 }
 
-#ifdef VIM_BACKTICK
-
 /*
  * Return TRUE if we can expand this backtick thing here.
  */
@@ -3462,11 +3472,11 @@ expand_backtick(
     if (cmd == NULL)
 	return -1;
 
-# ifdef FEAT_EVAL
+#ifdef FEAT_EVAL
     if (*cmd == '=')	    // `={expr}`: Expand expression
 	buffer = eval_to_string(cmd + 1, TRUE, FALSE);
     else
-# endif
+#endif
 	buffer = get_cmd_output(cmd, NULL,
 				(flags & EW_SILENT) ? SHELL_SILENT : 0, NULL);
     vim_free(cmd);
@@ -3497,7 +3507,6 @@ expand_backtick(
     vim_free(buffer);
     return cnt;
 }
-#endif // VIM_BACKTICK
 
 #if defined(MSWIN)
 /*
@@ -4105,9 +4114,7 @@ gen_expand_wildcards(
     for (i = 0; i < num_pat; i++)
     {
 	if (has_special_wildchar(pat[i])
-# ifdef VIM_BACKTICK
 		&& !(vim_backtick(pat[i]) && pat[i][1] == '=')
-# endif
 	   )
 	    return mch_expand_wildcards(num_pat, pat, num_file, file, flags);
     }
@@ -4125,7 +4132,6 @@ gen_expand_wildcards(
 	add_pat = -1;
 	p = pat[i];
 
-#ifdef VIM_BACKTICK
 	if (vim_backtick(p))
 	{
 	    add_pat = expand_backtick(&ga, p, flags);
@@ -4133,7 +4139,6 @@ gen_expand_wildcards(
 		retval = FAIL;
 	}
 	else
-#endif
 	{
 	    /*
 	     * First expand environment variables, "~/" and "~user/".

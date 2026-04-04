@@ -1626,7 +1626,10 @@ EXTRA_SRC = if_lua.c if_mzsch.c auto/if_perl.c \
 	    gui_beval.c netbeans.c job.c channel.c \
 	    $(GRESOURCE_SRC)
 
-$(WAYLAND_SRC):
+$(WAYLAND_SRC): genwaylandproto
+
+.PHONY: genwaylandproto
+genwaylandproto:
 	cd auto/wayland; $(MAKE)
 
 # Needed for parallel jobs to work
@@ -2421,6 +2424,9 @@ installrtbase: $(HELPSOURCE)/vim.1 $(DEST_VIM) $(VIMTARGET) $(DEST_RT) \
 	chmod $(VIMSCRIPTMOD) $(DEST_SCRIPT)/vimrc_example.vim
 	$(INSTALL_DATA) $(SCRIPTSOURCE)/gvimrc_example.vim $(DEST_SCRIPT)
 	chmod $(VIMSCRIPTMOD) $(DEST_SCRIPT)/gvimrc_example.vim
+# install the xdg file
+	$(INSTALL_DATA) $(SCRIPTSOURCE)/xdg.vim $(DEST_SCRIPT)
+	chmod $(VIMSCRIPTMOD) $(DEST_SCRIPT)/xdg.vim
 # install the file type detection files
 	$(INSTALL_DATA) $(SCRIPTSOURCE)/filetype.vim $(SYS_FILETYPE_FILE)
 	chmod $(VIMSCRIPTMOD) $(SYS_FILETYPE_FILE)
@@ -4566,8 +4572,8 @@ objects/gui_gtk_x11.o: gui_gtk_x11.c vim.h protodef.h auto/config.h feature.h \
   os_unix.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   structs.h regexp.h gui.h libvterm/include/vterm.h \
   libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h ../runtime/vim16x16.xpm \
-  ../runtime/vim32x32.xpm ../runtime/vim48x48.xpm
+  ex_cmds.h spell.h proto.h globals.h errors.h ../runtime/vim16x16_png.h \
+  ../runtime/vim32x32_png.h ../runtime/vim48x48_png.h
 objects/gui_macvim.o: MacVim/gui_macvim.m MacVim/MMBackend.h MacVim/MacVim.h \
   vim.h protodef.h auto/config.h feature.h os_unix.h ascii.h keymap.h \
   termdefs.h macros.h option.h beval.h structs.h \
@@ -4769,7 +4775,7 @@ proto/fuzzy.pro: fuzzy.c
 proto/gc.pro: gc.c
 proto/getchar.pro: getchar.c
 proto/gui_beval.pro: gui_beval.c
-proto/gui_gtk_gresources.pro: auto/gui_gtk_gresources.c
+proto/gui_gtk_gresources.pro: gui_gtk_gresources.c
 proto/gui_xim.pro: gui_xim.c
 proto/hardcopy.pro: hardcopy.c
 proto/hashtab.pro: hashtab.c

@@ -18,7 +18,7 @@
 
 #if defined(FEAT_EVAL)
 
-static int json_encode_item(garray_T *gap, typval_T *val, int copyID, int options);
+static int json_encode_item(garray_T *gap, typval_T *val, int copyID, int options, int depth);
 
 /*
  * Encode "val" into a JSON format string.
@@ -28,7 +28,7 @@ static int json_encode_item(garray_T *gap, typval_T *val, int copyID, int option
     static int
 json_encode_gap(garray_T *gap, typval_T *val, int options)
 {
-    if (json_encode_item(gap, val, get_copyID(), options) == FAIL)
+    if (json_encode_item(gap, val, get_copyID(), options, 0) == FAIL)
     {
 	ga_clear(gap);
 	gap->ga_data = vim_strsave((char_u *)"");
@@ -96,6 +96,7 @@ json_encode_lsp_msg(typval_T *val)
 {
     garray_T	ga;
     garray_T	lspga;
+    size_t	IObufflen;
 
     ga_init2(&ga, 1, 4000);
     if (json_encode_gap(&ga, val, 0) == FAIL)
@@ -104,10 +105,10 @@ json_encode_lsp_msg(typval_T *val)
 
     ga_init2(&lspga, 1, 4000);
     // Header according to LSP specification.
-    vim_snprintf((char *)IObuff, IOSIZE,
+    IObufflen = vim_snprintf_safelen((char *)IObuff, IOSIZE,
 	    "Content-Length: %u\r\n\r\n",
 	    ga.ga_len - 1);
-    ga_concat(&lspga, IObuff);
+    ga_concat_len(&lspga, IObuff, IObufflen);
     ga_concat_len(&lspga, ga.ga_data, ga.ga_len);
     ga_clear(&ga);
     return lspga.ga_data;
@@ -145,7 +146,7 @@ write_string(garray_T *gap, char_u *str)
 
     if (res == NULL)
     {
-	ga_concat(gap, (char_u *)"\"\"");
+	GA_CONCAT_LITERAL(gap, "\"\"");
 	return;
     }
 
@@ -162,6 +163,8 @@ write_string(garray_T *gap, char_u *str)
     }
 #endif
     ga_append(gap, '"');
+    // Pre-grow for the common case: input length + quotes + some escapes.
+    ga_grow(gap, (int)STRLEN(res) + 2);
     // `from` is the beginning of a sequence of bytes we can directly copy from
     // the input string, avoiding the overhead associated to decoding/encoding
     // them.
@@ -184,31 +187,35 @@ write_string(garray_T *gap, char_u *str)
 	    switch (c)
 	    {
 		case 0x08:
-		    ga_append(gap, '\\'); ga_append(gap, 'b'); break;
+		    GA_CONCAT_LITERAL(gap, "\\b"); break;
 		case 0x09:
-		    ga_append(gap, '\\'); ga_append(gap, 't'); break;
+		    GA_CONCAT_LITERAL(gap, "\\t"); break;
 		case 0x0a:
-		    ga_append(gap, '\\'); ga_append(gap, 'n'); break;
+		    GA_CONCAT_LITERAL(gap, "\\n"); break;
 		case 0x0c:
-		    ga_append(gap, '\\'); ga_append(gap, 'f'); break;
+		    GA_CONCAT_LITERAL(gap, "\\f"); break;
 		case 0x0d:
-		    ga_append(gap, '\\'); ga_append(gap, 'r'); break;
+		    GA_CONCAT_LITERAL(gap, "\\r"); break;
 		case 0x22: // "
+		    GA_CONCAT_LITERAL(gap, "\\\""); break;
 		case 0x5c: // backslash
-		    ga_append(gap, '\\');
-		    ga_append(gap, c);
-		    break;
+		    GA_CONCAT_LITERAL(gap, "\\\\"); break;
 		default:
-		    vim_snprintf((char *)numbuf, NUMBUFLEN, "\\u%04lx",
-								      (long)c);
-		    ga_concat(gap, numbuf);
+		{
+		    size_t  numbuflen;
+
+		    numbuflen = vim_snprintf_safelen((char *)numbuf,
+			sizeof(numbuf), "\\u%04lx", (long)c);
+		    ga_concat_len(gap, numbuf, numbuflen);
+		}
 	    }
 
 	    res += 1;
 	}
 	else
 	{
-	    int l = utf_ptr2len(res);
+	    int	    l = utf_ptr2len(res);
+	    size_t  numbuflen;
 
 	    if (l > 1)
 	    {
@@ -222,8 +229,9 @@ write_string(garray_T *gap, char_u *str)
 		ga_concat_len(gap, from, res - from);
 	    from = res + 1;
 
-	    numbuf[utf_char2bytes(0xFFFD, numbuf)] = NUL;
-	    ga_concat(gap, numbuf);
+	    numbuflen = utf_char2bytes(0xFFFD, numbuf);
+	    numbuf[numbuflen] = NUL;
+	    ga_concat_len(gap, numbuf, numbuflen);
 
 	    res += l;
 	}
@@ -261,7 +269,7 @@ is_simple_key(char_u *key)
  * Return FAIL or OK.
  */
     static int
-json_encode_item(garray_T *gap, typval_T *val, int copyID, int options)
+json_encode_item(garray_T *gap, typval_T *val, int copyID, int options, int depth)
 {
     char_u	numbuf[NUMBUFLEN];
     char_u	*res;
@@ -271,13 +279,19 @@ json_encode_item(garray_T *gap, typval_T *val, int copyID, int options)
     dict_T	*d;
     int		i;
 
+    if (depth > p_mfd)
+    {
+	emsg(_(e_function_call_depth_is_higher_than_maxfuncdepth));
+	return FAIL;
+    }
+
     switch (val->v_type)
     {
 	case VAR_BOOL:
 	    switch ((long)val->vval.v_number)
 	    {
-		case VVAL_FALSE: ga_concat(gap, (char_u *)"false"); break;
-		case VVAL_TRUE: ga_concat(gap, (char_u *)"true"); break;
+		case VVAL_FALSE: GA_CONCAT_LITERAL(gap, "false"); break;
+		case VVAL_TRUE: GA_CONCAT_LITERAL(gap, "true"); break;
 	    }
 	    break;
 
@@ -289,14 +303,18 @@ json_encode_item(garray_T *gap, typval_T *val, int copyID, int options)
 				    // empty item
 				    break;
 				// FALLTHROUGH
-		case VVAL_NULL: ga_concat(gap, (char_u *)"null"); break;
+		case VVAL_NULL: GA_CONCAT_LITERAL(gap, "null"); break;
 	    }
 	    break;
 
 	case VAR_NUMBER:
-	    vim_snprintf((char *)numbuf, NUMBUFLEN, "%lld",
-					      (varnumber_T)val->vval.v_number);
-	    ga_concat(gap, numbuf);
+	    {
+		size_t  numbuflen;
+
+		numbuflen = vim_snprintf_safelen((char *)numbuf, sizeof(numbuf),
+		    "%lld", (varnumber_T)val->vval.v_number);
+		ga_concat_len(gap, numbuf, numbuflen);
+	    }
 	    break;
 
 	case VAR_STRING:
@@ -318,17 +336,30 @@ json_encode_item(garray_T *gap, typval_T *val, int copyID, int options)
 	case VAR_BLOB:
 	    b = val->vval.v_blob;
 	    if (b == NULL || b->bv_ga.ga_len == 0)
-		ga_concat(gap, (char_u *)"[]");
+		GA_CONCAT_LITERAL(gap, "[]");
 	    else
 	    {
 		ga_append(gap, '[');
 		for (i = 0; i < b->bv_ga.ga_len; i++)
 		{
+		    int	    byte = blob_get(b, i);
+
 		    if (i > 0)
-			ga_concat(gap, (char_u *)",");
-		    vim_snprintf((char *)numbuf, NUMBUFLEN, "%d",
-			    blob_get(b, i));
-		    ga_concat(gap, numbuf);
+			ga_append(gap, ',');
+		    // blob bytes are 0-255, use simple conversion
+		    if (byte >= 100)
+		    {
+			ga_append(gap, '0' + byte / 100);
+			ga_append(gap, '0' + (byte / 10) % 10);
+			ga_append(gap, '0' + byte % 10);
+		    }
+		    else if (byte >= 10)
+		    {
+			ga_append(gap, '0' + byte / 10);
+			ga_append(gap, '0' + byte % 10);
+		    }
+		    else
+			ga_append(gap, '0' + byte);
 		}
 		ga_append(gap, ']');
 	    }
@@ -337,11 +368,11 @@ json_encode_item(garray_T *gap, typval_T *val, int copyID, int options)
 	case VAR_LIST:
 	    l = val->vval.v_list;
 	    if (l == NULL)
-		ga_concat(gap, (char_u *)"[]");
+		GA_CONCAT_LITERAL(gap, "[]");
 	    else
 	    {
 		if (l->lv_copyID == copyID)
-		    ga_concat(gap, (char_u *)"[]");
+		    GA_CONCAT_LITERAL(gap, "[]");
 		else
 		{
 		    listitem_T	*li;
@@ -352,7 +383,8 @@ json_encode_item(garray_T *gap, typval_T *val, int copyID, int options)
 		    for (li = l->lv_first; li != NULL && !got_int; )
 		    {
 			if (json_encode_item(gap, &li->li_tv, copyID,
-						   options & JSON_JS) == FAIL)
+						   options & JSON_JS,
+						   depth + 1) == FAIL)
 			    return FAIL;
 			if ((options & JSON_JS)
 				&& li->li_next == NULL
@@ -373,11 +405,11 @@ json_encode_item(garray_T *gap, typval_T *val, int copyID, int options)
 	case VAR_TUPLE:
 	    tuple = val->vval.v_tuple;
 	    if (tuple == NULL)
-		ga_concat(gap, (char_u *)"[]");
+		GA_CONCAT_LITERAL(gap, "[]");
 	    else
 	    {
 		if (tuple->tv_copyID == copyID)
-		    ga_concat(gap, (char_u *)"[]");
+		    GA_CONCAT_LITERAL(gap, "[]");
 		else
 		{
 		    int		len = TUPLE_LEN(tuple);
@@ -388,7 +420,8 @@ json_encode_item(garray_T *gap, typval_T *val, int copyID, int options)
 		    {
 			typval_T	*t_item = TUPLE_ITEM(tuple, i);
 			if (json_encode_item(gap, t_item, copyID,
-						   options & JSON_JS) == FAIL)
+						   options & JSON_JS,
+						   depth + 1) == FAIL)
 			    return FAIL;
 
 			if ((options & JSON_JS)
@@ -409,11 +442,11 @@ json_encode_item(garray_T *gap, typval_T *val, int copyID, int options)
 	case VAR_DICT:
 	    d = val->vval.v_dict;
 	    if (d == NULL)
-		ga_concat(gap, (char_u *)"{}");
+		GA_CONCAT_LITERAL(gap, "{}");
 	    else
 	    {
 		if (d->dv_copyID == copyID)
-		    ga_concat(gap, (char_u *)"{}");
+		    GA_CONCAT_LITERAL(gap, "{}");
 		else
 		{
 		    int		first = TRUE;
@@ -439,7 +472,8 @@ json_encode_item(garray_T *gap, typval_T *val, int copyID, int options)
 				write_string(gap, hi->hi_key);
 			    ga_append(gap, ':');
 			    if (json_encode_item(gap, &dict_lookup(hi)->di_tv,
-				      copyID, options | JSON_NO_NONE) == FAIL)
+				      copyID, options | JSON_NO_NONE,
+				      depth + 1) == FAIL)
 				return FAIL;
 			}
 		    ga_append(gap, '}');
@@ -451,20 +485,22 @@ json_encode_item(garray_T *gap, typval_T *val, int copyID, int options)
 	case VAR_FLOAT:
 #if defined(HAVE_MATH_H)
 	    if (isnan(val->vval.v_float))
-		ga_concat(gap, (char_u *)"NaN");
+		GA_CONCAT_LITERAL(gap, "NaN");
 	    else if (isinf(val->vval.v_float))
 	    {
 		if (val->vval.v_float < 0.0)
-		    ga_concat(gap, (char_u *)"-Infinity");
+		    GA_CONCAT_LITERAL(gap, "-Infinity");
 		else
-		    ga_concat(gap, (char_u *)"Infinity");
+		    GA_CONCAT_LITERAL(gap, "Infinity");
 	    }
 	    else
 #endif
 	    {
-		vim_snprintf((char *)numbuf, NUMBUFLEN, "%g",
-							   val->vval.v_float);
-		ga_concat(gap, numbuf);
+		size_t	numbuflen;
+
+		numbuflen = vim_snprintf_safelen((char *)numbuf, sizeof(numbuf),
+		    "%g", val->vval.v_float);
+		ga_concat_len(gap, numbuf, numbuflen);
 	    }
 	    break;
 	case VAR_UNKNOWN:
@@ -586,7 +622,7 @@ json_decode_string(js_read_T *reader, typval_T *res, int quote)
 			return FAIL;
 		    }
 		    p += len + 2;
-		    if (0xd800 <= nr && nr <= 0xdfff
+		    if (0xd800 <= nr && nr <= 0xdbff
 			    && (int)(reader->js_end - p) >= 6
 			    && *p == '\\' && *(p+1) == 'u')
 		    {
@@ -609,12 +645,21 @@ json_decode_string(js_read_T *reader, typval_T *res, int quote)
 				((nr2 - 0xdc00) & 0x3ff)) + 0x10000;
 			}
 		    }
+		    // Lone surrogate is invalid.
+		    if (0xd800 <= nr && nr <= 0xdfff)
+		    {
+			if (res != NULL)
+			    ga_clear(&ga);
+			return FAIL;
+		    }
 		    if (res != NULL)
 		    {
 			char_u	buf[NUMBUFLEN];
+			size_t	buflen;
 
-			buf[utf_char2bytes((int)nr, buf)] = NUL;
-			ga_concat(&ga, buf);
+			buflen = utf_char2bytes((int)nr, buf);
+			buf[buflen] = NUL;
+			ga_concat_len(&ga, buf, buflen);
 		    }
 		    break;
 		default:
@@ -790,6 +835,12 @@ json_decode_item(js_read_T *reader, typval_T *res, int options)
 			retval = FAIL;
 			break;
 		    }
+		    if (stack.ga_len >= p_mfd)
+		    {
+			emsg(_(e_function_call_depth_is_higher_than_maxfuncdepth));
+			retval = FAIL;
+			break;
+		    }
 		    if (ga_grow(&stack, 1) == FAIL)
 		    {
 			retval = FAIL;
@@ -818,6 +869,12 @@ json_decode_item(js_read_T *reader, typval_T *res, int options)
 		case '{': // start of object
 		    if (top_item && top_item->jd_type == JSON_OBJECT_KEY)
 		    {
+			retval = FAIL;
+			break;
+		    }
+		    if (stack.ga_len >= p_mfd)
+		    {
+			emsg(_(e_function_call_depth_is_higher_than_maxfuncdepth));
 			retval = FAIL;
 			break;
 		    }
@@ -937,7 +994,13 @@ json_decode_item(js_read_T *reader, typval_T *res, int options)
 			retval = OK;
 			break;
 		    }
-		    if (STRNICMP((char *)p, "false", 5) == 0)
+		    // In strinct JSON mode, keywords must be lowercase.
+		    // In JS mode, keywords are case-insensitive.
+#define MATCH_KW(p, kw, len) \
+    ((options & JSON_JS) \
+     ? STRNICMP((char *)(p), (kw), (len)) == 0 \
+     : STRNCMP((char *)(p), (kw), (len)) == 0)
+		    if (MATCH_KW(p, "false", 5))
 		    {
 			reader->js_used += 5;
 			if (cur_item != NULL)
@@ -948,7 +1011,7 @@ json_decode_item(js_read_T *reader, typval_T *res, int options)
 			retval = OK;
 			break;
 		    }
-		    if (STRNICMP((char *)p, "true", 4) == 0)
+		    if (MATCH_KW(p, "true", 4))
 		    {
 			reader->js_used += 4;
 			if (cur_item != NULL)
@@ -959,7 +1022,7 @@ json_decode_item(js_read_T *reader, typval_T *res, int options)
 			retval = OK;
 			break;
 		    }
-		    if (STRNICMP((char *)p, "null", 4) == 0)
+		    if (MATCH_KW(p, "null", 4))
 		    {
 			reader->js_used += 4;
 			if (cur_item != NULL)
@@ -970,7 +1033,7 @@ json_decode_item(js_read_T *reader, typval_T *res, int options)
 			retval = OK;
 			break;
 		    }
-		    if (STRNICMP((char *)p, "NaN", 3) == 0)
+		    if (MATCH_KW(p, "NaN", 3))
 		    {
 			reader->js_used += 3;
 			if (cur_item != NULL)
@@ -981,7 +1044,7 @@ json_decode_item(js_read_T *reader, typval_T *res, int options)
 			retval = OK;
 			break;
 		    }
-		    if (STRNICMP((char *)p, "-Infinity", 9) == 0)
+		    if (MATCH_KW(p, "-Infinity", 9))
 		    {
 			reader->js_used += 9;
 			if (cur_item != NULL)
@@ -992,7 +1055,7 @@ json_decode_item(js_read_T *reader, typval_T *res, int options)
 			retval = OK;
 			break;
 		    }
-		    if (STRNICMP((char *)p, "Infinity", 8) == 0)
+		    if (MATCH_KW(p, "Infinity", 8))
 		    {
 			reader->js_used += 8;
 			if (cur_item != NULL)
@@ -1003,6 +1066,7 @@ json_decode_item(js_read_T *reader, typval_T *res, int options)
 			retval = OK;
 			break;
 		    }
+#undef MATCH_KW
 		    // check for truncated name
 		    len = (int)(reader->js_end
 					 - (reader->js_buf + reader->js_used));

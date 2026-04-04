@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Vim(Simplified Chinese)\n"
 "Report-Msgid-Bugs-To: vim-dev@vim.org\n"
-"POT-Creation-Date: 2025-12-17 21:42+0800\n"
+"POT-Creation-Date: 2026-03-20 20:44+0800\n"
 "PO-Revision-Date: 2025-12-28 14:27+0800\n"
 "Last-Translator: Mao-Yining\n"
 "Language-Team: Simplified Chinese\n"
@@ -1996,6 +1996,10 @@ msgid "???LINES MISSING"
 msgstr "???缺少了一些行"
 
 # do not translate to avoid writing Chinese in files
+msgid "???ILLEGAL BLOCK NUMBER"
+msgstr "???无效的块编号"
+
+# do not translate to avoid writing Chinese in files
 msgid "???BLOCK MISSING"
 msgstr "???缺少块"
 
@@ -2729,7 +2733,7 @@ msgid " Arabic"
 msgstr " Arabic"
 
 msgid " (paste)"
-msgstr " (粘帖)"
+msgstr " (粘贴)"
 
 msgid " VISUAL"
 msgstr " 可视"
@@ -3680,7 +3684,7 @@ msgid "Help poor children in Uganda!"
 msgstr "帮助乌干达的可怜儿童！"
 
 msgid "type  :help Kuwasha<Enter>    for information "
-msgstr "输入  :help Kuwasha<Enter>    查看说明    "
+msgstr "输入  :help Kuwasha<Enter>    查看相关说明"
 
 msgid "type  :q<Enter>               to exit         "
 msgstr "输入  :q<Enter>               退出        "
@@ -3699,37 +3703,37 @@ msgid "Running in Vi compatible mode"
 msgstr "运行于 Vi 兼容模式"
 
 msgid "type  :set nocp<Enter>        for Vim defaults"
-msgstr "输入  :set nocp<Enter>        恢复默认的 Vim  "
+msgstr "输入  :set nocp<Enter>        恢复默认模式"
 
 msgid "type  :help cp-default<Enter> for info on this"
-msgstr "输入  :help cp-default<Enter> 查看相关说明    "
+msgstr "输入  :help cp-default<Enter> 查看相关说明"
 
 msgid "menu  Help->Orphans           for information    "
-msgstr "菜单  帮助->孤儿              查看说明           "
+msgstr "菜单  帮助->拯救孤儿          查看相关说明"
 
 msgid "Running modeless, typed text is inserted"
 msgstr "无模式运行，输入文字即插入"
 
 msgid "menu  Edit->Global Settings->Toggle Insert Mode  "
-msgstr "菜单  编辑->全局设置->开/关插入模式 "
+msgstr "菜单  编辑->全局设置->开/关插入模式       "
 
 msgid "                              for two modes      "
-msgstr "                              两种模式状态       "
+msgstr "                              切换两种模式"
 
 msgid "menu  Edit->Global Settings->Toggle Vi Compatible"
-msgstr "菜单  编辑->全局设置->切换 Vi 兼容性"
+msgstr "菜单  编辑->全局设置->切换 Vi 兼容性      "
 
 msgid "                              for Vim defaults   "
-msgstr "                                 Vim 默认状态    "
+msgstr "                              恢复默认模式"
 
 msgid "Sponsor Vim development!"
 msgstr "赞助 Vim 的开发！"
 
 msgid "type  :help sponsor<Enter>    for information "
-msgstr "输入  :help sponsor<Enter>    查看说明"
+msgstr "输入  :help sponsor<Enter>    查看如何赞助"
 
-msgid "menu  Help->Sponsor  for information    "
-msgstr "菜单  帮助->赞助者   获取信息"
+msgid "menu  Help->Sponsor           for information    "
+msgstr "菜单  帮助->拯救孤儿          查看相关说明"
 
 msgid "global"
 msgstr "全局"
@@ -8269,8 +8273,8 @@ msgstr "E1291: 无效的参数: %ld"
 msgid "E1292: Command-line window is already open"
 msgstr "E1292: 命令行窗口已打开"
 
-msgid "E1293: Cannot use a negative id after adding a textprop with text"
-msgstr "E1293: 添加带文本的文本属性后不能使用负 ID"
+msgid "E1293: Cannot use a negative id for a text property"
+msgstr "E1293: 文本属性的 id 不能为负数"
 
 msgid "E1294: Can only use text_align when column is zero"
 msgstr "E1294: 仅当列为零时才能使用 text_align"
@@ -8414,11 +8418,6 @@ msgstr "E1335: 类 \"%2$s\" 中的变量 \"%1$s\" 不可写"
 #, c-format
 msgid "E1337: Class variable \"%s\" not found in class \"%s\""
 msgstr "E1337: 在类 \"%2$s\" 中未找到类变量 \"%1$s\""
-
-msgid ""
-"E1339: Cannot add a textprop with text after using a textprop with a "
-"negative id"
-msgstr "E1339: 使用负 ID 的文本属性后不能添加带文本的文本属性"
 
 #, c-format
 msgid "E1340: Argument already declared in the class: %s"
@@ -9016,6 +9015,15 @@ msgstr "E1570: 不能在重绘监听器回调中使用 redraw_listener_add"
 
 msgid "E1571: Must specify at least one callback for redraw_listener_add"
 msgstr "E1571: 必须为 redraw_listener_add 指定至少一个回调"
+
+msgid "E1572: 'listchars' field \"leadtab\" requires \"tab\" to be specified"
+msgstr "E1572: 'listchars' 选项的 \"leadtab\" 字段需要先指定 \"tab\" 字段"
+
+msgid "E1573: Cannot listen on port"
+msgstr "E1573: 无法监听端口"
+
+msgid "E1574: gethostbyname(): cannot resolve hostname in channel_listen()"
+msgstr "E1574: gethostbyname()：无法在 channel_listen() 中解析主机名"
 
 msgid "--No lines in buffer--"
 msgstr "--缓冲区无内容--"
@@ -9626,6 +9634,12 @@ msgstr "按 CTRL-F 和 CTRL-B 滚动的行数"
 msgid "don't redraw while executing macros"
 msgstr "在执行宏时不要重新绘制"
 
+msgid "configure method of receiving terminal size changes"
+msgstr "配置获取终端尺寸变化的方式"
+
+msgid "enable terminal sync mode"
+msgstr "启用终端同步模式"
+
 msgid "timeout for 'hlsearch' and :match highlighting in msec"
 msgstr "'hlsearch' 和 :match 高亮的超时时间（以毫秒计）"
 
@@ -9685,6 +9699,9 @@ msgstr "高亮显示最后使用的搜索模式的所有匹配项"
 msgid "highlight group to use for the window"
 msgstr "窗口使用的高亮组"
 
+msgid "highlight group mappings for the window"
+msgstr "窗口使用的高亮组映射"
+
 msgid "use GUI colors for the terminal"
 msgstr "为终端使用 GUI 颜色"
 
@@ -9729,6 +9746,9 @@ msgstr "0, 1 或 2；何时为最后一个窗口使用状态行"
 
 msgid "alternate format to be used for a status line"
 msgstr "用于状态行的替代格式"
+
+msgid "optional settings for the status line"
+msgstr "状态栏的可选设置"
 
 msgid "make all windows the same size when adding/removing windows"
 msgstr "当添加/删除窗口时，使所有窗口的大小相同"
@@ -10864,6 +10884,45 @@ msgstr "自定义标签页面板的内容"
 
 msgid "options for using tabpanel"
 msgstr "标签页面板的选项"
+
+msgid "Notice"
+msgstr "注意"
+
+msgid "Quickfix list not found, stopping the job"
+msgstr "未找到 quickfix 列表，正在停止作业"
+
+msgid "Success!"
+msgstr "成功！"
+
+msgid "Job terminated"
+msgstr "作业已终止"
+
+msgid "There are errors."
+msgstr "存在错误。"
+
+msgid "Could not create quickfix list"
+msgstr "无法创建 quickfix 列表"
+
+msgid "File not readable:"
+msgstr "文件不可读："
+
+msgid "Failed to start job"
+msgstr "启动作业失败"
+
+msgid "Typesetting..."
+msgstr "排版中..."
+
+msgid "Jobs still running:"
+msgstr "任务仍在运行："
+
+msgid "Done."
+msgstr "完成。"
+
+msgid "Typeset"
+msgstr "排版"
+
+msgid "Please save the buffer first."
+msgstr "请先保存缓冲区。"
 
 msgid "You discovered the command-line window! You can close it with \":q\"."
 msgstr "您发现了命令行窗口！可以使用 \":q\" 命令关闭它。"

@@ -1,4 +1,4 @@
-.TH XXD 1 "May 2024" "Manual page for xxd"
+.TH XXD 1 "Mar 2026" "Manual page for xxd"
 .\"
 .\" 21st May 1996
 .\" Man page author:
@@ -169,6 +169,9 @@ should be that many characters from the end of the input (or if combined with
 \fI+\fR: before the current stdin file position).
 Without \-s option, xxd starts at the current file position.
 .TP
+.I \-t
+When outputting in C include file style using \-i include the terminating zero.
+.TP
 .I \-u
 Use upper-case hex letters. Default is lower-case.
 .TP
@@ -243,14 +246,14 @@ Print 3 lines (hex 0x30 bytes) from the end of
 \fI% xxd \-s \-0x30 file\fR
 .PP
 Note: The results of the examples below are relevant to the xxd.1 man page as of
-May 2024
+March 2026
 .PP
 .br
 Print 120 bytes as a continuous hex dump with 20 octets per line.
 .br
 \fI% xxd \-l 120 \-ps \-c 20 xxd.1\fR
 .br
-2e544820585844203120224d6179203230323422
+2e544820585844203120224d6172203230323622
 .br
 20224d616e75616c207061676520666f72207878
 .br
@@ -270,7 +273,7 @@ Hex dump the first 120 bytes of this man page with 12 octets per line.
 .br
 00000000: 2e54 4820 5858 4420 3120 224d  .TH XXD 1 "M
 .br
-0000000c: 6179 2032 3032 3422 2022 4d61  ay 2024" "Ma
+0000000c: 6172 2032 3032 3622 2022 4d61  ar 2026" "Ma
 .br
 00000018: 6e75 616c 2070 6167 6520 666f  nual page fo
 .br
@@ -362,6 +365,20 @@ Read single characters from a serial line
 \fI% stty < /dev/term/b \-echo \-opost \-isig \-icanon min 1\fR
 .br
 \fI% echo \-n foo > /dev/term/b\fR
+.PP
+Output in C style include output with terminating zero
+.br
+\fI% echo -n \&"0123456789\&" > digits\fR
+.br
+\fI% xxd -i -t digits\fR
+.br
+unsigned char digits[] = {
+.br
+  0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x00
+.br
+};
+.br
+unsigned int digits_len = 10;
 .PP
 .SH "RETURN VALUES"
 The following error values are returned:

@@ -312,7 +312,7 @@ EXTERN char e_function_name_required[]
 // E130 unused
 EXTERN char e_cannot_delete_function_str_it_is_in_use[]
 	INIT(= N_("E131: Cannot delete function %s: It is in use"));
-EXTERN char e_function_call_depth_is_higher_than_macfuncdepth[]
+EXTERN char e_function_call_depth_is_higher_than_maxfuncdepth[]
 	INIT(= N_("E132: Function call depth is higher than 'maxfuncdepth'"));
 EXTERN char e_return_not_inside_function[]
 	INIT(= N_("E133: :return not inside a function"));
@@ -3333,8 +3333,8 @@ EXTERN char e_invalid_argument_nr[]
 EXTERN char e_cmdline_window_already_open[]
 	INIT(= N_("E1292: Command-line window is already open"));
 #ifdef FEAT_PROP_POPUP
-EXTERN char e_cannot_use_negative_id_after_adding_textprop_with_text[]
-	INIT(= N_("E1293: Cannot use a negative id after adding a textprop with text"));
+EXTERN char e_cannot_use_negative_id[]
+	INIT(= N_("E1293: Cannot use a negative id for a text property"));
 EXTERN char e_can_only_use_text_align_when_column_is_zero[]
 	INIT(= N_("E1294: Can only use text_align when column is zero"));
 #endif
@@ -3437,10 +3437,7 @@ EXTERN char e_class_variable_str_not_found_in_class_str[]
 	INIT(= N_("E1337: Class variable \"%s\" not found in class \"%s\""));
 // E1338 unused
 #endif
-#ifdef FEAT_PROP_POPUP
-EXTERN char e_cannot_add_textprop_with_text_after_using_textprop_with_negative_id[]
-	INIT(= N_("E1339: Cannot add a textprop with text after using a textprop with a negative id"));
-#endif
+// E1339 unused
 #ifdef FEAT_EVAL
 EXTERN char e_argument_already_declared_in_class_str[]
 	INIT(= N_("E1340: Argument already declared in the class: %s"));
@@ -3803,10 +3800,20 @@ EXTERN char e_osc_response_timed_out[]
 #ifdef FEAT_EVAL
 EXTERN char e_cannot_add_listener_in_listener_callback[]
 	INIT(= N_("E1569: Cannot use listener_add in a listener callback"));
-#endif
-#ifdef FEAT_EVAL
 EXTERN char e_cannot_add_redraw_listener_in_listener_callback[]
 	INIT(= N_("E1570: Cannot use redraw_listener_add in a redraw listener callback"));
 EXTERN char e_no_redraw_listener_callbacks_defined[]
 	INIT(= N_("E1571: Must specify at least one callback for redraw_listener_add"));
+#endif
+EXTERN char e_leadtab_requires_tab[]
+	INIT(= N_("E1572: 'listchars' field \"leadtab\" requires \"tab\" to be specified"));
+#ifdef FEAT_JOB_CHANNEL
+EXTERN char e_cannot_listen_on_port[]
+	INIT(= N_("E1573: Cannot listen on port"));
+EXTERN char e_gethostbyname_in_channel_listen[]
+	INIT(= N_("E1574: gethostbyname(): cannot resolve hostname in channel_listen()"));
+#endif
+#ifdef FEAT_EVAL
+EXTERN char e_cannot_create_pipes[]
+	INIT(= N_("E1575: Cannot create pipes"));
 #endif

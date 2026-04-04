@@ -22,6 +22,7 @@ runtime/autoload/typeset.vim				@lifepillar
 runtime/autoload/xmlformat.vim				@chrisbra
 runtime/autoload/dist/json.vim				@habamax
 runtime/colors/blue.vim					@habamax @romainl @neutaaaaan
+runtime/colors/catppuccin.vim				@mao-yining
 runtime/colors/darkblue.vim				@habamax @romainl @neutaaaaan
 runtime/colors/default.vim				@habamax @romainl @neutaaaaan
 runtime/colors/delek.vim				@habamax @romainl @neutaaaaan
@@ -47,11 +48,13 @@ runtime/colors/torte.vim				@habamax @romainl @neutaaaaan
 runtime/colors/wildcharm.vim				@habamax @romainl @neutaaaaan
 runtime/colors/zaibatsu.vim				@habamax @romainl @neutaaaaan
 runtime/colors/zellner.vim				@habamax @romainl @neutaaaaan
+runtime/compiler/bash.vim				@Konfekt
 runtime/compiler/biome.vim				@Konfekt
 runtime/compiler/cabal.vim				@mateoxh
 runtime/compiler/checkstyle.vim				@dkearns
 runtime/compiler/cm3.vim				@dkearns
 runtime/compiler/context.vim				@lifepillar
+runtime/compiler/cppcheck.vim				@Konfekt
 runtime/compiler/cucumber.vim				@tpope
 runtime/compiler/dart.vim				@dkearns
 runtime/compiler/dart2js.vim				@dkearns
@@ -74,9 +77,12 @@ runtime/compiler/icon.vim				@dkearns
 runtime/compiler/javac.vim				@dkearns
 runtime/compiler/jest.vim				@dkearns
 runtime/compiler/jjs.vim				@dkearns
+runtime/compiler/jq.vim					@vito-c
 runtime/compiler/jshint.vim				@dkearns
 runtime/compiler/jsonlint.vim				@dkearns
-runtime/compiler/jq.vim					@vito-c
+runtime/compiler/just.vim				@Alarcritty
+runtime/compiler/make.vim				@Konfekt
+runtime/compiler/mypy.vim				@Konfekt
 runtime/compiler/pandoc.vim				@Konfekt
 runtime/compiler/perl.vim				@petdance @heptite
 runtime/compiler/perlcritic.vim				@petdance @dkearns
@@ -84,6 +90,8 @@ runtime/compiler/php.vim				@dkearns
 runtime/compiler/phpstan.vim				@dietrichm
 runtime/compiler/podchecker.vim				@petdance @dkearns
 runtime/compiler/powershell.vim				@heaths
+runtime/compiler/pyright.vim				@Konfekt
+runtime/compiler/pytest.vim				@Konfekt
 runtime/compiler/raco.vim				@benknoble
 runtime/compiler/racomake.vim				@benknoble
 runtime/compiler/racosetup.vim				@benknoble
@@ -99,12 +107,14 @@ runtime/compiler/se.vim					@dkearns
 runtime/compiler/shellcheck.vim				@dkearns
 runtime/compiler/sml.vim				@dkearns
 runtime/compiler/spectral.vim				@romainl
-runtime/compiler/svelte-check.vim			@Konfekt
 runtime/compiler/stylelint.vim				@dkearns
+runtime/compiler/svelte-check.vim			@Konfekt
 runtime/compiler/tcl.vim				@dkearns
 runtime/compiler/tidy.vim				@dkearns
+runtime/compiler/tombi.vim				@Konfekt
 runtime/compiler/ts-node.vim				@dkearns
 runtime/compiler/tsc.vim				@dkearns
+runtime/compiler/ty.vim					@Konfekt
 runtime/compiler/typedoc.vim				@dkearns
 runtime/compiler/xmllint.vim				@dkearns
 runtime/compiler/xo.vim					@dkearns
@@ -254,6 +264,7 @@ runtime/ftplugin/mojo.vim				@ribru17
 runtime/ftplugin/mp.vim					@lifepillar
 runtime/ftplugin/mss.vim				@Freed-Wu
 runtime/ftplugin/nginx.vim				@chr4
+runtime/ftplugin/nickel.vim				@ribru17
 runtime/ftplugin/nim.vim				@ribru17
 runtime/ftplugin/nroff.vim				@averms
 runtime/ftplugin/nsis.vim				@k-takata
@@ -339,6 +350,7 @@ runtime/ftplugin/vdf.vim				@ObserverOfTime
 runtime/ftplugin/vim.vim				@dkearns
 runtime/ftplugin/wget.vim				@dkearns
 runtime/ftplugin/wget2.vim				@dkearns
+runtime/ftplugin/wks.vim				@anakin4747
 runtime/ftplugin/xcompose.vim				@ObserverOfTime
 runtime/ftplugin/xml.vim				@chrisbra
 runtime/ftplugin/xs.vim					@petdance
@@ -378,6 +390,7 @@ runtime/indent/go.vim					@dbarnett
 runtime/indent/graphql.vim				@jparise
 runtime/indent/gyp.vim					@ObserverOfTime
 runtime/indent/haml.vim					@tpope
+runtime/indent/handlebars.vim				@sukima
 runtime/indent/hare.vim					@selenebun
 runtime/indent/hcl.vim					@gpanders
 runtime/indent/hog.vim					@wtfbbqhax
@@ -459,6 +472,7 @@ runtime/syntax/shared/hgcommitDiff.vim			@vegerot
 runtime/syntax/abaqus.vim				@costerwi
 runtime/syntax/abnf.vim					@A4-Tacks
 runtime/syntax/aidl.vim					@dpelle
+runtime/syntax/amiga.vim				@sodero
 runtime/syntax/ant.vim					@dkearns
 runtime/syntax/antlr4.vim				@jiangyinzuo
 runtime/syntax/arduino.vim				@johshoff
@@ -531,6 +545,7 @@ runtime/syntax/gitignore.vim				@ObserverOfTime
 runtime/syntax/gitolite.vim				@sitaramc
 runtime/syntax/gitrebase.vim				@tpope
 runtime/syntax/gleam.vim				@kirillmorozov
+runtime/syntax/glimmer.vim				@sukima
 runtime/syntax/glsl.vim					@gpanders
 runtime/syntax/go.vim					@bhcleek
 runtime/syntax/goaccess.vim				@meonkeys
@@ -541,6 +556,7 @@ runtime/syntax/graphql.vim				@jparise
 runtime/syntax/groff.vim				@jmarshall
 runtime/syntax/gyp.vim					@ObserverOfTime
 runtime/syntax/haml.vim					@tpope
+runtime/syntax/handlebars.vim				@sukima
 runtime/syntax/hare.vim					@selenebun
 runtime/syntax/haredoc.vim				@selenebun
 runtime/syntax/haskell.vim				@coot
@@ -696,6 +712,7 @@ runtime/syntax/vroom.vim				@dbarnett
 runtime/syntax/wdl.vim					@zenmatic
 runtime/syntax/wget.vim					@dkearns
 runtime/syntax/wget2.vim				@dkearns
+runtime/syntax/wks.vim					@anakin4747
 runtime/syntax/xbl.vim					@dkearns
 runtime/syntax/xcompose.vim				@ObserverOfTime
 runtime/syntax/xml.vim					@chrisbra

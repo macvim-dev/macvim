@@ -404,7 +404,7 @@ set_init_xdg_rtp(void)
     char_u	*vimrc2 = NULL;
     char_u	*xdg_dir = NULL;
     char_u	*xdg_rtp = NULL;
-    char_u	*vimrc_xdg = NULL;
+    string_T	vimrc_xdg = {NULL, 0};
 
     // initialize chartab, so we can expand $HOME
     (void)init_chartab();
@@ -418,10 +418,11 @@ set_init_xdg_rtp(void)
 	should_free_xdg_dir = TRUE;
 	has_xdg_env = FALSE;
     }
-    vimrc_xdg = concat_fnames(xdg_dir, (char_u *)"vim/vimrc", TRUE);
+    concat_fnames(xdg_dir, STRLEN(xdg_dir),
+	(char_u *)"vim/vimrc", STRLEN_LITERAL("vim/vimrc"), TRUE, &vimrc_xdg);
 
     if (file_is_readable(vimrc1) || file_is_readable(vimrc2) ||
-	    !file_is_readable(vimrc_xdg))
+	    !file_is_readable(vimrc_xdg.string))
 	goto theend;
 
     xdg_rtp = has_xdg_env ? (char_u *)XDG_RUNTIMEPATH
@@ -450,7 +451,7 @@ set_init_xdg_rtp(void)
 theend:
     vim_free(vimrc1);
     vim_free(vimrc2);
-    vim_free(vimrc_xdg);
+    vim_free(vimrc_xdg.string);
     if (should_free_xdg_dir)
 	vim_free(xdg_dir);
 }
@@ -1906,6 +1907,247 @@ stropt_remove_val(
 }
 
 /*
+ * Find a comma-separated item in "src" that matches the key part of "key".
+ * The key is the part before ':'.  "keylen" is the length including ':'.
+ * Returns a pointer to the found item in "src", or NULL if not found.
+ * Sets "*itemlenp" to the length of the found item (up to ',' or NUL).
+ */
+    static char_u *
+find_key_item(char_u *src, char_u *key, int keylen, int *itemlenp)
+{
+    char_u  *p = src;
+
+    while (*p != NUL)
+    {
+	// Check if this item starts with the same key
+	if ((p == src || *(p - 1) == ',')
+		&& STRNCMP(p, key, keylen) == 0)
+	{
+	    // Find the end of this item
+	    char_u *end = vim_strchr(p, ',');
+	    if (end == NULL)
+		end = p + STRLEN(p);
+	    *itemlenp = (int)(end - p);
+	    return p;
+	}
+	++p;
+    }
+    return NULL;
+}
+
+/*
+ * Remove one item of length "itemlen" at position "item" from comma-separated
+ * string "str" in-place.  Handles the comma before or after the item.
+ */
+    static void
+remove_comma_item(char_u *str, char_u *item, int itemlen)
+{
+    if (item[itemlen] == ',')
+	// Remove item and trailing comma
+	STRMOVE(item, item + itemlen + 1);
+    else if (item > str && *(item - 1) == ',')
+	// Last item: remove leading comma and item
+	STRMOVE(item - 1, item + itemlen);
+    else
+	// Only item
+	*item = NUL;
+}
+
+/*
+ * Remove all items matching "key" (with ':') from comma-separated string "str"
+ * in-place.  If "skip" is not NULL, the item at that position is kept.
+ */
+    static void
+remove_key_item(char_u *str, char_u *key, int keylen, char_u *skip)
+{
+    int	    itemlen;
+    char_u  *found;
+
+    while ((found = find_key_item(str, key, keylen, &itemlen)) != NULL)
+    {
+	if (found == skip)
+	{
+	    // Search for the next match after this one.
+	    char_u *next = found + itemlen;
+	    if (*next == ',')
+		++next;
+	    found = find_key_item(next, key, keylen, &itemlen);
+	    if (found == NULL)
+		break;
+	}
+
+	remove_comma_item(str, found, itemlen);
+    }
+}
+
+/*
+ * Append a comma-separated item to the end of "str" in-place.
+ * Adds a comma before the item if "str" is not empty.
+ */
+    static void
+append_item(char_u *str, char_u *item, int item_len)
+{
+    int len = (int)STRLEN(str);
+
+    if (len > 0)
+	str[len++] = ',';
+    mch_memmove(str + len, item, (size_t)item_len);
+    str[len + item_len] = NUL;
+}
+
+/*
+ * Prepend a comma-separated item to the beginning of "str" in-place.
+ * Adds a comma after the item if "str" is not empty.
+ */
+    static void
+prepend_item(char_u *str, char_u *item, int item_len)
+{
+    int len = (int)STRLEN(str);
+    int comma = (len > 0) ? 1 : 0;
+
+    mch_memmove(str + item_len + comma, str, (size_t)len + 1);
+    mch_memmove(str, item, (size_t)item_len);
+    if (comma)
+	str[item_len] = ',';
+}
+
+/*
+ * For a P_COMMA option: process "key:value" items in "newval" individually.
+ * Each comma-separated item in "newval" is checked against "origval":
+ *
+ * For OP_ADDING/OP_PREPENDING, each item is handled as follows:
+ *   - colon item, key exists with different value: replace (remove old, add)
+ *   - colon item, exact duplicate: do nothing
+ *   - colon item, not found: add to end
+ *   - non-colon item, exists: do nothing
+ *   - non-colon item, not found: add to end
+ *
+ * For OP_REMOVING, each item is handled as follows:
+ *   - colon item: remove by key match
+ *   - non-colon item: remove by exact match
+ *
+ * The result is written to "newval".
+ * Returns true if the operation was fully handled (caller should skip the
+ * normal add/remove logic).  Returns false if newval is a single non-colon
+ * item, meaning the caller should use the existing code path.
+ */
+    static bool
+stropt_handle_keymatch(
+    char_u	*origval,
+    char_u	*newval,
+    set_op_T	op,
+    int		flags UNUSED)
+{
+    char_u  *p;
+    char_u  *item_start;
+
+    // Check if newval contains any "key:value" item or multiple
+    // comma-separated items.  If neither, let the caller use the existing
+    // code path.
+    if (vim_strchr(newval, ':') == NULL && vim_strchr(newval, ',') == NULL)
+	return false;
+
+    // Work on a copy of newval for iteration.
+    char_u *newval_copy = vim_strsave(newval);
+    if (newval_copy == NULL)
+	return false;
+
+    // Build the result in newval.  Start with a copy of origval, then
+    // modify it per-item.  newval buffer has room for origval + arg.
+    STRCPY(newval, origval);
+
+    // Process each item individually, modifying newval in-place.
+    item_start = newval_copy;
+    for (;;)
+    {
+	p = vim_strchr(item_start, ',');
+	int item_len = (p == NULL)
+			    ? (int)STRLEN(item_start) : (int)(p - item_start);
+
+	if (item_len > 0)
+	{
+	    char_u *colon = vim_strchr(item_start, ':');
+	    if (colon != NULL && colon < item_start + item_len)
+	    {
+		int keylen = (int)(colon - item_start) + 1;
+
+		if (op == OP_ADDING || op == OP_PREPENDING)
+		{
+		    int old_itemlen;
+		    char_u *found = find_key_item(newval, item_start,
+						       keylen, &old_itemlen);
+		    if (found != NULL)
+		    {
+			if (old_itemlen == item_len
+				&& STRNCMP(found, item_start,
+							 item_len) == 0)
+			{
+			    // Exact duplicate: keep it in place, but
+			    // remove other items with the same key.
+			    remove_key_item(newval, item_start,
+							   keylen, found);
+			}
+			else
+			{
+			    // Key match with different value: remove all
+			    // items with the same key, then add.
+			    remove_key_item(newval, item_start,
+							    keylen, NULL);
+			    if (op == OP_PREPENDING)
+				prepend_item(newval, item_start, item_len);
+			    else
+				append_item(newval, item_start, item_len);
+			}
+		    }
+		    else
+		    {
+			// New item.
+			if (op == OP_PREPENDING)
+			    prepend_item(newval, item_start, item_len);
+			else
+			    append_item(newval, item_start, item_len);
+		    }
+		}
+		else if (op == OP_REMOVING)
+		    remove_key_item(newval, item_start, keylen, NULL);
+	    }
+	    else
+	    {
+		if (op == OP_ADDING || op == OP_PREPENDING)
+		{
+		    char_u *found = find_dup_item(newval, item_start,
+							   item_len, P_COMMA);
+		    if (found == NULL)
+		    {
+			// New item.
+			if (op == OP_PREPENDING)
+			    prepend_item(newval, item_start, item_len);
+			else
+			    append_item(newval, item_start, item_len);
+		    }
+		    // else: exact duplicate — do nothing
+		}
+		else if (op == OP_REMOVING)
+		{
+		    char_u *found = find_dup_item(newval, item_start,
+							   item_len, P_COMMA);
+		    if (found != NULL)
+			remove_comma_item(newval, found, item_len);
+		}
+	    }
+	}
+
+	if (p == NULL)
+	    break;
+	item_start = p + 1;
+    }
+
+    vim_free(newval_copy);
+
+    return true;
+}
+
+/*
  * Remove flags that appear twice in the string option value 'newval'.
  */
     static void
@@ -2020,33 +2262,42 @@ stropt_get_newval(
 		goto done;
 	}
 
-	// locate newval[] in origval[] when removing it and when adding to
-	// avoid duplicates
-	int len = 0;
-	if (op == OP_REMOVING || (flags & P_NODUP))
+	// For P_COMMA|P_COLON options with "key:value" items: process
+	// each item individually by matching on the key part.  If
+	// handled, skip the normal add/remove logic below.
+	if ((flags & P_COMMA) && (flags & P_COLON) && op != OP_NONE
+		&& stropt_handle_keymatch(origval, newval, op, flags))
+	    ;  // fully handled
+	else
 	{
-	    len = (int)STRLEN(newval);
-	    s = find_dup_item(origval, newval, len, flags);
-
-	    // do not add if already there
-	    if ((op == OP_ADDING || op == OP_PREPENDING) && s != NULL)
+	    // locate newval[] in origval[] when removing it and when
+	    // adding to avoid duplicates
+	    int len = 0;
+	    if (op == OP_REMOVING || (flags & P_NODUP))
 	    {
-		op = OP_NONE;
-		STRCPY(newval, origval);
+		len = (int)STRLEN(newval);
+		s = find_dup_item(origval, newval, len, flags);
+
+		// do not add if already there
+		if ((op == OP_ADDING || op == OP_PREPENDING) && s != NULL)
+		{
+		    op = OP_NONE;
+		    STRCPY(newval, origval);
+		}
+
+		// if no duplicate, move pointer to end of original value
+		if (s == NULL)
+		    s = origval + (int)STRLEN(origval);
 	    }
 
-	    // if no duplicate, move pointer to end of original value
-	    if (s == NULL)
-		s = origval + (int)STRLEN(origval);
+	    // concatenate the two strings; add a ',' if needed
+	    if (op == OP_ADDING || op == OP_PREPENDING)
+		stropt_concat_with_comma(origval, newval, op, flags);
+	    else if (op == OP_REMOVING)
+		// Remove newval[] from origval[]. (Note: "len" has been
+		// set above and is used here).
+		stropt_remove_val(origval, newval, flags, s, len);
 	}
-
-	// concatenate the two strings; add a ',' if needed
-	if (op == OP_ADDING || op == OP_PREPENDING)
-	    stropt_concat_with_comma(origval, newval, op, flags);
-	else if (op == OP_REMOVING)
-	    // Remove newval[] from origval[]. (Note: "len" has been set above
-	    // and is used here).
-	    stropt_remove_val(origval, newval, flags, s, len);
 
 	if (flags & P_FLAGLIST)
 	    // Remove flags that appear twice.
@@ -3280,41 +3531,49 @@ apply_optionset_autocmd(
 	long	newval,
 	char	*errmsg)
 {
-    char_u buf_old[12], buf_old_global[12], buf_new[12], buf_type[12];
+    char_u buf_old[12], buf_new[12], buf_type[12];
+    size_t  buf_oldlen;
+    size_t  len;
 
     // Don't do this while starting up, failure or recursively.
     if (starting || errmsg != NULL || *get_vim_var_str(VV_OPTION_TYPE) != NUL)
 	return;
 
-    vim_snprintf((char *)buf_old, sizeof(buf_old), "%ld", oldval);
-    vim_snprintf((char *)buf_old_global, sizeof(buf_old_global), "%ld",
-							oldval_g);
-    vim_snprintf((char *)buf_new, sizeof(buf_new), "%ld", newval);
-    vim_snprintf((char *)buf_type, sizeof(buf_type), "%s",
+    len = vim_snprintf_safelen((char *)buf_new, sizeof(buf_new), "%ld", newval);
+    set_vim_var_string(VV_OPTION_NEW, buf_new, (int)len);
+    len = vim_snprintf_safelen((char *)buf_type, sizeof(buf_type), "%s",
 				(opt_flags & OPT_LOCAL) ? "local" : "global");
-    set_vim_var_string(VV_OPTION_NEW, buf_new, -1);
-    set_vim_var_string(VV_OPTION_OLD, buf_old, -1);
-    set_vim_var_string(VV_OPTION_TYPE, buf_type, -1);
+    set_vim_var_string(VV_OPTION_TYPE, buf_type, (int)len);
+
+    buf_oldlen = vim_snprintf_safelen((char *)buf_old, sizeof(buf_old), "%ld", oldval);
+    set_vim_var_string(VV_OPTION_OLD, buf_old, (int)buf_oldlen);
+
     if (opt_flags & OPT_LOCAL)
     {
-	set_vim_var_string(VV_OPTION_COMMAND, (char_u *)"setlocal", -1);
-	set_vim_var_string(VV_OPTION_OLDLOCAL, buf_old, -1);
+	set_vim_var_string(VV_OPTION_COMMAND, (char_u *)"setlocal", STRLEN_LITERAL("setlocal"));
+	set_vim_var_string(VV_OPTION_OLDLOCAL, buf_old, (int)buf_oldlen);
     }
     if (opt_flags & OPT_GLOBAL)
     {
-	set_vim_var_string(VV_OPTION_COMMAND, (char_u *)"setglobal", -1);
-	set_vim_var_string(VV_OPTION_OLDGLOBAL, buf_old, -1);
+	set_vim_var_string(VV_OPTION_COMMAND, (char_u *)"setglobal", STRLEN_LITERAL("setglobal"));
+	set_vim_var_string(VV_OPTION_OLDGLOBAL, buf_old, (int)buf_oldlen);
     }
     if ((opt_flags & (OPT_LOCAL | OPT_GLOBAL)) == 0)
     {
-	set_vim_var_string(VV_OPTION_COMMAND, (char_u *)"set", -1);
-	set_vim_var_string(VV_OPTION_OLDLOCAL, buf_old, -1);
-	set_vim_var_string(VV_OPTION_OLDGLOBAL, buf_old_global, -1);
+	char_u	buf_old_global[12];
+	size_t	buf_old_globallen;
+
+	buf_old_globallen = vim_snprintf_safelen((char *)buf_old_global,
+	    sizeof(buf_old_global), "%ld", oldval_g);
+
+	set_vim_var_string(VV_OPTION_COMMAND, (char_u *)"set", STRLEN_LITERAL("set"));
+	set_vim_var_string(VV_OPTION_OLDLOCAL, buf_old, (int)buf_oldlen);
+	set_vim_var_string(VV_OPTION_OLDGLOBAL, buf_old_global, (int)buf_old_globallen);
     }
     if (opt_flags & OPT_MODELINE)
     {
-	set_vim_var_string(VV_OPTION_COMMAND, (char_u *)"modeline", -1);
-	set_vim_var_string(VV_OPTION_OLDLOCAL, buf_old, -1);
+	set_vim_var_string(VV_OPTION_COMMAND, (char_u *)"modeline", STRLEN_LITERAL("modeline"));
+	set_vim_var_string(VV_OPTION_OLDLOCAL, buf_old, (int)buf_oldlen);
     }
     apply_autocmds(EVENT_OPTIONSET, (char_u *)options[opt_idx].fullname,
 	    NULL, FALSE, NULL);
@@ -3871,7 +4130,7 @@ did_set_modifiable(optset_T *args UNUSED)
 
 #ifdef FEAT_TERMINAL
     // Cannot set 'modifiable' when in Terminal mode.
-    if (curbuf->b_p_ma && (term_in_normal_mode() || (bt_terminal(curbuf)
+    if (curbuf->b_p_ma && (term_in_normal_mode(curbuf) || (bt_terminal(curbuf)
 		    && curbuf->b_term != NULL && !term_is_finished(curbuf))))
     {
 	curbuf->b_p_ma = FALSE;
@@ -4426,13 +4685,21 @@ did_set_termguicolors(optset_T *args UNUSED)
 # ifdef FEAT_TERMINAL
     term_update_colors_all();
     term_update_palette_all();
-    term_update_wincolor_all();
+    term_update_hlfwin_all();
 # endif
     p_tgc_set = TRUE;
 
     return NULL;
 }
 #endif
+
+    char *
+did_set_termsync(optset_T *args UNUSED)
+{
+    if (!p_tsy)
+	term_set_sync_output(TERM_SYNC_OUTPUT_OFF);
+    return NULL;
+}
 
 #if defined(FEAT_TERMINAL)
 /*
@@ -6731,6 +6998,9 @@ unset_global_local_option(char_u *name, void *from)
 	case PV_STL:
 	    clear_string_option(&((win_T *)from)->w_p_stl);
 	    break;
+	case PV_STLO:
+	    clear_string_option(&((win_T *)from)->w_p_stlo);
+	    break;
 # endif
 	case PV_UL:
 	    buf->b_p_ul = NO_LOCAL_UNDOLEVEL;
@@ -6824,6 +7094,7 @@ get_varp_scope(struct vimoption *p, int scope)
 #endif
 #ifdef FEAT_STL_OPT
 	    case PV_STL:  return (char_u *)&(curwin->w_p_stl);
+	    case PV_STLO: return (char_u *)&(curwin->w_p_stlo);
 #endif
 	    case PV_UL:   return (char_u *)&(curbuf->b_p_ul);
 	    case PV_LW:   return (char_u *)&(curbuf->b_p_lw);
@@ -6939,6 +7210,8 @@ get_varp(struct vimoption *p)
 #ifdef FEAT_STL_OPT
 	case PV_STL:	return *curwin->w_p_stl != NUL
 				    ? (char_u *)&(curwin->w_p_stl) : p->var;
+	case PV_STLO:	return *curwin->w_p_stlo != NUL
+				    ? (char_u *)&(curwin->w_p_stlo) : p->var;
 #endif
 	case PV_UL:	return curbuf->b_p_ul != NO_LOCAL_UNDOLEVEL
 				    ? (char_u *)&(curbuf->b_p_ul) : p->var;
@@ -7014,6 +7287,8 @@ get_varp(struct vimoption *p)
 	case PV_COCU:   return (char_u *)&(curwin->w_p_cocu);
 	case PV_COLE:   return (char_u *)&(curwin->w_p_cole);
 #endif
+	case PV_WHL:	return (char_u *)&(curwin->w_p_whl);
+
 #ifdef FEAT_TERMINAL
 	case PV_TWK:    return (char_u *)&(curwin->w_p_twk);
 	case PV_TWS:    return (char_u *)&(curwin->w_p_tws);
@@ -7189,6 +7464,11 @@ win_copy_options(win_T *wp_from, win_T *wp_to)
 {
     copy_winopt(&wp_from->w_onebuf_opt, &wp_to->w_onebuf_opt);
     copy_winopt(&wp_from->w_allbuf_opt, &wp_to->w_allbuf_opt);
+#ifdef FEAT_STL_OPT
+    // w_stl_rendered_height is in win_T directly, not in winvar_T, so it is
+    // not copied by copy_winopt().  Copy it explicitly here.
+    wp_to->w_stl_rendered_height = wp_from->w_stl_rendered_height;
+#endif
     after_copy_winopt(wp_to);
 }
 
@@ -7198,6 +7478,11 @@ win_copy_options(win_T *wp_from, win_T *wp_to)
     void
 after_copy_winopt(win_T *wp)
 {
+    char *errmsg = update_winhighlight(wp, wp->w_p_whl);
+
+    if (errmsg != NULL)
+	emsg(_(errmsg));
+
     // Set w_leftcol or w_skipcol to zero.
     if (wp->w_p_wrap)
 	wp->w_leftcol = 0;
@@ -7253,6 +7538,9 @@ copy_winopt(winopt_T *from, winopt_T *to)
 #endif
 #ifdef FEAT_STL_OPT
     to->wo_stl = copy_option_val(from->wo_stl);
+    to->wo_stlo = copy_option_val(from->wo_stlo);
+    to->wo_stlo_fh = from->wo_stlo_fh;
+    to->wo_stlo_mh = from->wo_stlo_mh;
 #endif
     to->wo_wrap = from->wo_wrap;
 #ifdef FEAT_DIFF
@@ -7327,6 +7615,7 @@ copy_winopt(winopt_T *from, winopt_T *to)
     to->wo_fde_flags = from->wo_fde_flags;
     to->wo_fdt_flags = from->wo_fdt_flags;
 #endif
+    to->wo_whl = copy_option_val(from->wo_whl);
 
 #ifdef FEAT_EVAL
     // Copy the script context so that we know where the value was last set.
@@ -7374,6 +7663,7 @@ check_winopt(winopt_T *wop UNUSED)
 #endif
 #ifdef FEAT_STL_OPT
     check_string_option(&wop->wo_stl);
+    check_string_option(&wop->wo_stlo);
 #endif
 #ifdef FEAT_SYN_HL
     check_string_option(&wop->wo_culopt);
@@ -7393,6 +7683,7 @@ check_winopt(winopt_T *wop UNUSED)
     check_string_option(&wop->wo_lcs);
     check_string_option(&wop->wo_fcs);
     check_string_option(&wop->wo_ve);
+    check_string_option(&wop->wo_whl);
 }
 
 /*
@@ -7427,6 +7718,7 @@ clear_winopt(winopt_T *wop UNUSED)
 #endif
 #ifdef FEAT_STL_OPT
     clear_string_option(&wop->wo_stl);
+    clear_string_option(&wop->wo_stlo);
 #endif
 #ifdef FEAT_SYN_HL
     clear_string_option(&wop->wo_culopt);
@@ -7442,6 +7734,7 @@ clear_winopt(winopt_T *wop UNUSED)
     clear_string_option(&wop->wo_lcs);
     clear_string_option(&wop->wo_fcs);
     clear_string_option(&wop->wo_ve);
+    clear_string_option(&wop->wo_whl);
 }
 
 #ifdef FEAT_EVAL
@@ -9107,8 +9400,6 @@ option_set_callback_func(char_u *optval UNUSED, callback_T *optcb UNUSED)
 
     free_callback(optcb);
     set_callback(optcb, &cb);
-    if (cb.cb_free_name)
-	vim_free(cb.cb_name);
     free_tv(tv);
 
     char_u  *dot = NULL;

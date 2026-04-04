@@ -1131,6 +1131,71 @@ func Test_BufEnter()
   only
 endfunc
 
+func Test_autocmd_SessLoadPre()
+  tabnew
+  set noswapfile
+  mksession! Session.vim
+
+  call assert_false(exists('g:session_loaded_var'))
+
+  let content =<< trim [CODE]
+    set nocp noswapfile
+
+    func! Assert(cond, msg)
+      if !a:cond
+        echomsg "ASSERT_FAIL: " .. a:msg
+      else
+        echomsg "ASSERT_OK: " .. a:msg
+      endif
+    endfunc
+
+    func! OnSessionLoadPre()
+      call Assert(!exists('g:session_loaded_var'),
+            \ 'SessionLoadPre: var NOT set')
+    endfunc
+    au SessionLoadPre * call OnSessionLoadPre()
+
+    func! OnSessionLoadPost()
+      call Assert(exists('g:session_loaded_var'),
+            \ 'SessionLoadPost: var IS set')
+      echomsg "SessionLoadPost DONE"
+    endfunc
+    au SessionLoadPost * call OnSessionLoadPost()
+
+    func! WriteErrors()
+      call writefile([execute("messages")], "XerrorsPost")
+    endfunc
+    au VimLeave * call WriteErrors()
+  [CODE]
+
+  call writefile(content, 'Xvimrc', 'D')
+
+  call writefile(
+        \ ['let g:session_loaded_var = 1'],
+        \ 'Sessionx.vim',
+        \ 'b'
+        \ )
+
+  " --- Run child Vim ---
+  call system(
+        \ GetVimCommand('Xvimrc')
+        \ .. ' --not-a-term --noplugins -S Session.vim -c cq'
+        \ )
+
+  call WaitForAssert({-> assert_true(filereadable('XerrorsPost'))})
+
+  let errors = join(readfile('XerrorsPost'), "\n")
+  call assert_notmatch('ASSERT_FAIL', errors)
+  call assert_match('ASSERT_OK: SessionLoadPre: var NOT set', errors)
+  call assert_match('ASSERT_OK: SessionLoadPost: var IS set', errors)
+  call assert_match('SessionLoadPost DONE', errors)
+
+  set swapfile
+  for file in ['Session.vim', 'Sessionx.vim', 'XerrorsPost']
+    call delete(file)
+  endfor
+endfunc
+
 " Closing a window might cause an endless loop
 " E814 for older Vims
 func Test_autocmd_bufwipe_in_SessLoadPost()
@@ -4763,10 +4828,11 @@ func Test_autocmd_creates_new_window_on_bufleave()
   setlocal bufhidden=wipe
   autocmd BufLeave <buffer> diffsplit c.txt
   bn
-  call assert_equal(1, winnr('$'))
+  " curbuf set for the new split opened for c.txt, due to BufLeave
+  call assert_equal(2, winnr('$'))
   call assert_equal('a.txt', bufname('%'))
-  bw a.txt
-  bw c.txt
+  call assert_equal('b.txt', bufname('#'))
+  %bw!
 endfunc
 
 " Ensure `expected` was just recently written as a Vim session
@@ -5161,6 +5227,32 @@ func Test_autocmd_BufWinLeave_with_vsp()
   bw
   call CleanUpTestAuGroup()
   exe "bw! " .. dummy
+endfunc
+
+func Test_autocmd_BufWinLeave_with_vsp2()
+  edit Xfoo
+  split Xbar
+  split
+  let s:fired = 0
+  augroup testing
+    autocmd!
+    autocmd BufWinLeave Xfoo ++once ++nested
+          \ execute 'autocmd WinEnter * ++once let s:fired = 1'
+          \  .. '| call assert_equal(3, win_findbuf(bufnr(''Xbar''))->len())'
+          \  .. '| quit'
+          \| call assert_fails('vsplit Xfoo', 'E1546:')
+  augroup END
+  bw Xfoo
+  call assert_equal(1, s:fired)
+  " After 9.1.0764, Xbar's b_nwindows would be 0 if autocmds closed the new
+  " split before E1546, causing it to be unloaded despite being in a window.
+  call assert_equal(0, bufexists('Xfoo'))
+  call assert_equal(1, win_findbuf(bufnr('Xbar'))->len())
+  call assert_equal(1, bufloaded('Xbar'))
+
+  call CleanUpTestAuGroup()
+  unlet! s:fired
+  %bw!
 endfunc
 
 func Test_OptionSet_cmdheight()
@@ -5768,6 +5860,111 @@ func Test_win_tabclose_autocmd()
   endtry
   call assert_equal(1, tabpagenr('$'))
   bw!
+endfunc
+
+func Test_buffer_b_nwindows()
+  " In these cases, b_nwindows of the Xbars was 1 despite being in no windows.
+  " Would cause weird failures in other tests, as they would be un-deletable.
+  edit Xfoo1
+  augroup testing
+    autocmd!
+    autocmd BufUnload * ++once edit Xbar1
+  augroup END
+  bdelete
+  call assert_equal([], win_findbuf(bufnr('Xfoo1')))
+  call assert_equal([], win_findbuf(bufnr('Xbar1')))
+  call assert_equal(1, bufexists('Xfoo1'))
+  call assert_equal(1, bufexists('Xbar1'))
+  %bw!
+  call assert_equal(0, bufexists('Xfoo1'))
+  call assert_equal(0, bufexists('Xbar1'))
+
+  split Xbar2
+  enew
+  augroup testing
+    autocmd!
+    autocmd BufWinLeave * ++once buffer Xbar2
+  augroup END
+  quit
+  call assert_equal([], win_findbuf(bufnr('Xbar2')))
+  call assert_equal(1, bufexists('Xbar2'))
+  %bw!
+  call assert_equal(0, bufexists('Xbar2'))
+
+  edit Xbar3
+  enew
+  setlocal bufhidden=hide
+  let s:win = win_getid()
+  tabnew
+  augroup testing
+    autocmd!
+    autocmd BufHidden * ++once call win_execute(s:win, 'buffer Xbar3')
+  augroup END
+  tabonly
+  call assert_equal([], win_findbuf(bufnr('Xbar3')))
+  call assert_equal(1, bufexists('Xbar3'))
+  %bw!
+  call assert_equal(0, bufexists('Xbar3'))
+  unlet! s:win
+
+  edit Xbar4
+  split Xfoo4
+  augroup testing
+    autocmd!
+    autocmd BufWinLeave * ++once call assert_equal('Xfoo4', bufname())
+          \| edit Xbar4
+  augroup END
+  edit Xbar4
+  call assert_equal(0, bufloaded('Xfoo4'))
+  call assert_equal(1, bufexists('Xfoo4'))
+  " After 8.2.2354, Xfoo4 wrongly had b_nwindows of 1, so couldn't be wiped.
+  call assert_equal([], win_findbuf('Xfoo4'))
+  %bw!
+  call assert_equal(0, bufexists('Xfoo4'))
+
+  call CleanUpTestAuGroup()
+  %bw!
+endfunc
+
+" Test that an autocmd triggered by v:swapchoice == 'q' that switches buffers
+" doesn't cause b_nwindows to be wrong.
+func Test_SwapExists_b_nwindows()
+  let lines =<< trim END
+    set nocompatible directory=.
+
+    let g:buf = bufnr()
+    new
+
+    func SwapExists()
+      let v:swapchoice = 'q'
+      autocmd BufWinLeave * ++nested ++once buffer Xfoo
+    endfunc
+
+    func SafeState()
+      edit Xfoo
+      edit <script>
+      %bw!
+      call writefile([bufexists('Xfoo')], 'XnwindowsSwapExists.out')
+      qall!
+    endfunc
+
+    autocmd SwapExists * ++nested ++once call SwapExists()
+    autocmd SafeState * ++nested ++once call SafeState()
+  END
+  call writefile(lines, 'XnwindowsSwapExists.vim', 'D')
+
+  new XnwindowsSwapExists.vim
+  if RunVim('', '', ' -S XnwindowsSwapExists.vim')
+    call assert_equal(['0'], readfile('XnwindowsSwapExists.out'))
+    call delete('XnwindowsSwapExists.out')
+  endif
+
+  %bw!
+endfunc
+
+func Test_autocmd_add_secure()
+  call assert_fails('sandbox call autocmd_add([{"event": "BufRead", "cmd": "let x = 1"}])', 'E48:')
+  call assert_fails('sandbox call autocmd_delete([{"event": "BufRead"}])', 'E48:')
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

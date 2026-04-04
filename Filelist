@@ -213,6 +213,7 @@ SRC_ALL =	\
 		src/testdir/ru_RU/LC_MESSAGES/__PACKAGE__.po \
 		src/testdir/runtest.vim \
 		src/testdir/samples/*.html \
+		src/testdir/samples/*.swp \
 		src/testdir/samples/*.txt \
 		src/testdir/samples/*.vim \
 		src/testdir/samples/evil.zip \
@@ -223,6 +224,8 @@ SRC_ALL =	\
 		src/testdir/samples/test000 \
 		src/testdir/samples/test_undo.txt.undo \
 		src/testdir/samples/testa.zip \
+		src/testdir/samples/crypt_utf8_test.txt \
+		src/testdir/samples/uncrypt_utf8_test.txt \
 		src/testdir/sautest/autoload/*.vim \
 		src/testdir/silent.wav \
 		src/testdir/test77a.com \
@@ -675,6 +678,7 @@ SRC_AMI =	\
 		src/Make_ami.mak \
 		src/os_amiga.c \
 		src/os_amiga.h \
+		src/os_amiga_stubs.c \
 		src/proto/os_amiga.pro \
 		src/testdir/Make_amiga.mak \
 		src/testdir/util/amiga.vim \
@@ -862,7 +866,8 @@ RT_ALL =	\
 		runtime/pack/dist/opt/osc52/plugin/osc52.vim \
 		runtime/pack/dist/opt/osc52/autoload/osc52.vim \
 		runtime/pack/dist/opt/osc52/doc/osc52.txt \
-		runtime/pack/dist/opt/osc52/doc/tags
+		runtime/pack/dist/opt/osc52/doc/tags \
+		runtime/xdg.vim
 
 # Runtime files for all distributions without CR/LF translation.
 RT_ALL_BIN =	\
@@ -937,12 +942,15 @@ RT_UNIX_DOS_BIN =	\
 		runtime/vim16x16.gif \
 		runtime/vim16x16.png \
 		runtime/vim16x16.xpm \
+		runtime/vim16x16_png.h \
 		runtime/vim32x32.gif \
 		runtime/vim32x32.png \
 		runtime/vim32x32.xpm \
+		runtime/vim32x32_png.h \
 		runtime/vim48x48.gif \
 		runtime/vim48x48.png \
 		runtime/vim48x48.xpm \
+		runtime/vim48x48_png.h \
 
 # Runtime not for Unix-like or extra.
 RT_NO_UNIX =	\

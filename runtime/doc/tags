@@ -1052,7 +1052,9 @@ $quote	eval.txt	/*$quote*
 'stal'	options.txt	/*'stal'*
 'startofline'	options.txt	/*'startofline'*
 'statusline'	options.txt	/*'statusline'*
+'statuslineopt'	options.txt	/*'statuslineopt'*
 'stl'	options.txt	/*'stl'*
+'stlo'	options.txt	/*'stlo'*
 'stmp'	options.txt	/*'stmp'*
 'stpl'	options.txt	/*'stpl'*
 'sts'	options.txt	/*'sts'*
@@ -1087,6 +1089,7 @@ $quote	eval.txt	/*$quote*
 't_AU'	term.txt	/*'t_AU'*
 't_BD'	term.txt	/*'t_BD'*
 't_BE'	term.txt	/*'t_BE'*
+'t_BS'	term.txt	/*'t_BS'*
 't_CF'	term.txt	/*'t_CF'*
 't_CS'	term.txt	/*'t_CS'*
 't_CV'	term.txt	/*'t_CV'*
@@ -1097,6 +1100,7 @@ $quote	eval.txt	/*$quote*
 't_Ds'	term.txt	/*'t_Ds'*
 't_EC'	term.txt	/*'t_EC'*
 't_EI'	term.txt	/*'t_EI'*
+'t_ES'	term.txt	/*'t_ES'*
 't_F1'	term.txt	/*'t_F1'*
 't_F2'	term.txt	/*'t_F2'*
 't_F3'	term.txt	/*'t_F3'*
@@ -1251,6 +1255,8 @@ $quote	eval.txt	/*$quote*
 'termbidi'	options.txt	/*'termbidi'*
 'termencoding'	options.txt	/*'termencoding'*
 'termguicolors'	options.txt	/*'termguicolors'*
+'termresize'	options.txt	/*'termresize'*
+'termsync'	options.txt	/*'termsync'*
 'termwinkey'	options.txt	/*'termwinkey'*
 'termwinscroll'	options.txt	/*'termwinscroll'*
 'termwinsize'	options.txt	/*'termwinsize'*
@@ -1284,10 +1290,12 @@ $quote	eval.txt	/*$quote*
 'tr'	options.txt	/*'tr'*
 'transp'	options.txt	/*'transp'*
 'transparency'	options.txt	/*'transparency'*
+'trz'	options.txt	/*'trz'*
 'ts'	options.txt	/*'ts'*
 'tsl'	options.txt	/*'tsl'*
 'tsr'	options.txt	/*'tsr'*
 'tsrfu'	options.txt	/*'tsrfu'*
+'tsy'	options.txt	/*'tsy'*
 'ttimeout'	options.txt	/*'ttimeout'*
 'ttimeoutlen'	options.txt	/*'ttimeoutlen'*
 'ttm'	options.txt	/*'ttm'*
@@ -1353,6 +1361,7 @@ $quote	eval.txt	/*$quote*
 'wfw'	options.txt	/*'wfw'*
 'wh'	options.txt	/*'wh'*
 'whichwrap'	options.txt	/*'whichwrap'*
+'whl'	options.txt	/*'whl'*
 'wi'	options.txt	/*'wi'*
 'wic'	options.txt	/*'wic'*
 'wig'	options.txt	/*'wig'*
@@ -1371,6 +1380,7 @@ $quote	eval.txt	/*$quote*
 'winfixheight'	options.txt	/*'winfixheight'*
 'winfixwidth'	options.txt	/*'winfixwidth'*
 'winheight'	options.txt	/*'winheight'*
+'winhighlight'	options.txt	/*'winhighlight'*
 'winminheight'	options.txt	/*'winminheight'*
 'winminwidth'	options.txt	/*'winminwidth'*
 'winptydll'	options.txt	/*'winptydll'*
@@ -4616,7 +4626,6 @@ E1335	vim9class.txt	/*E1335*
 E1336	options.txt	/*E1336*
 E1337	vim9class.txt	/*E1337*
 E1338	vim9class.txt	/*E1338*
-E1339	textprop.txt	/*E1339*
 E134	change.txt	/*E134*
 E1340	vim9class.txt	/*E1340*
 E1341	vim9class.txt	/*E1341*
@@ -4812,6 +4821,10 @@ E1569	builtin.txt	/*E1569*
 E157	sign.txt	/*E157*
 E1570	builtin.txt	/*E1570*
 E1571	builtin.txt	/*E1571*
+E1572	options.txt	/*E1572*
+E1573	channel.txt	/*E1573*
+E1574	channel.txt	/*E1574*
+E1575	builtin.txt	/*E1575*
 E158	sign.txt	/*E158*
 E159	sign.txt	/*E159*
 E16	cmdline.txt	/*E16*
@@ -5995,6 +6008,7 @@ Select-mode-mapping	visual.txt	/*Select-mode-mapping*
 Session	starting.txt	/*Session*
 SessionLoad-variable	starting.txt	/*SessionLoad-variable*
 SessionLoadPost	autocmd.txt	/*SessionLoadPost*
+SessionLoadPre	autocmd.txt	/*SessionLoadPre*
 SessionWritePost	autocmd.txt	/*SessionWritePost*
 ShellCmdPost	autocmd.txt	/*ShellCmdPost*
 ShellFilterPost	autocmd.txt	/*ShellFilterPost*
@@ -6300,6 +6314,7 @@ added-8.1	version8.txt	/*added-8.1*
 added-8.2	version8.txt	/*added-8.2*
 added-9.1	version9.txt	/*added-9.1*
 added-9.2	version9.txt	/*added-9.2*
+added-9.3	version9.txt	/*added-9.3*
 added-BeOS	version5.txt	/*added-BeOS*
 added-Mac	version5.txt	/*added-Mac*
 added-VMS	version5.txt	/*added-VMS*
@@ -6317,6 +6332,7 @@ alt-movement	gui_mac.txt	/*alt-movement*
 alternate-file	editing.txt	/*alternate-file*
 amiga-window	starting.txt	/*amiga-window*
 and()	builtin.txt	/*and()*
+android	builtin.txt	/*android*
 anonymous-function	eval.txt	/*anonymous-function*
 ant.vim	syntax.txt	/*ant.vim*
 ap	motion.txt	/*ap*
@@ -6427,6 +6443,7 @@ b:rust_cargo_check_benches	ft_rust.txt	/*b:rust_cargo_check_benches*
 b:rust_cargo_check_examples	ft_rust.txt	/*b:rust_cargo_check_examples*
 b:rust_cargo_check_tests	ft_rust.txt	/*b:rust_cargo_check_tests*
 b:rustfmt_autosave	ft_rust.txt	/*b:rustfmt_autosave*
+b:rustfmt_autosave_if_config_present	ft_rust.txt	/*b:rustfmt_autosave_if_config_present*
 b:tex_stylish	syntax.txt	/*b:tex_stylish*
 b:var	eval.txt	/*b:var*
 b:yaml_schema	syntax.txt	/*b:yaml_schema*
@@ -6517,6 +6534,7 @@ bug-fixes-8	version8.txt	/*bug-fixes-8*
 bug-fixes-9	version9.txt	/*bug-fixes-9*
 bug-fixes-9.1	version9.txt	/*bug-fixes-9.1*
 bug-fixes-9.2	version9.txt	/*bug-fixes-9.2*
+bug-fixes-9.3	version9.txt	/*bug-fixes-9.3*
 bug-reports	intro.txt	/*bug-reports*
 bugreport.vim	intro.txt	/*bugreport.vim*
 bugs	intro.txt	/*bugs*
@@ -6671,6 +6689,7 @@ ch_evalraw()	channel.txt	/*ch_evalraw()*
 ch_getbufnr()	channel.txt	/*ch_getbufnr()*
 ch_getjob()	channel.txt	/*ch_getjob()*
 ch_info()	channel.txt	/*ch_info()*
+ch_listen()	channel.txt	/*ch_listen()*
 ch_log()	channel.txt	/*ch_log()*
 ch_logfile()	channel.txt	/*ch_logfile()*
 ch_open()	channel.txt	/*ch_open()*
@@ -6705,6 +6724,7 @@ changed-8.1	version8.txt	/*changed-8.1*
 changed-8.2	version8.txt	/*changed-8.2*
 changed-9.1	version9.txt	/*changed-9.1*
 changed-9.2	version9.txt	/*changed-9.2*
+changed-9.3	version9.txt	/*changed-9.3*
 changelist	motion.txt	/*changelist*
 changelog.vim	syntax.txt	/*changelog.vim*
 changenr()	builtin.txt	/*changenr()*
@@ -6720,6 +6740,7 @@ channel-demo	channel.txt	/*channel-demo*
 channel-drop	channel.txt	/*channel-drop*
 channel-functions	usr_41.txt	/*channel-functions*
 channel-functions-details	channel.txt	/*channel-functions-details*
+channel-listen-demo	channel.txt	/*channel-listen-demo*
 channel-mode	channel.txt	/*channel-mode*
 channel-more	channel.txt	/*channel-more*
 channel-noblock	channel.txt	/*channel-noblock*
@@ -7090,6 +7111,7 @@ dav	pi_netrw.txt	/*dav*
 davs	pi_netrw.txt	/*davs*
 daw	motion.txt	/*daw*
 dd	change.txt	/*dd*
+debug-adapter-protocol	channel.txt	/*debug-adapter-protocol*
 debug-gcc	debug.txt	/*debug-gcc*
 debug-highlight	debugger.txt	/*debug-highlight*
 debug-leaks	debug.txt	/*debug-leaks*
@@ -8954,6 +8976,7 @@ lcs-eol	options.txt	/*lcs-eol*
 lcs-extends	options.txt	/*lcs-extends*
 lcs-lead	options.txt	/*lcs-lead*
 lcs-leadmultispace	options.txt	/*lcs-leadmultispace*
+lcs-leadtab	options.txt	/*lcs-leadtab*
 lcs-multispace	options.txt	/*lcs-multispace*
 lcs-nbsp	options.txt	/*lcs-nbsp*
 lcs-precedes	options.txt	/*lcs-precedes*
@@ -9845,9 +9868,11 @@ patches-8.2	version8.txt	/*patches-8.2*
 patches-9	version9.txt	/*patches-9*
 patches-9.1	version9.txt	/*patches-9.1*
 patches-9.2	version9.txt	/*patches-9.2*
+patches-9.3	version9.txt	/*patches-9.3*
 patches-after-8.2	version9.txt	/*patches-after-8.2*
 patches-after-9.0	version9.txt	/*patches-after-9.0*
 patches-after-9.1	version9.txt	/*patches-after-9.1*
+patches-after-9.2	version9.txt	/*patches-after-9.2*
 pathshorten()	builtin.txt	/*pathshorten()*
 pattern	pattern.txt	/*pattern*
 pattern-atoms	pattern.txt	/*pattern-atoms*
@@ -9937,6 +9962,7 @@ popup-mapping	popup.txt	/*popup-mapping*
 popup-mask	popup.txt	/*popup-mask*
 popup-menu	gui.txt	/*popup-menu*
 popup-menu-added	version5.txt	/*popup-menu-added*
+popup-opacity	popup.txt	/*popup-opacity*
 popup-position	popup.txt	/*popup-position*
 popup-props	popup.txt	/*popup-props*
 popup-scrollbar	popup.txt	/*popup-scrollbar*
@@ -10691,6 +10717,7 @@ static-tag	tagsrch.txt	/*static-tag*
 status-line	windows.txt	/*status-line*
 statusmsg-variable	eval.txt	/*statusmsg-variable*
 stl-%!	options.txt	/*stl-%!*
+stl-%@	options.txt	/*stl-%@*
 stl-%{	options.txt	/*stl-%{*
 str2blob()	builtin.txt	/*str2blob()*
 str2float()	builtin.txt	/*str2float()*
@@ -10811,6 +10838,7 @@ t_AL	term.txt	/*t_AL*
 t_AU	term.txt	/*t_AU*
 t_BD	term.txt	/*t_BD*
 t_BE	term.txt	/*t_BE*
+t_BS	term.txt	/*t_BS*
 t_CF	term.txt	/*t_CF*
 t_CS	term.txt	/*t_CS*
 t_CTRL-W_.	terminal.txt	/*t_CTRL-W_.*
@@ -10830,6 +10858,7 @@ t_DL	term.txt	/*t_DL*
 t_Ds	term.txt	/*t_Ds*
 t_EC	term.txt	/*t_EC*
 t_EI	term.txt	/*t_EI*
+t_ES	term.txt	/*t_ES*
 t_F1	term.txt	/*t_F1*
 t_F2	term.txt	/*t_F2*
 t_F3	term.txt	/*t_F3*
@@ -11228,6 +11257,7 @@ termresponse-variable	eval.txt	/*termresponse-variable*
 termrfgresp-variable	eval.txt	/*termrfgresp-variable*
 termstyleresp-variable	eval.txt	/*termstyleresp-variable*
 termu7resp-variable	eval.txt	/*termu7resp-variable*
+termux	builtin.txt	/*termux*
 ternary	eval.txt	/*ternary*
 test-functions	usr_41.txt	/*test-functions*
 test-functions-details	testing.txt	/*test-functions-details*
@@ -11722,6 +11752,7 @@ version-8.2	version8.txt	/*version-8.2*
 version-9.0	version9.txt	/*version-9.0*
 version-9.1	version9.txt	/*version-9.1*
 version-9.2	version9.txt	/*version-9.2*
+version-9.3	version9.txt	/*version-9.3*
 version-variable	eval.txt	/*version-variable*
 version4.txt	version4.txt	/*version4.txt*
 version5.txt	version5.txt	/*version5.txt*
@@ -11739,6 +11770,7 @@ version8.txt	version8.txt	/*version8.txt*
 version9.0	version9.txt	/*version9.0*
 version9.1	version9.txt	/*version9.1*
 version9.2	version9.txt	/*version9.2*
+version9.3	version9.txt	/*version9.3*
 version9.txt	version9.txt	/*version9.txt*
 versionlong-variable	eval.txt	/*versionlong-variable*
 vi	intro.txt	/*vi*
@@ -11768,6 +11800,7 @@ vim-9	version9.txt	/*vim-9*
 vim-9.0	version9.txt	/*vim-9.0*
 vim-9.1	version9.txt	/*vim-9.1*
 vim-9.2	version9.txt	/*vim-9.2*
+vim-9.3	version9.txt	/*vim-9.3*
 vim-additions	vi_diff.txt	/*vim-additions*
 vim-announce	intro.txt	/*vim-announce*
 vim-arguments	starting.txt	/*vim-arguments*
@@ -12064,6 +12097,7 @@ xattr	editing.txt	/*xattr*
 xdg-base-dir	starting.txt	/*xdg-base-dir*
 xdg-runtime	starting.txt	/*xdg-runtime*
 xdg-vimrc	starting.txt	/*xdg-vimrc*
+xdg.vim	starting.txt	/*xdg.vim*
 xf86conf.vim	syntax.txt	/*xf86conf.vim*
 xfontset	mbyte.txt	/*xfontset*
 xfree-xterm	syntax.txt	/*xfree-xterm*

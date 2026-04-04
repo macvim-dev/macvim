@@ -222,7 +222,7 @@ typedef struct ss_pending_cmd_S {
     struct ss_pending_cmd_S *next;  // Next in list
 } ss_pending_cmd_T;
 
-ss_pending_cmd_T *ss_pending_cmds;
+static ss_pending_cmd_T *ss_pending_cmds;
 
 // Serial is always greater than zero
 static uint32_t ss_serial = 0;
@@ -276,11 +276,7 @@ static int	did_set_icon = FALSE;
 
 static void may_core_dump(void);
 
-#ifdef HAVE_UNION_WAIT
-typedef union wait waitstatus;
-#else
 typedef int waitstatus;
-#endif
 static int  WaitForChar(long msec, int *interrupted, int ignore_input);
 static int  WaitForCharOrMouse(long msec, int *interrupted, int ignore_input);
 #ifdef VMS
@@ -541,10 +537,8 @@ mch_chdir(char *path)
 #endif
 }
 
-// Why is NeXT excluded here (and not in os_unixx.h)?
 #if defined(ECHOE) && defined(ICANON) \
-    && (defined(HAVE_TERMIO_H) || defined(HAVE_TERMIOS_H)) \
-    && !defined(__NeXT__)
+    && (defined(HAVE_TERMIO_H) || defined(HAVE_TERMIOS_H))
 # define NEW_TTY_SYSTEM
 #endif
 
@@ -1573,6 +1567,14 @@ mch_init(void)
 #endif
 #ifdef FEAT_CYGWIN_WIN32_CLIPBOARD
     win_clip_init();
+#endif
+}
+
+    void
+set_sigwinch_handler(void)
+{
+#if defined(SIGWINCH)
+    mch_signal(SIGWINCH, sig_winch);
 #endif
 }
 
@@ -4675,11 +4677,7 @@ wait4pid(pid_t child, waitstatus *status)
 	// wait() sometimes hangs for no obvious reason.  Use waitpid()
 	// instead and loop (like the GUI). Also needed for other interfaces,
 	// they might call system().
-#ifdef __NeXT__
-	wait_pid = wait4(child, status, WNOHANG, (struct rusage *)0);
-#else
 	wait_pid = waitpid(child, status, WNOHANG);
-#endif
 	if (wait_pid == 0)
 	{
 	    // Wait for 1 to 10 msec before trying again.
@@ -5096,11 +5094,7 @@ mch_call_shell_fork(
     pid_t	pid;
     pid_t	wpid = 0;
     pid_t	wait_pid = 0;
-# ifdef HAVE_UNION_WAIT
-    union wait	status;
-# else
     int		status = -1;
-# endif
     int		retval = -1;
     char	**argv = NULL;
     char_u	*tofree1 = NULL;
@@ -5748,11 +5742,7 @@ mch_call_shell_fork(
 		     * Check if the child still exists, before checking for
 		     * typed characters (otherwise we would lose typeahead).
 		     */
-# ifdef __NeXT__
-		    wait_pid = wait4(pid, &status, WNOHANG, (struct rusage *)0);
-# else
 		    wait_pid = waitpid(pid, &status, WNOHANG);
-# endif
 		    if ((wait_pid == (pid_t)-1 && errno == ECHILD)
 			    || (wait_pid == pid && WIFEXITED(status)))
 		    {
@@ -5827,11 +5817,7 @@ finished:
 #  endif
 			got_int = FALSE;
 		    }
-#  ifdef __NeXT__
-		    wait_pid = wait4(pid, &status, WNOHANG, (struct rusage *)0);
-#  else
 		    wait_pid = waitpid(pid, &status, WNOHANG);
-#  endif
 		    if ((wait_pid == (pid_t)-1 && errno == ECHILD)
 			    || (wait_pid == pid && WIFEXITED(status)))
 		    {
@@ -5959,6 +5945,154 @@ mch_call_shell(
     return mch_call_shell_fork(cmd, options);
 #endif
 }
+
+#if defined(FEAT_EVAL)
+/*
+ * Execute "argv" directly without the shell and return the output.
+ * Used by system() and systemlist() when the command is a List.
+ * "infile" is an optional temp file for stdin input.
+ * "flags" is SHELL_SILENT etc.
+ * When "ret_len" is not NULL, set it to the length of the output.
+ * Returns the output in allocated memory (or NULL on error).
+ * Sets v:shell_error to the exit status.
+ */
+    char_u *
+mch_get_cmd_output_direct(
+    char	**argv,
+    char_u	*infile,
+    int		flags UNUSED,
+    int		*ret_len)
+{
+    pid_t	pid;
+    int		fd_out[2] = {-1, -1};
+    int		status = -1;
+    char_u	*buffer = NULL;
+    garray_T	ga;
+    SIGSET_DECL(curset)
+
+    ga_init2(&ga, 1, 4096);
+
+    ch_log(NULL, "directly executing: %s", argv[0]);
+
+    if (pipe(fd_out) < 0)
+    {
+	emsg(_(e_cannot_create_pipes));
+	return NULL;
+    }
+
+    BLOCK_SIGNALS(&curset);
+    pid = fork();
+    if (pid == -1)
+    {
+	UNBLOCK_SIGNALS(&curset);
+	close(fd_out[0]);
+	close(fd_out[1]);
+	emsg(_("\nCannot fork\n"));
+	return NULL;
+    }
+
+    if (pid == 0)
+    {
+	// child process
+	reset_signals();
+	UNBLOCK_SIGNALS(&curset);
+
+	if (ch_log_active())
+	{
+	    ch_log(NULL, "closing channel log in the child process");
+	    ch_logfile((char_u *)"", (char_u *)"");
+	}
+
+	// Set up stdin.
+	if (infile != NULL)
+	{
+	    int fd_in = open((char *)infile, O_RDONLY);
+	    if (fd_in >= 0)
+	    {
+		close(0);
+		vim_ignored = dup(fd_in);
+		close(fd_in);
+	    }
+	}
+	else
+	{
+	    int nullfd = open("/dev/null", O_RDONLY);
+	    if (nullfd >= 0)
+	    {
+		close(0);
+		vim_ignored = dup(nullfd);
+		close(nullfd);
+	    }
+	}
+
+	// Set up stdout: write end of pipe.
+	close(fd_out[0]);
+	close(1);
+	vim_ignored = dup(fd_out[1]);
+	// Also redirect stderr to the pipe.
+	close(2);
+	vim_ignored = dup(fd_out[1]);
+	close(fd_out[1]);
+
+	execvp(argv[0], argv);
+	_exit(127);
+	// NOTREACHED
+    }
+
+    // parent process
+    UNBLOCK_SIGNALS(&curset);
+    close(fd_out[1]);
+
+    // Read output from child.
+    for (;;)
+    {
+	char	buf[4096];
+	int	n;
+
+	n = (int)read(fd_out[0], buf, sizeof(buf));
+	if (n <= 0)
+	    break;
+	ga_grow(&ga, n);
+	mch_memmove((char *)ga.ga_data + ga.ga_len, buf, n);
+	ga.ga_len += n;
+    }
+    close(fd_out[0]);
+
+    // Wait for child to finish.
+    (void)waitpid(pid, &status, 0);
+    if (WIFEXITED(status))
+	status = WEXITSTATUS(status);
+    else
+	status = -1;
+    set_vim_var_nr(VV_SHELL_ERROR, (long)status);
+
+    if (ga.ga_len > 0)
+    {
+	buffer = alloc(ga.ga_len + 1);
+	if (buffer != NULL)
+	{
+	    mch_memmove(buffer, ga.ga_data, ga.ga_len);
+	    if (ret_len == NULL)
+	    {
+		int	i;
+
+		// Change NUL into SOH, otherwise the string is truncated.
+		for (i = 0; i < ga.ga_len; ++i)
+		    if (buffer[i] == NUL)
+			buffer[i] = 1;
+		buffer[ga.ga_len] = NUL;
+	    }
+	    else
+		*ret_len = ga.ga_len;
+	}
+    }
+    else if (ret_len != NULL)
+	*ret_len = 0;
+
+    ga_clear(&ga);
+    return buffer;
+}
+#endif
 
 #if defined(FEAT_JOB_CHANNEL)
     void
@@ -6326,18 +6460,10 @@ get_signal_name(int sig)
     char *
 mch_job_status(job_T *job)
 {
-# ifdef HAVE_UNION_WAIT
-    union wait	status;
-# else
     int		status = -1;
-# endif
     pid_t	wait_pid = 0;
 
-# ifdef __NeXT__
-    wait_pid = wait4(job->jv_pid, &status, WNOHANG, (struct rusage *)0);
-# else
     wait_pid = waitpid(job->jv_pid, &status, WNOHANG);
-# endif
     if (wait_pid == -1)
     {
 	int waitpid_errno = errno;
@@ -6383,11 +6509,7 @@ return_dead:
     job_T *
 mch_detect_ended_job(job_T *job_list)
 {
-# ifdef HAVE_UNION_WAIT
-    union wait	status;
-# else
     int		status = -1;
-# endif
     pid_t	wait_pid = 0;
     job_T	*job;
 
@@ -6399,11 +6521,7 @@ mch_detect_ended_job(job_T *job_list)
 	return NULL;
 # endif
 
-# ifdef __NeXT__
-    wait_pid = wait4(-1, &status, WNOHANG, (struct rusage *)0);
-# else
     wait_pid = waitpid(-1, &status, WNOHANG);
-# endif
     if (wait_pid <= 0)
 	// no process ended
 	return NULL;
@@ -6476,11 +6594,7 @@ mch_signal_job(job_T *job, char_u *how)
 mch_clear_job(job_T *job)
 {
     // call waitpid because child process may become zombie
-# ifdef __NeXT__
-    (void)wait4(job->jv_pid, NULL, WNOHANG, (struct rusage *)0);
-# else
     (void)waitpid(job->jv_pid, NULL, WNOHANG);
-# endif
 }
 #endif
 
@@ -7140,7 +7254,7 @@ mch_expandpath(
 #  define SEEK_END 2
 # endif
 
-# define SHELL_SPECIAL (char_u *)"\t \"&'$;<>()\\|"
+# define SHELL_SPECIAL (char_u *)"\t \"&'$;<>()\\|\n"
 
     int
 mch_expand_wildcards(
@@ -9851,6 +9965,7 @@ socket_server_send_reply(char_u *client, char_u *str)
 	    socket_server_write(socket_fd, final, sz, 1000) == FAIL)
     {
 	socket_server_free_cmd(&cmd);
+	vim_free(final);
 	close(socket_fd);
 	return FAIL;
     }

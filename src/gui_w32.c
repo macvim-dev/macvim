@@ -242,6 +242,7 @@ gui_mch_set_rendering_options(char_u *s)
 	}
     }
     s_directx_enabled = dx_enable;
+    gui.directx_enabled = IS_ENABLE_DIRECTX();
 
     return OK;
 # else
@@ -1572,7 +1573,7 @@ dyn_dwm_load(void)
     }
 }
 
-extern BOOL win11_or_later; // this is in os_win32.c
+extern DWORD win_version; // this is in os_mswin.c
 
 /*
  * Set TitleBar's color. Handle hl-TitleBar and hl-TitleBarNC.
@@ -1584,11 +1585,12 @@ extern BOOL win11_or_later; // this is in os_win32.c
     void
 gui_mch_set_titlebar_colors(void)
 {
-    if (pDwmSetWindowAttribute == NULL || !win11_or_later)
+#define DWMWA_COLOR_DEFAULT 0xFFFFFFFF
+    if (pDwmSetWindowAttribute == NULL || win_version < MAKE_VER(10, 0, 22000))
 	return;
 
-    guicolor_T captionColor = 0xFFFFFFFF;
-    guicolor_T textColor = 0xFFFFFFFF;
+    guicolor_T captionColor = DWMWA_COLOR_DEFAULT;
+    guicolor_T textColor = DWMWA_COLOR_DEFAULT;
 
     if (vim_strchr(p_go, GO_TITLEBAR) != NULL)
     {
@@ -1604,9 +1606,9 @@ gui_mch_set_titlebar_colors(void)
 	}
 
 	if (captionColor == INVALCOLOR)
-	    captionColor = 0xFFFFFFFF;
+	    captionColor = DWMWA_COLOR_DEFAULT;
 	if (textColor == INVALCOLOR)
-	    textColor = 0xFFFFFFFF;
+	    textColor = DWMWA_COLOR_DEFAULT;
     }
 
     pDwmSetWindowAttribute(s_hwnd, DWMWA_CAPTION_COLOR,
@@ -3131,22 +3133,17 @@ gui_mch_set_curtab(int nr)
 #endif
 
 #ifdef FEAT_GUI_DARKTHEME
-extern BOOL win10_22H2_or_later; // this is in os_win32.c
-
     void
 gui_mch_set_dark_theme(int dark)
 {
-    if (!win10_22H2_or_later)
-	return;
-
-    if (pDwmSetWindowAttribute != NULL)
+    if (pDwmSetWindowAttribute != NULL && win_version >= MAKE_VER(10, 0, 18985))
 	pDwmSetWindowAttribute(s_hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &dark,
 		sizeof(dark));
 
-    if (pSetPreferredAppMode != NULL)
+    if (pSetPreferredAppMode != NULL && win_version >= MAKE_VER(10, 0, 18362))
 	pSetPreferredAppMode(dark);
 
-    if (pFlushMenuThemes != NULL)
+    if (pFlushMenuThemes != NULL && win_version >= MAKE_VER(10, 0, 18362))
 	pFlushMenuThemes();
 }
 
@@ -6670,6 +6667,16 @@ gui_mch_draw_string(
 	    pcliprect = &rc;
 	    foptions = ETO_CLIPPED;
 	}
+#ifdef FEAT_DIRECTX
+	// DirectWrite anti-aliasing can extend glyph pixels beyond cell
+	// boundaries, leaving artifacts when adjacent cells are not
+	// redrawn.  Clip to the cell rect to prevent this.
+	else if (IS_ENABLE_DIRECTX())
+	{
+	    pcliprect = &rc;
+	    foptions = ETO_CLIPPED;
+	}
+#endif
     }
     SetTextColor(s_hdc, gui.currFgColor);
     SelectFont(s_hdc, gui.currFont);
@@ -8185,7 +8192,7 @@ gui_mch_tearoff(
     if (submenuWidth != 0)
     {
 	submenuWidth = GetTextWidth(hdc, (char_u *)TEAROFF_SUBMENU_LABEL,
-					  (int)STRLEN(TEAROFF_SUBMENU_LABEL));
+				  (int)STRLEN_LITERAL(TEAROFF_SUBMENU_LABEL));
 	textWidth += submenuWidth;
     }
     dlgwidth = GetTextWidthEnc(hdc, title, (int)STRLEN(title));
@@ -8308,7 +8315,7 @@ gui_mch_tearoff(
 	}
 	else
 	{
-	    len += (int)STRLEN(TEAROFF_SUBMENU_LABEL);
+	    len += (int)STRLEN_LITERAL(TEAROFF_SUBMENU_LABEL);
 	    menuID = (WORD)((long_u)(menu->submenu_id) | (DWORD)0x8000);
 	}
 
@@ -8333,7 +8340,7 @@ gui_mch_tearoff(
 	if (menu->children != NULL)
 	{
 	    STRCPY(text, TEAROFF_SUBMENU_LABEL);
-	    text += STRLEN(TEAROFF_SUBMENU_LABEL);
+	    text += STRLEN_LITERAL(TEAROFF_SUBMENU_LABEL);
 	}
 	else
 	{

@@ -1618,6 +1618,71 @@ func Test_visual_hl_with_showbreak()
   call StopVimInTerminal(buf)
 endfunc
 
+" Test for https://github.com/vim/vim/issues/19590
+func Test_visual_block_hl_with_autoselect()
+  CheckScreendump
+
+  " "autoselect" is included in the default 'clipboard' if available.
+  " Redraw at the end is necessary due to https://github.com/vim/vim/issues/16620
+  let lines =<< trim END
+    set shortmess+=F
+    edit samples/visual_block_hl.txt
+    setlocal filetype=c syntax=c
+    exe "normal! 3gg0l\<C-V>4j"
+    redraw
+  END
+  call writefile(lines, 'XTest_visual_block_autoselect', 'D')
+
+  let buf = RunVimInTerminal('-S XTest_visual_block_autoselect', {'rows': 10})
+  call VerifyScreenDump(buf, 'Test_visual_block_hl_with_autoselect_1', {})
+  call term_sendkeys(buf, 'l')
+  call VerifyScreenDump(buf, 'Test_visual_block_hl_with_autoselect_2', {})
+  call term_sendkeys(buf, 'l')
+  call VerifyScreenDump(buf, 'Test_visual_block_hl_with_autoselect_3', {})
+  call term_sendkeys(buf, 'l')
+  call VerifyScreenDump(buf, 'Test_visual_block_hl_with_autoselect_4', {})
+  call term_sendkeys(buf, 'l')
+  call VerifyScreenDump(buf, 'Test_visual_block_hl_with_autoselect_5', {})
+
+  " clean up
+  call term_sendkeys(buf, "\<Esc>")
+  call StopVimInTerminal(buf)
+endfunc
+
+func Test_visual_highlight_when_using_a_clipboard_provider()
+  " The test assumes different screen attributes will be used for Visual and for VisualNOS.
+  CheckFeature clipboard_provider
+  if exists('$DISPLAY')
+     throw 'Skipped: requires non-X11 setup ($DISPLAY must be empty)'
+  endif
+
+  func s:get_attr_for_first_char_in_buf()
+    let pos = screenpos(win_getid(), 1, 1)
+    call assert_true(pos.row > 0 && pos.col > 0)
+    redraw
+    return screenattr(pos.row, pos.col)
+  endfunc
+
+  new +0put='X'
+  call matchadd('Visual', '.')
+  const Visual_attr = s:get_attr_for_first_char_in_buf()
+  call clearmatches()
+
+  normal! V$
+
+  let v:clipproviders['custom'] = {}
+  set clipmethod=custom
+  " The following assert originally failed; VisualNOS, not Visual, was used.
+  call assert_equal(Visual_attr, s:get_attr_for_first_char_in_buf())
+
+  set clipmethod=
+  call assert_equal(Visual_attr, s:get_attr_for_first_char_in_buf())
+
+  unlet v:clipproviders['custom']
+  set clipmethod&
+  bwipe!
+endfunc
+
 func Test_Visual_r_CTRL_C()
   new
   " visual r_cmd
@@ -2904,4 +2969,77 @@ func Test_getregionpos_block_linebreak_matches_getpos()
   let &columns = save_columns
   bw!
 endfunc
+
+func Test_visual_ended_in_wiped_buffer()
+  edit Xfoo
+  edit Xbar
+  setlocal bufhidden=wipe
+  augroup testing
+    autocmd BufWipeout * ++once normal! v
+  augroup END
+  " Must be the last window.
+  call assert_equal(1, winnr('$'))
+  call assert_equal(1, tabpagenr('$'))
+  " Was a member access on a NULL curbuf from Vim ending Visual mode.
+  buffer #
+  call assert_equal(0, bufexists('Xbar'))
+  call assert_equal('n', mode())
+
+  autocmd! testing
+  %bw!
+endfunc
+
+func Test_visual_ended_in_unloaded_buffer()
+  CheckFeature clipboard
+  CheckNotGui
+  set clipboard+=autoselect
+  edit Xfoo
+  edit Xbar
+  call setline(1, 'hi')
+  setlocal nomodified
+  let s:fired = 0
+  augroup testing
+    autocmd BufUnload Xbar call assert_equal('Xbar', bufname())
+          \| execute 'normal! V'
+          \| call assert_equal('V', mode())
+
+    " From Vim ending Visual mode.  Used to occur too late, after the buffer was
+    " unloaded, so @* didn't contain the selection.  Window also had a NULL
+    " w_buffer here!
+    autocmd TextYankPost * ++once let s:fired = 1
+          \| if has('clipboard_working') | call assert_equal("hi\n", @*) | endif
+          \| call tabpagebuflist() " was a NULL member access on w_buffer
+  augroup END
+
+  buffer Xfoo
+  call assert_equal(0, bufloaded('Xbar'))
+  call assert_equal('n', mode())
+  call assert_equal(1, s:fired)
+
+  augroup testing
+    autocmd!
+    autocmd BufHidden Xfoo ++once call assert_equal('Xfoo', bufname())
+          \| execute 'normal! v'
+          \| call assert_equal('v', mode())
+
+    " Check b_nwindows is not decremented too early when Visual mode ends in a
+    " loaded buffer.  Buffer should not be considered hidden in TextYankPost, as
+    " by that point it's still loaded and displayed in the current window.
+    autocmd TextYankPost * ++once let s:fired = 2
+          \| call assert_equal(1, bufloaded(bufnr()))
+          \| call assert_equal(0, getbufinfo(bufnr())[0].hidden)
+  augroup END
+  edit Xbar
+  edit Xfoo
+  only
+  hide buffer #
+  call assert_equal('n', mode())
+  call assert_equal(2, s:fired)
+
+  autocmd! testing
+  unlet! s:fired
+  set clipboard&
+  %bw!
+endfunc
+
 " vim: shiftwidth=2 sts=2 expandtab
