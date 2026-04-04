@@ -232,8 +232,10 @@ jobs:
             sed -i.bak -f ci/config.mk.optimized.sed src/auto/config.mk
           fi
 
-          # Use Homebrew GNU libiconv since Apple iconv has been broken since macOS 14
-          sed -i.bak -f ci/config.mk.brew-libiconv.sed src/auto/config.mk
+          if ${{ inputs.publish == true }}; then
+            # Use Homebrew GNU libiconv since Apple iconv has been broken since macOS 14
+            sed -i.bak -f ci/config.mk.brew-libiconv.sed src/auto/config.mk
+          fi
 
       - name: Modify configure result
         if: inputs.publish
@@ -284,9 +286,11 @@ jobs:
             echo 'Found external dynamic linkage!'; false
           fi
 
-          # Make sure we are not using system iconv, which has been buggy since macOS 14.
-          if otool -L ${VIM_BIN} | grep '^\s*/usr/lib/libiconv'; then
-            echo 'Using system iconv! We should be linking against GNU iconv instead.'; false
+          if ${{ inputs.publish == true }}; then
+            # Make sure we are not using system iconv, which has been buggy since macOS 14.
+            if otool -L ${VIM_BIN} | grep '^\s*/usr/lib/libiconv'; then
+              echo 'Using system iconv! We should be linking against GNU iconv instead.'; false
+            fi
           fi
 
           # Make sure that --disable-sparkle flag will properly exclude all references to Sparkle symbols. This is
