@@ -2181,7 +2181,7 @@ static const funcentry_T global_functions[] =
     {"environ",		0, 0, 0,	    NULL,
 			ret_dict_string,    f_environ},
     {"err_teapot",	0, 1, 0,	    NULL,
-			ret_number_bool,    f_err_teapot},
+			ret_void,	    f_err_teapot},
     {"escape",		2, 2, FEARG_1,	    arg2_string,
 			ret_string,	    f_escape},
     {"eval",		1, 1, FEARG_1,	    arg1_string,
@@ -2747,7 +2747,7 @@ static const funcentry_T global_functions[] =
     {"remote_expr",	2, 4, FEARG_1,	    arg24_remote_expr,
 			ret_string,	    f_remote_expr},
     {"remote_foreground", 1, 1, FEARG_1,    arg1_string,
-			ret_string,	    f_remote_foreground},
+			ret_void,	    f_remote_foreground},
     {"remote_peek",	1, 2, FEARG_1,	    arg2_string,
 			ret_number,	    f_remote_peek},
     {"remote_read",	1, 2, FEARG_1,	    arg2_string_number,
@@ -3081,7 +3081,7 @@ static const funcentry_T global_functions[] =
     {"test_ignore_error", 1, 1, FEARG_1,    arg1_string,
 			ret_void,	    f_test_ignore_error},
     {"test_mswin_event", 2, 2, FEARG_1,     arg2_string_dict,
-			ret_number,	    f_test_mswin_event},
+			ret_bool,	    f_test_mswin_event},
     {"test_null_blob",	0, 0, 0,	    NULL,
 			ret_blob,	    f_test_null_blob},
     {"test_null_channel", 0, 0, 0,	    NULL,
@@ -3500,6 +3500,8 @@ call_internal_func(
 	return FCERR_OTHER;
     argvars[argcount].v_type = VAR_UNKNOWN;
     global_functions[i].f_func(argvars, rettv);
+    if (in_vim9script() && global_functions[i].f_retfunc == ret_void)
+	rettv->v_type = VAR_VOID;
     return FCERR_NONE;
 }
 
@@ -3510,6 +3512,8 @@ call_internal_func_by_idx(
 	typval_T    *rettv)
 {
     global_functions[idx].f_func(argvars, rettv);
+    if (in_vim9script() && global_functions[idx].f_retfunc == ret_void)
+	rettv->v_type = VAR_VOID;
 }
 
 /*
