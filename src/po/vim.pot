@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Vim\n"
 "Report-Msgid-Bugs-To: vim-dev@vim.org\n"
-"POT-Creation-Date: 2026-04-06 13:30+0000\n"
+"POT-Creation-Date: 2026-04-07 19:50+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -5867,6 +5867,9 @@ msgstr ""
 msgid "E648: Invalid buffer identifier in close"
 msgstr ""
 
+msgid "E649: Invalid identifier name in defineAnnoType"
+msgstr ""
+
 msgid "E650: Invalid buffer identifier in defineAnnoType"
 msgstr ""
 
@@ -10010,6 +10013,9 @@ msgid "maximum width of the popup menu"
 msgstr ""
 
 msgid "popup border style"
+msgstr ""
+
+msgid "additional options for the popup menu"
 msgstr ""
 
 msgid "user defined function for Insert mode completion"
