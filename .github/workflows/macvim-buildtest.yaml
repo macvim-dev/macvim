@@ -89,10 +89,10 @@ jobs:
           xcode-select -p
           xcodebuild -version
 
-      # Set up, install, and cache GNU libiconv library to work around Apple iconv issues.
+      # Set up, install, and cache GNU libiconv library to work around Apple iconv issues in newer macOS versions.
 
       - name: Set up libiconv
-        if: inputs.publish
+        if: inputs.publish && !inputs.legacy
         uses: ./.github/actions/universal-package
         with:
           formula: libiconv
@@ -106,7 +106,7 @@ jobs:
         with:
           formula: gettext
           contents: lib/libintl.a,lib/libintl.dylib
-          gnuiconv: true  # gettext needs to match MacVim in using the same version of iconv
+          gnuiconv: ${{ inputs.legacy == false }}  # gettext needs to match MacVim in using the same version of iconv
 
       # Set up, install, and cache libsodium library for encryption.
 
@@ -232,7 +232,7 @@ jobs:
             sed -i.bak -f ci/config.mk.optimized.sed src/auto/config.mk
           fi
 
-          if ${{ inputs.publish == true }}; then
+          if ${{ inputs.publish == true && inputs.legacy == false }}; then
             # Use Homebrew GNU libiconv since Apple iconv has been broken since macOS 14
             sed -i.bak -f ci/config.mk.brew-libiconv.sed src/auto/config.mk
           fi
@@ -286,7 +286,7 @@ jobs:
             echo 'Found external dynamic linkage!'; false
           fi
 
-          if ${{ inputs.publish == true }}; then
+          if ${{ inputs.publish == true && inputs.legacy == false }}; then
             # Make sure we are not using system iconv, which has been buggy since macOS 14.
             if otool -L ${VIM_BIN} | grep '^\s*/usr/lib/libiconv'; then
               echo 'Using system iconv! We should be linking against GNU iconv instead.'; false
