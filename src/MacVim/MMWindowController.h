@@ -146,4 +146,10 @@
 - (IBAction)joinAllStageManagerSets:(id)sender;
 - (IBAction)unjoinAllStageManagerSets:(id)sender;
 
+- (void)sendFindBarAction:(int)tag
+               findString:(NSString *)findStr
+            replaceString:(NSString *)replStr
+               ignoreCase:(BOOL)ignoreCase
+                matchWord:(BOOL)matchWord;
+
 @end

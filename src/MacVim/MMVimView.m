@@ -20,6 +20,7 @@
 
 #import "Miscellaneous.h"
 #import "MMCoreTextView.h"
+#import "MMFindBarView.h"
 #import "MMTextView.h"
 #import "MMVimController.h"
 #import "MMVimView.h"
@@ -84,6 +85,7 @@ typedef enum: NSInteger {
 @implementation MMVimView
 {
     NSColor *tabColors[MMTabColorTypeCount];
+    NSRect   _lastTextRectForFindBar;  // textView.frame at last find bar layout
 }
 
 - (MMVimView *)initWithFrame:(NSRect)frame
@@ -135,7 +137,13 @@ typedef enum: NSInteger {
     tabline.addTabButton.action = @selector(addNewTab:);
     [tabline registerForDraggedTypes:@[getPasteboardFilenamesType()]];
     [self addSubview:tabline];
-    
+
+    // Create the inline find bar (initially hidden, placed in top-right corner).
+    findBarView = [[MMFindBarView alloc] init];
+    findBarView.hidden = YES;
+    findBarView.delegate = self;
+    [self addSubview:findBarView positioned:NSWindowAbove relativeTo:nil];
+
     return self;
 }
 
@@ -222,6 +230,11 @@ typedef enum: NSInteger {
 - (MMTextView *)textView
 {
     return textView;
+}
+
+- (MMFindBarView *)findBarView
+{
+    return findBarView;
 }
 
 - (MMTabline *)tabline
@@ -675,6 +688,62 @@ typedef enum: NSInteger {
         [winController performSelectorOnMainThread:@selector(refreshTabProperties) withObject:nil waitUntilDone:NO];
     }
 }
+
+// ── Find bar public API ─────────────────────────────────────────────────────
+
+- (void)showFindBarWithText:(NSString *)text flags:(int)flags {
+    NSRect textRect = [textView frame];
+
+    // Only snap to the default top-right position when the bar is currently
+    // hidden.  If it is already visible the user may have dragged it, so we
+    // keep its current position.
+    if (findBarView.hidden) {
+        NSSize barSize = findBarView.frame.size;
+        [findBarView setFrame:NSMakeRect(
+            NSMaxX(textRect) - barSize.width  - 8,
+            NSMaxY(textRect) - barSize.height - 8,
+            barSize.width,
+            barSize.height)];
+    }
+    _lastTextRectForFindBar = textRect;
+
+    [findBarView showWithText:text flags:flags];
+}
+
+- (void)hideFindBar {
+    findBarView.hidden = YES;
+    if ([self window])
+        [[self window] makeFirstResponder:textView];
+}
+
+// ── MMFindBarViewDelegate ────────────────────────────────────────────────────
+
+- (void)findBarView:(MMFindBarView *)view findNext:(BOOL)forward {
+    [[vimController windowController] sendFindBarAction:forward ? 0 : 0x100
+                                             findString:[view findString]
+                                          replaceString:[view replaceString]
+                                            ignoreCase:[view ignoreCase]
+                                             matchWord:[view matchWord]];
+}
+
+- (void)findBarView:(MMFindBarView *)view replace:(BOOL)replaceAll {
+    [[vimController windowController] sendFindBarAction:replaceAll ? 4 : 3
+                                             findString:[view findString]
+                                          replaceString:[view replaceString]
+                                            ignoreCase:[view ignoreCase]
+                                             matchWord:[view matchWord]];
+}
+
+- (void)findBarViewDidClose:(MMFindBarView *)view {
+    [self hideFindBar];
+}
+
+- (NSRect)findBarViewDraggableBounds:(MMFindBarView *)view {
+    // Allow dragging anywhere within the text-editing area so the bar never
+    // overlaps the tabline or scrollbars.
+    return [textView frame];
+}
+
 @end // MMVimView
 
 
@@ -928,6 +997,28 @@ typedef enum: NSInteger {
     // Otherwise in situations like live resize we will see the scroll bars lag.
     self.pendingPlaceScrollbars = NO;
     [self placeScrollbars];
+
+    // Keep the find bar inside the text area when the window is resized.
+    // Use the delta of the text area's edges so that the bar tracks tabline
+    // show/hide and window resizes correctly, regardless of where the user
+    // may have dragged it.
+    if (findBarView && !findBarView.hidden) {
+        NSRect newTextRect = [textView frame];
+        NSRect barFrame    = findBarView.frame;
+
+        // Shift bar by the same amount the text area's top-right corner moved.
+        CGFloat dx = NSMaxX(newTextRect) - NSMaxX(_lastTextRectForFindBar);
+        CGFloat dy = NSMaxY(newTextRect) - NSMaxY(_lastTextRectForFindBar);
+        CGFloat newX = barFrame.origin.x + dx;
+        CGFloat newY = barFrame.origin.y + dy;
+
+        // Clamp so the bar stays fully inside the text area.
+        newX = MAX(NSMinX(newTextRect), MIN(newX, NSMaxX(newTextRect) - barFrame.size.width));
+        newY = MAX(NSMinY(newTextRect), MIN(newY, NSMaxY(newTextRect) - barFrame.size.height));
+
+        [findBarView setFrameOrigin:NSMakePoint(newX, newY)];
+        _lastTextRectForFindBar = newTextRect;
+    }
 
     // It is possible that the current number of (rows,columns) is too big or
     // too small to fit the new frame.  If so, notify Vim that the text

@@ -62,6 +62,7 @@
  */
 
 #import "MMAppController.h"
+#import "MMFindBarView.h"
 #import "MMFindReplaceController.h"
 #import "MMFullScreenWindow.h"
 #import "MMTextView.h"
@@ -1351,26 +1352,59 @@
 - (IBAction)findAndReplace:(id)sender
 {
     NSInteger tag = [sender tag];
-    MMFindReplaceController *fr = [MMFindReplaceController sharedInstance];
-    int flags = 0;
+    NSString *findStr, *replStr;
+    BOOL ignoreCase, matchWord;
 
-    // NOTE: The 'flags' values must match the FRD_ defines in gui.h (except
-    // for 0x100 which we use to indicate a backward search).
-    switch (tag) {
-        case 1: flags = 0x100; break;
-        case 2: flags = 3; break;
-        case 3: flags = 4; break;
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:MMFindBarInlineKey]) {
+        MMFindBarView *fb = [vimView findBarView];
+        findStr    = [fb findString];
+        replStr    = [fb replaceString];
+        ignoreCase = [fb ignoreCase];
+        matchWord  = [fb matchWord];
+    } else {
+        MMFindReplaceController *frc = [MMFindReplaceController sharedInstance];
+        findStr    = [frc findString];
+        replStr    = [frc replaceString];
+        ignoreCase = [frc ignoreCase];
+        matchWord  = [frc matchWord];
     }
 
-    if ([fr matchWord])
-        flags |= 0x08;
-    if (![fr ignoreCase])
-        flags |= 0x10;
+    [self sendFindBarAction:(int)tag
+                findString:findStr
+             replaceString:replStr
+                ignoreCase:ignoreCase
+                 matchWord:matchWord];
+}
+
+- (void)sendFindBarAction:(int)tag
+               findString:(NSString *)findStr
+            replaceString:(NSString *)replStr
+               ignoreCase:(BOOL)ignoreCase
+                matchWord:(BOOL)matchWord
+{
+    // Map IBAction sender tag values to FRD flag values (must match FRD_
+    // defines in gui.h, except 0x100 which indicates a backward search):
+    //   IBAction tag 0  → flags 0       (find forward)
+    //   IBAction tag 1  → flags 0x100   (find backward)
+    //   IBAction tag 2  → flags 3       (replace)
+    //   IBAction tag 3  → flags 4       (replace all)
+    // Internal callers (MMFindBarViewDelegate) already pass the correct flag
+    // values directly (0, 0x100, 3, 4), so those pass through unchanged.
+    int flags;
+    switch (tag) {
+        case 1: flags = 0x100; break;
+        case 2: flags = 3;     break;
+        case 3: flags = 4;     break;
+        default: flags = tag;  break;  // 0=forward, or direct flag from delegate
+    }
+
+    if (matchWord)   flags |= 0x08;
+    if (!ignoreCase) flags |= 0x10;
 
     NSDictionary *args = [NSDictionary dictionaryWithObjectsAndKeys:
-            [fr findString],                @"find",
-            [fr replaceString],             @"replace",
-            [NSNumber numberWithInt:flags], @"flags",
+            findStr  ?: @"",                    @"find",
+            replStr  ?: @"",                    @"replace",
+            [NSNumber numberWithInt:flags],     @"flags",
             nil];
 
     [vimController sendMessage:FindReplaceMsgID data:[args dictionaryAsData]];
