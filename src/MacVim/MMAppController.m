@@ -233,6 +233,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         @"",                              MMLastUsedBundleVersionKey,
         [NSNumber numberWithBool:YES],    MMShowWhatsNewOnStartupKey,
         [NSNumber numberWithBool:0],      MMScrollOneDirectionOnlyKey,
+        [NSNumber numberWithBool:NO],     MMFindBarInlineKey,
         nil];
 
     [ud registerDefaults:macvimDefaults];

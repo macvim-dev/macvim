@@ -58,7 +58,7 @@
  *
  * The window is always kept centered and resizing works more or less the same
  * way as in windowed mode.
- *  
+ *
  */
 
 #import "MMAppController.h"
@@ -122,7 +122,7 @@
 - (id)initWithVimController:(MMVimController *)controller
 {
     backgroundDark = NO;
-    
+
     unsigned styleMask = NSWindowStyleMaskTitled
                        | NSWindowStyleMaskClosable
                        | NSWindowStyleMaskMiniaturizable
@@ -169,7 +169,7 @@
 
     vimController = controller;
     decoratedWindow = [win retain];
-    
+
     [self refreshApperanceMode];
 
     // Window cascading is handled by MMAppController.
@@ -216,7 +216,7 @@
     // Make us safe on pre-tiger OSX
     if ([win respondsToSelector:@selector(_setContentHasShadow:)])
         [win _setContentHasShadow:NO];
-    
+
     // This adds the title bar full-screen button (which calls
     // toggleFullScreen:) and also populates the Window menu itmes for full
     // screen tiling. Even if we are using non-native full screen, we still set
@@ -544,7 +544,7 @@
     [title retain]; // retain the title first before release lastSetTitle, since you can call setTitle on lastSetTitle itself.
     [lastSetTitle release];
     lastSetTitle = title;
-    
+
     // While in live resize the window title displays the dimensions of the
     // window so don't clobber this with the new title. We have already set
     // lastSetTitle above so once live resize is done we will set it back.
@@ -622,7 +622,7 @@
 
 - (BOOL)destroyScrollbarWithIdentifier:(int32_t)ident
 {
-    BOOL scrollbarHidden = [vimView destroyScrollbarWithIdentifier:ident];   
+    BOOL scrollbarHidden = [vimView destroyScrollbarWithIdentifier:ident];
     return scrollbarHidden;
 }
 
@@ -660,14 +660,14 @@
     // titlebar settings) to use for this window, depending on what the user
     // has selected as a preference.
     NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
-    
+
     // Transparent title bar setting
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_10
     if (AVAILABLE_MAC_OS(10, 10)) {
         decoratedWindow.titlebarAppearsTransparent = [ud boolForKey:MMTitlebarAppearsTransparentKey];
     }
 #endif
-    
+
     // No title bar setting
     if ([ud boolForKey:MMNoTitleBarWindowKey]) {
         [decoratedWindow setStyleMask:([decoratedWindow styleMask] & ~NSWindowStyleMaskTitled)];
@@ -720,7 +720,7 @@
                 break;
             }
         }
-        
+
         decoratedWindow.appearance = desiredAppearance;
         fullScreenWindow.appearance = desiredAppearance;
     }
@@ -1087,7 +1087,7 @@
 - (void)setBlurRadius:(int)radius
 {
     blurRadius = radius;
-    if (windowPresented) { 
+    if (windowPresented) {
         [decoratedWindow setBlurRadius:radius];
         if (fullScreenWindow) {
             [MMWindow setBlurRadius:radius onWindow:fullScreenWindow];
@@ -1352,6 +1352,14 @@
 {
     NSInteger tag = [sender tag];
     MMFindReplaceController *fr = [MMFindReplaceController sharedInstance];
+    MMFindBarView *fb = [[vimView findBarView] isHidden] ? nil : [vimView findBarView];
+    BOOL useInline = [[NSUserDefaults standardUserDefaults] boolForKey:MMFindBarInlineKey]
+                     && fb != nil;
+    BOOL matchWord  = useInline ? [fb matchWord]  : [fr matchWord];
+    BOOL ignoreCase = useInline ? [fb ignoreCase] : [fr ignoreCase];
+    NSString *findStr = useInline ? [fb findString]    : [fr findString];
+    NSString *replStr = useInline ? [fb replaceString] : [fr replaceString];
+
     int flags = 0;
 
     // NOTE: The 'flags' values must match the FRD_ defines in gui.h (except
@@ -1362,14 +1370,14 @@
         case 3: flags = 4; break;
     }
 
-    if ([fr matchWord])
+    if (matchWord)
         flags |= 0x08;
-    if (![fr ignoreCase])
+    if (!ignoreCase)
         flags |= 0x10;
 
     NSDictionary *args = [NSDictionary dictionaryWithObjectsAndKeys:
-            [fr findString],                @"find",
-            [fr replaceString],             @"replace",
+            findStr,                        @"find",
+            replStr,                        @"replace",
             [NSNumber numberWithInt:flags], @"flags",
             nil];
 
@@ -2069,7 +2077,7 @@
         input = [NSString stringWithFormat:@"<C-\\><C-N>:let @/='%@'<CR>%c",
                 query, next ? 'n' : 'N'];
     } else {
-        input = next ? @"<C-\\><C-N>n" : @"<C-\\><C-N>N"; 
+        input = next ? @"<C-\\><C-N>n" : @"<C-\\><C-N>N";
     }
 
     [vimController addVimInput:input];

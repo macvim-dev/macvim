@@ -1231,9 +1231,17 @@ static BOOL isUnsafeMessage(int msgid);
         {
             NSDictionary *dict = [NSDictionary dictionaryWithData:data];
             if (dict) {
-                [[MMFindReplaceController sharedInstance]
-                    showWithText:[dict objectForKey:@"text"]
-                           flags:[[dict objectForKey:@"flags"] intValue]];
+                BOOL useInline = [[NSUserDefaults standardUserDefaults]
+                                  boolForKey:MMFindBarInlineKey];
+                if (useInline) {
+                    [[windowController vimView]
+                        showFindBarWithText:[dict objectForKey:@"text"]
+                                      flags:[[dict objectForKey:@"flags"] intValue]];
+                } else {
+                    [[MMFindReplaceController sharedInstance]
+                        showWithText:[dict objectForKey:@"text"]
+                               flags:[[dict objectForKey:@"flags"] intValue]];
+                }
             }
         }
         break;
