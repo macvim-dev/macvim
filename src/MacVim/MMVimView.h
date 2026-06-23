@@ -9,6 +9,7 @@
  */
 
 #import <Cocoa/Cocoa.h>
+#import "MMFindBarView.h"
 
 
 
@@ -19,13 +20,14 @@
 @class MMVimController;
 
 
-@interface MMVimView : NSView {
+@interface MMVimView : NSView <MMFindBarViewDelegate> {
     /// The tab that has been requested to be closed and waiting on Vim to respond
     NSInteger           pendingCloseTabID;
     MMTabline           *tabline;
     MMVimController     *vimController;
     MMTextView          *textView;
     NSMutableArray      *scrollbars;
+    MMFindBarView       *findBarView;
 }
 
 @property BOOL pendingPlaceScrollbars;
@@ -35,6 +37,7 @@
 - (MMVimView *)initWithFrame:(NSRect)frame vimController:(MMVimController *)c;
 
 - (MMTextView *)textView;
+- (MMFindBarView *)findBarView;
 - (void)cleanup;
 
 - (NSSize)desiredSize;
@@ -69,5 +72,8 @@
 - (void)setFrameSize:(NSSize)size;
 - (void)setFrameSizeKeepGUISize:(NSSize)size;
 - (void)setFrame:(NSRect)frame;
+
+- (void)showFindBarWithText:(NSString *)text flags:(int)flags;
+- (void)hideFindBar;
 
 @end
