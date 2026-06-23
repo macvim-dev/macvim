@@ -40,6 +40,9 @@ jobs:
             publish: true
             optimized: true
 
+          - os: macos-26
+            testgui: true
+
     uses: ./.github/workflows/macvim-buildtest.yaml
     with:
       skip: ${{ matrix.skip && true || false }}
