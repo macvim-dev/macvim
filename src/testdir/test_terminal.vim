@@ -774,6 +774,22 @@ func Test_terminal_finish_open_close()
   call assert_equal('opened the buffer in a window', g:result)
   unlet g:result
   bwipe
+
+  " Test "noclose" for term_start()
+  let cmd = Get_cat_123_cmd()
+
+  let buf = term_start(cmd, {
+        \ 'term_finish': 'noclose',
+        \ 'hidden': v:true
+        \ })
+
+  call WaitForAssert({-> assert_equal('finished', term_getstatus(buf))})
+
+  let info = getbufinfo(buf)[0]
+  call assert_equal(1, info.hidden)
+  call assert_equal(1, info.listed)
+  call assert_equal(1, info.loaded)
+  call WaitForAssert({-> assert_equal(['123'], getbufline(buf, 1, 1))})
 endfunc
 
 func Test_terminal_cwd()
@@ -942,7 +958,9 @@ func Test_terminal_eof_arg()
     call WaitFor({-> getline('$') =~ 'hello'})
     call assert_equal('hello', getline('$'))
   endif
-  let exitval = bufnr()->term_getjob()->job_info().exitval
+  let job = bufnr()->term_getjob()
+  call WaitForAssert({-> assert_equal('dead', job_status(job))})
+  let exitval = job->job_info().exitval
   if !has('win32')
     call assert_equal(123, exitval)
   else
@@ -984,7 +1002,9 @@ func Test_terminal_duplicate_eof_arg()
     call WaitFor({-> getline('$') =~ 'hello'})
     call assert_equal('hello', getline('$'))
   endif
-  let exitval = bufnr()->term_getjob()->job_info().exitval
+  let job = bufnr()->term_getjob()
+  call WaitForAssert({-> assert_equal('dead', job_status(job))})
+  let exitval = job->job_info().exitval
   if !has('win32')
     call assert_equal(123, exitval)
   else

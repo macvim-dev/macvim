@@ -699,6 +699,7 @@ ins_compl_infercase_gettext(
 	    if (ga_grow(&gap, 10) == FAIL)
 	    {
 		ga_clear(&gap);
+		vim_free(wca);
 		return (char_u *)"[failed]";
 	    }
 	    p = (char_u *)gap.ga_data + gap.ga_len;
@@ -1888,13 +1889,19 @@ ins_compl_show_pum(void)
     // part of the screen would be updated.  We do need to redraw here.
     dollar_vcol = -1;
 
-    // Compute the screen column of the start of the completed text.
-    // Use the cursor to get all wrapping and other settings right.
+    // Position the menu at the completion start without moving the cursor
+    // there, so the ruler keeps showing the real cursor column.
     col = curwin->w_cursor.col;
     curwin->w_cursor.col = compl_col;
-    compl_selected_item = cur;
-    pum_display(compl_match_array, compl_match_arraysize, cur);
+    validate_cursor_col();
+    int pum_wcol = curwin->w_wcol;
     curwin->w_cursor.col = col;
+    validate_cursor_col();
+    compl_selected_item = cur;
+    // Flag the status line so the ruler is redrawn for the real cursor column
+    // when the menu update redraws the screen.
+    curwin->w_redr_status = true;
+    pum_display(compl_match_array, compl_match_arraysize, cur, pum_wcol);
 
     // After adding leader, set the current match to shown match.
     if (compl_started && compl_curr_match != compl_shown_match)

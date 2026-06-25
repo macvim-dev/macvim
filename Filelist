@@ -14,6 +14,7 @@ SRC_ALL =	\
 		.github/workflows/ci-windows.yml \
 		.github/workflows/ci.yml \
 		.github/workflows/codeql-analysis.yml \
+		.github/workflows/coverity.yml \
 		.github/workflows/link-check.yml \
 		.github/actions/build_vim_on_linux/action.yml \
 		.github/actions/test_artifacts/action.yml \
@@ -517,6 +518,8 @@ SRC_UNIX =	\
 		src/gui_gtk4_da.h \
 		src/gui_gtk4_tb.c \
 		src/gui_gtk4_tb.h \
+		src/gui_gtk4_menu.c \
+		src/gui_gtk4_menu.h \
 		src/gui_gtk_res.xml \
 		src/gui_motif.c \
 		src/gui_xmdlg.c \
