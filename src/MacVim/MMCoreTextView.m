@@ -136,6 +136,23 @@ defaultAdvanceForFont(NSFont *font)
     return [@"m" sizeWithAttributes:a].width;
 }
 
+/// Returns a font derived from the supplied one with the given OpenType
+/// feature settings (a kCTFontFeatureSettingsAttribute-style array) applied.
+    static NSFont *
+fontWithFeatureSettings(NSFont *base, NSArray *settings)
+{
+    if (settings == nil || base == nil)
+        return base;
+    CTFontDescriptorRef desc = CTFontDescriptorCreateWithAttributes(
+        (CFDictionaryRef)@{ (NSString *)kCTFontFeatureSettingsAttribute: settings });
+    CTFontRef derived = CTFontCreateCopyWithAttributes(
+        (CTFontRef)base, 0.0, NULL, desc);
+    CFRelease(desc);
+    if (derived == NULL)
+        return base;
+    return [(NSFont *)derived autorelease];
+}
+
 typedef struct {
     unsigned color;
     int shape;
@@ -284,6 +301,8 @@ static void grid_free(Grid *grid) {
     [characterStrings release];  characterStrings = nil;
     [fontVariants release];  fontVariants = nil;
     [characterLines release];  characterLines = nil;
+    [fontFeatures release];  fontFeatures = nil;
+    [fontFeatureSettings release];  fontFeatureSettings = nil;
     
     [helper setTextView:nil];
     [helper release];  helper = nil;
@@ -580,6 +599,43 @@ static void grid_free(Grid *grid) {
 - (void)setAntialias:(BOOL)state
 {
     antialias = state;
+}
+
+- (void)setFontFeatures:(NSString *)features
+{
+    if (fontFeatures == features || [fontFeatures isEqualToString:features])
+        return;
+    [fontFeatures release];
+    fontFeatures = [features copy];
+    [fontFeatureSettings release];
+    fontFeatureSettings = nil;
+
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_13
+    if (features.length > 0) {
+        if (@available(macos 10.13, *)) {
+            // Parse the 'macfontfeatures' value ("tag" or "tag=N" entries)
+            // into the array of dictionaries CoreText expects for
+            // kCTFontFeatureSettingsAttribute.
+            NSMutableArray *settings = [NSMutableArray array];
+            for (NSString *entry in [features componentsSeparatedByString:@","]) {
+                NSArray *kv = [entry componentsSeparatedByString:@"="];
+                NSString *tag = kv[0];
+                if (tag.length != 4)
+                    continue;  // already validated by Vim; be defensive
+                int value = kv.count > 1 ? [kv[1] intValue] : 1;
+                [settings addObject:@{
+                    (NSString *)kCTFontOpenTypeFeatureTag: tag,
+                    (NSString *)kCTFontOpenTypeFeatureValue: @(value),
+                }];
+            }
+            if (settings.count > 0)
+                fontFeatureSettings = [settings retain];
+        }
+    }
+#endif
+
+    [fontVariants removeAllObjects];
+    [characterLines removeAllObjects];
 }
 
 - (void)setLigatures:(BOOL)state
@@ -2116,6 +2172,7 @@ static void rowColFromUtfRange(const Grid* grid, NSRange range,
             fontRef = [NSFontManager.sharedFontManager convertFont:fontRef toHaveTrait:NSFontItalicTrait];
         if (textFlags & DRAW_BOLD)
             fontRef = [NSFontManager.sharedFontManager convertFont:fontRef toHaveTrait:NSFontBoldTrait];
+        fontRef = fontWithFeatureSettings(fontRef, fontFeatureSettings);
 
         fontVariants[cacheFlags] = fontRef;
     }

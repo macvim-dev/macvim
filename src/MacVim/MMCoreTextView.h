@@ -66,6 +66,8 @@ NS_ASSUME_NONNULL_BEGIN
     BOOL                        antialias;
     BOOL                        ligatures;
     BOOL                        thinStrokes;
+    NSString                    *fontFeatures;        ///< Raw 'macfontfeatures' value
+    NSArray                     *fontFeatureSettings; ///< Parsed kCTFontFeatureSettingsAttribute array, nil if none
 
     BOOL                        forceRefreshFont; // when true, don't early out of setFont calls.
 
@@ -138,6 +140,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)setPreEditRow:(int)row column:(int)col;
 - (void)setMouseShape:(int)shape;
 - (void)setAntialias:(BOOL)state;
+- (void)setFontFeatures:(NSString *)features;
 - (void)setLigatures:(BOOL)state;
 - (void)setThinStrokes:(BOOL)state;
 - (void)setImControl:(BOOL)enable;
