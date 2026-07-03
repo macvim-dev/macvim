@@ -115,8 +115,8 @@ They are only usable when GUI is active.
 							*macvim-options*
 These are the non-standard options that MacVim supports:
 	'antialias'	'blurradius'	'fullscreen'
-	'fuoptions'	'macligatures'	'macmeta'	'macthinstrokes'
-	'toolbariconsize'	'transparency'
+	'fuoptions'	'macfontfeatures'	'macligatures'	'macmeta'
+	'macthinstrokes'	'toolbariconsize'	'transparency'
 
 These are GUI-related Vim options that have MacVim-specific behaviors:
 	'guifont'

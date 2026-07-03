@@ -513,6 +513,7 @@ $quote	eval.txt	/*$quote*
 'lz'	options.txt	/*'lz'*
 'ma'	options.txt	/*'ma'*
 'macatsui'	options.txt	/*'macatsui'*
+'macfontfeatures'	options.txt	/*'macfontfeatures'*
 'macligatures'	options.txt	/*'macligatures'*
 'macmeta'	options.txt	/*'macmeta'*
 'macthinstrokes'	options.txt	/*'macthinstrokes'*

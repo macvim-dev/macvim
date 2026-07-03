@@ -6026,6 +6026,28 @@ A jump table for the options with a short description can be found at |Q_op|.
 			{not supported}
 	No longer supported, as the Mac OS X GUI code was removed.
 
+						*'macfontfeatures'*
+'macfontfeatures'	string	(default "")
+			global
+			{not in Vi}
+                        {only available when compiled with GUI enabled on
+			 Mac OS X}
+	Comma-separated list of OpenType font features to enable for the text
+	in the window.  Each entry is a four-character OpenType feature tag,
+	optionally followed by "=" and a number.  A bare tag is equivalent to
+	"tag=1"; use "tag=0" to disable a feature the font enables by
+	default.  Example: >
+		:set macfontfeatures=cv01,cv09,ss03=2,zero
+<	This requires the selected 'guifont' to support the given features
+	(e.g. character variants "cv01"-"cv99" or stylistic sets
+	"ss01"-"ss20").  Features not supported by the font are ignored.
+	Set to an empty string to restore the font's default features.
+	Note: use 'macligatures' to control standard ligatures; that option
+	takes precedence over a "liga" entry here.
+	Note: Currently this option only has an effect if
+	'Use Core Text renderer' is enabled in the GUI preferences pane, and
+	requires Mac OS X v10.13 or later.
+
 				*'macligatures'* *'nomacligatures'*
 'macligatures'		boolean (default off)
 			global
