@@ -795,6 +795,7 @@ EXTERN int	p_lpl;		// 'loadplugins'
 EXTERN char_u	*p_luadll;	// 'luadll'
 #endif
 #ifdef FEAT_GUI_MACVIM
+EXTERN char_u	*p_macfontfeatures;	// 'macfontfeatures'
 EXTERN int	p_macligatures;	// 'macligatures'
 EXTERN int	p_macthinstrokes;	// 'macthinstrokes'
 EXTERN long	p_columnspace;	// 'columnspace'

@@ -5325,6 +5325,46 @@ did_set_fullscreen(optset_T *args)
 
 #if defined(FEAT_GUI_MACVIM) || defined(PROTO)
 /*
+ * Process the updated 'macfontfeatures' option value.
+ * The value is a comma-separated list of OpenType feature settings, each a
+ * four-character tag optionally followed by "=" and a non-negative number.
+ */
+    char *
+did_set_macfontfeatures(optset_T *args UNUSED)
+{
+    char_u *p = p_macfontfeatures;
+
+    while (*p != NUL)
+    {
+	int i;
+
+	// OpenType tag: exactly 4 printable ASCII chars (not ',' or '=')
+	for (i = 0; i < 4; ++i)
+	    if (p[i] < 0x20 || p[i] > 0x7e || p[i] == ',' || p[i] == '=')
+		return e_invalid_argument;
+	p += 4;
+	if (*p == '=')
+	{
+	    ++p;
+	    if (!VIM_ISDIGIT(*p))
+		return e_invalid_argument;
+	    while (VIM_ISDIGIT(*p))
+		++p;
+	}
+	if (*p == ',')
+	{
+	    if (*++p == NUL)
+		return e_invalid_argument;	// trailing comma
+	}
+	else if (*p != NUL)
+	    return e_invalid_argument;
+    }
+
+    gui_macvim_set_fontfeatures(p_macfontfeatures);
+    return NULL;
+}
+
+/*
  * Process the updated 'macligatures' option value.
  */
     char *

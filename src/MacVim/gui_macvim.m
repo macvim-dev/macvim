@@ -2135,6 +2135,14 @@ gui_macvim_set_antialias(int antialias)
 }
 
     void
+gui_macvim_set_fontfeatures(char_u *features)
+{
+    NSString *s = features != NULL ? [NSString stringWithVimString:features]
+                                   : @"";
+    [[MMBackend sharedInstance] setFontFeatures:s];
+}
+
+    void
 gui_macvim_set_ligatures(int ligatures)
 {
     [[MMBackend sharedInstance] setLigatures:ligatures];

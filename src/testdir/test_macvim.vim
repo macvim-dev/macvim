@@ -10,6 +10,7 @@ func Test_macvim_options_commands_exist()
     call assert_true(exists('+blurradius'), 'Missing option "blurradius"')
     call assert_true(exists('+fullscreen'), 'Missing option "fullscreen"')
     call assert_true(exists('+fuoptions'), 'Missing option "fuoptions"')
+    call assert_true(exists('+macfontfeatures'), 'Missing option "macfontfeatures"')
     call assert_true(exists('+macligatures'), 'Missing option "macligatures"')
     call assert_true(exists('+macmeta'), 'Missing option "macmeta"')
     call assert_true(exists('+macthinstrokes'), 'Missing option "macthinstrokes"')
@@ -75,4 +76,17 @@ func Test_macvim_invalid_options()
     call assert_fails("let &transparency=101", 'E474:')
 
     call assert_fails("let &fuoptions='abcdef'", 'E474:')
+
+    call assert_fails("set macfontfeatures=abc", 'E474:')
+    call assert_fails("set macfontfeatures=abcde", 'E474:')
+    call assert_fails("set macfontfeatures=cv01=x", 'E474:')
+    call assert_fails("set macfontfeatures=cv01,", 'E474:')
+endfunc
+
+" Test that 'macfontfeatures' accepts valid values and can be reset
+func Test_macvim_macfontfeatures()
+    set macfontfeatures=cv01,ss03=2,zero=0
+    call assert_equal('cv01,ss03=2,zero=0', &macfontfeatures)
+    set macfontfeatures=
+    call assert_equal('', &macfontfeatures)
 endfunc

@@ -1775,6 +1775,15 @@ static struct vimoption options[] =
 			    (char_u *)NULL, PV_NONE, NULL, NULL,
 			    {(char_u *)"", (char_u *)0L}
 			    SCTX_INIT},
+    {"macfontfeatures", NULL, P_STRING|P_VI_DEF|P_RCLR|P_ONECOMMA|P_NODUP,
+#ifdef FEAT_GUI_MACVIM
+			    (char_u *)&p_macfontfeatures, PV_NONE, did_set_macfontfeatures, NULL,
+			    {(char_u *)"", (char_u *)0L}
+#else
+			    (char_u *)NULL, PV_NONE, NULL, NULL,
+			    {(char_u *)NULL, (char_u *)0L}
+#endif
+			    SCTX_INIT},
     {"macligatures", NULL,  P_BOOL|P_VI_DEF|P_RCLR,
 #ifdef FEAT_GUI_MACVIM
 			    (char_u *)&p_macligatures, PV_NONE, did_set_macligatures, NULL,

@@ -106,6 +106,7 @@ void gui_mch_fuopt_update(void);
 void gui_macvim_update_modified_flag(void);
 void gui_macvim_add_to_find_pboard(char_u *pat);
 void gui_macvim_set_antialias(int antialias);
+void gui_macvim_set_fontfeatures(char_u *features);
 void gui_macvim_set_ligatures(int ligatures);
 void gui_macvim_set_thinstrokes(int thinStrokes);
 void gui_macvim_set_blur(int blur);
