@@ -100,7 +100,6 @@ char *did_set_antialias(optset_T *args);
 char *did_set_blur(optset_T *args);
 char *did_set_columnspace(optset_T *args);
 char *did_set_fullscreen(optset_T *args);
-char *did_set_macfontfeatures(optset_T *args);
 char *did_set_macligatures(optset_T *args);
 char *did_set_macthinstrokes(optset_T *args);
 char *did_set_transparency(optset_T *args);

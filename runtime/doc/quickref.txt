@@ -810,7 +810,6 @@ Short explanation of each option:		*option-list*
 'loadplugins'	  'lpl'     load plugin scripts when starting up
 'luadll'		    name of the Lua dynamic library
 'macatsui'		    Mac GUI: use ATSUI text drawing
-'macfontfeatures'	    OpenType font features to enable (MacVim GUI only)
 'macligatures'		    display ligatures (MacVim GUI only)
 'macmeta'	  'mmta'    use option as meta key (MacVim GUI only)
 'macthinstrokes'	    render the text lighter by using thin strokes (MacVim GUI only)

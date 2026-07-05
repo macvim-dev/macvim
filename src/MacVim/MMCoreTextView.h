@@ -66,7 +66,7 @@ NS_ASSUME_NONNULL_BEGIN
     BOOL                        antialias;
     BOOL                        ligatures;
     BOOL                        thinStrokes;
-    NSString                    *fontFeatures;        ///< Raw 'macfontfeatures' value
+    NSString                    *fontFeatures;        ///< Raw OpenType font features string
     NSArray                     *fontFeatureSettings; ///< Parsed kCTFontFeatureSettingsAttribute array, nil if none
 
     BOOL                        forceRefreshFont; // when true, don't early out of setFont calls.

@@ -613,8 +613,8 @@ static void grid_free(Grid *grid) {
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_10
     if (features.length > 0) {
         if (@available(macos 10.10, *)) {
-            // Parse the 'macfontfeatures' value ("tag" or "tag=N" entries)
-            // into the array of dictionaries CoreText expects for
+            // Parse the feature list ("tag" or "tag=N" entries, comma
+            // separated) into the array of dictionaries CoreText expects for
             // kCTFontFeatureSettingsAttribute.
             NSMutableArray *settings = [NSMutableArray array];
             for (NSString *entry in [features componentsSeparatedByString:@","]) {

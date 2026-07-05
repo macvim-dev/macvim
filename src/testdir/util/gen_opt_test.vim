@@ -392,8 +392,6 @@ let test_values = {
       \
       \ 'blurradius': [[], [-1]],
       \ 'fuoptions': [[], ['xxx']],
-      \ 'macfontfeatures': [['', 'cv01', 'cv01,cv09', 'ss03=2', 'liga=0'],
-      \		['xxx', 'cv1', 'cv01=', 'cv01=x', 'cv01,,cv02']],
       \ 'transparency': [[], ['-1']],
       \
       "\ default behaviours
