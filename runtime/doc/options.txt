@@ -6046,7 +6046,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 	takes precedence over a "liga" entry here.
 	Note: Currently this option only has an effect if
 	'Use Core Text renderer' is enabled in the GUI preferences pane, and
-	requires Mac OS X v10.13 or later.
+	requires Mac OS X v10.10 or later.
 
 				*'macligatures'* *'nomacligatures'*
 'macligatures'		boolean (default off)
