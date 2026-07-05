@@ -1185,6 +1185,17 @@ static BOOL isUnsafeMessage(int msgid);
             [[[windowController vimView] textView] setAntialias:NO];
         }
         break;
+        case SetFontFeaturesMsgID:
+        {
+            const void *bytes = [data bytes];
+            int len = *((int*)bytes);  bytes += sizeof(int);
+            NSString *features = len > 0
+                ? [[[NSString alloc] initWithBytes:(void*)bytes length:len
+                                          encoding:NSUTF8StringEncoding] autorelease]
+                : @"";
+            [[[windowController vimView] textView] setFontFeatures:features];
+        }
+        break;
         case EnableLigaturesMsgID:
         {
             [[[windowController vimView] textView] setLigatures:YES];

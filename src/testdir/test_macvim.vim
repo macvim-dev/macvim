@@ -76,3 +76,30 @@ func Test_macvim_invalid_options()
 
     call assert_fails("let &fuoptions='abcdef'", 'E474:')
 endfunc
+
+" Test OpenType font feature settings (":f" modifiers) in 'guifont'
+func Test_macvim_guifont_features()
+    " 'guifont' is only parsed and validated when the GUI is running.
+    if !has('gui_running')
+        throw 'Skipped: GUI not running'
+    endif
+
+    let save_guifont = &guifont
+
+    set guifont=Menlo:h13:fss01=1:fcalt=0
+    call assert_match(':fss01=1:fcalt=0', getfontname())
+    set guifont=Menlo:h13:fzero
+    call assert_match(':fzero', getfontname())
+
+    " Invalid feature settings must be rejected as invalid fonts.
+    call assert_fails("set guifont=Menlo:h13:fabc", 'E596:')
+    call assert_fails("set guifont=Menlo:h13:fabcde", 'E596:')
+    call assert_fails("set guifont=Menlo:h13:fss01=x", 'E596:')
+    call assert_fails("set guifont=Menlo:h13:fss01=", 'E596:')
+
+    " A font without features resets to the font's defaults.
+    set guifont=Menlo:h13
+    call assert_equal('Menlo:h13', getfontname())
+
+    let &guifont = save_guifont
+endfunc
