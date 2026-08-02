@@ -1112,6 +1112,7 @@ INSTALL_DATA_R	= cp -r
 ### Program to run on installed binary.  Use the second one to disable strip.
 #STRIP = strip
 #STRIP = /bin/true
+STRIP = /usr/bin/strip
 
 ### Permissions for binaries  {{{1
 BINMOD = 755
