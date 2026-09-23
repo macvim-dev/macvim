@@ -1196,6 +1196,19 @@ static struct specialkey
     [self queueMessage:msgid data:nil];
 }
 
+- (void)setFontFeatures:(NSString *)features
+{
+    // NOTE: Unlike setFont:wide: an empty string must still be sent since it
+    // means "reset to the font's default features".
+    int len = (int)[features lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+    NSMutableData *data = [NSMutableData data];
+    [data appendBytes:&len length:sizeof(int)];
+    if (len > 0)
+        [data appendBytes:[features UTF8String] length:len];
+
+    [self queueMessage:SetFontFeaturesMsgID data:data];
+}
+
 - (void)setLigatures:(BOOL)ligatures
 {
     int msgid = ligatures ? EnableLigaturesMsgID : DisableLigaturesMsgID;

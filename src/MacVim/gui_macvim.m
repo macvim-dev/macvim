@@ -42,6 +42,7 @@ static NSString *(system_font_weights[]) = { @"UltraLight", @"Thin", @"Light", @
 static BOOL MMShareFindPboard      = YES;
 
 static GuiFont gui_macvim_font_with_name(char_u *name);
+static NSString *fontFeaturesFromFontString(NSString *font);
 static int specialKeyToNSKey(int key);
 static int vimModMaskToEventModifierFlags(int mods);
 
@@ -1150,6 +1151,12 @@ gui_mch_init_font(char_u *font_name, int fontset)
                                                                  : font)
                                    wide:YES];
 
+    // Apply any OpenType font feature settings given as ":f" modifiers in
+    // the font description.  An empty list resets the renderer to the font's
+    // default features.
+    [[MMBackend sharedInstance] setFontFeatures:
+            fontFeaturesFromFontString((NSString *)font)];
+
     return OK;
 }
 
@@ -1163,6 +1170,51 @@ gui_mch_set_font(GuiFont font UNUSED)
     // Font selection is done inside MacVim...nothing here to do.
 }
 
+
+/*
+ * Check a single OpenType font feature setting from a ":f" 'guifont'
+ * modifier, e.g. "ss19=1": a four-character printable ASCII tag, optionally
+ * followed by "=" and a non-negative number (a bare tag is equivalent to
+ * "tag=1").
+ */
+    static BOOL
+isValidFontFeature(NSString *feature)
+{
+    if ([feature length] < 4)
+        return NO;
+    for (NSUInteger i = 0; i < 4; ++i) {
+        unichar ch = [feature characterAtIndex:i];
+        if (ch < 0x20 || ch > 0x7e || ch == ',' || ch == '=')
+            return NO;
+    }
+    if ([feature length] == 4)
+        return YES;
+    if ([feature characterAtIndex:4] != '=' || [feature length] == 5)
+        return NO;
+    for (NSUInteger i = 5; i < [feature length]; ++i) {
+        unichar ch = [feature characterAtIndex:i];
+        if (ch < '0' || ch > '9')
+            return NO;
+    }
+    return YES;
+}
+
+/*
+ * Extract the ":f" feature modifiers from a font description string
+ * ("Name:h12:fss19=1:fcalt=0") as a comma-separated list ("ss19=1,calt=0").
+ */
+    static NSString *
+fontFeaturesFromFontString(NSString *font)
+{
+    NSArray *components = [font componentsSeparatedByString:@":"];
+    NSMutableArray *features = [NSMutableArray array];
+    for (NSUInteger i = 1; i < [components count]; ++i) {
+        NSString *c = [components objectAtIndex:i];
+        if ([c length] >= 2 && [c characterAtIndex:0] == 'f')
+            [features addObject:[c substringFromIndex:1]];
+    }
+    return [features componentsJoinedByString:@","];
+}
 
 /*
  * Return GuiFont in allocated memory.  The caller must free it using
@@ -1179,22 +1231,25 @@ gui_macvim_font_with_name(char_u *name)
     int size = MMDefaultFontSize;
     BOOL parseFailed = NO;
 
+    // The font description is the font name followed by optional
+    // colon-separated modifiers: "h<size>" and "f<feature>" (an OpenType font
+    // feature setting, using the same syntax as the Win32 GUI, see
+    // |gui-font|).  Example: "Menlo:h13:fss19=1:fcalt=0".
     NSArray *components = [fontName componentsSeparatedByString:@":"];
-    if ([components count] == 2) {
-        NSString *sizeString = [components lastObject];
-        if ([sizeString length] > 0
-                && [sizeString characterAtIndex:0] == 'h') {
-            sizeString = [sizeString substringFromIndex:1];
-            if ([sizeString length] > 0) {
-                size = (int)round([sizeString floatValue]);
-                fontName = [components objectAtIndex:0];
-            }
+    NSString *featureSuffix = @"";
+    for (NSUInteger i = 1; i < [components count] && !parseFailed; ++i) {
+        NSString *c = [components objectAtIndex:i];
+        if ([c length] >= 2 && [c characterAtIndex:0] == 'h') {
+            size = (int)round([[c substringFromIndex:1] floatValue]);
+        } else if ([c length] >= 2 && [c characterAtIndex:0] == 'f'
+                && isValidFontFeature([c substringFromIndex:1])) {
+            featureSuffix = [featureSuffix stringByAppendingFormat:@":%@", c];
         } else {
             parseFailed = YES;
         }
-    } else if ([components count] > 2) {
-        parseFailed = YES;
     }
+    if ([components count] > 1)
+        fontName = [components objectAtIndex:0];
 
     const BOOL isSystemFont = [fontName hasPrefix:MMSystemFontAlias];
     if (isSystemFont) {
@@ -1221,7 +1276,8 @@ gui_macvim_font_with_name(char_u *name)
         if ([fontName isEqualToString:MMDefaultFontName]
                 || isSystemFont
                 || [NSFont fontWithName:fontName size:size])
-            return [[NSString alloc] initWithFormat:@"%@:h%d", fontName, size];
+            return [[NSString alloc] initWithFormat:@"%@:h%d%@",
+                                            fontName, size, featureSuffix];
 
         // If font loading failed, try to replace underscores with spaces for
         // user convenience. This really only works if the name is a family
@@ -1229,7 +1285,8 @@ gui_macvim_font_with_name(char_u *name)
         if ([fontName rangeOfString:@"_"].location != NSNotFound) {
             fontName = [fontName stringByReplacingOccurrencesOfString:@"_" withString:@" "];
             if ([NSFont fontWithName:fontName size:size]) {
-                return [[NSString alloc] initWithFormat:@"%@:h%d", fontName, size];
+                return [[NSString alloc] initWithFormat:@"%@:h%d%@",
+                                            fontName, size, featureSuffix];
             }
         }
     }
