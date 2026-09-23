@@ -93,7 +93,7 @@ void gui_make_popup(char_u *path_name, int mouse_pos);
 
 void serverRegisterName(char_u *name);
 int serverSendToVim(char_u *name, char_u *cmd, char_u **result, int *server, int asExpr, int timeout, int silent);
-char_u *serverGetVimNames(void);
+list_T *serverGetVimNames(void);
 int serverStrToPort(char_u *str);
 int serverPeekReply(int port, char_u **str);
 int serverReadReply(int port, char_u **str, int timeout);

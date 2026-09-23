@@ -1647,6 +1647,14 @@ again:
     gui_position_components(pixel_width);
     gui_reset_scroll_region();
 
+#if defined(FEAT_GUI_GTK) && defined(USE_GTK4) && !defined(USE_GTK4_SNAPSHOT)
+    // We do not resize the draw area via the "resize" signal. This is because
+    // when the window is resized, the form widget is the one that is resized,
+    // so let that call gui_resize_shell() which will allocate the surface and
+    // allocate the drawing area size/position.
+    gui_gtk4_resize(pixel_width, pixel_height);
+#endif
+
     /*
      * At the "more" and ":confirm" prompt there is no redraw, put the cursor
      * at the last line here (why does it have to be one row too low?).
@@ -1669,6 +1677,9 @@ again:
 
     gui_update_scrollbars(TRUE);
     gui_update_cursor(FALSE, TRUE);
+#if defined(FEAT_GUI_GTK) && defined(USE_GTK4_SNAPSHOT)
+    gui_gtk_calculate_bleed(pixel_width, pixel_height);
+#endif
 #if defined(FEAT_XIM) && !defined(FEAT_GUI_GTK) && !defined(FEAT_GUI_MACVIM)
     xim_set_status_area();
 #endif
@@ -1854,6 +1865,10 @@ gui_set_shellsize(
     gui_position_components(width);
     gui_update_scrollbars(TRUE);
     gui_reset_scroll_region();
+
+#if defined(FEAT_GUI_GTK) && defined(USE_GTK4_SNAPSHOT)
+    gui_gtk_calculate_bleed(width, height);
+#endif
 }
 
 /*

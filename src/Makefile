@@ -1244,6 +1244,7 @@ GTK4_SRC	= gui.c gui_gtk4.c gui_gtk4_f.c \
 			gui_gtk4_da.c \
 			gui_beval.o \
 			gui_gtk4_tb.c \
+			gui_gtk4_menu.c \
 			$(GRESOURCE_SRC)
 GTK4_OBJ	= objects/gui.o objects/gui_gtk4.o \
 			objects/gui_gtk4_f.o \
@@ -1251,6 +1252,7 @@ GTK4_OBJ	= objects/gui.o objects/gui_gtk4.o \
 			objects/gui_gtk4_da.o \
 			objects/gui_beval.o \
 			objects/gui_gtk4_tb.o \
+			objects/gui_gtk4_menu.o \
 			$(GRESOURCE_OBJ)
 GTK4_DEFS	= -DFEAT_GUI_GTK $(NARROW_PROTO)
 GTK4_IPATH	= $(GUI_INC_LOC)
@@ -1337,7 +1339,7 @@ MACVIMGUI_BUNDLE = macvim
 MACVIMGUI_TESTARG = VIMPROG=../$(RELEASEDIR)/MacVim.app/Contents/MacOS/$(VIMTARGET)
 
 # All GUI files
-ALL_GUI_SRC  = gui.c gui_gtk.c gui_gtk_f.c gui_gtk4.c gui_gtk4_f.c gui_gtk4_cb.c gui_gtk4_da.c gui_gtk4_tb.c gui_motif.c gui_xmdlg.c gui_xmebw.c gui_gtk_x11.c gui_x11.c gui_haiku.cc
+ALL_GUI_SRC  = gui.c gui_gtk.c gui_gtk_f.c gui_gtk4.c gui_gtk4_f.c gui_gtk4_cb.c gui_gtk4_da.c gui_gtk4_tb.c gui_gtk4_menu.c gui_motif.c gui_xmdlg.c gui_xmebw.c gui_gtk_x11.c gui_x11.c gui_haiku.cc
 ALL_GUI_PRO  = proto/gui.pro proto/gui_gtk.pro proto/gui_gtk4.pro proto/gui_motif.pro proto/gui_xmdlg.pro proto/gui_gtk_x11.pro proto/gui_x11.pro proto/gui_w32.pro proto/gui_photon.pro
 
 ALL_GUI_SRC  += MacVim/gui_macvim.m MacVim/MMBackend.m MacVim/MacVim.m
@@ -3451,6 +3453,9 @@ objects/gui_gtk4_da.o: gui_gtk4_da.c
 
 objects/gui_gtk4_tb.o: gui_gtk4_tb.c
 	$(CCC) -o $@ gui_gtk4_tb.c
+
+objects/gui_gtk4_menu.o: gui_gtk4_menu.c
+	$(CCC) -o $@ gui_gtk4_menu.c
 
 
 objects/gui_haiku.o: gui_haiku.cc

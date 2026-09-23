@@ -2246,15 +2246,19 @@ serverSendToVim(
 /*
  * Ask MacVim for the names of all Vim servers.
  */
-    char_u *
+    list_T *
 serverGetVimNames(void)
 {
-    char_u *names = NULL;
-    NSArray *list = [[MMBackend sharedInstance] serverList];
+    list_T *names = list_alloc();
+    if (names == NULL)
+        return NULL;
 
-    if (list) {
-        NSString *string = [list componentsJoinedByString:@"\n"];
-        names = [string vimStringSave];
+    NSArray *serverlist = [[MMBackend sharedInstance] serverList];
+
+    if (serverlist) {
+        for (NSString *server in serverlist) {
+            list_append_string(names, (char_u *)[server UTF8String], -1);
+        }
     }
 
     return names;
