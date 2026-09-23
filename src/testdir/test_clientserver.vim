@@ -249,6 +249,47 @@ func Test_client_server_stopinsert()
   endtry
 endfunc
 
+" A "VimRegistry" entry whose window id does not parse makes LookupName() keep
+" the loose name it allocated while still returning None.  Nothing observable
+" differs, so this test asserts nothing about the leak itself: it walks the
+" path so that the ASan job notices if it comes back.
+func Test_clientserver_x11_registry_loose_name()
+  let g:test_is_flaky = 1
+  CheckFeature x11
+  if !executable('xprop')
+    throw 'Skipped: xprop is not available'
+  endif
+  " Only the x11 backend goes through serverSendToVim().
+  if $VIM_CLIENTSERVER != '' && $VIM_CLIENTSERVER !=? 'x11'
+    throw 'Skipped: the clientserver backend is not x11'
+  endif
+  let cmd = GetVimCommand()
+  if cmd == ''
+    throw 'GetVimCommand() failed'
+  endif
+  call Check_X11_Connection()
+
+  " Keep a client on the display: when the last one disconnects the X server
+  " may reset and drop the property before Vim can read it.
+  let name = 'XVIMTESTREG'
+  let job = job_start(cmd .. ' --servername ' .. name,
+        \ {'stoponexit': 'kill', 'out_io': 'null'})
+  call WaitForAssert({-> assert_equal("run", job_status(job))})
+  call WaitForAssert({-> assert_match(name, serverlist())})
+
+  " Replaces the whole registry, so this unregisters the server above too.
+  call system("xprop -root -f VimRegistry 8s -set VimRegistry 'zz " .. name .. "1'")
+  call assert_equal(0, v:shell_error)
+
+  " Loose match: "XVIMTESTREG" against a registered "XVIMTESTREG1" whose
+  " window id is not hex.
+  call system(cmd .. ' --servername ' .. name .. ' --remote-send x')
+
+  call system('xprop -root -remove VimRegistry')
+  call job_stop(job, 'kill')
+  call WaitForAssert({-> assert_equal("dead", job_status(job))})
+endfunc
+
 " Test if socket server, X11, and mswin backends can be chosen and work properly.
 func Test_client_server_multiple_backends()
     CheckFeature socketserver
@@ -369,6 +410,113 @@ func Test_client_server_socketserver_address()
   else
     call system(actual .. " --remote-expr 'execute(\"qa!\")'")
   endif
+  try
+    call WaitForAssert({-> assert_equal("dead", job_status(job))})
+  finally
+    if job_status(job) != 'dead'
+      call assert_report('Server did not exit')
+      call job_stop(job, 'kill')
+    endif
+  endtry
+endfunc
+
+" A flood of client connections must not crash the socketserver: connections
+" beyond the accept cap are refused instead of overflowing the fd_set / pollfd
+" sets, and the server keeps working once they are closed again.
+func Test_client_server_socketserver_connection_flood()
+  CheckFeature socketserver
+  CheckNotMSWindows
+
+  let g:test_is_flaky = 1
+  let cmd = GetVimCommand()
+  if cmd == ''
+    throw 'GetVimCommand() failed'
+  endif
+
+  let actual = cmd .. ' --clientserver socket --servername channel:2001'
+  let job = job_start(actual, {'stoponexit': 'kill', 'out_io': 'null'})
+  call WaitForAssert({-> assert_equal("run", job_status(job))})
+  call WaitForAssert({-> assert_match('channel:2001',
+        \ system(actual .. ' --remote-expr "v:servername"'))})
+
+  " Open many more connections than the server accepts.
+  let channels = []
+  for i in range(150)
+    let ch = ch_open('localhost:2001', {'mode': 'raw', 'waittime': 100})
+    if ch_status(ch) == 'open'
+      call add(channels, ch)
+    endif
+  endfor
+
+  " The server must survive, and must have refused the excess connections.
+  call assert_equal("run", job_status(job))
+  call WaitForAssert({-> assert_inrange(1, 100,
+        \ len(filter(copy(channels), {_, c -> ch_status(c) == 'open'})))})
+
+  " Close them again.  Afterwards the server must accept connections once
+  " more, which also verifies the client count is decremented.
+  for ch in channels
+    if ch_status(ch) == 'open'
+      call ch_close(ch)
+    endif
+  endfor
+  call WaitForAssert({-> assert_match('channel:2001',
+        \ system(actual .. ' --remote-expr "v:servername"'))})
+
+  call system(actual .. " --remote-expr 'execute(\"qa!\")'")
+  try
+    call WaitForAssert({-> assert_equal("dead", job_status(job))})
+  finally
+    if job_status(job) != 'dead'
+      call assert_report('Server did not exit')
+      call job_stop(job, 'kill')
+    endif
+  endtry
+endfunc
+
+" An invalid JSON message that spans two socketserver read buffers must not
+" crash the server: the parse buffer is refilled (and freed) mid-string, and
+" the error path must not report the position from the stale, freed cursor.
+func Test_client_server_socketserver_json_refill()
+  CheckFeature socketserver
+  CheckNotMSWindows
+
+  let g:test_is_flaky = 1
+  let cmd = GetVimCommand()
+  if cmd == ''
+    throw 'GetVimCommand() failed'
+  endif
+
+  let actual = cmd .. ' --clientserver socket --servername channel:2002'
+  let job = job_start(actual, {'stoponexit': 'kill', 'out_io': 'null'})
+  call WaitForAssert({-> assert_equal("run", job_status(job))})
+  call WaitForAssert({-> assert_match('channel:2002',
+        \ system(actual .. ' --remote-expr "v:servername"'))})
+
+  let ch = test_null_channel()
+  for _ in range(50)
+    let ch = ch_open('127.0.0.1:2002', {'mode': 'raw', 'waittime': 100})
+    if ch_status(ch) == 'open'
+      break
+    endif
+    sleep 100m
+  endfor
+  call assert_equal('open', ch_status(ch))
+
+  " The server reads at most MAXMSGSIZE (4096) bytes per read, so a single
+  " message longer than that is split across two read buffers. Keep the JSON
+  " string open past the split to force a refill (which frees the first
+  " buffer), then end in an invalid \u escape so the parse fails.
+  call ch_sendraw(ch, '{"k":"' .. repeat('A', 4200) .. '\uZZZZ')
+  sleep 500m
+
+  " The server must survive the invalid message and stay responsive.
+  call assert_equal("run", job_status(job))
+  call assert_match('channel:2002',
+        \ system(actual .. ' --remote-expr "v:servername"'))
+
+  call ch_close(ch)
+  call system(actual .. " --remote-expr 'execute(\"qa!\")'")
   try
     call WaitForAssert({-> assert_equal("dead", job_status(job))})
   finally
@@ -518,6 +666,7 @@ func Test_clientserver_env_method()
   " Don't use channel:2000, because previous tests use that and it may take a
   " while for the channel to fully close.
   let actual = cmd .. ' --servername channel:4000'
+  let save_vim_clientserver = $VIM_CLIENTSERVER
   let $VIM_CLIENTSERVER = 'socket'
 
   let job = job_start(actual, {'stoponexit': 'kill', 'out_io': 'null'})
@@ -534,7 +683,11 @@ func Test_clientserver_env_method()
   else
     call system(actual .. " --remote-expr 'execute(\"qa!\")'")
   endif
-  unlet $VIM_CLIENTSERVER
+  if save_vim_clientserver == ''
+    unlet $VIM_CLIENTSERVER
+  else
+    let $VIM_CLIENTSERVER = save_vim_clientserver
+  endif
 
   try
     call WaitForAssert({-> assert_equal("dead", job_status(job))})
@@ -550,6 +703,12 @@ endfunc
 func Test_clientserver_serverlist_list()
   CheckNotGui
 
+  " CheckNotGui has already confirmed gvim is not being used to run this test.
+  " However, if this is a GUI _build_ of vim, then the running Vim process
+  " will already have selected _not_ to use socket clientserver. Therefore, we
+  " either need the ability to use the GUI clientserver or to skip the test.
+  call Check_X11_Connection()
+
   let g:test_is_flaky = 1
   let cmd = GetVimCommand()
 
@@ -559,16 +718,20 @@ func Test_clientserver_serverlist_list()
 
   " Don't use channel:2000, because previous tests use that and it may take a
   " while for the channel to fully close.
-  let actual = cmd .. ' --servername XVIMTEST'
+  " Use a name of its own: when a server of another test is still running Vim
+  " appends a number to the name.
+  let actual = cmd .. ' --servername XVIMSRVLIST'
 
   let job = job_start(actual, {'stoponexit': 'kill', 'out_io': 'null'})
 
-  call WaitForAssert({-> assert_match('XVIMTEST', serverlist())})
+  call WaitForAssert({-> assert_match('XVIMSRVLIST', serverlist())})
 
-  call assert_equal('list<string>', typename(serverlist(#{list: v:true})))
-  call assert_true(serverlist(#{list: v:true})->index('XVIMTEST') != -1)
+  " Use a pattern, the name may have a number appended to it.
+  let servers = serverlist(#{list: v:true})
+  call assert_equal('list<string>', typename(servers))
+  call assert_notequal(-1, match(servers, '^XVIMSRVLIST'))
 
-  if has('win32') || has('gui_running')
+  if has('win32')
     call job_stop(job, 'kill')
   else
     call system(actual .. " --remote-expr 'execute(\"qa!\")'")
@@ -579,6 +742,54 @@ func Test_clientserver_serverlist_list()
     if job_status(job) != 'dead'
       call assert_report('Server did not exit')
       call job_stop(job, 'kill')
+    endif
+  endtry
+endfunc
+
+func Test_clientserver_serverlist_without_x11()
+  CheckNotGui
+  CheckFeature x11
+
+  let cmd = GetVimCommand()
+  if cmd == ''
+    throw 'GetVimCommand() failed'
+  endif
+
+  " This test verifies that serverlist() returns an empty result when a
+  " connection to X11 cannot be established. It must be executed with the
+  " CLIENTSERVER backend set to x11 and in a state where the X11 server is
+  " unreachable.
+  "
+  " To achieve this, the `VIM_CLIENTSERVER` and `DISPLAY` environment
+  " variables must be unset before running Vim as a child process. The child
+  " process reports the number of `v:errors` as its exit code. The calls are
+  " wrapped in a try/catch, because an error would otherwise skip the
+  " assertion without adding anything to `v:errors`.
+
+  call writefile([
+        \ "try",
+        \ "  call assert_equal('', serverlist())",
+        \ "  call assert_equal([], serverlist(#{list: v:true}))",
+        \ "catch",
+        \ "  call add(v:errors, 'unexpected exception: ' .. v:exception)",
+        \ "endtry",
+        \ "execute 'cq! ' .. len(v:errors)"
+        \ ], 'Xtest', 'D')
+
+  let save_vim_clientserver = $VIM_CLIENTSERVER
+  unlet $VIM_CLIENTSERVER
+  let save_display = $DISPLAY
+  unlet $DISPLAY
+
+  try
+    call system(cmd .. ' -S Xtest')
+    call assert_equal(0, v:shell_error)
+  finally
+    if save_display != ''
+      let $DISPLAY = save_display
+    endif
+    if save_vim_clientserver != ''
+      let $VIM_CLIENTSERVER = save_vim_clientserver
     endif
   endtry
 endfunc

@@ -1,4 +1,4 @@
-/* normal.c */
+// normal.c
 int check_text_or_curbuf_locked(oparg_T *oap);
 void normal_cmd(oparg_T *oap, int toplevel);
 void check_visual_highlight(void);
@@ -19,6 +19,7 @@ int add_to_showcmd(int c);
 void add_to_showcmd_c(int c);
 void push_showcmd(void);
 void pop_showcmd(void);
+void showcmd_update_clear_state(void);
 void do_check_scrollbind(int check);
 void check_scrollbind(linenr_T topline_diff, long leftcol_diff);
 int find_decl(char_u *ptr, int len, int locally, int thisblock, int flags_arg);
@@ -37,4 +38,4 @@ void set_cursor_for_append_to_line(void);
 // MacVim only
 void nv_put(cmdarg_T *cap);
 
-/* vim: set ft=c : */
+// vim: ft=c

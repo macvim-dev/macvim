@@ -620,6 +620,7 @@ win_redr_status(win_T *wp, int ignore_pum UNUSED)
 	    if (width > 0)
 		screen_puts_len(showcmd_buf, width, row,
 				wp->w_wincol + this_ru_col - width - 1, attr);
+	    showcmd_update_clear_state();
 	}
     }
 
@@ -650,6 +651,8 @@ win_redr_status(win_T *wp, int ignore_pum UNUSED)
  *    over the join without changing visible characters.
  *  - Cells where the vsep char is drawn (stl_connected == FALSE) are left
  *    untouched so the VertSplit highlight is preserved.
+ * Called for every cursor movement, thus only cells whose attribute changed
+ * are written to the screen.
  */
     static void
 borrow_stl_vsep_hl(void)
@@ -657,12 +660,17 @@ borrow_stl_vsep_hl(void)
     win_T   *left = NULL;
     win_T   *right = NULL;
 
-    if (!redrawing())
+    // In silent Ex mode the screen is not allocated, so LineOffset and
+    // ScreenAttrs are NULL; there is nothing to borrow.
+    if (!redrawing() || ScreenLines == NULL)
 	return;
 
     FOR_ALL_WINDOWS(left)
     {
 	if (left->w_status_height == 0 || left->w_vsep_width == 0)
+	    continue;
+	// A window of zero width has no status line cell to borrow from.
+	if (left->w_width == 0)
 	    continue;
 	if (!stl_connected(left))
 	    continue;
@@ -708,12 +716,22 @@ borrow_stl_vsep_hl(void)
 	int src_col = (neighbour == curwin)
 				? neighbour->w_wincol : W_ENDCOL(left) - 1;
 
+	// The windows may be laid out for a size the screen does not have yet.
+	if (dst_col >= screen_Columns || src_col >= screen_Columns)
+	    continue;
+	if (end > screen_Rows)
+	    end = screen_Rows;
+
 	for (int r = start; r < end; r++)
 	{
-	    unsigned dst_off = LineOffset[r] + dst_col;
+	    unsigned	dst_off = LineOffset[r] + dst_col;
+	    sattr_T	attr = ScreenAttrs[LineOffset[r] + src_col];
 
-	    ScreenAttrs[dst_off] = ScreenAttrs[LineOffset[r] + src_col];
-	    screen_char(dst_off, r, dst_col);
+	    if (ScreenAttrs[dst_off] != attr)
+	    {
+		ScreenAttrs[dst_off] = attr;
+		screen_char(dst_off, r, dst_col);
+	    }
 	}
     }
 }
@@ -756,7 +774,10 @@ showruler(int always)
     }
 #if defined(FEAT_STL_OPT)
     if ((*p_stl != NUL || *curwin->w_p_stl != NUL) && curwin->w_status_height)
+    {
 	redraw_custom_statusline(curwin);
+	borrow_stl_vsep_hl();
+    }
     else
 #endif
 	win_redr_ruler(curwin, always, FALSE);
@@ -1655,6 +1676,13 @@ win_update(win_T *wp)
 	    clip_update_selection(&clip_plus);
 # endif
     }
+#endif
+
+#ifdef FEAT_SYN_HL
+    // 'cursorcolumn' is drawn with w_virtcol, make sure it is up to date.
+    // This may set w_redr_type, thus do it before using it below.
+    if (wp->w_p_cuc)
+	validate_virtcol_win(wp);
 #endif
 
     type = wp->w_redr_type;
@@ -3437,6 +3465,15 @@ redraw_buf_later(buf_T *buf, int type)
 	if (wp->w_buffer == buf)
 	    redraw_win_later(wp, type);
     }
+#ifdef FEAT_PROP_POPUP
+    // popup windows are not in the list of windows
+    FOR_ALL_POPUPWINS(wp)
+	if (wp->w_buffer == buf)
+	    redraw_win_later(wp, type);
+    FOR_ALL_POPUPWINS_IN_TAB(curtab, wp)
+	if (wp->w_buffer == buf)
+	    redraw_win_later(wp, type);
+#endif
 #if defined(FEAT_TERMINAL) && defined(FEAT_PROP_POPUP)
     // terminal in popup window is not in list of windows
     if (curwin->w_buffer == buf)
@@ -3479,6 +3516,17 @@ redraw_buf_and_status_later(buf_T *buf, int type)
 #endif
 
 /*
+ * mark the ruler for redraw when the last window has no status line and the
+ * ruler takes its place in the last screen line; showmode() draws it
+ */
+    static void
+ruler_redraw_lastwin(void)
+{
+    if (p_ru && lastwin->w_status_height == 0)
+	redraw_cmdline = TRUE;
+}
+
+/*
  * mark all status lines for redraw; used after first :cd
  */
     void
@@ -3492,6 +3540,7 @@ status_redraw_all(void)
 	    wp->w_redr_status = true;
 	    redraw_later(UPD_VALID);
 	}
+    ruler_redraw_lastwin();
 }
 
 /*
@@ -3508,6 +3557,8 @@ status_redraw_curbuf(void)
 	    wp->w_redr_status = true;
 	    redraw_later(UPD_VALID);
 	}
+    if (lastwin->w_buffer == curbuf)
+	ruler_redraw_lastwin();
 }
 
 /*

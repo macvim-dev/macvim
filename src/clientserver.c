@@ -1327,8 +1327,13 @@ f_serverlist(typval_T *argvars UNUSED, typval_T *rettv)
     }
 #  endif
 # endif
-    if (use_list && list != NULL)
+    if (use_list)
     {
+	if (list == NULL)
+	{
+	    (void)rettv_list_alloc(rettv);
+	    return;
+	}
 	list->lv_refcount++;
 	rettv->v_type = VAR_LIST;
 	rettv->vval.v_list = list;

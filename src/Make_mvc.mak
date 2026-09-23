@@ -531,7 +531,7 @@ CFLAGS = -c /W3 /GF /nologo -I. -Iproto -DHAVE_PATHDEF -DWIN32 -DHAVE_STDINT_H \
 	$(CSCOPE_DEFS) $(TERM_DEFS) $(SOUND_DEFS) $(NETBEANS_DEFS) \
 	$(NBDEBUG_DEFS) $(XPM_DEFS) $(SOD_DEFS) $(SOD_INC) $(CHANNEL_DEFS) \
 	$(DEFINES) $(CI_CFLAGS) -DWINVER=$(WINVER) -D_WIN32_WINNT=$(WINVER) \
-	/source-charset:utf-8
+	/utf-8
 
 RCFLAGS = -DVIM_VERSION_PATCHLEVEL=$(PATCHLEVEL)
 
@@ -729,6 +729,7 @@ OBJ = \
 	$(OUTDIR)\gc.obj \
 	$(OUTDIR)\gui_xim.obj \
 	$(OUTDIR)\hardcopy.obj \
+	$(OUTDIR)\hardcopy_postscript.obj \
 	$(OUTDIR)\hashtab.obj \
 	$(OUTDIR)\help.obj \
 	$(OUTDIR)\highlight.obj \
@@ -1622,6 +1623,8 @@ $(OUTDIR)/gui_xim.obj: $(OUTDIR) gui_xim.c $(INCL)
 
 $(OUTDIR)/hardcopy.obj: $(OUTDIR) hardcopy.c $(INCL) version.h
 
+$(OUTDIR)/hardcopy_postscript.obj: $(OUTDIR) hardcopy_postscript.c $(INCL) version.h
+
 $(OUTDIR)/hashtab.obj: $(OUTDIR) hashtab.c $(INCL)
 
 $(OUTDIR)/help.obj: $(OUTDIR) help.c $(INCL)
@@ -1779,6 +1782,8 @@ $(OUTDIR)/cairo.obj: $(OUTDIR) cairo.c $(INCL)
 
 $(OUTDIR)/socketserver.obj: $(OUTDIR) socketserver.c $(INCL)
 
+$(OUTDIR)/sound.obj: $(OUTDIR) sound.c $(INCL)
+
 $(OUTDIR)/spell.obj: $(OUTDIR) spell.c $(INCL)
 
 $(OUTDIR)/spellfile.obj: $(OUTDIR) spellfile.c $(INCL)
@@ -1795,7 +1800,7 @@ $(OUTDIR)/tag.obj: $(OUTDIR) tag.c $(INCL)
 
 $(OUTDIR)/term.obj: $(OUTDIR) term.c $(INCL)
 
-$(OUTDIR)/term.obj: $(OUTDIR) testing.c $(INCL)
+$(OUTDIR)/testing.obj: $(OUTDIR) testing.c $(INCL)
 
 $(OUTDIR)/textformat.obj: $(OUTDIR) textformat.c $(INCL)
 
@@ -1987,6 +1992,8 @@ proto.h: \
 	proto/gc.pro \
 	proto/gui_xim.pro \
 	proto/hardcopy.pro \
+	proto/hardcopy_pango.pro \
+	proto/hardcopy_postscript.pro \
 	proto/hashtab.pro \
 	proto/help.pro \
 	proto/highlight.pro \

@@ -1436,6 +1436,8 @@ ALL_LIBS = \
 	   $(X_PRE_LIBS) \
 	   $(X_LIBS) \
 	   $(WAYLAND_LIBS) \
+	   $(CAIRO_LIBS) \
+	   $(PANGO_LIBS) \
 	   $(X_EXTRA_LIBS) \
 	   $(MZSCHEME_LIBS) \
 	   $(LIBS) \
@@ -1562,6 +1564,8 @@ BASIC_SRC = \
 	gc.c \
 	gui_xim.c \
 	hardcopy.c \
+	hardcopy_pango.c \
+	hardcopy_postscript.c \
 	hashtab.c \
 	help.c \
 	highlight.c \
@@ -1748,6 +1752,8 @@ OBJ_COMMON = \
 	objects/gc.o \
 	objects/gui_xim.o \
 	objects/hardcopy.o \
+	objects/hardcopy_pango.o \
+	objects/hardcopy_postscript.o \
 	objects/hashtab.o \
 	objects/help.o \
 	objects/highlight.o \
@@ -1937,9 +1943,10 @@ PROTO_FILES = \
 	proto/gc.pro \
 	proto/getchar.pro \
 	proto/gui_beval.pro \
-	proto/gui_gtk_gresources.pro \
 	proto/gui_xim.pro \
 	proto/hardcopy.pro \
+	proto/hardcopy_pango.pro \
+	proto/hardcopy_postscript.pro \
 	proto/hashtab.pro \
 	proto/help.pro \
 	proto/highlight.pro \
@@ -2000,6 +2007,7 @@ PROTO_FILES = \
 	proto/sixel.pro \
 	proto/kitty.pro \
 	proto/cairo.pro \
+	proto/socketserver.pro \
 	proto/sound.pro \
 	proto/spell.pro \
 	proto/spellfile.pro \
@@ -2036,6 +2044,7 @@ PROTO_FILES = \
 	proto/wayland.pro \
 	proto/winclip.pro \
 	proto/window.pro \
+	$(GRESOURCE_PRO) \
 	$(ALL_GUI_PRO)
 
 # Default target is making the executable and tools
@@ -2220,12 +2229,12 @@ proto/gui_gtk_gresources.pro: auto/gui_gtk_gresources.c
 	fi
 
 notags:
-	-rm -f tags
+	$(MAKE) -f Make_tags.mak notags
 
-# Note: tags is made for the currently configured version.
+# Configure sets portable TAGPRG, else modern ctags is used.
 # You can ignore error messages for missing files.
 tags TAGS: notags
-	$(TAGPRG) $(TAGS_FILES)
+	$(MAKE) -f Make_tags.mak tags
 
 # Build the cscope database.
 # This may search more files than necessary.
@@ -3412,6 +3421,12 @@ objects/gc.o: gc.c
 objects/hardcopy.o: hardcopy.c
 	$(CCC) -o $@ hardcopy.c
 
+objects/hardcopy_pango.o: hardcopy_pango.c
+	$(CCC) $(CAIRO_CFLAGS) $(CAIRO_CPPFLAGS) $(PANGO_CFLAGS) $(PANGO_CPPFLAGS) -o $@ hardcopy_pango.c
+
+objects/hardcopy_postscript.o: hardcopy_postscript.c
+	$(CCC) -o $@ hardcopy_postscript.c
+
 objects/hashtab.o: hashtab.c
 	$(CCC) -o $@ hashtab.c
 
@@ -4228,7 +4243,20 @@ objects/hardcopy.o: hardcopy.c vim.h protodef.h auto/config.h feature.h os_unix.
   ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   structs.h regexp.h gui.h libvterm/include/vterm.h \
   libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h version.h
+  ex_cmds.h spell.h proto.h globals.h errors.h version.h hardcopy.h \
+  hardcopy_postscript.h
+objects/hardcopy_pango.o: hardcopy_pango.c vim.h protodef.h auto/config.h \
+  feature.h os_unix.h ascii.h keymap.h termdefs.h macros.h option.h \
+  beval.h structs.h regexp.h gui.h \
+  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
+  xdiff/xdiff.h xdiff/../vim.h alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h version.h
+objects/hardcopy_postscript.o: hardcopy_postscript.c vim.h protodef.h \
+  auto/config.h feature.h os_unix.h ascii.h keymap.h termdefs.h macros.h \
+  option.h beval.h structs.h regexp.h gui.h \
+  libvterm/include/vterm.h libvterm/include/vterm_keycodes.h \
+  xdiff/xdiff.h xdiff/../vim.h alloc.h ex_cmds.h spell.h proto.h \
+  globals.h errors.h version.h hardcopy.h hardcopy_postscript.h
 objects/hashtab.o: hashtab.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   structs.h regexp.h gui.h libvterm/include/vterm.h \
@@ -4459,6 +4487,11 @@ objects/kitty.o: kitty.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   structs.h regexp.h gui.h libvterm/include/vterm.h \
   libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
   ex_cmds.h spell.h proto.h globals.h errors.h
+objects/cairo.o: cairo.c vim.h protodef.h auto/config.h feature.h os_unix.h \
+  ascii.h keymap.h termdefs.h macros.h option.h beval.h \
+  structs.h regexp.h gui.h libvterm/include/vterm.h \
+  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
+  ex_cmds.h spell.h proto.h globals.h errors.h
 objects/socketserver.o: socketserver.c vim.h protodef.h auto/config.h feature.h \
   os_unix.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   structs.h regexp.h gui.h libvterm/include/vterm.h \
@@ -4656,11 +4689,6 @@ objects/gui_gtk.o: gui_gtk.c vim.h protodef.h auto/config.h feature.h os_unix.h 
   ex_cmds.h spell.h proto.h globals.h errors.h ../pixmaps/stock_icons.h
 objects/gui_gtk4.o: gui_gtk4.c vim.h protodef.h auto/config.h feature.h os_unix.h \
   ascii.h keymap.h termdefs.h macros.h option.h beval.h \
-  structs.h regexp.h gui.h libvterm/include/vterm.h \
-  libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
-  ex_cmds.h spell.h proto.h globals.h errors.h
-objects/gui_gtk4_da.o: gui_gtk4_da.c vim.h protodef.h auto/config.h feature.h \
-  os_unix.h ascii.h keymap.h termdefs.h macros.h option.h beval.h \
   structs.h regexp.h gui.h libvterm/include/vterm.h \
   libvterm/include/vterm_keycodes.h xdiff/xdiff.h xdiff/../vim.h alloc.h \
   ex_cmds.h spell.h proto.h globals.h errors.h
@@ -4871,9 +4899,10 @@ proto/fuzzy.pro: fuzzy.c
 proto/gc.pro: gc.c
 proto/getchar.pro: getchar.c
 proto/gui_beval.pro: gui_beval.c
-proto/gui_gtk_gresources.pro: gui_gtk_gresources.c
 proto/gui_xim.pro: gui_xim.c
 proto/hardcopy.pro: hardcopy.c
+proto/hardcopy_pango.pro: hardcopy_pango.c
+proto/hardcopy_postscript.pro: hardcopy_postscript.c
 proto/hashtab.pro: hashtab.c
 proto/help.pro: help.c
 proto/highlight.pro: highlight.c
@@ -4934,6 +4963,7 @@ proto/sign.pro: sign.c
 proto/sixel.pro: sixel.c
 proto/kitty.pro: kitty.c
 proto/cairo.pro: cairo.c
+proto/socketserver.pro: socketserver.c
 proto/sound.pro: sound.c
 proto/spell.pro: spell.c
 proto/spellfile.pro: spellfile.c

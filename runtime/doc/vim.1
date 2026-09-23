@@ -1,4 +1,4 @@
-.TH VIM 1 "2026 Jun 05"
+.TH VIM 1 "2026 Sep 08"
 .SH NAME
 vim \- Vi IMproved, a programmer's text editor
 .SH SYNOPSIS
@@ -486,6 +486,9 @@ that the user knows that the input and/or output is not connected to a
 terminal.  This will avoid the warning and the two second delay that would
 happen.
 .TP
+\--prg-name {name}
+Set GTK program name. Only for GTK4 GUI.
+.TP
 \-\-remote
 Connect to a Vim server and make it edit the files given in the rest of the
 arguments.  If no server is found a warning is given and the files are edited
@@ -528,6 +531,14 @@ GTK GUI only: Use the GtkPlug mechanism to run gVim in another window.
 .TP
 \-\-startuptime {file}
 During startup write timing messages to the file {fname}.
+.TP
+\-\-stdio\-channel
+Use the stdin and stdout of
+.B Vim
+for a channel instead of for a terminal.  Implies "\-es": nothing is
+displayed, no Ex commands are read and the GUI is not started.  A script
+opens the channel with ch_open() and the address "stdio", see ":help
+\-\-stdio\-channel".  Only available when compiled with the channel feature.
 .TP
 \-\-ttyfail
 When stdin or stdout is not a terminal (tty) then exit right away.

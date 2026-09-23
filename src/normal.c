@@ -1738,7 +1738,7 @@ add_to_showcmd(int c)
 	K_RIGHTMOUSE, K_RIGHTDRAG, K_RIGHTRELEASE,
 	K_MOUSEDOWN, K_MOUSEUP, K_MOUSELEFT, K_MOUSERIGHT,
 	K_X1MOUSE, K_X1DRAG, K_X1RELEASE, K_X2MOUSE, K_X2DRAG, K_X2RELEASE,
-	K_CURSORHOLD,
+	K_CURSORHOLD, K_COMMAND, K_SCRIPT_COMMAND,
 # ifdef FEAT_GUI_MACVIM
 	K_SWIPELEFT, K_SWIPERIGHT, K_SWIPEUP, K_SWIPEDOWN, K_FORCECLICK,
 # endif
@@ -1836,24 +1836,30 @@ pop_showcmd(void)
     display_showcmd();
 }
 
+    void
+showcmd_update_clear_state(void)
+{
+    showcmd_is_clear = (showcmd_buf[0] == NUL);
+}
+
     static void
 display_showcmd(void)
 {
     int	    len = vim_strsize(showcmd_buf);
 
-    showcmd_is_clear = (len == 0);
+    showcmd_update_clear_state();
     cursor_off();
 
     if (*p_sloc == 's')
     {
-	if (showcmd_is_clear)
+	if (showcmd_is_clear && !vgetc_busy)
 	    curwin->w_redr_status = true;
 	else
 	    win_redr_status(curwin, FALSE);
     }
     else if (*p_sloc == 't')
     {
-	if (showcmd_is_clear)
+	if (showcmd_is_clear && !vgetc_busy)
 	    redraw_tabline = TRUE;
 	else
 	    draw_tabline();
@@ -5581,13 +5587,12 @@ nv_visual(cmdarg_T *cap)
 	    }
 	    else if (VIsual_mode == Ctrl_V)
 	    {
-		// Update curswant on the original line, that is where "col" is
-		// valid.
-		linenr_T lnum = curwin->w_cursor.lnum;
-		curwin->w_cursor.lnum = VIsual.lnum;
+		// Update curswant at the original cursor position.
+		pos_T tmp_cursor = curwin->w_cursor;
+		curwin->w_cursor = VIsual;
 		update_curswant_force();
 		curwin->w_curswant += resel_VIsual_vcol * cap->count0 - 1;
-		curwin->w_cursor.lnum = lnum;
+		curwin->w_cursor = tmp_cursor;
 		if (*p_sel == 'e')
 		    ++curwin->w_curswant;
 		coladvance(curwin->w_curswant);
@@ -6601,7 +6606,10 @@ nv_pipe(cmdarg_T *cap)
 {
     cap->oap->motion_type = MCHAR;
     cap->oap->inclusive = FALSE;
-    beginline(0);
+    // Not using beginline(), the columns to skip for 'smoothscroll' must be
+    // adjusted for the column we end up in, not for column zero.
+    curwin->w_cursor.col = 0;
+    curwin->w_cursor.coladd = 0;
     if (cap->count0 > 0)
     {
 	coladvance((colnr_T)(cap->count0 - 1));
@@ -6612,6 +6620,7 @@ nv_pipe(cmdarg_T *cap)
     // keep curswant at the column where we wanted to go, not where
     // we ended; differs if line is too short
     curwin->w_set_curswant = false;
+    adjust_skipcol();
 }
 
 /*

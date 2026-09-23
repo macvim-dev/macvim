@@ -1134,25 +1134,11 @@ win_split_ins(
 	if (oldwin->w_p_wfw)
 	    win_setwidth_win(oldwin->w_width + new_size + 1, oldwin);
 
-	// Only make all windows the same width if one of them (except oldwin)
-	// is wider than one of the split windows.
+	// Make all windows the same width if 'equalalways' is set, 'ead'
+	// not set to 'v', a size was not provided and there is a parent frame.
 	if (!do_equal && p_ea && size == 0 && *p_ead != 'v'
-					 && oldwin->w_frame->fr_parent != NULL)
-	{
-	    frp = oldwin->w_frame->fr_parent->fr_child;
-	    while (frp != NULL)
-	    {
-		if (frp->fr_win != oldwin && frp->fr_win != NULL
-			&& (frp->fr_win->w_width > new_size
-			    || frp->fr_win->w_width > oldwin->w_width
-							      - new_size - 1))
-		{
-		    do_equal = TRUE;
-		    break;
-		}
-		frp = frp->fr_next;
-	    }
-	}
+	    && oldwin->w_frame->fr_parent != NULL)
+	    do_equal = TRUE;
     }
     else
     {
@@ -1232,30 +1218,15 @@ win_split_ins(
 
 	    win_setheight_win(oldwin->w_height + new_size
 		    + statusline_height(oldwin), oldwin);
+	    // w_height now excludes the status line
 	    oldwin_height = oldwin->w_height;
-	    if (need_status)
-		oldwin_height -= statusline_height(oldwin);
 	}
 
-	// Only make all windows the same height if one of them (except oldwin)
-	// is higher than one of the split windows.
+	// Make all windows the same height if 'equalalways' is set, 'ead' is
+	// not set to 'h', a size was not provided and there is a parent frame.
 	if (!do_equal && p_ea && size == 0 && *p_ead != 'h'
-	   && oldwin->w_frame->fr_parent != NULL)
-	{
-	    frp = oldwin->w_frame->fr_parent->fr_child;
-	    while (frp != NULL)
-	    {
-		if (frp->fr_win != oldwin && frp->fr_win != NULL
-			&& (frp->fr_win->w_height > new_size
-			    || frp->fr_win->w_height > oldwin_height - new_size
-						- statusline_height(oldwin)))
-		{
-		    do_equal = TRUE;
-		    break;
-		}
-		frp = frp->fr_next;
-	    }
-	}
+	    && oldwin->w_frame->fr_parent != NULL)
+	    do_equal = TRUE;
     }
 
     /*
@@ -1379,10 +1350,13 @@ win_split_ins(
 	if (flags & (WSP_TOP | WSP_BOT))
 	{
 	    // set height and row of new window to full height
+	    // no status line when 'laststatus' is zero
+	    int stl_height = p_ls > 0 ? statusline_height(curfrp->fr_win) : 0;
+
 	    wp->w_winrow = tabline_height();
-	    win_new_height(wp, curfrp->fr_height
-		    - statusline_height(curfrp->fr_win) - WINBAR_HEIGHT(wp));
-	    wp->w_status_height = statusline_height(curfrp->fr_win);
+	    win_new_height(wp, curfrp->fr_height - stl_height
+							  - WINBAR_HEIGHT(wp));
+	    wp->w_status_height = stl_height;
 	}
 	else
 	{
@@ -1906,7 +1880,14 @@ win_exchange(long Prenum)
 	else
 	    frame_append(frp2, wp->w_frame);
     }
+    // Keep the total height of each window the same, so that the frames keep
+    // their height; the status line height is computed below.
     temp = curwin->w_status_height;
+    if (temp != wp->w_status_height)
+    {
+	win_new_height(curwin, curwin->w_height + temp - wp->w_status_height);
+	win_new_height(wp, wp->w_height + wp->w_status_height - temp);
+    }
     curwin->w_status_height = wp->w_status_height;
     wp->w_status_height = temp;
     temp = curwin->w_vsep_width;
@@ -1919,6 +1900,9 @@ win_exchange(long Prenum)
     frame_fix_width(wp);
 
     win_comp_pos();		// recompute window positions
+#if defined(FEAT_STL_OPT)
+    frame_change_statusline_height();
+#endif
 
     if (wp->w_buffer != curbuf)
 	reset_VIsual_and_resel();
@@ -1994,7 +1978,14 @@ win_rotate(int upwards, int count)
 	}
 
 	// exchange status height and vsep width of old and new last window
+	// Keep the total height of each window the same, so that the frames
+	// keep their height; the status line height is computed below.
 	n = wp2->w_status_height;
+	if (n != wp1->w_status_height)
+	{
+	    win_new_height(wp2, wp2->w_height + n - wp1->w_status_height);
+	    win_new_height(wp1, wp1->w_height + wp1->w_status_height - n);
+	}
 	wp2->w_status_height = wp1->w_status_height;
 	wp1->w_status_height = n;
 	frame_fix_height(wp1);
@@ -2008,6 +1999,9 @@ win_rotate(int upwards, int count)
 	// recompute w_winrow and w_wincol for all windows
 	win_comp_pos();
     }
+#if defined(FEAT_STL_OPT)
+    frame_change_statusline_height();
+#endif
 
     redraw_all_later(UPD_NOT_VALID);
 }
@@ -2666,6 +2660,7 @@ close_last_window_tabpage(
 	return FALSE;
 
     buf_T	*old_curbuf = curbuf;
+    tabpage_T	*save_lastused = lastused_tabpage;
 
     /*
      * Closing the last window in a tab page.  First go to another tab
@@ -2683,6 +2678,11 @@ close_last_window_tabpage(
     // to the other tab page.
     if (valid_tabpage(prev_curtab) && prev_curtab->tp_firstwin == win)
 	win_close_othertab(win, free_buf, prev_curtab);
+
+    // Entering the other tab page made the closed one the last used tab page.
+    // Restore the previous one when it is still there.
+    if (valid_tabpage(save_lastused) && save_lastused != curtab)
+	lastused_tabpage = save_lastused;
 #ifdef FEAT_JOB_CHANNEL
     entering_window(curwin);
 #endif
@@ -5116,6 +5116,9 @@ leave_tabpage(
 	    return FAIL;
     }
 
+#ifdef FEAT_IMAGE
+    popup_leave_tabpage(tp);
+#endif
     reset_dragwin();
 #if defined(FEAT_GUI)
     // Remove the scrollbars.  They may be added back later.
@@ -7288,6 +7291,9 @@ win_fix_scroll(int resize)
 		int diff = (wp->w_winrow - wp->w_prev_winrow)
 					  + (wp->w_height - wp->w_prev_height);
 		pos_T cursor = wp->w_cursor;
+		linenr_T topline = wp->w_topline;
+		colnr_T skipcol = wp->w_skipcol;
+
 		wp->w_cursor.lnum = wp->w_botline - 1;
 
 		//  Add difference in height and row to botline.
@@ -7302,6 +7308,9 @@ win_fix_scroll(int resize)
 		scroll_to_fraction(wp, wp->w_prev_height);
 
 		wp->w_cursor = cursor;
+		// Keeping the same screen lines includes the skipped columns.
+		if (wp->w_topline == topline)
+		    wp->w_skipcol = skipcol;
 		wp->w_valid &= ~VALID_WCOL;
 	    }
 	    else if (wp == curwin)
@@ -7414,7 +7423,10 @@ win_new_height(win_T *wp, int height)
     // values might be invalid.
     if (!exiting && *p_spk == 'c')
     {
-	wp->w_skipcol = 0;
+	// With 'smoothscroll' w_skipcol is the scroll position, keep it.
+	// Otherwise it only keeps the cursor visible and is computed again.
+	if (!wp->w_p_sms)
+	    wp->w_skipcol = 0;
 	scroll_to_fraction(wp, prev_height);
     }
 }
@@ -7466,18 +7478,22 @@ scroll_to_fraction(win_T *wp, int prev_height)
 	     * Make cursor line the first line in the window.  If not enough
 	     * room use w_skipcol;
 	     */
+	    int		want_row = wp->w_wrow;	// where the cursor should be
+
 	    wp->w_wrow = line_size;
 	    if (wp->w_wrow >= wp->w_height
 				       && (wp->w_width - win_col_off(wp)) > 0)
 	    {
-		wp->w_skipcol += wp->w_width - win_col_off(wp);
+		// Skip columns to get the cursor in the wanted row.
+		colnr_T	skipcol = wp->w_width - win_col_off(wp);
+
 		--wp->w_wrow;
-		while (wp->w_wrow >= wp->w_height)
+		while (wp->w_wrow > want_row)
 		{
-		    wp->w_skipcol += wp->w_width - win_col_off(wp)
-							   + win_col_off2(wp);
+		    skipcol += wp->w_width - win_col_off(wp) + win_col_off2(wp);
 		    --wp->w_wrow;
 		}
+		wp->w_skipcol = skipcol;
 	    }
 	}
 	else if (sline > 0)
@@ -7830,10 +7846,9 @@ frame_find_global_stlh_rec(frame_T *frp, int h)
 	win_T  *wp = frp->fr_win;
 
 	// Only consider windows with a status line that use global stlo.
-	// Exclude windows at minimum height (w_height <= p_wmh): they can
-	// only afford 1 status line row anyway, and should not constrain
-	// the global stlh for larger windows (e.g. after CTRL-W__).
-	if (wp->w_height > p_wmh && wp->w_status_height > 0
+	// Every such window constrains the global height (best effort): the
+	// result is the largest height that still fits every window.
+	if (wp->w_height > 0 && wp->w_status_height > 0
 		&& *wp->w_p_stlo == NUL)
 	{
 	    int win_free_height = frp->fr_height - WINBAR_HEIGHT(wp);

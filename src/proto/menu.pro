@@ -1,4 +1,4 @@
-/* menu.c */
+// menu.c
 int winbar_height(win_T *wp);
 void ex_menu(exarg_T *eap);
 void remove_winbar(win_T *wp);
@@ -26,4 +26,4 @@ void ex_menutranslate(exarg_T *eap);
 void ex_macmenu(exarg_T *eap);
 char_u *lookup_toolbar_item(int idx);
 void f_menu_info(typval_T *argvars, typval_T *rettv);
-/* vim: set ft=c : */
+// vim: ft=c

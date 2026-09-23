@@ -257,8 +257,8 @@ um_add_prop(unpacked_memline_T *um, textprop_T *prop)
 {
     if (um->buf == NULL)
 	return;
-    if (!um->detached)
-	um_detach(um);
+    if (!um->detached && !um_detach(um))
+	return;
     if (!um_grow_props(um, 1))
     {
 	um->buf = NULL;
@@ -518,6 +518,7 @@ um_store_changes(unpacked_memline_T *um)
     um->detached = false;
     um->text = packed;
     um->text_size = (colnr_T)STRLEN(packed) + 1;
+    um->buf->b_ml.ml_line_textlen = um->text_size;
 }
 
 /*
@@ -757,6 +758,13 @@ prop_add_one(
 	// Fetch the line to get the ml_line_len field updated.
 	proplen = get_text_props(buf, lnum, &props, TRUE);
 	textlen = ml_get_buf_len(buf, lnum) + 1;
+
+	// prop_count is a uint16_t; stop before proplen + 1 wraps to zero.
+	if (proplen >= 0xffff)
+	{
+	    emsg(_(e_too_many_text_properties_on_a_single_line));
+	    goto theend;
+	}
 
 	if (lnum == start_lnum)
 	    col = start_col;
@@ -2153,7 +2161,8 @@ get_props_in_line(
 	    prop_fill_dict(d, &prop, buf);
 	    if (add_lnum)
 		dict_add_number(d, "lnum", lnum);
-	    list_append_dict(retlist, d);
+	    if (list_append_dict(retlist, d) == FAIL)
+		dict_unref(d);
 	}
     }
 }

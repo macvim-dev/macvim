@@ -327,6 +327,9 @@ EXTERN sctx_T	current_sctx
 // whether inside compile_def_function()
 EXTERN int	estack_compiling INIT(= FALSE);
 
+// whether sourcing with ":source ++dryrun": only definitions are executed
+EXTERN int	source_dryrun INIT(= FALSE);
+
 EXTERN int	ex_nesting_level INIT(= 0);	// nesting level
 EXTERN int	debug_break_level INIT(= -1);	// break below this level
 EXTERN int	debug_did_msg INIT(= FALSE);	// did "debug mode" message
@@ -1198,6 +1201,11 @@ EXTERN int	sandbox INIT(= 0);
 EXTERN int	silent_mode INIT(= FALSE);
 				// set to TRUE when "-s" commandline argument
 				// used for ex
+#ifdef FEAT_JOB_CHANNEL
+EXTERN int	use_stdio_channel INIT(= FALSE);
+				// set to TRUE for the "--stdio-channel"
+				// commandline argument
+#endif
 
 EXTERN pos_T	VIsual;		// start position of active Visual selection
 EXTERN int	VIsual_active INIT(= FALSE);
@@ -1834,8 +1842,9 @@ extern cursorentry_T shape_table[SHAPE_IDX_COUNT];
 # define OPT_PRINT_COLLATE	11
 # define OPT_PRINT_JOBSPLIT	12
 # define OPT_PRINT_FORMFEED	13
+# define OPT_PRINT_FORMAT	14
 
-# define OPT_PRINT_NUM_OPTIONS	14
+# define OPT_PRINT_NUM_OPTIONS	15
 
 EXTERN option_table_T printer_opts[OPT_PRINT_NUM_OPTIONS]
 # ifdef DO_INIT
@@ -1854,6 +1863,7 @@ EXTERN option_table_T printer_opts[OPT_PRINT_NUM_OPTIONS]
 	{"collate",	FALSE, 0, NULL, 0, FALSE},
 	{"jobsplit", FALSE, 0, NULL, 0, FALSE},
 	{"formfeed", FALSE, 0, NULL, 0, FALSE},
+	{"format", FALSE, 0, NULL, 0, FALSE},
     }
 # endif
     ;
@@ -1887,7 +1897,7 @@ EXTERN Display	*xterm_dpy INIT(= NULL);
 EXTERN XtAppContext app_context INIT(= (XtAppContext)NULL);
 #endif
 
-#ifdef FEAT_GUI_GTK
+#if defined(FEAT_GUI_GTK) && !defined(USE_GTK4)
 EXTERN guint32	gtk_socket_id INIT(= 0);
 EXTERN int	echo_wid_arg INIT(= FALSE);	// --echo-wid argument
 #endif

@@ -1,4 +1,4 @@
-.TH VIM 1 "05 giugno 2026"
+.TH VIM 1 "08 settembre 2026"
 .SH NOME
 vim \- VI Migliorato, un editor di testi per programmatori
 .SH SINTASSI
@@ -216,7 +216,7 @@ in Modo Ex migliorato, come se il programma eseguito sia "exim".
 Direttamente [Foreground].  Per la versione GUI,
 .B Vim
 non creare [fork] una nuova finestra, indipendente dalla shell di invocazione.
-Per l'Amiga, non fa ripartire
+Per l'Amiga, non far ripartire
 .B Vim
 per aprire una nuova finestra.
 Opzione da usare quando
@@ -483,7 +483,7 @@ e scrivere le registrazioni a {nome_file}.  Ciò equivale a chiamare
 in una fase molto iniziale dell'avvio del programma.
 .TP
 \-\-nofork
-Eseguire Vim irettamente [Foreground].  Per la versione GUI,
+Eseguire Vim direttamente [Foreground].  Per la versione GUI,
 .B Vim
 non crea [fork] una nuova finestra, indipendente dalla shell di invocazione.
 .TP
@@ -497,6 +497,9 @@ che l'utente è consapevole che l'input e l'output non avvengono con un
 terminale vero e proprio.  Ciò serve per evitare il messaggio di avvertimento
 e il ritardo di due secondi, ossia il comportamento previsto in assenza di
 questo argomento.
+.TP
+\--prg-name {nome}
+Impostare il nome del programma GTK. Solo se si sta usando la GUI GTK4.
 .TP
 \-\-remote
 Connettersi a un server Vim a cui chiedere di editare i file elencati come
@@ -532,9 +535,9 @@ relativo per arrivare al socket.
 .TP
 \-\-clientserver {metodo}
 Usare {metodo} come interfaccia per la funzionalità client/server. Può valere
-"socket" o "x11" o "mswin".  Disponibile solo se Vim è stato compilato sia con
-la funzionalità socketserver che con quella X11, o se, in ambiente MS-Windows,
-è stato compilato con la funzionalità socketserver.
+"socket" o "x11" o "mswin".  Disponibile solo se compilato sia con
+la funzionalità socketserver che con quella X11 o, in ambiente MS-Windows,
+con la funzionalità socketserver.
 Si può anche impostare la variabile d'ambiente $VIM_CLIENTSERVER, che sarà
 interpretata allo stesso modo, ma specificare l'argomento --clientserver
 prevarrà sempre su di essa.
@@ -545,6 +548,15 @@ finestra.
 .TP
 \-\-startuptime {nome_file}
 Durante la fase iniziale, scrivere messaggi di log al file {nome_file}.
+.TP
+\-\-stdio\-channel
+Considerare i file stdin e stdout di
+.B Vim
+come un canale, e non come un terminale.  Implica l'opzione "\-es": non
+viene visualizzato niente, non venogno letti eventuali comandi Ex e non
+viene fatta partire la GUI.  Uno script apre il canale usando ch_open()
+con indirizzo "stdio". Vedere ":help \-\-stdio\-channel".
+Disponibile solo se compilato con la funzionalità channel.
 .TP
 \-\-ttyfail
 Quando stdin o stdout non sono un terminale (tty) uscire subito da Vim.

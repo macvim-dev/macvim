@@ -1,7 +1,7 @@
 " Vim syntax file
 " Language:		C
 " Maintainer:		The Vim Project <https://github.com/vim/vim>
-" Last Change:		2026 Jun 01
+" Last Change:		2026 Sep 21
 " Former Maintainer:	Bram Moolenaar <Bram@vim.org>
 
 " Quit when a (custom) syntax file was already loaded
@@ -23,6 +23,13 @@ let s:in_cpp_family = exists("b:filetype_in_cpp_family")
 if exists("c_autodoc")
   syn include @cAutodoc <sfile>:p:h/autodoc.vim
   unlet b:current_syntax
+endif
+
+" In VMS C keywords contain '$' characters.
+if has("vms")
+  syn iskeyword @,48-57,_,192-255,$
+else
+  syn iskeyword @,48-57,_,192-255
 endif
 
 " A bunch of useful C keywords
@@ -138,7 +145,7 @@ endif
 " This should be before cErrInParen to avoid problems with #define ({ xxx })
 if exists("c_curly_error")
   syn match cCurlyError "}"
-  syn region	cBlock		start="{" end="}" contains=ALLBUT,cBadBlock,cCurlyError,@cParenGroup,cErrInParen,cCppParen,cErrInBracket,cCppBracket,@cStringGroup,@Spell fold
+  syn region	cBlock		start="{" end="}" contains=ALLBUT,cBadBlock,cCurlyError,cInitBlock,@cParenGroup,cErrInParen,cCppParen,cErrInBracket,cCppBracket,@cStringGroup,@Spell fold
 else
   syn region	cBlock		start="{" end="}" transparent fold
 endif
@@ -146,7 +153,7 @@ endif
 " Catch errors caused by wrong parenthesis and brackets.
 " Also accept <% for {, %> for }, <: for [ and :> for ] (C99)
 " But avoid matching <::.
-syn cluster	cParenGroup	contains=cParenError,cIncluded,cSpecial,cCommentSkip,cCommentString,cComment2String,@cCommentGroup,cCommentStartError,cUserLabel,cBitField,cOctalZero,@cCppOutInGroup,cFormat,cNumber,cFloat,cOctal,cOctalError,cNumbersCom
+syn cluster	cParenGroup	contains=cParenError,cIncluded,cSpecial,cCommentSkip,cCommentString,cComment2String,@cCommentGroup,cCommentStartError,cUserLabel,cBitField,cOctalZero,@cCppOutInGroup,cFormat,cNumber,cFloat,cOctal,cOctalError,cNumbersCom,cBadParenBlock
 if exists("c_no_curly_error")
   if s:in_cpp_family && !exists("cpp_no_cpp11")
     syn region	cParen		transparent start='(' end=')' contains=ALLBUT,@cParenGroup,cCppParen,@cStringGroup,@Spell
@@ -198,7 +205,14 @@ endif
 
 if s:ft ==# 'c' || exists("cpp_no_cpp11")
   syn region	cBadBlock	keepend start="{" end="}" contained containedin=cParen,cBracket,cBadBlock transparent fold
+  if !exists("c_no_curly_error") && !exists("c_no_bracket_error")
+    " Do not mistake an unmatched ')' followed by a block for a compound literal.
+    syn region	cBadParenBlock	keepend transparent start=')\_s*\ze\%({\|<%\)' matchgroup=cErrInBracket end='}\|%>' contained containedin=cBracket,cBadBlock contains=ALLBUT,cBlock,cBadBlock,cInitBlock,@cParenGroup,cErrInParen,cCppParen,cCppBracket,@cStringGroup,@Spell
+  endif
 endif
+
+" Compound literals and initializers may appear inside parentheses or brackets.
+syn region	cInitBlock	transparent matchgroup=cInitBlock start='\%([)=]\_s*\)\@<=\%({\|<%\)' end='}\|%>' contained containedin=cParen,cBracket,cBadBlock contains=ALLBUT,cBlock,cCurlyError,@cParenGroup,cErrInParen,cCppParen,cErrInBracket,cCppBracket,@cStringGroup,@Spell,cInitBlock fold
 
 "integer number, or floating point number without a dot and with "f".
 syn case ignore
@@ -208,13 +222,13 @@ syn match	cNumbersCom	display contained transparent "\<\d\|\.\d" contains=cNumbe
 
 " cpp.vim handles these
 if !exists("c_no_c23") && !s:in_cpp_family
-  syn match	cNumber		display contained "\d\%('\=\d\+\)*\%(u\=l\{0,2}\|ll\=u\|u\=wb\|wbu\=\)\>"
+  syn match	cNumber		display contained "\d\+\%('\d\+\)*\%(u\=l\{0,2}\|ll\=u\|u\=wb\|wbu\=\)\>"
   "hex number
-  syn match	cNumber		display contained "0x\x\%('\=\x\+\)*\%(u\=l\{0,2}\|ll\=u\|u\=wb\|wbu\=\)\>"
+  syn match	cNumber		display contained "0x\x\+\%('\x\+\)*\%(u\=l\{0,2}\|ll\=u\|u\=wb\|wbu\=\)\>"
   " Flag the first zero of an octal number as something special
-  syn match	cOctal		display contained "0\o\%('\=\o\+\)*\%(u\=l\{0,2}\|ll\=u\|u\=wb\|wbu\=\)\>" contains=cOctalZero
+  syn match	cOctal		display contained "0\o*\%('\o\+\)*\%(u\=l\{0,2}\|ll\=u\|u\=wb\|wbu\=\)\>" contains=cOctalZero
   "binary number
-  syn match	cNumber		display contained "0b[01]\%('\=[01]\+\)*\%(u\=l\{0,2}\|ll\=u\|u\=wb\|wbu\=\)\>"
+  syn match	cNumber		display contained "0b[01]\+\%('[01]\+\)*\%(u\=l\{0,2}\|ll\=u\|u\=wb\|wbu\=\)\>"
 else
   syn match	cNumber		display contained "\d\+\%(u\=l\{0,2}\|ll\=u\)\>"
   "hex number
@@ -222,6 +236,11 @@ else
   " Flag the first zero of an octal number as something special
   syn match	cOctal		display contained "0\o\+\%(u\=l\{0,2}\|ll\=u\)\>" contains=cOctalZero
   syn match	cOctalZero	display contained "\<0"
+endif
+
+if !exists("c_no_c29") && !s:in_cpp_family
+  " XXX: 0-prefixed octal literals e.g. 0123 are obsolescent since C29
+  syn match	cOctal		display contained "0[Oo]\o\+\%('\o\+\)*\%(u\=l\{0,2}\|ll\=u\|u\=wb\|wbu\=\)\>"
 endif
 
 "floating point number, with dot, optional exponent

@@ -347,7 +347,7 @@ inside_class_hierarchy(cctx_T *cctx_arg, class_T *cl)
 /*
  * Compile ".member" coming after an object or class.
  */
-    static int
+    int
 compile_class_object_index(cctx_T *cctx, char_u **arg, type_T *type)
 {
     int		m_idx;
@@ -1795,9 +1795,26 @@ compile_lambda(char_u **arg, cctx_T *cctx)
     clear_tv(&rettv);
 
     if (cctx->ctx_ufunc != NULL)
+    {
 	// This lambda might be defined in a class method.  Inherit the class
 	// from the current function.
 	ufunc->uf_defclass = cctx->ctx_ufunc->uf_defclass;
+
+	// Copy over the block scope IDs, so that a script variable declared in
+	// an enclosing block can be found.
+	int block_depth = cctx->ctx_ufunc->uf_block_depth;
+
+	if (block_depth > 0)
+	{
+	    ufunc->uf_block_ids = ALLOC_MULT(int, block_depth);
+	    if (ufunc->uf_block_ids != NULL)
+	    {
+		mch_memmove(ufunc->uf_block_ids, cctx->ctx_ufunc->uf_block_ids,
+						    sizeof(int) * block_depth);
+		ufunc->uf_block_depth = block_depth;
+	    }
+	}
+    }
 
     // Compile it here to get the return type.  The return type is optional,
     // when it's missing use t_unknown.  This is recognized in
@@ -1930,7 +1947,7 @@ compile_dict(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 	    // {[expr]: value} uses an evaluated key.
 	    *arg = skipwhite(*arg + 1);
 	    if (compile_expr0(arg, cctx) == FAIL)
-		return FAIL;
+		goto failret;
 	    isn = ((isn_T *)instr->ga_data) + instr->ga_len - 1;
 	    if (isn->isn_type == ISN_PUSHNR)
 	    {
@@ -1944,12 +1961,12 @@ compile_dict(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 	    if (isn->isn_type == ISN_PUSHS)
 		key = isn->isn_arg.string;
 	    else if (may_generate_2STRING(-1, TOSTRING_NONE, cctx) == FAIL)
-		return FAIL;
+		goto failret;
 	    *arg = skipwhite(*arg);
 	    if (**arg != ']')
 	    {
 		emsg(_(e_missing_matching_bracket_after_dict_key));
-		return FAIL;
+		goto failret;
 	    }
 	    ++*arg;
 	}
@@ -1960,9 +1977,9 @@ compile_dict(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 	    // {name: value} use "name" as a literal key
 	    key = get_literal_key(arg);
 	    if (key == NULL)
-		return FAIL;
+		goto failret;
 	    if (generate_PUSHS(cctx, &key) == FAIL)
-		return FAIL;
+		goto failret;
 	}
 
 	// Check for duplicate keys, if using string keys.
@@ -1990,13 +2007,13 @@ compile_dict(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 		semsg(_(e_no_white_space_allowed_before_str_str), ":", *arg);
 	    else
 		semsg(_(e_missing_colon_in_dictionary_str), *arg);
-	    return FAIL;
+	    goto failret;
 	}
 	whitep = *arg + 1;
 	if (!IS_WHITE_OR_NUL(*whitep))
 	{
 	    semsg(_(e_white_space_required_after_str_str), ":", *arg);
-	    return FAIL;
+	    goto failret;
 	}
 
 	if (may_get_next_line(whitep, arg, cctx) == FAIL)
@@ -2006,7 +2023,7 @@ compile_dict(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 	}
 
 	if (compile_expr0_ext(arg, cctx, &is_const) == FAIL)
-	    return FAIL;
+	    goto failret;
 	if (!is_const)
 	    is_all_const = FALSE;
 	++count;
@@ -2027,13 +2044,13 @@ compile_dict(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 	if (IS_WHITE_OR_NUL(*whitep))
 	{
 	    semsg(_(e_no_white_space_allowed_before_str_str), ",", whitep);
-	    return FAIL;
+	    goto failret;
 	}
 	whitep = *arg + 1;
 	if (!IS_WHITE_OR_NUL(*whitep))
 	{
 	    semsg(_(e_white_space_required_after_str_str), ",", *arg);
-	    return FAIL;
+	    goto failret;
 	}
 	*arg = skipwhite(whitep);
     }
@@ -2390,6 +2407,20 @@ bool_on_stack(cctx_T *cctx)
 }
 
 /*
+ * With ":source ++dryrun", after an error in an expression: put a value of
+ * "type" in its place and skip the rest of the line, so that compiling can
+ * go on.  Returns FAIL when not in a dry run.
+ */
+    int
+recover_expr(char_u **arg, type_T *type, cctx_T *cctx)
+{
+    if (!source_dryrun)
+	return FAIL;
+    *arg += STRLEN(*arg);
+    return push_type_stack(cctx, type);
+}
+
+/*
  * Give the "white on both sides" error, taking the operator from "p[len]".
  */
     void
@@ -2533,7 +2564,7 @@ compile_subscript(
 	    if (next != NULL &&
 		    ((next[0] == '-' && next[1] == '>'
 				 && (next[2] == '{'
-				       || next[2] == '('
+				       || *skipwhite(next + 2) == '('
 				       || ASCII_ISALPHA(*skipwhite(next + 2))))
 		    || (next[0] == '.' && eval_isdictc(next[1]))))
 	    {
@@ -3377,6 +3408,7 @@ compile_expr6(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 		tv1->vval.v_string = alloc(len1 + STRLEN(s2) + 1);
 		if (tv1->vval.v_string == NULL)
 		{
+		    vim_free(s1);
 		    clear_ppconst(ppconst);
 		    return FAIL;
 		}

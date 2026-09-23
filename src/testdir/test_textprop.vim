@@ -3,6 +3,7 @@
 
 CheckFeature textprop
 
+source util/view_util.vim
 source util/screendump.vim
 import './util/vim9.vim' as v9
 
@@ -3228,6 +3229,27 @@ func Test_prop_with_text_above_below_empty()
   call StopVimInTerminal(buf)
 endfunc
 
+func Test_prop_with_text_below_empty_truncated()
+  " Use a fixed size, the virtual text must be wider than the text area.
+  call NewWindow(12, 40)
+  setlocal number
+  call setline(1, ['11111', '', '33333', '', '55555'])
+
+  call prop_type_add('belowprop', #{highlight: 'Directory'})
+  for ln in range(1, 5)
+    call prop_add(ln, 0, #{type: 'belowprop',
+	  \ text: repeat('+', winwidth(0)), text_align: 'below'})
+  endfor
+  normal! G
+  redraw
+
+  " Every line takes two screen lines: the line and the virtual text below it.
+  call assert_equal(9, winline())
+
+  call prop_type_delete('belowprop')
+  bwipe!
+endfunc
+
 func Test_prop_multiple_lines_above()
   CheckScreendump
   CheckRunVimInTerminal
@@ -3779,6 +3801,48 @@ func Test_prop_above_with_indent()
 
   bwipe!
   call prop_type_delete('indented')
+endfunc
+
+" A Tab in the line is not affected by virtual text above it.
+func Test_prop_above_with_tab()
+  " Use a width that is not a multiple of 'tabstop', otherwise counting the
+  " virtual text for the size of a Tab happens to give the right result.
+  call NewWindow(10, 45)
+  setlocal tabstop=8
+  call setline(1, ["\tX"])
+  call prop_type_add('above', #{highlight: 'Search'})
+
+  " Get the column of the "X" without and with the virtual text.
+  redraw
+  let col_without = 0
+  for col in range(1, winwidth(0))
+    if screenstring(1, col) == 'X'
+      let col_without = col
+      break
+    endif
+  endfor
+  call assert_equal(9, col_without)
+
+  call prop_add(1, 0, #{type: 'above', text: 'text above', text_align: 'above'})
+  redraw
+  let col_with = 0
+  for col in range(1, winwidth(0))
+    if screenstring(2, col) == 'X'
+      let col_with = col
+      break
+    endif
+  endfor
+  call assert_equal(col_without, col_with)
+
+  " The cursor is placed on the character, also with a second Tab.
+  call setline(1, ["\t\tX"])
+  redraw
+  normal! 0fX
+  call assert_equal('X', screenstring(winline(), wincol()))
+
+  only!
+  bwipe!
+  call prop_type_delete('above')
 endfunc
 
 func Test_prop_above_with_number()
@@ -4991,4 +5055,57 @@ func Test_prop_find_floating_vtext()
     call prop_type_delete(tn)
   endfor
 endfunc
+
+func Test_textprop_below_truncated_with_ellipsis()
+  enew!
+  set ff=unix
+
+  let visible_width = 20
+  call NewWindow(5, visible_width)
+
+  call setline(1, ['foo'])
+
+  call prop_type_add('virtual_text_prop', #{highlight: 'ErrorMsg', bufnr: bufnr()})
+
+  let virtual_text = 'some long virtual text'
+  call prop_add(1, 0, #{
+    \ type: 'virtual_text_prop',
+    \ text: virtual_text,
+    \ text_align: 'below',
+    \})
+
+  " virtual text should be trimmed with '…':
+  let expected_lines = [
+    \'foo                 ',
+    \'some long virtual t…',
+    \'~                   ',
+  \]
+  let actual_lines = ScreenLines([1, expected_lines->len()], visible_width)
+  call assert_equal(expected_lines, actual_lines)
+
+  call prop_clear(1)
+  call prop_type_delete('virtual_text_prop', #{bufnr: bufnr()})
+  only!
+  enew!
+  set ff&
+endfunc
+
+" Adding more than 65535 text properties to one line must be rejected instead
+" of wrapping the uint16_t property count and overflowing the allocation.
+func Test_prop_add_over_uint16_max()
+  CheckNotAsan
+  CheckNotValgrind
+  new
+  call setline(1, 'x')
+  call prop_type_add('overflow', {})
+  for _ in range(0xffff)
+    call prop_add(1, 1, {'type': 'overflow', 'length': 0})
+  endfor
+  call assert_equal(0xffff, prop_list(1)->len())
+  call assert_fails("call prop_add(1, 1, {'type': 'overflow', 'length': 0})", 'E1580:')
+  call assert_equal(0xffff, prop_list(1)->len())
+  call prop_type_delete('overflow')
+  bwipe!
+endfunc
+
 " vim: shiftwidth=2 sts=2 expandtab

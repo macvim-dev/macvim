@@ -1,4 +1,4 @@
-/* gui_xim.c */
+// gui_xim.c
 char *did_set_imactivatefunc(optset_T *args);
 char *did_set_imstatusfunc(optset_T *args);
 void free_xim_stuff(void);
@@ -26,4 +26,4 @@ void im_preedit_start_macvim(void);
 void im_preedit_end_macvim(void);
 void im_preedit_abandon_macvim(void);
 void im_preedit_changed_macvim(char *preedit_string, int cursor_index);
-/* vim: set ft=c : */
+// vim: ft=c

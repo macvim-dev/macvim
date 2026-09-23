@@ -291,7 +291,7 @@ tuple_find(tuple_T *tuple, long n)
     int
 tuple_append_tv(tuple_T *tuple, typval_T *tv)
 {
-    if (ga_grow(&tuple->tv_items, 1) == FAIL)
+    if (ga_grow_id(&tuple->tv_items, 1, aid_tuple_append) == FAIL)
 	return FAIL;
 
     tuple_set_item(tuple, TUPLE_LEN(tuple), tv);
@@ -874,7 +874,7 @@ tuple2items(typval_T *argvars, typval_T *rettv)
 
 	if (list_append_list(rettv->vval.v_list, l) == FAIL)
 	{
-	    vim_free(l);
+	    list_free(l);
 	    break;
 	}
 	if (list_append_number(l, idx) == FAIL

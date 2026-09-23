@@ -410,6 +410,20 @@ arg_bool_or_nr(type_T *type, type_T *decl_type UNUSED, argcontext_T *context)
 }
 
 /*
+ * Check "type" is a bool or a dict of 'any'.
+ */
+    static int
+arg_bool_or_dict_any(
+    type_T		*type,
+    type_T		*decl_type UNUSED,
+    argcontext_T	*context)
+{
+    if (type->tt_type == VAR_DICT || type_any_or_unknown(type))
+	return OK;
+    return check_arg_type(&t_bool, type, context);
+}
+
+/*
  * Check "type" is a list of 'any' or a blob.
  */
     static int
@@ -610,34 +624,6 @@ arg_string_or_blob(
 }
 
 /*
- * Check "type" is a list of 'any' or a dict of 'any'.
- */
-    static int
-arg_list_or_dict(type_T *type, type_T *decl_type UNUSED, argcontext_T *context)
-{
-    if (type->tt_type == VAR_LIST
-	    || type->tt_type == VAR_DICT
-	    || type_any_or_unknown(type))
-	return OK;
-    arg_type_mismatch(&t_list_any, type, context->arg_idx + 1);
-    return FAIL;
-}
-
-/*
- * Check "type" is a list of 'any' or a dict of 'any'.  And modifiable.
- */
-    static int
-arg_list_or_dict_mod(
-	type_T	     *type,
-	type_T	     *decl_type,
-	argcontext_T *context)
-{
-    if (arg_list_or_dict(type, decl_type, context) == FAIL)
-	return FAIL;
-    return arg_type_modifiable(type, context->arg_idx + 1);
-}
-
-/*
  * Check "type" is a list of 'any', a tuple of 'any' or dict of 'any'.
  */
     static int
@@ -657,10 +643,9 @@ arg_list_or_tuple_or_dict(
 
 /*
  * Check "type" is a list of 'any', a dict of 'any' or a blob.
- * Also check if "type" is modifiable.
  */
     static int
-arg_list_or_dict_or_blob_mod(
+arg_list_or_dict_or_blob(
 	type_T	     *type,
 	type_T	     *decl_type UNUSED,
 	argcontext_T *context)
@@ -669,9 +654,24 @@ arg_list_or_dict_or_blob_mod(
 	    || type->tt_type == VAR_DICT
 	    || type->tt_type == VAR_BLOB
 	    || type_any_or_unknown(type))
-	return arg_type_modifiable(type, context->arg_idx + 1);
+	return OK;
     arg_type_mismatch(&t_list_any, type, context->arg_idx + 1);
     return FAIL;
+}
+
+/*
+ * Check "type" is a list of 'any', a dict of 'any' or a blob.
+ * Also check if "type" is modifiable.
+ */
+    static int
+arg_list_or_dict_or_blob_mod(
+	type_T	     *type,
+	type_T	     *decl_type,
+	argcontext_T *context)
+{
+    if (arg_list_or_dict_or_blob(type, decl_type, context) == FAIL)
+	return FAIL;
+    return arg_type_modifiable(type, context->arg_idx + 1);
 }
 
 /*
@@ -1090,7 +1090,7 @@ arg_extend3(type_T *type, type_T *decl_type, argcontext_T *context)
 {
     type_T *first_type = context->arg_types[context->arg_idx - 2].type_curr;
 
-    if (first_type->tt_type == VAR_LIST)
+    if (first_type->tt_type == VAR_LIST || first_type->tt_type == VAR_BLOB)
 	return arg_number(type, decl_type, context);
     if (first_type->tt_type == VAR_DICT)
 	return arg_string(type, decl_type, context);
@@ -1298,7 +1298,8 @@ static argcheck_T arg2_string_or_list_number[] = {arg_string_or_list_any, arg_nu
 static argcheck_T arg2_string_string_or_number[] = {arg_string, arg_string_or_nr};
 static argcheck_T arg2_blob_dict[] = {arg_blob, arg_dict_any};
 static argcheck_T arg2_list_or_tuple_string[] = {arg_list_or_tuple, arg_string};
-static argcheck_T arg3_any_buffer_bool[] = {arg_any, arg_buffer, arg_bool};
+static argcheck_T arg3_any_buffer_bool_or_dict[] = {
+			      arg_any, arg_buffer, arg_bool_or_dict_any};
 static argcheck_T arg3_any_list_dict[] = {arg_any, arg_list_any, arg_dict_any};
 static argcheck_T arg3_buffer_lnum_lnum[] = {arg_buffer, arg_lnum, arg_lnum};
 static argcheck_T arg3_buffer_number_number[] = {arg_buffer, arg_number, arg_number};
@@ -1341,8 +1342,8 @@ static argcheck_T arg13_cursor[] = {arg_cursor1, arg_number, arg_number};
 static argcheck_T arg12_deepcopy[] = {arg_any, arg_bool};
 static argcheck_T arg12_execute[] = {arg_string_or_list_string, arg_string};
 static argcheck_T arg12_getchar[] = {arg_bool_or_nr, arg_dict_any};
-static argcheck_T arg23_extend[] = {arg_list_or_dict_mod, arg_same_as_prev, arg_extend3};
-static argcheck_T arg23_extendnew[] = {arg_list_or_dict, arg_same_struct_as_prev, arg_extend3};
+static argcheck_T arg23_extend[] = {arg_list_or_dict_or_blob_mod, arg_same_as_prev, arg_extend3};
+static argcheck_T arg23_extendnew[] = {arg_list_or_dict_or_blob, arg_same_struct_as_prev, arg_extend3};
 static argcheck_T arg23_get[] = {arg_get1, arg_string_or_nr, arg_any};
 static argcheck_T arg14_glob[] = {arg_string, arg_bool, arg_bool, arg_bool};
 static argcheck_T arg25_globpath[] = {arg_string, arg_string, arg_bool, arg_bool, arg_bool};
@@ -1472,6 +1473,14 @@ ret_list_dict_any(int argcount UNUSED,
 }
     static type_T *
 ret_list_items(int argcount UNUSED,
+	type2_T *argtypes UNUSED,
+	type_T	**decl_type)
+{
+    *decl_type = &t_list_any;
+    return &t_list_list_any;
+}
+    static type_T *
+ret_list_list_any(int argcount UNUSED,
 	type2_T *argtypes UNUSED,
 	type_T	**decl_type)
 {
@@ -1647,6 +1656,8 @@ ret_extend(int argcount,
 		return &t_list_any;
 	    if (argtypes[0].type_curr->tt_type == VAR_DICT)
 		return &t_dict_any;
+	    if (argtypes[0].type_curr->tt_type == VAR_BLOB)
+		return &t_blob;
 	}
 	return argtypes[0].type_curr;
     }
@@ -1680,6 +1691,34 @@ ret_first_cont(int argcount,
     }
     return &t_any;
 }
+// for get(): the type of the item when a missing item has the same type
+    static type_T *
+ret_get(int argcount,
+	type2_T *argtypes,
+	type_T	**decl_type)
+{
+    if (argcount > 0)
+    {
+	type_T	*t = argtypes[0].type_curr;
+	type_T	*item = NULL;
+
+	if (t->tt_type == VAR_BLOB)
+	    item = &t_number;
+	else if (t->tt_type == VAR_LIST || t->tt_type == VAR_DICT)
+	    item = t->tt_member;
+	// A missing item gives {default} when present, otherwise zero.
+	if (item != NULL && (argcount == 3
+			? equal_type(item, argtypes[2].type_curr, 0)
+			: item->tt_type == VAR_NUMBER))
+	{
+	    if (t->tt_type != VAR_BLOB
+			    && argtypes[0].type_decl->tt_type == t->tt_type)
+		*decl_type = argtypes[0].type_decl->tt_member;
+	    return item;
+	}
+    }
+    return &t_any;
+}
 // for getline()
     static type_T *
 ret_getline(int argcount,
@@ -1691,16 +1730,63 @@ ret_getline(int argcount,
     *decl_type = &t_list_any;
     return &t_list_string;
 }
-// for finddir()
+// A string with fewer than N arguments, otherwise it depends on the value of
+// the last one: a string or a list of strings.
     static type_T *
-ret_finddir(int argcount,
+ret_string_or_any_1(int argcount,
+	type2_T *argtypes UNUSED,
+	type_T	**decl_type UNUSED)
+{
+    if (argcount < 1)
+	return &t_string;
+    return &t_any;
+}
+    static type_T *
+ret_string_or_any_2(int argcount,
+	type2_T *argtypes UNUSED,
+	type_T	**decl_type UNUSED)
+{
+    if (argcount < 2)
+	return &t_string;
+    return &t_any;
+}
+    static type_T *
+ret_string_or_any_3(int argcount,
 	type2_T *argtypes UNUSED,
 	type_T	**decl_type UNUSED)
 {
     if (argcount < 3)
 	return &t_string;
-    // Depending on the count would be a string or a list of strings.
     return &t_any;
+}
+    static type_T *
+ret_string_or_any_4(int argcount,
+	type2_T *argtypes UNUSED,
+	type_T	**decl_type UNUSED)
+{
+    if (argcount < 4)
+	return &t_string;
+    return &t_any;
+}
+// for abs()
+    static type_T *
+ret_abs(int argcount,
+	type2_T *argtypes,
+	type_T	**decl_type UNUSED)
+{
+    if (argcount > 0 && argtypes[0].type_curr->tt_type == VAR_FLOAT)
+	return &t_float;
+    return &t_number;
+}
+// for sign_define()
+    static type_T *
+ret_sign_define(int argcount,
+	type2_T *argtypes,
+	type_T	**decl_type UNUSED)
+{
+    if (argcount > 0 && argtypes[0].type_curr->tt_type == VAR_LIST)
+	return &t_list_number;
+    return &t_number;
 }
 // for values(): list of member of first argument
     static type_T *
@@ -1941,7 +2027,7 @@ typedef struct
 static const funcentry_T global_functions[] =
 {
     {"abs",		1, 1, FEARG_1,	    arg1_float_or_nr,
-			ret_any,	    f_abs},
+			ret_abs,	    f_abs},
     {"acos",		1, 1, FEARG_1,	    arg1_float_or_nr,
 			ret_float,	    f_acos},
     {"add",		2, 2, FEARG_1,	    arg2_listblobmod_item,
@@ -1993,9 +2079,9 @@ static const funcentry_T global_functions[] =
     {"atan2",		2, 2, FEARG_1,	    arg2_float_or_nr,
 			ret_float,	    f_atan2},
     {"autocmd_add",	1, 1, FEARG_1,	    arg1_list_any,
-			ret_number_bool,    f_autocmd_add},
+			ret_bool,	    f_autocmd_add},
     {"autocmd_delete",	1, 1, FEARG_1,	    arg1_list_any,
-			ret_number_bool,    f_autocmd_delete},
+			ret_bool,	    f_autocmd_delete},
     {"autocmd_get",	0, 1, FEARG_1,	    arg1_dict_any,
 			ret_list_dict_any,  f_autocmd_get},
     {"balloon_gettext",	0, 0, 0,	    NULL,
@@ -2167,7 +2253,7 @@ static const funcentry_T global_functions[] =
     {"did_filetype",	0, 0, 0,	    NULL,
 			ret_number_bool,    f_did_filetype},
     {"diff",		2, 3, FEARG_1,	    arg3_diff,
-			ret_any,  f_diff},
+			ret_string_or_any_3,  f_diff},
     {"diff_filler",	1, 1, FEARG_1,	    arg1_lnum,
 			ret_number,	    f_diff_filler},
     {"diff_hlID",	2, 2, FEARG_1,	    arg2_lnum_number,
@@ -2207,7 +2293,7 @@ static const funcentry_T global_functions[] =
     {"exp",		1, 1, FEARG_1,	    arg1_float_or_nr,
 			ret_float,	    f_exp},
     {"expand",		1, 3, FEARG_1,	    arg3_string_bool_bool,
-			ret_any,	    f_expand},
+			ret_string_or_any_3,	    f_expand},
     {"expandcmd",	1, 2, FEARG_1,	    arg2_string_dict,
 			ret_string,	    f_expandcmd},
     {"extend",		2, 3, FEARG_1,	    arg23_extend,
@@ -2227,9 +2313,9 @@ static const funcentry_T global_functions[] =
     {"filter",		2, 2, FEARG_1,	    arg2_filter,
 			ret_first_arg,	    f_filter},
     {"finddir",		1, 3, FEARG_1,	    arg3_string_string_number,
-			ret_finddir,	    f_finddir},
+			ret_string_or_any_3,	    f_finddir},
     {"findfile",	1, 3, FEARG_1,	    arg3_string_string_number,
-			ret_any,	    f_findfile},
+			ret_string_or_any_3,	    f_findfile},
     {"flatten",		1, 2, FEARG_1,	    arg2_list_any_number,
 			ret_list_any,	    f_flatten},
     {"flattennew",	1, 2, FEARG_1,	    arg2_list_any_number,
@@ -2244,15 +2330,15 @@ static const funcentry_T global_functions[] =
 			ret_string,	    f_fnameescape},
     {"fnamemodify",	2, 2, FEARG_1,	    arg2_string,
 			ret_string,	    f_fnamemodify},
-    {"foldclosed",	1, 1, FEARG_1,	    arg1_lnum,
+    {"foldclosed",	1, 2, FEARG_1,	    arg2_lnum_number,
 			ret_number,	    f_foldclosed},
-    {"foldclosedend",	1, 1, FEARG_1,	    arg1_lnum,
+    {"foldclosedend",	1, 2, FEARG_1,	    arg2_lnum_number,
 			ret_number,	    f_foldclosedend},
-    {"foldlevel",	1, 1, FEARG_1,	    arg1_lnum,
+    {"foldlevel",	1, 2, FEARG_1,	    arg2_lnum_number,
 			ret_number,	    f_foldlevel},
     {"foldtext",	0, 0, 0,	    NULL,
 			ret_string,	    f_foldtext},
-    {"foldtextresult",	1, 1, FEARG_1,	    arg1_lnum,
+    {"foldtextresult",	1, 2, FEARG_1,	    arg2_lnum_number,
 			ret_string,	    f_foldtextresult},
     {"foreach",		2, 2, FEARG_1,	    arg2_foreach,
 			ret_first_arg,	    f_foreach},
@@ -2267,7 +2353,7 @@ static const funcentry_T global_functions[] =
     {"garbagecollect",	0, 1, 0,	    arg1_bool,
 			ret_void,	    f_garbagecollect},
     {"get",		2, 3, FEARG_1,	    arg23_get,
-			ret_any,	    f_get},
+			ret_get,	    f_get},
     {"getbgcolor",	0, 0, 0,	    NULL,
 			ret_list_any,	    f_getbgcolor},
     {"getbufinfo",	0, 1, FEARG_1,	    arg1_buffer_or_dict_any,
@@ -2389,11 +2475,11 @@ static const funcentry_T global_functions[] =
     {"getwinvar",	2, 3, FEARG_1,	    arg3_number_string_any,
 			ret_any,	    f_getwinvar},
     {"glob",		1, 4, FEARG_1,	    arg14_glob,
-			ret_any,	    f_glob},
+			ret_string_or_any_3,	    f_glob},
     {"glob2regpat",	1, 1, FEARG_1,	    arg1_string,
 			ret_string,	    f_glob2regpat},
     {"globpath",	2, 5, FEARG_2,	    arg25_globpath,
-			ret_any,	    f_globpath},
+			ret_string_or_any_4,	    f_globpath},
     {"has",		1, 2, 0,	    arg2_string_bool,
 			ret_number_bool,    f_has},
     {"has_key",		2, 2, FEARG_1,	    arg2_dict_any_string_or_nr,
@@ -2512,7 +2598,7 @@ static const funcentry_T global_functions[] =
 			ret_string,	    f_list2str},
     {"list2tuple",	1, 1, FEARG_1,	    arg1_list_any,
 			ret_tuple_any,	    f_list2tuple},
-    {"listener_add",	1, 3, FEARG_2,	    arg3_any_buffer_bool,
+    {"listener_add",	1, 3, FEARG_2,	    arg3_any_buffer_bool_or_dict,
 			ret_number,	    f_listener_add},
     {"listener_flush",	0, 1, FEARG_1,	    arg1_buffer,
 			ret_void,	    f_listener_flush},
@@ -2545,7 +2631,7 @@ static const funcentry_T global_functions[] =
     {"mapset",		1, 3, FEARG_1,	    arg3_string_or_dict_bool_dict,
 			ret_void,	    f_mapset},
     {"match",		2, 4, FEARG_1,	    arg24_match_func,
-			ret_any,	    f_match},
+			ret_number,	    f_match},
     {"matchadd",	2, 5, FEARG_1,	    arg25_matchadd,
 			ret_number,	    f_matchadd},
     {"matchaddpos",	2, 5, FEARG_1,	    arg25_matchaddpos,
@@ -2561,7 +2647,7 @@ static const funcentry_T global_functions[] =
     {"matchfuzzy",	2, 3, FEARG_1,	    arg3_list_string_dict,
 			ret_list_any,	    f_matchfuzzy},
     {"matchfuzzypos",	2, 3, FEARG_1,	    arg3_list_string_dict,
-			ret_list_any,	    f_matchfuzzypos},
+			ret_list_list_any,  f_matchfuzzypos},
     {"matchlist",	2, 4, FEARG_1,	    arg24_match_func,
 			ret_list_string,    f_matchlist},
     {"matchstr",	2, 4, FEARG_1,	    arg24_match_func,
@@ -2747,7 +2833,7 @@ static const funcentry_T global_functions[] =
     {"reg_recording",	0, 0, 0,	    NULL,
 			ret_string,	    f_reg_recording},
     {"reltime",		0, 2, FEARG_1,	    arg2_list_number,
-			ret_list_any,	    f_reltime},
+			ret_list_number,    f_reltime},
     {"reltimefloat",	1, 1, FEARG_1,	    arg1_list_number,
 			ret_float,	    f_reltimefloat},
     {"reltimestr",	1, 1, FEARG_1,	    arg1_list_number,
@@ -2801,7 +2887,7 @@ static const funcentry_T global_functions[] =
     {"search",		1, 5, FEARG_1,	    arg15_search,
 			ret_number,	    f_search},
     {"searchcount",	0, 1, FEARG_1,	    arg1_dict_any,
-			ret_dict_any,	    f_searchcount},
+			ret_dict_number,    f_searchcount},
     {"searchdecl",	1, 3, FEARG_1,	    arg3_string_bool_bool,
 			ret_number_bool,    f_searchdecl},
     {"searchpair",	3, 7, 0,	    arg37_searchpair,
@@ -2813,7 +2899,7 @@ static const funcentry_T global_functions[] =
     {"server2client",	2, 2, FEARG_1,	    arg2_string,
 			ret_number_bool,    f_server2client},
     {"serverlist",	0, 1, 0,	    arg1_dict_any,
-			ret_any,	    f_serverlist},
+			ret_string_or_any_1,	    f_serverlist},
     {"setbufline",	3, 3, FEARG_3,	    arg3_setbufline,
 			ret_number_bool,    f_setbufline},
     {"setbufvar",	3, 3, FEARG_3,	    arg3_buffer_string_any,
@@ -2871,7 +2957,7 @@ static const funcentry_T global_functions[] =
 			ret_void,	    f_showdefinition},
 #endif
     {"sign_define",	1, 2, FEARG_1,	    arg2_string_or_list_dict,
-			ret_any,	    SIGN_FUNC(f_sign_define)},
+			ret_sign_define,	    SIGN_FUNC(f_sign_define)},
     {"sign_getdefined",	0, 1, FEARG_1,	    arg1_string,
 			ret_list_dict_any,  SIGN_FUNC(f_sign_getdefined)},
     {"sign_getplaced",	0, 2, FEARG_1,	    arg02_sign_getplaced,
@@ -2971,7 +3057,7 @@ static const funcentry_T global_functions[] =
     {"strwidth",	1, 1, FEARG_1,	    arg1_string,
 			ret_number,	    f_strwidth},
     {"submatch",	1, 2, FEARG_1,	    arg2_number_bool,
-			ret_string,	    f_submatch},
+			ret_string_or_any_2,	    f_submatch},
     {"substitute",	4, 4, FEARG_1,	    arg4_string_string_any_string,
 			ret_string,	    f_substitute},
     {"swapfilelist",	0, 0, 0,	    NULL,
@@ -3717,148 +3803,6 @@ f_balloon_split(typval_T *argvars, typval_T *rettv UNUSED)
 # endif
 #endif
 
-// Base64 character set
-static const char_u base64_table[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-// Base64 decoding table (initialized in init_base64_dec_table() below)
-static char_u base64_dec_table[256];
-
-/*
- * Initialize the base64 decoding table
- */
-    static void
-init_base64_dec_table(void)
-{
-    static int base64_dec_tbl_initialized = FALSE;
-
-    if (base64_dec_tbl_initialized)
-	return;
-
-    // Unsupported characters are set to 0xFF
-    vim_memset(base64_dec_table, 0xFF, sizeof(base64_dec_table));
-
-    // Initialize the index for the base64 alphabets
-    for (size_t i = 0; i < sizeof(base64_table) - 1; i++)
-	base64_dec_table[(char_u)base64_table[i]] = (char_u)i;
-
-    // base64 padding character
-    base64_dec_table['='] = 0;
-
-    base64_dec_tbl_initialized = TRUE;
-}
-
-/*
- * Encode the bytes in "blob" using base-64 encoding.
- */
-    static char_u *
-base64_encode(blob_T *blob)
-{
-    size_t input_len = blob->bv_ga.ga_len;
-    size_t encoded_len = ((input_len + 2) / 3) * 4;
-    char_u *data = blob->bv_ga.ga_data;
-
-    char_u *encoded = alloc(encoded_len + 1);
-    if (encoded == NULL)
-	return NULL;
-
-    size_t i, j;
-    for (i = 0, j = 0; i < input_len;)
-    {
-	int_u octet_a = i < input_len ? data[i++] : 0;
-	int_u octet_b = i < input_len ? data[i++] : 0;
-	int_u octet_c = i < input_len ? data[i++] : 0;
-
-	int_u triple = (octet_a << 16) | (octet_b << 8) | octet_c;
-
-	encoded[j++] = base64_table[(triple >> 18) & 0x3F];
-	encoded[j++] = base64_table[(triple >> 12) & 0x3F];
-	encoded[j++] = (!octet_b && i >= input_len) ? '='
-					: base64_table[(triple >> 6) & 0x3F];
-	encoded[j++] = (!octet_c && i >= input_len) ? '='
-					: base64_table[triple & 0x3F];
-    }
-    encoded[j] = NUL;
-
-    return encoded;
-}
-
-/*
- * Decode the string "data" using base-64 encoding.
- */
-    static void
-base64_decode(const char_u *data, blob_T *blob)
-{
-    size_t input_len = STRLEN(data);
-
-    if (input_len == 0)
-	return;
-
-    if (input_len % 4 != 0)
-    {
-	// Invalid input length
-	semsg(_(e_invalid_argument_str), data);
-	return;
-    }
-
-    init_base64_dec_table();
-
-    size_t decoded_len = (input_len / 4) * 3;
-    if (data[input_len - 1] == '=')
-	decoded_len--;
-    if (data[input_len - 2] == '=')
-	decoded_len--;
-
-    size_t i, j;
-    for (i = 0, j = 0; i < input_len;)
-    {
-	int_u sextet_a = base64_dec_table[(char_u)data[i++]];
-	int_u sextet_b = base64_dec_table[(char_u)data[i++]];
-	int_u sextet_c = base64_dec_table[(char_u)data[i++]];
-	int_u sextet_d = base64_dec_table[(char_u)data[i++]];
-
-	if (sextet_a == 0xFF || sextet_b == 0xFF || sextet_c == 0xFF
-							|| sextet_d == 0xFF)
-	{
-	    // Invalid character
-	    semsg(_(e_invalid_argument_str), data);
-	    ga_clear(&blob->bv_ga);
-	    return;
-	}
-
-	int_u triple = (sextet_a << 18) | (sextet_b << 12)
-						| (sextet_c << 6) | sextet_d;
-
-	if (j < decoded_len)
-	{
-	    ga_append(&blob->bv_ga, (triple >> 16) & 0xFF);
-	    j++;
-	}
-	if (j < decoded_len)
-	{
-	    ga_append(&blob->bv_ga, (triple >> 8) & 0xFF);
-	    j++;
-	}
-	if (j < decoded_len)
-	{
-	    ga_append(&blob->bv_ga, triple & 0xFF);
-	    j++;
-	}
-
-	if (j == decoded_len)
-	{
-	    // Check for invalid padding bytes (based on the
-	    // "Base64 Malleability in Practice" ACM paper).
-	    if ((data[input_len - 2] == '=' && ((sextet_b & 0xF) != 0))
-		|| ((data[input_len - 1] == '=') && ((sextet_c & 0x3) != 0)))
-	    {
-		semsg(_(e_invalid_argument_str), data);
-		ga_clear(&blob->bv_ga);
-		return;
-	    }
-	}
-    }
-}
-
 /*
  * "base64_decode(string)" function
  */
@@ -3873,7 +3817,7 @@ f_base64_decode(typval_T *argvars, typval_T *rettv)
 
     char_u *str = tv_get_string_chk(&argvars[0]);
     if (str != NULL)
-	base64_decode(str, rettv->vval.v_blob);
+	base64_decode(str, STRLEN(str), &rettv->vval.v_blob->bv_ga);
 }
 
 /*
@@ -3890,7 +3834,8 @@ f_base64_encode(typval_T *argvars, typval_T *rettv)
 
     blob_T *blob = argvars->vval.v_blob;
     if (blob != NULL)
-	rettv->vval.v_string = base64_encode(blob);
+	rettv->vval.v_string =
+	    base64_encode(blob->bv_ga.ga_data, blob->bv_ga.ga_len);
 }
 
 /*
@@ -5816,7 +5761,7 @@ f_getchangelist(typval_T *argvars, typval_T *rettv)
 	return;
     if (list_append_list(rettv->vval.v_list, l) == FAIL)
     {
-	vim_free(l);
+	list_free(l);
 	return;
     }
 
@@ -5848,7 +5793,10 @@ f_getchangelist(typval_T *argvars, typval_T *rettv)
 	if ((d = dict_alloc()) == NULL)
 	    return;
 	if (list_append_dict(l, d) == FAIL)
+	{
+	    dict_unref(d);
 	    return;
+	}
 	dict_add_number(d, "lnum", (long)buf->b_changelist[i].lnum);
 	dict_add_number(d, "col", (long)buf->b_changelist[i].col);
 	dict_add_number(d, "coladd", (long)buf->b_changelist[i].coladd);
@@ -6053,7 +6001,7 @@ f_getjumplist(typval_T *argvars, typval_T *rettv)
 	return;
     if (list_append_list(rettv->vval.v_list, l) == FAIL)
     {
-	vim_free(l);
+	list_free(l);
 	return;
     }
 
@@ -6066,7 +6014,10 @@ f_getjumplist(typval_T *argvars, typval_T *rettv)
 	if ((d = dict_alloc()) == NULL)
 	    return;
 	if (list_append_dict(l, d) == FAIL)
+	{
+	    dict_unref(d);
 	    return;
+	}
 	dict_add_number(d, "lnum", (long)wp->w_jumplist[i].fmark.mark.lnum);
 	dict_add_number(d, "col", (long)wp->w_jumplist[i].fmark.mark.col);
 	dict_add_number(d, "coladd", (long)wp->w_jumplist[i].fmark.mark.coladd);
@@ -6397,37 +6348,27 @@ add_regionpos_range(typval_T *rettv, pos_T p1, pos_T p2)
 
     if (list_append_list(rettv->vval.v_list, l1) == FAIL)
     {
-	vim_free(l1);
+	list_free(l1);
 	return;
     }
 
     l2 = list_alloc();
     if (l2 == NULL)
-    {
-	vim_free(l1);
 	return;
-    }
 
     if (list_append_list(l1, l2) == FAIL)
     {
-	vim_free(l1);
-	vim_free(l2);
+	list_free(l2);
 	return;
     }
 
     l3 = list_alloc();
     if (l3 == NULL)
-    {
-	vim_free(l1);
-	vim_free(l2);
 	return;
-    }
 
     if (list_append_list(l1, l3) == FAIL)
     {
-	vim_free(l1);
-	vim_free(l2);
-	vim_free(l3);
+	list_free(l3);
 	return;
     }
 
@@ -6443,6 +6384,111 @@ add_regionpos_range(typval_T *rettv, pos_T p1, pos_T p2)
 }
 
 /*
+ * Compute the positions of the region segment on line "lnum".
+ * "ret_p1" is set to the start position of the segment and "ret_p2" to its
+ * end position.
+ */
+    static void
+getregionpos_line(
+    linenr_T	lnum,
+    pos_T	p1,
+    pos_T	p2,
+    int		inclusive,
+    int		region_type,
+    oparg_T	*oap,
+    int		allow_eol,
+    pos_T	*ret_p1,
+    pos_T	*ret_p2)
+{
+    char_u	*line = ml_get(lnum);
+    colnr_T	line_len = ml_get_len(lnum);
+
+    if (region_type == MLINE)
+    {
+	ret_p1->col = 1;
+	ret_p1->coladd = 0;
+	ret_p2->col = MAXCOL;
+	ret_p2->coladd = 0;
+    }
+    else
+    {
+	struct block_def	bd;
+
+	if (region_type == MBLOCK)
+	    block_prep(oap, &bd, lnum, FALSE);
+	else
+	    charwise_block_prep(p1, p2, &bd, lnum, inclusive);
+
+	if (bd.is_oneChar)  // selection entirely inside one char
+	{
+	    if (region_type == MBLOCK)
+	    {
+		ret_p1->col = mb_prevptr(line, bd.textstart) - line + 1;
+		ret_p1->coladd = bd.start_char_vcols
+					   - (bd.start_vcol - oap->start_vcol);
+	    }
+	    else
+	    {
+		ret_p1->col = p1.col + 1;
+		ret_p1->coladd = p1.coladd;
+	    }
+	}
+	else if (region_type == MBLOCK && oap->start_vcol > bd.start_vcol)
+	{
+	    // blockwise selection entirely beyond end of line
+	    ret_p1->col = MAXCOL;
+	    ret_p1->coladd = oap->start_vcol - bd.start_vcol;
+	    bd.is_oneChar = TRUE;
+	}
+	else if (bd.startspaces > 0)
+	{
+	    ret_p1->col = mb_prevptr(line, bd.textstart) - line + 1;
+	    ret_p1->coladd = bd.start_char_vcols - bd.startspaces;
+	}
+	else
+	{
+	    ret_p1->col = bd.textcol + 1;
+	    ret_p1->coladd = 0;
+	}
+
+	if (bd.is_oneChar)  // selection entirely inside one char
+	{
+	    ret_p2->col = ret_p1->col;
+	    ret_p2->coladd = ret_p1->coladd + bd.startspaces + bd.endspaces;
+	}
+	else if (bd.endspaces > 0)
+	{
+	    ret_p2->col = bd.textcol + bd.textlen + 1;
+	    ret_p2->coladd = bd.endspaces;
+	}
+	else
+	{
+	    ret_p2->col = bd.textcol + bd.textlen;
+	    ret_p2->coladd = 0;
+	}
+    }
+
+    if (!allow_eol && ret_p1->col > line_len)
+    {
+	ret_p1->col = 0;
+	ret_p1->coladd = 0;
+    }
+    else if (ret_p1->col > line_len + 1)
+	ret_p1->col = line_len + 1;
+
+    if (!allow_eol && ret_p2->col > line_len)
+    {
+	ret_p2->col = ret_p1->col == 0 ? 0 : line_len;
+	ret_p2->coladd = 0;
+    }
+    else if (ret_p2->col > line_len + 1)
+	ret_p2->col = line_len + 1;
+
+    ret_p1->lnum = lnum;
+    ret_p2->lnum = lnum;
+}
+
+/*
  * "getregionpos()" function
  */
     static void
@@ -6452,6 +6498,7 @@ f_getregionpos(typval_T *argvars, typval_T *rettv)
     int		inclusive = TRUE;
     int		region_type = -1;
     int		allow_eol = FALSE;
+    int		bounds_only = FALSE;
     oparg_T	oa;
     int		lnum;
 
@@ -6466,98 +6513,38 @@ f_getregionpos(typval_T *argvars, typval_T *rettv)
 	return;
 
     if (argvars[2].v_type == VAR_DICT)
-	allow_eol = dict_get_bool(argvars[2].vval.v_dict, "eol", FALSE);
-
-    for (lnum = p1.lnum; lnum <= p2.lnum; lnum++)
     {
-	pos_T		ret_p1, ret_p2;
-	char_u		*line = ml_get(lnum);
-	colnr_T		line_len = ml_get_len(lnum);
+	allow_eol = dict_get_bool(argvars[2].vval.v_dict, "eol", FALSE);
+	bounds_only = dict_get_bool(argvars[2].vval.v_dict, "bounds", FALSE);
+    }
 
-	if (region_type == MLINE)
+    if (bounds_only)
+    {
+	// Only the outer bounds of the region are wanted, so the lines in
+	// between do not have to be visited.
+	pos_T	start_pos, end_pos;
+
+	getregionpos_line(p1.lnum, p1, p2, inclusive, region_type, &oa,
+					   allow_eol, &start_pos, &end_pos);
+	if (p2.lnum != p1.lnum)
 	{
-	    ret_p1.col = 1;
-	    ret_p1.coladd = 0;
-	    ret_p2.col = MAXCOL;
-	    ret_p2.coladd = 0;
+	    pos_T	unused;
+
+	    getregionpos_line(p2.lnum, p1, p2, inclusive, region_type, &oa,
+					      allow_eol, &unused, &end_pos);
 	}
-	else
+	add_regionpos_range(rettv, start_pos, end_pos);
+    }
+    else
+    {
+	for (lnum = p1.lnum; lnum <= p2.lnum; lnum++)
 	{
-	    struct block_def	bd;
+	    pos_T	ret_p1, ret_p2;
 
-	    if (region_type == MBLOCK)
-		block_prep(&oa, &bd, lnum, FALSE);
-	    else
-		charwise_block_prep(p1, p2, &bd, lnum, inclusive);
-
-	    if (bd.is_oneChar)  // selection entirely inside one char
-	    {
-		if (region_type == MBLOCK)
-		{
-		    ret_p1.col = mb_prevptr(line, bd.textstart) - line + 1;
-		    ret_p1.coladd = bd.start_char_vcols
-					     - (bd.start_vcol - oa.start_vcol);
-		}
-		else
-		{
-		    ret_p1.col = p1.col + 1;
-		    ret_p1.coladd = p1.coladd;
-		}
-	    }
-	    else if (region_type == MBLOCK && oa.start_vcol > bd.start_vcol)
-	    {
-		// blockwise selection entirely beyond end of line
-		ret_p1.col = MAXCOL;
-		ret_p1.coladd = oa.start_vcol - bd.start_vcol;
-		bd.is_oneChar = TRUE;
-	    }
-	    else if (bd.startspaces > 0)
-	    {
-		ret_p1.col = mb_prevptr(line, bd.textstart) - line + 1;
-		ret_p1.coladd = bd.start_char_vcols - bd.startspaces;
-	    }
-	    else
-	    {
-		ret_p1.col = bd.textcol + 1;
-		ret_p1.coladd = 0;
-	    }
-
-	    if (bd.is_oneChar)  // selection entirely inside one char
-	    {
-		ret_p2.col = ret_p1.col;
-		ret_p2.coladd = ret_p1.coladd + bd.startspaces + bd.endspaces;
-	    }
-	    else if (bd.endspaces > 0)
-	    {
-		ret_p2.col = bd.textcol + bd.textlen + 1;
-		ret_p2.coladd = bd.endspaces;
-	    }
-	    else
-	    {
-		ret_p2.col = bd.textcol + bd.textlen;
-		ret_p2.coladd = 0;
-	    }
+	    getregionpos_line(lnum, p1, p2, inclusive, region_type, &oa,
+					      allow_eol, &ret_p1, &ret_p2);
+	    add_regionpos_range(rettv, ret_p1, ret_p2);
 	}
-
-	if (!allow_eol && ret_p1.col > line_len)
-	{
-	    ret_p1.col = 0;
-	    ret_p1.coladd = 0;
-	}
-	else if (ret_p1.col > line_len + 1)
-	    ret_p1.col = line_len + 1;
-
-	if (!allow_eol && ret_p2.col > line_len)
-	{
-	    ret_p2.col = ret_p1.col == 0 ? 0 : line_len;
-	    ret_p2.coladd = 0;
-	}
-	else if (ret_p2.col > line_len + 1)
-	    ret_p2.col = line_len + 1;
-
-	ret_p1.lnum = lnum;
-	ret_p2.lnum = lnum;
-	add_regionpos_range(rettv, ret_p1, ret_p2);
     }
 
     // getregionpos() may change curbuf and virtual_op
@@ -7205,7 +7192,7 @@ f_has(typval_T *argvars, typval_T *rettv)
 #endif
 		},
 	{"gui_gtk2",
-#if defined(FEAT_GUI_GTK) && !defined(USE_GTK3)
+#if defined(FEAT_GUI_GTK) && !defined(USE_GTK3) && !defined(USE_GTK4)
 		1
 #else
 		0
@@ -7583,6 +7570,13 @@ f_has(typval_T *argvars, typval_T *rettv)
 		},
 	{"postscript",
 #ifdef FEAT_POSTSCRIPT
+		1
+#else
+		0
+#endif
+		},
+	{"pango",
+#ifdef FEAT_PRINT_PANGO
 		1
 #else
 		0
@@ -9296,6 +9290,7 @@ find_some_match(typval_T *argvars, typval_T *rettv, matchtype_T type)
     list_T	*l = NULL;
     listitem_T	*li = NULL;
     long	idx = 0;
+    int		prev_lock = 0;
     char_u	*tofree = NULL;
 
     // Make 'cpoptions' empty, the 'l' flag should not be used here.
@@ -9393,10 +9388,19 @@ find_some_match(typval_T *argvars, typval_T *rettv, matchtype_T type)
 	    goto theend;
     }
 
-    regmatch.regprog = vim_regcomp(pat, RE_MAGIC + RE_STRING);
+    regmatch.regprog = eval_regcomp(pat);
     if (regmatch.regprog != NULL)
     {
 	regmatch.rm_ic = p_ic;
+
+	// Lock the list, the string() method of an object item could remove
+	// the item the loop is standing on.
+	if (l != NULL)
+	{
+	    prev_lock = l->lv_lock;
+	    if (l->lv_lock == 0)
+		l->lv_lock = VAR_LOCKED;
+	}
 
 	for (;;)
 	{
@@ -9468,7 +9472,7 @@ find_some_match(typval_T *argvars, typval_T *rettv, matchtype_T type)
 		    if (regmatch.endp[i] == NULL)
 		    {
 			if (list_append_string(rettv->vval.v_list,
-						     (char_u *)"", 0) == FAIL)
+							    NULL, 0) == FAIL)
 			    break;
 		    }
 		    else if (list_append_string(rettv->vval.v_list,
@@ -9500,7 +9504,9 @@ find_some_match(typval_T *argvars, typval_T *rettv, matchtype_T type)
 		rettv->vval.v_number += (varnumber_T)(str - expr);
 	    }
 	}
-	vim_regfree(regmatch.regprog);
+	if (l != NULL)
+	    l->lv_lock = prev_lock;
+	eval_regfree(pat, regmatch.regprog);
     }
 
 theend:
@@ -9541,7 +9547,10 @@ get_matches_in_str(
 	if (d == NULL)
 	    return FAIL;
 	if (list_append_dict(mlist, d) == FAIL)
+	{
+	    dict_unref(d);
 	    return FAIL;
+	}
 
 	if (dict_add_number(d, matchbuf ? "lnum" : "idx", idx) == FAIL)
 	    return FAIL;
@@ -9561,7 +9570,10 @@ get_matches_in_str(
 		return FAIL;
 
 	    if (dict_add_list(d, "submatches", sml) == FAIL)
+	    {
+		list_unref(sml);
 		return FAIL;
+	    }
 
 	    // return a list with the submatches
 	    for (int i = 1; i < NSUBEXP; ++i)
@@ -9668,7 +9680,7 @@ f_matchbufline(typval_T *argvars, typval_T *rettv)
     save_cpo = p_cpo;
     p_cpo = empty_option;
 
-    regmatch.regprog = vim_regcomp(pat, RE_MAGIC + RE_STRING);
+    regmatch.regprog = eval_regcomp(pat);
     if (regmatch.regprog == NULL)
 	goto theend;
     regmatch.rm_ic = p_ic;
@@ -9683,7 +9695,7 @@ f_matchbufline(typval_T *argvars, typval_T *rettv)
     }
 
 cleanup:
-    vim_regfree(regmatch.regprog);
+    eval_regfree(pat, regmatch.regprog);
 
 theend:
     p_cpo = save_cpo;
@@ -9759,7 +9771,7 @@ f_matchstrlist(typval_T *argvars, typval_T *rettv)
     save_cpo = p_cpo;
     p_cpo = empty_option;
 
-    regmatch.regprog = vim_regcomp(pat, RE_MAGIC + RE_STRING);
+    regmatch.regprog = eval_regcomp(pat);
     if (regmatch.regprog == NULL)
 	goto theend;
     regmatch.rm_ic = p_ic;
@@ -9798,7 +9810,7 @@ f_matchstrlist(typval_T *argvars, typval_T *rettv)
     }
 
 cleanup:
-    vim_regfree(regmatch.regprog);
+    eval_regfree(pat, regmatch.regprog);
 
 theend:
     p_cpo = save_cpo;
@@ -10416,10 +10428,13 @@ f_rand(typval_T *argvars, typval_T *rettv)
 	ly = list_find(l, 1L);
 	lz = list_find(l, 2L);
 	lw = list_find(l, 3L);
-	if (lx->li_tv.v_type != VAR_NUMBER) goto theend;
-	if (ly->li_tv.v_type != VAR_NUMBER) goto theend;
-	if (lz->li_tv.v_type != VAR_NUMBER) goto theend;
-	if (lw->li_tv.v_type != VAR_NUMBER) goto theend;
+	if (lx == NULL || ly == NULL || lz == NULL || lw == NULL)
+	    goto theend;
+	if (lx->li_tv.v_type != VAR_NUMBER
+		|| ly->li_tv.v_type != VAR_NUMBER
+		|| lz->li_tv.v_type != VAR_NUMBER
+		|| lw->li_tv.v_type != VAR_NUMBER)
+	    goto theend;
 	x = (UINT32_T)lx->li_tv.vval.v_number;
 	y = (UINT32_T)ly->li_tv.vval.v_number;
 	z = (UINT32_T)lz->li_tv.vval.v_number;
@@ -10523,10 +10538,54 @@ f_range(typval_T *argvars, typval_T *rettv)
 	emsg(_(e_stride_is_zero));
 	return;
     }
-    if (stride > 0 ? end + 1 < start : end - 1 > start)
+
+    // The stride is stored in "lv_stride", which is an int.
+    if (stride < INT_MIN || stride > INT_MAX)
     {
-	emsg(_(e_start_past_end));
+	char	buf[NUMBUFLEN];
+
+	vim_snprintf(buf, sizeof(buf), "%lld", stride);
+	semsg(_(e_val_too_large), buf);
 	return;
+    }
+
+    uvarnumber_T	len;
+
+    if (stride > 0 ? end < start : end > start)
+    {
+	// One step before the start gives an empty list, further away is
+	// an error.  Subtract unsigned to avoid an overflow.
+	uvarnumber_T	back = stride > 0
+				  ? (uvarnumber_T)start - (uvarnumber_T)end
+				  : (uvarnumber_T)end - (uvarnumber_T)start;
+
+	if (back > 1)
+	{
+	    emsg(_(e_start_past_end));
+	    return;
+	}
+	len = 0;
+    }
+    else
+    {
+	varnumber_T	astride = stride > 0 ? stride : -stride;
+	uvarnumber_T	span = stride > 0
+				  ? (uvarnumber_T)end - (uvarnumber_T)start
+				  : (uvarnumber_T)start - (uvarnumber_T)end;
+	uvarnumber_T	count = span / (uvarnumber_T)astride;
+
+	// The number of items is "count" + 1 and must fit in "lv_len".
+	if (count >= (uvarnumber_T)INT_MAX)
+	{
+	    char	buf[NUMBUFLEN];
+
+	    // "count + 1" can wrap around.
+	    vim_snprintf(buf, sizeof(buf), "%llu",
+			      count < UVARNUM_MAX ? count + 1 : UVARNUM_MAX);
+	    semsg(_(e_val_too_large), buf);
+	    return;
+	}
+	len = count + 1;
     }
 
     list_T *list = rettv->vval.v_list;
@@ -10537,11 +10596,8 @@ f_range(typval_T *argvars, typval_T *rettv)
     list->lv_first = &range_list_item;
     list->lv_u.nonmat.lv_start = start;
     list->lv_u.nonmat.lv_end = end;
-    list->lv_u.nonmat.lv_stride = stride;
-    if (stride > 0 ? end < start : end > start)
-	list->lv_len = 0;
-    else
-	list->lv_len = (end - start) / stride + 1;
+    list->lv_u.nonmat.lv_stride = (int)stride;
+    list->lv_len = (int)len;
 }
 
 /*
@@ -10600,7 +10656,8 @@ f_getreginfo(typval_T *argvars, typval_T *rettv)
     list = (list_T *)get_reg_contents(regname, GREG_EXPR_SRC | GREG_LIST);
     if (list == NULL)
 	return;
-    (void)dict_add_list(dict, "regcontents", list);
+    if (dict_add_list(dict, "regcontents", list) == FAIL)
+	list_unref(list);
 
     switch (get_reg_type(regname, &reglen))
     {
@@ -12347,7 +12404,7 @@ f_split(typval_T *argvars, typval_T *rettv)
     if (typeerr)
 	goto theend;
 
-    regmatch.regprog = vim_regcomp(pat, RE_MAGIC + RE_STRING);
+    regmatch.regprog = eval_regcomp(pat);
     if (regmatch.regprog != NULL)
     {
 	regmatch.rm_ic = FALSE;
@@ -12379,7 +12436,7 @@ f_split(typval_T *argvars, typval_T *rettv)
 	    str = regmatch.endp[0];
 	}
 
-	vim_regfree(regmatch.regprog);
+	eval_regfree(pat, regmatch.regprog);
     }
 
 theend:

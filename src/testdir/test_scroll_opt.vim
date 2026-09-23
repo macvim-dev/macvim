@@ -1306,6 +1306,90 @@ func Test_smoothscroll_next_topline()
   bwipe!
 endfunc
 
+func Test_smoothscroll_keep_skipcol()
+  call NewWindow(10, 40)
+  setlocal smoothscroll
+  call setline(1, ['abcde '->repeat(150)]->repeat(2))
+
+  exe "norm! 10\<C-E>"
+  redraw
+  let skipcol = winsaveview().skipcol
+  call assert_notequal(0, skipcol)
+
+  " Changing the height of the window must not reset the scroll position.
+  resize -3
+  resize +3
+  redraw
+  call assert_equal(skipcol, winsaveview().skipcol)
+
+  " Using the autocommand window changes the height as well.
+  call bufload(bufadd(''))
+  redraw
+  call assert_equal(skipcol, winsaveview().skipcol)
+
+  bwipe!
+endfunc
+
+func Test_smoothscroll_cursor_back_in_line()
+  call NewWindow(10, 40)
+  setlocal smoothscroll
+  call setline(1, ['abcde '->repeat(150)]->repeat(2))
+
+  exe "norm! 10\<C-E>"
+  redraw
+  call assert_equal(400, winsaveview().skipcol)
+
+  " Moving to an earlier column in the same line scrolls back only as far as
+  " needed, not all the way to the start of the line.
+  norm! 240|
+  redraw
+  call assert_equal(200, winsaveview().skipcol)
+  call assert_equal(1, winline())
+
+  bwipe!
+endfunc
+
+func Test_smoothscroll_squeezed_window()
+  setlocal smoothscroll
+  call setline(1, [repeat('x', 3000)] + repeat(['line'], 10))
+  exe "norm! gg10\<C-E>"
+  redraw
+  let skipcol = winsaveview().skipcol
+  call assert_notequal(0, skipcol)
+  let virtcol = virtcol('.')
+
+  " Squeezing the window to one line and restoring it must not scroll back to
+  " the start of the line.
+  new
+  wincmd _
+  close
+  redraw
+  call assert_notequal(0, winsaveview().skipcol)
+  call assert_equal(virtcol, virtcol('.'))
+
+  bwipe!
+endfunc
+
+func Test_smoothscroll_lastline_no_jump()
+  call NewWindow(10, 40)
+  setlocal smoothscroll
+  set display=lastline
+  call setline(1, map(range(1, 9), {i, v -> 'short ' .. v})
+        \ + [repeat('long ', 60)] + repeat(['tail'], 5))
+  normal! gg
+  redraw
+  call assert_equal(1, line('w0'))
+
+  " The first screen line of the wrapping line is already visible.
+  normal! 9j
+  redraw
+  call assert_equal(10, line('.'))
+  call assert_equal(1, line('w0'))
+
+  set display&
+  bwipe!
+endfunc
+
 func Test_smoothscroll_long_line_zb()
   call NewWindow(10, 40)
   call setline(1, 'abcde '->repeat(150))
@@ -1672,6 +1756,60 @@ func Test_scrolloffpad_paging_to_eof()
 
   call assert_notequal(states[0], states[1])
   call assert_true(states[1][3] < states[0][3])
+
+  bwipe!
+endfunc
+
+func Test_scrolloffpad_ctrl_d_at_eof()
+  new
+  setlocal scroll=6
+  call setline(1, map(range(1, 80), 'printf("line %d", v:val)'))
+
+  for height in [11, 12]
+    execute 'resize ' .. height
+    for so in [1, 999]
+      let &l:scrolloff = so
+      for sop in [0, 1]
+        let &l:scrolloffpad = sop
+        for endcmd in ['ggG', 'ggGzb']
+          let context = printf('height=%d so=%d sop=%d %s',
+                \ height, so, sop, endcmd)
+          execute 'normal! ' .. endcmd
+          let view_before = winsaveview()
+
+          call assert_beeps('execute "normal! \<C-D>"')
+          call assert_equal(view_before, winsaveview(), context)
+        endfor
+      endfor
+    endfor
+  endfor
+
+  bwipe!
+endfunc
+
+func Test_scrolloffpad_ctrl_e_at_eof()
+  new
+  call setline(1, map(range(1, 80), 'printf("line %d", v:val)'))
+
+  for height in [11, 12]
+    execute 'resize ' .. height
+    for so in [1, 999]
+      let &l:scrolloff = so
+      for sop in [0, 1]
+        let &l:scrolloffpad = sop
+        for endcmd in ['ggG', 'ggGzb']
+          let context = printf('height=%d so=%d sop=%d %s',
+                \ height, so, sop, endcmd)
+          execute 'normal! ' .. endcmd
+          let expected_view = winsaveview()
+          let expected_view.topline += 1
+
+          execute "normal! \<C-E>"
+          call assert_equal(expected_view, winsaveview(), context)
+        endfor
+      endfor
+    endfor
+  endfor
 
   bwipe!
 endfunc
@@ -2149,6 +2287,43 @@ func Test_smoothscroll_textoff_showbreak()
   call assert_equal('running', status)
   call assert_true(filereadable(donefile))
   call StopVimInTerminal(buf)
+endfunc
+
+" comp_botline() reuses the line heights computed for the previous redraw.
+" Changing an option that affects the displayed height of a line must
+" invalidate that cache.  Check that scrolling after such a change gives the
+" same result as setting the option before scrolling.
+func Test_botline_cache_invalidated_on_option_change()
+  " Resizing the height of a vertically split window pushes the reclaimed
+  " lines into 'cmdheight'; save and restore it so the following tests run
+  " with a full-height screen.
+  let save_cmdheight = &cmdheight
+  vnew
+  vertical resize 40
+  resize 10
+  setlocal scrolloff=0
+  let lines = map(range(1, 400), {_, v -> printf('%4d ', v) .. repeat('word ', 30)})
+
+  for opt in ['number', 'breakindent', 'foldcolumn=4', 'list', 'nowrap']
+    " Reference: option set before scrolling, so no stale cache is possible.
+    call setline(1, lines)
+    setlocal wrap nonumber nobreakindent nolist foldcolumn=0
+    exe 'setlocal ' .. opt
+    normal! 120Gzt
+    redraw
+    let expected = getwininfo(win_getid())[0].botline
+
+    " Same option applied after scrolling, when the cache is populated.
+    setlocal wrap nonumber nobreakindent nolist foldcolumn=0
+    normal! 120Gzt
+    redraw
+    exe 'setlocal ' .. opt
+    redraw
+    call assert_equal(expected, getwininfo(win_getid())[0].botline, 'setlocal ' .. opt)
+  endfor
+
+  bwipe!
+  let &cmdheight = save_cmdheight
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

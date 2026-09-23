@@ -449,6 +449,24 @@ def Test_block_local_vars_with_func()
       assert_equal(['foo', 'bar'], Func())
   END
   v9.CheckScriptSuccess(lines)
+
+  # also when the variables are used in a lambda inside the function
+  lines =<< trim END
+      vim9script
+      if true
+        var foo = 'foo'
+        if true
+          var bar = 'bar'
+          def Func(): list<string>
+            var Lambda = () => [foo, bar]
+            return Lambda()
+          enddef
+          defcompile
+        endif
+      endif
+      assert_equal(['foo', 'bar'], Func())
+  END
+  v9.CheckScriptSuccess(lines)
 enddef
 
 " legacy func for command that's defined later
@@ -465,6 +483,47 @@ def Test_command_block()
 
   delcommand SomeCommand
   unlet g:someVar
+enddef
+
+" Test for a {} block in an :autocmd nested in another :autocmd
+def Test_nested_autocmd_block_in_def()
+  au CursorHold * autocmd BufNew *.xml {
+        g:nestedVar = 'nested'
+      }
+  doautocmd CursorHold
+  split other.xml
+  assert_equal('nested', g:nestedVar)
+
+  bwipe!
+  au! CursorHold
+  au! BufNew *.xml
+  unlet g:nestedVar
+enddef
+
+" A trailing "{" that is an argument of the command does not start a block.
+" Use a separate script, when the "{" is taken for a block the rest of this
+" file would be swallowed until a line starting with "}".
+def Test_autocmd_trailing_curly_no_block_in_def()
+  var lines =<< trim END
+      vim9script
+      def Setup()
+        au CursorHold * normal! {
+        g:afterCurly = 'reached'
+      enddef
+      Setup()
+  END
+  v9.CheckScriptSuccess(lines)
+  assert_equal('reached', g:afterCurly)
+
+  new
+  setline(1, ['one', '', 'two'])
+  cursor(3, 1)
+  doautocmd CursorHold
+  assert_equal(2, line('.'))
+
+  bwipe!
+  unlet g:afterCurly
+  au! CursorHold
 enddef
 
 " Test for using heredoc in a :command command block
@@ -1975,6 +2034,8 @@ def Test_no_insert_xit()
   v9.CheckDefExecFailure(['a = 1'], 'E1100:')
   v9.CheckDefExecFailure(['c = 1'], 'E1100:')
   v9.CheckDefExecFailure(['i = 1'], 'E1100:')
+  v9.CheckDefExecFailure(['k = 1'], 'E1100:')
+  v9.CheckDefExecFailure(['o = 1'], 'E1100:')
   v9.CheckDefExecFailure(['t = 1'], 'E1100:')
   v9.CheckDefExecFailure(['x = 1'], 'E1100:')
 
@@ -1984,11 +2045,14 @@ def Test_no_insert_xit()
   v9.CheckScriptFailure(['vim9script', 'c'], 'E1100:')
   v9.CheckScriptFailure(['vim9script', 'i = 1'], 'E488:')
   v9.CheckScriptFailure(['vim9script', 'i'], 'E1100:')
+  v9.CheckScriptFailure(['vim9script', 'k = 1'], 'E1100:')
+  v9.CheckScriptFailure(['vim9script', 'k'], 'E1100:')
   v9.CheckScriptFailure(['vim9script', 'o = 1'], 'E1100:')
   v9.CheckScriptFailure(['vim9script', 'o'], 'E1100:')
-  v9.CheckScriptFailure(['vim9script', 't'], 'E1100:')
   v9.CheckScriptFailure(['vim9script', 't = 1'], 'E1100:')
+  v9.CheckScriptFailure(['vim9script', 't'], 'E1100:')
   v9.CheckScriptFailure(['vim9script', 'x = 1'], 'E1100:')
+  v9.CheckScriptFailure(['vim9script', 'x'], 'E1100:')
 enddef
 
 def s:IfElse(what: number): string
@@ -2897,6 +2961,36 @@ def Test_for_loop_with_closure()
         assert_equal(3 .. 'd', lv_list[i]())
         assert_equal(i .. c, copy_list[i]())
       endfor
+  END
+  v9.CheckDefAndScriptSuccess(lines)
+
+  # assigning to a variable declared in the loop from a closure
+  lines =<< trim END
+      for i in range(3)
+        var inloop = 0
+        var F = () => {
+              inloop = i + 1
+            }
+        F()
+        assert_equal(i + 1, inloop)
+      endfor
+  END
+  v9.CheckDefAndScriptSuccess(lines)
+
+  # same in a nested loop
+  lines =<< trim END
+      var result: list<number>
+      for i in range(2)
+        for j in range(2)
+          var inloop = 0
+          var F = () => {
+                inloop = i * 10 + j
+              }
+          F()
+          result += [inloop]
+        endfor
+      endfor
+      assert_equal([0, 1, 10, 11], result)
   END
   v9.CheckDefAndScriptSuccess(lines)
 enddef
@@ -4695,10 +4789,12 @@ def Test_invoke_normal_in_visual_mode()
 enddef
 
 def Test_white_space_after_command()
+  # "exit_cb" is not ":exit"; nothing must be executed.
   var lines =<< trim END
     exit_cb: Func})
   END
-  v9.CheckDefAndScriptFailure(lines, 'E1144:', 1)
+  v9.CheckDefAndScriptFailure(lines, ['E476: Invalid command: exit_cb: Func})',
+    'E492: Not an editor command: exit_cb: Func})'], 1)
 
   lines =<< trim END
     e#
@@ -4755,6 +4851,11 @@ def Test_unsupported_commands()
       :1k a
   END
   v9.CheckDefAndScriptFailure(lines, 'E481:')
+
+  lines =<< trim END
+    o
+  END
+  v9.CheckDefAndScriptFailure(lines, 'E1100:')
 
   lines =<< trim END
     t
@@ -6095,6 +6196,25 @@ def Test_builtin_fullcommand()
   assert_equal('', fullcommand('fina', true))
   assert_equal('final', fullcommand('final', true))
   assert_equal('', fullcommand('finall', true))
+enddef
+
+" This used to cause a stack-use-after-return under ASAN
+" Set custom ASAN_OPTIONS, to force an abort
+def Test_string_reduce_error_funccal()
+  CheckAsan
+
+  var save = $ASAN_OPTIONS
+  defer setenv('ASAN_OPTIONS', save)
+  $ASAN_OPTIONS = 'detect_stack_use_after_return=1:abort_on_error=1:' .. save
+
+  var lines =<< trim END
+      vim9script
+      silent! echo reduce("abc", (acc, c) => [][0])
+      qall!
+  END
+  writefile(lines, 'Xreducefc.vim', 'D')
+  g:RunVim([], [], '-u NONE -S Xreducefc.vim')
+  assert_equal(0, v:shell_error)
 enddef
 
 " Keep this last, it messes up highlighting.

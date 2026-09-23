@@ -23,7 +23,7 @@ static garray_T		ga_loaded = {0, 0, sizeof(char_u *), 4, NULL};
 static int		last_current_SID_seq = 0;
 #endif
 
-static int do_source_ext(char_u *fname, int check_other, int is_vimrc, int *ret_sid, exarg_T *eap, int clearvars);
+static int do_source_ext(char_u *fname, int check_other, int is_vimrc, int *ret_sid, exarg_T *eap, int clearvars, int dryrun);
 
 /*
  * Initialize the execution stack.
@@ -166,10 +166,11 @@ estack_sfile(estack_arg_T which UNUSED)
 	    if (entry->es_type == ETYPE_UFUNC || entry->es_type == ETYPE_AUCMD)
 	    {
 		sctx_T *def_ctx = entry->es_type == ETYPE_UFUNC
-				      ? &entry->es_info.ufunc->uf_script_ctx
-				      : acp_script_ctx(entry->es_info.aucmd);
+			      ? &entry->es_info.ufunc->uf_script_ctx
+			      : entry->es_info.aucmd != NULL
+				  ? acp_script_ctx(entry->es_info.aucmd) : NULL;
 
-		return def_ctx->sc_sid > 0
+		return def_ctx != NULL && def_ctx->sc_sid > 0
 			   ? vim_strsave(SCRIPT_ITEM(def_ctx->sc_sid)->sn_name)
 			   : NULL;
 	    }
@@ -322,11 +323,15 @@ stacktrace_create(void)
 	}
 	else if (entry->es_type == ETYPE_AUCMD)
 	{
-	    sctx_T sctx = *acp_script_ctx(entry->es_info.aucmd);
-	    char_u *filepath = sctx.sc_sid > 0 ?
-				   get_scriptname(sctx.sc_sid) : (char_u *)"";
+	    // The autocmd may not have a matching pattern yet, in which case
+	    // es_info.aucmd is still NULL.
+	    sctx_T *sctx = entry->es_info.aucmd != NULL
+			       ? acp_script_ctx(entry->es_info.aucmd) : NULL;
+	    char_u *filepath = sctx != NULL && sctx->sc_sid > 0 ?
+				   get_scriptname(sctx->sc_sid) : (char_u *)"";
 
-	    lnum += sctx.sc_lnum;
+	    if (sctx != NULL)
+		lnum += sctx->sc_lnum;
 	    stacktrace_push_item(l, NULL, entry->es_name, lnum, filepath);
 	}
     }
@@ -662,7 +667,7 @@ do_in_path(
 		    && !after_pathsep(buf.string, buf.string + buf.length))
 		{
 		    STRCPY(buf.string + buf.length, PATHSEPSTR);
-		    buf.length += STRLEN_LITERAL(PATHSEPSTR);
+		    buf.length += sizeof(PATHSEP);
 		}
 		STRCPY(buf.string + buf.length, prefix);
 		buf.length += prefixlen;
@@ -1393,6 +1398,7 @@ ExpandPackAddDir(
 cmd_source(char_u *fname, exarg_T *eap)
 {
     int clearvars = FALSE;
+    int dryrun = FALSE;
 
     if (*fname != NUL && STRNCMP(fname, "++clear", 7) == 0)
     {
@@ -1404,6 +1410,12 @@ cmd_source(char_u *fname, exarg_T *eap)
 	    semsg(_(e_invalid_argument_str), eap->arg);
 	    return;
 	}
+    }
+    else if (STRNCMP(fname, "++dryrun", 8) == 0
+				    && (fname[8] == NUL || fname[8] == ' '))
+    {
+	dryrun = TRUE;
+	fname = skipwhite(fname + 8);
     }
 
     if (*fname != NUL && eap != NULL && eap->addr_count > 0)
@@ -1420,7 +1432,7 @@ cmd_source(char_u *fname, exarg_T *eap)
 	    emsg(_(e_argument_required));
 	else
 	    // source ex commands from the current buffer
-	    do_source_ext(NULL, FALSE, DOSO_NONE, NULL, eap, clearvars);
+	    do_source_ext(NULL, FALSE, DOSO_NONE, NULL, eap, clearvars, dryrun);
     }
     else if (eap != NULL && eap->forceit)
 	// ":source!": read Normal mode commands
@@ -1437,7 +1449,8 @@ cmd_source(char_u *fname, exarg_T *eap)
 						 );
 
     // ":source" read ex commands
-    else if (do_source(fname, FALSE, DOSO_NONE, NULL) == FAIL)
+    else if (do_source_ext(fname, FALSE, DOSO_NONE, NULL, NULL, FALSE, dryrun)
+								       == FAIL)
 	semsg(_(e_cant_open_file_str), fname);
 }
 
@@ -1634,7 +1647,8 @@ do_source_ext(
     int		is_vimrc,	    // DOSO_ value
     int		*ret_sid UNUSED,
     exarg_T	*eap,
-    int		clearvars UNUSED)
+    int		clearvars UNUSED,
+    int		dryrun UNUSED)
 {
     source_cookie_T	    cookie;
     char_u		    *p;
@@ -1642,7 +1656,11 @@ do_source_ext(
     char_u		    *fname_exp = NULL;
     char_u		    *firstline = NULL;
     int			    retval = FAIL;
+    int			    source_autocmds = TRUE;
     sctx_T		    save_current_sctx;
+#ifdef FEAT_EVAL
+    int			    save_source_dryrun = source_dryrun;
+#endif
 #ifdef STARTUPTIME
     struct timeval	    tv_rel;
     struct timeval	    tv_start;
@@ -1698,8 +1716,16 @@ do_source_ext(
     }
 #endif
 
+#ifdef FEAT_EVAL
+    // Also applies to the scripts this one imports.
+    if (dryrun)
+	source_dryrun = TRUE;
+    // Nothing is sourced in a dry run, no Source* autocommand either.
+    source_autocmds = !source_dryrun;
+#endif
+
     // Apply SourceCmd autocommands, they should get the file and source it.
-    if (has_autocmd(EVENT_SOURCECMD, fname_exp, NULL)
+    if (source_autocmds && has_autocmd(EVENT_SOURCECMD, fname_exp, NULL)
 	    && apply_autocmds(EVENT_SOURCECMD, fname_exp, fname_exp,
 							       FALSE, curbuf))
     {
@@ -1716,7 +1742,8 @@ do_source_ext(
     }
 
     // Apply SourcePre autocommands, they may get the file.
-    apply_autocmds(EVENT_SOURCEPRE, fname_exp, fname_exp, FALSE, curbuf);
+    if (source_autocmds)
+	apply_autocmds(EVENT_SOURCEPRE, fname_exp, fname_exp, FALSE, curbuf);
 
     if (!cookie.source_from_buf)
     {
@@ -1949,6 +1976,18 @@ do_source_ext(
 				     DOCMD_VERBOSE|DOCMD_NOWAIT|DOCMD_REPEAT);
     retval = OK;
 
+#ifdef FEAT_EVAL
+    if (dryrun)
+    {
+	exarg_T	ea;
+
+	// Compile what was defined.
+	CLEAR_FIELD(ea);
+	ea.arg = (char_u *)"";
+	ex_defcompile(&ea);
+    }
+#endif
+
 #ifdef FEAT_PROFILE
     if (do_profiling == PROF_YES)
     {
@@ -1988,7 +2027,7 @@ do_source_ext(
     }
 #endif
 
-    if (!got_int)
+    if (!got_int && source_autocmds)
 	trigger_source_post = TRUE;
 
 #ifdef FEAT_EVAL
@@ -2080,6 +2119,7 @@ theend:
     sticky_cmdmod_flags = save_sticky_cmdmod_flags;
 #ifdef FEAT_EVAL
     estack_compiling = save_estack_compiling;
+    source_dryrun = save_source_dryrun;
 #endif
     return retval;
 }
@@ -2091,7 +2131,8 @@ do_source(
     int		is_vimrc,	    // DOSO_ value
     int		*ret_sid)
 {
-    return do_source_ext(fname, check_other, is_vimrc, ret_sid, NULL, FALSE);
+    return do_source_ext(fname, check_other, is_vimrc, ret_sid, NULL, FALSE,
+									FALSE);
 }
 
 
@@ -2342,31 +2383,46 @@ f_getscriptinfo(typval_T *argvars, typval_T *rettv)
 	    continue;
 
 	if ((d = dict_alloc()) == NULL
-		|| list_append_dict(l, d) == FAIL
-		|| dict_add_string(d, "name", si->sn_name) == FAIL
+		|| list_append_dict(l, d) == FAIL)
+	{
+	    dict_unref(d);
+	    goto theend;
+	}
+	if (dict_add_string(d, "name", si->sn_name) == FAIL
 		|| dict_add_number(d, "sid", i) == FAIL
 		|| dict_add_number(d, "sourced", si->sn_sourced_sid) == FAIL
 		|| dict_add_number(d, "version", si->sn_version) == FAIL
 		|| dict_add_bool(d, "autoload",
 				si->sn_state == SN_STATE_NOT_LOADED) == FAIL)
-	    return;
+	    goto theend;
 
 	// When a script ID is specified, return information about only the
 	// specified script, and add the script-local variables and functions.
 	if (sid > 0)
 	{
 	    dict_T	*var_dict;
+	    list_T	*fn_list;
 
 	    var_dict = dict_copy(&si->sn_vars->sv_dict, TRUE, TRUE,
 								get_copyID());
-	    if (var_dict == NULL
-		    || dict_add_dict(d, "variables", var_dict) == FAIL
-		    || dict_add_list(d, "functions",
-					get_script_local_funcs(sid)) == FAIL)
-		return;
+	    if (var_dict == NULL)
+		goto theend;
+	    if (dict_add_dict(d, "variables", var_dict) == FAIL)
+	    {
+		dict_unref(var_dict);
+		goto theend;
+	    }
+	    --var_dict->dv_refcount;
+	    fn_list = get_script_local_funcs(sid);
+	    if (fn_list == NULL || dict_add_list(d, "functions", fn_list) == FAIL)
+	    {
+		list_unref(fn_list);
+		goto theend;
+	    }
 	}
     }
 
+theend:
     vim_regfree(regmatch.regprog);
     vim_free(pat);
 }

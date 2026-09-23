@@ -1,4 +1,4 @@
-/* evalvars.c */
+// evalvars.c
 void evalvars_init(void);
 void evalvars_clear(void);
 int garbage_collect_globvars(int copyID);
@@ -77,6 +77,7 @@ void unref_var_dict(dict_T *dict);
 void vars_clear(hashtab_T *ht);
 void vars_clear_ext(hashtab_T *ht, int free_val);
 void delete_var(hashtab_T *ht, hashitem_T *hi);
+void delete_autoload_export_vars(char_u *prefix);
 int before_set_vvar(char_u *varname, dictitem_T *di, typval_T *tv, int copy, int *type_error);
 void set_var(char_u *name, typval_T *tv, int copy);
 int set_var_const(char_u *name, scid_T sid, type_T *type_arg, typval_T *tv_arg, int copy, int flags_arg, int var_idx);
@@ -111,4 +112,4 @@ void set_callback(callback_T *dest, callback_T *src);
 void copy_callback(callback_T *dest, callback_T *src);
 void expand_autload_callback(callback_T *cb);
 void free_callback(callback_T *callback);
-/* vim: set ft=c : */
+// vim: ft=c

@@ -281,12 +281,13 @@ enum key_extra
     , KE_ESC = 107		// used for K_ESC
     , KE_WILD = 108		// triggers wildmode completion
     , KE_OSC = 109		// finished OSC sequence
+    , KE_COMPLETE_DELAY = 110	// 'autocompletedelay' expired
 #ifdef FEAT_GUI_MACVIM
-    , KE_SWIPELEFT = 110	// Swipe trackpad left
-    , KE_SWIPERIGHT = 111	// Swipe trackpad right
-    , KE_SWIPEUP = 112		// Swipe trackpad up
-    , KE_SWIPEDOWN = 113	// Swipe trackpad down
-    , KE_FORCECLICK = 114	// Force click on trackpad
+    , KE_SWIPELEFT = 111	// Swipe trackpad left
+    , KE_SWIPERIGHT = 112	// Swipe trackpad right
+    , KE_SWIPEUP = 113		// Swipe trackpad up
+    , KE_SWIPEDOWN = 114	// Swipe trackpad down
+    , KE_FORCECLICK = 115	// Force click on trackpad
 #endif
 };
 
@@ -496,6 +497,7 @@ enum key_extra
 #define K_FOCUSLOST	TERMCAP2KEY(KS_EXTRA, KE_FOCUSLOST)
 
 #define K_CURSORHOLD	TERMCAP2KEY(KS_EXTRA, KE_CURSORHOLD)
+#define K_COMPLETE_DELAY TERMCAP2KEY(KS_EXTRA, KE_COMPLETE_DELAY)
 
 #define K_COMMAND	TERMCAP2KEY(KS_EXTRA, KE_COMMAND)
 #define K_SCRIPT_COMMAND TERMCAP2KEY(KS_EXTRA, KE_SCRIPT_COMMAND)

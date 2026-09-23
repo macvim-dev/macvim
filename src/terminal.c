@@ -1107,7 +1107,7 @@ term_write_session(FILE *fd, win_T *wp, hashtab_T *terminal_bufs)
 	if (!HASHITEM_EMPTY(entry))
 	{
 	    // we've already opened this terminal buffer
-	    if (fprintf(fd, "execute 'buffer ' . term_buf_%d", bufnr) < 0)
+	    if (fprintf(fd, "execute 'buffer ' .. term_buf_%d", bufnr) < 0)
 		return FAIL;
 	    return put_eol(fd);
 	}
@@ -1116,15 +1116,28 @@ term_write_session(FILE *fd, win_T *wp, hashtab_T *terminal_bufs)
     // Create the terminal and run the command.  This is not without
     // risk, but let's assume the user only creates a session when this
     // will be OK.
-    if (fprintf(fd, "terminal ++curwin ++cols=%d ++rows=%d ",
-		term->tl_cols, term->tl_rows) < 0)
+    if (fprintf(fd, "exe ':terminal ++curwin"
+		" ++cols=' .. ((&columns * %d + %ld) / %ld)"
+		" .. ' ++rows=' .. ((&lines * %d + %ld) / %ld) ",
+		term->tl_cols, Columns / 2, Columns,
+		term->tl_rows, Rows / 2, Rows) < 0)
 	return FAIL;
 # ifdef MSWIN
-    if (fprintf(fd, "++type=%s ", term->tl_job->jv_tty_type) < 0)
+    if (fprintf(fd, ".. ' ++type=%s' ", term->tl_job->jv_tty_type) < 0)
 	return FAIL;
 # endif
-    if (term->tl_command != NULL && fputs((char *)term->tl_command, fd) < 0)
-	return FAIL;
+    if (term->tl_command != NULL)
+    {
+	char_u *quoted_command = string_quote(term->tl_command, FALSE);
+	if (quoted_command == NULL)
+	    return FAIL;
+
+	int ret = fputs(".. ' ' .. ", fd) < 0
+		    || fputs((char *)quoted_command, fd) < 0;
+	vim_free(quoted_command);
+	if (ret)
+	    return FAIL;
+    }
     if (put_eol(fd) != OK)
 	return FAIL;
 
@@ -4450,19 +4463,6 @@ term_get_attr(win_T *wp, linenr_T lnum, int col)
 }
 
 /*
- * Return the screen attribute for the terminal's default color.  Used to tell
- * whether a line's fill (background) is the default or was set explicitly.
- */
-    int
-term_get_default_attr(win_T *wp)
-{
-    term_T	*term = wp->w_buffer->b_term;
-    cellattr_T	*cellattr = &term->tl_default_color;
-
-    return cell2attr(term, wp, &cellattr->attrs, &cellattr->fg, &cellattr->bg);
-}
-
-/*
  * Convert a cterm color number 0 - 255 to RGB.
  * This is compatible with xterm.
  */
@@ -6444,7 +6444,8 @@ f_term_getcursor(typval_T *argvars, typval_T *rettv)
 	    ? !term->tl_cursor_blink : term->tl_cursor_blink);
     dict_add_number(d, "shape", term->tl_cursor_shape);
     dict_add_string(d, "color", cursor_color_get(term->tl_cursor_color));
-    list_append_dict(l, d);
+    if (list_append_dict(l, d) == FAIL)
+	dict_unref(d);
 }
 
 /*
@@ -6855,7 +6856,11 @@ f_term_scrape(typval_T *argvars, typval_T *rettv)
 	dcell = dict_alloc();
 	if (dcell == NULL)
 	    break;
-	list_append_dict(l, dcell);
+	if (list_append_dict(l, dcell) == FAIL)
+	{
+	    dict_unref(dcell);
+	    break;
+	}
 
 	dict_add_string_len(dcell, "chars", mbs, (int)mbslen);
 

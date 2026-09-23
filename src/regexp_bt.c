@@ -245,6 +245,7 @@ static int	num_complex_braces; // Complex \{...} count
 static char_u	*regcode;	// Code-emit pointer, or JUST_CALC_SIZE
 static long	regsize;	// Code size.
 static int	reg_toolong;	// TRUE when offset out of range
+static int	bt_reg_parse_depth;	// nesting depth in reg()
 static char_u	had_endbrace[NSUBEXP];	// flags, TRUE if end of () found
 static long	brace_min[10];	// Minimums for complex brace repeats
 static long	brace_max[10];	// Maximums for complex brace repeats
@@ -477,6 +478,7 @@ regcomp_start(
 #endif
     regsize = 0L;
     reg_toolong = FALSE;
+    bt_reg_parse_depth = 0;
     regflags = 0;
 #if defined(FEAT_SYN_HL)
     had_eol = FALSE;
@@ -2383,10 +2385,17 @@ reg(
     else
 	ret = NULL;
 
+    if (bt_reg_parse_depth >= REG_MAX_PAREN_DEPTH)
+	EMSG_RET_NULL(_(e_command_too_complex));
+    ++bt_reg_parse_depth;
+
     // Pick up the branches, linking them together.
     br = regbranch(&flags);
     if (br == NULL)
-	return NULL;
+    {
+	ret = NULL;
+	goto theend;
+    }
     if (ret != NULL)
 	regtail(ret, br);	// [MZ]OPEN -> first.
     else
@@ -2402,7 +2411,10 @@ reg(
 	skipchr();
 	br = regbranch(&flags);
 	if (br == NULL || reg_toolong)
-	    return NULL;
+	{
+	    ret = NULL;
+	    goto theend;
+	}
 	regtail(ret, br);	// BRANCH -> BRANCH.
 	if (!(flags & HASWIDTH))
 	    *flagp &= ~HASWIDTH;
@@ -2427,26 +2439,56 @@ reg(
     {
 #ifdef FEAT_SYN_HL
 	if (paren == REG_ZPAREN)
-	    EMSG_RET_NULL(_(e_unmatched_z));
+	{
+	    emsg(_(e_unmatched_z));
+	    rc_did_emsg = TRUE;
+	    ret = NULL;
+	    goto theend;
+	}
 	else
 #endif
-	    if (paren == REG_NPAREN)
-	    EMSG2_RET_NULL(_(e_unmatched_str_percent_open), reg_magic == MAGIC_ALL);
+	if (paren == REG_NPAREN)
+	{
+	    semsg(_(e_unmatched_str_percent_open),
+				       reg_magic == MAGIC_ALL ? "" : "\\");
+	    rc_did_emsg = TRUE;
+	    ret = NULL;
+	    goto theend;
+	}
 	else
-	    EMSG2_RET_NULL(_(e_unmatched_str_open), reg_magic == MAGIC_ALL);
+	{
+	    semsg(_(e_unmatched_str_open),
+				       reg_magic == MAGIC_ALL ? "" : "\\");
+	    rc_did_emsg = TRUE;
+	    ret = NULL;
+	    goto theend;
+	}
     }
     else if (paren == REG_NOPAREN && peekchr() != NUL)
     {
 	if (curchr == Magic(')'))
-	    EMSG2_RET_NULL(_(e_unmatched_str_close), reg_magic == MAGIC_ALL);
+	{
+	    semsg(_(e_unmatched_str_close),
+				       reg_magic == MAGIC_ALL ? "" : "\\");
+	    rc_did_emsg = TRUE;
+	    ret = NULL;
+	    goto theend;
+	}
 	else
-	    EMSG_RET_NULL(_(e_trailing_characters));	// "Can't happen".
-	// NOTREACHED
+	{
+	    emsg(_(e_trailing_characters));	// "Can't happen".
+	    rc_did_emsg = TRUE;
+	    ret = NULL;
+	    goto theend;
+	}
     }
     // Here we set the flag allowing back references to this set of
     // parentheses.
     if (paren == REG_PAREN)
 	had_endbrace[parno] = TRUE;	// have seen the close paren
+
+theend:
+    --bt_reg_parse_depth;
     return ret;
 }
 
@@ -3146,7 +3188,7 @@ regstack_push(regstate_T state, char_u *scan)
 	emsg(_(e_pattern_uses_more_memory_than_maxmempattern));
 	return NULL;
     }
-    if (ga_grow(&regstack, sizeof(regitem_T)) == FAIL)
+    if (GA_GROW_FAILS(&regstack, (int)sizeof(regitem_T)))
 	return NULL;
 
     rp = (regitem_T *)((char *)regstack.ga_data + regstack.ga_len);
@@ -3882,7 +3924,7 @@ regmatch(
 		if (i == backpos.ga_len)
 		{
 		    // First time at this BACK, make room to store the pos.
-		    if (ga_grow(&backpos, 1) == FAIL)
+		    if (GA_GROW_FAILS(&backpos, 1))
 			status = RA_FAIL;
 		    else
 		    {
@@ -4282,7 +4324,7 @@ regmatch(
 			emsg(_(e_pattern_uses_more_memory_than_maxmempattern));
 			status = RA_FAIL;
 		    }
-		    else if (ga_grow(&regstack, sizeof(regstar_T)) == FAIL)
+		    else if (GA_GROW_FAILS(&regstack, (int)sizeof(regstar_T)))
 			status = RA_FAIL;
 		    else
 		    {
@@ -4327,7 +4369,7 @@ regmatch(
 		emsg(_(e_pattern_uses_more_memory_than_maxmempattern));
 		status = RA_FAIL;
 	    }
-	    else if (ga_grow(&regstack, sizeof(regbehind_T)) == FAIL)
+	    else if (GA_GROW_FAILS(&regstack, (int)sizeof(regbehind_T)))
 		status = RA_FAIL;
 	    else
 	    {

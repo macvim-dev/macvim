@@ -408,6 +408,9 @@ static int	nextchr;	// used for ungetchr()
 #define REG_ZPAREN	2	// \z(\)
 #define REG_NPAREN	3	// \%(\)
 
+// Limit recursive parsing of nested regexp atoms to avoid using up the C stack.
+#define REG_MAX_PAREN_DEPTH	1000
+
 typedef struct
 {
     char_u	*regparse;
@@ -877,7 +880,7 @@ peekchr(void)
 		     * Next character can never be (made) magic?
 		     * Then backslashing it won't do anything.
 		     */
-		    if (has_mbyte)
+		    if (has_mbyte && c >= 0x80)
 			curchr = (*mb_ptr2char)(regparse + 1);
 		    else
 			curchr = c;
@@ -886,7 +889,9 @@ peekchr(void)
 	    }
 
 	default:
-	    if (has_mbyte)
+	    // curchr already holds regparse[0]; only a multi-byte lead byte
+	    // needs decoding.
+	    if (has_mbyte && curchr >= 0x80)
 		curchr = (*mb_ptr2char)(regparse);
     }
 
@@ -907,8 +912,14 @@ skipchr(void)
     if (regparse[prevchr_len] != NUL)
     {
 	if (enc_utf8)
-	    // exclude composing chars that mb_ptr2len does include
-	    prevchr_len += utf_ptr2len(regparse + prevchr_len);
+	{
+	    // Exclude composing chars that mb_ptr2len does include.  A byte
+	    // below 0x80 is always a single character.
+	    if (regparse[prevchr_len] < 0x80)
+		++prevchr_len;
+	    else
+		prevchr_len += utf_ptr2len(regparse + prevchr_len);
+	}
 	else if (has_mbyte)
 	    prevchr_len += (*mb_ptr2len)(regparse + prevchr_len);
 	else
@@ -1756,7 +1767,7 @@ cstrncmp(char_u *s1, char_u *s2, int *n)
 	// count the number of characters for byte-length of s1
 	while (n1 > 0 && *p != NUL)
 	{
-	    n1 -= mb_ptr2len(s1);
+	    n1 -= mb_ptr2len(p);
 	    MB_PTR_ADV(p);
 	    n2++;
 	}
@@ -3033,6 +3044,12 @@ free_regexp_stuff(void)
     ga_clear(&backpos);
     vim_free(reg_tofree);
     vim_free(reg_prev_sub);
+    vim_free(post_start);   // NFA postfix buffer, reused across compilations
+    post_start = NULL;
+    post_start_len = 0;
+    vim_free(nfa_stack);    // NFA fragment stack, reused across compilations
+    nfa_stack = NULL;
+    nfa_stack_len = 0;
 }
 #endif
 
@@ -3111,15 +3128,23 @@ vim_regexec_string(
 	char_u *pat = vim_strsave(((nfa_regprog_T *)rmp->regprog)->pattern);
 
 	p_re = BACKTRACKING_ENGINE;
-	vim_regfree(rmp->regprog);
 	if (pat != NULL)
 	{
+	    regprog_T *prev_prog = rmp->regprog;
+
 #ifdef FEAT_EVAL
 	    report_re_switch(pat);
 #endif
 	    rmp->regprog = vim_regcomp(pat, re_flags);
-	    if (rmp->regprog != NULL)
+	    if (rmp->regprog == NULL)
 	    {
+		// Somehow compiling the pattern failed now, put back the
+		// previous one to avoid "regprog" becoming NULL.
+		rmp->regprog = prev_prog;
+	    }
+	    else
+	    {
+		vim_regfree(prev_prog);
 		rmp->regprog->re_in_use = TRUE;
 		result = rmp->regprog->engine->regexec_nl(rmp, line, col, nl);
 		rmp->regprog->re_in_use = FALSE;

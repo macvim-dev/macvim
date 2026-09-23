@@ -1,4 +1,4 @@
-/* screen.c */
+// screen.c
 int conceal_cursor_line(win_T *wp);
 void conceal_check_cursor_line(int was_concealed);
 int get_win_attr(win_T *wp);
@@ -36,6 +36,7 @@ int can_clear(char_u *p);
 void screen_start(void);
 void windgoto(int row, int col);
 void setcursor(void);
+int cursor_screen_cells(void);
 void setcursor_mayforce(int force);
 int win_ins_lines(win_T *wp, int row, int line_count, int invalid, int mayclear);
 int win_del_lines(win_T *wp, int row, int line_count, int invalid, int mayclear, int clear_attr);
@@ -60,4 +61,4 @@ char *set_listchars_option(win_T *wp, char_u *val, int apply, char *errbuf, size
 char_u *get_fillchars_name(expand_T *xp, int idx);
 char_u *get_listchars_name(expand_T *xp, int idx);
 char *check_chars_options(void);
-/* vim: set ft=c : */
+// vim: ft=c

@@ -1479,6 +1479,30 @@ showmatches_oneline(
 }
 
 /*
+ * Show the matches in a popup menu, with the first one selected unless
+ * "noselect" is set.
+ */
+    static int
+show_pum_matches(
+	cmdline_info_T	*ccline,
+	expand_T	*xp,
+	char_u		**matches,
+	int		numMatches,
+	int		showtail,
+	int		noselect)
+{
+    int	retval = cmdline_pum_create(ccline, xp, matches, numMatches, showtail);
+
+    if (retval == EXPAND_OK)
+    {
+	compl_selected = noselect ? -1 : 0;
+	pum_clear();
+	cmdline_pum_display();
+    }
+    return retval;
+}
+
+/*
  * Display completion matches.
  * Returns EXPAND_NOTHING when the character that triggered expansion should be
  *   inserted as a normal character.
@@ -1522,17 +1546,8 @@ showmatches(
 
     if (display_wildmenu && !display_list
 	    && vim_strchr(p_wop, WOP_PUM) != NULL)
-    {
-	int retval = cmdline_pum_create(ccline, xp, matches, numMatches,
-		showtail && !cmdline_unchanged);
-	if (retval == EXPAND_OK)
-	{
-	    compl_selected = noselect ? -1 : 0;
-	    pum_clear();
-	    cmdline_pum_display();
-	}
-	return retval;
-    }
+	return show_pum_matches(ccline, xp, matches, numMatches,
+		showtail && !cmdline_unchanged, noselect);
 
     if (display_list)
     {
@@ -1607,6 +1622,18 @@ showmatches(
 	// we redraw the command below the lines that we have just listed
 	// This is a bit tricky, but it saves a lot of screen updating.
 	cmdline_row = msg_row;	// will put it back later
+    }
+
+    // "list" and "full" in the same 'wildmode' phase: the matches are listed
+    // above and shown in the menu as well.
+    if (display_wildmenu && display_list)
+    {
+	if (vim_strchr(p_wop, WOP_PUM) != NULL)
+	    (void)show_pum_matches(ccline, xp, matches, numMatches,
+		    showtail && !cmdline_unchanged, noselect);
+	else
+	    win_redr_status_matches(xp, numMatches, matches,
+		    noselect ? -1 : 0, showtail);
     }
 
     if (xp->xp_numfiles == -1)
@@ -3142,11 +3169,16 @@ set_cmd_context(
     int		old_char = NUL;
     char_u	*nextcomm;
 
-    // Avoid a UMR warning from Purify, only save the character if it has been
-    // written before.
+    // Only save and overwrite the character when it is not the NUL terminator
+    // already.  "str" may be a read-only empty string: tv_get_string() falls
+    // back to a "" literal for a NULL string or on a type error, and writing
+    // at "col" would then crash.
+    // This also avoids a UMR warning from Purify.
     if (col < len)
+    {
 	old_char = str[col];
-    str[col] = NUL;
+	str[col] = NUL;
+    }
     nextcomm = str;
 
 #ifdef FEAT_EVAL
@@ -3177,7 +3209,8 @@ set_cmd_context(
     xp->xp_line = str;
     xp->xp_col = col;
 
-    str[col] = old_char;
+    if (col < len)
+	str[col] = old_char;
 }
 
 /*
@@ -3355,7 +3388,9 @@ expand_files_and_dirs(
     if (free_pat)
 	vim_free(pat);
 #ifdef BACKSLASH_IN_FILENAME
-    if (p_csl[0] != NUL && (options & WILD_IGNORE_COMPLETESLASH) == 0)
+    if (p_csl[0] != NUL
+	    && (options & WILD_IGNORE_COMPLETESLASH) == 0
+	    && xp->xp_context != EXPAND_FINDFUNC)
     {
 	int j;
 
@@ -3401,9 +3436,9 @@ get_filetypecmd_arg(expand_T *xp UNUSED, int idx)
     if (idx < 0)
 	return NULL;
 
-    if (filetype_expand_what == EXP_FILETYPECMD_ALL && idx < 4)
+    if (filetype_expand_what == EXP_FILETYPECMD_ALL && idx < 5)
     {
-	char	*opts_all[] = {"indent", "plugin", "on", "off"};
+	char	*opts_all[] = {"detect", "indent", "plugin", "on", "off"};
 	return (char_u *)opts_all[idx];
     }
     if (filetype_expand_what == EXP_FILETYPECMD_PLUGIN && idx < 3)
@@ -4139,7 +4174,7 @@ expand_shellcmd(
 		// Do not match directories inside a $PATH item.
 		flags &= ~EW_DIR;
 
-	    seplen = !after_pathsep(s, e) ? STRLEN_LITERAL(PATHSEPSTR) : 0;
+	    seplen = !after_pathsep(s, e) ? sizeof(PATHSEP) : 0;
 	}
 
 	// Make sure that the pathed pattern (ie the path and pattern concatenated
@@ -5052,6 +5087,8 @@ f_cmdcomplete_info(typval_T *argvars UNUSED, typval_T *rettv)
 	if (li == NULL)
 	    return;
 	ret = dict_add_list(retdict, "matches", li);
+	if (ret == FAIL)
+	    list_unref(li);
 	for (idx = 0; ret == OK && idx < ccline->xpc->xp_numfiles; idx++)
 	    list_append_string(li, ccline->xpc->xp_files[idx], -1);
     }

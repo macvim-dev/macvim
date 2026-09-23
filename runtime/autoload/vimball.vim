@@ -1,7 +1,7 @@
 " vimball.vim : construct a file containing both paths and files
 " Maintainer: This runtime file is looking for a new maintainer.
 " Original Author:	Charles E. Campbell
-" Date:			May 20, 2026
+" Date:			Jul 23, 2026
 " Version:	37 (with modifications from the Vim Project)
 " GetLatestVimScripts: 1502 1 :AutoInstall: vimball.vim
 " Copyright: (c) 2004-2011 by Charles E. Campbell
@@ -16,9 +16,9 @@ if &cp || exists("g:loaded_vimball")
  finish
 endif
 let g:loaded_vimball = "v37"
-if v:version < 704
+if v:version < 900
  echohl WarningMsg
- echo "***warning*** this version of vimball needs vim 7.4"
+ echo "***warning*** this version of vimball needs vim 9.0"
  echohl Normal
  finish
 endif
@@ -245,6 +245,12 @@ fun! vimball#Vimball(really,...)
      bw! Vimball
      call s:ChgDir(curdir)
      return
+   elseif fname =~? '\%(^\|/\)\.VimballRecord$'
+     echomsg "(Vimball) Forbidding .VimballRecord filename, aborting..."
+     exe "tabn ".curtabnr
+     bw! Vimball
+     call s:ChgDir(curdir)
+     return
    endif
 
    if a:really
@@ -272,7 +278,7 @@ fun! vimball#Vimball(really,...)
      let fnamebuf = substitute(fnamebuf,'^.\{-}/\(.*\)$','\1','')
      if !isdirectory(dirname)
       call mkdir(dirname)
-      call s:RecordInVar(home,"rmdir('".dirname."')")
+      call s:RecordDirInVar(dirname)
      endif
     endwhile
    endif
@@ -303,7 +309,7 @@ fun! vimball#Vimball(really,...)
       exe "silent w! ".fnameescape(fnamepath)
     endif
     echo "wrote ".fnameescape(fnamepath)
-    call s:RecordInVar(home,"call delete('".escape(fnamepath, '"''|')."')")
+    call s:RecordInVar(fnamepath)
     endif
 
     " return to tab with vimball
@@ -402,10 +408,17 @@ fun! vimball#RmVimball(...)
     endif
     let s:VBRstring= substitute(exestring,'call delete(','','g')
     let s:VBRstring= substitute(s:VBRstring,"[')]",'','g')
-    sil! keepalt keepjumps exe exestring
+    let nr_files= 0
+    for line in split(exestring, '|')
+      if line !~ '^call delete(''[^'']\{-}''\(,"d"\)\?)$'
+        echomsg "ignoring .VimballRecord entry: " line
+      else
+        sil! keepalt keepjumps exe line
+        let nr_files+= 1
+      endif
+    endfor
     sil! keepalt keepjumps d
-    let exestring= strlen(substitute(exestring,'call delete(.\{-})|\=',"D","g"))
-    echomsg "removed ".exestring." files"
+    echomsg "removed ".nr_files." files"
    else
     let s:VBRstring= ''
     let curfile    = substitute(curfile,'\.vmb','','')
@@ -431,7 +444,7 @@ fun! vimball#Decompress(fname,...)
     call vimball#ShowMesg(s:WARNING,"(vimball#Decompress) gunzip may have failed with <".a:fname.">")
    endif
    let fname= substitute(a:fname,'\.gz$','','')
-   exe "e ".escape(fname,' \')
+   exe "e ".fnameescape(fname)
    if a:0 == 0| call vimball#ShowMesg(s:USAGE,"Source this file to extract it! (:so %)") | endif
 
   elseif expand("%") =~ '.*\.gz' && executable("gzip")
@@ -441,7 +454,7 @@ fun! vimball#Decompress(fname,...)
     call vimball#ShowMesg(s:WARNING,'(vimball#Decompress) "gzip -d" may have failed with <'.a:fname.">")
    endif
    let fname= substitute(a:fname,'\.gz$','','')
-   exe "e ".escape(fname,' \')
+   exe "e ".fnameescape(fname)
    if a:0 == 0| call vimball#ShowMesg(s:USAGE,"Source this file to extract it! (:so %)") | endif
 
   elseif expand("%") =~ '.*\.bz2' && executable("bunzip2")
@@ -451,7 +464,7 @@ fun! vimball#Decompress(fname,...)
     call vimball#ShowMesg(s:WARNING,"(vimball#Decompress) bunzip2 may have failed with <".a:fname.">")
    endif
    let fname= substitute(a:fname,'\.bz2$','','')
-   exe "e ".escape(fname,' \')
+   exe "e ".fnameescape(fname)
    if a:0 == 0| call vimball#ShowMesg(s:USAGE,"Source this file to extract it! (:so %)") | endif
 
   elseif expand("%") =~ '.*\.bz2' && executable("bzip2")
@@ -461,7 +474,7 @@ fun! vimball#Decompress(fname,...)
     call vimball#ShowMesg(s:WARNING,'(vimball#Decompress) "bzip2 -d" may have failed with <'.a:fname.">")
    endif
    let fname= substitute(a:fname,'\.bz2$','','')
-   exe "e ".escape(fname,' \')
+   exe "e ".fnameescape(fname)
    if a:0 == 0| call vimball#ShowMesg(s:USAGE,"Source this file to extract it! (:so %)") | endif
 
   elseif expand("%") =~ '.*\.bz3' && executable("bunzip3")
@@ -471,7 +484,7 @@ fun! vimball#Decompress(fname,...)
     call vimball#ShowMesg(s:WARNING,"(vimball#Decompress) bunzip3 may have failed with <".a:fname.">")
    endif
    let fname= substitute(a:fname,'\.bz3$','','')
-   exe "e ".escape(fname,' \')
+   exe "e ".fnameescape(fname)
    if a:0 == 0| call vimball#ShowMesg(s:USAGE,"Source this file to extract it! (:so %)") | endif
 
   elseif expand("%") =~ '.*\.bz3' && executable("bzip3")
@@ -481,7 +494,7 @@ fun! vimball#Decompress(fname,...)
     call vimball#ShowMesg(s:WARNING,'(vimball#Decompress) "bzip3 -d" may have failed with <'.a:fname.">")
    endif
    let fname= substitute(a:fname,'\.bz3$','','')
-   exe "e ".escape(fname,' \')
+   exe "e ".fnameescape(fname)
    if a:0 == 0| call vimball#ShowMesg(s:USAGE,"Source this file to extract it! (:so %)") | endif
 
   elseif expand("%") =~ '.*\.zip' && executable("unzip")
@@ -491,7 +504,7 @@ fun! vimball#Decompress(fname,...)
     call vimball#ShowMesg(s:WARNING,"(vimball#Decompress) unzip may have failed with <".a:fname.">")
    endif
    let fname= substitute(a:fname,'\.zip$','','')
-   exe "e ".escape(fname,' \')
+   exe "e ".fnameescape(fname)
    if a:0 == 0| call vimball#ShowMesg(s:USAGE,"Source this file to extract it! (:so %)") | endif
   endif
 
@@ -547,13 +560,20 @@ fun! s:ChgDir(newdir)
 endfun
 
 " ---------------------------------------------------------------------
-" s:RecordInVar: record a un-vimball command in the .VimballRecord file {{{2
-fun! s:RecordInVar(home,cmd)
+" s:RecordInVar: record a un-vimball file deletion in the .VimballRecord file {{{2
+fun! s:RecordInVar(file)
   if !exists("s:recordfile")
-   let s:recordfile= a:cmd
-  else
-   let s:recordfile= s:recordfile."|".a:cmd
+    let s:recordfile=[]
   endif
+  call add(s:recordfile, $'call delete({string(a:file)})')
+endfun
+
+" s:RecordDirInVar: record a un-vimball dir deletion in the .VimballRecord file {{{2
+fun! s:RecordDirInVar(dir)
+  if !exists("s:recorddir")
+    let s:recorddir = []
+  endif
+  call add(s:recorddir, $'call delete({string(a:dir)},"d")')
 endfun
 
 " ---------------------------------------------------------------------
@@ -574,11 +594,11 @@ fun! s:RecordInFile(home)
    setlocal ma
    $
    if exists("s:recordfile") && exists("s:recorddir")
-    let cmd= cmd.s:recordfile."|".s:recorddir
+    let cmd= cmd.join(s:recordfile, '|')."|".join(s:recorddir, '|')
    elseif exists("s:recorddir")
-    let cmd= cmd.s:recorddir
+    let cmd= cmd.join(s:recorddir, '|')
    elseif exists("s:recordfile")
-    let cmd= cmd.s:recordfile
+    let cmd= cmd.join(s:recordfile, '|')
    else
     return
    endif

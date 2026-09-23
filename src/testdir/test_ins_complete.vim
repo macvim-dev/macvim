@@ -576,15 +576,15 @@ func Test_completefunc_info()
   call assert_equal("matched{'preinserted_text': '', 'pum_visible': 0, 'mode': '', 'selected': -1, 'items': []}", getline(1))
   %d
   call feedkeys("i\<C-X>\<C-U>\<C-R>\<C-R>=string(complete_info())\<CR>\<ESC>", "tx")
-  call assert_equal("matched{'preinserted_text': '', 'pum_visible': 1, 'mode': 'function', 'selected': 0, 'items': [{'word': 'matched', 'menu': '', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''}]}", getline(1))
+  call assert_equal("matched{'preinserted_text': '', 'pum_visible': 1, 'mode': 'function', 'selected': 0, 'items': [{'word': 'matched', 'menu': '', 'kind_hlgroup': '', 'abbr_hlgroup': '', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''}]}", getline(1))
   %d
   set complete=.,FCompleteTest
   call feedkeys("i\<C-N>\<C-R>\<C-R>=string(complete_info())\<CR>\<ESC>", "tx")
-  call assert_equal("matched{'preinserted_text': '', 'pum_visible': 1, 'mode': 'keyword', 'selected': 0, 'items': [{'word': 'matched', 'menu': '', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''}]}", getline(1))
+  call assert_equal("matched{'preinserted_text': '', 'pum_visible': 1, 'mode': 'keyword', 'selected': 0, 'items': [{'word': 'matched', 'menu': '', 'kind_hlgroup': '', 'abbr_hlgroup': '', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''}]}", getline(1))
   %d
   set complete=.,F
   call feedkeys("i\<C-N>\<C-R>\<C-R>=string(complete_info())\<CR>\<ESC>", "tx")
-  call assert_equal("matched{'preinserted_text': '', 'pum_visible': 1, 'mode': 'keyword', 'selected': 0, 'items': [{'word': 'matched', 'menu': '', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''}]}", getline(1))
+  call assert_equal("matched{'preinserted_text': '', 'pum_visible': 1, 'mode': 'keyword', 'selected': 0, 'items': [{'word': 'matched', 'menu': '', 'kind_hlgroup': '', 'abbr_hlgroup': '', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''}]}", getline(1))
   set completeopt&
   set complete&
   set completefunc&
@@ -693,10 +693,10 @@ func CompleteInfoTestUserDefinedFn(mvmt, idx, noselect)
     set completeopt=menu,preview
   endif
   let items = "[" .
-        \ "{'word': 'foo', 'menu': '', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''}, " .
-        \ "{'word': 'bar', 'menu': '', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''}, " .
-        \ "{'word': 'baz', 'menu': '', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''}, " .
-        \ "{'word': 'qux', 'menu': '', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''}" .
+        \ "{'word': 'foo', 'menu': '', 'kind_hlgroup': '', 'abbr_hlgroup': '', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''}, " .
+        \ "{'word': 'bar', 'menu': '', 'kind_hlgroup': '', 'abbr_hlgroup': '', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''}, " .
+        \ "{'word': 'baz', 'menu': '', 'kind_hlgroup': '', 'abbr_hlgroup': '', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''}, " .
+        \ "{'word': 'qux', 'menu': '', 'kind_hlgroup': '', 'abbr_hlgroup': '', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''}" .
         \ "]"
   new
   set completefunc=CompleteInfoUserDefinedFn
@@ -1955,7 +1955,7 @@ func Test_cpt_func_refresh_always_fail()
   let g:CallCount = 0
   exe "normal! Gof\<C-N>oo\<c-r>=complete_info([\"items\", \"selected\"])\<cr>"
   call assert_equal('foo{''selected'': -1, ''items'': [{''word'': ''fooo1'', ''menu'': '''', '
-        \ . '''user_data'': '''', ''info'': '''', ''kind'': '''', ''abbr'': ''''}]}',
+        \ . '''kind_hlgroup'': '''', ''abbr_hlgroup'': '''', ''user_data'': '''', ''info'': '''', ''kind'': '''', ''abbr'': ''''}]}',
         \ getline(2))
   call assert_equal(3, g:CallCount)
   %d
@@ -1971,7 +1971,7 @@ func Test_cpt_func_refresh_always_fail()
   let g:CallCount = 0
   exe "normal! Gof\<C-N>o\<bs>\<c-r>=complete_info([\"items\", \"selected\"])\<cr>"
   call assert_equal('f{''selected'': -1, ''items'': [{''word'': ''fooo1'', ''menu'': '''', '
-        \ . '''user_data'': '''', ''info'': '''', ''kind'': '''', ''abbr'': ''''}]}',
+        \ . '''kind_hlgroup'': '''', ''abbr_hlgroup'': '''', ''user_data'': '''', ''info'': '''', ''kind'': '''', ''abbr'': ''''}]}',
         \ getline(2))
   call assert_equal(3, g:CallCount)
   %d
@@ -1979,7 +1979,7 @@ func Test_cpt_func_refresh_always_fail()
   let g:CallCount = 0
   exe "normal! Gof\<C-N>oo\<bs>\<c-r>=complete_info([\"items\", \"selected\"])\<cr>"
   call assert_equal('fo{''selected'': -1, ''items'': [{''word'': ''fooo1'', ''menu'': '''', '
-        \ . '''user_data'': '''', ''info'': '''', ''kind'': '''', ''abbr'': ''''}]}',
+        \ . '''kind_hlgroup'': '''', ''abbr_hlgroup'': '''', ''user_data'': '''', ''info'': '''', ''kind'': '''', ''abbr'': ''''}]}',
         \ getline(2))
   call assert_equal(3, g:CallCount)
   bw!
@@ -3440,6 +3440,26 @@ func s:Tagfunc(t,f,o)
   return []
 endfunc
 
+" A match from an included file shows the file by its name under the current
+" directory, without the "./" of the include line.
+func Test_complete_included_file_name()
+  CheckRunVimInTerminal
+  call mkdir('Xincl/sub', 'pR')
+  call writefile(['let included_word = 1'], 'Xincl/sub/inc.vim')
+  call writefile(['source ./sub/inc.vim', ''], 'Xincl/main.vim')
+  let lines =<< trim END
+    setlocal include=^\\s*source\\s\\+ complete=i completeopt=menuone,noselect
+  END
+  call writefile(lines, 'Xincl/setup.vim')
+  let buf = RunVimInTerminal('-S Xincl/setup.vim Xincl/main.vim',
+        \ {'rows': 8, 'cols': 120})
+  call term_sendkeys(buf, "Goincluded_\<C-N>")
+  call WaitForAssert({-> assert_match('included_word\s\+Xincl/sub/inc.vim\s',
+        \ term_getline(buf, 4))})
+  call term_sendkeys(buf, "\<Esc>")
+  call StopVimInTerminal(buf)
+endfunc
+
 " This was using freed memory, since 'complete' was in a wiped out buffer.
 " Also using a window that was closed.
 func Test_tagfunc_wipes_out_buffer()
@@ -4162,26 +4182,26 @@ func Test_complete_info_matches()
 
   call feedkeys("Go\<C-X>\<C-N>\<F5>\<Esc>dd", 'tx')
   call assert_equal([
-    \ {'word': 'aaa', 'menu': '', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''},
-    \ {'word': 'aab', 'menu': '', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''},
-    \ {'word': 'aba', 'menu': '', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''},
-    \ {'word': 'abb', 'menu': '', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''},
+    \ {'word': 'aaa', 'menu': '', 'kind_hlgroup': '', 'abbr_hlgroup': '', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''},
+    \ {'word': 'aab', 'menu': '', 'kind_hlgroup': '', 'abbr_hlgroup': '', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''},
+    \ {'word': 'aba', 'menu': '', 'kind_hlgroup': '', 'abbr_hlgroup': '', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''},
+    \ {'word': 'abb', 'menu': '', 'kind_hlgroup': '', 'abbr_hlgroup': '', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''},
     \], g:compl_info['matches'])
 
   call feedkeys("Goa\<C-X>\<C-N>b\<F5>\<Esc>dd", 'tx')
   call assert_equal([
-    \ {'word': 'aba', 'menu': '', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''},
-    \ {'word': 'abb', 'menu': '', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''},
+    \ {'word': 'aba', 'menu': '', 'kind_hlgroup': '', 'abbr_hlgroup': '', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''},
+    \ {'word': 'abb', 'menu': '', 'kind_hlgroup': '', 'abbr_hlgroup': '', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''},
     \], g:compl_info['matches'])
 
   " items and matches both in what
   let g:what = ['items', 'matches']
   call feedkeys("Goa\<C-X>\<C-N>b\<F5>\<Esc>dd", 'tx')
   call assert_equal([
-    \ {'word': 'aaa', 'menu': '', 'user_data': '', 'match': v:false, 'info': '', 'kind': '', 'abbr': ''},
-    \ {'word': 'aab', 'menu': '', 'user_data': '', 'match': v:false, 'info': '', 'kind': '', 'abbr': ''},
-    \ {'word': 'aba', 'menu': '', 'user_data': '', 'match': v:true, 'info': '', 'kind': '', 'abbr': ''},
-    \ {'word': 'abb', 'menu': '', 'user_data': '', 'match': v:true, 'info': '', 'kind': '', 'abbr': ''},
+    \ {'word': 'aaa', 'menu': '', 'kind_hlgroup': '', 'abbr_hlgroup': '', 'user_data': '', 'match': v:false, 'info': '', 'kind': '', 'abbr': ''},
+    \ {'word': 'aab', 'menu': '', 'kind_hlgroup': '', 'abbr_hlgroup': '', 'user_data': '', 'match': v:false, 'info': '', 'kind': '', 'abbr': ''},
+    \ {'word': 'aba', 'menu': '', 'kind_hlgroup': '', 'abbr_hlgroup': '', 'user_data': '', 'match': v:true, 'info': '', 'kind': '', 'abbr': ''},
+    \ {'word': 'abb', 'menu': '', 'kind_hlgroup': '', 'abbr_hlgroup': '', 'user_data': '', 'match': v:true, 'info': '', 'kind': '', 'abbr': ''},
     \], g:compl_info['items'])
   call assert_false(has_key(g:compl_info, 'matches'))
 
@@ -4203,13 +4223,13 @@ func Test_complete_info_completed()
   inoremap <buffer><F5> <C-R>=ShownInfo()<CR>
 
   call feedkeys("Go\<C-X>\<C-N>\<F5>\<Esc>dd", 'tx')
-  call assert_equal({'word': 'aaa', 'menu': '', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''},  g:compl_info['completed'])
+  call assert_equal({'word': 'aaa', 'menu': '', 'kind_hlgroup': '', 'abbr_hlgroup': '', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''},  g:compl_info['completed'])
 
   call feedkeys("Go\<C-X>\<C-N>\<C-N>\<F5>\<Esc>dd", 'tx')
-  call assert_equal({'word': 'aab', 'menu': '', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''},  g:compl_info['completed'])
+  call assert_equal({'word': 'aab', 'menu': '', 'kind_hlgroup': '', 'abbr_hlgroup': '', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''},  g:compl_info['completed'])
 
   call feedkeys("Go\<C-X>\<C-N>\<C-N>\<C-N>\<C-N>\<F5>\<Esc>dd", 'tx')
-  call assert_equal({'word': 'abb', 'menu': '', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''},  g:compl_info['completed'])
+  call assert_equal({'word': 'abb', 'menu': '', 'kind_hlgroup': '', 'abbr_hlgroup': '', 'user_data': '', 'info': '', 'kind': '', 'abbr': ''},  g:compl_info['completed'])
 
   set completeopt+=noselect
   call feedkeys("Go\<C-X>\<C-N>\<F5>\<Esc>dd", 'tx')
@@ -5903,7 +5923,9 @@ func Test_completetimeout_autocompletetimeout()
   set completetimeout=1
   call feedkeys("Gof\<C-N>\<F2>\<Esc>0", 'xt!')
   let match_count = len(b:matches->mapnew('v:val.word'))
-  call assert_true(match_count < 4000)
+  " How many matches are collected in 1 msec varies with machine speed, only
+  " check the timeout truncated the collection.
+  call assert_true(match_count < 60000)
 
   set completetimeout=1000
   call feedkeys("\<Esc>Sf\<C-N>\<F2>\<Esc>0", 'xt!')
@@ -5912,9 +5934,14 @@ func Test_completetimeout_autocompletetimeout()
 
   set autocomplete
   set autocompletetimeout=81
+  " Use enough long words that collecting all of them takes well over the
+  " timeout even on a fast machine.
+  let pad = repeat('y', 60)
+  call setline(1, map(range(200000), '"foo" . v:val . pad'))
   call feedkeys("\<Esc>Sf\<F2>\<Esc>0", 'xt!')
   let match_count = len(b:matches->mapnew('v:val.word'))
-  call assert_true(match_count < 50000)
+  " The timeout must have truncated the collection.
+  call assert_true(match_count < 200000)
 
   set complete& omnifunc& autocomplete& autocompletetimeout& completetimeout&
   bwipe!
@@ -5947,17 +5974,19 @@ func Test_autocompletedelay()
   call term_sendkeys(buf, "\<BS>")
   call VerifyScreenDump(buf, 'Test_autocompletedelay_5', {})
   sleep 500m
-  call VerifyScreenDump(buf, 'Test_autocompletedelay_6', {})
+  call VerifyScreenDump(buf, 'Test_autocompletedelay_5', {})
 
   " During delay wait, user can open menu using CTRL_N completion
   call term_sendkeys(buf, "\<Esc>:set completeopt=menuone\<CR>")
   call term_sendkeys(buf, "Sf\<C-N>")
   call VerifyScreenDump(buf, 'Test_autocompletedelay_7', {})
 
-  " After the menu is open, ^N/^P and Up/Down should not delay
+  " After the menu is open, ^N/^P and Up/Down should not delay.
+  " Wait a bit longer than 'autocompletedelay' so the popup is surely shown
+  " before sending CTRL-N, otherwise the keys race with the deferred popup.
   call term_sendkeys(buf, "\<Esc>:set completeopt=menu noruler\<CR>")
   call term_sendkeys(buf, "\<Esc>Sf")
-  sleep 500ms
+  sleep 600ms
   call term_sendkeys(buf, "\<C-N>")
   call VerifyScreenDump(buf, 'Test_autocompletedelay_8', {})
   call term_sendkeys(buf, "\<Down>")
@@ -5972,6 +6001,79 @@ func Test_autocompletedelay()
 
   call term_sendkeys(buf, "\<esc>")
   call StopVimInTerminal(buf)
+endfunc
+
+func Run_test_autocompletedelay_ctrl_g_U(delay1, delay2)
+  new
+  call setline(1, 'foo bar baz')
+  inoremap <buffer> ( ()<C-g>U
+  set autocomplete autocompletedelay=200
+
+  call timer_start(a:delay1, { -> feedkeys('(', 't') })
+  call timer_start(a:delay2, { -> feedkeys("\<Left>a\<Esc>", 't') })
+  call feedkeys('ob', 'tx!')
+  call assert_equal(['foo bar baz', 'b(a)'], getline(1, '$'))
+  undo
+  call assert_equal(['foo bar baz'], getline(1, '$'))
+
+  set autocomplete& autocompletedelay&
+  bwipe!
+endfunc
+
+func Test_autocompletedelay_ctrl_g_U()
+  " '(' typed after 'autocompletedelay' expires
+  call Run_test_autocompletedelay_ctrl_g_U(250, 500)
+  " '(' typed before 'autocompletedelay' expires
+  call Run_test_autocompletedelay_ctrl_g_U(150, 500)
+endfunc
+
+func Run_test_autocompletedelay_ctrl_k(delay1, delay2)
+  new
+  call setline(1, 'foo bar baz')
+  set autocomplete autocompletedelay=200
+
+  call timer_start(a:delay1, { -> feedkeys("\<C-K>", 't') })
+  call timer_start(a:delay2, { -> feedkeys(".,\<Esc>", 't') })
+  call feedkeys('ob', 'tx!')
+  call assert_equal(['foo bar baz', 'b…'], getline(1, '$'))
+
+  set autocomplete& autocompletedelay&
+  bwipe!
+endfunc
+
+func Test_autocompletedelay_ctrl_k()
+  " Ctrl-K typed after 'autocompletedelay' expires
+  call Run_test_autocompletedelay_ctrl_k(250, 500)
+  " Ctrl-K typed before 'autocompletedelay' expires
+  call Run_test_autocompletedelay_ctrl_k(150, 500)
+endfunc
+
+func Test_autocompletedelay_no_record()
+  " The K_COMPLETE_DELAY pseudo key must not be recorded into a register while
+  " recording a macro, like K_CURSORHOLD.
+  new
+  call setline(1, 'foobar')
+  set autocomplete autocompletedelay=100
+
+  let @a = ''
+  " Type a char that arms the delay, idle past 'autocompletedelay' so a
+  " K_COMPLETE_DELAY would be injected, then end Insert mode and stop recording.
+  call timer_start(300, { -> feedkeys("\<Esc>q", 't') })
+  call feedkeys("qaSf", 'tx!')
+  call assert_equal("Sf\<Esc>", @a)
+
+  " Delayed autocompletion still works when recording.
+  if !has('win32') " FIXME: does not work on Windows
+    call setline(1, 'foobar foofoo')
+    call timer_start(300, { -> feedkeys("\<Down>\<C-Y>\<Esc>q", 't') })
+    call feedkeys("qaof", 'tx!')
+    call assert_equal('foobar', getline('.'))
+    " XXX: This doesn't produce the same result when replaying.
+    call assert_equal("of\<Down>\<C-Y>\<Esc>", @a)
+  endif
+
+  set autocomplete& autocompletedelay&
+  bwipe!
 endfunc
 
 " Preinsert longest prefix when autocomplete
@@ -6274,8 +6376,6 @@ func Test_autocompletedelay_longest_preinsert()
 
   " Preinsert
   call term_sendkeys(buf, "\<Esc>:set completeopt& completeopt+=preinsert\<CR>")
-
-  " Show preinserted text right away but display popup later
   call term_sendkeys(buf, "\<Esc>Sau")
   sleep 100m
   call VerifyScreenDump(buf, 'Test_autocompletedelay_preinsert_1', {})
@@ -6531,6 +6631,255 @@ func Test_call_complete_while_filtering()
   call assert_equal(['foobar', 'foobaz', 'foobcd', 'foobcd'], getline(1, '$'))
 
   bwipe!
+endfunc
+
+func Test_complete_check_mapped_typed_key()
+  func SlowComplete(findstart, base)
+    if a:findstart
+      return col('.') - 1
+    endif
+    call complete_add('foobar')
+    let g:compl_iterations = 0
+    while !complete_check() && g:compl_iterations < 100
+      let g:compl_iterations += 1
+      sleep 5m
+    endwhile
+    return []
+  endfunc
+
+  new
+  setlocal completefunc=SlowComplete
+  setlocal completeopt=menuone,noselect
+  inoremap <buffer> <Space> <Space><Space>
+
+  let g:compl_iterations = -1
+  call feedkeys("Sfoo\<C-X>\<C-U> \<Esc>", 'tx')
+  call assert_inrange(0, 99, g:compl_iterations)
+
+  bwipe!
+  delfunc SlowComplete
+  unlet g:compl_iterations
+endfunc
+
+" Test for the duplicate check when adding completion matches
+func Test_ins_complete_dedup()
+  new
+  setl complete=.
+
+  " a word that occurs several times only results in one match
+  call setline(1, ['alpha beta alpha gamma', 'beta alpha delta beta', ''])
+  call cursor(3, 1)
+  call feedkeys("Aal\<C-N>\<C-R>=GetCompleteInfo()\<CR>\<C-E>\<Esc>", 'tx')
+  call assert_equal(['alpha'], g:compl_info.items->mapnew('v:val.word'))
+
+  " the duplicate check is case-sensitive
+  %delete _
+  call setline(1, ['Foo foo FOO fooBar Foo foo', ''])
+  call cursor(2, 1)
+  call feedkeys("Afo\<C-N>\<C-R>=GetCompleteInfo()\<CR>\<C-E>\<Esc>", 'tx')
+  call assert_equal(['foo', 'fooBar'], g:compl_info.items->mapnew('v:val.word'))
+
+  " with 'ignorecase' and 'infercase' case variants fold into one match
+  setl ignorecase infercase
+  %delete _
+  call setline(1, ['Word word WORD wordy Word', ''])
+  call cursor(2, 1)
+  call feedkeys("Awo\<C-N>\<C-R>=GetCompleteInfo()\<CR>\<C-E>\<Esc>", 'tx')
+  call assert_equal(['word', 'wordy'], g:compl_info.items->mapnew('v:val.word'))
+  setl noignorecase noinfercase
+
+  " duplicate dictionary entries only appear once; with 'ignorecase' case
+  " variants all match but stay separate matches
+  call writefile(['apple', 'apple', 'Apple', 'apricot', 'apricot', 'banana'],
+        \ 'Xcompldict', 'D')
+  setl dictionary=Xcompldict
+  set ignorecase
+  %delete _
+  call feedkeys("Aap\<C-X>\<C-K>\<C-R>=GetCompleteInfo()\<CR>\<C-E>\<Esc>", 'tx')
+  call assert_equal(['apple', 'Apple', 'apricot'], g:compl_info.items->mapnew('v:val.word'))
+  set noignorecase
+  setl dictionary&
+
+  " duplicate items passed to complete() are only added once
+  inoremap <buffer> <F5> <Cmd>call complete(1, ['dup', 'dup', 'uniq', 'dup'])<CR>
+  %delete _
+  call feedkeys("i\<F5>\<C-R>=GetCompleteInfo()\<CR>\<C-E>\<Esc>", 'tx')
+  call assert_equal(['dup', 'uniq'], g:compl_info.items->mapnew('v:val.word'))
+
+  " restarting a completion rebuilds the matches without duplicates
+  %delete _
+  call setline(1, ['echo edit eecho edit echo', ''])
+  call cursor(2, 1)
+  call feedkeys("Ae\<C-N>\<C-E>\<Esc>", 'tx')
+  call feedkeys("A\<C-N>\<C-R>=GetCompleteInfo()\<CR>\<C-E>\<Esc>", 'tx')
+  call assert_equal(['echo', 'edit', 'eecho'], g:compl_info.items->mapnew('v:val.word'))
+
+  " With "dup" matches from several sources, refreshing one source removes
+  " its duplicate but must not forget about the equal match of the other
+  " source: adding "dupword" again without "dup" is still a duplicate.
+  let g:dedup_calls = 0
+  func! DedupSrcA(findstart, base)
+    if a:findstart
+      return 0
+    endif
+    let g:dedup_calls += 1
+    if g:dedup_calls == 1
+      return #{words: [#{word: 'dupword', dup: 1}], refresh: 'always'}
+    endif
+    return #{words: [#{word: 'dupword'}], refresh: 'always'}
+  endfunc
+  func! DedupSrcB(findstart, base)
+    if a:findstart
+      return 0
+    endif
+    return #{words: [#{word: 'dupword', dup: 1}]}
+  endfunc
+  setl complete=FDedupSrcA,FDedupSrcB
+  %delete _
+  call feedkeys("Sdup\<C-N>\<BS>\<C-R>=GetCompleteInfo()\<CR>\<C-E>\<Esc>", 'tx')
+  call assert_equal(['dupword'], g:compl_info.items->mapnew('v:val.word'))
+  setl complete&
+  delfunc DedupSrcA
+  delfunc DedupSrcB
+  unlet g:dedup_calls
+
+  bwipe!
+  unlet g:compl_info
+endfunc
+
+func Test_complete_info_hlgroup()
+  new
+  set completeopt&
+  func DoComplete()
+    call complete(1, [
+          \ #{word: 'aaa', abbr_hlgroup: 'Title', kind_hlgroup: 'SpecialKey'},
+          \ #{word: 'bbb', abbr_hlgroup: 'MyAbbr', kind_hlgroup: 'MyKind'},
+          \ #{word: 'ccc'}])
+    return ''
+  endfunc
+  func ShownItems()
+    let g:items = complete_info(['items']).items
+    return ''
+  endfunc
+
+  call assert_false(hlexists('MyAbbr'))
+  call feedkeys("i\<C-R>=DoComplete()\<CR>\<C-R>=ShownItems()\<CR>\<Esc>", 'tx')
+  call assert_equal(['Title', 'MyAbbr', ''],
+        \ map(copy(g:items), 'v:val.abbr_hlgroup'))
+  call assert_equal(['SpecialKey', 'MyKind', ''],
+        \ map(copy(g:items), 'v:val.kind_hlgroup'))
+  call assert_true(hlexists('MyAbbr'))
+
+  unlet g:items
+  delfunc DoComplete
+  delfunc ShownItems
+  bwipe!
+endfunc
+
+" Test that complete_info() tells a completion Vim started by itself from one
+" that a key asked for.
+func Test_complete_info_auto()
+  call test_override("char_avail", 1)
+  new
+  func! AutoOmni(findstart, base)
+    if a:findstart
+      call add(g:auto, complete_info(['auto']).auto)
+      return 4
+    endif
+    return ['alpha', 'alphabet']
+  endfunc
+  setlocal omnifunc=AutoOmni
+  setlocal complete=o
+  setlocal completeopt=menuone
+  call setline(1, '    al')
+
+  " 'autocomplete' starts it, nothing was asked for.
+  setlocal autocomplete
+  let g:auto = []
+  call feedkeys("A\<Esc>", 'tx')
+  call assert_equal([1], g:auto)
+
+  " The second call is the one CTRL-X CTRL-O asked for.
+  let g:auto = []
+  call feedkeys("A\<C-X>\<C-O>\<Esc>", 'tx')
+  call assert_equal([1, 0], g:auto)
+
+  " CTRL-X CTRL-O is typed before 'autocompletedelay' expires.
+  set autocompletedelay=100
+  let g:auto = []
+  call feedkeys("A\<C-X>\<C-O>\<Esc>", 'tx')
+  call assert_equal([0], g:auto)
+
+  set autocompletedelay&
+  setlocal noautocomplete
+  let g:auto = []
+  call feedkeys("A\<C-X>\<C-O>\<Esc>", 'tx')
+  call assert_equal([0], g:auto)
+
+  call test_override("ALL", 0)
+  unlet g:auto
+  delfunc AutoOmni
+  bwipe!
+endfunc
+
+" A completion asked for while 'autocompletedelay' runs is not given the
+" implicit "noselect" of autocompletion.
+func Test_complete_asked_for_during_delay()
+  call test_override("char_avail", 1)
+  new
+  func! AutoOmni(findstart, base)
+    if a:findstart
+      return 4
+    endif
+    return ['alpha', 'alphabet']
+  endfunc
+  func! Selected()
+    let g:selected = complete_info(['selected']).selected
+    return ''
+  endfunc
+  setlocal omnifunc=AutoOmni
+  setlocal complete=o
+  setlocal completeopt=menuone
+  setlocal autocomplete
+  call setline(1, '    al')
+
+  " CTRL-X CTRL-O before the delay expires: the first match is selected,
+  " and taken.
+  set autocompletedelay=100
+  call feedkeys("A\<C-X>\<C-O>\<C-R>=Selected()\<CR>\<Esc>", 'tx')
+  call assert_equal(0, g:selected)
+  call assert_equal('    alpha', getline(1))
+
+  " What autocompletion puts up on its own selects nothing, so the word is
+  " left as it was.
+  set autocompletedelay&
+  call setline(1, '    al')
+  call feedkeys("A\<C-R>=Selected()\<CR>\<Esc>", 'tx')
+  call assert_equal(-1, g:selected)
+  call assert_equal('    al', getline(1))
+
+  call test_override("ALL", 0)
+  unlet g:selected
+  delfunc AutoOmni
+  delfunc Selected
+  bwipe!
+endfunc
+
+func Test_complete_fuzzy_resort()
+  new
+  set completeopt=menu,menuone,noselect,fuzzy
+
+  inoremap <buffer> <F5> <Cmd>call complete(1, ['xxxb', 'xb', 'b'])<CR>
+  call feedkeys("i\<F5>b\<C-R>=string(map(complete_info(['items']).items, 'v:val.word'))\<CR>\<Esc>", 'tx')
+  call assert_equal("b['b', 'xb', 'xxxb']", getline(1))
+
+  %d _
+  call setline(1, ['xxxbar', 'xbar', 'bar'])
+  call feedkeys("Go\<C-P>b\<C-R>=string(map(complete_info(['items']).items, 'v:val.word'))\<CR>\<Esc>", 'tx')
+  call assert_equal("b['bar', 'xbar', 'xxxbar']", getline('$'))
+
+  bwipe!
+  set completeopt&
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab nofoldenable

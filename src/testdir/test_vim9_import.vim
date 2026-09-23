@@ -2843,6 +2843,41 @@ def Test_import_autoload_postponed()
   &rtp = save_rtp
 enddef
 
+def Test_import_autoload_func_as_value()
+  var lines =<< trim END
+      vim9script
+      export def Exported(): string
+        return 'exported'
+      enddef
+  END
+  writefile(lines, 'XimportRelFunc.vim', 'D')
+  writefile(lines, 'XimportRelFunc2.vim', 'D')
+
+  # Using the exported function as a value, not calling it.
+  lines =<< trim END
+      vim9script
+      import autoload './XimportRelFunc.vim'
+      def Func()
+        var Fn: func = XimportRelFunc.Exported
+        assert_equal('exported', Fn())
+      enddef
+      Func()
+  END
+  v9.CheckScriptSuccess(lines)
+
+  # The script is not loaded yet when compiling, thus the name is only
+  # checked when the function runs.
+  lines =<< trim END
+      vim9script
+      import autoload './XimportRelFunc2.vim'
+      def Func()
+        var Fn: func = XimportRelFunc2.NoSuchFunc
+      enddef
+      Func()
+  END
+  v9.CheckScriptFailure(lines, 'E121: Undefined variable: NoSuchFunc', 1)
+enddef
+
 def Test_import_autoload_override()
   mkdir('Xoverdir/autoload', 'pR')
   var save_rtp = &rtp
@@ -3717,6 +3752,85 @@ def Test_import_name_conflict_with_local_variable()
     call s:Main()
   END
   v9.CheckScriptSuccess(lines)
+enddef
+
+" Directly sourcing an autoload script more than once must not fail on its
+" exported variables: like functions, they get a clean slate on reload.
+def Test_autoload_reload_export_var()
+  mkdir('Xreloaddir/autoload', 'pR')
+  var save_rtp = &rtp
+  exe 'set rtp^=' .. getcwd() .. '/Xreloaddir'
+
+  var lines =<< trim END
+      vim9script
+      export var nr = 1
+      export const cnr = 2
+      export def GetNr(): number
+        return 3
+      enddef
+  END
+  writefile(lines, 'Xreloaddir/autoload/Xreload.vim')
+  source Xreloaddir/autoload/Xreload.vim
+  assert_equal(1, g:Xreload#nr)
+  assert_equal(2, g:Xreload#cnr)
+  assert_equal(3, g:Xreload#GetNr())
+
+  # Sourcing again with changed values updates them, no E1041.
+  lines =<< trim END
+      vim9script
+      export var nr = 11
+      export const cnr = 22
+      export def GetNr(): number
+        return 33
+      enddef
+  END
+  writefile(lines, 'Xreloaddir/autoload/Xreload.vim')
+  source Xreloaddir/autoload/Xreload.vim
+  assert_equal(11, g:Xreload#nr)
+  assert_equal(22, g:Xreload#cnr)
+  assert_equal(33, g:Xreload#GetNr())
+
+  # The type may also change on reload.
+  lines =<< trim END
+      vim9script
+      export var nr = 'text'
+  END
+  writefile(lines, 'Xreloaddir/autoload/Xreload.vim')
+  source Xreloaddir/autoload/Xreload.vim
+  assert_equal('text', g:Xreload#nr)
+
+  &rtp = save_rtp
+enddef
+
+" A class or enum cannot be redefined by sourcing the script again: existing
+" instances would keep the old definition, so E1041 is given instead.
+def Test_autoload_reload_export_class()
+  mkdir('Xreloadcldir/autoload', 'pR')
+  var save_rtp = &rtp
+  exe 'set rtp^=' .. getcwd() .. '/Xreloadcldir'
+
+  var lines =<< trim END
+      vim9script
+      export class Cls
+        var v = 1
+      endclass
+  END
+  writefile(lines, 'Xreloadcldir/autoload/Xcls.vim')
+  source Xreloadcldir/autoload/Xcls.vim
+  assert_fails('source Xreloadcldir/autoload/Xcls.vim', 'E1041:')
+
+  lines =<< trim END
+      vim9script
+      export enum Color
+        Red,
+        Blue
+      endenum
+  END
+  writefile(lines, 'Xreloadcldir/autoload/Xenum.vim')
+  source Xreloadcldir/autoload/Xenum.vim
+  assert_fails('source Xreloadcldir/autoload/Xenum.vim', 'E1041:')
+
+  &rtp = save_rtp
 enddef
 
 " vim: ts=8 sw=2 sts=2 expandtab tw=80 fdm=marker

@@ -260,8 +260,8 @@ static void hl_do_font(int idx, char_u *arg, int do_normal, int do_menu, int do_
 static char *(highlight_init_both[]) = {
     CENT("ErrorMsg term=standout ctermbg=DarkRed ctermfg=White",
 	 "ErrorMsg term=standout ctermbg=DarkRed ctermfg=White guibg=Red guifg=White"),
-    CENT("IncSearch term=reverse cterm=reverse",
-	 "IncSearch term=reverse cterm=reverse gui=reverse"),
+    CENT("IncSearch term=reverse,bold,underline cterm=reverse",
+	 "IncSearch term=reverse,bold,underline cterm=reverse gui=reverse"),
     CENT("ModeMsg term=bold cterm=bold",
 	 "ModeMsg term=bold cterm=bold gui=bold"),
     CENT("NonText term=bold ctermfg=Blue",
@@ -279,12 +279,12 @@ static char *(highlight_init_both[]) = {
 	 "VisualNOS term=underline,bold cterm=underline,bold gui=underline,bold"),
 #endif
 #ifdef FEAT_DIFF
-    CENT("DiffText term=reverse cterm=bold ctermbg=Red",
-	 "DiffText term=reverse cterm=bold ctermbg=Red gui=bold guibg=Red"),
+    CENT("DiffText term=reverse cterm=bold ctermbg=Red ctermfg=Black",
+	 "DiffText term=reverse cterm=bold ctermbg=Red ctermfg=Black gui=bold guibg=Red"),
     "default link DiffTextAdd DiffText",
 #endif
-    CENT("PmenuSbar ctermbg=Grey",
-	 "PmenuSbar ctermbg=Grey guibg=Grey"),
+    CENT("PmenuSbar term=NONE ctermbg=Grey",
+	 "PmenuSbar term=NONE ctermbg=Grey guibg=Grey"),
     CENT("TabLineSel term=bold cterm=bold",
 	 "TabLineSel term=bold cterm=bold gui=bold"),
     CENT("TabLineFill term=reverse cterm=reverse",
@@ -326,8 +326,8 @@ static char *(highlight_init_both[]) = {
 static char *(highlight_init_light[]) = {
     CENT("Directory term=bold ctermfg=DarkBlue",
 	 "Directory term=bold ctermfg=DarkBlue guifg=Blue"),
-    CENT("LineNr term=underline ctermfg=Brown",
-	 "LineNr term=underline ctermfg=Brown guifg=Brown"),
+    CENT("LineNr term=NONE ctermfg=Brown",
+	 "LineNr term=NONE ctermfg=Brown guifg=Brown"),
     CENT("CursorLineNr term=bold cterm=underline ctermfg=Brown",
 	 "CursorLineNr term=bold cterm=underline ctermfg=Brown gui=bold guifg=Brown"),
     CENT("MoreMsg term=bold ctermfg=DarkGreen",
@@ -346,22 +346,22 @@ static char *(highlight_init_light[]) = {
     CENT("SpellLocal term=underline ctermbg=Cyan",
 	 "SpellLocal term=underline ctermbg=Cyan guisp=DarkCyan gui=undercurl"),
 #endif
-    CENT("PmenuThumb ctermbg=Black",
-	 "PmenuThumb ctermbg=Black guibg=Black"),
-    CENT("PmenuShadow ctermbg=Black ctermfg=DarkGrey",
-	 "PmenuShadow ctermbg=Black ctermfg=DarkGrey guibg=Black guifg=DarkGrey"),
-    CENT("Pmenu ctermbg=LightMagenta ctermfg=Black",
-	 "Pmenu ctermbg=LightMagenta ctermfg=Black guibg=LightMagenta"),
-    CENT("PmenuSel ctermbg=LightGrey ctermfg=Black",
-	 "PmenuSel ctermbg=LightGrey ctermfg=Black guibg=Grey"),
-    CENT("SpecialKey term=bold ctermfg=DarkBlue",
-	 "SpecialKey term=bold ctermfg=DarkBlue guifg=Blue"),
+    CENT("PmenuThumb term=reverse ctermbg=Black",
+	 "PmenuThumb term=reverse ctermbg=Black guibg=Black"),
+    CENT("PmenuShadow term=NONE ctermbg=Black ctermfg=DarkGrey",
+	 "PmenuShadow term=NONE ctermbg=Black ctermfg=DarkGrey guibg=Black guifg=DarkGrey"),
+    CENT("Pmenu term=reverse ctermbg=LightMagenta ctermfg=Black",
+	 "Pmenu term=reverse ctermbg=LightMagenta ctermfg=Black guibg=LightMagenta"),
+    CENT("PmenuSel term=underline ctermbg=LightGrey ctermfg=Black",
+	 "PmenuSel term=underline ctermbg=LightGrey ctermfg=Black guibg=Grey"),
+    CENT("SpecialKey term=NONE ctermfg=DarkBlue",
+	 "SpecialKey term=NONE ctermfg=DarkBlue guifg=Blue"),
     CENT("Title term=bold ctermfg=DarkMagenta",
 	 "Title term=bold ctermfg=DarkMagenta gui=bold guifg=Magenta"),
     CENT("WarningMsg term=standout ctermfg=DarkRed",
 	 "WarningMsg term=standout ctermfg=DarkRed guifg=Red"),
-    CENT("WildMenu term=standout ctermbg=Yellow ctermfg=Black",
-	 "WildMenu term=standout ctermbg=Yellow ctermfg=Black guibg=Yellow guifg=Black"),
+    CENT("WildMenu term=underline ctermbg=Yellow ctermfg=Black",
+	 "WildMenu term=underline ctermbg=Yellow ctermfg=Black guibg=Yellow guifg=Black"),
 #ifdef FEAT_FOLDING
     CENT("Folded term=standout ctermbg=Grey ctermfg=DarkBlue",
 	 "Folded term=standout ctermbg=Grey ctermfg=DarkBlue guibg=LightGrey guifg=DarkBlue"),
@@ -375,10 +375,10 @@ static char *(highlight_init_light[]) = {
     CENT("Visual ctermbg=Grey ctermfg=Black",
 	 "Visual ctermbg=Grey ctermfg=Black guibg=LightGrey guifg=Black"),
 #ifdef FEAT_DIFF
-    CENT("DiffAdd term=bold ctermbg=LightBlue",
-	 "DiffAdd term=bold ctermbg=LightBlue guibg=LightBlue"),
-    CENT("DiffChange term=bold ctermbg=LightMagenta",
-	 "DiffChange term=bold ctermbg=LightMagenta guibg=LightMagenta"),
+    CENT("DiffAdd term=bold ctermbg=LightBlue ctermfg=Black",
+	 "DiffAdd term=bold ctermbg=LightBlue ctermfg=Black guibg=LightBlue"),
+    CENT("DiffChange term=bold ctermbg=LightMagenta ctermfg=Black",
+	 "DiffChange term=bold ctermbg=LightMagenta ctermfg=Black guibg=LightMagenta"),
     CENT("DiffDelete term=bold ctermfg=Blue ctermbg=LightCyan",
 	 "DiffDelete term=bold ctermfg=Blue ctermbg=LightCyan gui=bold guifg=Blue guibg=LightCyan"),
 #endif
@@ -417,8 +417,8 @@ static char *(highlight_init_light[]) = {
 static char *(highlight_init_dark[]) = {
     CENT("Directory term=bold ctermfg=LightCyan",
 	 "Directory term=bold ctermfg=LightCyan guifg=Cyan"),
-    CENT("LineNr term=underline ctermfg=Yellow",
-	 "LineNr term=underline ctermfg=Yellow guifg=Yellow"),
+    CENT("LineNr term=NONE ctermfg=Yellow",
+	 "LineNr term=NONE ctermfg=Yellow guifg=Yellow"),
     CENT("CursorLineNr term=bold cterm=underline ctermfg=Yellow",
 	 "CursorLineNr term=bold cterm=underline ctermfg=Yellow gui=bold guifg=Yellow"),
     CENT("MoreMsg term=bold ctermfg=LightGreen",
@@ -427,8 +427,8 @@ static char *(highlight_init_dark[]) = {
 	 "Question term=standout ctermfg=LightGreen gui=bold guifg=Green"),
     CENT("Search term=reverse ctermbg=Yellow ctermfg=Black",
 	 "Search term=reverse ctermbg=Yellow ctermfg=Black guibg=Yellow guifg=Black"),
-    CENT("SpecialKey term=bold ctermfg=LightBlue",
-	 "SpecialKey term=bold ctermfg=LightBlue guifg=Cyan"),
+    CENT("SpecialKey term=NONE ctermfg=LightBlue",
+	 "SpecialKey term=NONE ctermfg=LightBlue guifg=Cyan"),
 #ifdef FEAT_SPELL
     CENT("SpellBad term=reverse ctermbg=Red",
 	 "SpellBad term=reverse ctermbg=Red guisp=Red gui=undercurl"),
@@ -439,20 +439,20 @@ static char *(highlight_init_dark[]) = {
     CENT("SpellLocal term=underline ctermbg=Cyan",
 	 "SpellLocal term=underline ctermbg=Cyan guisp=Cyan gui=undercurl"),
 #endif
-    CENT("PmenuThumb ctermbg=White",
-	 "PmenuThumb ctermbg=White guibg=White"),
-    CENT("PmenuShadow ctermbg=Black ctermfg=DarkGrey",
-	 "PmenuShadow ctermbg=Black ctermfg=DarkGrey guibg=Black guifg=DarkGrey"),
-    CENT("Pmenu ctermbg=Magenta ctermfg=Black",
-	 "Pmenu ctermbg=Magenta ctermfg=Black guibg=Magenta"),
-    CENT("PmenuSel ctermbg=Black ctermfg=DarkGrey",
-	 "PmenuSel ctermbg=Black ctermfg=DarkGrey guibg=DarkGrey"),
+    CENT("PmenuThumb term=reverse ctermbg=White",
+	 "PmenuThumb term=reverse ctermbg=White guibg=White"),
+    CENT("PmenuShadow term=NONE ctermbg=Black ctermfg=DarkGrey",
+	 "PmenuShadow term=NONE ctermbg=Black ctermfg=DarkGrey guibg=Black guifg=DarkGrey"),
+    CENT("Pmenu term=reverse ctermbg=Magenta ctermfg=Black",
+	 "Pmenu term=reverse ctermbg=Magenta ctermfg=Black guibg=Magenta"),
+    CENT("PmenuSel term=underline ctermbg=Black ctermfg=DarkGrey",
+	 "PmenuSel term=underline ctermbg=Black ctermfg=DarkGrey guibg=DarkGrey"),
     CENT("Title term=bold ctermfg=LightMagenta",
 	 "Title term=bold ctermfg=LightMagenta gui=bold guifg=Magenta"),
     CENT("WarningMsg term=standout ctermfg=LightRed",
 	 "WarningMsg term=standout ctermfg=LightRed guifg=Red"),
-    CENT("WildMenu term=standout ctermbg=Yellow ctermfg=Black",
-	 "WildMenu term=standout ctermbg=Yellow ctermfg=Black guibg=Yellow guifg=Black"),
+    CENT("WildMenu term=underline ctermbg=Yellow ctermfg=Black",
+	 "WildMenu term=underline ctermbg=Yellow ctermfg=Black guibg=Yellow guifg=Black"),
 #ifdef FEAT_FOLDING
     CENT("Folded term=standout ctermbg=DarkGrey ctermfg=Cyan",
 	 "Folded term=standout ctermbg=DarkGrey ctermfg=Cyan guibg=DarkGrey guifg=Cyan"),
@@ -3396,21 +3396,22 @@ blend_colors(guicolor_T popup_color, guicolor_T bg_color, int blend_val)
 #endif
 
 /*
- * Blend attributes for popup windows with opacity.
+ * Blend attributes for popup windows and menus with opacity.
  * Blends foreground and/or background colors based on blend value (0-100).
  * blend: 0 = opaque (use popup colors), 100 = transparent (use background colors)
  * blend_fg: TRUE to blend foreground color, FALSE to keep popup foreground
  */
-    int
-hl_blend_attr(int char_attr, int popup_attr, int blend, int blend_fg UNUSED)
+    static int
+hl_blend_attr_common(
+    int		char_attr,
+    int		popup_attr,
+    int		blend,
+    int		blend_fg)
 {
     attrentry_T *char_aep = NULL;
     attrentry_T *popup_aep;
     attrentry_T new_en;
     attrentry_T tmp_en;
-
-    if (blend >= 100 && blend_fg)
-	return char_attr;  // Fully transparent for both fg and bg
 
 #ifdef FEAT_GUI
     if (gui.in_use)
@@ -3466,14 +3467,18 @@ hl_blend_attr(int char_attr, int popup_attr, int blend, int blend_fg UNUSED)
 	    else
 	    {
 		// blend_fg=FALSE: popup text is opaque.  Replace the
-		// underlying cell's attribute flags, fg and special
-		// color with the popup's, so the underlying syntax
+		// underlying cell's attribute flags, fg, special color
+		// and font with the popup's, so the underlying syntax
 		// highlighting and any decoration (textprop undercurl,
 		// ...) do not bleed through.
 		new_en.ae_attr = popup_aep->ae_attr;
 		// fallback correctly to Normal fg color if fg_color == INVALCOLOR
 		new_en.ae_u.gui.fg_color = popup_aep->ae_u.gui.fg_color;
 		new_en.ae_u.gui.sp_color = popup_aep->ae_u.gui.sp_color;
+		new_en.ae_u.gui.font = popup_aep->ae_u.gui.font;
+# ifdef FEAT_XFONTSET
+		new_en.ae_u.gui.fontset = popup_aep->ae_u.gui.fontset;
+# endif
 	    }
 	    // Blend background color: blend popup bg toward underlying bg
 	    {
@@ -3547,8 +3552,8 @@ hl_blend_attr(int char_attr, int popup_attr, int blend, int blend_fg UNUSED)
 	    if (!blend_fg)
 	    {
 		// blend_fg=FALSE: popup text is opaque.  Replace the
-		// underlying cell's attribute flags, fg and underline
-		// color with the popup's, so the underlying syntax
+		// underlying cell's attribute flags, fg, underline color
+		// and font with the popup's, so the underlying syntax
 		// highlighting and any decoration (textprop undercurl,
 		// ...) do not bleed through.  When the popup has no fg
 		// (e.g. "guifg=NONE") fall back to Normal's fg so the
@@ -3564,6 +3569,7 @@ hl_blend_attr(int char_attr, int popup_attr, int blend, int blend_fg UNUSED)
 		    // black-ish or white-ish
 		    new_en.ae_u.cterm.fg_color = (*p_bg == 'l') ? 1 : 16;
 		new_en.ae_u.cterm.ul_color = popup_aep->ae_u.cterm.ul_color;
+		new_en.ae_u.cterm.font = popup_aep->ae_u.cterm.font;
 #ifdef FEAT_TERMGUICOLORS
 		new_en.ae_u.cterm.ul_rgb = popup_aep->ae_u.cterm.ul_rgb;
 #endif
@@ -3581,7 +3587,7 @@ hl_blend_attr(int char_attr, int popup_attr, int blend, int blend_fg UNUSED)
 		    under_fg_rgb = char_aep->ae_u.cterm.fg_rgb;
 #endif
 		new_en.ae_u.cterm.fg_color = blend_cterm_colors(
-			popup_aep->ae_u.cterm.fg_color, popup_bg_rgb,
+			popup_aep->ae_u.cterm.bg_color, popup_bg_rgb,
 			under_fg, under_fg_rgb, fallback_fg_rgb, blend);
 	    }
 	    // Approximate cterm bg by blending with the underlying bg
@@ -3600,16 +3606,7 @@ hl_blend_attr(int char_attr, int popup_attr, int blend, int blend_fg UNUSED)
 	    }
 #ifdef FEAT_TERMGUICOLORS
 	    // Blend RGB colors for termguicolors mode.
-	    // Fall back to cterm color converted to RGB when
-	    // gui color is not set.
 	    {
-		guicolor_T popup_fg = popup_aep->ae_u.cterm.fg_rgb;
-
-		if (COLOR_INVALID(popup_fg)
-			&& popup_aep->ae_u.cterm.fg_color > 0)
-		    popup_fg = cterm_color_to_rgb(
-			    popup_aep->ae_u.cterm.fg_color);
-
 		if (blend_fg)
 		{
 		    // blend_fg=TRUE: fade underlying text toward popup bg.
@@ -3634,6 +3631,15 @@ hl_blend_attr(int char_attr, int popup_attr, int blend, int blend_fg UNUSED)
 		    // branch.  When the popup has no fg fall back to Normal's
 		    // fg, then to white, so the text stays readable instead of
 		    // rendering as default (which can be black on dark themes).
+		    // Fall back to cterm color converted to RGB when the gui
+		    // color is not set.
+		    guicolor_T popup_fg = popup_aep->ae_u.cterm.fg_rgb;
+
+		    if (COLOR_INVALID(popup_fg)
+			    && popup_aep->ae_u.cterm.fg_color > 0)
+			popup_fg = cterm_color_to_rgb(
+				popup_aep->ae_u.cterm.fg_color);
+
 		    if (!COLOR_INVALID(popup_fg))
 			new_en.ae_u.cterm.fg_rgb = popup_fg;
 		    else if (!COLOR_INVALID(cterm_normal_fg_gui_color))
@@ -3673,163 +3679,24 @@ hl_blend_attr(int char_attr, int popup_attr, int blend, int blend_fg UNUSED)
 }
 
 /*
- * Blend for pum opacity space cells: keep underlying fg, blend bg.
- * This is different from hl_blend_attr(blend_fg=TRUE) where fg blends
- * in the wrong direction for pum use.
+ * Blend attributes for popup windows with opacity.
  */
     int
-hl_pum_blend_attr(int char_attr, int popup_attr, int blend UNUSED)
+hl_blend_attr(int char_attr, int popup_attr, int blend, int blend_fg)
 {
-    attrentry_T *char_aep = NULL;
-    attrentry_T *popup_aep;
-    attrentry_T new_en;
+    if (blend >= 100 && blend_fg)
+	return char_attr;
 
-#ifdef FEAT_GUI
-    if (gui.in_use)
-    {
-	if (char_attr > HL_ALL)
-	    char_aep = syn_gui_attr2entry(char_attr);
-	if (char_aep != NULL)
-	    new_en = *char_aep;
-	else
-	{
-	    CLEAR_FIELD(new_en);
-	    new_en.ae_u.gui.fg_color = INVALCOLOR;
-	    new_en.ae_u.gui.bg_color = INVALCOLOR;
-	    new_en.ae_u.gui.sp_color = INVALCOLOR;
-	    if (char_attr <= HL_ALL)
-		new_en.ae_attr = char_attr;
-	}
-	if (popup_attr > HL_ALL)
-	{
-	    popup_aep = syn_gui_attr2entry(popup_attr);
-	    if (popup_aep != NULL)
-	    {
-		// Blend fg: pum_bg toward underlying_fg.
-		// blend=0 (opaque): fg = pum_bg (text hidden)
-		// blend=100 (transparent): fg = underlying_fg (text visible)
-		if (popup_aep->ae_u.gui.bg_color != INVALCOLOR)
-		{
-		    int base_fg = fallback_fg_rgb;
-		    if (char_aep != NULL
-			    && char_aep->ae_u.gui.fg_color != INVALCOLOR)
-			base_fg = char_aep->ae_u.gui.fg_color;
-		    new_en.ae_u.gui.fg_color = blend_colors(
-			    popup_aep->ae_u.gui.bg_color, base_fg, blend);
-		}
-		// Blend bg: popup bg toward underlying bg.
-		if (popup_aep->ae_u.gui.bg_color != INVALCOLOR)
-		{
-		    guicolor_T underlying_bg = fallback_bg_rgb;
-		    if (char_aep != NULL)
-			underlying_bg = char_aep->ae_u.gui.bg_color;
-		    new_en.ae_u.gui.bg_color = blend_colors(
-			    popup_aep->ae_u.gui.bg_color,
-			    underlying_bg, blend);
-		}
-	    }
-	}
-	return get_attr_entry(&gui_attr_table, &new_en);
-    }
-#endif
+    return hl_blend_attr_common(char_attr, popup_attr, blend, blend_fg);
+}
 
-    if (IS_CTERM)
-    {
-	if (char_attr > HL_ALL)
-	    char_aep = syn_cterm_attr2entry(char_attr);
-	if (char_aep != NULL)
-	    new_en = *char_aep;
-	else
-	{
-	    CLEAR_FIELD(new_en);
-#ifdef FEAT_TERMGUICOLORS
-	    new_en.ae_u.cterm.bg_rgb = INVALCOLOR;
-	    new_en.ae_u.cterm.fg_rgb = INVALCOLOR;
-	    new_en.ae_u.cterm.ul_rgb = INVALCOLOR;
-#endif
-	    if (char_attr <= HL_ALL)
-		new_en.ae_attr = char_attr;
-	}
-	if (popup_attr > HL_ALL)
-	{
-	    popup_aep = syn_cterm_attr2entry(popup_attr);
-	    if (popup_aep != NULL)
-	    {
-		// Blend cterm fg: pum_bg toward underlying_fg in the
-		// 256-color palette (mirrors the fg_rgb blend below).
-		{
-		    int under_fg = (char_aep != NULL)
-					    ? char_aep->ae_u.cterm.fg_color : 0;
-		    guicolor_T under_fg_rgb = INVALCOLOR;
-		    guicolor_T popup_bg_rgb = INVALCOLOR;
-#ifdef FEAT_TERMGUICOLORS
-		    if (char_aep != NULL)
-			under_fg_rgb = char_aep->ae_u.cterm.fg_rgb;
-		    popup_bg_rgb = popup_aep->ae_u.cterm.bg_rgb;
-#endif
-		    new_en.ae_u.cterm.fg_color = blend_cterm_colors(
-			    popup_aep->ae_u.cterm.fg_color, popup_bg_rgb,
-			    under_fg, under_fg_rgb, fallback_fg_rgb, blend);
-		}
-		// Approximate cterm bg by blending with the underlying bg
-		// in the 256-color palette and mapping to the nearest entry.
-		{
-		    int under_bg = (char_aep != NULL)
-					    ? char_aep->ae_u.cterm.bg_color : 0;
-		    guicolor_T under_bg_rgb = INVALCOLOR;
-		    guicolor_T popup_bg_rgb = INVALCOLOR;
-#ifdef FEAT_TERMGUICOLORS
-		    if (char_aep != NULL)
-			under_bg_rgb = char_aep->ae_u.cterm.bg_rgb;
-		    popup_bg_rgb = popup_aep->ae_u.cterm.bg_rgb;
-#endif
-		    new_en.ae_u.cterm.bg_color = blend_cterm_colors(
-			    popup_aep->ae_u.cterm.bg_color, popup_bg_rgb,
-			    under_bg, under_bg_rgb, fallback_bg_rgb, blend);
-		}
-#ifdef FEAT_TERMGUICOLORS
-		// Blend fg_rgb: pum_bg toward underlying_fg.
-		// CTERMCOLOR is a sentinel meaning "use the cterm color";
-		// treat it as no underlying color so it is not blended in
-		// as a real near-white pixel.
-		if (popup_aep->ae_u.cterm.bg_rgb != INVALCOLOR)
-		{
-		    int base_fg = fallback_fg_rgb;
-		    if (char_aep != NULL
-			    && !COLOR_INVALID(char_aep->ae_u.cterm.fg_rgb))
-			base_fg = char_aep->ae_u.cterm.fg_rgb;
-		    new_en.ae_u.cterm.fg_rgb = blend_colors(
-			    popup_aep->ae_u.cterm.bg_rgb, base_fg, blend);
-		}
-		// Blend bg_rgb.
-		if (popup_aep->ae_u.cterm.bg_rgb != INVALCOLOR)
-		{
-		    guicolor_T underlying_bg = fallback_bg_rgb;
-		    if (char_aep != NULL
-			    && !COLOR_INVALID(char_aep->ae_u.cterm.bg_rgb))
-			underlying_bg = char_aep->ae_u.cterm.bg_rgb;
-		    new_en.ae_u.cterm.bg_rgb = blend_colors(
-			    popup_aep->ae_u.cterm.bg_rgb,
-			    underlying_bg, blend);
-		}
-#endif
-	    }
-	}
-	return get_attr_entry(&cterm_attr_table, &new_en);
-    }
-
-    // term mode
-    if (char_attr > HL_ALL)
-	char_aep = syn_term_attr2entry(char_attr);
-    if (char_aep != NULL)
-	new_en = *char_aep;
-    else
-    {
-	CLEAR_FIELD(new_en);
-	if (char_attr <= HL_ALL)
-	    new_en.ae_attr = char_attr;
-    }
-    return get_attr_entry(&term_attr_table, &new_en);
+/*
+ * Blend underlying foreground and background colors for pum space cells.
+ */
+    int
+hl_pum_blend_attr(int char_attr, int popup_attr, int blend)
+{
+    return hl_blend_attr_common(char_attr, popup_attr, blend, TRUE);
 }
 
 #ifdef FEAT_GUI
@@ -5565,7 +5432,7 @@ highlight_get_info(int hl_idx, int resolve_link)
 {
     dict_T	*dict;
     hl_group_T	*sgp;
-    dict_T	*attr_dict;
+    dict_T	*attr_dict = NULL;
     int		hlgid;
 
     dict = dict_alloc();
@@ -5595,8 +5462,11 @@ highlight_get_info(int hl_idx, int resolve_link)
     {
 	attr_dict = highlight_get_attr_dict(sgp->sg_term);
 	if (attr_dict != NULL)
+	{
 	    if (dict_add_dict(dict, "term", attr_dict) == FAIL)
 		goto error;
+	    attr_dict = NULL;
+	}
     }
     if (sgp->sg_start != NULL)
 	if (dict_add_string(dict, "start", sgp->sg_start) == FAIL)
@@ -5608,8 +5478,11 @@ highlight_get_info(int hl_idx, int resolve_link)
     {
 	attr_dict = highlight_get_attr_dict(sgp->sg_cterm);
 	if (attr_dict != NULL)
+	{
 	    if (dict_add_dict(dict, "cterm", attr_dict) == FAIL)
 		goto error;
+	    attr_dict = NULL;
+	}
     }
     if (sgp->sg_cterm_fg != 0)
 	if (dict_add_string(dict, "ctermfg",
@@ -5631,8 +5504,11 @@ highlight_get_info(int hl_idx, int resolve_link)
     {
 	attr_dict = highlight_get_attr_dict(sgp->sg_gui);
 	if (attr_dict != NULL)
+	{
 	    if (dict_add_dict(dict, "gui", attr_dict) == FAIL)
 		goto error;
+	    attr_dict = NULL;
+	}
     }
     if (sgp->sg_gui_fg_name != NULL)
 	if (dict_add_string(dict, "guifg",
@@ -5669,7 +5545,8 @@ highlight_get_info(int hl_idx, int resolve_link)
     return dict;
 
 error:
-    vim_free(dict);
+    dict_unref(attr_dict);
+    dict_unref(dict);
     return NULL;
 }
 
@@ -5718,8 +5595,8 @@ f_hlget(typval_T *argvars, typval_T *rettv)
 	if (hlarg == NULL || STRICMP(hlarg, HL_TABLE()[i].sg_name) == 0)
 	{
 	    dict = highlight_get_info(i, resolve_link);
-	    if (dict != NULL)
-		list_append_dict(list, dict);
+	    if (dict != NULL && list_append_dict(list, dict) == FAIL)
+		dict_unref(dict);
 	}
     }
 }

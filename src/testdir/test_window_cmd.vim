@@ -609,6 +609,23 @@ func Test_equalalways_on_close()
   set equalalways&
 endfunc
 
+func Test_equalalways_on_open()
+  set equalalways
+  vsplit
+  split
+  wincmd l
+  windo vsplit
+
+  let basewidth = winwidth(1)
+
+  for win in range(2, winnr("$"))
+    call assert_true(abs(winwidth(win) - basewidth) <= 1)
+  endfor
+
+  only
+  set equalalways&
+endfunc
+
 func Test_win_screenpos()
   CheckFeature quickfix
 
@@ -2024,6 +2041,34 @@ func Test_splitkeep_screen_cursor_pos()
   set splitkeep&
 endfunc
 
+func Test_splitkeep_phantom_jump()
+  set splitbelow
+  call setline(1, range(1, 100))
+  split
+
+  " Move cursor to last visible line so it is at risk of being pushed off
+  normal! L
+  let old = getcurpos()
+
+  " No jumps, just 3 header lines
+  call assert_equal(3, execute('jumps')->split('\n')->len())
+
+  " Switching to "screen" was causing vim to not update relevant variables
+  set splitkeep=screen
+
+  " Reduce window 2's space, and so bump up the cursor
+  set cmdheight=2
+
+  " Cursor has moved up a single line in the buffer, respecting splitkeep
+  call assert_equal(4, execute('jumps')->split('\n')->len())
+
+  let old[1] = old[1] - 1
+  call assert_equal(old, getcurpos())
+
+  %bwipeout!
+  set splitbelow& splitkeep& cmdheight&
+endfunc
+
 func Test_splitkeep_cmdheight()
   set splitkeep=screen
   call setline(1, range(&lines))
@@ -2032,6 +2077,47 @@ func Test_splitkeep_cmdheight()
   call assert_equal(&lines - 1, line('.'))
   %bwipeout!
   set splitkeep& cmdheight&
+endfunc
+
+func Test_splitkeep_screen_smoothscroll()
+  set splitkeep=screen
+  setlocal smoothscroll
+  call setline(1, [repeat('x', 3000)] + repeat(['line'], 10))
+  exe "normal! gg10\<C-E>"
+  redraw
+  let skipcol = winsaveview().skipcol
+  call assert_notequal(0, skipcol)
+
+  " Keeping the same screen lines also keeps the position in a long line.
+  split
+  close
+  redraw
+  call assert_equal(skipcol, winsaveview().skipcol)
+
+  %bwipeout!
+  set splitkeep&
+endfunc
+
+func Test_aucmd_win_scroll_multibyte()
+  " Using the autocommand window must not scroll the current window when the
+  " cursor is behind multi-byte characters.
+  set splitkeep=cursor
+  " Use a window with a fixed size, the size of the screen may change while
+  " the test is running.
+  call NewWindow(11, 40)
+  call setline(1, repeat([repeat(nr2char(0x3042), 100)], 20))
+  normal! G050l
+  redraw
+  let topline = line('w0')
+
+  for i in range(3)
+    call bufload(bufadd(''))
+  endfor
+  call assert_equal(topline, line('w0'))
+
+  %bwipeout!
+  only!
+  set splitkeep&
 endfunc
 
 func Test_splitkeep_cursor()
@@ -2479,6 +2565,23 @@ func Test_winfixheight_resize_wmh_zero()
 
   cclose
   set winminheight& laststatus&
+endfunc
+
+" Splitting the only window while it has 'winfixheight' set and 'laststatus' is
+" one must not leave a screen line unused.
+func Test_winfixheight_split_only_window()
+  set laststatus=1
+  new
+  only!
+  setlocal winfixheight
+  split
+  " Two windows, both with a status line, and the command line.
+  call assert_equal(&lines - &cmdheight - 2, winheight(1) + winheight(2))
+
+  only!
+  setlocal winfixheight&
+  set laststatus&
+  bwipe!
 endfunc
 
 " Test that setting 'laststatus' from 0 to 2 gives all windows in a vertical

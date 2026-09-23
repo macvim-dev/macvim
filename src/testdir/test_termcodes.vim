@@ -1720,6 +1720,7 @@ func Test_xx01_term_style_response()
         \ underline_rgb: 'u',
         \ mouse: 's',
         \ kitty: 'u',
+        \ rgb: 'u',
         \ decrqm: 'u'
         \ }, terminalprops())
 
@@ -1756,6 +1757,7 @@ func Test_xx02_iTerm2_response()
         \ underline_rgb: 'u',
         \ mouse: 's',
         \ kitty: 'u',
+        \ rgb: 'u',
         \ decrqm: 'y'
         \ }, terminalprops())
 
@@ -1777,6 +1779,7 @@ func Run_libvterm_konsole_response(code)
         \ underline_rgb: 'u',
         \ mouse: 's',
         \ kitty: 'u',
+        \ rgb: 'u',
         \ decrqm: 'u'
         \ }, terminalprops())
 endfunc
@@ -1821,6 +1824,7 @@ func Test_xx04_Mac_Terminal_response()
         \ underline_rgb: 'y',
         \ mouse: 's',
         \ kitty: 'u',
+        \ rgb: 'u',
         \ decrqm: 'n'
         \ }, terminalprops())
   call assert_equal("\<Esc>[58;2;%lu;%lu;%lum", &t_8u)
@@ -1853,6 +1857,7 @@ func Test_xx05_mintty_response()
         \ underline_rgb: 'y',
         \ mouse: 's',
         \ kitty: 'u',
+        \ rgb: 'u',
         \ decrqm: 'u'
         \ }, terminalprops())
 
@@ -1890,6 +1895,7 @@ func Test_xx06_screen_response()
         \ underline_rgb: 'y',
         \ mouse: 's',
         \ kitty: 'u',
+        \ rgb: 'u',
         \ decrqm: 'n'
         \ }, terminalprops())
 
@@ -1916,6 +1922,7 @@ func Do_check_t_8u_set_reset(set_by_user)
         \ underline_rgb: 'u',
         \ mouse: 's',
         \ kitty: 'u',
+        \ rgb: 'u',
         \ decrqm: 'u'
         \ }, terminalprops())
   call assert_equal(a:set_by_user ? default_value : '', &t_8u)
@@ -1956,6 +1963,7 @@ func Test_xx07_xterm_response()
         \ underline_rgb: 'y',
         \ mouse: 'u',
         \ kitty: 'u',
+        \ rgb: 'u',
         \ decrqm: 'u'
         \ }, terminalprops())
 
@@ -1973,6 +1981,7 @@ func Test_xx07_xterm_response()
         \ underline_rgb: 'u',
         \ mouse: '2',
         \ kitty: 'u',
+        \ rgb: 'u',
         \ decrqm: 'u'
         \ }, terminalprops())
 
@@ -1990,6 +1999,7 @@ func Test_xx07_xterm_response()
         \ underline_rgb: 'u',
         \ mouse: 's',
         \ kitty: 'u',
+        \ rgb: 'u',
         \ decrqm: 'u'
         \ }, terminalprops())
 
@@ -2020,6 +2030,7 @@ func Test_xx08_kitty_response()
         \ underline_rgb: 'y',
         \ mouse: 's',
         \ kitty: 'y',
+        \ rgb: 'u',
         \ decrqm: 'y'
         \ }, terminalprops())
 
@@ -2296,6 +2307,30 @@ func Test_modifyOtherKeys_mapped()
   iunmap BBB
   iunmap B
   set timeoutlen&
+endfunc
+
+func Test_modifyOtherKeys_after_partial_mapping()
+  new
+  set timeoutlen=10
+  imap <C-J> x
+  imap ab y
+  call setline(1, '')
+
+  " "a" is a partial match for the "ab" mapping, CTRL-J is simplified while
+  " looking for that mapping and must still match the <C-J> mapping.
+  call feedkeys("aa" .. GetEscCodeCSI27('J', 5) .. "\<Esc>", 'Lx!')
+  call assert_equal('ax', getline(1))
+
+  " A NL that was not simplified from the key protocol does not use the
+  " mapping for CTRL-J.
+  %d _
+  call feedkeys("aa\<NL>\<Esc>", 'Lx!')
+  call assert_equal(['a', ''], getline(1, '$'))
+
+  iunmap <C-J>
+  iunmap ab
+  set timeoutlen&
+  bwipe!
 endfunc
 
 func Test_modifyOtherKeys_ambiguous_mapping()
@@ -2944,6 +2979,16 @@ endfunc
 func Test_da1_handling()
   call feedkeys("\<Esc>[?62,52;c", 'Lx!')
   call assert_equal("\<Esc>[?62,52;c", v:termda1)
+endfunc
+
+" Test that terminalprops().rgb follows the color count.
+func Test_terminalprops_rgb()
+  let save_t_Co = &t_Co
+  set t_Co=16777216
+  call assert_equal('y', terminalprops().rgb)
+  set t_Co=256
+  call assert_equal('u', terminalprops().rgb)
+  let &t_Co = save_t_Co
 endfunc
 
 " Test if OSC terminal responses are captured correctly

@@ -1,4 +1,4 @@
-/* evalfunc.c */
+// evalfunc.c
 int arg_type_modifiable(type_T *type, int arg_idx);
 char_u *get_function_name(expand_T *xp, int idx);
 char_u *get_expr_name(expand_T *xp, int idx);
@@ -35,4 +35,4 @@ void f_getcurpos(typval_T *argvars, typval_T *rettv);
 void f_getpos(typval_T *argvars, typval_T *rettv);
 void f_getregion(typval_T *argvars, typval_T *rettv);
 
-/* vim: set ft=c : */
+// vim: ft=c

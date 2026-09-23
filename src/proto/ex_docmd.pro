@@ -1,4 +1,4 @@
-/* ex_docmd.c */
+// ex_docmd.c
 void do_exmode(int improved);
 int do_cmdline_cmd(char_u *cmd);
 int do_cmdline(char_u *cmdline, char_u *(*fgetline)(int, void *, int, getline_opt_T), void *cookie, int flags);
@@ -10,6 +10,7 @@ char *ex_errmsg(char *msg, char_u *arg);
 char *ex_range_without_command(exarg_T *eap);
 int checkforcmd(char_u **pp, char *cmd, int len);
 int checkforcmd_noparen(char_u **pp, char *cmd, int len);
+char_u *find_cmd_block_start(char_u *line);
 int parse_command_modifiers(exarg_T *eap, char **errormsg, cmdmod_T *cmod, int skip_only);
 int has_cmdmod(cmdmod_T *cmod, int ignore_silent);
 int cmdmod_error(int ignore_silent);
@@ -80,4 +81,4 @@ void set_no_hlsearch(int flag);
 int is_loclist_cmd(int cmdidx);
 int get_pressedreturn(void);
 void set_pressedreturn(int val);
-/* vim: set ft=c : */
+// vim: ft=c

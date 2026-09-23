@@ -2166,6 +2166,19 @@ func Test_search_match_paren()
   normal [(
   call assert_equal([1, 4], [line('.'), col('.')])
 
+  call setline(1, ['x" (a "b" )\', '")'])
+  call cursor(1, 4)
+  normal %
+  call assert_equal([1, 11], [line('.'), col('.')])
+  normal %
+  call assert_equal([1, 4], [line('.'), col('.')])
+  call cursor(1, 10)
+  normal [(
+  call assert_equal([1, 4], [line('.'), col('.')])
+  call cursor(1, 4)
+  normal ])
+  call assert_equal([1, 11], [line('.'), col('.')])
+
   " matching parenthesis in 'virtualedit' mode with cursor after the eol
   call setline(1, 'abc(defgh)')
   set virtualedit=all
@@ -2442,6 +2455,19 @@ func Test_incsearch_delimiter_ctrlg()
   call term_sendkeys(buf, "\<Esc>")
 
   call StopVimInTerminal(buf)
+endfunc
+
+func Test_searchcount_maxcount_cached()
+  new
+  call setline(1, repeat(['foo'], 5))
+  set maxsearchcount=99
+  let @/ = 'foo'
+  call cursor(1, 1)
+  call searchcount(#{recompute: v:true,  maxcount: 3})
+  let r = searchcount(#{recompute: v:false, maxcount: 3})
+  call assert_equal(3, r.maxcount)
+  set maxsearchcount&
+  bwipe!
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

@@ -1798,6 +1798,7 @@ search_for_exact_line(
     linenr_T	start = 0;
     char_u	*ptr;
     char_u	*p;
+    int		compl_len = ins_compl_len();
 
     if (buf->b_ml.ml_line_count == 0)
 	return FAIL;
@@ -1849,8 +1850,8 @@ search_for_exact_line(
 	}
 	else if (*p != NUL)	// ignore empty lines
 	{	// expanding lines or words
-	    if ((p_ic ? MB_STRNICMP(p, pat, ins_compl_len())
-				   : STRNCMP(p, pat, ins_compl_len())) == 0)
+	    if ((p_ic ? MB_STRNICMP(p, pat, compl_len)
+				   : STRNCMP(p, pat, compl_len)) == 0)
 		return OK;
 	}
     }
@@ -2674,9 +2675,9 @@ findmatchlimit(
 		    do_quotes = 1;
 		    if (start_in_quotes == MAYBE)
 		    {
-			// Do we need to use at_start here?
-			inquote = TRUE;
-			start_in_quotes = TRUE;
+			inquote = at_start;
+			if (inquote)
+			    start_in_quotes = TRUE;
 		    }
 		    else if (backwards)
 			inquote = TRUE;
@@ -3015,8 +3016,8 @@ is_zero_width(
 	    if (nmatched != 0)
 		break;
 	} while (regmatch.regprog != NULL
-		&& direction == FORWARD ? regmatch.startpos[0].col < pos.col
-				      : regmatch.startpos[0].col > pos.col);
+		&& (direction == FORWARD ? regmatch.startpos[0].col < pos.col
+				      : regmatch.startpos[0].col > pos.col));
 
 	if (called_emsg == called_emsg_before)
 	{
@@ -3318,7 +3319,7 @@ update_search_stat(
 	stat->cnt = cnt;
 	stat->exact_match = exact_match;
 	stat->incomplete = incomplete;
-	stat->last_maxcount = p_msc;
+	stat->last_maxcount = last_maxcount;
 	return;
     }
     last_maxcount = maxcount;
@@ -3899,7 +3900,8 @@ search_line:
 		}
 
 		add_r = ins_compl_add_infercase(aux, i, p_ic,
-			curr_fname == curbuf->b_fname ? NULL : curr_fname,
+			curr_fname == curbuf->b_fname ? NULL
+						  : shorten_fname1(curr_fname),
 			dir, cont_s_ipos, 0);
 		if (add_r == OK)
 		    // if dir was BACKWARD then honor it just once

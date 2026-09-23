@@ -319,6 +319,11 @@ func Test_spellfile_format_error()
   " SN_SOFO: multi-byte characters in sofofrom and sofoto
   call Spellfile_Test(0z0600000000080002CF810002CF82FF000000000000000000000000, '')
 
+  " SN_SAL (empty) followed by SN_SOFO with two multi-byte 'from' characters
+  " sharing the same low byte.  A preceding SN_SAL poisons sl_sal_first[], so
+  " without a reset set_sofo() under-counts and writes out of bounds.
+  call Spellfile_Test(0z05000000000300000006000000000A0004CAABCEAB00024142FF000000000000000000000000, '')
+
   " SN_COMPOUND: compmax is less than 2
   call Spellfile_Test(0z08000000000101, 'E759:')
 
@@ -1317,6 +1322,33 @@ func Test_soundfold_overflow()
 
   set spell& spelllang&
   let &enc = _enc
+endfunc
+
+func Test_spell_sal_sofo_truncated()
+  call mkdir('Xspelldir/spell', 'pR')
+
+  " "VIMspell" <ver=0x32>
+  "   SN_SAL(5)  flags=0 len=7   : <salflags=0><salcount=0,1><a><0><1>a<1>a
+  "   SN_SOFO(6) flags=0 len=0   : truncated, no body -> EOF in reader
+  " (28 bytes total)
+  let bytes = 0z56494d7370656c6c.3205000000000700.000101610161060000.000000
+  call writefile(bytes, 'Xspelldir/spell/Xx.utf-8.spl', 'b')
+
+  let save_rtp = &rtp
+  set rtp=./Xspelldir
+  try
+    set spelllang=Xx
+    silent! set spell
+  catch
+    " an error message is fine; a crash is not
+  endtry
+
+  " Reaching this point means Vim did not crash on the crafted file.
+  call assert_true(v:true)
+
+  set nospell
+  set spelllang&
+  let &rtp = save_rtp
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

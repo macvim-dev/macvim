@@ -1,4 +1,4 @@
-/* option.c */
+// option.c
 void set_init_1(int clean_arg);
 void set_fencs_unicode(void);
 void set_string_default(char *name, char_u *val);
@@ -22,6 +22,7 @@ int was_set_insecurely(win_T *wp, char_u *opt, int opt_flags);
 void redraw_titles(void);
 int valid_name(char_u *val, char *allowed);
 void set_option_sctx_idx(int opt_idx, int opt_flags, sctx_T script_ctx);
+bool is_option_value_vim9(int opt_idx, int opt_flags);
 sctx_T *get_option_sctx(char *name);
 void set_term_option_sctx_idx(char *name, int opt_idx);
 char *did_set_arabic(optset_T *args);
@@ -166,4 +167,4 @@ int fill_culopt_flags(char_u *val, win_T *wp);
 int magic_isset(void);
 int option_set_callback_func(char_u *optval, callback_T *optcb);
 char *did_set_showtabpanel(optset_T *args);
-/* vim: set ft=c : */
+// vim: ft=c

@@ -1,4 +1,4 @@
-/* popupwin.c */
+// popupwin.c
 int popup_on_border(win_T *wp, int row, int col);
 int popup_close_if_on_X(win_T *wp, int row, int col);
 void popup_start_drag(win_T *wp, int row, int col);
@@ -11,6 +11,7 @@ int popup_left_extra(win_T *wp);
 int popup_height(win_T *wp);
 int popup_width(win_T *wp);
 int popup_extra_width(win_T *wp);
+void popup_update_scale(double old_scale);
 int parse_previewpopup(win_T *wp);
 int parse_completepopup(win_T *wp);
 void popup_set_wantpos_cursor(win_T *wp, int width, dict_T *d);
@@ -38,6 +39,7 @@ void f_popup_settext(typval_T *argvars, typval_T *rettv);
 void f_popup_setbuf(typval_T *argvars, typval_T *rettv);
 int error_if_popup_window(int also_with_term);
 int popup_close(int id, int force);
+void popup_leave_tabpage(tabpage_T *tp);
 int popup_close_tabpage(tabpage_T *tp, int id, int force);
 void close_all_popups(int force);
 void f_popup_move(typval_T *argvars, typval_T *rettv);
@@ -59,7 +61,6 @@ void may_update_popup_mask(int type);
 void may_update_popup_position(void);
 int popup_get_base_screen_cell(int row, int col, schar_T *linep, int *attrp, u8char_T *ucp);
 void popup_set_base_screen_cell(int row, int col, schar_T line, int attr, u8char_T uc);
-void popup_images_invalidate(void);
 void update_popup_images(void);
 void update_popup_images_rect(int left, int top, int right, int bottom);
 void update_popups(void (*win_update)(win_T *wp));
@@ -85,4 +86,4 @@ void end_echowindow(void);
 int popup_win_closed(win_T *win);
 void popup_set_title(win_T *wp);
 void popup_update_preview_title(void);
-/* vim: set ft=c : */
+// vim: ft=c

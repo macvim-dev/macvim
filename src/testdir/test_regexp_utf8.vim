@@ -1,5 +1,33 @@
 " Tests for regexp in utf8 encoding
 
+func Test_regexp_literal_byte_search()
+  let save_encoding = &encoding
+  let save_re = &regexpengine
+  try
+    for enc in ['latin1', 'utf-8']
+      let &encoding = enc
+      for engine in [1, 2]
+        let &regexpengine = engine
+        let chars = ['z', nr2char(0x7f), nr2char(0xff)]
+        if enc == 'utf-8'
+          call add(chars, nr2char(0x100))
+        endif
+        for c in chars
+          let prefix = repeat('x', 4096)
+          call assert_equal(-1, match('', c))
+          call assert_equal(-1, match(prefix, c))
+          call assert_equal(0, match(c .. prefix, c))
+          call assert_equal(4096, match(prefix .. c, c))
+        endfor
+        call assert_equal(-1, match('xxx', '\%d0'))
+      endfor
+    endfor
+  finally
+    let &encoding = save_encoding
+    let &regexpengine = save_re
+  endtry
+endfunc
+
 func s:equivalence_test()
   let str = "AÀÁÂÃÄÅĀĂĄǍǞǠǺȂȦȺḀẠẢẤẦẨẪẬẮẰẲẴẶ BƁɃḂḄḆ CÇĆĈĊČƇȻḈꞒ DĎĐƊḊḌḎḐḒ EÈÉÊËĒĔĖĘĚȄȆȨɆḔḖḘḚḜẸẺẼẾỀỂỄỆ FƑḞꞘ GĜĞĠĢƓǤǦǴḠꞠ HĤĦȞḢḤḦḨḪⱧ IÌÍÎÏĨĪĬĮİƗǏȈȊḬḮỈỊ JĴɈ KĶƘǨḰḲḴⱩꝀ LĹĻĽĿŁȽḶḸḺḼⱠ MḾṀṂ NÑŃŅŇǸṄṆṈṊꞤ OÒÓÔÕÖØŌŎŐƟƠǑǪǬǾȌȎȪȬȮȰṌṎṐṒỌỎỐỒỔỖỘỚỜỞỠỢ PƤṔṖⱣ QɊ RŔŖŘȐȒɌṘṚṜṞⱤꞦ SŚŜŞŠȘṠṢṤṦṨⱾꞨ TŢŤŦƬƮȚȾṪṬṮṰ UÙÚÛÜŨŪŬŮŰƯǕǙǛǓǗȔȖɄṲṴṶṸṺỤỦỨỪỬỮỰ  VƲṼṾ WŴẀẂẄẆẈ XẊẌ YÝŶŸƳȲɎẎỲỴỶỸ ZŹŻŽƵẐẒẔⱫ aàáâãäåāăąǎǟǡǻȃȧᶏḁẚạảấầẩẫậắằẳẵặⱥ bƀɓᵬᶀḃḅḇ cçćĉċčƈȼḉꞓꞔ dďđɗᵭᶁᶑḋḍḏḑḓ eèéêëēĕėęěȅȇȩɇᶒḕḗḙḛḝẹẻẽếềểễệ fƒᵮᶂḟꞙ gĝğġģǥǧǵɠᶃḡꞡ hĥħȟḣḥḧḩḫẖⱨꞕ iìíîïĩīĭįǐȉȋɨᶖḭḯỉị jĵǰɉ kķƙǩᶄḱḳḵⱪꝁ lĺļľŀłƚḷḹḻḽⱡ mᵯḿṁṃ nñńņňŉǹᵰᶇṅṇṉṋꞥ oòóôõöøōŏőơǒǫǭǿȍȏȫȭȯȱɵṍṏṑṓọỏốồổỗộớờởỡợ pƥᵱᵽᶈṕṗ qɋʠ rŕŗřȑȓɍɽᵲᵳᶉṛṝṟꞧ sśŝşšșȿᵴᶊṡṣṥṧṩꞩ tţťŧƫƭțʈᵵṫṭṯṱẗⱦ uùúûüũūŭůűųǚǖưǔǘǜȕȗʉᵾᶙṳṵṷṹṻụủứừửữự vʋᶌṽṿ wŵẁẃẅẇẉẘ xẋẍ yýÿŷƴȳɏẏẙỳỵỷỹ zźżžƶᵶᶎẑẓẕⱬ"
   let groups = split(str)
@@ -361,6 +389,12 @@ func Run_regexp_ignore_case()
   call assert_equal('iIx', substitute('iIİ', '\c\(\%u0130\)', 'x', 'g'))
   call assert_equal('iIx', substitute('iIİ', '\c\([\u0130]\)', 'x', 'g'))
   call assert_equal('iIx', substitute('iIİ', '\c\([\u012f-\u0131]\)', 'x', 'g'))
+
+  " Ignoring case in a literal string that starts with a character longer
+  " than a following one must still match.
+  call assert_equal('Über', matchstr('Überraschung', '\cüber'))
+  call assert_equal('Ünder', matchstr('Ünderdog', '\cünder'))
+  call assert_equal('αaaa', matchstr('αaaaa', '\cαaaa'))
 endfunc
 
 func Test_regexp_ignore_case()
@@ -648,6 +682,31 @@ func Test_regex_collection_range_with_composing_crash()
     endfor
   endfor
 
+  bwipe!
+endfunc
+
+" A submatch in a look-behind must not start on the previous line.  See
+" issue #20802.
+func Test_lookbehind_submatch_on_second_line()
+  new
+  for re in range(0, 2)
+    exe "set re=" .. re
+    call setline(1, ['testing', 'testing'])
+    %s/\v(.)@<=/[\1]/g
+    call assert_equal(['t[t]e[e]s[s]t[t]i[i]n[n]g',
+	  \ 't[t]e[e]s[s]t[t]i[i]n[n]g'], getline(1, '$'), 're=' .. re)
+    %d _
+
+    " With "\_." the look-behind can match the line break, then the submatch
+    " does start on the previous line.
+    call setline(1, ['abc', 'def'])
+    %s/\v(\_.)@<=/[\1]/g
+    call assert_equal(['a[a]b[b]c[c]', '[]d[d]e[e]f[f]'],
+	  \ getline(1, '$'), 're=' .. re)
+    %d _
+  endfor
+
+  set re&
   bwipe!
 endfunc
 

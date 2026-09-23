@@ -1073,7 +1073,7 @@ barline_parse(vir_T *virp, char_u *text, garray_T *values)
 		    }
 		    // Get length of text, excluding |< and NL chars.
 		    n = STRLEN(virp->vir_line);
-		    while (n > 0 && (virp->vir_line[n - 1] == NL
+		    while (n > 2 && (virp->vir_line[n - 1] == NL
 					     || virp->vir_line[n - 1] == CAR))
 			--n;
 		    n -= 2;
@@ -1476,7 +1476,7 @@ write_viminfo_sub_string(FILE *fp)
  */
 
     static int
-read_viminfo_search_pattern(vir_T *virp, int force)
+read_viminfo_search_pattern(vir_T *virp, int force, int writing)
 {
     char_u	*lp;
     int		idx = -1;
@@ -1543,16 +1543,19 @@ read_viminfo_search_pattern(vir_T *virp, int force)
 									TRUE);
 	    if (val != NULL)
 	    {
-		set_last_search_pat(val, idx, magic, setlast);
-		vim_free(val);
-		spat->no_scs = no_scs;
-		spat->off.line = off_line;
-		spat->off.end = off_end;
-		spat->off.off = off;
+		if (!writing)
+		{
+		    set_last_search_pat(val, idx, magic, setlast);
+		    spat->no_scs = no_scs;
+		    spat->off.line = off_line;
+		    spat->off.end = off_end;
+		    spat->off.off = off;
 #ifdef FEAT_SEARCH_EXTRA
-		if (setlast)
-		    set_no_hlsearch(!hlsearch_on);
+		    if (setlast)
+			set_no_hlsearch(!hlsearch_on);
 #endif
+		}
+		vim_free(val);
 	    }
 	}
     }
@@ -2914,7 +2917,7 @@ read_viminfo_up_to_marks(
 	    case '/':	    // Search string
 	    case '&':	    // Substitute search string
 	    case '~':	    // Last search string, followed by '/' or '&'
-		eof = read_viminfo_search_pattern(virp, forceit);
+		eof = read_viminfo_search_pattern(virp, forceit, writing);
 		break;
 	    case '$':
 		eof = read_viminfo_sub_string(virp, forceit);

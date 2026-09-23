@@ -1657,7 +1657,8 @@ do_buffer_ext(
 		buf = curbuf->b_next;
 	    else
 		buf = curbuf->b_prev;
-	    if (bt_quickfix(buf) || (buf != curbuf && buf->b_locked_split))
+	    if (bt_quickfix(buf)
+		    || (buf != NULL && buf != curbuf && buf->b_locked_split))
 		buf = NULL;
 	}
     }
@@ -2512,6 +2513,9 @@ free_buf_options(
     clear_string_option(&buf->b_p_cinw);
     clear_string_option(&buf->b_p_cot);
     clear_string_option(&buf->b_p_cpt);
+#ifdef BACKSLASH_IN_FILENAME
+    clear_string_option(&buf->b_p_csl);
+#endif
 #ifdef FEAT_COMPL_FUNC
     clear_string_option(&buf->b_p_cfu);
     free_callback(&buf->b_cfu_cb);

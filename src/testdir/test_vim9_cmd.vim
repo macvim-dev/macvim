@@ -97,6 +97,60 @@ def Test_vim9cmd()
   v9.CheckScriptFailure(lines, 'E1017:')
 enddef
 
+def Test_legacy_vim9cmd_preserved_by_options()
+  # Make sure that "legacy" and "vim9cmd" prefix affects value of an option that
+  # is a script expression.
+
+  var lines: list<string>
+
+  lines =<< trim END
+    vim9script
+    try
+      legacy set indentexpr='a'.'b'=='ab'
+      set debug=throw
+      normal O
+    finally
+      set debug& indentexpr&
+    endtry
+  END
+  # "'a'.'b'=='ab'" evaluated as a Vim9 expression produces:
+  #
+  # > E1030: Using a String as a Number: "a"
+  v9.CheckScriptSuccess(lines)
+
+  lines =<< trim END
+    try
+      vim9cmd set indentexpr=type((x)\ =>\ x)\ ==\ v:t_func\ ?\ 1\ :\ 0
+      set debug=throw
+      normal O
+    finally
+      set debug& indentexpr&
+    endtry
+  END
+  # "type((x) => x) == v:t_func ? 1 : 0" evaluated as a legacy expression
+  # produces:
+  #
+  # > E121: Undefined variable: x
+  v9.CheckScriptSuccess(lines)
+enddef
+
+def Test_legacy_vim9cmd_exclusive()
+  # Make sure that only one of the "legacy" or "vim9cmd" prefixes is applied.
+
+  # Invalid as vim9syntax.
+  call assert_fails("legacy vim9cmd echo 'a' . 'b'", 'E15:')
+  call assert_fails("legacy vim9cmd legacy vim9cmd echo 'a' . 'b'", 'E15:')
+
+  # Invalid legacy syntax.
+  call assert_fails("vim9cmd legacy echo (x) => x", 'E121:')
+  call assert_fails("vim9cmd legacy vim9cmd legacy echo (x) => x", 'E121:')
+
+  # Validate legacy/vim9 syntax being used.
+  call assert_equal('ab', trim(execute("vim9cmd legacy echo 'a' . 'b'")))
+  call assert_equal('true',
+    execute('legacy vim9cmd echo type((x) => x) == v:t_func')->trim())
+enddef
+
 def Test_defcompile_fails()
   assert_fails('defcompile NotExists', 'E1061:')
   assert_fails('defcompile debug debug Test_defcompile_fails', 'E488:')
@@ -1456,6 +1510,25 @@ def Test_user_command_comment()
   delcommand Foo
 enddef
 
+" A name with an underscore is not a command with an argument: "ch_log" is
+" not ":change".
+def Test_command_name_with_underscore()
+  var lines =<< trim END
+      vim9script
+      ch_log
+  END
+  v9.CheckScriptFailure(lines, 'E492: Not an editor command: ch_log')
+  lines =<< trim END
+      vim9script
+      command Foo echo 'Foo'
+      Foo_bar
+  END
+  v9.CheckScriptFailure(lines, 'E492: Not an editor command: Foo_bar')
+  delcommand Foo
+  v9.CheckDefFailure(['ch_log'], 'E476: Invalid command: ch_log')
+  v9.CheckDefFailure(['echo_x'], 'E476: Invalid command: echo_x')
+enddef
+
 def Test_star_command()
   var lines =<< trim END
     vim9script
@@ -2193,6 +2266,23 @@ def Test_delfunction_dict_funcref()
       delfunction d['k2']
       assert_false(has_key(d, 'k2'))
       delfunction g:LegacyFunc
+  END
+  v9.CheckScriptSuccess(lines)
+enddef
+
+" Looking ahead at a line that starts with a dict member, to tell an
+" assignment from an expression, must not leave an error behind.
+def Test_no_error_from_looking_ahead()
+  var lines =<< trim END
+      vim9script
+      var d = {Fn: (m: string) => 0}
+      def F(b: bool)
+        d.Fn(b ? 'one'
+               : 'two')
+      enddef
+      v:errmsg = ''
+      defcompile
+      assert_equal('', v:errmsg)
   END
   v9.CheckScriptSuccess(lines)
 enddef

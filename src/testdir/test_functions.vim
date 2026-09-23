@@ -1,6 +1,7 @@
 " Tests for various functions.
 
 source util/screendump.vim
+source util/view_util.vim
 import './util/vim9.vim' as v9
 
 " Must be done first, since the alternate buffer must be unset.
@@ -208,6 +209,55 @@ func Test_strwidth()
   call v9.CheckDefAndScriptFailure(['echo strwidth(1.2)'], ['E1013: Argument 1: type mismatch, expected string but got float', 'E1174: String required for argument 1'])
 
   set ambiwidth&
+endfunc
+
+func Test_strtrans()
+  " The default of 'isprint' is platform-dependent: 0x7f and 0x9f are
+  " printable on Win32 and VMS.  Set it so the expectations below hold
+  " everywhere.
+  let save_isprint = &isprint
+  set isprint=@,161-255
+
+  " printable ASCII is unchanged
+  call assert_equal('', strtrans(''))
+  call assert_equal('abc', strtrans('abc'))
+
+  " control characters are displayed as ^X
+  call assert_equal('^I', strtrans("\t"))
+  call assert_equal('a^Mb^[c', strtrans("a\rb\ec"))
+  call assert_equal('^A^_^?', strtrans("\x01\x1f\x7f"))
+
+  " printable multibyte characters are unchanged, including composing
+  " characters and characters above 0xffff
+  call assert_equal('héllo 你好', strtrans('héllo 你好'))
+  let s = 'e' .. nr2char(0x301) .. 'x'
+  call assert_equal(s, strtrans(s))
+  call assert_equal(nr2char(0x1d11e), strtrans(nr2char(0x1d11e)))
+
+  " unprintable multibyte characters are displayed in <xx> hex form
+  call assert_equal('<9f>', strtrans(nr2char(0x9f)))
+  call assert_equal('<200b>', strtrans(nr2char(0x200b)))
+  call assert_equal('<feff>', strtrans(nr2char(0xfeff)))
+
+  " illegal bytes are displayed in <xx> hex form
+  call assert_equal('A<ff>B', strtrans("A\xffB"))
+
+  " a long string mixing all kinds of characters
+  call assert_equal(repeat('a^Bé<9f>', 100),
+        \ strtrans(repeat("a\x02é" .. nr2char(0x9f), 100)))
+
+  " the non-multi-byte code path
+  set encoding=latin1
+  set isprint=@,161-255
+  call assert_equal('a^Mb^[c', strtrans("a\rb\ec"))
+  call assert_equal('^A^_^?', strtrans("\x01\x1f\x7f"))
+  " an unprintable byte above 0x7f uses the meta notation
+  call assert_equal('| ', strtrans("\xa0"))
+  call assert_equal("\xe9", strtrans("\xe9"))
+  call assert_equal("x^B\xe9| y", strtrans("x\x02\xe9\xa0y"))
+  set encoding=utf-8
+
+  let &isprint = save_isprint
 endfunc
 
 func Test_str2nr()
@@ -1200,6 +1250,86 @@ func Test_matchstrpos()
   call assert_equal(['ing', 1, 4, 7], matchstrpos(['vim', 'testing', 'execute'], 'ing'))
   call assert_equal(['', -1, -1, -1], matchstrpos(['vim', 'testing', 'execute'], 'img'))
   call assert_equal(['', -1, -1], matchstrpos(test_null_list(), '\a'))
+endfunc
+
+" While match() iterates over a list, stringifying an item can run the
+" string() method of an object, which must not be able to free the item
+" the loop is standing on.
+func Test_match_list_changed_while_matching()
+  let lines =<< trim END
+    vim9script
+    class C
+      def string(): string
+        if !g:removed
+          g:removed = true
+          remove(g:mlist, 0)
+        endif
+        return 'nostring'
+      enddef
+    endclass
+    g:mlist = [C.new(), C.new(), C.new()]
+  END
+  call writefile(lines, 'Xmatchmutate.vim', 'D')
+  let g:removed = v:false
+  source Xmatchmutate.vim
+  call assert_fails('call match(g:mlist, "xyz")', 'E741:')
+  call assert_equal(3, len(g:mlist))
+  let g:removed = v:false
+  call assert_fails('call matchstr(g:mlist, "xyz")', 'E741:')
+  call assert_equal(3, len(g:mlist))
+  unlet g:mlist g:removed
+endfunc
+
+" Same for join() and string().
+func Test_join_list_changed_while_stringified()
+  let lines =<< trim END
+    vim9script
+    class C
+      def string(): string
+        if !g:removed
+          g:removed = true
+          remove(g:jlist, 0)
+        endif
+        return 'nostring'
+      enddef
+    endclass
+    g:jlist = [C.new(), C.new(), C.new()]
+  END
+  call writefile(lines, 'Xjoinmutate.vim', 'D')
+  let g:removed = v:false
+  source Xjoinmutate.vim
+  call assert_fails('call join(g:jlist, ",")', 'E741:')
+  call assert_equal(3, len(g:jlist))
+  let g:removed = v:false
+  call assert_fails('call string(g:jlist)', 'E741:')
+  call assert_equal(3, len(g:jlist))
+  unlet g:jlist g:removed
+endfunc
+
+" Same for a dict, where the item can also be added and reallocate the
+" hash table.
+func Test_dict_changed_while_stringified()
+  let lines =<< trim END
+    vim9script
+    class C
+      def string(): string
+        if !g:removed
+          g:removed = true
+          for k in keys(g:d)
+            remove(g:d, k)
+          endfor
+        endif
+        return 'nostring'
+      enddef
+    endclass
+    g:d = {'a': C.new(), 'b': C.new(), 'c': C.new()}
+  END
+  call writefile(lines, 'Xdictmutate.vim', 'D')
+  let g:removed = v:false
+  source Xdictmutate.vim
+  call assert_fails('call string(g:d)', 'E741:')
+  call assert_equal(3, len(g:d))
+  unlet g:d g:removed
 endfunc
 
 " Test for matchstrlist()
@@ -3647,6 +3777,26 @@ func Test_range()
   call assert_fails('let x=range([])', 'E745:')
   call assert_fails('let x=range(1, [])', 'E745:')
   call assert_fails('let x=range(1, 4, [])', 'E745:')
+
+  " the number of items must fit in an int
+  call assert_equal(2147483647, len(range(2147483647)))
+  call assert_fails('let x=range(2147483648)',
+        \ 'E1510: Value too large: 2147483648')
+  call assert_fails('let x=range(0, 2147483647)',
+        \ 'E1510: Value too large: 2147483648')
+  call assert_fails('let x=range(0, 4294967294, 2)',
+        \ 'E1510: Value too large: 2147483648')
+  call assert_fails('let x=range(0, 9223372036854775807)',
+        \ 'E1510: Value too large: 9223372036854775808')
+
+  " the stride must fit in an int
+  call assert_fails('let x=range(0, 100, 3000000000)',
+        \ 'E1510: Value too large: 3000000000')
+  call assert_fails('let x=range(0, 100, -3000000000)',
+        \ 'E1510: Value too large: -3000000000')
+
+  " slicing a range list with an overflowing length crashed
+  call assert_fails('let x=range(2147483648)[: 4]', 'E1510:')
 endfunc
 
 func Test_garbagecollect_now_fails()
@@ -4497,6 +4647,9 @@ func Test_base64_encoding()
     call assert_equal(0z00, base64_decode("===="))
     call assert_equal(0z, base64_decode(""))
 
+    #" a zero byte in the last group is not padding
+    call assert_equal('AQAC', base64_encode(0z010002))
+
     #" Test for invalid padding
     call assert_equal('Hello', g:Blob2Str(base64_decode("SGVsbG8=")))
     call assert_fails('call base64_decode("SGVsbG9=")', 'E475:')
@@ -4729,6 +4882,60 @@ func Test_vim9_def_defer_fc_sandbox()
 
   call assert_fails('call g:BadDefer()', 'E48:')
   delfunction g:BadDefer
+endfunc
+
+" Test wincol() counts in screen cells from left side of the window
+func Test_wincol()
+  enew!
+  set ff=unix mouse=a
+
+  let win_width = 30
+  call NewWindow(20, win_width)
+
+  call setline(1, "the quick brown fox jump")
+
+  norm! 0
+  call assert_equal([1, 1], [winline(), wincol()])
+
+  call test_setmouse(1, 10)
+  call feedkeys("\<LeftMouse>\<Ignore>", "xt")
+  call assert_equal([1, 10], [winline(), wincol()])
+
+  if has('rightleft')
+    norm! 0
+    call assert_equal([1, 1], [winline(), wincol()])
+
+    set rightleft
+    " cursor is still at column 1, but in screen cells it is at the distance of window width:
+    call assert_equal([1, win_width], [winline(), wincol()])
+
+    " test_setmouse() works in screen coordinates, which is not affected by 'rightleft':
+    call test_setmouse(1, 10)
+    call feedkeys("\<LeftMouse>\<Ignore>", "xt")
+    call assert_equal([1, 10], [winline(), wincol()])
+    set rightleft&
+  endif
+
+  " With 'rightleft' the cursor is on the leftmost cell of a double-wide
+  " character, so wincol() is one less than where the character starts.
+  call setline(1, "あいうえお")
+
+  norm! 0
+  call assert_equal([1, 1], [winline(), wincol()])
+  norm! l
+  call assert_equal([1, 3], [winline(), wincol()])
+
+  if has('rightleft')
+    set rightleft
+    norm! 0
+    call assert_equal([1, win_width - 1], [winline(), wincol()])
+    norm! l
+    call assert_equal([1, win_width - 3], [winline(), wincol()])
+    set rightleft&
+  endif
+
+  set ff& mouse&
+  bw!
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

@@ -1692,6 +1692,7 @@ struct itf2class_S {
 #define CLASS_EXTENDED	    0x2	    // another class extends this one
 #define CLASS_ABSTRACT	    0x4	    // abstract class
 #define CLASS_ENUM	    0x8	    // enum
+#define CLASS_DRYRUN	    0x10    // defined by ":source ++dryrun"
 
 // "class_T": used for v_class of typval of VAR_CLASS
 // Also used for an interface (class_flags has CLASS_INTERFACE).
@@ -2976,6 +2977,7 @@ struct listener_S
 {
     listener_T	*lr_next;
     int		lr_id;
+    bool	lr_text;	// include the resulting text in each change
     callback_T	lr_callback;
 };
 
@@ -3185,6 +3187,8 @@ typedef struct {
      * b_sst_array	pointer to an array of synstate_T
      * b_sst_len	number of entries in b_sst_array[]
      * b_sst_first	pointer to first used entry in b_sst_array[] or NULL
+     * b_sst_search	cached entry near the last accessed line, used as a
+     *			start point for forward lookups, or NULL
      * b_sst_firstfree	pointer to first free entry in b_sst_array[] or NULL
      * b_sst_freecount	number of free entries in b_sst_array[]
      * b_sst_check_lnum	entries after this lnum need to be checked for
@@ -3193,6 +3197,7 @@ typedef struct {
     synstate_T	*b_sst_array;
     int		b_sst_len;
     synstate_T	*b_sst_first;
+    synstate_T	*b_sst_search;
     synstate_T	*b_sst_firstfree;
     int		b_sst_freecount;
     linenr_T	b_sst_check_lnum;
@@ -3450,6 +3455,7 @@ struct file_buffer
     char_u	*b_p_csl;	// 'completeslash'
 #endif
 #ifdef FEAT_COMPL_FUNC
+    long_u	b_p_cpt_flags;	// flags for 'complete'
     callback_T	*b_p_cpt_cb;	// F{func} in 'complete' callback
     int		b_p_cpt_count;	// Count of values in 'complete'
     char_u	*b_p_cfu;	// 'completefunc'
@@ -3638,6 +3644,7 @@ struct file_buffer
     listener_T	*b_listener;       // Listeners accepting buffered reports.
     listener_T	*b_sync_listener;  // Listeners requiring unbuffered reports.
     list_T	*b_recorded_changes;
+    size_t	b_recorded_text_size;  // bytes of text held by the above
 #endif
 #ifdef FEAT_PROP_POPUP
     bool	b_has_textprop;	// true when text props were added
@@ -3713,6 +3720,8 @@ struct file_buffer
 
 #ifdef FEAT_SIGNS
     sign_entry_T *b_signlist;	   // list of placed signs
+    sign_entry_T *b_sign_finger;   // last sign inserted, used to speed up
+				   // inserting signs in ascending line order
 # ifdef FEAT_NETBEANS_INTG
     bool	b_has_sign_column; // Flag that is set when a first sign is
 				   // added and remains set until the end of
@@ -4288,7 +4297,7 @@ struct window_S
     // visible under the new frame's transparent pixels.
     bool	w_popup_image_px_dirty;
 #  ifdef FEAT_IMAGE_SIXEL
-    char_u	*w_popup_image_seq;	// cached sixel DCS sequence (terminal)
+    char_u	*w_popup_image_seq;	// cached sixel DCS sequence
     int		w_popup_image_seq_w;	// pixel width of cached seq
     int		w_popup_image_seq_h;	// pixel height used for cached seq;
 					// -1 means cache is invalid
@@ -4296,10 +4305,11 @@ struct window_S
     int		w_popup_image_seq_crop_y; // pixel offset (top) into source
     int		w_popup_image_seq_cells_w; // cell width  spanning seq pixels
     int		w_popup_image_seq_cells_h; // cell height spanning seq pixels
-    int		w_popup_image_seq_zindex;  // zindex encoded into seq (kitty z=)
-    bool	w_popup_image_emit_valid;  // true while the kitty placement
-					   // emitted at w_popup_image_emit_*
-					   // is still on the terminal
+#  endif
+#  ifdef FEAT_IMAGE_KITTY
+    bool	w_popup_image_transmit;	    // If image has been transmitted to
+					    // terminal
+    int		w_popup_image_placements;   // kitty placements on screen
 #  endif
 #  ifdef FEAT_IMAGE_GDI
     // Pre-built Windows GUI image cache.  The bitmap is a 32-bit top-down
@@ -4849,8 +4859,11 @@ typedef struct
     int		do_syntax;
 #endif
     int		user_abort;
+#ifdef FEAT_PRINT_PANGO
+    int		user_abort_msg;
+#endif
     char_u	*jobname;
-#ifdef FEAT_POSTSCRIPT
+#if defined(FEAT_POSTSCRIPT) || defined(FEAT_PRINT_PANGO)
     char_u	*outfile;
     char_u	*arguments;
 #endif
@@ -5376,7 +5389,11 @@ typedef struct {
     char	cts_has_prop_with_text;	// TRUE if a property inserts text
     int		cts_cur_text_width;	// width of current inserted text
     int		cts_prop_lines;		// nr of properties above or below
+    bool	cts_has_below;		// true if a text property below was
+					// counted, its width fills up the line
     int		cts_first_char;		// width text props above the line
+    int		cts_above_width;	// width of text props above the line,
+					// kept for the whole line
     int		cts_with_trailing;	// include size of trailing props with
 					// last character
     int		cts_start_incl;		// prop has true "start_incl" arg
@@ -5481,8 +5498,11 @@ typedef struct {
 #endif
 } spellvars_T;
 
-// Return the length of a string literal
-#define STRLEN_LITERAL(s) (sizeof(s) - 1)
+// Return the length of a string literal.
+// This macro only computes a string's length for a string-literal token; for
+// anything else, including a char*, compilation will fail (note "" following
+// s).
+#define STRLEN_LITERAL(s) (sizeof(s "") - 1)
 
 // Store a key/value (string) pair
 typedef struct
@@ -5502,7 +5522,7 @@ struct cellsize {
 };
 #endif
 
-#if defined(FEAT_IMAGE) || defined(PROTO)
+#if defined(FEAT_IMAGE)
 // RGB(A) image input shared by all popup image backends.
 // "data" points to width*height*3 bytes of tightly packed R,G,B triples
 // when has_alpha is FALSE, or width*height*4 R,G,B,A quadruples otherwise.
