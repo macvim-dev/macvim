@@ -2651,41 +2651,43 @@ else
   AC_MSG_RESULT(no)
 fi
 
-AC_MSG_CHECKING(for cairo)
-have_cairo="no"
-if "$PKG_CONFIG" --exists 'cairo-ps'; then
-  if "$PKG_CONFIG" --exists 'cairo-pdf'; then
-    have_cairo="yes"
-    AC_MSG_RESULT([yes])
+dnl MacVim: Manually comment out cairo and pango for now, as they pull in unnecessary external linkage. The feature should only be for GTK4. This should be fixed by not adding the linker flags here.
 
-    CAIRO_CFLAGS=`$PKG_CONFIG --cflags-only-other cairo-ps cairo-pdf`
-    CAIRO_CPPFLAGS=`$PKG_CONFIG --cflags-only-I cairo-ps cairo-pdf`
-    CAIRO_LIBS=`$PKG_CONFIG --libs cairo-ps cairo-pdf`
-  else
-    AC_MSG_RESULT(no, pdf backend not enabled)
-  fi
-else
-  AC_MSG_RESULT(no, postscript backend not enabled)
-fi
-
-AC_MSG_CHECKING(for pango)
-have_pango="no"
-if "$PKG_CONFIG" --exists 'pango' && "$PKG_CONFIG" --exists 'pangocairo'; then
-dnl pango_font_metrics_get_height() requires Pango 1.44.
-  if "$PKG_CONFIG" --exists 'pango >= 1.44'; then
-    have_pango="yes"
-    AC_MSG_RESULT([yes])
-
-    PANGO_CFLAGS=`$PKG_CONFIG --cflags-only-other pango pangocairo`
-    PANGO_CPPFLAGS=`$PKG_CONFIG --cflags-only-I pango pangocairo`
-    PANGO_LIBS=`$PKG_CONFIG --libs pango pangocairo`
-  else
-    have_pango="old"
-    AC_MSG_RESULT([no, version 1.44 or later is required])
-  fi
-else
-  AC_MSG_RESULT(no)
-fi
+dnl AC_MSG_CHECKING(for cairo)
+dnl have_cairo="no"
+dnl if "$PKG_CONFIG" --exists 'cairo-ps'; then
+dnl   if "$PKG_CONFIG" --exists 'cairo-pdf'; then
+dnl     have_cairo="yes"
+dnl     AC_MSG_RESULT([yes])
+dnl 
+dnl     CAIRO_CFLAGS=`$PKG_CONFIG --cflags-only-other cairo-ps cairo-pdf`
+dnl     CAIRO_CPPFLAGS=`$PKG_CONFIG --cflags-only-I cairo-ps cairo-pdf`
+dnl     CAIRO_LIBS=`$PKG_CONFIG --libs cairo-ps cairo-pdf`
+dnl   else
+dnl     AC_MSG_RESULT(no, pdf backend not enabled)
+dnl   fi
+dnl else
+dnl   AC_MSG_RESULT(no, postscript backend not enabled)
+dnl fi
+dnl 
+dnl AC_MSG_CHECKING(for pango)
+dnl have_pango="no"
+dnl if "$PKG_CONFIG" --exists 'pango' && "$PKG_CONFIG" --exists 'pangocairo'; then
+dnl dnl pango_font_metrics_get_height() requires Pango 1.44.
+dnl   if "$PKG_CONFIG" --exists 'pango >= 1.44'; then
+dnl     have_pango="yes"
+dnl     AC_MSG_RESULT([yes])
+dnl 
+dnl     PANGO_CFLAGS=`$PKG_CONFIG --cflags-only-other pango pangocairo`
+dnl     PANGO_CPPFLAGS=`$PKG_CONFIG --cflags-only-I pango pangocairo`
+dnl     PANGO_LIBS=`$PKG_CONFIG --libs pango pangocairo`
+dnl   else
+dnl     have_pango="old"
+dnl     AC_MSG_RESULT([no, version 1.44 or later is required])
+dnl   fi
+dnl else
+dnl   AC_MSG_RESULT(no)
+dnl fi
 
 dnl GTK4 does not use X11 APIs directly, so skip X11 detection entirely.
 dnl This avoids pulling libICE/libSM/libX11/libXt into build dependencies
