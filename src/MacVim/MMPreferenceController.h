@@ -21,6 +21,7 @@
     IBOutlet NSPopUpButton *layoutPopUpButton;
     IBOutlet NSButton *autoInstallUpdateButton;
     IBOutlet NSView *sparkleUpdaterPane;
+    IBOutlet NSButton *findBarInlineButton;
 
     // Input pane
     IBOutlet NSButton *allowForceClickLookUpButton;
@@ -36,6 +37,7 @@
 - (IBAction)checkForUpdatesChanged:(id)sender;
 - (IBAction)appearanceChanged:(id)sender;
 - (IBAction)smoothResizeChanged:(id)sender;
+- (IBAction)findBarModeChanged:(id)sender;
 
 // Appearance pane
 - (IBAction)fontPropertiesChanged:(id)sender;

@@ -177,6 +177,12 @@
     [[MMAppController sharedInstance] refreshAllResizeConstraints];
 }
 
+- (IBAction)findBarModeChanged:(id)sender
+{
+    // Setting is read via NSUserDefaults each time a find dialog is shown,
+    // so no refresh of existing windows is required.
+}
+
 - (IBAction)cmdlineAlignBottomChanged:(id)sender
 {
     [[MMAppController sharedInstance] refreshAllTextViews];

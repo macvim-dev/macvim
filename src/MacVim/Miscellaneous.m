@@ -71,6 +71,7 @@ NSString *MMUpdaterPrereleaseChannelKey   = @"MMUpdaterPrereleaseChannel";
 NSString *MMLastUsedBundleVersionKey      = @"MMLastUsedBundleVersion";
 NSString *MMShowWhatsNewOnStartupKey      = @"MMShowWhatsNewOnStartup";
 NSString *MMScrollOneDirectionOnlyKey     = @"MMScrollOneDirectionOnly";
+NSString *MMFindBarInlineKey              = @"MMFindBarInline";
 
 
 @implementation NSIndexSet (MMExtras)

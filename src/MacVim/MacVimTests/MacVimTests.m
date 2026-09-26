@@ -15,6 +15,7 @@
 #import "Miscellaneous.h"
 #import "MMAppController.h"
 #import "MMApplication.h"
+#import "MMFindBarView.h"
 #import "MMFullScreenWindow.h"
 #import "MMWindow.h"
 #import "MMTabline.h"
@@ -1574,6 +1575,80 @@ do { \
 
     [self sendStringToVim:@":set nomodified\n" withMods:0];
     [self waitForEventHandlingAndVimProcess];
+}
+
+// ── MMFindBarView tests ───────────────────────────────────────────────────────
+
+/// Test that showWithText:flags: correctly restores the Ignore Case and Match
+/// Word checkbox states from the flags bitmask.
+- (void)testFindBarShowWithFlags {
+    MMFindBarView *bar = [[MMFindBarView alloc] init];
+
+    // flags = 0: ignoreCase ON (no ExactMatch bit), matchWord OFF
+    [bar showWithText:@"hello" flags:0];
+    XCTAssertTrue([bar ignoreCase],  @"ignoreCase should be ON when ExactMatch bit is clear");
+    XCTAssertFalse([bar matchWord],  @"matchWord should be OFF when MatchWord bit is clear");
+    XCTAssertEqualObjects([bar findString], @"hello");
+
+    // flags = MMFRDExactMatch (0x10): ignoreCase OFF
+    [bar showWithText:@"world" flags:0x10];
+    XCTAssertFalse([bar ignoreCase], @"ignoreCase should be OFF when ExactMatch bit (0x10) is set");
+    XCTAssertFalse([bar matchWord],  @"matchWord should still be OFF");
+    XCTAssertEqualObjects([bar findString], @"world");
+
+    // flags = MMFRDMatchWord (0x08): matchWord ON
+    [bar showWithText:@"foo" flags:0x08];
+    XCTAssertTrue([bar ignoreCase],  @"ignoreCase should be ON (ExactMatch bit clear)");
+    XCTAssertTrue([bar matchWord],   @"matchWord should be ON when MatchWord bit (0x08) is set");
+
+    // flags = MMFRDExactMatch | MMFRDMatchWord (0x18): both set
+    [bar showWithText:@"bar" flags:0x18];
+    XCTAssertFalse([bar ignoreCase], @"ignoreCase should be OFF");
+    XCTAssertTrue([bar matchWord],   @"matchWord should be ON");
+
+    // Passing nil text should not crash and should not clear existing text
+    NSString *prevText = [bar findString];
+    [bar showWithText:nil flags:0];
+    XCTAssertEqualObjects([bar findString], prevText, @"nil text should not clear the find field");
+}
+
+/// Test that calling showFindBarWithText:flags: on MMVimView snaps the bar to
+/// the top-right corner only when the bar is hidden, and preserves the current
+/// position when the bar is already visible.
+- (void)testFindBarPositionPreservedOnReshow {
+    [self createTestVimWindow];
+
+    MMAppController *app = MMAppController.sharedInstance;
+    MMVimView *vimView = app.keyVimController.windowController.vimView;
+    MMFindBarView *bar = [vimView findBarView];
+
+    // Bar starts hidden; first show should snap to top-right.
+    XCTAssertTrue(bar.hidden, @"find bar should start hidden");
+    [self setDefault:MMFindBarInlineKey toValue:@YES];
+    [vimView showFindBarWithText:@"test" flags:0];
+
+    NSRect snapFrame = bar.frame;
+    NSRect textRect  = vimView.textView.frame;
+
+    // Verify snapped position is near the top-right corner (within 1pt tolerance).
+    XCTAssertEqualWithAccuracy(NSMaxX(snapFrame), NSMaxX(textRect) - 8, 1,
+        @"find bar right edge should be 8pt inside text area right edge on first show");
+    XCTAssertEqualWithAccuracy(NSMaxY(snapFrame), NSMaxY(textRect) - 8, 1,
+        @"find bar top edge should be 8pt below text area top edge on first show");
+
+    // Move the bar to a different position.
+    NSPoint movedOrigin = NSMakePoint(snapFrame.origin.x - 50, snapFrame.origin.y - 30);
+    [bar setFrameOrigin:movedOrigin];
+
+    // Call showFindBarWithText: again while bar is already visible.
+    [vimView showFindBarWithText:@"test2" flags:0];
+
+    XCTAssertEqualWithAccuracy(bar.frame.origin.x, movedOrigin.x, 1,
+        @"X position should be preserved when bar is already visible");
+    XCTAssertEqualWithAccuracy(bar.frame.origin.y, movedOrigin.y, 1,
+        @"Y position should be preserved when bar is already visible");
+    XCTAssertEqualObjects([bar findString], @"test2",
+        @"find text should be updated even when position is preserved");
 }
 
 @end

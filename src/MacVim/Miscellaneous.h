@@ -75,6 +75,7 @@ extern NSString *MMUpdaterPrereleaseChannelKey;
 extern NSString *MMLastUsedBundleVersionKey;    ///< The last used version of MacVim before this launch
 extern NSString *MMShowWhatsNewOnStartupKey;
 extern NSString *MMScrollOneDirectionOnlyKey;
+extern NSString *MMFindBarInlineKey;
 
 
 // Enum for MMUntitledWindowKey
