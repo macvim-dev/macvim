@@ -1117,10 +1117,14 @@ get_function_body(
 	    int	    c;
 	    char_u  *end;
 	    char_u  *cmd;
+	    bool    colon = false;
 
 	    // skip ':' and blanks
 	    for (p = theline; VIM_ISWHITE(*p) || *p == ':'; ++p)
-		;
+	    {
+		if (*p == ':')
+		    colon = true;
+	    }
 
 	    // Check for "endfunction", "enddef" or "}".
 	    // When a ":" follows it must be a dict key; "enddef: value,"
@@ -1276,7 +1280,11 @@ get_function_body(
 	    }
 
 	    // Check for ":append", ":change", ":insert".  Not for :def.
-	    char_u *tp = p = skip_range(p, FALSE, NULL);
+	    // In Vim9 script a range comes after a colon; without one a
+	    // leading "'" starts a string, not a mark.
+	    if (!vim9_function || colon)
+		p = skip_range(p, FALSE, NULL);
+	    char_u *tp = p;
 	    if (!vim9_function
 		&& (checkforcmd(&p, "append", 1)
 		    || checkforcmd(&p, "change", 1)
@@ -1624,7 +1632,6 @@ lambda_function_body(
     if (!ASCII_ISUPPER(*ufunc->uf_name))
 	ufunc->uf_flags |= FC_VIM9;
     ufunc->uf_script_ctx = current_sctx;
-    ufunc->uf_script_ctx_version = current_sctx.sc_version;
     ufunc->uf_script_ctx.sc_lnum += sourcing_lnum_top;
     set_function_type(ufunc);
 
@@ -5739,7 +5746,6 @@ define_function(
     fp->uf_calls = 0;
     fp->uf_cleared = FALSE;
     fp->uf_script_ctx = current_sctx;
-    fp->uf_script_ctx_version = current_sctx.sc_version;
     fp->uf_script_ctx.sc_lnum += sourcing_lnum_top;
     if (is_export)
     {
