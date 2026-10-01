@@ -1158,6 +1158,22 @@ Apple documentation for `NSFontWeight` for possible values): >
     :set guifont=-monospace-Light:h11
     :set guifont=-monospace-Medium:h11
 <
+MacVim also supports the ":f" option for OpenType font features, using the
+same syntax as the Win32 GUI (see above): >
+    :set guifont=Maple\ Mono:h14:fss19=1:fcalt=0
+Each ":f" entry specifies a single feature as tag=value, where tag is a
+4-character OpenType feature tag and value is the parameter (0 to disable, 1
+or higher to enable/select a variant).  A bare tag is equivalent to "tag=1".
+This requires the font to support the given features (e.g. character variants
+"cv01"-"cv99" or stylistic sets "ss01"-"ss20"); unsupported features are
+ignored.  Default features (calt, liga, etc.) are preserved unless explicitly
+overridden.  Features in 'guifontwide' are ignored; the 'guifont' features
+apply to all rendered text.
+Note: This requires macOS 10.10 or later, and currently only has an effect if
+'Use Core Text renderer' is enabled in the GUI preferences pane.  Standard
+ligatures are controlled by 'macligatures', which takes precedence over a
+"liga" entry here.
+
 Mono-spaced fonts					*E236*
 
 Note that the fonts must be mono-spaced (all characters have the same width).
