@@ -460,15 +460,6 @@ endfunc
 
 func AfterTheTest(func_name)
   if len(v:errors) > 0
-    if has('gui_macvim') && g:test_is_flaky
-      " MacVim's currently doesn't always pass these tests. Make these
-      " tests pending for now before a more proper fix is implemented.
-      call add(s:messages, 'MacVim marked ' .. a:func_name .. 'as pending')
-      let s:pending += 1
-      call add(s:errors_pending, 'Found errors in ' . g:testfunc . ':')
-      call extend(s:errors_pending, v:errors)
-      call add(s:errors_pending, 'PENDING ' .. a:func_name)
-    else
     if match(s:may_fail_list, '^' .. a:func_name) >= 0
       let s:fail_expected += 1
       call add(s:errors_expected, 'Found errors in ' . g:testfunc . ':')
@@ -477,7 +468,6 @@ func AfterTheTest(func_name)
       let s:fail += 1
       call add(s:errors, 'Found errors in ' . g:testfunc . ':')
       call extend(s:errors, v:errors)
-    endif
     endif
     let v:errors = []
   endif
@@ -501,7 +491,7 @@ func FinishTesting()
   " Don't write viminfo on exit.
   set viminfo=
 
-  if s:fail == 0 && s:fail_expected == 0 && s:pending == 0
+  if s:fail == 0 && s:fail_expected == 0
     " Success, create the .res file so that make knows it's done.
     exe 'split ' . fnamemodify(g:testname, ':r') . '.res'
     write
@@ -551,12 +541,6 @@ func FinishTesting()
     call add(s:messages, message)
     call extend(s:messages, s:errors_expected)
   endif
-  if s:pending > 0
-    let message = s:pending . ' FAILED (pending):'
-    echo message
-    call add(s:messages, message)
-    call extend(s:messages, s:errors_pending)
-  endif
 
   " Add SKIPPED messages
   call extend(s:messages, s:skipped)
@@ -581,8 +565,6 @@ let s:errors = []
 let s:errors_expected = []
 let s:messages = []
 let s:skipped = []
-let s:pending = 0
-let s:errors_pending = []
 if expand('%') =~ 'test_vimscript.vim'
   " this test has intentional errors, don't use try/catch.
   source %
