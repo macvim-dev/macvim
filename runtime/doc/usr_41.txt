@@ -1,4 +1,4 @@
-*usr_41.txt*	For Vim version 9.2.  Last change: 2026 Aug 25
+*usr_41.txt*	For Vim version 9.2.  Last change: 2026 Sep 30
 
 
 		     VIM USER MANUAL	by Bram Moolenaar
@@ -1455,12 +1455,19 @@ Sound:							*sound-functions*
 	sound_playfile()	play a sound file
 	sound_stop()		stop playing a sound
 
+Images:							*image-functions*
+	image_add()		add an image
+	image_discard()		discard an image
+	image_info()		get information about image(s)
+
 Various:					*various-functions*
 	mode()			get current editing mode
 	state()			get current busy state
 	visualmode()		last visual mode used
 	exists()		check if a variable, function, etc. exists
 	exists_compiled()	like exists() but check at compile time
+	getinfo()		get the definition of a function, command,
+				option or Vim variable
 	has()			check if a feature is supported in Vim
 	changenr()		return number of most recent change
 	cscope_connection()	check if a cscope connection exists

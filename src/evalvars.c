@@ -169,6 +169,7 @@ static struct vimvar
     {VV_NAME("termosc",	 VAR_STRING), NULL, VV_RO},
     {VV_NAME("vim_did_init",	 VAR_NUMBER), NULL, VV_RO},
     {VV_NAME("clipproviders",	 VAR_DICT), NULL, VV_RO},
+    {VV_NAME("imagebackend",	 VAR_STRING), NULL, VV_RO},
     // MacVim-specific value go here
     {VV_NAME("os_appearance",    VAR_NUMBER), NULL, VV_RO},
 };
@@ -2816,6 +2817,33 @@ get_vim_var_type(int idx, garray_T *type_list)
     if (vimvars[idx].vv_type != NULL)
 	return vimvars[idx].vv_type;
     return typval2type_vimvar(&vimvars[idx].vv_tv, type_list);
+}
+
+/*
+ * Add what getinfo() reports for the v: variable "name", without the "v:", to
+ * "d".  Returns FAIL when there is no such variable.
+ */
+    int
+vim_var_info(char_u *name, dict_T *d)
+{
+    int		di_flags;
+    int		idx = find_vim_var(name, &di_flags);
+    garray_T	type_list;
+    char	*tofree;
+
+    if (idx < 0)
+	return FAIL;
+    vim_snprintf((char *)IObuff, IOSIZE, "v:%s", vimvars[idx].vv_name);
+    dict_add_string(d, "name", IObuff);
+    dict_add_bool(d, "available", TRUE);
+    ga_init2(&type_list, sizeof(type_T *), 10);
+    char *type = type_name(get_vim_var_type(idx, &type_list), &tofree);
+    dict_add_string(d, "type", (char_u *)type);
+    vim_free(tofree);
+    clear_type_list(&type_list);
+    dict_add_bool(d, "readonly", (vimvars[idx].vv_flags & VV_RO) != 0);
+    dict_add_bool(d, "compat", (vimvars[idx].vv_flags & VV_COMPAT) != 0);
+    return OK;
 }
 
 /*

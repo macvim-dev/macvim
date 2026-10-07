@@ -1754,6 +1754,7 @@ do_search(
 	    break;
 
 	dirc = *++pat;
+	--patlen;
 	search_delim = dirc;
 	if (dirc != '?' && dirc != '/')
 	{

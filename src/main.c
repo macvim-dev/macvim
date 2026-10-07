@@ -942,6 +942,9 @@ vim_main2(void)
 
     may_req_bg_color();
 # endif
+# if defined(FEAT_IMAGE) || defined(FEAT_EVAL)
+    update_cell_size();
+# endif
 
     // start in insert mode
     if (p_im)
@@ -1013,6 +1016,10 @@ vim_main2(void)
 	// Tell the client that it can start sending commands.
 	netbeans_open(netbeansArg + 3, TRUE);
     }
+# endif
+
+# ifdef FEAT_IMAGE
+    init_image_state();
 # endif
 
     // Redraw at least once, also when 'lazyredraw' is set, to make sure the
@@ -1963,6 +1970,9 @@ getout(int exitval)
 #endif
 #ifdef FEAT_CSCOPE
     cs_end();
+#endif
+#ifdef FEAT_IMAGE
+    uninit_image_state();
 #endif
 #ifdef FEAT_EVAL
     if (garbage_collect_at_exit)
