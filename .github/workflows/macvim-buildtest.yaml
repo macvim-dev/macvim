@@ -218,6 +218,10 @@ jobs:
               --enable-sparkle_1
             )
           fi
+          # TODO MacVim temporary fix for pixman dependency not working in CI
+          CONFOPT+=(
+            --disable-pixman
+          )
           echo "CONFOPT: ${CONFOPT[@]}"
 
           ./configure "${CONFOPT[@]}" --enable-fail-if-missing
