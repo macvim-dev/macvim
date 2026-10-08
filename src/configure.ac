@@ -2702,6 +2702,18 @@ if test "$enable_pixman" != "no"; then
     PIXMAN_LIBS=`$PKG_CONFIG --libs pixman-1`
     PIXMAN_CFLAGS=`$PKG_CONFIG --cflags-only-other pixman-1`
     PIXMAN_CPPFLAGS=`$PKG_CONFIG --cflags-only-I pixman-1`
+
+    # MacVim: Hack to statically link against pixman instead of dynamic link,
+    # as we can't distribute app bundles with external linkage dependencies.
+    AC_MSG_CHECKING([for libpixman-1.a])
+    pixman_libdir=`$PKG_CONFIG --variable=libdir pixman-1`
+    if test -f ${pixman_libdir}/libpixman-1.a; then
+      PIXMAN_LIBS="${pixman_libdir}/libpixman-1.a"
+      AC_MSG_RESULT([Using ${pixman_libdir}/libpixman-1.a instead of -lpixman-1]);
+    else
+      AC_MSG_RESULT([libpixman-1.a not found - keeping using -lpixman-1]);
+    fi
+
     AC_DEFINE(HAVE_PIXMAN)
     AC_SUBST(PIXMAN_LIBS)
     AC_SUBST(PIXMAN_CFLAGS)
