@@ -98,6 +98,24 @@ jobs:
           formula: libiconv
           contents: opt/libiconv/lib/libiconv.a,opt/libiconv/lib/libiconv.dylib
 
+      # Set up, install, and cache pixman library for image support.
+
+      # Temporary measure to forcefully unlink openssl@1.1, as it conflicts
+      # with pixman which tries to install openssl@3. This will not be
+      # necessary when we upgrade to use a newer runner which has more
+      # up-to-date OpenSSL installed.
+      - name: Set up OpenSSL 3
+        if: inputs.publish
+        run: |
+          brew unlink openssl@3 && brew link --overwrite openssl@3
+
+      - name: Set up pixman
+        if: inputs.publish
+        uses: ./.github/actions/universal-package
+        with:
+          formula: pixman
+          contents: lib/libpixman-1.a,lib/libpixman-1.0.dylib
+
       # Set up, install, and cache gettext library for localization.
 
       - name: Set up gettext
@@ -218,10 +236,6 @@ jobs:
               --enable-sparkle_1
             )
           fi
-          # TODO MacVim temporary fix for pixman dependency not working in CI
-          CONFOPT+=(
-            --disable-pixman
-          )
           echo "CONFOPT: ${CONFOPT[@]}"
 
           ./configure "${CONFOPT[@]}" --enable-fail-if-missing

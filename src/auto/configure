@@ -9522,6 +9522,21 @@ printf "%s\n" "yes" >&6; }
     PIXMAN_LIBS=`$PKG_CONFIG --libs pixman-1`
     PIXMAN_CFLAGS=`$PKG_CONFIG --cflags-only-other pixman-1`
     PIXMAN_CPPFLAGS=`$PKG_CONFIG --cflags-only-I pixman-1`
+
+    # MacVim: Hack to statically link against pixman instead of dynamic link,
+    # as we can't distribute app bundles with external linkage dependencies.
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for libpixman-1.a" >&5
+printf %s "checking for libpixman-1.a... " >&6; }
+    pixman_libdir=`$PKG_CONFIG --variable=libdir pixman-1`
+    if test -f ${pixman_libdir}/libpixman-1.a; then
+      PIXMAN_LIBS="${pixman_libdir}/libpixman-1.a"
+      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: Using ${pixman_libdir}/libpixman-1.a instead of -lpixman-1" >&5
+printf "%s\n" "Using ${pixman_libdir}/libpixman-1.a instead of -lpixman-1" >&6; };
+    else
+      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: libpixman-1.a not found - keeping using -lpixman-1" >&5
+printf "%s\n" "libpixman-1.a not found - keeping using -lpixman-1" >&6; };
+    fi
+
     printf "%s\n" "#define HAVE_PIXMAN 1" >>confdefs.h
 
 
