@@ -307,6 +307,11 @@
     antialias = state;
 }
 
+- (void)setFontFeatures:(NSString *)features
+{
+    // Not supported by this renderer; only MMCoreTextView handles this.
+}
+
 - (void)setLigatures:(BOOL)state
 {
     ligatures = state;
