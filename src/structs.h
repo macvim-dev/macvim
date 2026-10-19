@@ -1640,8 +1640,8 @@ typedef enum
 // A type specification.
 struct type_S {
     vartype_T	    tt_type;
-    int8_T	    tt_argcount;    // for func, incl. vararg, -1 for unknown
-    int8_T	    tt_min_argcount; // number of non-optional arguments
+    int	    tt_argcount;    // for func, incl. vararg, -1 for unknown
+    int	    tt_min_argcount; // number of non-optional arguments
     short_u	    tt_flags;	    // TTFLAG_ values
     type_T	    *tt_member;	    // for list, dict, func return type
     class_T	    *tt_class;	    // for class and object
@@ -1716,7 +1716,6 @@ struct itf2class_S {
 #define CLASS_EXTENDED	    0x2	    // another class extends this one
 #define CLASS_ABSTRACT	    0x4	    // abstract class
 #define CLASS_ENUM	    0x8	    // enum
-#define CLASS_DRYRUN	    0x10    // defined by ":source ++dryrun"
 
 // "class_T": used for v_class of typval of VAR_CLASS
 // Also used for an interface (class_flags has CLASS_INTERFACE).
@@ -2107,6 +2106,7 @@ struct ufunc_S
     sctx_T	uf_script_ctx;	// SCTX where function was defined,
 				// used for s: variables; sc_version changed
 				// for :function
+    int		uf_script_ctx_version;  // original sc_version of SCTX
     int		uf_refcount;	// reference count, see func_name_refcount()
 
     funccall_T	*uf_scoped;	// l: local variables for closure

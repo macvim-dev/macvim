@@ -733,12 +733,25 @@ validate_interface_variables(
 }
 
 /*
- * Returns TRUE if the method signature of "if_method" and "cl_method" matches.
+ * Returns TRUE if the method signature of "if_method" of interface
+ * "intf_name" and "cl_method" matches.
  */
     static int
-intf_method_type_matches(ufunc_T *if_method, ufunc_T *cl_method)
+intf_method_type_matches(
+    ufunc_T	*if_method,
+    ufunc_T	*cl_method,
+    char_u	*intf_name)
 {
     where_T where = WHERE_INIT;
+
+    // A generic method must have the same number of type variables, like
+    // when overriding a method, see validate_extends_generic_method().
+    if (cl_method->uf_generic_argcount != if_method->uf_generic_argcount)
+    {
+	semsg(_(e_type_var_count_of_method_str_differs_from_interface_str),
+						cl_method->uf_name, intf_name);
+	return FALSE;
+    }
 
     // Ensure the type is matching.
     where.wt_func_name = (char *)if_method->uf_name;
@@ -751,16 +764,17 @@ intf_method_type_matches(ufunc_T *if_method, ufunc_T *cl_method)
 }
 
 /*
- * Returns TRUE if the interface method "if_ufunc" is present in the list of
- * methods in "cl_fp" or in the parent lineage of one of the extended classes
- * in "extends_cl".  For a class method, 'is_class_method' is TRUE.
+ * Returns TRUE if the method "if_ufunc" of interface "intf_name" is present in
+ * the list of methods in "cl_fp" or in the parent lineage of one of the
+ * extended classes in "extends_cl".
  */
     static int
 intf_method_present(
     ufunc_T *if_ufunc,
     ufunc_T **cl_fp,
     int	    cl_count,
-    class_T *extends_cl)
+    class_T *extends_cl,
+    char_u  *intf_name)
 {
     int		method_present  = FALSE;
 
@@ -769,7 +783,7 @@ intf_method_present(
 	if (STRCMP(if_ufunc->uf_name, cl_fp[cl_i]->uf_name) == 0)
 	{
 	    // Ensure the type is matching.
-	    if (!intf_method_type_matches(if_ufunc, cl_fp[cl_i]))
+	    if (!intf_method_type_matches(if_ufunc, cl_fp[cl_i], intf_name))
 		return FALSE;
 	    method_present = TRUE;
 	    break;
@@ -781,7 +795,7 @@ intf_method_present(
 	ufunc_T **ext_cl_fp = (ufunc_T **)(extends_cl->class_obj_methods);
 	int	ext_cl_count = extends_cl->class_obj_method_count;
 	return intf_method_present(if_ufunc, ext_cl_fp, ext_cl_count,
-						extends_cl->class_extends);
+					extends_cl->class_extends, intf_name);
     }
 
     return method_present;
@@ -813,7 +827,8 @@ validate_interface_methods(
     {
 	char_u	*if_name = if_fp[if_i]->uf_name;
 
-	if (!intf_method_present(if_fp[if_i], cl_fp, cl_count, extends_cl))
+	if (!intf_method_present(if_fp[if_i], cl_fp, cl_count, extends_cl,
+							    intf_class_name))
 	{
 	    semsg(_(e_method_str_of_interface_str_not_implemented),
 		    if_name, intf_class_name);
@@ -825,14 +840,15 @@ validate_interface_methods(
 }
 
 /*
- * Validate all the "implements" classes when creating a new class.  The
- * classes are returned in "intf_classes".  The class functions, class members,
- * object methods and object members in the new class are in
+ * Validate all the "implements" classes when creating the new class "cl".
+ * The classes are returned in "intf_classes".  The class functions, class
+ * members, object methods and object members in the new class are in
  * "classfunctions_gap", "classmembers_gap", "objmethods_gap", and
  * "objmembers_gap" respectively.
  */
     static int
 validate_implements_classes(
+    class_T	*cl,
     garray_T	*impl_gap,
     garray_T	*intf_classes_gap,
     garray_T	*objmethods_gap,
@@ -878,14 +894,27 @@ validate_implements_classes(
 	// check the variables of the interface match the members of the class
 	success = validate_interface_variables(impl, ifcl, objmembers_gap,
 								extends_cl);
-
-	// check the functions/methods of the interface match the
-	// functions/methods of the class
-	if (success)
-	    success = validate_interface_methods(impl, ifcl, objmethods_gap,
-								extends_cl);
 	clear_tv(&tv);
     }
+
+    if (!success)
+	return FALSE;
+
+    // check if the functions/methods of the interface match the
+    // functions/methods of the class.  A method may return the new class
+    // where an interface or the parent class is expected, temporarily set
+    // them in "cl" to make the type check work.
+    cl->class_interfaces_cl = (class_T **)intf_classes_gap->ga_data;
+    cl->class_interface_count = intf_classes_gap->ga_len;
+    cl->class_extends = extends_cl;
+    for (int i = 0; i < impl_gap->ga_len && success; ++i)
+	success = validate_interface_methods(
+		((char_u **)impl_gap->ga_data)[i],
+		((class_T **)intf_classes_gap->ga_data)[i], objmethods_gap,
+		extends_cl);
+    cl->class_interfaces_cl = NULL;
+    cl->class_interface_count = 0;
+    cl->class_extends = NULL;
 
     return success;
 }
@@ -1428,8 +1457,7 @@ add_class_members(class_T *cl, exarg_T *eap, garray_T *type_list_gap)
     {
 	ocmember_T	*m = &cl->class_class_members[i];
 	typval_T	*tv = &cl->class_members_tv[i];
-	// With ":source ++dryrun" the value is not needed, only the type.
-	if (m->ocm_init != NULL && !source_dryrun)
+	if (m->ocm_init != NULL)
 	{
 	    sctx_T	save_current_sctx = current_sctx;
 
@@ -1590,7 +1618,14 @@ add_classfuncs_objmethods(
 		// methods may be overruled, then "super.Method()" is used to
 		// find a method from the parent.
 		ufunc_T *pf = (extends_cl->class_obj_methods)[i];
-		(*fup)[gap->ga_len + i] = copy_function(pf, 0);
+		ufunc_T *nf = copy_function(pf, 0);
+		(*fup)[gap->ga_len + i] = nf;
+
+		// The types of a generic method use the type variables of the
+		// parent method, make them use the type variables of the copy.
+		if (nf != NULL && IS_GENERIC_FUNC(nf)
+					      && nf->uf_generic_args != NULL)
+		    generic_func_copy_types(pf, nf);
 
 		// If the child class overrides a function from the parent
 		// the signature must be equal.
@@ -2159,6 +2194,7 @@ early_ret:
     class_T *cl = NULL;
     class_T *extends_cl = NULL;  // class from "extends" argument
     class_T **intf_classes = NULL;
+    int	    intf_count = 0;	// number of items in "intf_classes"
     int	    num_enum_values = 0;
 
     cl = ALLOC_CLEAR_ONE(class_T);
@@ -2171,8 +2207,6 @@ early_ret:
 	cl->class_flags = CLASS_INTERFACE;
     else if (is_abstract)
 	cl->class_flags = CLASS_ABSTRACT;
-    if (source_dryrun)
-	cl->class_flags |= CLASS_DRYRUN;
 
     cl->class_refcount = 1;
     cl->class_name.length = (size_t)(name_end - name_start);
@@ -2677,7 +2711,7 @@ early_ret:
     ga_init2(&intf_classes_ga, sizeof(class_T *), 5);
 
     if (success && ga_impl.ga_len > 0)
-	success = validate_implements_classes(&ga_impl, &intf_classes_ga,
+	success = validate_implements_classes(cl, &ga_impl, &intf_classes_ga,
 					&objmethods, &objmembers, extends_cl);
 
     // inherit the super class interfaces
@@ -2685,7 +2719,10 @@ early_ret:
 	success = add_super_class_interfaces(extends_cl, &ga_impl,
 							&intf_classes_ga);
 
+    // When validating failed "intf_classes" may have fewer items than
+    // "ga_impl".
     intf_classes = intf_classes_ga.ga_data;
+    intf_count = intf_classes_ga.ga_len;
     intf_classes_ga.ga_len = 0;
 
     // Check no function argument name is used as a class member.
@@ -2801,7 +2838,7 @@ cleanup:
 
     if (intf_classes != NULL)
     {
-	for (int i = 0; i < ga_impl.ga_len; ++i)
+	for (int i = 0; i < intf_count; ++i)
 	    class_unref(intf_classes[i]);
 	vim_free(intf_classes);
     }
@@ -3879,11 +3916,6 @@ can_free_enum(class_T *cl)
 	    // If all of those members are no longer referenced, then the enum
 	    // may be freed.
 	    return TRUE;
-
-	// With ":source ++dryrun" the enum values were not created.
-	if (tv->v_type == VAR_OBJECT ? tv->vval.v_object == NULL
-						   : tv->vval.v_list == NULL)
-	    continue;
 
 	if (tv->v_type == VAR_LIST
 		&& tv->vval.v_list->lv_type->tt_member->tt_type == VAR_OBJECT

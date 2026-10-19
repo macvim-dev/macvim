@@ -3977,6 +3977,31 @@ mch_isdir(char_u *name)
 }
 
 /*
+ * Return TRUE if "name" is a directory or does not exist.
+ * Return FALSE otherwise, also when the attributes cannot be obtained for
+ * another reason.
+ */
+    int
+mch_isdir_or_missing(char_u *name)
+{
+    WCHAR	*p;
+    DWORD	attr;
+    DWORD	error = 0;
+
+    p = enc_to_utf16(name, NULL);
+    if (p == NULL)
+	return FALSE;
+    attr = GetFileAttributesW(p);
+    if (attr == INVALID_FILE_ATTRIBUTES)
+	error = GetLastError();
+    vim_free(p);
+
+    if (attr == INVALID_FILE_ATTRIBUTES)
+	return error == ERROR_FILE_NOT_FOUND || error == ERROR_PATH_NOT_FOUND;
+    return (attr & FILE_ATTRIBUTE_DIRECTORY) != 0;
+}
+
+/*
  * return TRUE if "name" is a directory, NOT a symlink to a directory
  * return FALSE if "name" is not a directory
  * return FALSE for error
@@ -8646,7 +8671,9 @@ static int	*used_file_indexes = NULL; // indexes in global_argv[] for
 static int	used_file_count = 0;	// nr of entries in used_file_indexes
 static int	used_file_literal = FALSE;  // take file names literally
 static int	used_file_full_path = FALSE;  // file name was full path
+#ifdef FEAT_DIFF
 static int	used_file_diff_mode = FALSE;  // file name was with diff mode
+#endif
 static int	used_alist_count = 0;
 
 
@@ -8736,7 +8763,9 @@ used_file_arg(char *name, int literal, int full_path, int diff_mode)
 	}
     used_file_literal = literal;
     used_file_full_path = full_path;
+#ifdef FEAT_DIFF
     used_file_diff_mode = diff_mode;
+#endif
 }
 
 /*

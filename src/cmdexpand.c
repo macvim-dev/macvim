@@ -3181,6 +3181,11 @@ set_cmd_context(
     }
     nextcomm = str;
 
+    filetype_expand_what = EXP_FILETYPECMD_ALL;
+#ifdef FEAT_EVAL
+    breakpt_expand_what = EXP_BREAKPT_ADD;
+#endif
+
 #ifdef FEAT_EVAL
     if (use_ccline && ccline->cmdfirstc == '=')
     {
@@ -4997,6 +5002,10 @@ f_getcompletion(typval_T *argvars, typval_T *rettv)
 
 	case EXPAND_FILETYPECMD:
 	    filetype_expand_what = EXP_FILETYPECMD_ALL;
+	    break;
+
+	case EXPAND_BREAKPOINT:
+	    breakpt_expand_what = EXP_BREAKPT_ADD;
 	    break;
 
 	default:

@@ -3418,6 +3418,289 @@ def Test_generic_abstract_method_override_fails()
   v9.CheckSourceFailure(lines, 'E1434: Mismatched number of type variables for generic method  "Fn" in class "A"', 11)
 enddef
 
+" Test for a dict type using a type variable in a generic function
+def Test_generic_func_dict_type()
+  var lines =<< trim END
+    vim9script
+    def Fn<T>(d: dict<T>): dict<T>
+      return d
+    enddef
+    assert_equal('func(dict<number>): dict<number>', typename(Fn<number>))
+    assert_equal({a: 'x'}, Fn<string>({a: 'x'}))
+    def Foo()
+      assert_equal({a: 1}, Fn<number>({a: 1}))
+    enddef
+    Foo()
+  END
+  v9.CheckSourceSuccess(lines)
+
+  lines =<< trim END
+    vim9script
+    def Fn<T>(d: dict<T>)
+    enddef
+    Fn<number>({a: 'x'})
+  END
+  v9.CheckSourceFailure(lines, 'E1013: Argument 1: type mismatch, expected dict<number> but got dict<string>', 4)
+
+  lines =<< trim END
+    vim9script
+    def Fn<T>(d: dict<T>)
+    enddef
+    def Foo()
+      Fn<string>({a: 1})
+    enddef
+    Foo()
+  END
+  v9.CheckSourceFailure(lines, 'E1013: Argument 1: type mismatch, expected dict<string> but got dict<number>', 1)
+enddef
+
+" Test for a type cast using a type variable in a lambda in a generic function
+def Test_generic_type_cast_in_lambda()
+  var lines =<< trim END
+    vim9script
+    g:X = 1
+    def Fn<T>(): func
+      return () => <T>g:X
+    enddef
+    def Fn2<T>(): func
+      return () => [<list<T>>[g:X]]
+    enddef
+    assert_equal(1, Fn<number>()())
+    assert_equal([[1]], Fn2<number>()())
+    assert_fails('Fn<string>()()', 'E1012: Type mismatch; expected string but got number')
+
+    # the type is not checked when the expression is skipped
+    assert_equal(2, false ? <nosuch>1 : 2)
+    unlet g:X
+  END
+  v9.CheckSourceSuccess(lines)
+enddef
+
+" Test for the type arguments of a generic method inherited from the parent
+" class
+def Test_generic_inherited_method_type_args()
+  var lines =<< trim END
+    vim9script
+    class P
+      def Id<U>(x: U): U
+        return x
+      enddef
+    endclass
+    class C extends P
+    endclass
+    assert_equal(3, C.new().Id<number>(3))
+    C.new().Id<number>('str')
+  END
+  v9.CheckSourceFailure(lines, 'E1013: Argument 1: type mismatch, expected number but got string', 10)
+
+  lines =<< trim END
+    vim9script
+    class P
+      def Id<U>(x: U): U
+        return x
+      enddef
+    endclass
+    class C extends P
+    endclass
+    def Fn()
+      var n: number = C.new().Id<number>('abc')
+    enddef
+    defcompile Fn
+  END
+  v9.CheckSourceFailure(lines, 'E1013: Argument 1: type mismatch, expected number but got string', 1)
+enddef
+
+" Test for calling a generic method with type arguments in a def function
+" through an interface or a parent class.  The method of the object class is
+" called with the same type arguments.
+def Test_generic_method_call_through_interface()
+  var lines =<< trim END
+    vim9script
+    interface I
+      def Fn<T>(t: T): list<T>
+      def Conv<U>(x: any): U
+    endinterface
+    class A implements I
+      def Fn<T>(t: T): list<T>
+        return [t]
+      enddef
+      def Conv<U>(x: any): U
+        return x
+      enddef
+    endclass
+    class P
+      def Fn<T>(t: T): list<T>
+        return [t, t]
+      enddef
+    endclass
+    class C extends P
+      def Fn<X>(t: X): list<X>
+        return [t, t, t]
+      enddef
+    endclass
+
+    def UseI(i: I): list<any>
+      var l: list<string> = i.Fn<string>('a')
+      return [l, typename(l), i.Conv<number>(3)]
+    enddef
+    def UseP(p: P): list<any>
+      var l: list<number> = p.Fn<number>(1)
+      return [l, typename(l)]
+    enddef
+    assert_equal([['a'], 'list<string>', 3], UseI(A.new()))
+    assert_equal([[1, 1], 'list<number>'], UseP(P.new()))
+    assert_equal([[1, 1, 1], 'list<number>'], UseP(C.new()))
+    assert_match('METHODCALL I.Fn<string>(argc 1)',
+          execute('disassemble UseI'))
+    assert_match('METHODCALL P.Fn<number>(argc 1)',
+          execute('disassemble UseP'))
+  END
+  v9.CheckSourceSuccess(lines)
+
+  # The return type is checked with the type arguments of the call
+  lines =<< trim END
+    vim9script
+    interface I
+      def Conv<U>(x: any): U
+    endinterface
+    class A implements I
+      def Conv<U>(x: any): U
+        return x
+      enddef
+    endclass
+    def Fn(i: I): any
+      var s: string = i.Conv<string>(5)
+      return s
+    enddef
+    Fn(A.new())
+  END
+  v9.CheckSourceFailure(lines, 'E1012: Type mismatch; expected string but got number', 1)
+
+  # The same call is used with objects of different classes
+  lines =<< trim END
+    vim9script
+    interface I
+      def Fn<T>(t: T): list<T>
+    endinterface
+    class A implements I
+      def Fn<T>(t: T): list<T>
+        return [t]
+      enddef
+    endclass
+    class B implements I
+      def Fn<T>(t: T): list<T>
+        return [t, t]
+      enddef
+    endclass
+    class C extends B
+    endclass
+    def Fn(l: list<I>): list<any>
+      var res = []
+      for i in l
+        var r: list<string> = i.Fn<string>('a')
+        res->add(r)
+      endfor
+      return res
+    enddef
+    var objs: list<I> = [A.new(), A.new(), B.new(), C.new(), A.new()]
+    assert_equal([['a'], ['a'], ['a', 'a'], ['a', 'a'], ['a']], Fn(objs))
+    assert_equal([['a', 'a'], ['a']], Fn([B.new(), A.new()]))
+  END
+  v9.CheckSourceSuccess(lines)
+enddef
+
+" Test for implementing an interface generic method with a method that has a
+" different number of type variables
+def Test_generic_interface_method_type_var_count()
+  var lines =<< trim END
+    vim9script
+
+    interface I
+      def Fn<T>(t: T): T
+    endinterface
+
+    class A implements I
+      def Fn(t: number): number
+        return t
+      enddef
+    endclass
+  END
+  v9.CheckSourceFailure(lines, 'E1438: Number of type variables of method "Fn" differs from interface "I"', 11)
+
+  lines =<< trim END
+    vim9script
+
+    interface I
+      def Fn(t: number): number
+    endinterface
+
+    class A implements I
+      def Fn<T>(t: T): T
+        return t
+      enddef
+    endclass
+  END
+  v9.CheckSourceFailure(lines, 'E1438: Number of type variables of method "Fn" differs from interface "I"', 11)
+
+  lines =<< trim END
+    vim9script
+
+    interface I
+      def Fn<T>(t: T): T
+    endinterface
+
+    class A implements I
+      def Fn<X, Y>(t: X): X
+        return t
+      enddef
+    endclass
+  END
+  v9.CheckSourceFailure(lines, 'E1438: Number of type variables of method "Fn" differs from interface "I"', 11)
+
+  # The method is inherited from the parent class
+  lines =<< trim END
+    vim9script
+
+    interface I
+      def Fn<T>(t: T): T
+    endinterface
+
+    class A
+      def Fn<X, Y>(t: X): X
+        return t
+      enddef
+    endclass
+
+    class B extends A implements I
+    endclass
+  END
+  v9.CheckSourceFailure(lines, 'E1438: Number of type variables of method "Fn" differs from interface "I"', 14)
+
+  # Same number of type variables with different names
+  lines =<< trim END
+    vim9script
+
+    interface I
+      def Fn<T>(t: T): T
+      def Fn2<A, B>(a: A, b: B): B
+    endinterface
+
+    class A implements I
+      def Fn<U>(t: U): U
+        return t
+      enddef
+      def Fn2<X, Y>(a: X, b: Y): Y
+        return b
+      enddef
+    endclass
+
+    var i: I = A.new()
+    assert_equal(3, i.Fn<number>(3))
+    assert_equal('b', i.Fn2<number, string>(1, 'b'))
+  END
+  v9.CheckSourceSuccess(lines)
+enddef
+
 " Test for using a generic method to initialize an object member variable
 def Test_generic_method_in_object_member_init_expr()
   var lines =<< trim END

@@ -2844,6 +2844,9 @@ has_autocmd(event_T event, char_u *sfname, buf_T *buf)
     char_u	*tail = gettail(sfname);
     int		retval = FALSE;
 
+    if (first_autopat[(int)event] == NULL)
+	return FALSE;
+
     fname = FullName_save(sfname, FALSE);
     if (fname == NULL)
 	return FALSE;
@@ -2938,7 +2941,21 @@ set_context_in_autocmd(
     while (*arg && (!VIM_ISWHITE(*arg) || arg[-1] == '\\'))
 	arg++;
     if (*arg)
+    {
+	// skip over "++once", "++nested" and "nested"
+	arg = skipwhite(arg);
+	for (int i = 0; i < 2; i++)
+	{
+	    if (STRNCMP(arg, "++once", 6) == 0 && VIM_ISWHITE(arg[6]))
+		arg = skipwhite(arg + 6);
+	    if (STRNCMP(arg, "++nested", 8) == 0 && VIM_ISWHITE(arg[8]))
+		arg = skipwhite(arg + 8);
+	    if (!in_vim9script() && STRNCMP(arg, "nested", 6) == 0
+						       && VIM_ISWHITE(arg[6]))
+		arg = skipwhite(arg + 6);
+	}
 	return arg;			    // expand (next) command
+    }
 
     if (doautocmd)
 	xp->xp_context = EXPAND_FILES;	    // expand file names

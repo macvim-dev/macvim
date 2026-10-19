@@ -8,7 +8,7 @@ source util/screendump.vim
 import './util/vim9.vim' as v9
 
 func Test_proptype_global()
-  call prop_type_add('comment', {'highlight': 'Directory', 'priority': 123, 'start_incl': 1, 'end_incl': 1})
+  call prop_type_add('comment', {'highlight': 'Directory', 'priority': 123, 'start_incl': 1, 'end_incl': 1, 'override': 1})
   let proptypes = prop_type_list()
   call assert_equal(1, len(proptypes))
   call assert_equal('comment', proptypes[0])
@@ -18,6 +18,7 @@ func Test_proptype_global()
   call assert_equal(123, proptype['priority'])
   call assert_equal(1, proptype['start_incl'])
   call assert_equal(1, proptype['end_incl'])
+  call assert_equal(1, proptype['override'])
 
   call prop_type_delete('comment')
   call assert_equal(0, len(prop_type_list()))
@@ -29,6 +30,7 @@ func Test_proptype_global()
   call assert_equal(0, proptype['priority'])
   call assert_equal(0, proptype['start_incl'])
   call assert_equal(0, proptype['end_incl'])
+  call assert_equal(0, proptype['override'])
 
   call prop_type_add('two', {})
   call assert_equal(2, len(prop_type_list()))
@@ -40,7 +42,7 @@ endfunc
 
 func Test_proptype_buf()
   let bufnr = bufnr('')
-  call prop_type_add('comment', #{bufnr: bufnr, highlight: 'Directory', priority: 123, start_incl: 1, end_incl: 1})
+  call prop_type_add('comment', #{bufnr: bufnr, highlight: 'Directory', priority: 123, start_incl: 1, end_incl: 1, override: 1})
   let proptypes = prop_type_list({'bufnr': bufnr})
   call assert_equal(1, len(proptypes))
   call assert_equal('comment', proptypes[0])
@@ -50,6 +52,7 @@ func Test_proptype_buf()
   call assert_equal(123, proptype['priority'])
   call assert_equal(1, proptype['start_incl'])
   call assert_equal(1, proptype['end_incl'])
+  call assert_equal(1, proptype['override'])
 
   call prop_type_delete('comment', {'bufnr': bufnr})
   call assert_equal(0, len({'bufnr': bufnr}->prop_type_list()))
@@ -60,6 +63,7 @@ func Test_proptype_buf()
   call assert_equal(0, proptype['priority'])
   call assert_equal(0, proptype['start_incl'])
   call assert_equal(0, proptype['end_incl'])
+  call assert_equal(0, proptype['override'])
 
   call prop_type_add('two', {'bufnr': bufnr})
   call assert_equal(2, len(prop_type_list({'bufnr': bufnr})))
@@ -2200,11 +2204,11 @@ def Test_prop_bufnr_zero()
     ], list)
 
     assert_equal(
-      {highlight: 'ErrorMsg', end_incl: 0, start_incl: 0, priority: 0, combine: 1},
+      {highlight: 'ErrorMsg', end_incl: 0, start_incl: 0, priority: 0, combine: 1, override: 0},
       prop_type_get('bufnr-global', {bufnr: list[0].type_bufnr}))
 
     assert_equal(
-      {highlight: 'StatusLine', end_incl: 0, start_incl: 0, priority: 0, bufnr: bufnr, combine: 1},
+      {highlight: 'StatusLine', end_incl: 0, start_incl: 0, priority: 0, bufnr: bufnr, combine: 1, override: 0},
       prop_type_get('bufnr-buffer', {bufnr: list[1].type_bufnr}))
   finally
     bwipe!
@@ -3577,6 +3581,51 @@ func Test_prop_with_text_above_screenpos()
   call assert_equal([1, 1], virtcol([1, 1], 1))
   call assert_equal([41, 41], virtcol([2, 1], 1))
   call assert_equal([42, 42], virtcol([2, 2], 1))
+
+  call prop_type_delete('test')
+  bwipe!
+endfunc
+
+func Test_prop_with_text_above_screenline_motion()
+  call NewWindow(20, 40)
+  let text = repeat('abcdefghij', 16)
+  call setline(1, [text, text, text])
+  call prop_type_add('test', #{highlight: 'Normal'})
+  call prop_add(2, 0, #{type: 'test', text: 'Example', text_align: 'above'})
+  redraw
+
+  for col in range(1, 40)
+    call cursor(1, col)
+    for [lnum, wantcol] in [[1, col + 40], [1, col + 80], [1, col + 120],
+	  \ [2, col], [2, col + 40], [2, col + 80], [2, col + 120], [3, col]]
+      normal! gj
+      call assert_equal([lnum, wantcol], getcurpos()[1 : 2],
+	    \ 'gj starting in column ' .. col)
+    endfor
+
+    call cursor(3, col)
+    for [lnum, wantcol] in [[2, col + 120], [2, col + 80], [2, col + 40],
+	  \ [2, col], [1, col + 120], [1, col + 80], [1, col + 40], [1, col]]
+      normal! gk
+      call assert_equal([lnum, wantcol], getcurpos()[1 : 2],
+	    \ 'gk starting in column ' .. col)
+    endfor
+  endfor
+
+  call cursor(1, 1)
+  normal! $
+  for [lnum, wantcol] in [[2, 40], [2, 80], [2, 120], [2, 160], [3, 40]]
+    normal! gj
+    call assert_equal([lnum, wantcol], getcurpos()[1 : 2], 'gj after "$"')
+  endfor
+
+  call cursor(3, 1)
+  normal! $
+  for [lnum, wantcol] in [[3, 120], [3, 80], [3, 40], [2, 160], [2, 120],
+	\ [2, 80], [2, 40], [1, 160]]
+    normal! gk
+    call assert_equal([lnum, wantcol], getcurpos()[1 : 2], 'gk after "$"')
+  endfor
 
   call prop_type_delete('test')
   bwipe!

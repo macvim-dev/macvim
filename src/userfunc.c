@@ -1632,6 +1632,7 @@ lambda_function_body(
     if (!ASCII_ISUPPER(*ufunc->uf_name))
 	ufunc->uf_flags |= FC_VIM9;
     ufunc->uf_script_ctx = current_sctx;
+    ufunc->uf_script_ctx_version = current_sctx.sc_version;
     ufunc->uf_script_ctx.sc_lnum += sourcing_lnum_top;
     set_function_type(ufunc);
 
@@ -5521,11 +5522,10 @@ define_function(
 	    int dead = fp != NULL && (fp->uf_flags & FC_DEAD);
 
 	    // Function can be replaced with "function!" and when sourcing the
-	    // same script again, but only once.  With ":source ++dryrun" both
-	    // branches of an ":if" define their function.
+	    // same script again, but only once.
 	    // A name that is used by an import can not be overruled.
 	    if (import != NULL
-		    || (!dead && !eap->forceit && !source_dryrun
+		    || (!dead && !eap->forceit
 			&& (fp->uf_script_ctx.sc_sid != current_sctx.sc_sid
 			  || fp->uf_script_ctx.sc_seq == current_sctx.sc_seq)))
 	    {
@@ -5746,6 +5746,7 @@ define_function(
     fp->uf_calls = 0;
     fp->uf_cleared = FALSE;
     fp->uf_script_ctx = current_sctx;
+    fp->uf_script_ctx_version = current_sctx.sc_version;
     fp->uf_script_ctx.sc_lnum += sourcing_lnum_top;
     if (is_export)
     {
@@ -6310,6 +6311,14 @@ copy_function(ufunc_T *fp, int extra_namelen)
     ufunc->uf_def_status = UF_TO_BE_COMPILED;
     ufunc->uf_dfunc_idx = 0;
     ufunc->uf_class = NULL;
+#ifdef FEAT_PROFILE
+    // The copy gets its own profiling data, see below.
+    ufunc->uf_profiling = FALSE;
+    ufunc->uf_prof_initialized = FALSE;
+    ufunc->uf_tml_count = NULL;
+    ufunc->uf_tml_total = NULL;
+    ufunc->uf_tml_self = NULL;
+#endif
 
     ga_copy_strings(&fp->uf_args, &ufunc->uf_args);
     ga_copy_strings(&fp->uf_def_args, &ufunc->uf_def_args);
@@ -6350,6 +6359,13 @@ copy_function(ufunc_T *fp, int extra_namelen)
     ufunc->uf_block_ids = NULL;
 
     ga_copy_strings(&fp->uf_lines, &ufunc->uf_lines);
+
+#ifdef FEAT_PROFILE
+    // Profile the copy when the function is profiled, e.g. after
+    // ":profile! file", which only applies when a function is defined.
+    if (fp->uf_profiling)
+	func_do_profile(ufunc);
+#endif
 
     ufunc->uf_refcount = 1;
 
