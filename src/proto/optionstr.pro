@@ -1,3 +1,8 @@
+// MacVim options
+char *did_set_fuoptions(optset_T *args);
+int expand_set_fuoptions(optexpand_T *args, int *numMatches, char_u ***matches);
+int check_fuoptions(void);
+
 // optionstr.c
 void didset_string_options(void);
 void trigger_optionset_string(int opt_idx, int opt_flags, char_u *oldval, char_u *oldval_l, char_u *oldval_g, char_u *newval);
@@ -222,10 +227,4 @@ int check_ff_value(char_u *p);
 void save_clear_shm_value(void);
 void restore_shm_value(void);
 void export_myvimdir(void);
-
-// MacVim options
-char *did_set_fuoptions(optset_T *args);
-int expand_set_fuoptions(optexpand_T *args, int *numMatches, char_u ***matches);
-int check_fuoptions(void);
-
 // vim: ft=c

@@ -1,3 +1,11 @@
+// MacVim
+void call_imactivatefunc(int active);
+int call_imstatusfunc(void);
+void im_preedit_start_macvim(void);
+void im_preedit_end_macvim(void);
+void im_preedit_abandon_macvim(void);
+void im_preedit_changed_macvim(char *preedit_string, int cursor_index);
+
 // gui_xim.c
 char *did_set_imactivatefunc(optset_T *args);
 char *did_set_imstatusfunc(optset_T *args);
@@ -18,12 +26,4 @@ int preedit_get_status(void);
 int im_is_preediting(void);
 void xim_set_status_area(void);
 int xim_get_status_area_height(void);
-
-// MacVim
-void call_imactivatefunc(int active);
-int call_imstatusfunc(void);
-void im_preedit_start_macvim(void);
-void im_preedit_end_macvim(void);
-void im_preedit_abandon_macvim(void);
-void im_preedit_changed_macvim(char *preedit_string, int cursor_index);
 // vim: ft=c

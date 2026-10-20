@@ -150,6 +150,18 @@
  */
 enum key_extra
 {
+    // MacVim-specific changes
+    // We put this at the beginning to reduce merge conflicts. The values
+    // starting at 210 should be large enough to avoid any overlap with regular
+    // Vim keys, while giving a stable values for these over different builds.
+#ifdef FEAT_GUI_MACVIM
+    KE_SWIPELEFT = 210,		// Swipe trackpad left
+    KE_SWIPERIGHT,		// Swipe trackpad right
+    KE_SWIPEUP,			// Swipe trackpad up
+    KE_SWIPEDOWN,		// Swipe trackpad down
+    KE_FORCECLICK,		// Force click on trackpad
+#endif
+
       KE_S_UP = 4		// shift-up
     , KE_S_DOWN = 5		// shift-down
 
@@ -282,13 +294,6 @@ enum key_extra
     , KE_WILD = 108		// triggers wildmode completion
     , KE_OSC = 109		// finished OSC sequence
     , KE_COMPLETE_DELAY = 110	// 'autocompletedelay' expired
-#ifdef FEAT_GUI_MACVIM
-    , KE_SWIPELEFT = 111	// Swipe trackpad left
-    , KE_SWIPERIGHT = 112	// Swipe trackpad right
-    , KE_SWIPEUP = 113		// Swipe trackpad up
-    , KE_SWIPEDOWN = 114	// Swipe trackpad down
-    , KE_FORCECLICK = 115	// Force click on trackpad
-#endif
 };
 
 /*

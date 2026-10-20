@@ -2280,9 +2280,13 @@ typedef int sock_T;
 #define VV_VIM_DID_INIT		116
 #define VV_CLIPPROVIDERS 117
 #define VV_IMAGEBACKEND 118
+#define VV_LEN		119	// number of v: vars
+
 // MacVim-specific values go here
-#define VV_OS_APPEARANCE 119
-#define VV_LEN		120	// number of v: vars
+enum { VV_VIM_UPSTREAM_LEN = VV_LEN };
+#define VV_OS_APPEARANCE    VV_VIM_UPSTREAM_LEN
+#undef VV_LEN
+#define VV_LEN		    VV_VIM_UPSTREAM_LEN + 1
 
 // used for v_number in VAR_BOOL and VAR_SPECIAL
 #define VVAL_FALSE	0L	// VAR_BOOL

@@ -1,3 +1,12 @@
+// MacVim options
+char *did_set_antialias(optset_T *args);
+char *did_set_blur(optset_T *args);
+char *did_set_columnspace(optset_T *args);
+char *did_set_fullscreen(optset_T *args);
+char *did_set_macligatures(optset_T *args);
+char *did_set_macthinstrokes(optset_T *args);
+char *did_set_transparency(optset_T *args);
+
 // option.c
 void set_init_1(int clean_arg);
 void set_fencs_unicode(void);
@@ -95,16 +104,6 @@ char *did_set_wlsteal(optset_T *args);
 char *did_set_wltimeoutlen(optset_T *args);
 char *did_set_wrap(optset_T *args);
 char *did_set_xhistory(optset_T *args);
-
-// MacVim options
-char *did_set_antialias(optset_T *args);
-char *did_set_blur(optset_T *args);
-char *did_set_columnspace(optset_T *args);
-char *did_set_fullscreen(optset_T *args);
-char *did_set_macligatures(optset_T *args);
-char *did_set_macthinstrokes(optset_T *args);
-char *did_set_transparency(optset_T *args);
-
 void check_redraw(long_u flags);
 int findoption(char_u *arg);
 getoption_T get_option_value(char_u *name, long *numval, char_u **stringval, int *flagsp, int scope);
