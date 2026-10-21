@@ -1,3 +1,6 @@
+// MacVim-only
+int get_fpos_of_mouse(pos_T *mpos);
+
 // mouse.c
 void mouse_set_vert_scroll_step(long step);
 void mouse_set_hor_scroll_step(long step);
@@ -24,8 +27,4 @@ int mouse_comp_pos(win_T *win, int *rowp, int *colp, linenr_T *lnump, int *pline
 win_T *mouse_find_win(int *rowp, int *colp, mouse_find_T popup);
 int vcol2col(win_T *wp, linenr_T lnum, int vcol, colnr_T *coladdp);
 void f_getmousepos(typval_T *argvars, typval_T *rettv);
-
-// MacVim-only
-int get_fpos_of_mouse(pos_T *mpos);
-
 // vim: ft=c

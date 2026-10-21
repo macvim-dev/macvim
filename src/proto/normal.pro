@@ -1,3 +1,6 @@
+// MacVim only
+void nv_put(cmdarg_T *cap);
+
 // normal.c
 int check_text_or_curbuf_locked(oparg_T *oap);
 void normal_cmd(oparg_T *oap, int toplevel);
@@ -34,8 +37,4 @@ void nv_g_home_m_cmd(cmdarg_T *cap);
 int unadjust_for_sel(void);
 int unadjust_for_sel_inner(pos_T *pp);
 void set_cursor_for_append_to_line(void);
-
-// MacVim only
-void nv_put(cmdarg_T *cap);
-
 // vim: ft=c

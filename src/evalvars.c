@@ -49,8 +49,14 @@ static struct vimvar
     char	vv_flags;	// VV_COMPAT, VV_RO, VV_RO_SBX
 } vimvars[VV_LEN] =
 {
+    // MacVim-specific value go here
+    // We put this at the beginning using C99 designated initializers to
+    // reduce merge conflicts.
+    [VV_OS_APPEARANCE] = {VV_NAME("os_appearance",    VAR_NUMBER), NULL, VV_RO},
+
     // The order here must match the VV_ defines in vim.h!
     // Initializing a union does not work, leave tv.vval empty to get zero's.
+    [0] =
     {VV_NAME("count",		 VAR_NUMBER), NULL, VV_COMPAT+VV_RO},
     {VV_NAME("count1",		 VAR_NUMBER), NULL, VV_RO},
     {VV_NAME("prevcount",	 VAR_NUMBER), NULL, VV_RO},
@@ -169,9 +175,7 @@ static struct vimvar
     {VV_NAME("termosc",	 VAR_STRING), NULL, VV_RO},
     {VV_NAME("vim_did_init",	 VAR_NUMBER), NULL, VV_RO},
     {VV_NAME("clipproviders",	 VAR_DICT), NULL, VV_RO},
-    {VV_NAME("imagebackend",	 VAR_STRING), NULL, VV_RO},
-    // MacVim-specific value go here
-    {VV_NAME("os_appearance",    VAR_NUMBER), NULL, VV_RO},
+    {VV_NAME("imagebackend",	 VAR_STRING), NULL, VV_RO}
 };
 
 // shorthand

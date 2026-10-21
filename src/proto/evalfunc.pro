@@ -1,3 +1,8 @@
+// MacVim only
+void f_getcurpos(typval_T *argvars, typval_T *rettv);
+void f_getpos(typval_T *argvars, typval_T *rettv);
+void f_getregion(typval_T *argvars, typval_T *rettv);
+
 // evalfunc.c
 int arg_type_modifiable(type_T *type, int arg_idx);
 char_u *get_function_name(expand_T *xp, int idx);
@@ -29,10 +34,4 @@ void mzscheme_call_vim(char_u *name, typval_T *args, typval_T *rettv);
 void range_list_materialize(list_T *list);
 long do_searchpair(char_u *spat, char_u *mpat, char_u *epat, int dir, typval_T *skip, int flags, pos_T *match_pos, linenr_T lnum_stop, long time_limit);
 int get_yank_type(char_u **pp, char_u *yank_type, long *block_len);
-
-// MacVim only
-void f_getcurpos(typval_T *argvars, typval_T *rettv);
-void f_getpos(typval_T *argvars, typval_T *rettv);
-void f_getregion(typval_T *argvars, typval_T *rettv);
-
 // vim: ft=c
