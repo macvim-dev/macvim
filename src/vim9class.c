@@ -928,7 +928,7 @@ is_interface_class_present(garray_T *intf_classes_gap, class_T *ifcl)
 {
     for (int j = 0; j < intf_classes_gap->ga_len; j++)
     {
-	if (((class_T **)intf_classes_gap)[j] == ifcl)
+	if (((class_T **)intf_classes_gap->ga_data)[j] == ifcl)
 	    return TRUE;
     }
 
@@ -3049,6 +3049,7 @@ ex_type(exarg_T *eap)
 	++tv.vval.v_typealias->ta_refcount;
 	tv.vval.v_typealias->ta_name = vim_strsave(name_start);
 	tv.vval.v_typealias->ta_type = type;
+	tv.vval.v_typealias->ta_depth = parse_type_depth();
     }
     else
     {
