@@ -4567,6 +4567,16 @@ func Test_glob2()
   endif
 endfunc
 
+" shell is not used to expand a single quote
+func Test_glob3()
+  CheckUnix
+  let shell = &shell
+  set shell=DOESNOTEXIST
+  call writefile([], "Xit's_a_file", 'D')
+  call assert_equal(["Xit's_a_file"], glob("Xit's*", 0, 1))
+  let &shell = shell
+endfunc
+
 func Test_glob_symlinks()
   call writefile([], 'Xglob1')
 
@@ -4924,6 +4934,25 @@ func Test_glob_extended_mswin()
   let expected = ['Xtestglob/foo/bar/src/foo.cpp', 'Xtestglob/foo/bar/src/foo.h', 'Xtestglob/foo/bar/src/foo.sh']
   call assert_equal(expected, sort(glob('Xtestglob/**/foo.*', 0, 1)))
   call delete('Xtestglob', 'rf')
+endfunc
+
+" Test for glob() with filenames starting with a -
+func Test_glob_shell_expansion_minus()
+  CheckUnix
+  CheckExecutable bash
+
+  let shell = &shell
+  set shell=bash
+  call mkdir('Xvimglob', 'R')
+  call writefile([], 'Xvimglob/-n')
+  let cwd = getcwd()
+  call chdir('Xvimglob')
+  try
+    call assert_equal(['-n'], glob("{-n,E}", 0, 1))
+  finally
+    let &shell = shell
+    call chdir(cwd)
+  endtry
 endfunc
 
 " Tests for the slice() function.
