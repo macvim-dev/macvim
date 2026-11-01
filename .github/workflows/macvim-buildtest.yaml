@@ -89,6 +89,10 @@ jobs:
           xcode-select -p
           xcodebuild -version
 
+      - if: inputs.publish
+        run: |
+          brew update # Just run this once in the beginning of the run
+
       # Set up, install, and cache GNU libiconv library to work around Apple iconv issues in newer macOS versions.
 
       - name: Set up libiconv
