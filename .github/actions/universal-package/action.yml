@@ -33,8 +33,6 @@ runs:
 
         # Need to make sure we get the latest before patching. Otherwise Homebrew may later try to get the latest
         # version and stomp what we have here.
-        brew update
-
         brew cat ${formula} >${formula}.rb
 
         if [[ "${{ inputs.gnuiconv }}" == "true" ]]; then
@@ -63,7 +61,7 @@ runs:
         brew trust macvim-dev/deps
 
         # Uninstall the already installed formula because we want to build our own
-        brew uninstall --ignore-dependencies ${formula} || true
+        brew list ${formula} &> /dev/null && brew uninstall --ignore-dependencies ${formula} ; true
 
         # Extract Xcode version to serve as part of the key for caching
         xcode_version=$(xcodebuild -version | tail -1 | sed -E 's/Build version (.*)/\1/')
