@@ -39,6 +39,7 @@
 - (void)performBatchDrawWithData:(NSData *)data;
 - (void)setMouseShape:(int)shape;
 - (void)setAntialias:(BOOL)antialias;
+- (void)setFontFeatures:(NSString *)features;
 - (void)setLigatures:(BOOL)ligatures;
 - (void)setThinStrokes:(BOOL)thinStrokes;
 - (void)setImControl:(BOOL)enable;
