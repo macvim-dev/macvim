@@ -3114,6 +3114,11 @@ do_ecmd(
 		if (curbuf == old_curbuf.br_buf)
 		    buf_copy_options(buf, BCO_ENTER);
 
+#ifdef FEAT_SYN_HL
+		// The window-local syntax does not apply to the new buffer.
+		reset_synblock(curwin);
+#endif
+
 		// Close the link to the current buffer. This may set
 		// curwin->w_buffer to NULL.
 		u_sync(FALSE);
@@ -5726,7 +5731,7 @@ free_old_sub(void)
 /*
  * Set up for a tagpreview.
  * Makes the preview window the current window.
- * Return TRUE when it was created.
+ * Return TRUE when a window was split for it.
  */
     int
 prepare_tagpreview(
@@ -5786,7 +5791,10 @@ prepare_tagpreview(
 # ifdef FEAT_PROP_POPUP
     if ((use_previewpopup && *p_pvp != NUL)
 	    || use_popup != USEPOPUP_NONE)
-	return popup_create_preview_window(use_popup != USEPOPUP_NONE);
+    {
+	(void)popup_create_preview_window(use_popup != USEPOPUP_NONE);
+	return FALSE;
+    }
 # endif
     if (win_split(g_do_tagpreview > 0 ? g_do_tagpreview : 0, 0) == FAIL)
 	return FALSE;

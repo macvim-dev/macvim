@@ -1248,6 +1248,24 @@ def Test_extend_dict_item_type()
   v9.CheckSourceDefAndScriptFailure(lines, 'E1013: Argument 2: type mismatch, expected dict<bool> but got dict<number>', 2)
 enddef
 
+" A type error in extend() is given before the Dict is changed
+def Test_extend_dict_type_error_unchanged()
+  var lines =<< trim END
+    var d: dict<number> = {a: 1}
+    var src: dict<any> = {}
+    for i in range(30)
+      src['k' .. i] = i
+    endfor
+    src.k15 = 'bad'
+    try
+      extend(d, src)
+    catch /E1013:/
+    endtry
+    assert_equal({a: 1}, d)
+  END
+  v9.CheckSourceDefAndScriptSuccess(lines)
+enddef
+
 func g:ExtendList(l)
   call extend(a:l, ['x'])
 endfunc
@@ -2809,6 +2827,31 @@ def Test_map_failure()
   v9.CheckSourceDefExecAndScriptFailure(lines, 'E1012: Type mismatch; expected number but got bool')
 enddef
 
+" An error in a :def function or lambda used with ":silent! map()" should set
+" v:errmsg to that error, not to E1099.
+def Test_map_silent_errmsg()
+  var lines =<< trim END
+    vim9script
+    def Second(key: number, val: list<number>): number
+      return val[1]
+    enddef
+
+    b:la = [[1, 2], [3], [4, 5]]
+    v:errmsg = ''
+    silent! map(b:la, Second)
+    assert_equal([2, [3], [4, 5]], b:la)
+    assert_equal('E684: List index out of range: 1', v:errmsg)
+
+    b:la = [[1, 2], [3], [4, 5]]
+    v:errmsg = ''
+    silent! map(b:la, (_, v) => v[1])
+    assert_equal([2, [3], [4, 5]], b:la)
+    assert_equal('E684: List index out of range: 1', v:errmsg)
+    unlet b:la
+  END
+  v9.CheckSourceSuccess(lines)
+enddef
+
 def Test_map_const()
   var lines =<< trim END
       const l = [1, 2, 3]
@@ -3752,6 +3795,12 @@ def Test_remove_return_type()
 
   var ll: list<number> = remove(range(3), 0, 1)
   ll->assert_equal([0, 1])
+
+  var n: number = remove(0z0102, 0)
+  n->assert_equal(1)
+
+  var bl: blob = remove(0z0102.03, 0, 1)
+  bl->assert_equal(0z0102)
 enddef
 
 def Test_rename()

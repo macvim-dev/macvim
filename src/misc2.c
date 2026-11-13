@@ -3104,6 +3104,8 @@ build_argv_from_list(list_T *l, char ***argv, int *argc)
     listitem_T  *li;
     char_u	*s;
 
+    CHECK_LIST_MATERIALIZE(l);
+
     // Pass argv[] to mch_call_shell().
     *argv = ALLOC_MULT(char *, l->lv_len + 1);
     if (*argv == NULL)

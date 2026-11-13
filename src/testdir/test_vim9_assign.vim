@@ -313,6 +313,23 @@ def Test_assign_concat()
       ls[-1] ..= 'foo'
   END
   v9.CheckDefExecAndScriptFailure(lines, 'E684: List index out of range: -1', 2)
+
+  # a target of type any that holds a number is converted too
+  lines =<< trim END
+      var d: dict<any> = {a: 1}
+      d.a ..= 'z'
+      assert_equal({a: '1z'}, d)
+      var n: any = 0
+      n ..= 'zero'
+      assert_equal('0zero', n)
+  END
+  v9.CheckDefAndScriptSuccess(lines)
+
+  lines =<< trim END
+      var l: any = [1]
+      l ..= 'x'
+  END
+  v9.CheckDefExecAndScriptFailure(lines, ['E1105:', 'E734:'], 2)
 enddef
 
 def Test_assign_register()
@@ -425,6 +442,21 @@ def Test_null_values()
       endif
   END
   v9.CheckDefAndScriptSuccess(lines)
+enddef
+
+" Indexing a declared but not yet initialized script-level list allocates
+" an empty list for it; that list must get the declared member type, the
+" same as when the list is given an initial value.
+def Test_assign_index_sets_type_of_empty_list()
+  var lines =<< trim END
+    vim9script
+    var a: list<string>
+    a[0] = 'x'
+    assert_equal('list<string>', typename(a))
+    assert_fails('a->add(123)', 'E1012: Type mismatch; expected string but got number')
+    assert_equal(['x'], a)
+  END
+  v9.CheckScriptSuccess(lines)
 enddef
 
 def Test_type_with_extra_white()
@@ -620,6 +652,19 @@ def Test_assign_unpack()
       [v1, v2; _] = [1]
   END
   v9.CheckDefFailure(lines, 'E1093: Expected 2 items but got 1', 3)
+
+  # null_list and null_tuple have no items
+  for null_value in ['null_list', 'null_tuple']
+    lines =<< trim eval END
+        var [v1, v2] = {null_value}
+    END
+    v9.CheckDefFailure(lines, 'E1093: Expected 2 items but got 0', 1)
+
+    lines =<< trim eval END
+        var [v1; v2] = {null_value}
+    END
+    v9.CheckDefFailure(lines, 'E1093: Expected 1 items but got 0', 1)
+  endfor
 
   lines =<< trim END
       var v1: number
@@ -1088,9 +1133,9 @@ def Test_assignment_list()
   assert_equal(['sdf', 'asdf', 'end'], list3)
 
   v9.CheckDefExecFailure(['var ll = [1, 2, 3]', 'll[-4] = 6'], 'E684:')
-  v9.CheckDefExecFailure(['var ll = [1, 2, 3]', 'unlet ll[8 : 9]'], 'E684:')
-  v9.CheckDefExecFailure(['var ll = [1, 2, 3]', 'unlet ll[1 : -9]'], 'E684:')
-  v9.CheckDefExecFailure(['var ll = [1, 2, 3]', 'unlet ll[2 : 1]'], 'E684:')
+  v9.CheckDefExecAndScriptFailure(['var ll = [1, 2, 3]', 'unlet ll[8 : 9]'], 'E684:')
+  v9.CheckDefExecAndScriptFailure(['var ll = [1, 2, 3]', 'unlet ll[1 : -9]'], 'E684:')
+  v9.CheckDefExecAndScriptFailure(['var ll = [1, 2, 3]', 'unlet ll[2 : 1]'], 'E684:')
 
   # type becomes list<any>
   var somelist = rand() > 0 ? [1, 2, 3] : ['a', 'b', 'c']
@@ -1803,6 +1848,23 @@ def Test_assign_list()
   END
   v9.CheckDefAndScriptSuccess(lines)
 
+  # A slice of a list or blob that is an item or member of another value
+  lines =<< trim END
+      var ll = [[1, 2]]
+      ll[0][0 : 0] = [9]
+      assert_equal([[9, 2]], ll)
+
+      var d = {a: [1, 2]}
+      d.a[1 : 1] = [8]
+      assert_equal({a: [1, 8]}, d)
+
+      var lb = [0z0000]
+      lb[0][1 : 1] = 0z01
+      assert_equal([0z0001], lb)
+  END
+  v9.CheckDefAndScriptSuccess(lines)
+  v9.CheckDefFailure(['var ll = [[1, 2]]', 'll[0][0 : 0] = 7'], 'E1012: Type mismatch; expected list<number> but got number', 2)
+
   lines =<< trim END
       var l = [1, 2]
       g:idx = 'x'
@@ -1931,6 +1993,25 @@ def Test_assign_dict_with_op()
   v9.CheckDefAndScriptSuccess(lines)
 enddef
 
+" A type error in a slice assignment leaves the list unchanged
+def Test_assign_list_slice_type_error()
+  var lines =<< trim END
+    var l: list<number> = [1, 2, 3]
+    var bad: list<any> = [7, 'x']
+    try
+      l[0 : 1] = bad
+    catch /E1012:/
+    endtry
+    assert_equal([1, 2, 3], l)
+    try
+      l[1 :] = bad
+    catch /E1012:/
+    endtry
+    assert_equal([1, 2, 3], l)
+  END
+  v9.CheckDefAndScriptSuccess(lines)
+enddef
+
 def Test_assign_list_with_op()
   var lines =<< trim END
     var ls: list<string> = ['x']
@@ -1954,6 +2035,51 @@ def Test_assign_list_with_op()
     assert_equal(2, ln[0])
   END
   v9.CheckDefAndScriptSuccess(lines)
+enddef
+
+" When "+=" fails because of an item type the List is not changed.
+def Test_assign_list_add_wrong_item_type()
+  var lines =<< trim END
+    var l: list<number> = [1]
+    var good: list<any> = [2, 3]
+    l += good
+    assert_equal([1, 2, 3], l)
+
+    var bad: list<any> = [4, 'x']
+    try
+      l += bad
+      assert_report('expected an error')
+    catch /E1012:/
+    endtry
+    assert_equal([1, 2, 3], l)
+  END
+  v9.CheckDefAndScriptSuccess(lines)
+enddef
+
+" "+=" changes a list in place, it must not change a locked or const list.
+def Test_assign_list_add_to_locked_list()
+  var lines =<< trim END
+    vim9script
+    def AddTo(l: list<number>)
+      var x = l
+      x += [2]
+    enddef
+
+    const c = [1]
+    assert_fails('AddTo(c)', 'E741:')
+    assert_equal([1], c)
+
+    var s = [1]
+    lockvar 1 s
+    assert_fails('AddTo(s)', 'E741:')
+    assert_equal([1], s)
+
+    # same at script level
+    var a = s
+    assert_fails('a += [2]', 'E741:')
+    assert_equal([1], s)
+  END
+  v9.CheckScriptSuccess(lines)
 enddef
 
 def Test_assign_with_op_fails()
@@ -3477,6 +3603,25 @@ def Test_dict_item_assign()
   v9.CheckSourceSuccess(lines)
 enddef
 
+" In a :def function the index is evaluated before the Dict item is used,
+" removing the item in the index expression gives an error.
+def Test_dict_item_assign_index_removes_item()
+  var lines =<< trim END
+    vim9script
+    var d = {a: {b: 1}}
+    def RemoveA(): string
+      remove(d, 'a')
+      return 'b'
+    enddef
+    def Assign()
+      d.a[RemoveA()] = 2
+    enddef
+    assert_fails('Assign()', 'E716: Key not present in Dictionary: "a"')
+    assert_equal({}, d)
+  END
+  v9.CheckSourceSuccess(lines)
+enddef
+
 def Test_class_assign()
   var lines =<< trim END
     vim9script
@@ -4066,6 +4211,69 @@ def Test_nested_type_check()
     l[0][1][0] = [{x: 20}]
   END
   v9.CheckScriptFailure(lines, 'E1012: Type mismatch; expected list<number> but got list<dict<number>>', 6)
+enddef
+
+" A store into an inner typed Dict is checked at run time, also when the
+" compiled store is not typed (the nested form compiles to STOREINDEX any)
+def Test_dict_nested_typed_store_check()
+  var lines =<< trim END
+    var d: dict<dict<number>> = {a: {b: 1}}
+    var s: any = 'str'
+    d.a.b = s
+  END
+  v9.CheckDefExecAndScriptFailure(lines, 'E1012:', 3)
+
+  lines =<< trim END
+    var d: dict<dict<number>> = {a: {b: 1}}
+    var s: any = 'str'
+    d['a']['b'] = s
+  END
+  v9.CheckDefExecAndScriptFailure(lines, 'E1012:', 3)
+
+  lines =<< trim END
+    var d: dict<dict<number>> = {a: {b: 1}}
+    var f: any = 1.5
+    d.a.b += f
+  END
+  v9.CheckDefExecAndScriptFailure(lines, 'E1012:', 3)
+
+  lines =<< trim END
+    var l: list<dict<number>> = [{b: 1}]
+    var s: any = 'str'
+    l[0].b = s
+  END
+  v9.CheckDefExecAndScriptFailure(lines, 'E1012:', 3)
+
+  # the value is unchanged after the error
+  lines =<< trim END
+    var d: dict<dict<number>> = {a: {b: 1}}
+    var s: any = 'str'
+    try
+      d.a.b = s
+    catch /E1012:/
+    endtry
+    assert_equal({a: {b: 1}}, d)
+  END
+  v9.CheckDefAndScriptSuccess(lines)
+enddef
+
+" Compound assignment on an item of a Dict in a List and of a nested Dict
+" gives the same result as the long form, in all three modes
+def Test_dict_compound_assign_nested_forms()
+  var lines =<< trim END
+    VAR d = {'k': 7, 'a': {'b': 7}}
+    VAR l = [{'k': 7}]
+    LET d.a.b += 3
+    LET l[0].k -= 3
+    LET d['a']['b'] *= 2
+    call assert_equal({'k': 7, 'a': {'b': 20}}, d)
+    call assert_equal([{'k': 4}], l)
+    LET l[0].k = l[0].k * 5
+    LET d.a.b = d.a.b % 7
+    call assert_equal([{'k': 20}], l)
+    call assert_equal({'b': 6}, d.a)
+  END
+  v9.CheckLegacyAndVim9Success(lines)
 enddef
 
 " vim: ts=8 sw=2 sts=2 expandtab tw=80 fdm=marker

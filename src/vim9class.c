@@ -1824,8 +1824,10 @@ enum_parse_values(
 
 	++*num_enum_values;
 
-	if (*p != '#')
-	    last_char = *p;
+	// Remember the character after the enum value.  When it is a comment
+	// the enum value list ends here, even when an earlier enum value in
+	// the same line was followed by a comma.
+	last_char = *p;
 
 	if (*p != NUL && *p != ',')
 	    break;
@@ -2104,7 +2106,7 @@ ex_class(exarg_T *eap)
 	    if (extends == NULL)
 		goto early_ret;
 
-	    arg = skipwhite(end + 1);
+	    arg = skipwhite(end);
 	}
 	else if (STRNCMP(arg, "implements", 10) == 0
 						   && IS_WHITE_OR_NUL(arg[10]))
@@ -2366,7 +2368,6 @@ early_ret:
 		break;
 	    }
 	    has_public = TRUE;
-	    p = skipwhite(line + 6);
 
 	    if (STRNCMP(p, "def", 3) == 0)
 	    {
@@ -2412,7 +2413,6 @@ early_ret:
 		break;
 	    }
 
-	    p = skipwhite(pa + 8);
 	    if (STRNCMP(p, "def", 3) != 0)
 	    {
 		emsg(_(e_abstract_must_be_followed_by_def));
@@ -2438,7 +2438,6 @@ early_ret:
 		break;
 	    }
 	    has_static = TRUE;
-	    p = skipwhite(ps + 6);
 
 	    if (STRNCMP(p, "var", 3) != 0 && STRNCMP(p, "def", 3) != 0
 		&& STRNCMP(p, "final", 5) != 0 && STRNCMP(p, "const", 5) != 0)
@@ -2471,7 +2470,6 @@ early_ret:
 	    }
 	    has_const = TRUE;
 	}
-	p = skipwhite(p);
 
 	// object members (public, read access, private):
 	//	"var _varname"
@@ -3040,14 +3038,22 @@ ex_type(exarg_T *eap)
 	goto done;
     }
 
-    // Create a script-local variable for the type alias.
-    if (type->tt_type != VAR_OBJECT)
+    // Create a script-local variable for the type alias.  "object<any>" has
+    // no class, it is handled like other types.
+    if (type->tt_type != VAR_OBJECT || type->tt_class == NULL)
     {
 	tv.v_type = VAR_TYPEALIAS;
 	tv.v_lock = 0;
 	tv.vval.v_typealias = ALLOC_CLEAR_ONE(typealias_T);
+	if (tv.vval.v_typealias == NULL)
+	    goto done;
 	++tv.vval.v_typealias->ta_refcount;
 	tv.vval.v_typealias->ta_name = vim_strsave(name_start);
+	if (tv.vval.v_typealias->ta_name == NULL)
+	{
+	    vim_free(tv.vval.v_typealias);
+	    goto done;
+	}
 	tv.vval.v_typealias->ta_type = type;
 	tv.vval.v_typealias->ta_depth = parse_type_depth();
     }

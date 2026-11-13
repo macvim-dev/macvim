@@ -1922,6 +1922,16 @@ get_lval_subscript(
 		ch_log(NULL, "LKVAR:    ... loop: vim9 assign type: %s",
 			vartype_name(lp->ll_valtype->tt_type));
 #endif
+		// If a NULL list was just turned into an empty list above,
+		// it does not have its member type set yet.  Do that now,
+		// using the declared type, so that later operations such as
+		// add() still enforce it.
+		if (v_type == VAR_LIST
+			&& lp->ll_tv->vval.v_list != NULL
+			&& lp->ll_tv->vval.v_list->lv_type == NULL
+			&& sv->sv_type != NULL
+			&& sv->sv_type->tt_type == VAR_LIST)
+		    lp->ll_tv->vval.v_list->lv_type = alloc_type(sv->sv_type);
 	    }
 	}
 
@@ -2596,10 +2606,16 @@ tv_op_list(typval_T *tv1, typval_T *tv2, char_u *op)
 
     if (tv1->vval.v_list == NULL)
     {
-	tv1->vval.v_list = tv2->vval.v_list;
-	++tv1->vval.v_list->lv_refcount;
+	// Make a copy, "tv1" must not become the same List as "tv2".
+	tv1->vval.v_list = list_copy(tv2->vval.v_list, FALSE, FALSE, 0);
+	if (tv1->vval.v_list == NULL)
+	    return FAIL;
     }
-    else
+    // Check the type of all the items first, the List must not be changed
+    // when one of them has the wrong type.  The error has been given then.
+    else if (tv1->vval.v_list->lv_type == NULL
+	    || check_typval_arg_type(tv1->vval.v_list->lv_type, tv2,
+							      NULL, 0) == OK)
 	list_extend(tv1->vval.v_list, tv2->vval.v_list, NULL);
 
     return OK;
@@ -4322,6 +4338,18 @@ eval4(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	    clear_tv(rettv);
 	    return FAIL;
 	}
+
+	// Another comparison operator cannot follow: "a < b < c".
+	p = eval_next_non_blank(*arg, evalarg, &getnext);
+	if (get_compare_type(p, &len, &type_is) != EXPR_UNKNOWN)
+	{
+	    semsg(_(e_comparison_operators_cannot_be_chained_str), p);
+	    clear_tv(rettv);
+	    if (evaluate)
+		clear_tv(&var2);
+	    return FAIL;
+	}
+
 	if (evaluate)
 	{
 	    int ret;
@@ -4407,12 +4435,24 @@ eval_addtuple(typval_T *tv1, typval_T *tv2)
     int		vim9script = in_vim9script();
     typval_T	var3;
 
+    // A tuple without a type, e.g. a tuple literal, is never variadic, thus
+    // only check when the first tuple has a type.
     if (vim9script && tv1->vval.v_tuple != NULL && tv2->vval.v_tuple != NULL
-	    && tv1->vval.v_tuple->tv_type != NULL
-	    && tv2->vval.v_tuple->tv_type != NULL)
+	    && tv1->vval.v_tuple->tv_type != NULL)
     {
-	if (!check_tuples_addable(tv1->vval.v_tuple->tv_type,
-						tv2->vval.v_tuple->tv_type))
+	type_T	    *type2 = tv2->vval.v_tuple->tv_type;
+	garray_T    type_list;
+	int	    addable;
+
+	// When the second tuple does not have a type, use the type of its
+	// value.
+	ga_init2(&type_list, sizeof(type_T *), 10);
+	if (type2 == NULL)
+	    type2 = typval2type(tv2, get_copyID(), &type_list, TVTT_DO_MEMBER);
+	addable = type2 == NULL
+		|| check_tuples_addable(tv1->vval.v_tuple->tv_type, type2);
+	clear_type_list(&type_list);
+	if (!addable)
 	    return FAIL;
     }
 
@@ -5074,6 +5114,9 @@ eval8(
 		    where_T where = WHERE_INIT;
 
 		    res = check_type(want_type, actual, TRUE, where);
+		    if (res == FAIL)
+			// the caller does not free the value on failure
+			clear_tv(rettv);
 		}
 	    }
 	}
@@ -5314,7 +5357,11 @@ eval9_nested_expr(
 		++*arg;
 	    else if (ret == OK)
 	    {
-		emsg(_(e_missing_closing_paren));
+		// Show where the expression stopped, unless at the end.
+		if (**arg == NUL)
+		    emsg(_(e_missing_closing_paren));
+		else
+		    semsg(_(e_missing_closing_paren_str), *arg);
 		clear_tv(rettv);
 		ret = FAIL;
 	    }
@@ -7667,11 +7714,13 @@ handle_subscript(
     while (ret == OK)
     {
 	// When at the end of the line and ".name" or a method call follows in
-	// the next line then consume the line break.
+	// the next line then consume the line break.  When not evaluating the
+	// type is unknown, ".name" is taken to be a lookup.
 	p = eval_next_non_blank(*arg, evalarg, &getnext);
 	if (getnext
 	    && ((*p == '.'
-		    && ((rettv->v_type == VAR_DICT && eval_isdictc(p[1]))
+		    && (((rettv->v_type == VAR_DICT || !evaluate)
+				&& eval_isdictc(p[1]))
 			|| rettv->v_type == VAR_CLASS
 			|| rettv->v_type == VAR_OBJECT))
 		|| method_call_follows(p)))

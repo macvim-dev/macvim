@@ -159,6 +159,12 @@ static termrequest_T winpos_status = TERMREQUEST_INIT;
 // Request DECRQM (DEC mode) report:
 static termrequest_T decrqm_status = TERMREQUEST_INIT;
 
+// Request DECRQSS report of the SGR, for the curly underline:
+static termrequest_T rcu_status = TERMREQUEST_INIT;
+
+// The xterm compatibility check found that an unknown DCS string is ignored.
+static bool xcc_ignores_dcs = false;
+
 static termrequest_T *all_termrequests[] = {
     &crv_status,
     &u7_status,
@@ -171,6 +177,7 @@ static termrequest_T *all_termrequests[] = {
     &rcs_status,
     &winpos_status,
     &decrqm_status,
+    &rcu_status,
     NULL
 };
 
@@ -217,7 +224,7 @@ static int  detected_8bit = FALSE;	// detected 8-bit terminal
 static int focus_state = MAYBE; // TRUE if the Vim window has focus
 #endif
 
-#ifdef FEAT_TERMRESPONSE
+#if defined(FEAT_TERMRESPONSE) && defined(CURSOR_SHAPE)
 // When the cursor shape was detected these values are used:
 // 1: block, 2: underline, 3: vertical bar
 static int initial_cursor_shape = 0;
@@ -530,7 +537,7 @@ static tcap_entry_T builtin_xterm[] = {
     {(int)KS_RFG,	"\033]10;?\007"},
     {(int)KS_RBG,	"\033]11;?\007"},
     {(int)KS_U7,	"\033[6n"},
-    {(int)KS_CAU,	"\033[58;5;%dm"},
+    {(int)KS_CAU,	"\033[58:5:%dm"},
     {(int)KS_CBE,	"\033[?2004h"},
     {(int)KS_CBD,	"\033[?2004l"},
     {(int)KS_CST,	"\033[22;2t"},
@@ -712,7 +719,7 @@ static tcap_entry_T builtin_rgb[] = {
     // These are printf strings, not terminal codes.
     {(int)KS_8F,	"\033[38;2;%lu;%lu;%lum"},
     {(int)KS_8B,	"\033[48;2;%lu;%lu;%lum"},
-    {(int)KS_8U,	"\033[58;2;%lu;%lu;%lum"},
+    {(int)KS_8U,	"\033[58:2::%lu:%lu:%lum"},
 
     {(int)KS_NAME,	NULL}  // end marker
 };
@@ -1557,8 +1564,10 @@ typedef struct {
 #define TPR_DECRQM		    5
 // true color, from the color count of the terminal entry
 #define TPR_RGB			    6
+// SGR 4:3 gives the curly underline, from the DECRQSS response
+#define TPR_UNDERCURL		    7
 // table size
-#define TPR_COUNT		    7
+#define TPR_COUNT		    8
 
 static termprop_T term_props[TPR_COUNT];
 
@@ -1597,6 +1606,8 @@ init_term_props(int all)
     term_props[TPR_DECRQM].tpr_set_by_termresponse = TRUE;
     term_props[TPR_RGB].tpr_name = "rgb";
     term_props[TPR_RGB].tpr_set_by_termresponse = FALSE;
+    term_props[TPR_UNDERCURL].tpr_name = "undercurl";
+    term_props[TPR_UNDERCURL].tpr_set_by_termresponse = FALSE;
 
     for (i = 0; i < TPR_COUNT; ++i)
 	if (all || term_props[i].tpr_set_by_termresponse)
@@ -3196,11 +3207,11 @@ termrequest_any_pending(void)
     return FALSE;
 }
 
+#  if defined(FEAT_EVAL) || defined(FEAT_TERMINAL)
 static int winpos_x = -1;
 static int winpos_y = -1;
 static int did_request_winpos = 0;
 
-#  if defined(FEAT_EVAL) || defined(FEAT_TERMINAL)
 /*
  * Try getting the Vim window position from the terminal.
  * Returns OK or FAIL.
@@ -3858,7 +3869,15 @@ set_shellsize_inner(int width, int height, int mustset)
 
     if (State != MODE_ASKMORE && State != MODE_EXTERNCMD
 						      && State != MODE_CONFIRM)
+    {
+	// Most terminals reset the scroll region when they are resized, but a
+	// scroll region for the old size may have been sent before the resize
+	// was noticed (e.g. during startup) and still be in effect.  Set it
+	// again for the new size, otherwise lines below it are not drawn.
+	if (scroll_region && termcap_active)
+	    scroll_region_reset();
 	screenclear();
+    }
     else
 	screen_start();	    // don't know where cursor is now
 
@@ -5168,6 +5187,9 @@ handle_u7_response(int *arg, char_u *tp UNUSED, int csi_len UNUSED)
 	value = arg[1] == 1 ? TPR_YES : TPR_NO;
 	term_props[TPR_CURSOR_STYLE].tpr_status = value;
 	term_props[TPR_CURSOR_BLINK].tpr_status = value;
+#ifdef FEAT_TERMRESPONSE
+	xcc_ignores_dcs = value == TPR_YES;
+#endif
     }
 }
 
@@ -5434,6 +5456,22 @@ handle_version_response(int first, int *arg, int argc, char_u *tp)
 	    LOG_TR1("Sending cursor blink mode request");
 	    out_str(T_CRC);
 	    termrequest_sent(&rbm_status);
+	    need_flush = TRUE;
+	}
+
+	// Not where DECRQM does not work, such as Apple Terminal.app, which
+	// echoes the request as it does t_RS.
+	if (rcu_status.tr_progress == STATUS_GET
+		&& xcc_ignores_dcs
+		&& term_props[TPR_DECRQM].tpr_status != TPR_NO
+		&& *T_UCS == NUL
+		&& !option_was_set((char_u *)"t_Cs"))
+	{
+	    MAY_WANT_TO_LOG_THIS;
+	    LOG_TR1("Sending undercurl request");
+	    screen_stop_highlight();
+	    out_str((char_u *)"\033[0m\033[4:3m\033P$qm\033\\\033[0m");
+	    termrequest_sent(&rcu_status);
 	    need_flush = TRUE;
 	}
 
@@ -5975,7 +6013,9 @@ handle_csi(
 	    && ap[-1] == '$'
 	    && trail == 'y')
     {
+# ifdef CURSOR_SHAPE
 	initial_cursor_blink = (arg[1] == '1');
+# endif
 	rbm_status.tr_progress = STATUS_GOT;
 	LOG_TRN("Received cursor blinking mode response: %s", tp);
 	key_name[0] = (int)KS_EXTRA;
@@ -6015,7 +6055,7 @@ handle_csi(
 	*slen = csi_len;
     }
 
-#ifdef FEAT_TERMRESPONSE
+#if defined(FEAT_TERMRESPONSE) && (defined(FEAT_EVAL) || defined(FEAT_TERMINAL))
     // Check for a window position response from the terminal:
     //       {lead}3;{x};{y}t
     else if (did_request_winpos && argc == 3 && arg[0] == 3
@@ -6251,6 +6291,54 @@ handle_osc(char_u *tp, int len, char_u *key_name, int *slen)
 }
 
 /*
+ * Find the "m" that ends the parameters of an SGR response, which start at
+ * "tp[start]".  Returns its index, "start" for an empty response, "len" when
+ * more characters are needed and -1 when this is not an SGR response.
+ */
+    static int
+sgr_response_end(char_u *tp, int start, int len)
+{
+    int i = start;
+
+    while (i < len && (SAFE_isdigit(tp[i]) || tp[i] == ';' || tp[i] == ':'))
+	++i;
+    if (i < len && tp[i] != 'm'
+			&& !(i == start && (tp[i] == ESC || tp[i] == STERM)))
+	i = -1;
+    return i;
+}
+
+#ifdef FEAT_TERMRESPONSE
+/*
+ * Handle the SGR response to the undercurl request: "params" are the "len"
+ * bytes of the parameters, "valid" is false when the terminal did not take
+ * the request.
+ */
+    static void
+handle_sgr_response(char_u *params, int len, bool valid)
+{
+    bool    found = false;
+
+    for (int i = 0; valid && !found && i + 3 <= len; ++i)
+	found = (i == 0 || params[i - 1] == ';')
+		&& STRNCMP(params + i, "4:3", 3) == 0
+		&& (i + 3 == len || params[i + 3] == ';');
+
+    rcu_status.tr_progress = STATUS_GOT;
+    term_props[TPR_UNDERCURL].tpr_status = found ? TPR_YES : TPR_NO;
+    if (found && *T_UCS == NUL && !option_was_set((char_u *)"t_Cs"))
+    {
+	set_string_option_direct((char_u *)"t_Cs", -1,
+					(char_u *)"\033[4:3m", OPT_FREE, 0);
+	if (*T_UCE == NUL && !option_was_set((char_u *)"t_Ce"))
+	    set_string_option_direct((char_u *)"t_Ce", -1,
+					(char_u *)"\033[4:0m", OPT_FREE, 0);
+	redraw_later_clear();
+    }
+}
+#endif
+
+/*
  * Check for key code response from xterm:
  * {lead}{flag}+r<hex bytes><{tail}
  *
@@ -6264,6 +6352,9 @@ handle_osc(char_u *tp, int len, char_u *key_name, int *slen)
  * Check for cursor shape response from xterm:
  * {lead}1$r<digit> q{tail}
  *
+ * Check for SGR response to the undercurl request:
+ * {lead}1$r{parameters}m{tail}
+ *
  * {lead} can be <Esc>P or DCS
  * {tail} can be <Esc>\ or STERM
  *
@@ -6272,7 +6363,7 @@ handle_osc(char_u *tp, int len, char_u *key_name, int *slen)
     static int
 handle_dcs(char_u *tp, char_u *argp, int len, char_u *key_name, int *slen)
 {
-    int i, j;
+    int i, j, k;
 
     LOG_TRN("Received DCS response: %s", (char*)tp);
     j = 1 + (tp[0] == ESC);
@@ -6299,6 +6390,35 @@ handle_dcs(char_u *tp, char_u *argp, int len, char_u *key_name, int *slen)
 		break;
 	    }
 	}
+    else if ((k = sgr_response_end(tp, j + 3, len)) >= 0)
+    {
+	int	tail = 0;
+
+	// The SGR response, or an empty one for a request that was not taken.
+	// Make sure that "i" is equal to "len" when there are not sufficient
+	// characters.
+	i = k < len && tp[k] == 'm' ? k + 1 : k;
+	if (i < len && tp[i] == STERM)
+	    tail = 1;
+	else if (i + 1 < len && tp[i] == ESC && tp[i + 1] == '\\')
+	    tail = 2;
+	else if (i == len || (i + 1 == len && tp[i] == ESC))
+	    i = len;
+	if (tail > 0)
+	{
+#ifdef FEAT_TERMRESPONSE
+	    // An empty response may also be the one to t_RS.
+	    if (tp[k] == 'm' || rcu_status.tr_progress == STATUS_SENT)
+		handle_sgr_response(tp + j + 3, k - j - 3,
+					      argp[0] == '1' && tp[k] == 'm');
+#endif
+	    LOG_TRN("Received SGR response: %s", tp);
+
+	    key_name[0] = (int)KS_EXTRA;
+	    key_name[1] = (int)KE_IGNORE;
+	    *slen = i + tail;
+	}
+    }
     else
     {
 	// Probably the cursor shape response.  Make sure that "i"
@@ -6318,6 +6438,7 @@ handle_dcs(char_u *tp, char_u *argp, int len, char_u *key_name, int *slen)
 		    || (i - j == 7 && tp[i] == '\\'))
 	    {
 #ifdef FEAT_TERMRESPONSE
+# ifdef CURSOR_SHAPE
 		int number = argp[3] - '0';
 
 		// 0, 1 = block blink, 2 = block
@@ -6329,6 +6450,7 @@ handle_dcs(char_u *tp, char_u *argp, int len, char_u *key_name, int *slen)
 		// the value set with T_SH.
 		initial_cursor_shape_blink =
 				       (number & 1) ? FALSE : TRUE;
+# endif
 		rcs_status.tr_progress = STATUS_GOT;
 #endif
 		LOG_TRN("Received cursor shape response: %s", tp);

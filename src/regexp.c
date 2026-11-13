@@ -1015,6 +1015,8 @@ gethexchrs(int maxinputlen)
 /*
  * Get and return the value of the decimal string immediately after the
  * current position. Return -1 for invalid.  Consumes all digits.
+ * Return the value of the decimal string, or either INT_MAX + 1 or
+ * INT_MAX + 2 if it is larger than INT_MAX.
  */
     static vimlong_T
 getdecchrs(void)
@@ -1028,8 +1030,13 @@ getdecchrs(void)
 	c = regparse[0];
 	if (c < '0' || c > '9')
 	    break;
-	nr *= 10;
-	nr += c - '0';
+	if (nr <= INT_MAX / 10)
+	{
+	    nr *= 10;
+	    nr += c - '0';
+	}
+	else
+	    nr = (long_u)INT_MAX + 1;
 	++regparse;
 	curchr = -1; // no longer valid
     }
@@ -1765,17 +1772,23 @@ cstrncmp(char_u *s1, char_u *s2, int *n)
 	char_u *p = s1;
 	int n2 = 0;
 	int n1 = *n;
-	// count the number of characters for byte-length of s1
+	// count the number of base characters for the byte length of s1.
+	// composing characters must not be included: they are handled by the
+	// RE_COMPOSING atom or the composing check after the match, same as
+	// without 'ignorecase'.
 	while (n1 > 0 && *p != NUL)
 	{
-	    n1 -= mb_ptr2len(p);
-	    MB_PTR_ADV(p);
+	    int l = utf_ptr2len(p);
+
+	    n1 -= l;
+	    p += l;
 	    n2++;
 	}
-	// count the number of bytes to advance the same number of chars for s2
+	// advance s2 over the same number of base characters, leaving any
+	// composing characters unconsumed
 	p = s2;
 	while (n2-- > 0 && *p != NUL)
-	    MB_PTR_ADV(p);
+	    p += utf_ptr2len(p);
 
 	n2 = p - s2;
 

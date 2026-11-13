@@ -1193,8 +1193,14 @@ check_tuple_type_maybe(
     type_T	*actual,
     where_T	where)
 {
-    if (expected->tt_argcount == -1 || actual->tt_argcount == -1
-		|| expected->tt_args == NULL || actual->tt_args == NULL)
+    if (expected->tt_argcount == -1 || expected->tt_args == NULL)
+	return OK;
+
+    // When the number of items is not known, a runtime check is needed.
+    if (actual->tt_argcount == -1)
+	return MAYBE;
+
+    if (actual->tt_args == NULL)
 	return OK;
 
     // For a non-variadic tuple, the number of items must match
@@ -2062,6 +2068,24 @@ parse_type_object(
 }
 
 /*
+ * Return the end of the user defined type name at "arg", where the first name
+ * is "len" bytes.  A ".Name" part is only used after an imported script name.
+ */
+    static char_u *
+user_type_name_end(char_u *arg, size_t len)
+{
+    char_u  *p = arg + len;
+
+    if (*p == '.' && find_imported(arg, len, FALSE) != NULL)
+    {
+	++p;
+	while (ASCII_ISALNUM(*p) || *p == '_')
+	    ++p;
+    }
+    return p;
+}
+
+/*
  * Parse a user defined type at "*arg" and advance over it.
  * It can be a class or an interface or a typealias name, possibly imported.
  * Return NULL if a type is not found.
@@ -2078,10 +2102,23 @@ parse_type_user_defined(
     int		did_emsg_before = did_emsg;
     typval_T	tv;
 
+    // A type variable of a generic function is used before a script item
+    // with the same name, which may be defined after the function.
+    type_T *gen_type = find_generic_type(*arg, len, ufunc, cctx);
+    if (gen_type != NULL)
+    {
+	*arg += len;
+	return gen_type;
+    }
+
     tv.v_type = VAR_UNKNOWN;
     if (eval_variable_import(*arg, &tv) == OK)
     {
-	if (tv.v_type == VAR_CLASS && tv.vval.v_class != NULL)
+	char_u	*name_end = user_type_name_end(*arg, len);
+
+	if (*name_end == '.')
+	    ;	// trailing ".name" after a class or type alias name
+	else if (tv.v_type == VAR_CLASS && tv.vval.v_class != NULL)
 	{
 	    type_T *type = get_type_ptr(type_gap);
 	    if (type != NULL)
@@ -2091,12 +2128,7 @@ parse_type_user_defined(
 		type->tt_type = VAR_OBJECT;
 		type->tt_class = tv.vval.v_class;
 		clear_tv(&tv);
-
-		*arg += len;
-		// Skip over ".ClassName".
-		while (ASCII_ISALNUM(**arg) || **arg == '_' || **arg == '.')
-		    ++*arg;
-
+		*arg = name_end;
 		return type;
 	    }
 	}
@@ -2117,24 +2149,17 @@ parse_type_user_defined(
 	    if (depth > parse_max_depth)
 		parse_max_depth = depth;
 
-	    type_T *type = copy_type(tv.vval.v_typealias->ta_type, type_gap);
-	    *arg += len;
+	    // A static type is never freed and may be compared by pointer
+	    // (e.g. with t_bool), use it as-is.
+	    type_T *type = tv.vval.v_typealias->ta_type;
+	    if ((type->tt_flags & TTFLAG_STATIC) == 0)
+		type = copy_type(type, type_gap);
+	    *arg = name_end;
 	    clear_tv(&tv);
-	    // Skip over ".TypeName".
-	    while (ASCII_ISALNUM(**arg) || **arg == '_' || **arg == '.')
-		++*arg;
 	    return type;
 	}
 
 	clear_tv(&tv);
-    }
-
-    // Check whether it is a generic type
-    type_T *type = find_generic_type(*arg, len, ufunc, cctx);
-    if (type != NULL)
-    {
-	*arg += len;
-	return type;
     }
 
     if (give_error && (did_emsg == did_emsg_before))
@@ -2932,13 +2957,7 @@ f_typename(typval_T *argvars, typval_T *rettv)
     rettv->v_type = VAR_STRING;
     ga_init2(&type_list, sizeof(type_T *), 10);
     if (argvars[0].v_type == VAR_TYPEALIAS)
-    {
 	type = copy_type(argvars[0].vval.v_typealias->ta_type, &type_list);
-	// A type alias for a class has the type set to VAR_OBJECT.  Change it
-	// to VAR_CLASS, so that the name is "typealias<class<xxx>>"
-	if (type->tt_type == VAR_OBJECT)
-	    type->tt_type = VAR_CLASS;
-    }
     else
 	type = typval2type(argvars, get_copyID(), &type_list, TVTT_DO_MEMBER);
     name = type_name(type, &tofree);

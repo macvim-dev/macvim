@@ -124,22 +124,38 @@ def Test_disassemble_exec_expr()
         res)
 enddef
 
-if has('python3')
-  def s:PyHeredoc()
-    python3 << EOF
-      print('hello')
-EOF
-  enddef
-
-  def Test_disassemble_python_heredoc()
-    var res = execute('disass s:PyHeredoc')
-    assert_match('<SNR>\d*_PyHeredoc.*' ..
-          "    python3 << EOF^@      print('hello')^@EOF\\_s*" ..
-          '\d EXEC_SPLIT     python3 << EOF^@      print(''hello'')^@EOF\_s*' ..
+def Test_disassemble_script_heredoc()
+  var cmds =<< trim END
+    lua
+    mzscheme
+    perl
+    python
+    py3
+    python3
+    pyx
+    pythonx
+    ruby
+    tcl
+  END
+  for cmd in cmds
+    var lines =<< eval trim END
+      def g:ScriptHeredoc()
+        {cmd} << trim EOF
+          text
+        EOF
+      enddef
+    END
+    writefile(lines, 'Xscript', 'D')
+    source Xscript
+    var res = execute('disass g:ScriptHeredoc')
+    assert_match("ScriptHeredoc\n" ..
+          $'  {cmd} << trim EOF^@    text^@  EOF\_s*' ..
+          $'\d EXEC_SPLIT   {cmd} << trim EOF^@    text^@  EOF\_s*' ..
           '\d RETURN void',
-          res)
-  enddef
-endif
+          res, cmd)
+    delfunc g:ScriptHeredoc
+  endfor
+enddef
 
 def s:Substitute()
   var expr = "abc"
@@ -817,6 +833,146 @@ def Test_disassemble_unlet()
         '\d\+ LOAD $0\_s*' ..
         '\d\+ UNLETRANGE\_s*',
         res)
+enddef
+
+def s:DictStoreUnlet(): dict<number>
+  var d: dict<number> = {a: 5}
+  d[7] = 1
+  var k: any = 'b'
+  d[k] = 2
+  var r = d[7] + d[k]
+  unlet d['a']
+  unlet d[7]
+  unlet d.b
+  d.r = r
+  return d
+enddef
+
+" A number key for a dict is converted to a string, a key of type any is
+" checked at runtime, for storing, reading and unlet.
+def Test_disassemble_dict_store_unlet()
+  var res = execute('disass s:DictStoreUnlet')
+  assert_match('<SNR>\d*_DictStoreUnlet\_s*' ..
+        'var d: dict<number> = {a: 5}\_s*' ..
+        '\d\+ PUSHS "a"\_s*' ..
+        '\d\+ PUSHNR 5\_s*' ..
+        '\d\+ NEWDICT size 1\_s*' ..
+        '\d\+ SETTYPE dict<number>\_s*' ..
+        '\d\+ STORE $0\_s*' ..
+        'd\[7\] = 1\_s*' ..
+        '\d\+ PUSHNR 1\_s*' ..
+        '\d\+ PUSHNR 7\_s*' ..
+        '\d\+ 2STRING stack\[-1\]\_s*' ..
+        '\d\+ LOAD $0\_s*' ..
+        '\d\+ STOREINDEX dict\_s*' ..
+        'var k: any = ''b''\_s*' ..
+        '\d\+ PUSHS "b"\_s*' ..
+        '\d\+ STORE $1\_s*' ..
+        'd\[k\] = 2\_s*' ..
+        '\d\+ PUSHNR 2\_s*' ..
+        '\d\+ LOAD $1\_s*' ..
+        '\d\+ 2STRING_ANY stack\[-1\]\_s*' ..
+        '\d\+ LOAD $0\_s*' ..
+        '\d\+ STOREINDEX dict\_s*' ..
+        'var r = d\[7\] + d\[k\]\_s*' ..
+        '\d\+ LOAD $0\_s*' ..
+        '\d\+ PUSHNR 7\_s*' ..
+        '\d\+ 2STRING stack\[-1\]\_s*' ..
+        '\d\+ MEMBER\_s*' ..
+        '\d\+ USEDICT\_s*' ..
+        '\d\+ LOAD $0\_s*' ..
+        '\d\+ LOAD $1\_s*' ..
+        '\d\+ 2STRING_ANY stack\[-1\]\_s*' ..
+        '\d\+ MEMBER\_s*' ..
+        '\d\+ USEDICT\_s*' ..
+        '\d\+ OPNR +\_s*' ..
+        '\d\+ STORE $2\_s*' ..
+        'unlet d\[''a''\]\_s*' ..
+        '\d\+ PUSHS "a"\_s*' ..
+        '\d\+ LOAD $0\_s*' ..
+        '\d\+ UNLETINDEX\_s*' ..
+        'unlet d\[7\]\_s*' ..
+        '\d\+ PUSHNR 7\_s*' ..
+        '\d\+ 2STRING stack\[-1\]\_s*' ..
+        '\d\+ LOAD $0\_s*' ..
+        '\d\+ UNLETINDEX\_s*' ..
+        'unlet d.b\_s*' ..
+        '\d\+ PUSHS "b"\_s*' ..
+        '\d\+ LOAD $0\_s*' ..
+        '\d\+ UNLETINDEX\_s*',
+        res)
+  assert_equal({r: 3}, s:DictStoreUnlet())
+enddef
+
+def s:TakeNumberDict(td: dict<number>): number
+  return len(td)
+enddef
+
+def s:DictTypedNested(): list<any>
+  var d: dict<any> = {a: {}}
+  d.a.b = 1
+  var k = 'a'
+  d[k]['c'] = 2
+  var ad: any = {x: 1}
+  var nd: dict<number> = ad
+  var e: dict<string>
+  return [d, nd, e, s:TakeNumberDict(ad)]
+enddef
+
+" A nested dict item is stored with the member type not known at compile
+" time.  A dict<any> does not get a type set, a dict<number> does.  A value of
+" type any is checked when assigned to a dict<number> or passed as an argument.
+def Test_disassemble_dict_typed_nested()
+  var res = execute('disass s:DictTypedNested')
+  assert_match('<SNR>\d*_DictTypedNested\_s*' ..
+        'var d: dict<any> = {a: {}}\_s*' ..
+        '\d\+ PUSHS "a"\_s*' ..
+        '\d\+ NEWDICT size 0\_s*' ..
+        '\d\+ NEWDICT size 1\_s*' ..
+        '\d\+ STORE $0\_s*' ..
+        'd.a.b = 1\_s*' ..
+        '\d\+ PUSHNR 1\_s*' ..
+        '\d\+ PUSHS "b"\_s*' ..
+        '\d\+ LOAD $0\_s*' ..
+        '\d\+ MEMBER a\_s*' ..
+        '\d\+ USEDICT\_s*' ..
+        '\d\+ STOREINDEX any\_s*' ..
+        'var k = ''a''\_s*' ..
+        '\d\+ PUSHS "a"\_s*' ..
+        '\d\+ STORE $1\_s*' ..
+        'd\[k\]\[''c''\] = 2\_s*' ..
+        '\d\+ PUSHNR 2\_s*' ..
+        '\d\+ PUSHS "c"\_s*' ..
+        '\d\+ LOAD $0\_s*' ..
+        '\d\+ LOAD $1\_s*' ..
+        '\d\+ MEMBER\_s*' ..
+        '\d\+ USEDICT\_s*' ..
+        '\d\+ STOREINDEX any\_s*' ..
+        'var ad: any = {x: 1}\_s*' ..
+        '\d\+ PUSHS "x"\_s*' ..
+        '\d\+ PUSHNR 1\_s*' ..
+        '\d\+ NEWDICT size 1\_s*' ..
+        '\d\+ STORE $2\_s*' ..
+        'var nd: dict<number> = ad\_s*' ..
+        '\d\+ LOAD $2\_s*' ..
+        '\d\+ CHECKTYPE dict<number> stack\[-1\]\_s*' ..
+        '\d\+ SETTYPE dict<number>\_s*' ..
+        '\d\+ STORE $3\_s*' ..
+        'var e: dict<string>\_s*' ..
+        '\d\+ NEWDICT size 0\_s*' ..
+        '\d\+ SETTYPE dict<string>\_s*' ..
+        '\d\+ STORE $4\_s*' ..
+        'return \[d, nd, e, s:TakeNumberDict(ad)\]\_s*' ..
+        '\d\+ LOAD $0\_s*' ..
+        '\d\+ LOAD $3\_s*' ..
+        '\d\+ LOAD $4\_s*' ..
+        '\d\+ LOAD $2\_s*' ..
+        '\d\+ CHECKTYPE dict<number> stack\[-1\] arg 1\_s*' ..
+        '\d\+ DCALL <SNR>\d\+_TakeNumberDict(argc 1)\_s*' ..
+        '\d\+ NEWLIST size 4\_s*' ..
+        '\d\+ RETURN',
+        res)
+  assert_equal([{a: {b: 1, c: 2}}, {x: 1}, {}, 1], s:DictTypedNested())
 enddef
 
 def s:LockLocal()
@@ -1822,6 +1978,137 @@ def Test_disassemble_typecast()
         instr)
 enddef
 
+" Disassemble instructions for using a type alias in a type
+def Test_disassemble_typealias()
+  var lines =<< trim END
+    vim9script
+    type ListOfNum = list<number>
+    def Arg(x: ListOfNum): ListOfNum
+      return g:val
+    enddef
+    def Foo()
+      var l: ListOfNum = g:val
+      var d: dict<ListOfNum> = {a: [1]}
+      var c = <ListOfNum>g:val
+      Arg(g:val)
+    enddef
+    g:instr = execute('disassemble Foo')
+    g:instr2 = execute('disassemble Arg')
+  END
+  v9.CheckScriptSuccess(lines)
+  assert_match('<SNR>\d\+_Foo\_s*' ..
+    'var l: ListOfNum = g:val\_s*' ..
+    '0 LOADG g:val\_s*' ..
+    '1 CHECKTYPE list<number> stack\[-1\]\_s*' ..
+    '2 SETTYPE list<number>\_s*' ..
+    '3 STORE $0\_s*' ..
+    'var d: dict<ListOfNum> = {a: \[1\]}\_s*' ..
+    '4 PUSHS "a"\_s*' ..
+    '5 PUSHNR 1\_s*' ..
+    '6 NEWLIST size 1\_s*' ..
+    '7 NEWDICT size 1\_s*' ..
+    '8 SETTYPE dict<list<number>>\_s*' ..
+    '9 STORE $1\_s*' ..
+    'var c = <ListOfNum>g:val\_s*' ..
+    '10 LOADG g:val\_s*' ..
+    '11 CHECKTYPE list<number> stack\[-1\]\_s*' ..
+    '12 SETTYPE list<number>\_s*' ..
+    '13 STORE $2\_s*' ..
+    'Arg(g:val)\_s*' ..
+    '14 LOADG g:val\_s*' ..
+    '15 CHECKTYPE list<number> stack\[-1\] arg 1\_s*' ..
+    '16 DCALL <SNR>\d\+_Arg(argc 1)\_s*' ..
+    '17 DROP\_s*' ..
+    '18 RETURN void', g:instr)
+  assert_match('<SNR>\d\+_Arg\_s*' ..
+    'return g:val\_s*' ..
+    '0 LOADG g:val\_s*' ..
+    '1 CHECKTYPE list<number> stack\[-1\]\_s*' ..
+    '2 RETURN', g:instr2)
+  unlet g:instr g:instr2
+enddef
+
+" Disassemble instructions for using a type alias as an argument to a builtin
+" function and a type alias for a class
+def Test_disassemble_typealias_value()
+  var lines =<< trim END
+    vim9script
+    type ListOfNum = list<number>
+    class C
+      static var count = 1
+    endclass
+    type ClassAlias = C
+    def Foo()
+      var a = typename(ListOfNum)
+      var b = type(ListOfNum)
+      var c = string(ListOfNum)
+      var o: ClassAlias = ClassAlias.new()
+      var n = ClassAlias.count
+      var r = instanceof(o, ClassAlias)
+    enddef
+    g:instr = execute('disassemble Foo')
+  END
+  v9.CheckScriptSuccess(lines)
+  assert_match('<SNR>\d\+_Foo\_s*' ..
+    'var a = typename(ListOfNum)\_s*' ..
+    '0 LOADSCRIPT ListOfNum-\d\+ from .*\_s*' ..
+    '1 BCALL typename(argc 1)\_s*' ..
+    '2 STORE $0\_s*' ..
+    'var b = type(ListOfNum)\_s*' ..
+    '3 LOADSCRIPT ListOfNum-\d\+ from .*\_s*' ..
+    '4 BCALL type(argc 1)\_s*' ..
+    '5 STORE $1\_s*' ..
+    'var c = string(ListOfNum)\_s*' ..
+    '6 LOADSCRIPT ListOfNum-\d\+ from .*\_s*' ..
+    '7 BCALL string(argc 1)\_s*' ..
+    '8 STORE $2\_s*' ..
+    'var o: ClassAlias = ClassAlias.new()\_s*' ..
+    '9 DCALL new(argc 0)\_s*' ..
+    '10 STORE $3\_s*' ..
+    'var n = ClassAlias.count\_s*' ..
+    '11 LOAD CLASSMEMBER C.count\_s*' ..
+    '12 STORE $4\_s*' ..
+    'var r = instanceof(o, ClassAlias)\_s*' ..
+    '13 LOAD $3\_s*' ..
+    '14 LOADSCRIPT ClassAlias-\d\+ from .*\_s*' ..
+    '15 BCALL instanceof(argc 2)\_s*' ..
+    '16 STORE $5\_s*' ..
+    '17 RETURN void', g:instr)
+  unlet g:instr
+enddef
+
+" Disassemble instructions for using an imported type alias
+def Test_disassemble_typealias_import()
+  var lines =<< trim END
+    vim9script
+    export type ImpList = list<number>
+  END
+  writefile(lines, 'Xdisasmtypealias.vim', 'D')
+
+  lines =<< trim END
+    vim9script
+    import './Xdisasmtypealias.vim' as Imp
+    def Foo()
+      var l: Imp.ImpList = g:val
+      var t = typename(Imp.ImpList)
+    enddef
+    g:instr = execute('disassemble Foo')
+  END
+  v9.CheckScriptSuccess(lines)
+  assert_match('<SNR>\d\+_Foo\_s*' ..
+    'var l: Imp.ImpList = g:val\_s*' ..
+    '0 LOADG g:val\_s*' ..
+    '1 CHECKTYPE list<number> stack\[-1\]\_s*' ..
+    '2 SETTYPE list<number>\_s*' ..
+    '3 STORE $0\_s*' ..
+    'var t = typename(Imp.ImpList)\_s*' ..
+    '4 LOADSCRIPT ImpList-0 from .*Xdisasmtypealias.vim\_s*' ..
+    '5 BCALL typename(argc 1)\_s*' ..
+    '6 STORE $1\_s*' ..
+    '7 RETURN void', g:instr)
+  unlet g:instr
+enddef
+
 def Test_disassemble_object_cast()
   # Downcasting.
   var lines =<< trim END
@@ -1888,6 +2175,31 @@ def Test_disassemble_object_cast()
         '1 CHECKTYPE object<A> stack\[-1\]\_s*' ..
         '2 RETURN\_s*',
         g:instr)
+enddef
+
+" Disassemble instructions for a type alias for "object<any>"
+def Test_disassemble_typealias_object_any()
+  var lines =<< trim END
+    vim9script
+    type AnyObj = object<any>
+    def Foo()
+      var o: AnyObj = g:val
+      var l: list<AnyObj> = []
+    enddef
+    g:instr = execute('disassemble Foo')
+  END
+  v9.CheckScriptSuccess(lines)
+  assert_match('<SNR>\d\+_Foo\_s*' ..
+    'var o: AnyObj = g:val\_s*' ..
+    '0 LOADG g:val\_s*' ..
+    '1 CHECKTYPE object<any> stack\[-1\]\_s*' ..
+    '2 STORE $0\_s*' ..
+    'var l: list<AnyObj> = \[\]\_s*' ..
+    '3 NEWLIST size 0\_s*' ..
+    '4 SETTYPE list<object<any>>\_s*' ..
+    '5 STORE $1\_s*' ..
+    '6 RETURN void', g:instr)
+  unlet g:instr
 enddef
 
 def s:Computing()
@@ -3035,6 +3347,78 @@ def Test_disassemble_dict_stack()
         res)
 enddef
 
+" A dict member or object method that is called, indexed, used with "->" or
+" followed by another member in a skipped part of an expression does not
+" generate instructions.
+def Test_disassemble_skipped_member_call()
+  var lines =<< trim END
+    vim9script
+    class A
+      def True(): bool
+        return true
+      enddef
+    endclass
+    def SkippedMember(): list<bool>
+      var d = {Fn: () => true, l: [1], sub: {x: 1}}
+      var o = A.new()
+      return [true || d.Fn(),
+          true || d.l->len() > 0,
+          true || d.l[0] == 1,
+          true || d.sub.x == 1,
+          false && d.Fn(),
+          true || o.True()]
+    enddef
+    def SkippedIf(): string
+      var o = A.new()
+      if has('eval') || o.True()
+        return 'works'
+      endif
+      return 'no'
+    enddef
+    assert_equal([true, true, true, true, false, true], SkippedMember())
+    assert_equal('works', SkippedIf())
+    g:instr = execute('disassemble SkippedMember')
+    g:instr_if = execute('disassemble SkippedIf')
+  END
+  v9.CheckScriptSuccess(lines)
+  assert_match('<SNR>\d\+_SkippedMember\_s*' ..
+    'var d = {Fn: () => true, l: \[1\], sub: {x: 1}}\_s*' ..
+    '.*' ..
+    '\d\+ STORE $0\_s*' ..
+    'var o = A.new()\_s*' ..
+    '\d\+ DCALL new(argc 0)\_s*' ..
+    '\d\+ STORE $1\_s*' ..
+    'return \[true || d.Fn(),\_s*' ..
+    '\d\+ PUSH true\_s*' ..
+    'true || d.l->len() > 0,\_s*' ..
+    '\d\+ PUSH true\_s*' ..
+    'true || d.l\[0\] == 1,\_s*' ..
+    '\d\+ PUSH true\_s*' ..
+    'true || d.sub.x == 1,\_s*' ..
+    '\d\+ PUSH true\_s*' ..
+    'false && d.Fn(),\_s*' ..
+    '\d\+ PUSH false\_s*' ..
+    'true || o.True()\]\_s*' ..
+    '\d\+ PUSH true\_s*' ..
+    '\d\+ NEWLIST size 6\_s*' ..
+    '\d\+ RETURN', g:instr)
+  assert_match('<SNR>\d\+_SkippedIf\_s*' ..
+    'var o = A.new()\_s*' ..
+    '0 DCALL new(argc 0)\_s*' ..
+    '1 STORE $0\_s*' ..
+    'if has(''eval'') || o.True()\_s*' ..
+    '2 PUSH true\_s*' ..
+    '3 JUMP_IF_FALSE -> 6\_s*' ..
+    'return ''works''\_s*' ..
+    '4 PUSHS "works"\_s*' ..
+    '5 RETURN\_s*' ..
+    'endif\_s*' ..
+    'return ''no''\_s*' ..
+    '6 PUSHS "no"\_s*' ..
+    '7 RETURN', g:instr_if)
+  unlet g:instr g:instr_if
+enddef
+
 def s:RetLegacy(): string
   legacy return "yes"
 enddef
@@ -3403,6 +3787,39 @@ def Test_checktype_float()
   unlet g:instr
 enddef
 
+" Disassemble instructions for a type alias for "bool" and "string", the
+" conversion must be the same as for the type itself
+def Test_disassemble_typealias_static_type()
+  var lines =<< trim END
+    vim9script
+    type MyBool = bool
+    type MyStr = string
+    def Foo()
+      var b: MyBool = 1
+      var s: MyStr = 'a'
+      s ..= 1
+    enddef
+    g:instr = execute('disassemble Foo')
+  END
+  v9.CheckScriptSuccess(lines)
+  assert_match('<SNR>\d\+_Foo\_s*' ..
+    'var b: MyBool = 1\_s*' ..
+    '0 PUSHNR 1\_s*' ..
+    '1 2BOOL -1 (!!val)\_s*' ..
+    '2 STORE $0\_s*' ..
+    "var s: MyStr = 'a'\\_s*" ..
+    '3 PUSHS "a"\_s*' ..
+    '4 STORE $1\_s*' ..
+    's ..= 1\_s*' ..
+    '5 LOAD $1\_s*' ..
+    '6 PUSHNR 1\_s*' ..
+    '7 2STRING stack\[-1\]\_s*' ..
+    '8 CONCAT size 2\_s*' ..
+    '9 STORE $1\_s*' ..
+    '10 RETURN void', g:instr)
+  unlet g:instr
+enddef
+
 " Disassemble instructions for ISN_FUNCREF with a class
 def Test_funcref_with_class()
   var lines =<< trim END
@@ -3754,11 +4171,10 @@ def Test_disassemble_tuple_indexing()
     '11 PUSHNR 1\_s*' ..
     '12 PUSHNR 2\_s*' ..
     '13 TUPLESLICE\_s*' ..
-    '14 SETTYPE tuple<number, number, number>\_s*' ..
-    '15 STORE $2\_s*' ..
+    '14 STORE $2\_s*' ..
     'return t\_s*' ..
-    '16 LOAD $0\_s*' ..
-    '17 RETURN', g:instr)
+    '15 LOAD $0\_s*' ..
+    '16 RETURN', g:instr)
   unlet g:instr
 enddef
 
@@ -3927,9 +4343,8 @@ def Test_disassemble_tuple_const()
     '8 PUSHNR 1\_s*' ..
     '9 PUSHNR 2\_s*' ..
     '10 TUPLESLICE\_s*' ..
-    '11 SETTYPE tuple<number, number, number>\_s*' ..
-    '12 STORE $1\_s*' ..
-    '13 RETURN void', g:instr)
+    '11 STORE $1\_s*' ..
+    '12 RETURN void', g:instr)
   unlet g:instr
 enddef
 
@@ -4079,6 +4494,53 @@ def Test_disassemble_tuple_unpack()
     '6 SLICE 2\_s*' ..
     '7 STORE $2\_s*' ..
     '8 RETURN void', g:instr)
+
+  # a compound operator with a tuple: the item type is known for a variadic
+  # tuple, a type check is needed for a tuple with more than one item
+  lines =<< trim END
+    vim9script
+    def Fn(v: tuple<...list<number>>)
+      var x = 1
+      var y = 2
+      [x, y] += (10, 20)
+      [x, y] -= v
+    enddef
+    g:instr = execute('disassemble Fn')
+  END
+  v9.CheckScriptSuccess(lines)
+  assert_match('<SNR>\d\+_Fn\_s*' ..
+    'var x = 1\_s*' ..
+    '0 STORE 1 in $0\_s*' ..
+    'var y = 2\_s*' ..
+    '1 STORE 2 in $1\_s*' ..
+    '\[x, y\] += (10, 20)\_s*' ..
+    '2 PUSHNR 10\_s*' ..
+    '3 PUSHNR 20\_s*' ..
+    '4 NEWTUPLE size 2\_s*' ..
+    '5 LOAD $0\_s*' ..
+    '6 ITEM 0 with op\_s*' ..
+    '7 CHECKTYPE number stack\[-1\]\_s*' ..
+    '8 OPANY +\_s*' ..
+    '9 STORE $0\_s*' ..
+    '10 LOAD $1\_s*' ..
+    '11 ITEM 1 with op\_s*' ..
+    '12 CHECKTYPE number stack\[-1\]\_s*' ..
+    '13 OPANY +\_s*' ..
+    '14 STORE $1\_s*' ..
+    '15 DROP\_s*' ..
+    '\[x, y\] -= v\_s*' ..
+    '16 LOAD arg\[-1\]\_s*' ..
+    '17 CHECKLEN 2\_s*' ..
+    '18 LOAD $0\_s*' ..
+    '19 ITEM 0 with op\_s*' ..
+    '20 OPNR -\_s*' ..
+    '21 STORE $0\_s*' ..
+    '22 LOAD $1\_s*' ..
+    '23 ITEM 1 with op\_s*' ..
+    '24 OPNR -\_s*' ..
+    '25 STORE $1\_s*' ..
+    '26 DROP\_s*' ..
+    '27 RETURN void', g:instr)
   unlet g:instr
 enddef
 

@@ -968,7 +968,11 @@ apply_general_options(win_T *wp, dict_T *dict)
 	}
 
 	if (wp->w_popup_imagep != NULL)
-	    image_placement_free(wp->w_popup_imagep);
+	    // Do not clear the image immediately. Instead defer clearing it
+	    // until the next redraw. This is so that if the image is updated
+	    // from a timer callback while inside a hit enter prompt (where
+	    // update_screen() is not called), the image is not cleared.
+	    image_placement_mark_free(wp->w_popup_imagep);
 	wp->w_popup_imagep = place;
 
 	image_get_cell_dimensions(img, &cw, &ch);
@@ -990,7 +994,7 @@ image_done:
 	// Create a image placement with no backing images. This is so that it
 	// will affect the calculations of other popup images.
 	if (wp->w_popup_imagep != NULL)
-	    image_placement_free(wp->w_popup_imagep);
+	    image_placement_mark_free(wp->w_popup_imagep);
 	wp->w_popup_imagep = image_placement_new(NULL, wp->w_id,
 		iplace_use, true);
 
@@ -5606,6 +5610,34 @@ popup_need_position_adjust(win_T *wp)
 
     // May need to adjust the width if the cursor moved.
     return wp->w_cursor.lnum != wp->w_popup_last_curline;
+}
+
+/*
+ * Make popup_need_position_adjust() return TRUE for popup "wp" when it follows
+ * a text property in buffer "buf".
+ */
+    static void
+popup_textprop_removed_win(win_T *wp, buf_T *buf)
+{
+    if (wp->w_popup_prop_type > 0 && win_valid(wp->w_popup_prop_win)
+				    && wp->w_popup_prop_win->w_buffer == buf)
+	wp->w_popup_prop_changedtick = -1;
+}
+
+/*
+ * Text properties were removed from buffer "buf": a popup that follows a
+ * text property may have to be hidden, recompute its position when
+ * redrawing.  Removing a text property does not change b:changedtick.
+ */
+    void
+popup_textprop_removed(buf_T *buf)
+{
+    win_T	*wp;
+
+    FOR_ALL_POPUPWINS(wp)
+	popup_textprop_removed_win(wp, buf);
+    FOR_ALL_POPUPWINS_IN_TAB(curtab, wp)
+	popup_textprop_removed_win(wp, buf);
 }
 
 // Cached array with max zindex of opacity popups covering each cell.

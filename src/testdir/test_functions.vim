@@ -1286,6 +1286,33 @@ func Test_match_list_changed_while_matching()
   unlet g:mlist g:removed
 endfunc
 
+" Same, but the string() method unlocks the list first.
+func Test_match_list_unlocked_while_matching()
+  let lines =<< trim END
+    vim9script
+    class C
+      def string(): string
+        if !g:removed
+          g:removed = true
+          unlockvar g:mlist
+          remove(g:mlist, 0)
+        endif
+        return 'nostring'
+      enddef
+    endclass
+    g:mlist = [C.new(), C.new(), C.new()]
+  END
+  call writefile(lines, 'Xmatchunlock.vim', 'D')
+  source Xmatchunlock.vim
+  let g:removed = v:false
+  call assert_fails('call match(g:mlist, "xyz")', 'E742:')
+  call assert_equal(3, len(g:mlist))
+  let g:removed = v:false
+  call assert_fails('call matchstr(g:mlist, "xyz")', 'E742:')
+  call assert_equal(3, len(g:mlist))
+  unlet g:mlist g:removed
+endfunc
+
 " Same for join() and string().
 func Test_join_list_changed_while_stringified()
   let lines =<< trim END
@@ -1308,6 +1335,33 @@ func Test_join_list_changed_while_stringified()
   call assert_equal(3, len(g:jlist))
   let g:removed = v:false
   call assert_fails('call string(g:jlist)', 'E741:')
+  call assert_equal(3, len(g:jlist))
+  unlet g:jlist g:removed
+endfunc
+
+" Same, but the string() method unlocks the list first.
+func Test_join_list_unlocked_while_stringified()
+  let lines =<< trim END
+    vim9script
+    class C
+      def string(): string
+        if !g:removed
+          g:removed = true
+          unlockvar g:jlist
+          remove(g:jlist, 0)
+        endif
+        return 'nostring'
+      enddef
+    endclass
+    g:jlist = [C.new(), C.new(), C.new()]
+  END
+  call writefile(lines, 'Xjoinunlock.vim', 'D')
+  source Xjoinunlock.vim
+  let g:removed = v:false
+  call assert_fails('call join(g:jlist, ",")', 'E742:')
+  call assert_equal(3, len(g:jlist))
+  let g:removed = v:false
+  call assert_fails('call string(g:jlist)', 'E742:')
   call assert_equal(3, len(g:jlist))
   unlet g:jlist g:removed
 endfunc
@@ -2589,7 +2643,7 @@ func Test_getinfo()
 
   " An Ex command, also by an abbreviation, with the attributes of :command.
   call assert_equal({'name': 'substitute', 'kind': 'builtin',
-        \ 'available': v:true, 'nargs': '*', 'range': '.', 'count': v:false,
+        \ 'available': v:true, 'nargs': '*', 'range': '.', 'count': -1,
         \ 'bang': v:false, 'bar': v:false, 'register': v:false,
         \ 'addr': 'lines'}, getinfo('command', 's'))
   let info = getinfo('command', 'write')
@@ -2598,6 +2652,8 @@ func Test_getinfo()
   let info = getinfo('command', 'delete')
   call assert_equal([0, v:true, 'none'],
         \ [info.count, info.register, getinfo('command', 'echo').addr])
+  let info = getinfo('command', 'echo')
+  call assert_equal(['', -1], [info.range, info.count])
   let info = getinfo('command', 'bo')
   call assert_equal(['botright', 'modifier'], [info.name, info.kind])
   let info = getinfo('command', '2match')
@@ -2623,7 +2679,7 @@ func Test_getinfo()
   let info = getinfo('command', 'MyCmd')
   let sid = str2nr(matchstr(expand('<SID>'), '\d\+'))
   call assert_equal({'name': 'MyCmd', 'kind': 'user', 'available': v:true,
-        \ 'nargs': '1', 'range': '%', 'count': v:false, 'bang': v:true,
+        \ 'nargs': '1', 'range': '%', 'count': -1, 'bang': v:true,
         \ 'bar': v:true, 'register': v:true, 'addr': 'lines',
         \ 'buffer': v:false, 'complete': 'file', 'definition': 'echo 1',
         \ 'sid': sid, 'lnum': info.lnum}, info)
@@ -2635,11 +2691,24 @@ func Test_getinfo()
         \ info.complete])
   command! -nargs=+ -complete=custom,MyCompl MyCustom echo 3
   call assert_equal('custom,MyCompl', getinfo('command', 'MyCustom').complete)
+  " "range" is always a String and "count" always a Number.
+  command! MyRangeNone echo 4
+  command! -range MyRangeLine echo 5
+  command! -range=3 MyRangeCount echo 6
+  command! -count MyCount echo 7
+  call assert_equal([['', -1], ['.', -1], ['3', -1], ['.', 0]],
+        \ ['MyRangeNone', 'MyRangeLine', 'MyRangeCount', 'MyCount']
+        \ ->map({_, c -> [getinfo('command', c).range,
+        \                 getinfo('command', c).count]}))
   " An ambiguous abbreviation.
   call assert_equal({}, getinfo('command', 'My'))
   delcommand MyCmd
   delcommand MyBufCmd
   delcommand MyCustom
+  delcommand MyRangeNone
+  delcommand MyRangeLine
+  delcommand MyRangeCount
+  delcommand MyCount
 
   " An option, also by the short name and one that is hidden.
   call assert_equal({'name': 'textwidth', 'shortname': 'tw',

@@ -4228,6 +4228,61 @@ func Test_autocmd_trailing_curly_no_block()
   au! CursorHold
 endfunc
 
+" Lines after ":au! grp | cmd" in a {} block are executed
+func Test_autocmd_block_bar_after_autocmd()
+  augroup XautoBarOther
+  augroup END
+  augroup XautoBar
+    autocmd CursorHold * {
+          au! XautoBarOther | g:bar_first = 'yes'
+          g:bar_second = 'yes'
+        }
+  augroup END
+  doautocmd CursorHold
+  call assert_equal('yes', g:bar_first)
+  call assert_equal('yes', g:bar_second)
+  unlet g:bar_first g:bar_second
+  au! XautoBar
+  augroup! XautoBar
+  augroup! XautoBarOther
+
+  " When the block removes its own group, a Vim9 script with an
+  " autocommand for the same event keeps its variables.
+  augroup XautoBarSelf
+    autocmd CursorHold * {
+          au! XautoBarSelf | aug! XautoBarSelf
+        }
+  augroup END
+  let lines =<< trim END
+      vim9script
+      var count = 0
+      def g:AutoBarCount(): number
+        count += 1
+        return count
+      enddef
+      autocmd CursorHold * g:AutoBarCount()
+  END
+  call writefile(lines, 'XautoBarScript', 'D')
+  source XautoBarScript
+  doautocmd CursorHold
+  call assert_equal(2, g:AutoBarCount())
+  au! CursorHold
+  delfunc g:AutoBarCount
+
+  " Expanding "%" and "#" reallocates the command line, the line after the
+  " newline must still be executed.
+  new Xbar
+  new Xfoo
+  exe "silent !echo %\nlet g:bar_after = 'yes'"
+  call assert_equal('yes', g:bar_after)
+  unlet g:bar_after
+  exe "silent !echo % #\nlet g:bar_after = 'yes'"
+  call assert_equal('yes', g:bar_after)
+  unlet g:bar_after
+  bwipe!
+  bwipe!
+endfunc
+
 func Test_closing_autocmd_window()
   let lines =<< trim END
       edit Xa.txt
@@ -4351,6 +4406,37 @@ func Test_v_event_readonly()
   autocmd TextYankPost * let v:event.operator = ''
   call assert_fails('normal! yy', 'E46:')
   au! TextYankPost
+endfunc
+
+func s:YankWithNestedEvent()
+  let before = deepcopy(v:event)
+  cd Xveventdir
+  cd -
+  call add(g:Xouter, [before, deepcopy(v:event)])
+endfunc
+
+" v:event of an autocommand is restored after a nested autocommand that
+" also uses v:event
+func Test_v_event_nested()
+  call mkdir('Xveventdir', 'R')
+  let g:Xouter = []
+  let g:Xinner = []
+  autocmd TextYankPost * ++nested call s:YankWithNestedEvent()
+  autocmd DirChangedPre * call add(g:Xinner, deepcopy(v:event))
+  new
+  call setline(1, 'text')
+  normal! yy
+  au! TextYankPost
+  au! DirChangedPre
+  bwipe!
+
+  call assert_equal(1, len(g:Xouter))
+  call assert_equal(g:Xouter[0][0], g:Xouter[0][1])
+  call assert_equal('y', g:Xouter[0][1].operator)
+  call assert_equal(['text'], g:Xouter[0][1].regcontents)
+  call assert_equal(2, len(g:Xinner))
+  call assert_match('Xveventdir$', g:Xinner[0].directory)
+  unlet g:Xouter g:Xinner
 endfunc
 
 " Test for ModeChanged pattern
@@ -6553,6 +6639,20 @@ func Test_TextPutPost_term_norm()
 
   unlet err
   bwipe!
+endfunc
+
+func Test_setfname_wipe_in_autocmd()
+  edit Xsetfname_a
+  let bnr = bufnr()
+  badd Xsetfname_other
+  badd Xsetfname_b
+  augroup Xtest
+    exe 'au BufWipeout Xsetfname_b ++once bwipe! ' .. bnr
+  augroup END
+  call assert_fails('file Xsetfname_b', 'E937:')
+  au! Xtest
+  augroup! Xtest
+  %bwipe!
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab
