@@ -29,10 +29,11 @@ jobs:
             skip: ${{ ! startswith(github.ref, 'refs/tags/release') }}
             legacy: true
 
-          - os: macos-14
-            xcode: '15.4'
-            testgui: true
-            extra: [vimtags, check-xcodeproj-compat]
+          # Temporarily remove macos-14 as it's not longer supported. Will need to set up newer OS versions and move the extras over.
+#          - os: macos-14
+#            xcode: '15.4'
+#            testgui: true
+#            extra: [vimtags, check-xcodeproj-compat]
 
           - os: macos-15
             xcode: '16.4'
