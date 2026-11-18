@@ -134,6 +134,7 @@
 - (void)setFullScreenBackgroundColor:(int)color;
 
 - (void)setAntialias:(BOOL)antialias;
+- (void)setFontFeatures:(NSString *)features;
 - (void)setLigatures:(BOOL)ligatures;
 - (void)setThinStrokes:(BOOL)thinStrokes;
 - (void)setBlurRadius:(int)radius;
