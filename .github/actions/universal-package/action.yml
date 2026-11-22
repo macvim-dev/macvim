@@ -33,7 +33,19 @@ runs:
 
         # Need to make sure we get the latest before patching. Otherwise Homebrew may later try to get the latest
         # version and stomp what we have here.
-        brew cat ${formula} >${formula}.rb
+        #
+        # brew cat needs the formula source on disk, which is only reliably the
+        # case if homebrew/core is tapped locally. Homebrew now defaults to
+        # using the API without a local tap, so in that case just fetch the
+        # formula from GitHub directly at the commit the API data refers to.
+        if brew tap | grep -qx homebrew/core; then
+          brew cat ${formula} >${formula}.rb
+        else
+          formula_json=$(brew info --json=v2 --formula ${formula})
+          src_path=$(jq -r '.formulae[0].ruby_source_path' <<<"$formula_json")
+          git_head=$(jq -r '.formulae[0].tap_git_head' <<<"$formula_json")
+          curl -fsSL "https://raw.githubusercontent.com/Homebrew/homebrew-core/${git_head}/${src_path}" >${formula}.rb
+        fi
 
         if [[ "${{ inputs.gnuiconv }}" == "true" ]]; then
           # Modify formula to build using Homebrew libiconv. Usually just adding "depends_on" is enough, but since we
