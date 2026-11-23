@@ -1389,8 +1389,14 @@ get_lval_dict_item(
     }
 
     if (lp->ll_valtype != NULL)
+    {
 	// use the type of the member
 	lp->ll_valtype = lp->ll_valtype->tt_member;
+	// If the LHS member type is not known (VAR_ANY), then get it from
+	// the type of the dict
+	if (lp->ll_valtype == NULL && lp->ll_dict->dv_type != NULL)
+	    lp->ll_valtype = lp->ll_dict->dv_type->tt_member;
+    }
 
     if (lp->ll_di == NULL)
     {
@@ -1922,6 +1928,16 @@ get_lval_subscript(
 		ch_log(NULL, "LKVAR:    ... loop: vim9 assign type: %s",
 			vartype_name(lp->ll_valtype->tt_type));
 #endif
+		// If a NULL list was just turned into an empty list above,
+		// it does not have its member type set yet.  Do that now,
+		// using the declared type, so that later operations such as
+		// add() still enforce it.
+		if (v_type == VAR_LIST
+			&& lp->ll_tv->vval.v_list != NULL
+			&& lp->ll_tv->vval.v_list->lv_type == NULL
+			&& sv->sv_type != NULL
+			&& sv->sv_type->tt_type == VAR_LIST)
+		    lp->ll_tv->vval.v_list->lv_type = alloc_type(sv->sv_type);
 	    }
 	}
 
@@ -2486,6 +2502,18 @@ set_var_lval(
 	    return;
 	}
 
+	// The dict can have a type that is not the declared type of the
+	// variable, e.g. a dict<number> created in Vim9 script and changed
+	// in a legacy function or through g:.
+	if (lp->ll_dict != NULL && lp->ll_dict->dv_type != NULL
+		&& lp->ll_dict->dv_type->tt_member != NULL
+		&& check_typval_arg_type(lp->ll_dict->dv_type->tt_member,
+						      rettv, NULL, 0) == FAIL)
+	{
+	    lp->ll_name_end = NULL;
+	    return;
+	}
+
 	// If the lval is a List and the type of the list is not yet set,
 	// then set the item type from the declared type of the variable.
 	if (in_vim9script() && rettv->v_type == VAR_LIST
@@ -2522,6 +2550,16 @@ set_var_lval(
 	}
 	else if (op != NULL && *op != '=')
 	{
+	    // The result of ".." is a string, an item of another type, e.g.
+	    // a number in a dict<number>, cannot hold it.
+	    if (*op == '.' && lp->ll_valtype != NULL
+		    && lp->ll_valtype->tt_type != VAR_STRING
+		    && lp->ll_valtype->tt_type != VAR_ANY
+		    && lp->ll_valtype->tt_type != VAR_UNKNOWN)
+	    {
+		emsg(_(e_can_only_concatenate_to_string));
+		return;
+	    }
 	    tv_op(lp->ll_tv, rettv, op);
 	    return;
 	}
@@ -2596,10 +2634,16 @@ tv_op_list(typval_T *tv1, typval_T *tv2, char_u *op)
 
     if (tv1->vval.v_list == NULL)
     {
-	tv1->vval.v_list = tv2->vval.v_list;
-	++tv1->vval.v_list->lv_refcount;
+	// Make a copy, "tv1" must not become the same List as "tv2".
+	tv1->vval.v_list = list_copy(tv2->vval.v_list, FALSE, FALSE, 0);
+	if (tv1->vval.v_list == NULL)
+	    return FAIL;
     }
-    else
+    // Check the type of all the items first, the List must not be changed
+    // when one of them has the wrong type.  The error has been given then.
+    else if (tv1->vval.v_list->lv_type == NULL
+	    || check_typval_arg_type(tv1->vval.v_list->lv_type, tv2,
+							      NULL, 0) == OK)
 	list_extend(tv1->vval.v_list, tv2->vval.v_list, NULL);
 
     return OK;
@@ -4303,7 +4347,7 @@ eval4(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	    ic = FALSE;
 	    ++len;
 	}
-	// nothing appended: use 'ignorecase' if not in Vim script
+	// nothing appended: use 'ignorecase' if not in Vim9 script
 	else
 	    ic = vim9script ? FALSE : p_ic;
 
@@ -4322,6 +4366,18 @@ eval4(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	    clear_tv(rettv);
 	    return FAIL;
 	}
+
+	// Another comparison operator cannot follow: "a < b < c".
+	p = eval_next_non_blank(*arg, evalarg, &getnext);
+	if (get_compare_type(p, &len, &type_is) != EXPR_UNKNOWN)
+	{
+	    semsg(_(e_comparison_operators_cannot_be_chained_str), p);
+	    clear_tv(rettv);
+	    if (evaluate)
+		clear_tv(&var2);
+	    return FAIL;
+	}
+
 	if (evaluate)
 	{
 	    int ret;
@@ -4407,12 +4463,24 @@ eval_addtuple(typval_T *tv1, typval_T *tv2)
     int		vim9script = in_vim9script();
     typval_T	var3;
 
+    // A tuple without a type, e.g. a tuple literal, is never variadic, thus
+    // only check when the first tuple has a type.
     if (vim9script && tv1->vval.v_tuple != NULL && tv2->vval.v_tuple != NULL
-	    && tv1->vval.v_tuple->tv_type != NULL
-	    && tv2->vval.v_tuple->tv_type != NULL)
+	    && tv1->vval.v_tuple->tv_type != NULL)
     {
-	if (!check_tuples_addable(tv1->vval.v_tuple->tv_type,
-						tv2->vval.v_tuple->tv_type))
+	type_T	    *type2 = tv2->vval.v_tuple->tv_type;
+	garray_T    type_list;
+	int	    addable;
+
+	// When the second tuple does not have a type, use the type of its
+	// value.
+	ga_init2(&type_list, sizeof(type_T *), 10);
+	if (type2 == NULL)
+	    type2 = typval2type(tv2, get_copyID(), &type_list, TVTT_DO_MEMBER);
+	addable = type2 == NULL
+		|| check_tuples_addable(tv1->vval.v_tuple->tv_type, type2);
+	clear_type_list(&type_list);
+	if (!addable)
 	    return FAIL;
     }
 
@@ -5074,6 +5142,9 @@ eval8(
 		    where_T where = WHERE_INIT;
 
 		    res = check_type(want_type, actual, TRUE, where);
+		    if (res == FAIL)
+			// the caller does not free the value on failure
+			clear_tv(rettv);
 		}
 	    }
 	}
@@ -5314,7 +5385,11 @@ eval9_nested_expr(
 		++*arg;
 	    else if (ret == OK)
 	    {
-		emsg(_(e_missing_closing_paren));
+		// Show where the expression stopped, unless at the end.
+		if (**arg == NUL)
+		    emsg(_(e_missing_closing_paren));
+		else
+		    semsg(_(e_missing_closing_paren_str), *arg);
 		clear_tv(rettv);
 		ret = FAIL;
 	    }
@@ -6626,14 +6701,20 @@ list_tv2string(
     }
     else
     {
-	int old_copyID;
-	if (restore_copyID)
-	    old_copyID = tv->vval.v_list->lv_copyID;
+	list_T	*l = tv->vval.v_list;
+	int	old_copyID;
 
-	tv->vval.v_list->lv_copyID = copyID;
+	if (restore_copyID)
+	    old_copyID = l->lv_copyID;
+
+	// Keep a reference, the string() method of an object item could
+	// remove the last reference to the list.
+	++l->lv_refcount;
+	l->lv_copyID = copyID;
 	*tofree = list2string(tv, copyID, restore_copyID);
 	if (restore_copyID)
-	    tv->vval.v_list->lv_copyID = old_copyID;
+	    l->lv_copyID = old_copyID;
+	list_unref(l);
 	r = *tofree;
     }
 
@@ -6675,10 +6756,14 @@ tuple_tv2string(
 	if (restore_copyID)
 	    old_copyID = tuple->tv_copyID;
 
+	// Keep a reference, the string() method of an object item could
+	// remove the last reference to the tuple.
+	++tuple->tv_refcount;
 	tuple->tv_copyID = copyID;
 	*tofree = tuple2string(tv, copyID, restore_copyID);
 	if (restore_copyID)
 	    tuple->tv_copyID = old_copyID;
+	tuple_unref(tuple);
 	r = *tofree;
     }
 
@@ -6715,14 +6800,20 @@ dict_tv2string(
     }
     else
     {
-	int old_copyID;
-	if (restore_copyID)
-	    old_copyID = tv->vval.v_dict->dv_copyID;
+	dict_T	*d = tv->vval.v_dict;
+	int	old_copyID;
 
-	tv->vval.v_dict->dv_copyID = copyID;
+	if (restore_copyID)
+	    old_copyID = d->dv_copyID;
+
+	// Keep a reference, the string() method of an object item could
+	// remove the last reference to the dict.
+	++d->dv_refcount;
+	d->dv_copyID = copyID;
 	*tofree = dict2string(tv, copyID, restore_copyID);
 	if (restore_copyID)
-	    tv->vval.v_dict->dv_copyID = old_copyID;
+	    d->dv_copyID = old_copyID;
+	dict_unref(d);
 	r = *tofree;
     }
 
@@ -6837,11 +6928,15 @@ object_tv2string(
 	if (restore_copyID)
 	    old_copyID = obj->obj_copyID;
 
+	// Keep a reference, the string() method could remove the last
+	// reference to the object.
+	++obj->obj_refcount;
 	obj->obj_copyID = copyID;
 	*tofree = object2string(obj, numbuf, copyID, echo_style,
 				restore_copyID, composite_val);
 	if (restore_copyID)
 	    obj->obj_copyID = old_copyID;
+	object_unref(obj);
 	r = *tofree;
     }
 
@@ -7667,11 +7762,13 @@ handle_subscript(
     while (ret == OK)
     {
 	// When at the end of the line and ".name" or a method call follows in
-	// the next line then consume the line break.
+	// the next line then consume the line break.  When not evaluating the
+	// type is unknown, ".name" is taken to be a lookup.
 	p = eval_next_non_blank(*arg, evalarg, &getnext);
 	if (getnext
 	    && ((*p == '.'
-		    && ((rettv->v_type == VAR_DICT && eval_isdictc(p[1]))
+		    && (((rettv->v_type == VAR_DICT || !evaluate)
+				&& eval_isdictc(p[1]))
 			|| rettv->v_type == VAR_CLASS
 			|| rettv->v_type == VAR_OBJECT))
 		|| method_call_follows(p)))

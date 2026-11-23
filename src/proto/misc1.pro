@@ -1,6 +1,6 @@
 // misc1.c
 int get_leader_len(char_u *line, char_u **flags, int backward, int include_space);
-int get_last_leader_offset(char_u *line, char_u **flags);
+int get_last_leader_offset(char_u *line, char_u **flags, bool skip_first);
 int plines(linenr_T lnum);
 int plines_win(win_T *wp, linenr_T lnum, int limit_winheight);
 int plines_nofill(linenr_T lnum);
@@ -53,6 +53,7 @@ int path_is_url(char_u *p);
 int path_with_url(char_u *fname);
 dict_T *get_v_event(save_v_event_T *sve);
 void restore_v_event(dict_T *v_event, save_v_event_T *sve);
+int set_ref_in_saved_v_event(int copyID);
 void may_trigger_modechanged(void);
 int vim_append_digit_long(long *value, int digit);
 int trim_to_int(vimlong_T x);

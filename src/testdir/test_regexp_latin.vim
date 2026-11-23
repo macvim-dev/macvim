@@ -874,6 +874,25 @@ func Test_matchstr_with_ze()
   bwipe!
 endfunc
 
+func Test_lookbehind_large_limit()
+  for engine in [0, 1, 2]
+    let prefix = '\%#=' .. engine .. '\(ab\)\@'
+    " A large byte limit must not wrap to 1 (#21681).
+    for limit in ['99999', '2147483647', '2147483648', '4294967295',
+          \ '4294967296', '4294967297', '9223372036854775807',
+          \ '18446744073709551617']
+      call assert_equal(2, match('abc', prefix .. limit .. '<=c'),
+            \ 'engine ' .. engine .. ', limit ' .. limit)
+      call assert_equal(-1, match('abc', prefix .. limit .. '<!c'),
+            \ 'engine ' .. engine .. ', limit ' .. limit)
+    endfor
+    call assert_equal(-1, match('abc', prefix .. '1<=c'))
+    call assert_equal(2, match('abc', prefix .. '1<!c'))
+    call assert_equal(2, match('abc', prefix .. '2<=c'))
+    call assert_equal(-1, match('abc', prefix .. '2<!c'))
+  endfor
+endfunc
+
 " Check a pattern with a look behind crossing a line boundary
 func Test_lookbehind_across_line()
   new
@@ -882,6 +901,15 @@ func Test_lookbehind_across_line()
   call cursor(1, 1)
   call search('\(<\_[xy]\+\)\@3<=start')
   call assert_equal([0, 7, 3, 0], getpos('.'))
+
+  %delete _
+  call setline(1, ['abc', 'X'])
+  call cursor(1, 1)
+  call assert_equal(2, search('\%#=1\(c\n\)\@1<=X', 'cnW'))
+  call assert_equal(0, search('\%#=1\(bc\n\)\@1<=X', 'cnW'))
+  call assert_equal(2, search('\%#=1\(bc\n\)\@2<=X', 'cnW'))
+  call assert_equal(2, search('\%#=1\(bc\n\)\@1<!X', 'cnW'))
+  call assert_equal(0, search('\%#=1\(bc\n\)\@2<!X', 'cnW'))
   bwipe!
 endfunc
 

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Vim\n"
 "Report-Msgid-Bugs-To: vim-dev@vim.org\n"
-"POT-Creation-Date: 2026-10-25 09:35+0000\n"
+"POT-Creation-Date: 2026-11-21 15:57+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2357,6 +2357,10 @@ msgstr ""
 msgid "(+%lld for BOM)"
 msgstr ""
 
+#, c-format
+msgid "'modelinestrict' in effect, ignoring %s"
+msgstr ""
+
 msgid "W17: Arabic requires UTF-8, do ':set encoding=utf-8'"
 msgstr ""
 
@@ -4105,6 +4109,10 @@ msgid "E109: Missing ':' after '?'"
 msgstr ""
 
 msgid "E110: Missing ')'"
+msgstr ""
+
+#, c-format
+msgid "E110: Missing ')': %s"
 msgstr ""
 
 msgid "E111: Missing ']'"
@@ -8925,6 +8933,14 @@ msgstr ""
 msgid "E1587: Image ID %d does not exist"
 msgstr ""
 
+#, c-format
+msgid "E1588: Comparison operators cannot be chained, use parentheses: %s"
+msgstr ""
+
+#, c-format
+msgid "E1589: Socket directory is not safe to use: %s"
+msgstr ""
+
 #. type of cmdline window or 0
 #. result of cmdline window or 0
 #. buffer of cmdline window or NULL
@@ -9549,6 +9565,9 @@ msgid "syntax, highlighting and spelling"
 msgstr ""
 
 msgid "\"dark\" or \"light\"; the background color brightness"
+msgstr ""
+
+msgid "time in msec to wait for background detection at startup"
 msgstr ""
 
 msgid "type of file; triggers the FileType event when set"

@@ -335,6 +335,25 @@ func Test_tuple_slice()
   call v9.CheckSourceLegacyAndVim9Success(lines)
 endfunc
 
+" Test for the type of a tuple slice
+def Test_tuple_slice_type()
+  var lines =<< trim END
+    var s: tuple<string> = (1, 'a')[1 :]
+    assert_equal(('a',), s)
+    assert_equal('tuple<string>', typename((1, 'a')[1 :]))
+    var v: tuple<...list<number>> = (1, 2, 3)
+    var w: tuple<...list<number>> = v[1 :]
+    assert_equal((2, 3), w)
+  END
+  v9.CheckSourceDefAndScriptSuccess(lines)
+
+  lines =<< trim END
+    var t: tuple<number, string> = (1, 'a')
+    var s: tuple<number, string> = t[1 :]
+  END
+  v9.CheckSourceDefExecAndScriptFailure(lines, 'E1012: Type mismatch; expected tuple<number, string> but got tuple<string>')
+enddef
+
 " Test for concatenating tuples
 func Test_tuple_concatenate()
   let lines =<< trim END
@@ -399,15 +418,6 @@ func Test_tuple_concatenate()
 
   let lines =<< trim END
     var a: tuple<number, ...list<string>> = (1, 'a', 'b')
-    var b: tuple<number, ...list<string>> = (2, 'c', 'd')
-    var t = a + b
-  END
-  call v9.CheckSourceDefExecAndScriptFailure(lines, [
-        \ 'E1540: Cannot use a variadic tuple in concatenation',
-        \ 'E1540: Cannot use a variadic tuple in concatenation'])
-
-  let lines =<< trim END
-    var a: tuple<number, ...list<string>> = (1, 'a', 'b')
     var b: tuple<...list<string>> = ('c', 'd')
     var t = a + b
   END
@@ -419,15 +429,6 @@ func Test_tuple_concatenate()
     var a: tuple<...list<string>> = ('a', 'b')
     var b: tuple<number, ...list<string>> = (2, 'c', 'd')
     var t = a + b
-  END
-  call v9.CheckSourceDefExecAndScriptFailure(lines, [
-        \ 'E1540: Cannot use a variadic tuple in concatenation',
-        \ 'E1540: Cannot use a variadic tuple in concatenation'])
-
-  let lines =<< trim END
-    var t1: tuple<...list<tuple<number, number>>> = ()
-    var t2: tuple<...list<tuple<number, string>>> = ()
-    var t = t1 + t2
   END
   call v9.CheckSourceDefExecAndScriptFailure(lines, [
         \ 'E1540: Cannot use a variadic tuple in concatenation',
@@ -592,6 +593,36 @@ func Test_tuple_compare()
         \ 'E1518: Invalid operation for Tuple',
         \ 'E1518: Invalid operation for Tuple'])
 endfunc
+
+" Test for concatenating a variadic tuple with a tuple literal.  The type of
+" the literal must also be checked when not in a compiled function.
+def Test_tuple_concatenate_variadic_with_literal()
+  var lines =<< trim END
+    var t: tuple<...list<number>> = (1, 2)
+    t = t + (3,)
+  END
+  v9.CheckSourceDefExecAndScriptFailure(lines, 'E1540: Cannot use a variadic tuple in concatenation', 2)
+
+  lines =<< trim END
+    var t: tuple<...list<number>> = ()
+    t = t + ('a', 'b')
+  END
+  v9.CheckSourceDefExecAndScriptFailure(lines, 'E1540: Cannot use a variadic tuple in concatenation', 2)
+
+  # A tuple with the same variadic type, an empty tuple and a tuple without a
+  # variadic type can be used
+  lines =<< trim END
+    var t: tuple<...list<number>> = (1, 2)
+    var u: tuple<...list<number>> = (3,)
+    t = t + u
+    t = t + ()
+    assert_equal((1, 2, 3), t)
+    var f: tuple<number, number> = (1, 2)
+    assert_equal((1, 2, 3), f + (3,))
+    assert_equal((1, 2, 3), (1,) + (2, 3))
+  END
+  v9.CheckSourceDefAndScriptSuccess(lines)
+enddef
 
 " Test for assigning multiple items from a tuple
 func Test_multi_assign_from_tuple()
@@ -989,21 +1020,6 @@ func Test_tuple_for()
   END
   call v9.CheckSourceSuccess(lines)
 
-  " iterate over tuple<...list<list<number>>>
-  let lines =<< trim END
-    vim9script
-    def Fn()
-      var t: tuple<...list<list<number>>> = ([1, 2], [3, 4])
-      var sum = 0
-      for [x: number, y: number] in t
-        sum += x + y
-      endfor
-      assert_equal(10, sum)
-    enddef
-    Fn()
-  END
-  call v9.CheckSourceSuccess(lines)
-
   " iterate over a tuple<...list<any>>
   let lines =<< trim END
     vim9script
@@ -1056,11 +1072,6 @@ func Test_tuple_type_check()
     t = (1, 2)
   END
   call v9.CheckSourceDefFailure(lines, 'E1012: Type mismatch; expected tuple<string, string> but got tuple<number, number>', 2)
-
-  let lines =<< trim END
-    var t: tuple<number> = []
-  END
-  call v9.CheckSourceDefFailure(lines, 'E1012: Type mismatch; expected tuple<number> but got list<any>', 1)
 
   let lines =<< trim END
     var t: tuple<number> = {}
@@ -1135,6 +1146,62 @@ func Test_tuple_type_check()
   END
   call v9.CheckSourceFailure(lines, 'E1012: Type mismatch; expected tuple<number, ...list<string>> but got tuple<number, ...list<bool>>')
 endfunc
+
+" Test for checking the type of a tuple at runtime, when an item has type
+" "any" or the number of items is not known when compiling
+def Test_tuple_runtime_type_check()
+  var lines =<< trim END
+    var a: any = 'x'
+    var t: tuple<number, number> = (1, a)
+  END
+  v9.CheckSourceDefExecAndScriptFailure(lines, 'E1012: Type mismatch; expected tuple<number, number> but got tuple<number, string>', 2)
+
+  lines =<< trim END
+    vim9script
+    def Fn(): tuple<number, number>
+      var a: any = 'x'
+      var t: tuple<number, any> = (1, a)
+      return t
+    enddef
+    Fn()
+  END
+  v9.CheckSourceFailure(lines, 'E1012: Type mismatch; expected tuple<number, number> but got tuple<number, string>', 3)
+
+  lines =<< trim END
+    vim9script
+    def Fn(t: tuple<list<number>>)
+    enddef
+    def Foo()
+      var l: list<any> = [1, 'a']
+      var t: tuple<list<any>> = (l,)
+      Fn(t)
+    enddef
+    Foo()
+  END
+  v9.CheckSourceFailure(lines, 'E1013: Argument 1: type mismatch, expected tuple<list<number>> but got tuple<list<any>>', 3)
+
+  lines =<< trim END
+    var v: tuple<...list<number>> = (1, 2, 3)
+    var t: tuple<number> = v
+  END
+  v9.CheckSourceDefExecAndScriptFailure(lines, 'E1012: Type mismatch; expected tuple<number> but got tuple<number, number, number>', 2)
+
+  lines =<< trim END
+    var v: tuple<...list<number>> = (1,)
+    var t: tuple<number, number, ...list<number>> = v
+  END
+  v9.CheckSourceDefExecAndScriptFailure(lines, 'E1012: Type mismatch; expected tuple<number, number, ...list<number>> but got tuple<number>', 2)
+
+  # a value that matches the type is accepted
+  lines =<< trim END
+    var a: any = 2
+    var t: tuple<number, number> = (1, a)
+    var v: tuple<...list<number>> = (3,)
+    var u: tuple<number> = v
+    assert_equal(((1, 2), (3,)), (t, u))
+  END
+  v9.CheckSourceDefAndScriptSuccess(lines)
+enddef
 
 " Test for using a tuple with fewer items than required by a variadic tuple
 " type
@@ -1380,16 +1447,6 @@ func Test_tuple_modify_mutable_item()
         \ 'E1519: Tuple index out of range: -3',
         \ 'E1519: Tuple index out of range: -3',
         \ 'E1519: Tuple index out of range: -3'])
-
-  " Use a null tuple
-  let lines =<< trim END
-    VAR t = test_null_tuple()
-    LET t[0][0] = 5
-  END
-  call v9.CheckSourceLegacyAndVim9Failure(lines, [
-        \ 'E1519: Tuple index out of range: 0',
-        \ 'E1519: Tuple index out of range: 0',
-        \ 'E1519: Tuple index out of range: 0'])
 endfunc
 
 " Test for locking and unlocking a tuple variable
@@ -1590,16 +1647,7 @@ endfunc
 
 " Test for using a compound op with a tuple
 func Test_tuple_compound_op()
-  let lines =<< trim END
-    VAR t = (1, 2)
-    LET t += (3,)
-  END
-  call v9.CheckSourceLegacyAndVim9Failure(lines, [
-        \ 'E734: Wrong variable type for +=',
-        \ 'E734: Wrong variable type for +=',
-        \ 'E734: Wrong variable type for +='])
-
-  for op in ['-', '*', '/', '%']
+  for op in ['+', '-', '*', '/', '%']
     let lines =<< trim eval END
       VAR t = (1, 2)
       LET t {op}= (3,)
@@ -1637,6 +1685,35 @@ def Test_tuple_typecast()
   v9.CheckSourceDefAndScriptFailure(lines, [
         \ 'E1012: Type mismatch; expected tuple<number> but got tuple<string, string>',
         \ 'E1012: Type mismatch; expected tuple<number> but got tuple<string, string>'])
+
+  # a variadic tuple type is different from a tuple type with a List item
+  lines =<< trim END
+    var b: tuple<number, list<number>> = (1, [2])
+    var x = <tuple<number, ...list<number>>>b
+  END
+  v9.CheckSourceDefAndScriptFailure(lines, 'E1012: Type mismatch; expected tuple<number, ...list<number>> but got tuple<number, list<number>>', 2)
+
+  lines =<< trim END
+    var b: tuple<number, list<number>> = (1, [2])
+    var x = <tuple<number, list<number>>>b
+    assert_equal((1, [2]), x)
+  END
+  v9.CheckSourceDefAndScriptSuccess(lines)
+enddef
+
+" Test for the common type of a variadic tuple and a tuple with a List item
+def Test_tuple_variadic_common_type()
+  var lines =<< trim END
+    vim9script
+    def Fn(c: bool): tuple<number, list<number>>
+      var a: tuple<number, ...list<number>> = (1, 2, 3)
+      var b: tuple<number, list<number>> = (1, [2])
+      var x = c ? a : b
+      return x
+    enddef
+    assert_equal((1, [2]), Fn(false))
+  END
+  v9.CheckSourceSuccess(lines)
 enddef
 
 " Test for using a tuple in string interpolation
@@ -2505,6 +2582,10 @@ func Test_tuple_gc_cycle()
     call assert_equal([2], t[1])
     call assert_true(d.t[0] is d)
     call assert_equal([3], d.t[1])
+    " the cycles are still kept after another garbage collection
+    call test_garbagecollect_now()
+    call assert_true(l[1] is t)
+    call assert_true(d.t[0] is d)
 
     " an unreachable cycle is freed
     let shared = [4]
@@ -2514,6 +2595,30 @@ func Test_tuple_gc_cycle()
     unlet l2
     call test_garbagecollect_now()
     call assert_equal(1, test_refcount(shared))
+
+    " an unreachable cycle through a tuple in a tuple is freed
+    let l3 = []
+    call add(l3, ((l3, shared),))
+    call assert_equal(2, test_refcount(shared))
+    unlet l3
+    call test_garbagecollect_now()
+    call assert_equal(1, test_refcount(shared))
+  END
+  call v9.CheckSourceSuccess(lines)
+
+  " an unreachable cycle through a tuple with a declared type is freed
+  let lines =<< trim END
+    vim9script
+    var shared = [5]
+    var l: list<any> = []
+    var t: tuple<list<any>, ...list<list<number>>> = (l, shared)
+    l->add(t)
+    assert_equal('tuple<list<any>, ...list<list<number>>>', typename(t))
+    assert_equal(2, test_refcount(shared))
+    l = null_list
+    t = null_tuple
+    test_garbagecollect_now()
+    assert_equal(1, test_refcount(shared))
   END
   call v9.CheckSourceSuccess(lines)
 endfunc
@@ -3712,6 +3817,13 @@ func Test_tuple_modify_item_error()
   END
   call v9.CheckSourceLegacyAndVim9Failure(lines, 'E1532: Cannot modify a tuple')
 
+  " with type "any" it is only known at runtime that it is a tuple
+  let lines =<< trim END
+    var t: any = (1, 2)
+    unlet t[0]
+  END
+  call v9.CheckSourceDefExecAndScriptFailure(lines, 'E1532: Cannot modify a tuple', 2)
+
   let lines =<< trim END
     VAR t = (1, 2)
     LET t[0] += 1
@@ -3720,6 +3832,26 @@ func Test_tuple_modify_item_error()
         \ 'E1532: Cannot modify a tuple',
         \ 'E734: Wrong variable type for +=',
         \ 'E1532: Cannot modify a tuple'])
+
+  " removing a range of items
+  let lines =<< trim END
+    VAR t = (1, 2, 3)
+    unlet t[0 : 1]
+  END
+  call v9.CheckSourceLegacyAndVim9Failure(lines, 'E1533: Cannot slice a tuple')
+
+  let lines =<< trim END
+    var t = (1, 2, 3)
+    unlet t[1 :]
+  END
+  call v9.CheckSourceDefFailure(lines, 'E1533: Cannot slice a tuple', 2)
+
+  " with type "any" it is only known at runtime that it is a tuple
+  let lines =<< trim END
+    var t: any = (1, 2, 3)
+    unlet t[0 : 1]
+  END
+  call v9.CheckSourceDefExecAndScriptFailure(lines, 'E1533: Cannot slice a tuple', 2)
 endfunc
 
 " Test for using a tuple as a Dict key
@@ -3800,5 +3932,49 @@ def Test_tuple_default_arg_and_closure()
   END
   v9.CheckSourceScriptFailure(lines, 'E1013: Argument 1: type mismatch, expected tuple<number> but got tuple<string>')
 enddef
+
+" Test for slicing and changing a tuple in a variable with type "any".  In a
+" :def function it is only known at runtime that the value is a tuple.
+def Test_tuple_any_var_slice_and_modify()
+  var lines =<< trim END
+    var t: any = (1, 2, 3)
+    assert_equal([(2, 3), (1, 2), (2, 3), (), (1, 2, 3)],
+          [t[1 : 2], t[: 1], t[-2 :], t[5 :], t[:]])
+    assert_equal('tuple<number, number>', typename(t[1 :]))
+    var n: any = null_tuple
+    assert_equal([(), ()], [n[1 :], n[:]])
+
+    # a slice is a new tuple with the same items
+    var u: any = ([1], 2)
+    var s = u[:]
+    assert_false(s is u)
+    assert_true(s[0] is u[0])
+    u[0][0] = 9
+    assert_equal(([9], 2), s)
+  END
+  v9.CheckSourceDefAndScriptSuccess(lines)
+
+  lines =<< trim END
+    var t: any = (1, 2)
+    t[0] = 3
+  END
+  v9.CheckSourceDefExecAndScriptFailure(lines, 'E1532: Cannot modify a tuple', 2)
+enddef
+
+" Test for unpacking a tuple literal with fewer items than the variables
+" before ";".  In a :def function this is found when compiling.
+func Test_tuple_unpack_rest_too_few_items()
+  let lines =<< trim END
+    var [a, b; c] = (1,)
+  END
+  call v9.CheckSourceDefAndScriptFailure(lines, [
+        \ 'E1093: Expected 2 items but got 1',
+        \ 'E1538: More targets than Tuple items'], 1)
+
+  let lines =<< trim END
+    let [a, b; c] = (1,)
+  END
+  call v9.CheckSourceFailure(lines, 'E1538: More targets than Tuple items', 1)
+endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

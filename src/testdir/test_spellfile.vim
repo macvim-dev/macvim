@@ -321,8 +321,18 @@ func Test_spellfile_format_error()
 
   " SN_SAL (empty) followed by SN_SOFO with two multi-byte 'from' characters
   " sharing the same low byte.  A preceding SN_SAL poisons sl_sal_first[], so
-  " without a reset set_sofo() under-counts and writes out of bounds.
-  call Spellfile_Test(0z05000000000300000006000000000A0004CAABCEAB00024142FF000000000000000000000000, '')
+  " without a reset set_sofo() under-counts and writes out of bounds.  Both
+  " sections are not allowed.
+  call Spellfile_Test(0z05000000000300000006000000000A0004CAABCEAB00024142FF000000000000000000000000, 'E759:')
+
+  " SN_SOFO twice: the second one freed the first as SN_SAL items.
+  call Spellfile_Test(0z060000000006000161000162060000000006000161000162FF000000000000000000000000, 'E759:')
+
+  " SN_SOFO followed by SN_SAL
+  call Spellfile_Test(0z06000000000600016100016205000000000700000101610162FF000000000000000000000000, 'E759:')
+
+  " SN_SAL twice
+  call Spellfile_Test(0z0500000000070000010161016205000000000700000101610162FF000000000000000000000000, 'E759:')
 
   " SN_COMPOUND: compmax is less than 2
   call Spellfile_Test(0z08000000000101, 'E759:')
@@ -1390,6 +1400,30 @@ func Test_spellfile_truncated_prefcondnr()
   call assert_equal(['', ''], spellbadword('rebread'))
 
   set nospell spl& spelllang&
+endfunc
+
+" A crafted .sug file whose fold word tree has a BY_INDEX reference into the
+" middle of a node made tree_count_words() read beyond the end of the tree.
+func Test_spell_sug_tree_count_words_index_overflow()
+  call mkdir('Xrtp/spell', 'pR')
+  " VIMspell + v50, SN_SUGFILE(ts), SN_END, LWORDTREE word "a",
+  " empty KWORDTREE/PREFIXTREE
+  let spl = eval('0z56494D7370656C6C320B000000000800000000650000'
+        \ .. '01FF00000004016101000000000000000000')
+  " VIMsug + v1, matching ts, SUGWORDTREE{node:1,BY_INDEX->1,'A'}, empty
+  " SUGTABLE
+  let sug = 0z56494D7375670100000000650000010000000201010000014100000000
+  call writefile(spl, 'Xrtp/spell/xx.utf-8.spl', 'b')
+  call writefile(sug, 'Xrtp/spell/xx.utf-8.sug', 'b')
+
+  new
+  set runtimepath+=./Xrtp
+  set spelllang=xx
+  set spell
+  call assert_equal(v:t_list, type(spellsuggest('helllo')))
+
+  set spell& spelllang& runtimepath&
+  bwipe!
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

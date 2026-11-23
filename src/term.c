@@ -159,6 +159,12 @@ static termrequest_T winpos_status = TERMREQUEST_INIT;
 // Request DECRQM (DEC mode) report:
 static termrequest_T decrqm_status = TERMREQUEST_INIT;
 
+// Request DECRQSS report of the SGR, for the curly underline:
+static termrequest_T rcu_status = TERMREQUEST_INIT;
+
+// The xterm compatibility check found that an unknown DCS string is ignored.
+static bool xcc_ignores_dcs = false;
+
 static termrequest_T *all_termrequests[] = {
     &crv_status,
     &u7_status,
@@ -171,6 +177,7 @@ static termrequest_T *all_termrequests[] = {
     &rcs_status,
     &winpos_status,
     &decrqm_status,
+    &rcu_status,
     NULL
 };
 
@@ -217,7 +224,7 @@ static int  detected_8bit = FALSE;	// detected 8-bit terminal
 static int focus_state = MAYBE; // TRUE if the Vim window has focus
 #endif
 
-#ifdef FEAT_TERMRESPONSE
+#if defined(FEAT_TERMRESPONSE) && defined(CURSOR_SHAPE)
 // When the cursor shape was detected these values are used:
 // 1: block, 2: underline, 3: vertical bar
 static int initial_cursor_shape = 0;
@@ -530,7 +537,7 @@ static tcap_entry_T builtin_xterm[] = {
     {(int)KS_RFG,	"\033]10;?\007"},
     {(int)KS_RBG,	"\033]11;?\007"},
     {(int)KS_U7,	"\033[6n"},
-    {(int)KS_CAU,	"\033[58;5;%dm"},
+    {(int)KS_CAU,	"\033[58:5:%dm"},
     {(int)KS_CBE,	"\033[?2004h"},
     {(int)KS_CBD,	"\033[?2004l"},
     {(int)KS_CST,	"\033[22;2t"},
@@ -712,7 +719,7 @@ static tcap_entry_T builtin_rgb[] = {
     // These are printf strings, not terminal codes.
     {(int)KS_8F,	"\033[38;2;%lu;%lu;%lum"},
     {(int)KS_8B,	"\033[48;2;%lu;%lu;%lum"},
-    {(int)KS_8U,	"\033[58;2;%lu;%lu;%lum"},
+    {(int)KS_8U,	"\033[58:2::%lu:%lu:%lum"},
 
     {(int)KS_NAME,	NULL}  // end marker
 };
@@ -1557,8 +1564,10 @@ typedef struct {
 #define TPR_DECRQM		    5
 // true color, from the color count of the terminal entry
 #define TPR_RGB			    6
+// SGR 4:3 gives the curly underline, from the DECRQSS response
+#define TPR_UNDERCURL		    7
 // table size
-#define TPR_COUNT		    7
+#define TPR_COUNT		    8
 
 static termprop_T term_props[TPR_COUNT];
 
@@ -1597,6 +1606,8 @@ init_term_props(int all)
     term_props[TPR_DECRQM].tpr_set_by_termresponse = TRUE;
     term_props[TPR_RGB].tpr_name = "rgb";
     term_props[TPR_RGB].tpr_set_by_termresponse = FALSE;
+    term_props[TPR_UNDERCURL].tpr_name = "undercurl";
+    term_props[TPR_UNDERCURL].tpr_set_by_termresponse = FALSE;
 
     for (i = 0; i < TPR_COUNT; ++i)
 	if (all || term_props[i].tpr_set_by_termresponse)
@@ -2087,7 +2098,7 @@ theend:
  * While doing this, until ttest(), some options may be NULL, be careful.
  */
     int
-set_termname(char_u *term)
+set_termname(char_u *term, bool keep_termcaps UNUSED)
 {
 #ifdef HAVE_TGETENT
     int		builtin_first = p_tbi;
@@ -2198,13 +2209,15 @@ set_termname(char_u *term)
 	    out_flush();
 #ifdef HAVE_TGETENT
 	    if (!termcap_cleared)
-	    {
+#else
+	    if (!keep_termcaps)
 #endif
-		clear_termoptions();	    // clear old options
+	    {
+		clear_termoptions();        // clear old options
 #ifdef HAVE_TGETENT
 		termcap_cleared = TRUE;
-	    }
 #endif
+	    }
 	    parse_builtin_tcap(term);
 
 #ifdef FEAT_GUI
@@ -2842,7 +2855,8 @@ termcapinit(char_u *name)
     set_string_default("ttytype", term);
 
     // Avoid using "term" here, because the next mch_getenv() may overwrite it.
-    set_termname(T_NAME != NULL ? T_NAME : term);
+    // Initialize the terminal options.
+    set_termname(T_NAME != NULL ? T_NAME : term, false);
 }
 
 /*
@@ -3196,11 +3210,11 @@ termrequest_any_pending(void)
     return FALSE;
 }
 
+#  if defined(FEAT_EVAL) || defined(FEAT_TERMINAL)
 static int winpos_x = -1;
 static int winpos_y = -1;
 static int did_request_winpos = 0;
 
-#  if defined(FEAT_EVAL) || defined(FEAT_TERMINAL)
 /*
  * Try getting the Vim window position from the terminal.
  * Returns OK or FAIL.
@@ -3749,15 +3763,32 @@ win_new_shellsize(void)
 }
 
 #if defined(FEAT_IMAGE) || defined(FEAT_EVAL)
+    static void
+set_cell_size(int new_cw, int new_ch)
+{
+    if (new_cw == cell_width && new_ch == cell_height)
+	return;
+
+    cell_width = new_cw;
+    cell_height = new_ch;
+
+# ifdef FEAT_TERMINAL
+    term_update_cell_size();
+# endif
+    // a redraw will clear the intro message,
+    // so only do it if an image is visible
+# ifdef FEAT_IMAGE
+    if (visible_image_placements())
+	redraw_all_later(UPD_VALID);
+# endif
+}
+
     void
 update_cell_size(void)
 {
 # ifdef FEAT_GUI
     if (gui.in_use)
-    {
-	cell_width = gui.char_width;
-	cell_height = gui.char_height;
-    }
+	set_cell_size(gui.char_width, gui.char_height);
     else
 # endif
     {
@@ -3765,15 +3796,9 @@ update_cell_size(void)
 
 	mch_calc_cell_size(&cell_sz);
 	if (cell_sz.cs_xpixel <= 0 || cell_sz.cs_ypixel <= 0)
-	{
-	    cell_width = 8;
-	    cell_height = 16;
-	}
+	    set_cell_size(8, 16);
 	else
-	{
-	    cell_width = cell_sz.cs_xpixel;
-	    cell_height = cell_sz.cs_ypixel;
-	}
+	    set_cell_size(cell_sz.cs_xpixel, cell_sz.cs_ypixel);
     }
 }
 #endif
@@ -3858,7 +3883,15 @@ set_shellsize_inner(int width, int height, int mustset)
 
     if (State != MODE_ASKMORE && State != MODE_EXTERNCMD
 						      && State != MODE_CONFIRM)
+    {
+	// Most terminals reset the scroll region when they are resized, but a
+	// scroll region for the old size may have been sent before the resize
+	// was noticed (e.g. during startup) and still be in effect.  Set it
+	// again for the new size, otherwise lines below it are not drawn.
+	if (scroll_region && termcap_active)
+	    scroll_region_reset();
 	screenclear();
+    }
     else
 	screen_start();	    // don't know where cursor is now
 
@@ -4072,6 +4105,14 @@ settmode(tmode_T tmode)
 	    check_for_codes_from_term();
 	}
 #endif
+	// Messages or terminal responses after stoptermcap() may have used
+	// Normal colors again.  Restore the defaults before handing over the
+	// terminal, including when no alternate screen is used.
+	if (tmode == TMODE_COOK && !termcap_active)
+	{
+	    screen_stop_highlight();
+	    reset_cterm_colors();
+	}
 	if (tmode != TMODE_RAW)
 	    mch_setmouse(FALSE);	// switch mouse off
 
@@ -4161,8 +4202,9 @@ stoptermcap(void)
 	if (termrequest_any_pending())
 	{
 # ifdef UNIX
-	    // Give the terminal a chance to respond.
-	    mch_delay(100L, 0);
+	    // Give the terminal a chance to respond, even if input such as
+	    // CTRL-C arrives before the response.
+	    mch_delay(100L, MCH_DELAY_IGNOREINPUT);
 # endif
 # ifdef TCIFLUSH
 	    // Discard data received but not read.
@@ -4342,13 +4384,15 @@ check_terminal_behavior(void)
     void
 may_req_bg_color(void)
 {
-    if (can_get_termresponse() && starting == 0)
+    if (can_get_termresponse()
+	    && (starting == 0 || (starting == NO_BUFFERS && p_tbw > 0)))
     {
 	int didit = FALSE;
 
 # ifdef FEAT_TERMINAL
-	// Only request foreground if t_RF is set.
-	if (rfg_status.tr_progress == STATUS_GET && *T_RFG != NUL)
+	// The foreground is not needed before the first redraw.
+	if (starting == 0 && rfg_status.tr_progress == STATUS_GET
+							      && *T_RFG != NUL)
 	{
 	    MAY_WANT_TO_LOG_THIS;
 	    LOG_TR1("Sending FG request");
@@ -4358,8 +4402,10 @@ may_req_bg_color(void)
 	}
 # endif
 
-	// Only request background if t_RB is set.
-	if (rbg_status.tr_progress == STATUS_GET && *T_RBG != NUL)
+	// Only request background if t_RB is set.  During startup this is only
+	// needed when 'background' was not explicitly set.
+	if (rbg_status.tr_progress == STATUS_GET && *T_RBG != NUL
+		      && (starting == 0 || !option_was_set((char_u *)"bg")))
 	{
 	    MAY_WANT_TO_LOG_THIS;
 	    LOG_TR1("Sending BG request");
@@ -4368,12 +4414,60 @@ may_req_bg_color(void)
 	    didit = TRUE;
 	}
 
-	if (didit)
+	// Also check for a response to the earlier background request when
+	// no foreground request was sent after startup commands.
+	if (didit || rbg_status.tr_progress != STATUS_GET)
 	{
+	    long wait = p_tbw;
+	    long remaining = wait;
+	    long delay;
+	    int c;
+# ifdef ELAPSED_FUNC
+	    elapsed_T start_tv;
+
+	    if (starting != 0 && wait > 0)
+		ELAPSED_INIT(start_tv);
+# endif
+
 	    // check for the characters now, otherwise they might be eaten by
 	    // get_keystroke()
 	    out_flush();
-	    (void)vpeekc_nomap();
+	    for (;;)
+	    {
+		c = vpeekc_nomap();
+
+		// Discard OSC notifications, not typed characters.  Leaving
+		// them in typeahead can interfere with feedkeys() during startup
+		// and prevent SafeState from being triggered afterwards.
+		if (c == K_SPECIAL && typebuf.tb_len >= 3
+			&& typebuf.tb_buf[typebuf.tb_off] == K_SPECIAL
+			&& typebuf.tb_buf[typebuf.tb_off + 1] == KS_EXTRA
+			&& typebuf.tb_buf[typebuf.tb_off + 2] == KE_OSC)
+		{
+		    del_typebuf(3, 0);
+		    continue;
+		}
+		if (starting == 0)
+		    break;
+
+# ifdef ELAPSED_FUNC
+		// ui_delay() can return early when terminal input arrives.
+		if (wait > 0)
+		    remaining = wait - ELAPSED_FUNC(start_tv);
+# endif
+		// Avoid painting with the wrong background before the terminal
+		// has replied, but only when explicitly enabled.  Leave
+		// typeahead alone.  A late response is still used.
+		if (rbg_status.tr_progress != STATUS_SENT
+			      || c != NUL || got_int || remaining <= 0)
+		    break;
+		delay = MIN(remaining, 10L);
+		ui_delay(delay, FALSE);
+# ifndef ELAPSED_FUNC
+		// Approximate the wait when no elapsed-time clock is available.
+		remaining -= delay;
+# endif
+	    }
 	}
     }
 }
@@ -5168,6 +5262,9 @@ handle_u7_response(int *arg, char_u *tp UNUSED, int csi_len UNUSED)
 	value = arg[1] == 1 ? TPR_YES : TPR_NO;
 	term_props[TPR_CURSOR_STYLE].tpr_status = value;
 	term_props[TPR_CURSOR_BLINK].tpr_status = value;
+#ifdef FEAT_TERMRESPONSE
+	xcc_ignores_dcs = value == TPR_YES;
+#endif
     }
 }
 
@@ -5434,6 +5531,22 @@ handle_version_response(int first, int *arg, int argc, char_u *tp)
 	    LOG_TR1("Sending cursor blink mode request");
 	    out_str(T_CRC);
 	    termrequest_sent(&rbm_status);
+	    need_flush = TRUE;
+	}
+
+	// Not where DECRQM does not work, such as Apple Terminal.app, which
+	// echoes the request as it does t_RS.
+	if (rcu_status.tr_progress == STATUS_GET
+		&& xcc_ignores_dcs
+		&& term_props[TPR_DECRQM].tpr_status != TPR_NO
+		&& *T_UCS == NUL
+		&& !option_was_set((char_u *)"t_Cs"))
+	{
+	    MAY_WANT_TO_LOG_THIS;
+	    LOG_TR1("Sending undercurl request");
+	    screen_stop_highlight();
+	    out_str((char_u *)"\033[0m\033[4:3m\033P$qm\033\\\033[0m");
+	    termrequest_sent(&rcu_status);
 	    need_flush = TRUE;
 	}
 
@@ -5746,8 +5859,8 @@ handle_csi(
 {
     int		first = -1;  // optional char right after {lead}
     int		trail;	     // char that ends CSI sequence
-    int		arg[3] = {-1, -1, -1};	// argument numbers
-    int		argc = 0;		// number of arguments
+    int		arg[5] = {-1, -1, -1, -1, -1};	// argument numbers
+    int		argc = 0;			// number of arguments
     char_u	*ap = argp;
     int		csi_len;
 
@@ -5765,8 +5878,8 @@ handle_csi(
     }
     else
     {
-	// Find up to three argument numbers.
-	for (argc = 0; argc < 3; )
+	// Find up to five argument numbers.
+	for (argc = 0; argc < 5; )
 	{
 	    if (ap >= tp + len)
 		return -1;
@@ -5853,14 +5966,12 @@ handle_csi(
 	if (arg[0] == 4)
 	{
 	    LOG_TRN("Received CSI 14 t response: %s", tp);
-	    cell_width = arg[2] / Columns;
-	    cell_height = arg[1] / Rows;
+	    set_cell_size(arg[2] / Columns, arg[1] / Rows);
 	}
 	else
 	{
 	    LOG_TRN("Received CSI 16 t response: %s", tp);
-	    cell_width = arg[2];
-	    cell_height = arg[1];
+	    set_cell_size(arg[2], arg[1]);
 	}
 
 	key_name[0] = (int)KS_EXTRA;
@@ -5932,10 +6043,18 @@ handle_csi(
     else if (win_resize_enabled && argc >= 3 && arg[0] == 48)
     {
 	int height = arg[1], width = arg[2];
+# if defined(FEAT_IMAGE) || defined(FEAT_EVAL)
+	int px_h = arg[3], px_w = arg[4]; // Window size in pixels
+# endif
 
 	*slen = csi_len;
 	key_name[0] = (int)KS_EXTRA;
 	key_name[1] = (int)KE_IGNORE;
+
+# if defined(FEAT_IMAGE) || defined(FEAT_EVAL)
+	if (px_w > 0 && px_h > 0 && height > 0 && width > 0)
+	    set_cell_size(px_w / width, px_h / height);
+# endif
 
 	// Only update if needed. Avoids intro message from disappearing on
 	// startup (due to initial event).
@@ -5975,7 +6094,9 @@ handle_csi(
 	    && ap[-1] == '$'
 	    && trail == 'y')
     {
+# ifdef CURSOR_SHAPE
 	initial_cursor_blink = (arg[1] == '1');
+# endif
 	rbm_status.tr_progress = STATUS_GOT;
 	LOG_TRN("Received cursor blinking mode response: %s", tp);
 	key_name[0] = (int)KS_EXTRA;
@@ -6015,7 +6136,7 @@ handle_csi(
 	*slen = csi_len;
     }
 
-#ifdef FEAT_TERMRESPONSE
+#if defined(FEAT_TERMRESPONSE) && (defined(FEAT_EVAL) || defined(FEAT_TERMINAL))
     // Check for a window position response from the terminal:
     //       {lead}3;{x};{y}t
     else if (did_request_winpos && argc == 3 && arg[0] == 3
@@ -6118,7 +6239,11 @@ check_for_color_response(char_u *resp, int len)
 			    set_option_value_give_err((char_u *)"bg",
 						  0L, (char_u *)new_bg_val, 0);
 			    reset_option_was_set((char_u *)"bg");
-			    redraw_asap(UPD_CLEAR);
+			    // Wait until startup has finished preparing the buffers.
+			    if (starting == 0)
+				redraw_asap(UPD_CLEAR);
+			    else
+				redraw_later(UPD_CLEAR);
 			}
 		    }
 #if defined(FEAT_TERMRESPONSE) && defined(FEAT_TERMINAL)
@@ -6226,7 +6351,12 @@ handle_osc(char_u *tp, int len, char_u *key_name, int *slen)
 	    apply_autocmds(EVENT_TERMRESPONSEALL, (char_u *)"osc",
 		    NULL, FALSE, curbuf);
 	    if (*p_bg != savebg)
-		redraw_asap(UPD_CLEAR);
+	    {
+		if (starting == 0)
+		    redraw_asap(UPD_CLEAR);
+		else
+		    redraw_later(UPD_CLEAR);
+	    }
 	    return OK;
 	}
 
@@ -6251,6 +6381,54 @@ handle_osc(char_u *tp, int len, char_u *key_name, int *slen)
 }
 
 /*
+ * Find the "m" that ends the parameters of an SGR response, which start at
+ * "tp[start]".  Returns its index, "start" for an empty response, "len" when
+ * more characters are needed and -1 when this is not an SGR response.
+ */
+    static int
+sgr_response_end(char_u *tp, int start, int len)
+{
+    int i = start;
+
+    while (i < len && (SAFE_isdigit(tp[i]) || tp[i] == ';' || tp[i] == ':'))
+	++i;
+    if (i < len && tp[i] != 'm'
+			&& !(i == start && (tp[i] == ESC || tp[i] == STERM)))
+	i = -1;
+    return i;
+}
+
+#ifdef FEAT_TERMRESPONSE
+/*
+ * Handle the SGR response to the undercurl request: "params" are the "len"
+ * bytes of the parameters, "valid" is false when the terminal did not take
+ * the request.
+ */
+    static void
+handle_sgr_response(char_u *params, int len, bool valid)
+{
+    bool    found = false;
+
+    for (int i = 0; valid && !found && i + 3 <= len; ++i)
+	found = (i == 0 || params[i - 1] == ';')
+		&& STRNCMP(params + i, "4:3", 3) == 0
+		&& (i + 3 == len || params[i + 3] == ';');
+
+    rcu_status.tr_progress = STATUS_GOT;
+    term_props[TPR_UNDERCURL].tpr_status = found ? TPR_YES : TPR_NO;
+    if (found && *T_UCS == NUL && !option_was_set((char_u *)"t_Cs"))
+    {
+	set_string_option_direct((char_u *)"t_Cs", -1,
+					(char_u *)"\033[4:3m", OPT_FREE, 0);
+	if (*T_UCE == NUL && !option_was_set((char_u *)"t_Ce"))
+	    set_string_option_direct((char_u *)"t_Ce", -1,
+					(char_u *)"\033[4:0m", OPT_FREE, 0);
+	redraw_later_clear();
+    }
+}
+#endif
+
+/*
  * Check for key code response from xterm:
  * {lead}{flag}+r<hex bytes><{tail}
  *
@@ -6264,6 +6442,9 @@ handle_osc(char_u *tp, int len, char_u *key_name, int *slen)
  * Check for cursor shape response from xterm:
  * {lead}1$r<digit> q{tail}
  *
+ * Check for SGR response to the undercurl request:
+ * {lead}1$r{parameters}m{tail}
+ *
  * {lead} can be <Esc>P or DCS
  * {tail} can be <Esc>\ or STERM
  *
@@ -6272,7 +6453,7 @@ handle_osc(char_u *tp, int len, char_u *key_name, int *slen)
     static int
 handle_dcs(char_u *tp, char_u *argp, int len, char_u *key_name, int *slen)
 {
-    int i, j;
+    int i, j, k;
 
     LOG_TRN("Received DCS response: %s", (char*)tp);
     j = 1 + (tp[0] == ESC);
@@ -6299,6 +6480,35 @@ handle_dcs(char_u *tp, char_u *argp, int len, char_u *key_name, int *slen)
 		break;
 	    }
 	}
+    else if ((k = sgr_response_end(tp, j + 3, len)) >= 0)
+    {
+	int	tail = 0;
+
+	// The SGR response, or an empty one for a request that was not taken.
+	// Make sure that "i" is equal to "len" when there are not sufficient
+	// characters.
+	i = k < len && tp[k] == 'm' ? k + 1 : k;
+	if (i < len && tp[i] == STERM)
+	    tail = 1;
+	else if (i + 1 < len && tp[i] == ESC && tp[i + 1] == '\\')
+	    tail = 2;
+	else if (i == len || (i + 1 == len && tp[i] == ESC))
+	    i = len;
+	if (tail > 0)
+	{
+#ifdef FEAT_TERMRESPONSE
+	    // An empty response may also be the one to t_RS.
+	    if (tp[k] == 'm' || rcu_status.tr_progress == STATUS_SENT)
+		handle_sgr_response(tp + j + 3, k - j - 3,
+					      argp[0] == '1' && tp[k] == 'm');
+#endif
+	    LOG_TRN("Received SGR response: %s", tp);
+
+	    key_name[0] = (int)KS_EXTRA;
+	    key_name[1] = (int)KE_IGNORE;
+	    *slen = i + tail;
+	}
+    }
     else
     {
 	// Probably the cursor shape response.  Make sure that "i"
@@ -6318,6 +6528,7 @@ handle_dcs(char_u *tp, char_u *argp, int len, char_u *key_name, int *slen)
 		    || (i - j == 7 && tp[i] == '\\'))
 	    {
 #ifdef FEAT_TERMRESPONSE
+# ifdef CURSOR_SHAPE
 		int number = argp[3] - '0';
 
 		// 0, 1 = block blink, 2 = block
@@ -6329,6 +6540,7 @@ handle_dcs(char_u *tp, char_u *argp, int len, char_u *key_name, int *slen)
 		// the value set with T_SH.
 		initial_cursor_shape_blink =
 				       (number & 1) ? FALSE : TRUE;
+# endif
 		rcs_status.tr_progress = STATUS_GOT;
 #endif
 		LOG_TRN("Received cursor shape response: %s", tp);
@@ -7817,28 +8029,29 @@ check_for_codes_from_term(void)
 {
     int		c;
 
-    // If no codes requested or all are answered, no need to wait.
-    if (xt_index_out == 0 || xt_index_out == xt_index_in)
+    // Color and other responses also need handling when no XT codes were
+    // requested, e.g. before executing startup commands.
+    if ((xt_index_out == 0 || xt_index_out == xt_index_in)
+	    && !termrequest_any_pending())
 	return;
 
     // Vgetc() will check for and handle any response.
     // Keep calling vpeekc() until we don't get any responses.
     ++no_mapping;
     ++allow_keys;
+    ++allow_osc_key;
     for (;;)
     {
 	c = vpeekc();
 	if (c == NUL)	    // nothing available
 	    break;
 
-	// If a response is recognized it's replaced with K_IGNORE, must read
-	// it from the input stream.  If there is no K_IGNORE we can't do
-	// anything, break here (there might be some responses further on, but
-	// we don't want to throw away any typed chars).
-	if (c != K_SPECIAL && c != K_IGNORE)
+	// Recognized responses are replaced with K_IGNORE or K_OSC.  Read
+	// these from the input stream, but leave typed characters alone.
+	if (c != K_SPECIAL && c != K_IGNORE && c != K_OSC)
 	    break;
 	c = vgetc();
-	if (c != K_IGNORE)
+	if (c != K_IGNORE && c != K_OSC)
 	{
 	    vungetc(c);
 	    break;
@@ -7846,6 +8059,7 @@ check_for_codes_from_term(void)
     }
     --no_mapping;
     --allow_keys;
+    --allow_osc_key;
 }
 #endif
 
@@ -7948,8 +8162,9 @@ find_first_tcap(
 
 /*
  * For Win32 console: replace the sequence immediately after termguicolors.
+ * Returns true when the mode changes.
  */
-    void
+    bool
 swap_tcap(void)
 {
 # ifdef FEAT_TERMGUICOLORS
@@ -7985,7 +8200,7 @@ swap_tcap(void)
 	mode = CMODE_INDEXED;
 
     if (mode == curr_mode)
-	return;
+	return false;
 
     for (ks = ks_tbl; ks->code != (int)KS_NAME; ks++)
     {
@@ -7995,7 +8210,9 @@ swap_tcap(void)
     }
 
     curr_mode = mode;
-# endif
+    return true;
+# endif // FEAT_TERMGUICOLORS
+    return false;
 }
 
 #endif

@@ -1620,6 +1620,7 @@ static char *modeline_whitelist[] =
 {
     "autoindent",
     "cindent",
+    "colorcolumn",
     "commentstring",
     "expandtab",
     "filetype",
@@ -1699,7 +1700,16 @@ validate_opt_idx(
 	    if (options[opt_idx].indir == PV_ML && prefix == PREFIX_NO)
 		return OK;
 	    else if (!is_modeline_whitelisted(options[opt_idx].fullname))
+	    {
+		if (p_verbose > 0)
+		{
+		    verbose_enter();
+		    smsg(_("'modelinestrict' in effect, ignoring %s"),
+					options[opt_idx].fullname);
+		    verbose_leave();
+		}
 		return FAIL;
+	    }
 	}
 #ifdef FEAT_DIFF
 	// In diff mode some options are overruled.  This avoids that
@@ -4822,19 +4832,19 @@ did_set_termguicolors(optset_T *args UNUSED)
 	p_tgc = 0;
 	return e_24_bit_colors_are_not_supported_on_this_environment;
     }
-    if (is_term_win32())
-	swap_tcap();
+    if (is_term_win32() && !swap_tcap())
+	return NULL;
 # endif
 # ifdef FEAT_GUI
     if (!gui.in_use && !gui.starting)
 # endif
 	highlight_gui_started();
 # ifdef FEAT_VTP
-    // reset t_Co
     if (is_term_win32())
     {
 	control_console_color_rgb();
-	set_termname(T_NAME);
+	// same terminal, don't reset the options
+	set_termname(T_NAME, true);
 	init_highlight(TRUE, FALSE);
     }
 # endif
@@ -5610,6 +5620,13 @@ check_num_option_bounds(
 	    p_window = Rows - 1;
     }
 
+#ifdef FEAT_TERMRESPONSE
+    if (p_tbw < 0)
+    {
+	errmsg = e_argument_must_be_positive;
+	p_tbw = old_value;
+    }
+#endif
     if (p_tm < 0)
     {
 	errmsg = e_argument_must_be_positive;

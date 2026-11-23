@@ -1311,9 +1311,12 @@ _VimChdir(PyObject *_chdir, PyObject *args, PyObject *kwargs)
     PyObject	*newwd;
     PyObject	*todecref;
     char_u	*new_dir;
+    char_u	old_dir[MAXPATHL];
+    int		have_old_dir;
 
     if (_chdir == NULL)
 	return NULL;
+    have_old_dir = mch_dirname(old_dir, MAXPATHL) == OK;
     if (!(ret = PyObject_Call(_chdir, args, kwargs)))
 	return NULL;
 
@@ -1348,7 +1351,7 @@ _VimChdir(PyObject *_chdir, PyObject *args, PyObject *kwargs)
     Py_DECREF(newwd);
     Py_XDECREF(todecref);
 
-    post_chdir(CDSCOPE_GLOBAL);
+    post_chdir(CDSCOPE_GLOBAL, have_old_dir ? old_dir : NULL);
 
     if (VimTryEnd())
     {
@@ -2082,7 +2085,8 @@ _DictionaryItem(DictionaryObject *self, PyObject *args, int flags)
 
     if (flags & DICT_FLAG_POP)
     {
-	if (dict->dv_lock)
+	// While ":let" lists the variables items cannot be removed
+	if (dict->dv_lock || (dict->dv_hashtab.ht_flags & HTFLAGS_FROZEN))
 	{
 	    RAISE_LOCKED_DICTIONARY;
 	    Py_DECREF(ret);
@@ -2213,6 +2217,13 @@ DictionaryAssItem(
 	{
 	    Py_XDECREF(todecref);
 	    PyErr_SetObject(PyExc_KeyError, keyObject);
+	    return -1;
+	}
+	// While ":let" lists the variables items cannot be removed
+	if (dict->dv_hashtab.ht_flags & HTFLAGS_FROZEN)
+	{
+	    Py_XDECREF(todecref);
+	    RAISE_LOCKED_DICTIONARY;
 	    return -1;
 	}
 	hi = hash_find(&dict->dv_hashtab, di->di_key);
@@ -2496,6 +2507,12 @@ DictionaryPopItem(DictionaryObject *self, PyObject *args UNUSED)
     PyObject	*valObject;
     dictitem_T	*di;
 
+    if (self->dict->dv_lock)
+    {
+	RAISE_LOCKED_DICTIONARY;
+	return NULL;
+    }
+
     if (self->dict->dv_hashtab.ht_used == 0)
     {
 	PyErr_SetNone(PyExc_KeyError);
@@ -2517,6 +2534,13 @@ DictionaryPopItem(DictionaryObject *self, PyObject *args UNUSED)
 	return NULL;
     }
 
+    // While ":let" lists the variables items cannot be removed
+    if (self->dict->dv_hashtab.ht_flags & HTFLAGS_FROZEN)
+    {
+	Py_DECREF(ret);
+	RAISE_LOCKED_DICTIONARY;
+	return NULL;
+    }
     hash_remove(&self->dict->dv_hashtab, hi, "Python pop item");
     dictitem_free(di);
 
@@ -3032,9 +3056,7 @@ ListAssIndex(ListObject *self, Py_ssize_t index, PyObject *obj)
 			"list item %d"), (int) index);
 	    return -1;
 	}
-	vimlist_remove(l, li, li);
-	clear_tv(&li->li_tv);
-	vim_free(li);
+	listitem_remove(l, li);
 	return 0;
     }
 
@@ -3736,6 +3758,7 @@ FunctionConstructor(PyTypeObject *subtype, PyObject *args, PyObject *kwargs)
 		    copy_tv(&li->li_tv, curtv++);
 	    }
 	    list_unref(argslist);
+	    argslist = NULL;
 	}
 	if (selfdict != NULL)
 	{

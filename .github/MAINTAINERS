@@ -145,11 +145,13 @@ runtime/ftplugin/algol68.vim				@dkearns
 runtime/ftplugin/antlr4.vim				@jiangyinzuo
 runtime/ftplugin/apache.vim				@dubgeiser
 runtime/ftplugin/arduino.vim				@k-takata
+runtime/ftplugin/ascendc.vim				@jiangyinzuo
 runtime/ftplugin/astro.vim				@romainl
 runtime/ftplugin/asy.vim				@avidseeker
 runtime/ftplugin/autohotkey.vim				@telemachus
 runtime/ftplugin/awk.vim				@dkearns
 runtime/ftplugin/basic.vim				@dkearns
+runtime/ftplugin/bats.vim				@nertzy
 runtime/ftplugin/bazelrc.vim				@barrettruth
 runtime/ftplugin/beancount.vim				@nathangrigg
 runtime/ftplugin/bicep.vim				@scottmckendry
@@ -379,8 +381,10 @@ runtime/ftplugin/yacc.vim				@ribru17
 runtime/ftplugin/zsh.vim				@chrisbra
 runtime/import/dist/vimhighlight.vim			@lacygoill
 runtime/indent/arduino.vim				@k-takata
+runtime/indent/ascendc.vim				@jiangyinzuo
 runtime/indent/astro.vim				@wuelnerdotexe
 runtime/indent/basic.vim				@dkearns
+runtime/indent/bats.vim					@nertzy
 runtime/indent/beancount.vim				@nathangrigg
 runtime/indent/bpftrace.vim				@sgruszka
 runtime/indent/bst.vim					@tpope
@@ -450,6 +454,7 @@ runtime/indent/nu.vim					@elkasztano
 runtime/indent/occam.vim				@dkearns
 runtime/indent/perl.vim					@petdance
 runtime/indent/php.vim					@2072
+runtime/indent/pkl.vim					@jclsn
 runtime/indent/postscr.vim				@mrdubya
 runtime/indent/prolog.vim				@dkearns
 runtime/indent/proto.vim				@Limero
@@ -504,6 +509,7 @@ runtime/syntax/amiga.vim				@sodero
 runtime/syntax/ant.vim					@dkearns
 runtime/syntax/antlr4.vim				@jiangyinzuo
 runtime/syntax/arduino.vim				@johshoff
+runtime/syntax/ascendc.vim				@jiangyinzuo
 runtime/syntax/asciidoc.vim				@aerostitch
 runtime/syntax/asm.vim					@dkearns
 runtime/syntax/asmh8300.vim				@dkearns
@@ -513,6 +519,7 @@ runtime/syntax/asy.vim					@avidseeker
 runtime/syntax/autohotkey.vim				@mmikeww
 runtime/syntax/awk.vim					@dkearns
 runtime/syntax/basic.vim				@dkearns
+runtime/syntax/bats.vim					@nertzy
 runtime/syntax/bazelrc.vim				@barrettruth
 runtime/syntax/beancount.vim				@nathangrigg
 runtime/syntax/bpftrace.vim				@sgruszka

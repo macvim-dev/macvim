@@ -922,7 +922,14 @@ prop_add_one(
     }
 
     changed_line_display_buf(buf);
-    changed_lines_buf(buf, start_lnum, end_lnum + 1, 0);
+    if (text_arg != NULL)
+	// Virtual text may change the height of the lines.
+	changed_lines_buf(buf, start_lnum, end_lnum + 1, 0);
+    else
+	// Only the highlighting changes, keep the syntax state of the lines,
+	// recomputing it can be slow when the lines are far apart.  The callers
+	// use redraw_buf_later() for popup windows.
+	redraw_buf_range_later(buf, start_lnum, end_lnum);
     res = OK;
 
 theend:
@@ -1839,8 +1846,10 @@ f_prop_clear(typval_T *argvars, typval_T *rettv UNUSED)
     linenr_T start;
     linenr_T end;
     linenr_T lnum;
+    linenr_T first_changed = 0;
+    linenr_T last_changed = 0;
+    bool     removed_text = false;
     buf_T    *buf = curbuf;
-    int	    did_clear = FALSE;
 
     if (in_vim9script()
 	    && (check_for_number_arg(argvars, 0) == FAIL
@@ -1879,15 +1888,32 @@ f_prop_clear(typval_T *argvars, typval_T *rettv UNUSED)
 		break;
 	    if (um.prop_count > 0)
 	    {
-		did_clear = TRUE;
 		for (idx = um.prop_count - 1; idx >= 0; --idx)
+		{
+		    if (um.props[idx].tp_id < 0)
+			removed_text = true;
 		    um_delete_prop(&um, idx);
+		}
+		if (first_changed == 0)
+		    first_changed = lnum;
+		last_changed = lnum;
 	    }
 	}
 	um_close(&um);
     }
-    if (did_clear)
-	redraw_buf_later(buf, UPD_NOT_VALID);
+    if (first_changed > 0)
+    {
+	// Like prop_remove(): the cursor position may change.
+	changed_line_display_buf(buf);
+	if (removed_text)
+	    // Virtual text may change the height of the lines.
+	    changed_lines_buf(buf, first_changed, last_changed + 1, 0);
+	else
+	    // Only the highlighting changes, keep the syntax state.
+	    redraw_buf_range_later(buf, first_changed, last_changed);
+	redraw_buf_later(buf, UPD_VALID);
+	popup_textprop_removed(buf);
+    }
 }
 
 /*
@@ -2366,7 +2392,9 @@ f_prop_remove(typval_T *argvars, typval_T *rettv)
     linenr_T	lnum;
     linenr_T	first_changed = 0;
     linenr_T	last_changed = 0;
+    bool	removed_text = false;
     dict_T	*dict;
+    dictitem_T	*di;
     buf_T	*buf = curbuf;
     int		do_all;
     int		id = -MAXCOL;
@@ -2422,17 +2450,19 @@ f_prop_remove(typval_T *argvars, typval_T *rettv)
 	    return;
 	type_id = type->pt_id;
     }
-    if (dict_has_key(dict, "types"))
+    di = dict_find(dict, (char_u *)"types", -1);
+    if (di != NULL && di->di_tv.v_type == VAR_LIST)
     {
-	typval_T types;
-	listitem_T *li = NULL;
+	list_T	    *types = di->di_tv.vval.v_list;
+	listitem_T  *li = NULL;
 
-	dict_get_tv(dict, "types", &types);
-	if (types.v_type == VAR_LIST && types.vval.v_list->lv_len > 0)
+	if (types != NULL && types->lv_len > 0)
 	{
-	    type_ids = alloc( sizeof(int) * types.vval.v_list->lv_len );
+	    type_ids = ALLOC_MULT(int, types->lv_len);
+	    if (type_ids == NULL)
+		return;
 
-	    FOR_ALL_LIST_ITEMS(types.vval.v_list, li)
+	    FOR_ALL_LIST_ITEMS(types, li)
 	    {
 		proptype_T *prop_type;
 
@@ -2505,6 +2535,8 @@ f_prop_remove(typval_T *argvars, typval_T *rettv)
 		if (both ? matches_id && matches_type
 			 : matches_id || matches_type)
 		{
+		    if (prop->tp_id < 0)
+			removed_text = true;
 		    um_delete_prop(&um, idx);
 
 		    if (first_changed == 0)
@@ -2522,8 +2554,14 @@ f_prop_remove(typval_T *argvars, typval_T *rettv)
     if (first_changed > 0)
     {
 	changed_line_display_buf(buf);
-	changed_lines_buf(buf, first_changed, last_changed + 1, 0);
+	if (removed_text)
+	    // Virtual text may change the height of the lines.
+	    changed_lines_buf(buf, first_changed, last_changed + 1, 0);
+	else
+	    // Only the highlighting changes, keep the syntax state.
+	    redraw_buf_range_later(buf, first_changed, last_changed);
 	redraw_buf_later(buf, UPD_VALID);
+	popup_textprop_removed(buf);
     }
 
 cleanup_prop_remove:

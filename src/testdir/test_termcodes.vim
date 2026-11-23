@@ -1721,7 +1721,8 @@ func Test_xx01_term_style_response()
         \ mouse: 's',
         \ kitty: 'u',
         \ rgb: 'u',
-        \ decrqm: 'u'
+        \ decrqm: 'u',
+        \ undercurl: 'u'
         \ }, terminalprops())
 
   set t_RV=
@@ -1758,7 +1759,8 @@ func Test_xx02_iTerm2_response()
         \ mouse: 's',
         \ kitty: 'u',
         \ rgb: 'u',
-        \ decrqm: 'y'
+        \ decrqm: 'y',
+        \ undercurl: 'u'
         \ }, terminalprops())
 
   set t_RV=
@@ -1780,7 +1782,8 @@ func Run_libvterm_konsole_response(code)
         \ mouse: 's',
         \ kitty: 'u',
         \ rgb: 'u',
-        \ decrqm: 'u'
+        \ decrqm: 'u',
+        \ undercurl: 'u'
         \ }, terminalprops())
 endfunc
 
@@ -1811,7 +1814,7 @@ func Test_xx04_Mac_Terminal_response()
 
   set ttymouse=xterm
   " t_8u is not reset
-  let &t_8u = "\<Esc>[58;2;%lu;%lu;%lum"
+  let &t_8u = "\<Esc>[58:2::%lu:%lu:%lum"
   call test_option_not_set('ttymouse')
   let seq = "\<Esc>[>1;95;0c"
   call feedkeys(seq, 'Lx!')
@@ -1825,9 +1828,10 @@ func Test_xx04_Mac_Terminal_response()
         \ mouse: 's',
         \ kitty: 'u',
         \ rgb: 'u',
-        \ decrqm: 'n'
+        \ decrqm: 'n',
+        \ undercurl: 'u'
         \ }, terminalprops())
-  call assert_equal("\<Esc>[58;2;%lu;%lu;%lum", &t_8u)
+  call assert_equal("\<Esc>[58:2::%lu:%lu:%lum", &t_8u)
 
   " Reset is_not_xterm and is_mac_terminal.
   set t_RV=
@@ -1858,7 +1862,8 @@ func Test_xx05_mintty_response()
         \ mouse: 's',
         \ kitty: 'u',
         \ rgb: 'u',
-        \ decrqm: 'u'
+        \ decrqm: 'u',
+        \ undercurl: 'u'
         \ }, terminalprops())
 
   set t_RV=
@@ -1896,7 +1901,8 @@ func Test_xx06_screen_response()
         \ mouse: 's',
         \ kitty: 'u',
         \ rgb: 'u',
-        \ decrqm: 'n'
+        \ decrqm: 'n',
+        \ undercurl: 'u'
         \ }, terminalprops())
 
   set t_RV=
@@ -1906,7 +1912,7 @@ endfunc
 func Do_check_t_8u_set_reset(set_by_user)
   set ttymouse=xterm
   call test_option_not_set('ttymouse')
-  let default_value = "\<Esc>[58;2;%lu;%lu;%lum"
+  let default_value = "\<Esc>[58:2::%lu:%lu:%lum"
   let &t_8u = default_value
   if !a:set_by_user
     call test_option_not_set('t_8u')
@@ -1923,7 +1929,8 @@ func Do_check_t_8u_set_reset(set_by_user)
         \ mouse: 's',
         \ kitty: 'u',
         \ rgb: 'u',
-        \ decrqm: 'u'
+        \ decrqm: 'u',
+        \ undercurl: 'u'
         \ }, terminalprops())
   call assert_equal(a:set_by_user ? default_value : '', &t_8u)
 endfunc
@@ -1964,7 +1971,8 @@ func Test_xx07_xterm_response()
         \ mouse: 'u',
         \ kitty: 'u',
         \ rgb: 'u',
-        \ decrqm: 'u'
+        \ decrqm: 'u',
+        \ undercurl: 'u'
         \ }, terminalprops())
 
   " xterm >= 95 < 277 "xterm2"
@@ -1982,7 +1990,8 @@ func Test_xx07_xterm_response()
         \ mouse: '2',
         \ kitty: 'u',
         \ rgb: 'u',
-        \ decrqm: 'u'
+        \ decrqm: 'u',
+        \ undercurl: 'u'
         \ }, terminalprops())
 
   " xterm >= 277: "sgr"
@@ -2000,7 +2009,8 @@ func Test_xx07_xterm_response()
         \ mouse: 's',
         \ kitty: 'u',
         \ rgb: 'u',
-        \ decrqm: 'u'
+        \ decrqm: 'u',
+        \ undercurl: 'u'
         \ }, terminalprops())
 
   " xterm >= 279: "sgr" and cursor_style not reset; also check t_8u reset,
@@ -2031,7 +2041,8 @@ func Test_xx08_kitty_response()
         \ mouse: 's',
         \ kitty: 'y',
         \ rgb: 'u',
-        \ decrqm: 'y'
+        \ decrqm: 'y',
+        \ undercurl: 'u'
         \ }, terminalprops())
 
   call feedkeys("\<Esc>[?1u") " simulate the kitty keyboard protocol is enabled
@@ -2042,6 +2053,75 @@ func Test_xx08_kitty_response()
 
   set t_RV=
   call test_override('term_props', 0)
+endfunc
+
+" This checks the SGR response to the request of the curly underline.
+func Test_xx09_undercurl_response()
+  let save_Cs = &t_Cs
+  let save_Ce = &t_Ce
+  set t_Cs= t_Ce=
+  call test_option_not_set('t_Cs')
+  call test_option_not_set('t_Ce')
+
+  " the request was not sent, an empty response, such as the one to t_RS, is
+  " ignored
+  new
+  let @" = 'x'
+  call feedkeys("\<Esc>P0$r\<Esc>\\", 'Lx!')
+  call assert_equal([''], getline(1, '$'))
+  call assert_equal('u', terminalprops().undercurl)
+  bwipe!
+
+  " the xterm compatibility check and the version response make Vim send the
+  " request
+  let save_ttymouse = &ttymouse
+  set t_RV=x
+  call test_override('term_props', 1)
+  call feedkeys("\<Esc>[3;1R", 'Lx!')
+  call feedkeys("\<Esc>[>41;337;0c", 'Lx!')
+
+  " an empty response to t_RS comes first and the request seems not taken
+  call feedkeys("\<Esc>P0$r\<Esc>\\", 'Lx!')
+  call assert_equal('n', terminalprops().undercurl)
+  call assert_equal('', &t_Cs)
+
+  " the response to the request comes after it, SGR 4:3 is taken
+  call feedkeys("\<Esc>P1$r0;4:3m\<Esc>\\", 'Lx!')
+  call assert_equal('y', terminalprops().undercurl)
+  call assert_equal("\<Esc>[4:3m", &t_Cs)
+  call assert_equal("\<Esc>[4:0m", &t_Ce)
+
+  set t_RV=
+  call test_override('term_props', 0)
+  let &ttymouse = save_ttymouse
+
+  " SGR 4:3 is not taken
+  set t_Cs= t_Ce=
+  call test_option_not_set('t_Cs')
+  call test_option_not_set('t_Ce')
+  call feedkeys("\<Esc>P1$r0;4m\<Esc>\\", 'Lx!')
+  call assert_equal('n', terminalprops().undercurl)
+  call assert_equal('', &t_Cs)
+  call assert_equal('', &t_Ce)
+
+  " the request is not taken, the response is not typed
+  new
+  let @" = 'x'
+  call feedkeys("\<Esc>P0$r0;4:3m\<Esc>\\", 'Lx!')
+  call assert_equal([''], getline(1, '$'))
+  call assert_equal('n', terminalprops().undercurl)
+  call assert_equal('', &t_Cs)
+  bwipe!
+
+  " t_Cs and t_Ce set by the user are kept
+  set t_Cs= t_Ce=
+  call feedkeys("\<Esc>P1$r0;4:3m\<Esc>\\", 'Lx!')
+  call assert_equal('y', terminalprops().undercurl)
+  call assert_equal('', &t_Cs)
+  call assert_equal('', &t_Ce)
+
+  let &t_Cs = save_Cs
+  let &t_Ce = save_Ce
 endfunc
 
 func Test_focus_events()
@@ -3004,6 +3084,39 @@ func Test_term_response_osc()
   call assert_equal("\<Esc>]15;hello world!\x07", v:termosc)
 endfunc
 
+func Test_term_response_osc_startup_timer()
+  CheckRunVimInTerminal
+  CheckFeature timers
+  CheckFeature termresponse
+
+  let lines =<< trim END
+    set t_RV=x t_RF=x t_RB=y
+    func Startup(timer)
+      call system(':')
+      " Queue VTE's version and color responses while starting a shell.
+      " The version response starts XTGETTCAP requests (#21493).
+      call feedkeys("\<Esc>[>65;8200;1c\<Esc>]10;rgb:1111/2222/3333\x07"
+            \ .. "\<Esc>]11;rgb:4444/5555/6666\x07", 'L')
+      call system(':')
+      call writefile(['done'], 'XoscStartupDone')
+    endfunc
+    call timer_start(0, 'Startup')
+  END
+  call writefile(lines, 'XoscStartup', 'D')
+  defer delete('XoscStartupDone')
+
+  let buf = RunVimInTerminal('-S XoscStartup',
+        \ {'rows': 10, 'wait_for_ruler': 0})
+  try
+    " The timer must finish without waiting for a typed key.
+    call WaitForAssert({-> assert_true(filereadable('XoscStartupDone'))})
+    call term_sendkeys(buf, ':')
+    call WaitForAssert({-> assert_match('^:', term_getline(buf, 10))})
+  finally
+    call StopVimInTerminal(buf)
+  endtry
+endfunc
+
 " Test if xOSC key is emitted.
 func Test_term_response_xosc_key()
   CheckRunVimInTerminal
@@ -3176,6 +3289,23 @@ func Test_term_win_resize()
   call TermWait(buf)
 
   call WaitForAssert({-> assert_equal(["5 20"], readfile("XTestWinResizeResult"))})
+
+  call StopVimInTerminal(buf)
+endfunc
+
+" A cell size response must not clear the intro message.
+func Test_cell_size_response_keeps_intro()
+  CheckRunVimInTerminal
+
+  call writefile(['call timer_start(10, {-> 0}, #{repeat: -1})'],
+        \ 'XCellSizeIntro', 'D')
+  let buf = RunVimInTerminal('-S XCellSizeIntro', #{rows: 24, cols: 80})
+  call WaitForAssert({-> assert_match('VIM - Vi IMproved',
+        \ term_getline(buf, 7))})
+
+  call term_sendkeys(buf, "\<Esc>[6;37;17t")
+  call TermWait(buf, 200)
+  call assert_match('VIM - Vi IMproved', term_getline(buf, 7))
 
   call StopVimInTerminal(buf)
 endfunc

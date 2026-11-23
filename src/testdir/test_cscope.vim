@@ -16,7 +16,8 @@ func CscopeSetupOrClean(setup)
       cscope kill -1
       for file in ['Xcscope.out', 'Xcscope2.out', 'Xmemfile_test.c']
           call delete(file)
-      endfo
+      endfor
+      set cscopequickfix&
     endif
 endfunc
 
@@ -219,7 +220,7 @@ func Test_cscopeWithCscopeConnections()
 
     " Test: this should trigger call to cs_print_tags()
     " Unclear how to check result though, we just exercise the code.
-    set cst cscopequickfix=s0
+    set cscopetag cscopequickfix=s0
     call feedkeys(":cs find s main\<CR>", 't')
 
     " Test: cscope kill
@@ -241,10 +242,12 @@ func Test_cscopeWithCscopeConnections()
     call assert_equal('', a)
 
     " Test: 'csprg' option invalid command
-    call assert_equal('cscope', &csprg)
-    set csprg=doesnotexist
-    call assert_fails('cscope add Xcscope2.out', 'E609:')
-    set csprg=cscope
+    if !has('gui_running')
+      call assert_equal('cscope', &csprg)
+      set csprg=doesnotexist
+      call assert_fails('cscope add Xcscope2.out', 'E609:')
+      set csprg=cscope
+    endif
 
     " Test: multiple cscope connections
     cscope add Xcscope.out
@@ -297,6 +300,17 @@ func Test_cscopeWithCscopeConnections()
     cscope kill -1
 
     call CscopeSetupOrClean(0)
+    set cscopetag&
+endfunc
+
+" Test that the list of matches shows the text after a Tab
+func Test_cscope_list_with_tab()
+  call CscopeSetupOrClean(1)
+  set cscopequickfix=
+  let a = execute('cs find t num_buckets')
+  call assert_match('\n\s\+long_u\^I   num_buckets;\n', a)
+  call assert_match('\n\s\+num_buckets = ht.mht_mask + 1;\n', a)
+  call CscopeSetupOrClean(0)
 endfunc
 
 " Test ":cs add {dir}"  (add the {dir}/cscope.out database)
@@ -329,6 +343,7 @@ func Test_cscopequickfix()
   call assert_fails('set cscopequickfix=s', 'E474:')
   call assert_fails('set cscopequickfix=s7', 'E474:')
   call assert_fails('set cscopequickfix=s-a', 'E474:')
+  set cscopequickfix&
 endfunc
 
 func Test_withoutCscopeConnection()

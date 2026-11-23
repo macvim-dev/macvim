@@ -2,6 +2,21 @@
 
 scriptencoding utf-8
 
+func Test_termbackgroundwait()
+  CheckFeature termresponse
+  set termbackgroundwait&
+  call assert_equal(0, &termbackgroundwait)
+  set tbw=25
+  call assert_equal(25, &termbackgroundwait)
+  call assert_fails('set termbackgroundwait=-1', 'E487:')
+  call assert_equal(25, &tbw)
+  set termbackgroundwait&vi
+  call assert_equal(0, &tbw)
+  set tbw=100
+  set termbackgroundwait&vim
+  call assert_equal(0, &tbw)
+endfunc
+
 func Test_whichwrap()
   set whichwrap=b,s
   call assert_equal('b,s', &whichwrap)
@@ -2567,7 +2582,11 @@ func Test_set_completion_fuzzy()
   " Test fuzzy option completion
   set wildoptions=fuzzy
   call feedkeys(":set termg\<C-A>\<C-B>\"\<CR>", 'tx')
-  call assert_equal('"set termguicolors termencoding', @:)
+  let expected = '"set termguicolors termencoding'
+  if exists('+termbackgroundwait')
+    let expected ..= ' termbackgroundwait'
+  endif
+  call assert_equal(expected, @:)
 
   call feedkeys(":set notermg\<C-A>\<C-B>\"\<CR>", 'tx')
   call assert_equal('"set notermguicolors', @:)
@@ -3329,6 +3348,53 @@ func Test_includeexpr_insecure_copied_to_new_buffer()
   set includeexpr&
   delfunc Xleakinclude
   bwipe!
+endfunc
+
+func Test_set_option_termguicolors_side_effects()
+  CheckOption termguicolors
+
+  if has('vtp') && !has('vcon') && !has('gui_running')
+    " Win32: 'guicolors' doesn't work without virtual console.
+    throw 'Skipped: E954: termguicolors is not supported on this terminal'
+  endif
+
+  " Restore current values afterwards
+  let cmd = ["set"]
+  let cmd += [&termguicolors ? 'termguicolors' : 'notermguicolors']
+  let cmd += ["t_SI=" . &t_SI->escape(' \|')]
+  let cmd += ["t_EI=" . &t_EI->escape(' \|')]
+  defer execute(join(cmd, ' '))
+
+  " Enable termguicolors and specify some keycodes
+  const t_SI = "\e[5 q"
+  const t_EI = "\e[1 q"
+
+  set termguicolors
+  let &t_SI = t_SI
+  let &t_EI = t_EI
+  " Change mode to enforce the changes
+  exe "normal :\e"
+
+  call assert_equal(t_SI, &t_SI)
+  call assert_equal(t_EI, &t_EI)
+
+  " Check termguicolors does not reset keycodes
+  set termguicolors " NOOP
+
+  call assert_equal(t_SI, &t_SI)
+  call assert_equal(t_EI, &t_EI)
+
+  " Check disabling termguicolors does not reset keycodes
+  set notermguicolors
+
+  call assert_equal(t_SI, &t_SI)
+  call assert_equal(t_EI, &t_EI)
+
+  " Check reenabling does not reset keycodes
+  set termguicolors
+
+  call assert_equal(t_SI, &t_SI)
+  call assert_equal(t_EI, &t_EI)
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

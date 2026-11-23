@@ -109,6 +109,8 @@ static garray_T profile_info_ga = {0, 0, sizeof(profinfo_T), 20, NULL};
 #define EXEC_OK		1
 #define EXEC_DONE	2
 
+static void may_restore_cmdmod(funclocal_T *funclocal);
+
     void
 to_string_error(vartype_T vartype)
 {
@@ -1291,6 +1293,10 @@ func_return(ectx_T *ectx)
     }
 #endif
 
+    // A command modifier of this function may still be active, e.g. when
+    // leaving it because of an exception. Undo it first.
+    may_restore_cmdmod(&ectx->ec_funclocal);
+
     if (dfunc->df_defer_var_idx > 0)
 	invoke_defer_funcs(ectx);
 
@@ -2373,6 +2379,25 @@ storeindex_check_list_member_type(
 }
 
 /*
+ * Do a runtime check of the RHS value against the LHS Dict member type.
+ * This is used by the STOREINDEX instruction to perform a type check
+ * at runtime if compile time type check cannot be performed (VAR_ANY).
+ * Returns FAIL if there is a type mismatch.
+ */
+    static int
+storeindex_check_dict_member_type(
+    dict_T	*lhs_dict,
+    typval_T	*rhs_tv,
+    ectx_T	*ectx)
+{
+    if (lhs_dict->dv_type == NULL || lhs_dict->dv_type->tt_member == NULL)
+	return OK;
+
+    return check_typval_type(lhs_dict->dv_type->tt_member, rhs_tv,
+			     ectx->ec_where);
+}
+
+/*
  * Store a value in a list, dict, blob or object variable.
  * Returns OK, FAIL or NOTDONE (uncatchable error).
  */
@@ -2532,6 +2557,12 @@ execute_storeindex(isn_T *iptr, ectx_T *ectx)
 	    }
 	    if (key == NULL)
 		key = (char_u *)"";
+
+	    // Do a runtime type check for VAR_ANY
+	    if (check_rhs_type &&
+		    storeindex_check_dict_member_type(dict, tv, ectx) == FAIL)
+		return FAIL;
+
 	    di = dict_find(dict, key, -1);
 	    if (di != NULL)
 	    {
@@ -2658,7 +2689,7 @@ execute_storerange(isn_T *iptr, ectx_T *ectx)
     {
 	long	    n1;
 	long	    n2;
-	listitem_T  *li1;
+	listitem_T  *li1 = NULL;
 
 	n1 = (long)tv_get_number_chk(tv_idx1, NULL);
 	if (tv_idx2->v_type == VAR_SPECIAL
@@ -2667,7 +2698,13 @@ execute_storerange(isn_T *iptr, ectx_T *ectx)
 	else
 	    n2 = (long)tv_get_number_chk(tv_idx2, NULL);
 
-	li1 = check_range_index_one(tv_dest->vval.v_list, &n1, TRUE, FALSE);
+	if (tv_dest->vval.v_list == NULL)
+	    emsg(_(e_list_not_set));
+	else if (tv->v_type != VAR_LIST || tv->vval.v_list == NULL)
+	    emsg(_(e_slice_requires_list_or_blob_value));
+	else
+	    li1 = check_range_index_one(tv_dest->vval.v_list, &n1, TRUE,
+									FALSE);
 	if (li1 == NULL)
 	    status = FAIL;
 	else
@@ -2778,8 +2815,8 @@ execute_unletindex(isn_T *iptr, ectx_T *ectx)
 			|| var_check_ro(di->di_flags,
 						  NULL, FALSE))
 		    status = FAIL;
-		else
-		    dictitem_remove(d, di, "unlet");
+		else if (dictitem_remove(d, di, "unlet") == FAIL)
+		    status = FAIL;
 	    }
 	}
     }
@@ -2811,6 +2848,11 @@ execute_unletindex(isn_T *iptr, ectx_T *ectx)
 		    listitem_remove(l, li);
 	    }
 	}
+    }
+    else if (tv_dest->v_type == VAR_TUPLE)
+    {
+	status = FAIL;
+	emsg(_(e_tuple_is_immutable));
     }
     else
     {
@@ -2894,6 +2936,12 @@ execute_unletrange(isn_T *iptr, ectx_T *ectx)
 					   tv_idx2->v_type != VAR_SPECIAL, n2);
 	    }
 	}
+    }
+    else if (tv_dest->v_type == VAR_TUPLE)
+    {
+	status = FAIL;
+	SOURCING_LNUM = iptr->isn_lnum;
+	emsg(_(e_cannot_slice_tuple));
     }
     else
     {
@@ -5047,6 +5095,7 @@ exec_instructions(ectx_T *ectx)
 
 	    // :defer func(arg)
 	    case ISN_DEFER:
+		SOURCING_LNUM = iptr->isn_lnum;
 		if (defer_command(iptr->isn_arg.defer.defer_var_idx,
 			     iptr->isn_arg.defer.defer_argcount, ectx) == FAIL)
 		    goto on_error;
@@ -5789,8 +5838,16 @@ exec_instructions(ectx_T *ectx)
 		    {
 			if (iptr->isn_arg.op.op_type == EXPR_APPEND
 						   && tv1->vval.v_list != NULL)
+			{
+			    // The list is changed in place, check it is not
+			    // locked.
+			    SOURCING_LNUM = iptr->isn_lnum;
+			    if (value_check_lock(tv1->vval.v_list->lv_lock,
+								 NULL, FALSE))
+				goto on_error;
 			    list_extend(tv1->vval.v_list, tv2->vval.v_list,
 									 NULL);
+			}
 			else
 			    eval_addlist(tv1, tv2);
 		    }
@@ -6733,6 +6790,7 @@ call_def_function(
     int		defcount = ufunc->uf_args.ga_len - total_argc;
     sctx_T	save_current_sctx = current_sctx;
     int		did_emsg_before = did_emsg_cumul + did_emsg;
+    int		did_emsg_silent_before = did_emsg_silent;
     int		save_suppress_errthrow = suppress_errthrow;
     msglist_T	**saved_msg_list = NULL;
     msglist_T	*private_msg_list = NULL;
@@ -7102,8 +7160,10 @@ failed_early:
     // Not sure if this is necessary.
     suppress_errthrow = save_suppress_errthrow;
 
+    // Give a generic error only when no error was given, also not when
+    // ":silent!" was used.
     if (ret != OK && did_emsg_cumul + did_emsg == did_emsg_before
-							      && !need_rethrow)
+		    && did_emsg_silent == did_emsg_silent_before && !need_rethrow)
 	semsg(_(e_unknown_error_while_executing_str),
 						   printable_func_name(ufunc));
     funcdepth_restore(orig_funcdepth);

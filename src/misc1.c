@@ -182,9 +182,11 @@ get_leader_len(
  *
  * When "flags" is not null, it is set to point to the flags describing the
  * recognized comment leader.
+ * When "skip_first" is true, ignore a leader with the 'f' flag, unless it is
+ * part of a three-piece comment.
  */
     int
-get_last_leader_offset(char_u *line, char_u **flags)
+get_last_leader_offset(char_u *line, char_u **flags, bool skip_first)
 {
     int		result = -1;
     int		i, j;
@@ -221,6 +223,10 @@ get_last_leader_offset(char_u *line, char_u **flags)
 		continue;
 	    *string++ = NUL;	// Isolate flags from string.
 	    com_leader = string;
+
+	    if (skip_first && vim_strchr(part_buf, COM_FIRST) != NULL
+			    && vim_strpbrk(part_buf, (char_u *)"sme") == NULL)
+		continue;
 
 	    /*
 	     * Line contents and string must match.
@@ -856,7 +862,7 @@ f_state(typval_T *argvars, typval_T *rettv)
 /*
  * Get a key stroke directly from the user.
  * Ignores mouse clicks and scrollbar events, except a click for the left
- * button (used at the more prompt).
+ * button (used at the more prompt).  Also ignores OSC notifications.
  * Doesn't use vgetc(), because it syncs undo and eats mapped characters.
  * Disadvantage: typeahead is ignored.
  * Translates the interrupt character for unix to ESC.
@@ -944,6 +950,7 @@ get_keystroke(void)
 	    n = TO_SPECIAL(buf[1], buf[2]);
 	    if (buf[1] == KS_MODIFIER
 		    || n == K_IGNORE
+		    || n == K_OSC
 		    || (is_mouse_key(n) && n != K_LEFTMOUSE)
 #ifdef FEAT_GUI
 		    || n == K_VER_SCROLLBAR
@@ -2882,6 +2889,9 @@ path_with_url(char_u *fname)
 }
 
 #if defined(FEAT_EVAL)
+// v:event items saved by get_v_event(), latest first
+static save_v_event_T *saved_v_events = NULL;
+
 /*
  * Return the dictionary of v:event.
  * Save and clear the value in case it already has items.
@@ -2896,7 +2906,14 @@ get_v_event(save_v_event_T *sve)
 	// recursive use of v:event, save, make empty and restore later
 	sve->sve_did_save = TRUE;
 	sve->sve_hashtab = v_event->dv_hashtab;
+	// A small hashtab uses the array inside the struct, use the copy.
+	if (sve->sve_hashtab.ht_array == v_event->dv_hashtab.ht_smallarray)
+	    sve->sve_hashtab.ht_array = sve->sve_hashtab.ht_smallarray;
 	hash_init(&v_event->dv_hashtab);
+
+	// Remember the saved items for garbage collection.
+	sve->sve_next = saved_v_events;
+	saved_v_events = sve;
     }
     else
 	sve->sve_did_save = FALSE;
@@ -2908,9 +2925,29 @@ restore_v_event(dict_T *v_event, save_v_event_T *sve)
 {
     dict_free_contents(v_event);
     if (sve->sve_did_save)
+    {
 	v_event->dv_hashtab = sve->sve_hashtab;
+	if (v_event->dv_hashtab.ht_array == sve->sve_hashtab.ht_smallarray)
+	    v_event->dv_hashtab.ht_array = v_event->dv_hashtab.ht_smallarray;
+	saved_v_events = sve->sve_next;
+    }
     else
 	hash_init(&v_event->dv_hashtab);
+}
+
+/*
+ * Mark the items of v:event that were saved for a nested autocommand.
+ * Returns TRUE if setting references failed somehow.
+ */
+    int
+set_ref_in_saved_v_event(int copyID)
+{
+    save_v_event_T  *sve;
+    int		    abort = FALSE;
+
+    for (sve = saved_v_events; sve != NULL && !abort; sve = sve->sve_next)
+	abort = set_ref_in_ht(&sve->sve_hashtab, copyID, NULL, NULL);
+    return abort;
 }
 #endif
 

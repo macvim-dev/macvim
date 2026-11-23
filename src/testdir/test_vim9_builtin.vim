@@ -1248,6 +1248,24 @@ def Test_extend_dict_item_type()
   v9.CheckSourceDefAndScriptFailure(lines, 'E1013: Argument 2: type mismatch, expected dict<bool> but got dict<number>', 2)
 enddef
 
+" A type error in extend() is given before the Dict is changed
+def Test_extend_dict_type_error_unchanged()
+  var lines =<< trim END
+    var d: dict<number> = {a: 1}
+    var src: dict<any> = {}
+    for i in range(30)
+      src['k' .. i] = i
+    endfor
+    src.k15 = 'bad'
+    try
+      extend(d, src)
+    catch /E1013:/
+    endtry
+    assert_equal({a: 1}, d)
+  END
+  v9.CheckSourceDefAndScriptSuccess(lines)
+enddef
+
 func g:ExtendList(l)
   call extend(a:l, ['x'])
 endfunc
@@ -1721,6 +1739,7 @@ def Test_fullcommand()
 
   assert_equal('dlist', fullcommand('dl'))
   assert_equal('', fullcommand('dp'))
+  assert_equal('', fullcommand('d#'))
   assert_equal('delete', fullcommand('del'))
   assert_equal('', fullcommand('dell'))
   assert_equal('', fullcommand('delp'))
@@ -2809,6 +2828,31 @@ def Test_map_failure()
   v9.CheckSourceDefExecAndScriptFailure(lines, 'E1012: Type mismatch; expected number but got bool')
 enddef
 
+" An error in a :def function or lambda used with ":silent! map()" should set
+" v:errmsg to that error, not to E1099.
+def Test_map_silent_errmsg()
+  var lines =<< trim END
+    vim9script
+    def Second(key: number, val: list<number>): number
+      return val[1]
+    enddef
+
+    b:la = [[1, 2], [3], [4, 5]]
+    v:errmsg = ''
+    silent! map(b:la, Second)
+    assert_equal([2, [3], [4, 5]], b:la)
+    assert_equal('E684: List index out of range: 1', v:errmsg)
+
+    b:la = [[1, 2], [3], [4, 5]]
+    v:errmsg = ''
+    silent! map(b:la, (_, v) => v[1])
+    assert_equal([2, [3], [4, 5]], b:la)
+    assert_equal('E684: List index out of range: 1', v:errmsg)
+    unlet b:la
+  END
+  v9.CheckSourceSuccess(lines)
+enddef
+
 def Test_map_const()
   var lines =<< trim END
       const l = [1, 2, 3]
@@ -2882,6 +2926,44 @@ def Test_map_item_type()
     echo map(d, (_, v) => [])
   END
   v9.CheckSourceDefAndScriptFailure(lines, ['E1013: Argument 2: type mismatch, expected func(?string, ?number): number but got func(any, any): list<any>', 'E1012: Type mismatch; expected number but got list<any>'], 2)
+enddef
+
+" A typed dict changed in a legacy function keeps its item type.
+" Without the check compiled code crashes, only detected with ASAN.
+def Test_typed_dict_changed_in_legacy()
+  var lines =<< trim END
+    vim9script
+    var td: dict<number> = {a: 1}
+    g:td = td
+    legacy func g:LegacyLet()
+      let g:td.a = 'str'
+    endfunc
+    legacy func g:LegacyNewKey()
+      let g:td['b'] = 'str'
+    endfunc
+    legacy func g:LegacyMap()
+      call map(g:td, {k, v -> 'str'})
+    endfunc
+    assert_fails('g:LegacyLet()', 'E1012: Type mismatch; expected number but got string')
+    assert_fails('g:LegacyNewKey()', 'E1012: Type mismatch; expected number but got string')
+    assert_fails('g:LegacyMap()', 'E1012: Type mismatch; expected number but got string')
+    assert_equal({a: 1}, td)
+
+    # a value of the right type is fine
+    legacy func g:LegacyOk()
+      let g:td.a = 5
+      call map(g:td, {k, v -> v + 1})
+    endfunc
+    g:LegacyOk()
+    assert_equal({a: 6}, td)
+
+    def UseIt(): number
+      return td.a + 1
+    enddef
+    assert_equal(7, UseIt())
+    unlet g:td
+  END
+  v9.CheckScriptSuccess(lines)
 enddef
 
 def Test_maparg()
@@ -3752,6 +3834,12 @@ def Test_remove_return_type()
 
   var ll: list<number> = remove(range(3), 0, 1)
   ll->assert_equal([0, 1])
+
+  var n: number = remove(0z0102, 0)
+  n->assert_equal(1)
+
+  var bl: blob = remove(0z0102.03, 0, 1)
+  bl->assert_equal(0z0102)
 enddef
 
 def Test_rename()

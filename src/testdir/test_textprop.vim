@@ -463,12 +463,16 @@ func Test_prop_remove()
   unlet props[1] " [three]
   call assert_equal(props, prop_list(1))
 
-  " remove none by types
-  call assert_equal(0, prop_remove({'types': ['three', 'whole'], 'all': 1}, 1))
+  " remove none by types; the List does not get an extra reference
+  let types = ['three', 'whole']
+  let refcount = test_refcount(types)
+  call assert_equal(0, prop_remove({'types': types, 'all': 1}, 1))
   call assert_equal(props, prop_list(1))
+  call assert_equal(refcount, test_refcount(types))
 
   " no types
   call assert_fails("call prop_remove({'types': []}, 1)", 'E968:')
+  call assert_fails("call prop_remove({'types': test_null_list()}, 1)", 'E968:')
   call assert_fails("call prop_remove({'types': ['not_a_real_type']}, 1)", 'E971:')
 
   " only one of types and type can be supplied
@@ -1513,6 +1517,25 @@ func Test_textprop_in_empty_popup()
   call writefile(lines, 'XtestPropEmptyPopup', 'D')
   let buf = RunVimInTerminal('-S XtestPropEmptyPopup', #{rows: 20, cols: 40})
   call VerifyScreenDump(buf, 'Test_prop_in_empty_popup', {})
+
+  " clean up
+  call StopVimInTerminal(buf)
+endfunc
+
+func Test_emptying_buffer_with_textprop_text()
+  CheckScreendump
+
+  let lines =<< trim END
+    set cursorline wrap linebreak
+    call setline(1, "abc")
+    call prop_type_add("foo", {})
+    call prop_add(1, 3, #{text: "x", type: "foo"})
+  END
+  call writefile(lines, 'XtestPropEmptyingBuffer', 'D')
+  let buf = RunVimInTerminal('-S XtestPropEmptyingBuffer', {'rows': 6})
+  call VerifyScreenDump(buf, 'Test_emptying_buffer_with_textprop_text_1', {})
+  call term_sendkeys(buf, 'dd')
+  call VerifyScreenDump(buf, 'Test_emptying_buffer_with_textprop_text_2', {})
 
   " clean up
   call StopVimInTerminal(buf)
@@ -3688,6 +3711,76 @@ func Test_prop_with_text_above_smoothscroll()
   bwipe!
 endfunc
 
+func Test_prop_with_text_above_nowrap_scroll()
+  call NewWindow(10, 40)
+  setlocal nowrap
+  call setline(1, ['AAAAAAAAAABBBBBBBBBBCCCCCCCCCCDDDDDDDDDDEEEEEEEEEEFFFFFFFFFF',
+        \ 'GGGGGGGGGGHHHHHHHHHHIIIIIIIIIIJJJJJJJJJJKKKKKKKKKKLLLLLLLLLL',
+        \ 'MMMMMMMMMMNNNNNNNNNNOOOOOOOOOOPPPPPPPPPPQQQQQQQQQQRRRRRRRRRR'])
+  call prop_type_add('test', #{highlight: 'Normal'})
+  call prop_add(1, 0, #{type: 'test', text: 'Example', text_align: 'above'})
+
+  let winid = win_getid()
+
+  call cursor(1, 40)
+  redraw
+  call assert_equal(0, winsaveview().leftcol)
+  call assert_equal([2, 40], [winline(), wincol()])
+  call assert_equal(#{row: 2, col: 40, endcol: 40, curscol: 40},
+        \ screenpos(winid, 1, 40))
+  call assert_equal(['Example', 'AAAAAAAAAABBBBBBBBBBCCCCCCCCCCDDDDDDDDDD',
+        \ 'GGGGGGGGGGHHHHHHHHHHIIIIIIIIIIJJJJJJJJJJ',
+        \ 'MMMMMMMMMMNNNNNNNNNNOOOOOOOOOOPPPPPPPPPP'],
+        \ ScreenLines([1, 4], 40)->map({_, v -> substitute(v, '\s*$', '', '')}))
+
+  call cursor(1, 41)
+  redraw
+  call assert_equal(20, winsaveview().leftcol)
+  call assert_equal([2, 21], [winline(), wincol()])
+  call assert_equal(#{row: 2, col: 21, endcol: 21, curscol: 21},
+        \ screenpos(winid, 1, 41))
+  call assert_equal(['Example', 'CCCCCCCCCCDDDDDDDDDDEEEEEEEEEEFFFFFFFFFF',
+        \ 'IIIIIIIIIIJJJJJJJJJJKKKKKKKKKKLLLLLLLLLL',
+        \ 'OOOOOOOOOOPPPPPPPPPPQQQQQQQQQQRRRRRRRRRR'],
+        \ ScreenLines([1, 4], 40)->map({_, v -> substitute(v, '\s*$', '', '')}))
+
+  call cursor(1, 1)
+  redraw
+  call assert_equal(0, winsaveview().leftcol)
+  call assert_equal([2, 1], [winline(), wincol()])
+  call assert_equal(#{row: 2, col: 1, endcol: 1, curscol: 1},
+        \ screenpos(winid, 1, 1))
+  call assert_equal(['Example', 'AAAAAAAAAABBBBBBBBBBCCCCCCCCCCDDDDDDDDDD',
+        \ 'GGGGGGGGGGHHHHHHHHHHIIIIIIIIIIJJJJJJJJJJ',
+        \ 'MMMMMMMMMMNNNNNNNNNNOOOOOOOOOOPPPPPPPPPP'],
+        \ ScreenLines([1, 4], 40)->map({_, v -> substitute(v, '\s*$', '', '')}))
+
+  call prop_remove(#{type: 'test', all: v:true})
+  %delete _
+
+  call setline(1, ['AAAAAAAAAABBBBBBBBBBCCCCCCCCCCDDDDDDDDDDEEEEEEEEEE'
+        \ .. 'FFFFFFFFFFGGGGGGGGGGHHHHHHHHHHIIIIIIIIIIJJJJJJJJJJ', 'short'])
+  call prop_add(1, 0, #{type: 'test', text: 'Above one', text_align: 'above'})
+  call prop_add(2, 0, #{type: 'test', text: 'Above two', text_align: 'above'})
+
+  call cursor(1, 100)
+  redraw
+  call assert_equal(79, winsaveview().leftcol)
+  call assert_equal([2, 21], [winline(), wincol()])
+  call assert_equal(#{row: 2, col: 21, endcol: 21, curscol: 21},
+        \ screenpos(winid, 1, 100))
+  call assert_equal(['Above one', 'HIIIIIIIIIIJJJJJJJJJJ', 'Above two', ''],
+        \ ScreenLines([1, 4], 40)->map({_, v -> substitute(v, '\s*$', '', '')}))
+
+  setlocal list listchars=eol:$,precedes:<
+  redraw
+  call assert_equal(['Above one', '<IIIIIIIIIIJJJJJJJJJJ$', 'Above two', '<'],
+        \ ScreenLines([1, 4], 40)->map({_, v -> substitute(v, '\s*$', '', '')}))
+
+  call prop_type_delete('test')
+  bwipe!
+endfunc
+
 func Test_prop_with_text_below_after_match()
   CheckScreendump
   CheckRunVimInTerminal
@@ -5432,6 +5525,102 @@ func Test_prop_add_over_uint16_max()
   call assert_fails("call prop_add(1, 1, {'type': 'overflow', 'length': 0})", 'E1580:')
   call assert_equal(0xffff, prop_list(1)->len())
   call prop_type_delete('overflow')
+  bwipe!
+endfunc
+
+" Adding or removing a text property that only highlights must not compute the
+" syntax highlighting again, which is slow when the property is far above the
+" displayed lines.
+func Test_prop_highlight_keeps_syntax_state()
+  CheckFeature profile
+  new
+  call setline(1, range(1, 1000)->map({_, v -> 'word ' .. v}))
+  syntax match TestNumber /\d\+/
+  syntax sync minlines=50
+  normal! G
+  redraw!
+  call prop_type_add('highlight_only', {'highlight': 'Search'})
+  syntime on
+  redraw
+
+  syntime clear
+  call prop_add(10, 1, {'type': 'highlight_only', 'length': 3})
+  redraw
+  call assert_notmatch('TestNumber', execute('syntime report'))
+
+  syntime clear
+  call prop_remove({'type': 'highlight_only'})
+  redraw
+  call assert_notmatch('TestNumber', execute('syntime report'))
+
+  call prop_add(10, 1, {'type': 'highlight_only', 'length': 3})
+  redraw
+  syntime clear
+  call prop_clear(10)
+  redraw
+  call assert_notmatch('TestNumber', execute('syntime report'))
+  syntime off
+
+  call prop_type_delete('highlight_only')
+  bwipe!
+endfunc
+
+" A highlight property added or removed in a buffer that is only shown in a
+" global and a tab-local popup window updates the popups, also without
+" ":redraw".
+func Test_prop_highlight_in_global_popup()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+    let g:bufnr = bufadd('')
+    call bufload(g:bufnr)
+    call setbufline(g:bufnr, 1, 'one two')
+    call prop_type_add('popup_hl', {'bufnr': g:bufnr, 'highlight': 'Search'})
+    call popup_create(g:bufnr, {'tabpage': -1, 'line': 2, 'col': 2})
+    call popup_create(g:bufnr, {'line': 4, 'col': 2})
+    func AddProp(timer)
+      call prop_add(1, 1, {'bufnr': g:bufnr, 'type': 'popup_hl', 'length': 3})
+    endfunc
+    func RemoveProp(timer)
+      call prop_remove({'bufnr': g:bufnr, 'type': 'popup_hl'})
+    endfunc
+    " <Cmd> does not redraw the command line, only the property changes
+    nnoremap <F3> <Cmd>call timer_start(0, 'AddProp')<CR>
+    nnoremap <F4> <Cmd>call timer_start(0, 'RemoveProp')<CR>
+  END
+  call writefile(lines, 'XtestPopupProp', 'D')
+  let buf = RunVimInTerminal('-S XtestPopupProp', {'rows': 8})
+  let IsHighlighted = {row -> term_scrape(buf, row)->slice(1, 4)
+        \ ->filter({_, v -> v.bg == '#ffff40'})->len() == 3}
+  call WaitForAssert({-> assert_match('^\~one two', term_getline(buf, 2))})
+  call WaitForAssert({-> assert_match('^\~one two', term_getline(buf, 4))})
+  call assert_false(IsHighlighted(2))
+  call assert_false(IsHighlighted(4))
+
+  call term_sendkeys(buf, "\<F3>")
+  call WaitForAssert({-> assert_true(IsHighlighted(2) && IsHighlighted(4))})
+
+  call term_sendkeys(buf, "\<F4>")
+  call WaitForAssert({-> assert_false(IsHighlighted(2) || IsHighlighted(4))})
+
+  call StopVimInTerminal(buf)
+endfunc
+
+" The cursor moves up when prop_clear() removes virtual text above it.
+func Test_prop_clear_virtual_text_cursor()
+  new
+  call setline(1, ['one', 'two', 'three'])
+  call prop_type_add('above', {})
+  call prop_add(2, 0, {'type': 'above', 'text': 'virtual text', 'text_align': 'above'})
+  normal! 2G
+  redraw
+  call assert_equal(3, winline())
+
+  call prop_clear(2)
+  redraw
+  call assert_equal(2, winline())
+
+  call prop_type_delete('above')
   bwipe!
 endfunc
 

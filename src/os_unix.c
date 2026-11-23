@@ -2852,9 +2852,9 @@ mch_FullName(
 mch_isFullName(char_u *fname)
 {
 #ifdef VMS
-    return ( fname[0] == '/'	       || fname[0] == '.'	    ||
-	     strchr((char *)fname,':') || strchr((char *)fname,'"') ||
-	    (strchr((char *)fname,'[') && strchr((char *)fname,']'))||
+    return ( fname[0] == '/'	       || fname[0] == '.'	     ||
+	     strchr((char *)fname,':') || strchr((char *)fname,'"')  ||
+	    (strchr((char *)fname,'[') && strchr((char *)fname,']')) ||
 	    (strchr((char *)fname,'<') && strchr((char *)fname,'>'))   );
 #else
     return (*fname == '/' || *fname == '~');
@@ -3669,7 +3669,6 @@ mch_exit(int r)
     if (!gui.in_use)
 #endif
     {
-	settmode(TMODE_COOK);
 	if (!is_not_a_term())
 	{
 	    // restore xterm title and icon name
@@ -3681,14 +3680,16 @@ mch_exit(int r)
 	 * When t_ti is not empty but it doesn't cause swapping terminal
 	 * pages, need to output a newline when msg_didout is set.  But when
 	 * t_ti does swap pages it should not go to the shell page.  Do this
-	 * before stoptermcap().
+	 * before stoptermcap().  out_char() adds CR before NL even in raw
+	 * mode.
 	 */
 	if (swapping_screen() && !newline_on_exit)
 	    exit_scroll();
 
-	// Stop termcap: May need to check for T_CRV response, which
-	// requires RAW mode.
+	// Handle pending terminal responses before restoring cooked mode,
+	// otherwise they may be echoed as typed text.
 	stoptermcap();
+	settmode(TMODE_COOK);
 
 	/*
 	 * A newline is only required after a message in the alternate screen.
@@ -4471,16 +4472,8 @@ mch_report_winsize(int fd, int rows, int cols)
 
     ws.ws_col = cols;
     ws.ws_row = rows;
-    // Pixel sizes are best-effort; the child can query its own terminal
-    // when needed.  Avoid calling mch_calc_cell_size() here -- on
-    // terminals that do not report pixel sizes via TIOCGWINSZ, the
-    // CSI 14 t fallback would synchronously block term_start() for up
-    // to 200ms each time, perturbing timing-sensitive screendump tests
-    // that fork a child Vim.  Setting 0 matches the pre-image-popup
-    // behaviour and is what TIOCSWINSZ does when the kernel cannot
-    // populate the field anyway.
-    ws.ws_xpixel = 0;
-    ws.ws_ypixel = 0;
+    ws.ws_xpixel = cols * cell_width;
+    ws.ws_ypixel = rows * cell_height;
 
 #if defined(FEAT_GUI) && defined(FEAT_GUI_MACVIM)
     if (gui.in_use)

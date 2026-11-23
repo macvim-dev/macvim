@@ -3559,8 +3559,14 @@ mch_init_c(void)
     g_color_index_fg = g_attrDefault & 0xf;
     g_color_index_bg = (g_attrDefault >> 4) & 0xf;
 
-    // set termcap codes to current text attributes
-    update_tcap(g_attrCurrent);
+# if !defined(FEAT_GUI_MSWIN) || defined(VIMDLL)
+    // New VT100 terminal emulation escape codes no longer require adjustment
+    if (!vtp_working)
+# endif
+    {
+	// set termcap codes to current text attributes
+	update_tcap(g_attrCurrent);
+    }
 
     GetConsoleCursorInfo(g_hConOut, &g_cci);
     GetConsoleMode(g_hConIn,  &g_cmodein);
@@ -7856,7 +7862,8 @@ notsgr:
 	    // CSI sequences should not be written as plain text to the
 	    // console.  Parse the sequence and skip over it.  When
 	    // USE_VTP is active, pass through known safe ones (e.g.
-	    // DECSCUSR for cursor shape) via vtp_printf().
+	    // DECSCUSR for cursor shape, SGR for undercurl from t_Cs) via
+	    // vtp_printf().
 	    int l = 2;
 
 	    // skip parameter and intermediate bytes (0x20-0x3F)
@@ -7865,8 +7872,11 @@ notsgr:
 	    // skip the final byte (0x40-0x7E)
 	    if (s + l < end && s[l] >= 0x40 && s[l] <= 0x7E)
 	    {
-		// DECSCUSR (cursor style): pass through to terminal
-		if (USE_VTP && s[l] == 'q')
+		// DECSCUSR (cursor style) and SGR (attributes, e.g. "t_Cs",
+		// "t_Ce" and "t_8u"): pass through to terminal.  Neither
+		// generates a response from the console.  vtp_printf() uses a
+		// 100 byte buffer, skip anything longer.
+		if (USE_VTP && (s[l] == 'q' || s[l] == 'm') && l + 1 < 100)
 		    vtp_printf("%.*s", l + 1, s);
 		l++;
 	    }

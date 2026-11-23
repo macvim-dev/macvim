@@ -616,6 +616,35 @@ func Test_lua_dict_table()
   call assert_fails('lua vim.dict(true)', '[string "vim chunk"]:1: table expected, got boolean')
 endfunc
 
+" A variable cannot be removed while ":let" lists the variables.  This used
+" to free the variable while it was still in g:, which is only detected with
+" valgrind or ASAN.
+func Test_lua_del_var_while_listing()
+  let lines =<< trim END
+    vim9script
+    class A
+      def string(): string
+        try
+          lua vim.eval('g:').victim = nil
+          g:result = 'no error'
+        catch
+          g:result = matchstr(v:exception, 'dict is locked')
+        endtry
+        return 'A'
+      enddef
+    endclass
+    g:result = ''
+    g:obj = A.new()
+    g:victim = 'x'
+    execute('legacy let g:')
+  END
+  call writefile(lines, 'XLuaDelVar', 'D')
+  source XLuaDelVar
+  call assert_equal('dict is locked', g:result)
+  call assert_equal('x', g:victim)
+  unlet g:obj g:victim g:result
+endfunc
+
 " Test d() i.e. iterator on dictionary
 func Test_lua_dict_iter()
   let d = {'a': 1, 'b':2}
@@ -625,6 +654,30 @@ func Test_lua_dict_iter()
   call assert_equal('a:1,b:2,', luaeval('str'))
 
   lua str, d = nil
+
+  " Adding or removing items while iterating gives an error.  This used to
+  " read freed memory, which is only detected with valgrind or ASAN.
+  let g:ld = {}
+  for i in range(20)
+    let g:ld['k' .. i] = i
+  endfor
+  call assert_fails("lua for k, v in vim.eval('g:ld')() do vim.eval('g:ld')['x' .. k] = 1 end",
+        \ 'dict changed during iteration')
+  call assert_fails("lua for k, v in vim.eval('g:ld')() do vim.eval('g:ld')[k] = nil end",
+        \ 'dict changed during iteration')
+
+  " Changing a value is fine
+  let g:ld = {'a': 1, 'b': 2}
+  lua for k, v in vim.eval('g:ld')() do vim.eval('g:ld')[k] = v * 10 end
+  call assert_equal({'a': 10, 'b': 20}, g:ld)
+
+  " The dict stays valid when the variable is deleted while iterating
+  let g:ld = {'a': 1, 'b': 2}
+  lua str = ''
+  lua for k, v in vim.eval('g:ld')() do vim.command('unlet! g:ld'); collectgarbage(); str = str .. v end
+  call assert_equal(3, str2nr(luaeval('str')[0]) + str2nr(luaeval('str')[1]))
+  lua str = nil
+  unlet! g:ld
 endfunc
 
 func Test_lua_blob()

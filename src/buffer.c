@@ -3663,7 +3663,9 @@ setfname(
 		return FAIL;
 	    }
 	    // delete from the list
+	    ++buf->b_locked;
 	    close_buffer(NULL, obuf, DOBUF_WIPE, FALSE, FALSE, FALSE);
+	    --buf->b_locked;
 	}
 	sfname = vim_strsave(sfname);
 	if (ffname == NULL || sfname == NULL)
@@ -6551,6 +6553,7 @@ buf_contents_changed(buf_T *buf)
     {
 	// Failed to find a window for "newbuf".
 	wipe_buffer(newbuf, FALSE);
+	vim_free(ea.cmd);
 	return TRUE;
     }
 

@@ -412,6 +412,37 @@ func Test_WinNewPre()
   unlet g:caught
 endfunc
 
+" After an interrupt() from a timer callback in a "WinNew" autocommand,
+" typing on the command line must be visible. #10631
+func Test_interrupt_after_WinNew()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+    vim9script
+    def Interrupt()
+      writefile(['fired'], 'Xinterrupt_fired')
+      silent interrupt()
+    enddef
+    autocmd WinNew * timer_start(0, (_) => Interrupt())
+  END
+  call writefile(lines, 'Xtest_interrupt_winnew', 'D')
+  call delete('Xinterrupt_fired')
+  let buf = RunVimInTerminal('-S Xtest_interrupt_winnew', {'rows': 8})
+
+  call term_sendkeys(buf, "\<C-W>s")
+  call WaitFor({-> filereadable('Xinterrupt_fired')})
+  call TermWait(buf, 200)
+  call term_sendkeys(buf, ':echo')
+  call WaitForAssert({-> assert_match(':echo', join(map(range(1, 8),
+        \ {_, n -> term_getline(buf, n)}), "\n"))})
+  call term_sendkeys(buf, " 'typed'\<CR>")
+  call WaitForAssert({-> assert_match('typed', join(map(range(1, 8),
+        \ {_, n -> term_getline(buf, n)}), "\n"))})
+
+  call StopVimInTerminal(buf)
+  call delete('Xinterrupt_fired')
+endfunc
+
 func Test_WinResized()
   CheckRunVimInTerminal
 
@@ -4228,6 +4259,61 @@ func Test_autocmd_trailing_curly_no_block()
   au! CursorHold
 endfunc
 
+" Lines after ":au! grp | cmd" in a {} block are executed
+func Test_autocmd_block_bar_after_autocmd()
+  augroup XautoBarOther
+  augroup END
+  augroup XautoBar
+    autocmd CursorHold * {
+          au! XautoBarOther | g:bar_first = 'yes'
+          g:bar_second = 'yes'
+        }
+  augroup END
+  doautocmd CursorHold
+  call assert_equal('yes', g:bar_first)
+  call assert_equal('yes', g:bar_second)
+  unlet g:bar_first g:bar_second
+  au! XautoBar
+  augroup! XautoBar
+  augroup! XautoBarOther
+
+  " When the block removes its own group, a Vim9 script with an
+  " autocommand for the same event keeps its variables.
+  augroup XautoBarSelf
+    autocmd CursorHold * {
+          au! XautoBarSelf | aug! XautoBarSelf
+        }
+  augroup END
+  let lines =<< trim END
+      vim9script
+      var count = 0
+      def g:AutoBarCount(): number
+        count += 1
+        return count
+      enddef
+      autocmd CursorHold * g:AutoBarCount()
+  END
+  call writefile(lines, 'XautoBarScript', 'D')
+  source XautoBarScript
+  doautocmd CursorHold
+  call assert_equal(2, g:AutoBarCount())
+  au! CursorHold
+  delfunc g:AutoBarCount
+
+  " Expanding "%" and "#" reallocates the command line, the line after the
+  " newline must still be executed.
+  new Xbar
+  new Xfoo
+  exe "silent !echo %\nlet g:bar_after = 'yes'"
+  call assert_equal('yes', g:bar_after)
+  unlet g:bar_after
+  exe "silent !echo % #\nlet g:bar_after = 'yes'"
+  call assert_equal('yes', g:bar_after)
+  unlet g:bar_after
+  bwipe!
+  bwipe!
+endfunc
+
 func Test_closing_autocmd_window()
   let lines =<< trim END
       edit Xa.txt
@@ -4351,6 +4437,64 @@ func Test_v_event_readonly()
   autocmd TextYankPost * let v:event.operator = ''
   call assert_fails('normal! yy', 'E46:')
   au! TextYankPost
+endfunc
+
+func s:YankWithNestedEvent()
+  let before = deepcopy(v:event)
+  cd Xveventdir
+  cd -
+  call add(g:Xouter, [before, deepcopy(v:event)])
+endfunc
+
+" v:event of an autocommand is restored after a nested autocommand that
+" also uses v:event
+func Test_v_event_nested()
+  call mkdir('Xveventdir', 'R')
+  let g:Xouter = []
+  let g:Xinner = []
+  autocmd TextYankPost * ++nested call s:YankWithNestedEvent()
+  autocmd DirChangedPre * call add(g:Xinner, deepcopy(v:event))
+  new
+  call setline(1, 'text')
+  normal! yy
+  au! TextYankPost
+  au! DirChangedPre
+  bwipe!
+
+  call assert_equal(1, len(g:Xouter))
+  call assert_equal(g:Xouter[0][0], g:Xouter[0][1])
+  call assert_equal('y', g:Xouter[0][1].operator)
+  call assert_equal(['text'], g:Xouter[0][1].regcontents)
+  call assert_equal(2, len(g:Xinner))
+  call assert_match('Xveventdir$', g:Xinner[0].directory)
+  unlet g:Xouter g:Xinner
+endfunc
+
+" Garbage collection in a nested autocommand that uses v:event must not free
+" the values of v:event of the outer autocommand.  This used freed memory,
+" which is only reliably detected with valgrind or ASan.
+func s:YankThenChangeDir()
+  call add(g:Xregs, copy(v:event.regcontents))
+  let olddir = getcwd()
+  cd Xveventgcdir
+  exe 'cd ' .. fnameescape(olddir)
+  call add(g:Xregs, copy(v:event.regcontents))
+  call add(g:Xregs, v:event.operator)
+endfunc
+
+func Test_v_event_nested_garbagecollect()
+  call mkdir('Xveventgcdir', 'R')
+  let g:Xregs = []
+  autocmd TextYankPost * ++nested call s:YankThenChangeDir()
+  autocmd DirChangedPre * call test_garbagecollect_now()
+  new
+  call setline(1, 'line one')
+  normal! yy
+  au! TextYankPost
+  au! DirChangedPre
+  bwipe!
+  call assert_equal([['line one'], ['line one'], 'y'], g:Xregs)
+  unlet g:Xregs
 endfunc
 
 " Test for ModeChanged pattern
@@ -5094,6 +5238,8 @@ func Test_Changed_ChangedI()
   call writefile(['one', 'two', 'three'], 'XTextChangedI2', 'D')
   let before =<< trim END
       set ttimeout ttimeoutlen=10
+      " SafeState must also work when only the background color was queried.
+      set t_RF=
       let [g:autocmd_n, g:autocmd_i] = ['','']
 
       func TextChangedAutocmd(char)
@@ -6553,6 +6699,20 @@ func Test_TextPutPost_term_norm()
 
   unlet err
   bwipe!
+endfunc
+
+func Test_setfname_wipe_in_autocmd()
+  edit Xsetfname_a
+  let bnr = bufnr()
+  badd Xsetfname_other
+  badd Xsetfname_b
+  augroup Xtest
+    exe 'au BufWipeout Xsetfname_b ++once bwipe! ' .. bnr
+  augroup END
+  call assert_fails('file Xsetfname_b', 'E937:')
+  au! Xtest
+  augroup! Xtest
+  %bwipe!
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab
