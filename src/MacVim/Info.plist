@@ -19,6 +19,47 @@
 		<dict>
 			<key>CFBundleTypeExtensions</key>
 			<array>
+				<string>toml</string>
+				<string>ts</string>
+				<string>tsx</string>
+				<string>jsx</string>
+				<string>mjs</string>
+				<string>cjs</string>
+				<string>astro</string>
+				<string>svelte</string>
+				<string>graphql</string>
+				<string>gql</string>
+				<string>vue</string>
+				<string>go</string>
+				<string>rs</string>
+			</array>
+			<key>CFBundleTypeName</key>
+			<string>Developer source and configuration file</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.json</string>
+				<string>public.yaml</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>All Files (dotfiles and extensionless files)</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.data</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
 				<string>vim</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
