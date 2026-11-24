@@ -5242,8 +5242,8 @@ func Test_getcellpixels_macvim()
     " deliberate design decision. Right now the caller has to wait for MacVim
     " to update the state before getcellpixels() will reflect the correct
     " value, hence the need for multiple wait's here.
-    call WaitForAssert({-> assert_notequal(0, getcellpixels()[0], 'Uninitialized getcellpixels')})
-    call assert_equal([7, 13], getcellpixels()) " Default font is Menlo:h11
+    " Until then the default 8x16 is returned, like in a terminal.
+    call WaitForAssert({-> assert_equal([7, 13], getcellpixels())}) " Default font is Menlo:h11
     set guifont=Menlo:h13
     call WaitForAssert({-> assert_equal([8, 15], getcellpixels())})
 

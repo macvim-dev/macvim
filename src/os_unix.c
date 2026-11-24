@@ -4475,20 +4475,6 @@ mch_report_winsize(int fd, int rows, int cols)
     ws.ws_xpixel = cols * cell_width;
     ws.ws_ypixel = rows * cell_height;
 
-#if defined(FEAT_GUI) && defined(FEAT_GUI_MACVIM)
-    if (gui.in_use)
-    {
-	// calculate and set tty pixel size
-	struct cellsize cs;
-	gui_mch_calc_cell_size(&cs);
-	if (cs.cs_xpixel != -1)
-	{
-	    ws.ws_xpixel = cols * cs.cs_xpixel;
-	    ws.ws_ypixel = rows * cs.cs_ypixel;
-	}
-    }
-#endif
-
     retval = ioctl(tty_fd, TIOCSWINSZ, &ws);
     ch_log(NULL, "ioctl(TIOCSWINSZ) %s", retval == 0 ? "success" : "failed");
 #  elif defined(TIOCSSIZE)

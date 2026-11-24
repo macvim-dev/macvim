@@ -1309,7 +1309,11 @@ static struct specialkey
         isTerminating = YES;
         getout(0);
     } else if (UpdateCellSizeMsgID == msgid) {
-        // Immediately handle simple state updates to they can be reflected in Vim.
+        // Handle this immediately so that it is picked up whenever the run
+        // loop is updated (e.g. during ":sleep"), not only when waiting for
+        // keys.  This does modify Vim state, but only the cached cell size
+        // and reporting it to :terminal jobs, the same as what happens when a
+        // terminal reports its cell size in handle_csi().
         [self handleCellSize:data];
     } else {
         // First remove previous instances of this message from the input
@@ -2773,9 +2777,14 @@ static struct specialkey
     const void *bytes = [data bytes];
 
     // Don't use gui.char_width/height because for simplicity we set those to
-    // 1. We store the cell size separately (it's only used for
-    // getcellpixels()).
+    // 1. We store the cell size separately and let update_cell_size() pick it
+    // up, which updates cell_width/cell_height. This is more similar to
+    // terminal Vim than GUI Vim, due to the async multi-process architecture
+    // of MacVim.
     memcpy(&_cellSize, bytes, sizeof(NSSize));
+#if defined(FEAT_IMAGE) || defined(FEAT_EVAL)
+    update_cell_size();
+#endif
 }
 
 - (void)handleDropFiles:(NSData *)data

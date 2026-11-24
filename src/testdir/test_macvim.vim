@@ -77,3 +77,23 @@ func Test_macvim_invalid_options()
 
     call assert_fails("let &fuoptions='abcdef'", 'E474:')
 endfunc
+
+" Test that a job in a terminal window gets the correct cell size when it
+" queries it with CSI 16 t, after the font has changed.
+func Test_macvim_terminal_cellsize()
+    CheckGui
+    CheckFeature terminal
+
+    " MacVim updates the cell size asynchronously, so wait for it.
+    set guifont=Menlo:h13
+    call WaitForAssert({-> assert_equal([8, 15], getcellpixels())})
+
+    let buf = term_start(['sh', '-c',
+                \ "stty raw -echo; printf '\\033[16t'; dd bs=64 count=1 2>/dev/null > Xcsireply"])
+    call WaitForAssert({-> assert_equal(["\<Esc>[6;15;8t"],
+                \ filereadable('Xcsireply') ? readfile('Xcsireply') : [])})
+
+    exe buf .. 'bwipe!'
+    call delete('Xcsireply')
+    set guifont&
+endfunc
