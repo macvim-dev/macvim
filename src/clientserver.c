@@ -972,6 +972,13 @@ remote_common(typval_T *argvars, typval_T *rettv, int expr)
 	if (idvar != NULL && *idvar != NUL)
 	{
 # ifdef MSWIN
+	    if (clientserver_method == CLIENTSERVER_METHOD_MSWIN)
+	    {
+		sprintf((char *)sbuf, PRINTF_HEX_LONG_U, (long_u)w);
+		str = sbuf;
+	    }
+# endif
+# ifdef FEAT_X11
 	    if (clientserver_method == CLIENTSERVER_METHOD_X11)
 	    {
 		sprintf((char *)sbuf, PRINTF_HEX_LONG_U, (long_u)w);
