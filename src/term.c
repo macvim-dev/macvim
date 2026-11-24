@@ -3788,7 +3788,20 @@ update_cell_size(void)
 {
 # ifdef FEAT_GUI
     if (gui.in_use)
+    {
+#  ifdef FEAT_GUI_MACVIM
+	// In MacVim, char_width/char_height are set to 1 always, and the cell
+	// size is updated asynchronously by the GUI, so we need to check
+	// whether we have a valid value first.
+	struct cellsize cs;
+
+	gui_mch_calc_cell_size(&cs);
+	if (cs.cs_xpixel > 0 && cs.cs_ypixel > 0)
+	    set_cell_size(cs.cs_xpixel, cs.cs_ypixel);
+#  else
 	set_cell_size(gui.char_width, gui.char_height);
+#  endif
+    }
     else
 # endif
     {
