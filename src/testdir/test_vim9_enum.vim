@@ -292,6 +292,15 @@ def Test_enum_parse()
   END
   v9.CheckSourceFailure(lines, 'E1418: Invalid enum value declaration: $%@', 4)
 
+  # enum value name starting with an underscore
+  lines =<< trim END
+    vim9script
+    enum Fruit
+      _Apple, Orange
+    endenum
+  END
+  v9.CheckSourceFailure(lines, 'E1418: Invalid enum value declaration: _Apple, Orange', 3)
+
   # Additional command after "enumvalue"
   lines =<< trim END
     vim9script
@@ -322,6 +331,24 @@ def Test_enum_parse()
     endenum
   END
   v9.CheckSourceFailure(lines, 'E1428: Duplicate enum value: Foo', 3)
+
+  # Enum value with the same name as the "values" class variable
+  lines =<< trim END
+    vim9script
+    enum A
+      Foo, values, Bar
+    endenum
+  END
+  v9.CheckSourceFailure(lines, 'E1369: Duplicate variable: values', 3)
+
+  lines =<< trim END
+    vim9script
+    enum A
+      Foo,
+      values
+    endenum
+  END
+  v9.CheckSourceFailure(lines, 'E1369: Duplicate variable: values', 4)
 
   # Try extending a class when defining an enum
   lines =<< trim END
@@ -1197,6 +1224,24 @@ def Test_enum_enhanced()
     assert_equal(16.0, Vehicle.bus.CarbonFootprint())
   END
   v9.CheckSourceSuccess(lines)
+
+  # enum value constructor arguments longer than 1024 bytes
+  lines =<< trim END
+    vim9script
+    enum Msg
+      Short('abc'),
+      Long('LONGSTR', [LONGLIST])
+      var text: string
+      var nums: list<number> = []
+    endenum
+    assert_equal(3000, len(Msg.Long.text))
+    assert_equal(600, len(Msg.Long.nums))
+    assert_equal(1, Msg.Long.ordinal)
+  END
+  lines[3] = substitute(lines[3], 'LONGSTR', repeat('x', 3000), '')
+  lines[3] = substitute(lines[3], 'LONGLIST',
+                        range(600)->map((_, v) => '1')->join(', '), '')
+  v9.CheckSourceSuccess(lines)
 enddef
 
 " Test for the enum value 'name' variable {{{1
@@ -1240,7 +1285,7 @@ def Test_enum_name()
     endenum
     Fruit.Apple.name = 'foo'
   END
-  v9.CheckSourceFailure(lines, 'E1335: Variable "name" in class "Fruit" is not writable', 5)
+  v9.CheckSourceFailure(lines, 'E1427: Enum "Fruit" name cannot be modified', 5)
 
   # Try assigning to the name of an enum in a function
   lines =<< trim END
@@ -1253,7 +1298,7 @@ def Test_enum_name()
     enddef
     defcompile
   END
-  v9.CheckSourceFailure(lines, 'E1423: Enum value "Fruit.name" cannot be modified', 1)
+  v9.CheckSourceFailure(lines, 'E1427: Enum "Fruit" name cannot be modified', 1)
 
   # Try to overwrite an enum value name in the enum constructor
   lines =<< trim END
@@ -1321,7 +1366,7 @@ def Test_enum_ordinal()
     endenum
     Fruit.Apple.ordinal = 20
   END
-  v9.CheckSourceFailure(lines, 'E1335: Variable "ordinal" in class "Fruit" is not writable', 5)
+  v9.CheckSourceFailure(lines, 'E1426: Enum "Fruit" ordinal value cannot be modified', 5)
 
   # Try assigning to the ordinal value of an enum in a function
   lines =<< trim END
@@ -1334,7 +1379,7 @@ def Test_enum_ordinal()
     enddef
     defcompile
   END
-  v9.CheckSourceFailure(lines, 'E1423: Enum value "Fruit.ordinal" cannot be modified', 1)
+  v9.CheckSourceFailure(lines, 'E1426: Enum "Fruit" ordinal value cannot be modified', 1)
 
   # Try to overwrite an enum value ordinal in the enum constructor
   lines =<< trim END
@@ -1417,6 +1462,23 @@ def Test_enum_invoke_constructor()
     endenum
   END
   v9.CheckSourceFailureList(lines, ['E1100:', 'E1100:'], 1)
+
+  # an enum cannot be instantiated after initializing an enum value failed
+  lines =<< trim END
+    vim9script
+    def g:EnumNewAfterInitFailure(): string
+      return Planet.new().name
+    enddef
+    enum Planet
+      earth(1),
+      mars(g:enum_no_such_var)
+      var n: number
+    endenum
+  END
+  v9.CheckSourceFailure(lines, 'E121: Undefined variable: g:enum_no_such_var', 9)
+  assert_fails('g:EnumNewAfterInitFailure()',
+               'E1325: Method "new" not found in class "Planet"')
+  delfunc g:EnumNewAfterInitFailure
 enddef
 
 " Test for checking "this" in an enum constructor {{{1
@@ -1435,6 +1497,15 @@ def Test_enum_this_in_constructor()
     defcompile
   END
   v9.CheckSourceSuccess(lines)
+
+  # using an enum value or "values" in the constructor of an earlier value
+  for expr in ['Color.Green', 'Color.values']
+    lines = ['vim9script', 'enum Color', '  Red(1), Green(2)',
+          '  def new(n: number)', '    if n == 1', $'      var x = {expr}',
+          '    endif', '  enddef', 'endenum']
+    v9.CheckSourceFailure(lines, 'E1440: Class variable "' ..
+          expr->matchstr('\.\zs.*') .. '" used before it is initialized', 2)
+  endfor
 enddef
 
 " Test for using member variables in an enum object {{{1
@@ -1542,6 +1613,94 @@ def Test_enum_object_variable()
   v9.CheckSourceFailure(lines, 'E119: Not enough arguments for function: new', 8)
 enddef
 
+" Test for changing public object and class variables of an enum in a def
+" function {{{1
+def Test_enum_public_variable_in_def()
+  var lines =<< trim END
+    vim9script
+    enum Shape
+      Triangle, Square
+      public var tag: string
+      public var sizes: list<number> = [1, 2]
+      public static var level: number = 1
+    endenum
+
+    def SetTag(s: Shape, t: string)
+      s.tag = t
+    enddef
+
+    def Fn()
+      Shape.Square.tag = 'square'
+      Shape.Square.sizes[0] = 10
+      Shape.level += 2
+    enddef
+
+    Fn()
+    SetTag(Shape.Triangle, 'triangle')
+    assert_equal('square', Shape.Square.tag)
+    assert_equal('triangle', Shape.Triangle.tag)
+    assert_equal([10, 2], Shape.Square.sizes)
+    assert_equal(3, Shape.level)
+  END
+  v9.CheckSourceSuccess(lines)
+
+  # a read-only class variable cannot be changed
+  lines =<< trim END
+    vim9script
+    enum Shape
+      Triangle, Square
+      static var level: number = 1
+    endenum
+    def Fn()
+      Shape.level = 2
+    enddef
+    Fn()
+  END
+  v9.CheckSourceFailure(lines, 'E1335: Variable "level" in class "Shape" is not writable', 1)
+
+  # a read-only class variable with an enum type is not an enum value
+  lines =<< trim END
+    vim9script
+    enum Shape
+      Triangle, Square
+      static var first = Shape.Triangle
+    endenum
+    def Fn()
+      Shape.first = Shape.Square
+    enddef
+    Fn()
+  END
+  v9.CheckSourceFailure(lines, 'E1335: Variable "first" in class "Shape" is not writable', 1)
+
+  # a read-only object variable cannot be changed
+  lines =<< trim END
+    vim9script
+    enum Shape
+      Triangle, Square
+      var tag: string
+    endenum
+    def Fn(s: Shape)
+      s.tag = 'x'
+    enddef
+    Fn(Shape.Square)
+  END
+  v9.CheckSourceFailure(lines, 'E1335: Variable "tag" in class "Shape" is not writable', 1)
+
+  # a protected object variable cannot be changed
+  lines =<< trim END
+    vim9script
+    enum Shape
+      Triangle, Square
+      var _tag: string
+    endenum
+    def Fn()
+      Shape.Square._tag = 'x'
+    enddef
+    Fn()
+  END
+  v9.CheckSourceFailure(lines, 'E1333: Cannot access protected variable "_tag" in class "Shape"', 1)
+enddef
+
 " Test for using a custom constructor with an enum {{{1
 def Test_enum_custom_constructor()
   # space before "("
@@ -1613,6 +1772,42 @@ def Test_enum_custom_constructor()
     assert_equal([40, 'qux'], [Fruit.Mango.n, Fruit.Mango.s])
   END
   v9.CheckSourceSuccess(lines)
+  # new() reached from inside the enum: from a class variable initializer,
+  # from a function compiled while the enum is defined and through a funcref
+  lines =<< trim END
+    vim9script
+    enum Color
+      Red, Green
+      static var extra: Color = Color.new()
+    endenum
+  END
+  v9.CheckSourceFailure(lines, 'E1325: Method "new" not found in class "Color"', 1)
+
+  lines =<< trim END
+    vim9script
+    enum Color
+      Red, Green
+      static var unused: Color = Color.Make(false)
+      static def Make(create: bool): Color
+        if create
+          return Color.new()
+        endif
+        return null_object
+      enddef
+    endenum
+    Color.Make(true)
+  END
+  v9.CheckSourceFailure(lines, 'E1325: Method "new" not found in class "Color"', 1)
+
+  lines =<< trim END
+    vim9script
+    enum Color
+      Red, Green
+      static var Mk: func = Color.new
+    endenum
+    Color.Mk()
+  END
+  v9.CheckSourceFailure(lines, 'E1325: Method "new" not found in class "Color"', 1)
 enddef
 
 " Test for using class variables in an enum class {{{1

@@ -1037,7 +1037,8 @@ cmdline_wildchar_complete(
 	    if (wim_longest)
 	    {
 		int found_longest_prefix = (ccline.cmdpos != cmdpos_before);
-		int show_menu = p_wmnu && wim_full;
+		int show_menu = p_wmnu && (wim_full || wim_noselect
+							    || wim_noinsert);
 
 		if (wim_list || show_menu)
 		    (void)showmatches(xp, show_menu, wim_list, WIM_NOSELECT);
@@ -4034,8 +4035,12 @@ cmdline_paste(
     if (got_int)
 	return FAIL;
 
+#ifdef FEAT_CLIPBOARD_PROVIDER
+    call_clip_provider_request(regname);
+#endif
 #ifdef FEAT_CLIPBOARD
-    regname = may_get_selection(regname);
+    if (clipmethod != CLIPMETHOD_PROVIDER)
+	regname = may_get_selection(regname);
 #endif
 
     // Need to set "textlock" to avoid nasty things like going to another

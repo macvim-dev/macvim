@@ -1758,8 +1758,6 @@ enum_parse_values(
 {
     evalarg_T	evalarg;
     char_u	*p = line;
-    char	initexpr_buf[1024];
-    size_t	initexpr_buflen;
     char_u	last_char = NUL;
     int		rc = OK;
 
@@ -1772,7 +1770,8 @@ enum_parse_values(
 	if (*p == '#')
 	    break;
 
-	if (!eval_isnamec1(*p))
+	// A name starting with "_" would be a protected class variable.
+	if (!eval_isnamec1(*p) || *p == '_')
 	{
 	    semsg(_(e_invalid_enum_value_declaration_str), p);
 	    break;
@@ -1783,6 +1782,14 @@ enum_parse_values(
 
 	if (is_duplicate_enum(gap, eni_name_start, eni_name_end))
 	    break;
+
+	// "values" is the class variable with the List of enum values
+	if (eni_name_end - eni_name_start == 6
+		&& STRNCMP(eni_name_start, "values", 6) == 0)
+	{
+	    semsg(_(e_duplicate_variable_str), "values");
+	    break;
+	}
 
 	p = skipwhite(eni_name_end);
 
@@ -1807,20 +1814,29 @@ enum_parse_values(
 		init_expr = vim_strnsave(expr_start, expr_end - expr_start);
 	}
 
+	// The initializer is "EnumName.new()" or "EnumName.new(args)".  The
+	// arguments can be of any length.
+	garray_T    initexpr_ga;
+	ga_init2(&initexpr_ga, 1, 100);
+	ga_concat_len(&initexpr_ga, en->class_name.string,
+						    en->class_name.length);
+	GA_CONCAT_LITERAL(&initexpr_ga, ".new");
 	if (init_expr == NULL)
-	    initexpr_buflen = vim_snprintf_safelen(
-		initexpr_buf, sizeof(initexpr_buf), "%s.new()", en->class_name.string);
+	    GA_CONCAT_LITERAL(&initexpr_ga, "()");
 	else
 	{
-	    initexpr_buflen = vim_snprintf_safelen(
-		initexpr_buf, sizeof(initexpr_buf), "%s.new%s", en->class_name.string,
-		init_expr);
+	    ga_concat(&initexpr_ga, init_expr);
 	    vim_free(init_expr);
 	}
-	if (add_member(gap, eni_name_start, eni_name_end, FALSE,
+	ga_append(&initexpr_ga, NUL);
+	if (initexpr_ga.ga_data == NULL
+		|| add_member(gap, eni_name_start, eni_name_end, FALSE,
 				TRUE, TRUE, TRUE, &en->class_object_type,
-				vim_strnsave((char_u *)initexpr_buf, initexpr_buflen)) == FAIL)
+				(char_u *)initexpr_ga.ga_data) == FAIL)
+	{
+	    ga_clear(&initexpr_ga);
 	    break;
+	}
 
 	++*num_enum_values;
 
@@ -1936,26 +1952,39 @@ enum_clear_constructors(class_T *en)
 }
 
 /*
+ * Returns the index of the enum value of enum "en" that is being created:
+ * the first one that is not set yet.  Returns -1 when all the enum values
+ * exist, then no more enum value objects can be created.
+ */
+    int
+enum_next_value_idx(class_T *en)
+{
+    if (en->class_members_tv == NULL)
+	return -1;
+    for (int i = 0; i < en->class_class_member_count; ++i)
+    {
+	// the enum values are followed by the "values" class variable
+	if (STRCMP(en->class_class_members[i].ocm_name.string, "values") == 0)
+	    break;
+	if (en->class_members_tv[i].v_type == VAR_UNKNOWN)
+	    return i;
+    }
+    return -1;
+}
+
+/*
  * Initialize the name and ordinal object variable in the enum value "enval" in
  * the enum "en".  These values are set during the enum value object creation.
  */
     void
 enum_set_internal_obj_vars(class_T *en, object_T *enval)
 {
-    int	i;
+    int	i = enum_next_value_idx(en);
 
-    for (i = 0; i < en->class_class_member_count; ++i)
-    {
-	typval_T *en_tv = en->class_members_tv + i;
-	if (en_tv != NULL && en_tv->v_type == VAR_UNKNOWN)
-	    break;
-    }
-
-    if (i >= en->class_class_member_count)
-	// When adding enum values to an enum, the index value should be less
-	// than the member count.  It will be greater only when appending a
-	// new item to a list of enums.  In this case, skip setting the enum
-	// name and ordinal (as this is a dummy enum object)
+    if (i < 0)
+	// Not creating an enum value, e.g. when appending a new item to a
+	// list of enums.  Skip setting the enum name and ordinal (as this is
+	// a dummy enum object).
 	return;
 
     // First object variable is the name
@@ -2809,18 +2838,15 @@ early_ret:
 
 	// Allocate a typval for each class member and initialize it.
 	if ((is_class || is_enum) && cl->class_class_member_count > 0)
-	    if (add_class_members(cl, eap, &type_list) == FAIL)
-	    {
-		cl->class_type_list = type_list;
-		return;
-	    }
+	    // On failure the class is still defined, continue below.
+	    (void)add_class_members(cl, eap, &type_list);
 
 	cl->class_type_list = type_list;
 
 	if (is_enum)
 	{
 	    // clear the constructor method names, so that an enum class cannot
-	    // be instantiated
+	    // be instantiated, also when initializing the enum values failed
 	    enum_clear_constructors(cl);
 	}
 
@@ -3125,6 +3151,13 @@ get_member_tv(
     }
     else
     {
+	if (cl->class_members_tv[m_idx].v_type == VAR_UNKNOWN)
+	{
+	    // used by the initializer of an earlier class variable
+	    semsg(_(e_class_variable_str_used_before_initialized),
+							   m->ocm_name.string);
+	    return FAIL;
+	}
 	copy_tv(&cl->class_members_tv[m_idx], rettv);
 	set_tv_type(rettv, m->ocm_type);
 	class_unref(cl);

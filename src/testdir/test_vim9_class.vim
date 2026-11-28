@@ -731,6 +731,82 @@ def Test_null_object_assign_compare()
   v9.CheckSourceSuccess(lines)
 enddef
 
+" Test that the result of a "?:" or "??" expression with objects of different
+" classes is type checked in a def function
+def Test_ternary_objects_of_different_classes()
+  var header =<< trim END
+    vim9script
+    class A
+    endclass
+    class B
+    endclass
+    enum Color
+      Red
+    endenum
+    enum Light
+      Red
+    endenum
+  END
+
+  v9.CheckSourceFailure(header + ['def Fn(b: bool)',
+                                  '  var c: Color = b ? Light.Red : Color.Red',
+                                  'enddef', 'Fn(true)'],
+        'E1012: Type mismatch; expected enum<Color> but got enum<Light>', 1)
+  v9.CheckSourceFailure(header + ['def Fn(b: bool): Color',
+                                  '  return b ? Light.Red : Color.Red',
+                                  'enddef', 'Fn(true)'],
+        'E1012: Type mismatch; expected enum<Color> but got enum<Light>', 1)
+  v9.CheckSourceFailure(header + ['def Fn(b: bool)',
+                                  '  var a: A = b ? B.new() : A.new()',
+                                  'enddef', 'Fn(true)'],
+        'E1012: Type mismatch; expected object<A> but got object<B>', 1)
+  v9.CheckSourceFailure(header + ['def Fn()',
+                                  '  var c: Color = null_object ?? Light.Red',
+                                  'enddef', 'Fn()'],
+        'E1012: Type mismatch; expected enum<Color> but got enum<Light>', 1)
+  v9.CheckSourceFailure(header + ['def Fn(b: bool)',
+                                  '  var l: list<Color> = b ? [Light.Red] : [Color.Red]',
+                                  'enddef', 'Fn(true)'],
+        'E1012: Type mismatch; expected list<enum<Color>> but got list<enum<Light>>', 1)
+
+  # values that match the type are accepted
+  var lines =<< trim END
+    vim9script
+    interface I
+      def Name(): string
+    endinterface
+    class A implements I
+      def Name(): string
+        return 'A'
+      enddef
+    endclass
+    class B implements I
+      def Name(): string
+        return 'B'
+      enddef
+    endclass
+    class C extends A
+    endclass
+    enum Color
+      Red
+    endenum
+    enum Light
+      Red
+    endenum
+
+    def Fn(b: bool): list<string>
+      var c: Color = b ? Light.Red : Color.Red
+      var i: I = b ? A.new() : B.new()
+      var a: A = b ? C.new() : A.new()
+      var n: Color = b ? Color.Red : null_object
+      var x = b ? A.new() : B.new()
+      return [c.name, i.Name(), typename(a), string(n == null_object), x.Name()]
+    enddef
+    assert_equal(['Red', 'B', 'object<A>', 'true', 'B'], Fn(false))
+  END
+  v9.CheckSourceSuccess(lines)
+enddef
+
 " Test for object member initialization and disassembly
 def Test_class_member_initializer()
   var lines =<< trim END
@@ -766,6 +842,16 @@ def Test_class_member_initializer()
           instr)
   END
   v9.CheckSourceSuccess(lines)
+
+  # using a class variable in the initializer of an earlier one
+  lines =<< trim END
+    vim9script
+    class Foo
+      static var a: number = Foo.b
+      static var b: number = 1
+    endclass
+  END
+  v9.CheckSourceFailure(lines, 'E1440: Class variable "b" used before it is initialized', 5)
 enddef
 
 def Test_member_any_used_as_object()
@@ -1606,6 +1692,54 @@ def Test_class_object_compare()
     v9.CheckSourceFailure(class_lines
           + ['def Test()'] + op_lines + ['enddef', 'Test()'], 'E1153: Invalid operation for object')
   endfor
+enddef
+
+" Test that objects cannot be compared with an ordering operator by max(),
+" min() and in a legacy script
+def Test_object_ordering_compare()
+  var lines =<< trim END
+    vim9script
+    class A
+    endclass
+    enum Color
+      Red, Green, Blue
+    endenum
+    assert_fails('max(Color.values)', 'E1153: Invalid operation for object')
+    assert_fails('min(Color.values)', 'E1153: Invalid operation for object')
+    assert_fails('max({a: Color.Red, b: Color.Blue})', 'E1153: Invalid operation for object')
+    assert_fails('min((Color.Red, Color.Blue))', 'E1153: Invalid operation for object')
+    assert_fails('max([A.new(), A.new()])', 'E1153: Invalid operation for object')
+    # with a single item there is nothing to compare
+    assert_true(max([Color.Green]) is Color.Green)
+
+    def Fn(): any
+      return max(Color.values)
+    enddef
+    assert_fails('Fn()', 'E1153: Invalid operation for object')
+  END
+  v9.CheckSourceSuccess(lines)
+
+  lines =<< trim END
+    vim9script
+    export class A
+    endclass
+    export enum Color
+      Red, Green
+    endenum
+  END
+  writefile(lines, 'Xobjectcompare.vim', 'D')
+
+  lines =<< trim END
+    import './Xobjectcompare.vim' as m
+    call assert_fails('echo s:m.Color.Red < s:m.Color.Green', 'E1153: Invalid operation for object')
+    call assert_fails('echo s:m.Color.Green >= s:m.Color.Red', 'E1153: Invalid operation for object')
+    call assert_fails('echo s:m.A.new() <= s:m.A.new()', 'E1153: Invalid operation for object')
+    call assert_true(s:m.Color.Red == s:m.Color.Red)
+    call assert_true(s:m.Color.Red != s:m.Color.Green)
+    call assert_true(s:m.Color.Red is s:m.Color.Red)
+    call assert_true(s:m.A.new() isnot s:m.A.new())
+  END
+  v9.CheckSourceScriptSuccess(lines)
 enddef
 
 def Test_object_type()

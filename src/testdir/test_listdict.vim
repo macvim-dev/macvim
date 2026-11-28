@@ -426,6 +426,14 @@ func Test_dict()
   call assert_equal(#{g: x}, #{g:x})
 endfunc
 
+" Does not take exponential time to process nested { expressions
+func Test_unclosed_nested_dict_parse_time()
+  CheckFunction reltimefloat
+  let start = reltime()
+  call assert_fails('echo ' .. repeat('{', 26), 'E723:')
+  call assert_inrange(0.0, 1.0, reltimefloat(reltime(start)))
+endfunc
+
 " This was allowed in legacy Vim script
 let s:dict_with_spaces = {'one' : 1 , 'two' : 2 , 'three' : 3}
 let s:dict_with_spaces_lit = #{one : 1 , two : 2 , three : 3}
@@ -2833,6 +2841,37 @@ def Test_list_length_as_index()
     Fn()
   END
   v9.CheckSourceFailure(lines, 'E1012: Type mismatch; expected enum<Color> but got enum<Shape>', 3)
+
+  # cannot create a new enum value by setting an object variable of a new
+  # item (in a script)
+  lines =<< trim END
+    vim9script
+    enum Color
+      RED,
+      BLUE
+      public var v: number
+    endenum
+    var l: list<Color> = []
+    l[0].v = 7
+  END
+  v9.CheckSourceFailure(lines, 'E1423: Enum value "Color.v" cannot be modified', 8)
+
+  # cannot create a new enum value by setting an object variable of a new
+  # item (in a method)
+  lines =<< trim END
+    vim9script
+    enum Color
+      RED,
+      BLUE
+      public var v: number
+    endenum
+    def Fn()
+      var l: list<Color> = []
+      l[0].v = 7
+    enddef
+    Fn()
+  END
+  v9.CheckSourceFailure(lines, 'E1423: Enum value "Color.v" cannot be modified', 2)
 
   # adding a new string to a list of strings (using type alias)
   lines =<< trim END

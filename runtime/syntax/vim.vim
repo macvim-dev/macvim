@@ -18,10 +18,10 @@ set cpo&vim
 
 " Feature testing {{{1
 
-" NOTE: vimsyn_force_vim9script and vimsyn_force_cmdline_window for internal use only
+" NOTE: b:vimsyn_force_* for internal use only
 let s:vim9script = get(b:, "vimsyn_force_vim9script", v:false) || "\n" .. getline(1, 32)->join("\n") =~# '\nvim9s\%[cript]\>'
-
 let s:cmdline_window = get(b:, "vimsyn_force_cmdline_window", v:false) || win_gettype() ==# "command"
+let s:no_comment_strings = get(b:, "vimsyn_force_no_comment_strings", v:false)
 
 function s:has(feature)
   return has(a:feature) || index(get(g:, "vimsyn_vim_features", []), a:feature) != -1
@@ -2258,8 +2258,8 @@ syn match	vimSpecFile	contained		"%<"me=e-1	nextgroup=vimSpecFileMod
 
 " Lower Priority Comments: after some vim commands... {{{2
 " =======================
-if get(g:, "vimsyn_comment_strings", 1)
-  VimExtend syn region	vimCommentString	contained oneline start='\S\s\+"'ms=e end='"'
+if !s:no_comment_strings && get(g:, "vimsyn_comment_strings", v:true)
+  VimExtend syn region vimCommentString        contained oneline start='\S\s\+"'ms=e end='"'
 endif
 
 if s:vim9script
@@ -2928,7 +2928,7 @@ syn match	vimFunc	contained	"\<\l\w*\ze\s*("				skipwhite nextgroup=vimOperParen
 " dict-key only
 syn match	vimUserFuncKey	contained	"\%(\l\|\d\)\w*\ze\%(\s*(\|<.*>(\)"			skipwhite nextgroup=vimOperParen,vim9TypeArgs	contains=vim9MethodName
 syn match	vimUserFunc	contained	"\<[[:upper:]_]\w*\ze\%(\s*(\|<.*>(\)"		skipwhite nextgroup=vimOperParen,vim9TypeArgs	contains=vim9MethodName,vim9Super,vim9This
-syn match	vimUserFunc	contained	"\<\%(g:\)\=\%(\h\w*#\)\+\h\w*\ze\%(\s*(\|<.*>(\)"		skipwhite nextgroup=vimOperParen		contains=vimVarScope
+syn match	vimUserFunc	contained	"\<\%(g:\)\=\%(\h\w*#\)\+\%(\h\w*\)\=\ze\%(\s*(\|<.*>(\)"	skipwhite nextgroup=vimOperParen		contains=vimVarScope
 syn match	vimUserFunc	contained	"\%(\<[sgbwtlav]:\|<[sS][iI][dD]>\)\h\w*\ze\%(\s*(\|<.*>(\)"	skipwhite nextgroup=vimOperParen,vim9TypeArgs	contains=vimVarScope,vimNotation
 
 Vim9 syn match	vim9UserFunc	contained	"\s\=\%([sgbwtv]:\|<[sS][iI][dD]>\)\=\h\w*\ze[(<]"		skipwhite nextgroup=vimOperParen,vim9TypeArgs	contains=vimVarScope,vimNotation,vim9MethodName,vim9Super,vim9This,vimWhitespace
